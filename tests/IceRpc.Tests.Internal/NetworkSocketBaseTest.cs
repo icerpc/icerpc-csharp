@@ -93,11 +93,11 @@ namespace IceRpc.Tests.Internal
             try
             {
                 INetworkConnection networkConnection = await _listener.AcceptAsync();
-                await networkConnection.ConnectAsync(default);
 
                 NetworkSocket networkSocket = GetNetworkSocket(networkConnection);
+                await networkSocket.ConnectAsync(ServerEndpoint, default);
 
-                if (ClientEndpoint.ParseTcpParams().Tls == null)
+                if (ClientEndpoint.Transport == "tcp" && ClientEndpoint.ParseTcpParams().Tls == null)
                 {
                     // If Tls was negotiated on connection establishment, we need to read the byte sent by the
                     // client (see below).
@@ -128,12 +128,13 @@ namespace IceRpc.Tests.Internal
             }
 
             NetworkSocket networkSocket = CreateClientNetworkSocket();
+            await networkSocket.ConnectAsync(ClientEndpoint, default);
 
             // If Tls is negotiated on connection establishment, we need to send a single byte. The peer peeks
             // a single byte over the connection to figure out if the client establishes a secure/non-secure
             // connection. If we wouldn't providing this byte, the AcceptAsync from the peer would hang
             // indefinitely.
-            if (ClientEndpoint.ParseTcpParams().Tls == null)
+            if (ClientEndpoint.Transport == "tcp" && ClientEndpoint.ParseTcpParams().Tls == null)
             {
                 await networkSocket.SendAsync(new byte[1] { 0 }, default);
             }
@@ -150,7 +151,7 @@ namespace IceRpc.Tests.Internal
                     LogAttributeLoggerFactory.Instance).Listener!;
 
         protected NetworkSocket CreateServerNetworkSocket() =>
-            TestHelper.CreateServerTransport(
+            (NetworkSocket)TestHelper.CreateServerTransport(
                 ServerEndpoint,
                 authenticationOptions: _serverAuthenticationOptions).Listen(
                     ServerEndpoint,
@@ -165,16 +166,16 @@ namespace IceRpc.Tests.Internal
 
         protected static NetworkSocket GetNetworkSocket(INetworkConnection connection)
         {
-            NetworkSocket? networkSocket = null;
+            INetworkSocket? networkSocket = null;
             if (connection is SlicConnection slicConnection)
             {
                 networkSocket = slicConnection.NetworkSocket;
             }
-            else if (connection is SocketConnection socketConnection)
+            else if (connection is NetworkSocketConnection socketConnection)
             {
                 networkSocket = socketConnection.NetworkSocket;
             }
-            return networkSocket!;
+            return (NetworkSocket)networkSocket!;
         }
     }
 }

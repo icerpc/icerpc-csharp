@@ -6,16 +6,16 @@ using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace IceRpc.Internal
 {
     internal sealed class Ice1ProtocolConnection : IProtocolConnection
     {
         /// <inheritdoc/>
-        public bool HasDispatchInProgress => !_dispatchCancellationTokenSources.IsEmpty;
+        public bool HasDispatchInProgress => _dispatchCancellationTokenSources.Count > 0;
         /// <inheritdoc/>
-        public bool HasInvocationsInProgress => !_pendingIncomingResponses.IsEmpty;
+        public bool HasInvocationsInProgress => _pendingIncomingResponses.Count > 0;
 
         /// <inheritdoc/>
         public TimeSpan IdleTimeout { get; private set; }
@@ -23,25 +23,28 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public TimeSpan LastActivity { get; private set; }
 
-//        private readonly AsyncSemaphore? _bidirectionalStreamSemaphore;
-        private TaskCompletionSource? _dispatchEmptyTaskCompletionSource;
+        // private readonly AsyncSemaphore? _bidirectionalStreamSemaphore;
+        private readonly TaskCompletionSource _completeShutdown = new();
+        private readonly Dictionary<int, CancellationTokenSource> _dispatchCancellationTokenSources = new();
         private readonly int _incomingFrameMaxSize;
         private readonly bool _isServer;
         private readonly ILogger _logger;
+        private readonly object _mutex = new();
+        private readonly INetworkConnection _networkConnection;
         private int _nextRequestId;
-        private readonly ConcurrentDictionary<int, TaskCompletionSource<ReadOnlyMemory<byte>>> _pendingIncomingResponses = new();
-        private readonly ConcurrentDictionary<int, CancellationTokenSource> _dispatchCancellationTokenSources = new();
-        private readonly TaskCompletionSource _pendingCloseConnection = new();
+        private readonly TaskCompletionSource _pendingCloseConnection =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly Dictionary<int, TaskCompletionSource<ReadOnlyMemory<byte>>> _pendingIncomingResponses = new();
         private readonly Action? _pingReceived;
         private readonly AsyncSemaphore _sendSemaphore = new(1);
-//        private readonly AsyncSemaphore? _unidirectionalStreamSemaphore;
-        private volatile bool _shutdown;
-        private readonly NetworkSocket _socket;
-        private INetworkConnection _networkConnection;
+        // private readonly AsyncSemaphore? _unidirectionalStreamSemaphore;
+        private bool _shutdown;
+        private readonly INetworkSocket _socket;
 
         /// <summary>Creates a multi-stream protocol connection.</summary>
         public Ice1ProtocolConnection(
-            SocketConnection networkConnection,
+            NetworkSocketConnection networkConnection,
             TimeSpan idleTimeout,
             int incomingFrameMaxSize,
             bool isServer,
@@ -60,13 +63,11 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task InitializeAsync(CancellationToken cancel)
         {
-            await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
-
-            if (!_networkConnection.IsDatagram)
+            if (!_socket.IsDatagram)
             {
                 if (_isServer)
                 {
-                    await SendControlFrameAsync(Ice1Definitions.ValidateConnectionFrame, cancel).ConfigureAwait(false);
+                    await _socket.SendAsync(Ice1Definitions.ValidateConnectionFrame, cancel).ConfigureAwait(false);
                 }
                 else
                 {
@@ -95,10 +96,17 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public void Dispose()
         {
-            _networkConnection.Dispose();
+            _pendingClose.SetResult();
+            var exception = new ConnectionLostException();
+            _sendSemaphore.Complete(exception);
+            _pendingCloseConnection.TrySetException(exception);
+            foreach (TaskCompletionSource<ReadOnlyMemory<byte>> source in _pendingIncomingResponses.Values)
+            {
+                source.SetException(exception);
+            }
             foreach (CancellationTokenSource cancellationTokenSource in _dispatchCancellationTokenSources.Values)
             {
-                cancellationTokenSource.Cancel();
+                cancellationTokenSource.Dispose();
             }
         }
 
@@ -107,7 +115,15 @@ namespace IceRpc.Internal
         {
             cancel.ThrowIfCancellationRequested();
 
-            await SendControlFrameAsync(Ice1Definitions.ValidateConnectionFrame, cancel).ConfigureAwait(false);
+            await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+            try
+            {
+                await _socket.SendAsync(Ice1Definitions.ValidateConnectionFrame, cancel).ConfigureAwait(false);
+            }
+            finally
+            {
+                _sendSemaphore.Release();
+            }
 
             _logger.LogSentIce1ValidateConnectionFrame();
         }
@@ -115,49 +131,79 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task<IncomingRequest?> ReceiveRequestAsync(CancellationToken cancel)
         {
-            (int requestId, ReadOnlyMemory<byte> buffer) = await ReceiveFrameAsync(cancel).ConfigureAwait(false);
-
-            var decoder = new Ice11Decoder(buffer);
-
-            var requestHeader = new Ice1RequestHeader(decoder);
-            if (requestHeader.IdentityAndFacet.Identity.Name.Length == 0)
+            while (true)
             {
-                throw new InvalidDataException("received ice1 request with empty identity name");
+                int requestId;
+                ReadOnlyMemory<byte> buffer;
+                try
+                {
+                    (requestId, buffer) = await ReceiveFrameAsync(cancel).ConfigureAwait(false);
+                }
+                catch
+                {
+                    if (_shutdown)
+                    {
+                        _pendingClose.SetResult();
+                        throw new ConnectionClosedException();
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+
+                var decoder = new Ice11Decoder(buffer);
+
+                var requestHeader = new Ice1RequestHeader(decoder);
+                if (requestHeader.IdentityAndFacet.Identity.Name.Length == 0)
+                {
+                    throw new InvalidDataException("received ice1 request with empty identity name");
+                }
+                if (requestHeader.Operation.Length == 0)
+                {
+                    throw new InvalidDataException("received request with empty operation name");
+                }
+
+                ReadOnlyMemory<byte> payload = buffer[decoder.Pos..];
+
+                // The payload size is the encapsulation size less the 6 bytes of the encapsulation header.
+                int payloadSize = requestHeader.EncapsulationSize - 6;
+                if (payloadSize != payload.Length)
+                {
+                    throw new InvalidDataException(
+                        $"request payload size mismatch: expected {payloadSize} bytes, read {payload.Length} bytes");
+                }
+
+                var request = new IncomingRequest(
+                    Protocol.Ice1,
+                    path: requestHeader.IdentityAndFacet.ToPath(),
+                    operation: requestHeader.Operation)
+                {
+                    IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
+                    IsOneway = requestId == 0,
+                    PayloadEncoding =
+                        Encoding.FromMajorMinor(requestHeader.PayloadEncodingMajor, requestHeader.PayloadEncodingMinor),
+                    Deadline = DateTime.MaxValue,
+                    Payload = payload,
+                };
+                request.Features = request.Features.WithRequestId(requestId);
+                if (requestHeader.Context.Count > 0)
+                {
+                    request.Features = request.Features.WithContext(requestHeader.Context);
+                }
+
+                lock (_mutex)
+                {
+                    // If shutdown, ignore the incoming request and continue receiving frames until the connection
+                    // is closed.
+                    if (!_shutdown)
+                    {
+                        request.CancelDispatchSource = new();
+                        _dispatchCancellationTokenSources[requestId] = request.CancelDispatchSource;
+                    }
+                }
+                return request;
             }
-            if (requestHeader.Operation.Length == 0)
-            {
-                throw new InvalidDataException("received request with empty operation name");
-            }
-
-            ReadOnlyMemory<byte> payload = buffer[decoder.Pos..];
-
-            // The payload size is the encapsulation size less the 6 bytes of the encapsulation header.
-            int payloadSize = requestHeader.EncapsulationSize - 6;
-            if (payloadSize != payload.Length)
-            {
-                throw new InvalidDataException(
-                    $"request payload size mismatch: expected {payloadSize} bytes, read {payload.Length} bytes");
-            }
-
-            var request = new IncomingRequest(
-                Protocol.Ice1,
-                path: requestHeader.IdentityAndFacet.ToPath(),
-                operation: requestHeader.Operation)
-            {
-                IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
-                IsOneway = requestId != 0,
-                PayloadEncoding =
-                    Encoding.FromMajorMinor(requestHeader.PayloadEncodingMajor, requestHeader.PayloadEncodingMinor),
-                Deadline = DateTime.MaxValue,
-                Payload = payload,
-                CancelDispatchSource = new()
-            };
-            if (requestHeader.Context.Count > 0)
-            {
-                request.Features = request.Features.WithContext(requestHeader.Context);
-            }
-            _dispatchCancellationTokenSources[requestId] = request.CancelDispatchSource;
-            return request;
         }
 
         /// <inheritdoc/>
@@ -171,9 +217,24 @@ namespace IceRpc.Internal
             {
                 throw new InvalidOperationException("request ID feature is not set");
             }
-            if (!_pendingIncomingResponses.TryGetValue(requestId, out TaskCompletionSource<ReadOnlyMemory<byte>>? source))
+
+            TaskCompletionSource<ReadOnlyMemory<byte>>? source;
+            lock (_mutex)
             {
-                throw new InvalidOperationException("unknown request with requestId {requestId}");
+                if (_shutdown)
+                {
+                    throw new ConnectionClosedException();
+                }
+                else if (!_pendingIncomingResponses.TryGetValue(requestId, out source))
+                {
+                    throw new InvalidOperationException($"unknown request with requestId {requestId}");
+                }
+
+                // If no more invocations or dispatch and shutting down, notify shutdown can complete.
+                if (_shutdown && _pendingIncomingResponses.Count == 0 && _dispatchCancellationTokenSources.Count == 0)
+                {
+                    _completeShutdown.SetResult();
+                }
             }
 
             // Wait for the response.
@@ -233,9 +294,13 @@ namespace IceRpc.Internal
             {
                 throw new NotSupportedException("stream parameters are not supported with ice1");
             }
-            if (request.Fields.Count > 0 || request.FieldsDefaults.Count > 0)
+            else if (request.Fields.Count > 0 || request.FieldsDefaults.Count > 0)
             {
                 throw new NotSupportedException($"{nameof(Protocol.Ice1)} doesn't support fields");
+            }
+            else if (_socket.IsDatagram && !request.IsOneway)
+            {
+                throw new InvalidOperationException("cannot send twoway request over datagram connection");
             }
 
             // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue to
@@ -284,7 +349,14 @@ namespace IceRpc.Internal
                 request.IsSent = true;
                 if (!request.IsOneway)
                 {
-                    _pendingIncomingResponses[requestId] = new();
+                    lock (_mutex)
+                    {
+                        if (!_shutdown)
+                        {
+                            _pendingIncomingResponses[requestId] =
+                                new(TaskCreationOptions.RunContinuationsAsynchronously);
+                        }
+                    }
                 }
             }
             finally
@@ -299,102 +371,140 @@ namespace IceRpc.Internal
             OutgoingResponse response,
             CancellationToken cancel)
         {
-            if (request.IsOneway)
-            {
-                throw new InvalidOperationException("can't send a response for a one-way request");
-            }
             if (request.Features.GetRequestId() is not int requestId)
             {
                 throw new InvalidOperationException("request ID feature is not set");
             }
 
-            if (_dispatchCancellationTokenSources.TryRemove(requestId, out CancellationTokenSource? source))
-            {
-                source.Dispose();
-            }
+            request.CancelDispatchSource?.Dispose();
 
-            if (_shutdown && _dispatchCancellationTokenSources.IsEmpty)
+            // Send the response if the request is not a one-way request.
+            if (!request.IsOneway)
             {
-                // All the dispatch completed, notify the shutdown that it can send the CloseConnection frame.
-                _dispatchEmptyTaskCompletionSource!.SetResult();
-            }
+                // Wait for sending of other frames to complete. The semaphore is used as an asynchronous
+                // queue to serialize the sending of frames.
+                await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
 
-            // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue to
-            // serialize the sending of frames.
-            await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
-
-            try
-            {
-                var bufferWriter = new BufferWriter();
-                bufferWriter.WriteByteSpan(request.Stream.TransportHeader.Span);
-                if (response.StreamParamSender != null)
+                try
                 {
-                    throw new NotSupportedException("stream parameters are not supported with ice1");
+                    var bufferWriter = new BufferWriter();
+                    if (response.StreamParamSender != null)
+                    {
+                        throw new NotSupportedException("stream parameters are not supported with ice1");
+                    }
+
+                    var encoder = new Ice11Encoder(bufferWriter);
+
+                    // Write the response header.
+                    bufferWriter.WriteByteSpan(Ice1Definitions.FramePrologue);
+                    encoder.EncodeIce1FrameType(Ice1FrameType.Reply);
+                    encoder.EncodeByte(0); // compression status
+                    BufferWriter.Position frameSizeStart = encoder.StartFixedLengthSize();
+
+                    encoder.EncodeInt(requestId);
+
+                    ReplyStatus replyStatus = response.Features.Get<ReplyStatus>();
+                    encoder.EncodeReplyStatus(replyStatus);
+                    if (replyStatus <= ReplyStatus.UserException)
+                    {
+                        (byte encodingMajor, byte encodingMinor) = response.PayloadEncoding.ToMajorMinor();
+
+                        var responseHeader = new Ice1ResponseHeader(encapsulationSize: response.PayloadSize + 6,
+                                                                    encodingMajor,
+                                                                    encodingMinor);
+                        responseHeader.Encode(encoder);
+                    }
+
+                    encoder.EncodeFixedLengthSize(bufferWriter.Size + response.PayloadSize, frameSizeStart);
+
+                    // Add the payload to the buffer writer.
+                    bufferWriter.Add(response.Payload);
+
+                    // Send the response frame.
+                    ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
+                    await _socket.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
                 }
-
-                var encoder = new Ice11Encoder(bufferWriter);
-
-                // Write the response header.
-                bufferWriter.WriteByteSpan(Ice1Definitions.FramePrologue);
-                encoder.EncodeIce1FrameType(Ice1FrameType.Reply);
-                encoder.EncodeByte(0); // compression status
-                BufferWriter.Position frameSizeStart = encoder.StartFixedLengthSize();
-
-                encoder.EncodeInt(requestId);
-
-                ReplyStatus replyStatus = response.Features.Get<ReplyStatus>();
-                encoder.EncodeReplyStatus(replyStatus);
-                if (replyStatus <= ReplyStatus.UserException)
+                finally
                 {
-                    (byte encodingMajor, byte encodingMinor) = response.PayloadEncoding.ToMajorMinor();
-
-                    var responseHeader = new Ice1ResponseHeader(encapsulationSize: response.PayloadSize + 6,
-                                                                encodingMajor,
-                                                                encodingMinor);
-                    responseHeader.Encode(encoder);
+                    _sendSemaphore.Release();
                 }
-
-                encoder.EncodeFixedLengthSize(bufferWriter.Size + response.PayloadSize, frameSizeStart);
-
-                // Add the payload to the buffer writer.
-                bufferWriter.Add(response.Payload);
-
-                // Send the response frame.
-                ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
-                await _socket.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
             }
-            finally
+
+            lock (_mutex)
             {
-                _sendSemaphore.Release();
+                // Dispatch is done, remove the cancellation token source for the dispatch.
+                _dispatchCancellationTokenSources.Remove(requestId);
+
+                // If no more invocations or dispatch and shutting down, notify shutdown can complete.
+                if (_shutdown && _pendingIncomingResponses.Count == 0 && _dispatchCancellationTokenSources.Count == 0)
+                {
+                    _completeShutdown.SetResult();
+                }
             }
         }
 
         /// <inheritdoc/>
         public async Task ShutdownAsync(bool shutdownByPeer, string message, CancellationToken cancel)
         {
-            // Prevent new incoming requests from being accepted.
-            _shutdown = true;
-
             var exception = new ConnectionClosedException(message);
-            foreach (TaskCompletionSource<ReadOnlyMemory<byte>> source in _pendingIncomingResponses.Values)
+            if (_socket.IsDatagram)
             {
-                source.SetException(exception);
+                lock (_mutex)
+                {
+                    _shutdown = true;
+                    _sendSemaphore.Complete(exception);
+                }
             }
-
-            if (shutdownByPeer)
+            else
             {
-                // Peer sent CloseConnection frame, it's not longer interested in the dispatch so we can
-                // cancel them.
-                CancelDispatch();
-            }
-            if (!shutdownByPeer)
-            {
-                // Wait for incoming streams to complete before sending the CloseConnection frame.
-                _dispatchEmptyTaskCompletionSource ??= new TaskCompletionSource();
-                await _dispatchEmptyTaskCompletionSource.Task.WaitAsync(cancel).ConfigureAwait(false);
+                lock (_mutex)
+                {
+                    _shutdown = true;
+                }
 
-                // Write the CloseConnectionFrame frame.
-                await SendControlFrameAsync(Ice1Definitions.CloseConnectionFrame, cancel).ConfigureAwait(false);
+                if (shutdownByPeer)
+                {
+                    // Peer sent CloseConnection frame, we can cancel remaining dispatch since the peer is no
+                    // longer interested in the dispatch responses.
+                    CancelDispatch();
+
+                    // Remaining invocations have not been dispatch by the peer and can safely be retried.
+                    foreach (TaskCompletionSource<ReadOnlyMemory<byte>> source in _pendingIncomingResponses.Values)
+                    {
+                        source.SetException(exception);
+                    }
+                    _pendingIncomingResponses.Clear();
+                }
+                else
+                {
+                    // If shutdown locally, we raise OperationCanceledException for pending invocations. The
+                    // invocation won't be retried.
+                    Exception cancelException = new OperationCanceledException(message);
+                    foreach (TaskCompletionSource<ReadOnlyMemory<byte>> source in _pendingIncomingResponses.Values)
+                    {
+                        source.SetException(cancelException);
+                    }
+                    _pendingIncomingResponses.Clear();
+
+                    // Wait for dispatch to complete.
+                    if (_dispatchCancellationTokenSources.Count > 0)
+                    {
+                        await _completeShutdown.Task.WaitAsync(cancel).ConfigureAwait(false);
+                    }
+                }
+
+                _sendSemaphore.Complete(exception);
+
+                if (!shutdownByPeer)
+                {
+                    // Send the CloseConnection frame once all the dispatch are done.
+                    await _socket.SendAsync(Ice1Definitions.CloseConnectionFrame, cancel).ConfigureAwait(false);
+
+                    // Wait for the peer to close the connection. When the peer receives the CloseConnectionFrame
+                    // the peer closes the connection. This will cause ReceiveRequestAsync to throw and the
+                    // connection will call Dispose to terminate the protocol connection.
+                    await _pendingClose.Task.WaitAsync(cancel).ConfigureAwait(false);
+                }
             }
         }
 
@@ -406,28 +516,12 @@ namespace IceRpc.Internal
 
         private void CancelDispatch()
         {
-            foreach (CancellationTokenSource cancellationTokenSource in _dispatchCancellationTokenSources.Values)
+            lock (_mutex)
             {
-                cancellationTokenSource.Cancel();
-            }
-        }
-
-        private async ValueTask SendControlFrameAsync(
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
-            CancellationToken cancel)
-        {
-            // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue to
-            // serialize the sending of frames.
-            await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
-
-            try
-            {
-                // Perform the sending.
-                await _socket.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
-            }
-            finally
-            {
-                _sendSemaphore.Release();
+                foreach (CancellationTokenSource source in _dispatchCancellationTokenSources.Values)
+                {
+                    source.Cancel();
+                }
             }
         }
 
@@ -437,7 +531,7 @@ namespace IceRpc.Internal
             {
                 // Receive the Ice1 frame header.
                 Memory<byte> buffer;
-                if (_networkConnection.IsDatagram)
+                if (_socket.IsDatagram)
                 {
                     buffer = new byte[_socket.DatagramMaxReceiveSize];
                     int received = await _socket.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
@@ -460,7 +554,7 @@ namespace IceRpc.Internal
                 int frameSize = IceDecoder.DecodeInt(buffer.AsReadOnlySpan().Slice(10, 4));
                 if (frameSize < Ice1Definitions.HeaderSize)
                 {
-                    if (_networkConnection.IsDatagram)
+                    if (_socket.IsDatagram)
                     {
                         _logger.LogReceivedInvalidDatagram(frameSize);
                     }
@@ -470,9 +564,10 @@ namespace IceRpc.Internal
                     }
                     continue; // while
                 }
-                if (frameSize > _incomingFrameMaxSize)
+                if (frameSize > _incomingFrameMaxSize ||
+                    (_socket.IsDatagram && frameSize > _socket.DatagramMaxReceiveSize))
                 {
-                    if (_networkConnection.IsDatagram)
+                    if (_socket.IsDatagram)
                     {
                         _logger.LogDatagramSizeExceededIncomingFrameMaxSize(frameSize);
                         continue;
@@ -484,29 +579,6 @@ namespace IceRpc.Internal
                     }
                 }
 
-                // Read the remainder of the frame if needed.
-                if (frameSize > buffer.Length)
-                {
-                    if (_networkConnection.IsDatagram)
-                    {
-                        _logger.LogDatagramMaximumSizeExceeded(frameSize);
-                        continue;
-                    }
-
-                    Memory<byte> newBuffer = new byte[frameSize];
-                    buffer[0..Ice1Definitions.HeaderSize].CopyTo(newBuffer[0..Ice1Definitions.HeaderSize]);
-                    buffer = newBuffer;
-                }
-                else if (!_networkConnection.IsDatagram)
-                {
-                    buffer = buffer[0..frameSize];
-                }
-
-                if (!_networkConnection.IsDatagram && frameSize > Ice1Definitions.HeaderSize)
-                {
-                    await ReceiveUntilFullAsync(buffer[Ice1Definitions.HeaderSize..], cancel).ConfigureAwait(false);
-                }
-
                 // The magic and version fields have already been checked.
                 var frameType = (Ice1FrameType)buffer.Span[8];
                 byte compressionStatus = buffer.Span[9];
@@ -515,13 +587,38 @@ namespace IceRpc.Internal
                     throw new NotSupportedException("cannot decompress ice1 frame");
                 }
 
+                // Read the remainder of the frame if needed.
+                int remainingSize = frameSize - Ice1Definitions.HeaderSize;
+                if (_socket.IsDatagram)
+                {
+                    Debug.Assert(remainingSize < buffer.Length);
+                    buffer = buffer[0..remainingSize];
+                }
+                else if (remainingSize > 0)
+                {
+                    if (buffer.Length < remainingSize)
+                    {
+                        buffer = new byte[remainingSize];
+                    }
+                    else
+                    {
+                        buffer = buffer[0..remainingSize];
+                    }
+                    await ReceiveUntilFullAsync(buffer, cancel).ConfigureAwait(false);
+                }
+                else
+                {
+                    buffer = Memory<byte>.Empty;
+                }
+
                 switch (frameType)
                 {
                     case Ice1FrameType.CloseConnection:
                     {
                         if (buffer.Length > 0)
                         {
-                            throw new InvalidDataException("");
+                            throw new InvalidDataException(
+                                $"unexpected data for {nameof(Ice1FrameType.CloseConnection)}");
                         }
                         _pendingCloseConnection.SetResult();
                         break;
@@ -529,21 +626,13 @@ namespace IceRpc.Internal
 
                     case Ice1FrameType.Request:
                     {
-                        if (!_shutdown)
-                        {
-                            int requestId = IceDecoder.DecodeInt(buffer.Span.Slice(Ice1Definitions.HeaderSize, 4));
-                            return (requestId, buffer[(Ice1Definitions.HeaderSize + 4)..]);
-                        }
-                        else
-                        {
-                            // The connection is shutting down, ignore incoming requests.
-                        }
-                        break;
+                        int requestId = IceDecoder.DecodeInt(buffer.Span.Slice(0, 4));
+                        return (requestId, buffer[4..]);
                     }
 
                     case Ice1FrameType.RequestBatch:
                     {
-                        int invokeNum = IceDecoder.DecodeInt(buffer.Span.Slice(Ice1Definitions.HeaderSize, 4));
+                        int invokeNum = IceDecoder.DecodeInt(buffer.Span.Slice(0, 4));
                         _logger.LogReceivedIce1RequestBatchFrame(invokeNum);
 
                         if (invokeNum < 0)
@@ -556,12 +645,16 @@ namespace IceRpc.Internal
 
                     case Ice1FrameType.Reply:
                     {
-                        int requestId = IceDecoder.DecodeInt(buffer.Span.Slice(Ice1Definitions.HeaderSize, 4));
-                        if (_pendingIncomingResponses.TryGetValue(
-                            requestId,
-                            out TaskCompletionSource<ReadOnlyMemory<byte>>? source))
+                        int requestId = IceDecoder.DecodeInt(buffer.Span.Slice(0, 4));
+                        lock (_mutex)
                         {
-                            source.SetResult(buffer[(Ice1Definitions.HeaderSize + 4)..]);
+                            if (_pendingIncomingResponses.TryGetValue(
+                                requestId,
+                                out TaskCompletionSource<ReadOnlyMemory<byte>>? source))
+                            {
+                                source.SetResult(buffer[4..]);
+                                _pendingIncomingResponses.Remove(requestId);
+                            }
                         }
                         break;
                     }
@@ -569,6 +662,11 @@ namespace IceRpc.Internal
                     case Ice1FrameType.ValidateConnection:
                     {
                         // Notify the control stream of the reception of a Ping frame.
+                        if (buffer.Length > 0)
+                        {
+                            throw new InvalidDataException(
+                                $"unexpected data for {nameof(Ice1FrameType.ValidateConnection)}");
+                        }
                         _logger.LogReceivedIce1ValidateConnectionFrame();
                         _pingReceived?.Invoke();
                         break;

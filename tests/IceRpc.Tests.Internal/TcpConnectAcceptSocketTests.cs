@@ -8,21 +8,21 @@ using System.Net.Sockets;
 
 namespace IceRpc.Tests.Internal
 {
-    [TestFixture("tcp", false, AddressFamily.InterNetwork)]
-    [TestFixture("tcp", true, AddressFamily.InterNetwork)]
-    [TestFixture("tcp", null, AddressFamily.InterNetwork)]
-    [TestFixture("tcp", false, AddressFamily.InterNetworkV6)]
+    [TestFixture(false, AddressFamily.InterNetwork)]
+    [TestFixture(true, AddressFamily.InterNetwork)]
+    [TestFixture(null, AddressFamily.InterNetwork)]
+    [TestFixture(false, AddressFamily.InterNetworkV6)]
     [Timeout(5000)]
-    public class NetworkSocketTests : NetworkSocketBaseTest
+    public class TcpConnectAcceptSocketTests : NetworkSocketBaseTest
     {
         private bool? _tls;
 
-        public NetworkSocketTests(bool? tls, AddressFamily addressFamily)
+        public TcpConnectAcceptSocketTests(bool? tls, AddressFamily addressFamily)
             : base("tcp", tls, addressFamily) =>
             _tls = tls;
 
         [Test]
-        public async Task NetworkSocket_Listener_AcceptAsync()
+        public async Task TcpConnectAcceptSocket_Listener_AcceptAsync()
         {
             using IListener listener = CreateListener();
             ValueTask<NetworkSocket> acceptTask = CreateServerNetworkSocketAsync(listener);
@@ -33,14 +33,14 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void NetworkSocket_Listener_Constructor_TransportException()
+        public void TcpConnectAcceptSocket_Listener_Constructor_TransportException()
         {
             using IListener listener = CreateListener();
             Assert.Throws<TransportException>(() => CreateListener());
         }
 
         [Test]
-        public async Task NetworkSocket_AcceptAsync()
+        public async Task TcpConnectAcceptSocket_AcceptAsync()
         {
             using IListener listener = CreateListener();
             ValueTask<NetworkSocket> acceptTask = CreateServerNetworkSocketAsync(listener);
@@ -64,7 +64,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task NetworkSocket_AcceptAsync_ConnectionLostExceptionAsync()
+        public async Task TcpConnectAcceptSocket_AcceptAsync_ConnectionLostExceptionAsync()
         {
             using IListener listener = CreateListener();
             ValueTask<NetworkSocket> acceptTask = CreateServerNetworkSocketAsync(listener);
@@ -97,7 +97,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(false, false)]
         [TestCase(true, false)]
         [TestCase(false, true)]
-        public void NetworkSocket_Listener_AddressReuse(bool wildcard1, bool wildcard2)
+        public void TcpConnectAcceptSocket_Listener_AddressReuse(bool wildcard1, bool wildcard2)
         {
             IListener listener;
             if (wildcard1)
@@ -152,7 +152,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task NetworkSocket_AcceptAsync_OperationCanceledExceptionAsync()
+        public async Task TcpConnectAcceptSocket_AcceptAsync_OperationCanceledExceptionAsync()
         {
             using IListener listener = CreateListener();
 
@@ -177,7 +177,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void NetworkSocket_ConnectAsync_ConnectionRefusedException()
+        public void TcpConnectAcceptSocket_ConnectAsync_ConnectionRefusedException()
         {
             using NetworkSocket clientSocket = CreateClientNetworkSocket();
             Assert.ThrowsAsync<ConnectionRefusedException>(
@@ -185,7 +185,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void NetworkSocket_ConnectAsync_OperationCanceledException()
+        public void TcpConnectAcceptSocket_ConnectAsync_OperationCanceledException()
         {
             using IListener listener = CreateListener();
 

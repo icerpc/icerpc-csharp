@@ -1,19 +1,19 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging;
+
 namespace IceRpc.Transports
 {
     /// <summary>A network socket connection represents a network connection based on a <see
-    /// cref="NetworkSocket"/>.</summary>
-    public sealed class SocketConnection : INetworkConnection
+    /// cref="_socket"/>.</summary>
+    public sealed class NetworkSocketConnection : INetworkConnection
     {
         /// <inheritdoc/>
-        public bool IsDatagram => NetworkSocket.IsDatagram;
-
-        /// <inheritdoc/>
-        public bool IsSecure => NetworkSocket.SslStream != null;
+        public bool IsSecure => _socket.SslStream != null;
 
         /// <summary>The underlying network socket.</summary>
-        public NetworkSocket NetworkSocket { get; private set; }
+        public INetworkSocket NetworkSocket => _socket;
 
         /// <summary><c>true</c> for server connections; otherwise, <c>false</c>. A server connection is created
         /// by a server-side listener while a client connection is created from the endpoint by the client-side.
@@ -28,23 +28,26 @@ namespace IceRpc.Transports
         /// </summary>
         public Endpoint? RemoteEndpoint { get; private set; }
 
+        private readonly NetworkSocket _socket;
+        private readonly INetworkSocket _decoratedSocket;
+
         /// <inheritdoc/>
         public async ValueTask ConnectAsync(CancellationToken cancel)
         {
-            if (IsServer)
+            if (!IsServer)
             {
-                RemoteEndpoint = await NetworkSocket.ConnectAsync(LocalEndpoint!, cancel).ConfigureAwait(false);
+                LocalEndpoint = await _decoratedSocket.ConnectAsync(RemoteEndpoint!, cancel).ConfigureAwait(false);
             }
-            else
+            else if (!_decoratedSocket.IsDatagram)
             {
-                LocalEndpoint = await NetworkSocket.ConnectAsync(RemoteEndpoint!, cancel).ConfigureAwait(false);
+                RemoteEndpoint = await _decoratedSocket.ConnectAsync(LocalEndpoint!, cancel).ConfigureAwait(false);
             }
         }
 
         /// <inheritdoc/>
         public void Dispose()
         {
-            NetworkSocket.Dispose();
+            _socket.Dispose();
             GC.SuppressFinalize(this);
         }
 
@@ -52,7 +55,10 @@ namespace IceRpc.Transports
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             !IsServer &&
             EndpointComparer.ParameterLess.Equals(remoteEndpoint, RemoteEndpoint) &&
-            NetworkSocket.HasCompatibleParams(remoteEndpoint);
+            _decoratedSocket.HasCompatibleParams(remoteEndpoint);
+
+        /// <inheritdoc/>
+        public override string? ToString() => _decoratedSocket.ToString();
 
         /// <summary>Constructs a connection.</summary>
         /// <param name="networkSocket">The network socket. It can be a client socket or server socket, and
@@ -60,12 +66,22 @@ namespace IceRpc.Transports
         /// <param name="endpoint">For a client connection, the remote endpoint; for a server connection, the
         /// endpoint the server is listening on.</param>
         /// <param name="isServer">The connection is a server connection.</param>
-        public SocketConnection(NetworkSocket networkSocket, Endpoint endpoint, bool isServer)
+        /// <param name="logger">The logger.</param>
+        public NetworkSocketConnection(NetworkSocket networkSocket, Endpoint endpoint, bool isServer, ILogger logger)
         {
             IsServer = isServer;
             LocalEndpoint = IsServer ? endpoint : null;
             RemoteEndpoint = IsServer ? null : endpoint;
-            NetworkSocket = networkSocket;
+
+            _socket = networkSocket;
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                _decoratedSocket = new LogNetworkSocketDecorator(networkSocket, logger);
+            }
+            else
+            {
+                _decoratedSocket = networkSocket;
+            }
         }
     }
 }

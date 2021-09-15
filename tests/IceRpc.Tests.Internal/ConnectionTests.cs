@@ -12,7 +12,7 @@ using System.Security.Cryptography.X509Certificates;
 namespace IceRpc.Tests.Internal
 {
     [Parallelizable(ParallelScope.All)]
-    [Timeout(30000)]
+    [Timeout(5000)]
     public class ConnectionTests
     {
         /// <summary>The connection factory is a small helper to allow creating a client and server connection
@@ -67,12 +67,12 @@ namespace IceRpc.Tests.Internal
 
             public async Task<(Connection, Connection)> AcceptAndConnectAsync()
             {
-                Connection clientConnection;
-                Connection serverConnection;
-
                 IServerTransport serverTransport = TestHelper.CreateServerTransport(
                     Endpoint,
                     authenticationOptions: _serverAuthenticationOptions);
+
+                Connection clientConnection;
+                Connection serverConnection;
                 if (Endpoint.Transport == "udp")
                 {
                     serverConnection = new Connection(
@@ -80,6 +80,7 @@ namespace IceRpc.Tests.Internal
                         _dispatcher,
                         _serverConnectionOptions,
                         LogAttributeLoggerFactory.Instance);
+                    await serverConnection.ConnectAsync(default);
                     clientConnection = await ConnectAsync(serverConnection.LocalEndpoint!);
                 }
                 else
@@ -295,65 +296,64 @@ namespace IceRpc.Tests.Internal
             Assert.That(factory.ClientConnection.IsSecure, Is.EqualTo(secure));
             Assert.That(factory.ServerConnection.IsSecure, Is.EqualTo(secure));
 
-            Socket? clientSocket =
-                (factory.ClientConnection.NetworkConnection as SocketConnection)?.NetworkSocket.Socket;
+            var clientSocket = (NetworkSocket)factory.ClientConnection.GetNetworkSocket()!;
             Assert.That(clientSocket, Is.Not.Null);
 
-            Socket? serverSocket =
-                (factory.ServerConnection.NetworkConnection as SocketConnection)?.NetworkSocket.Socket;
+            var serverSocket = (NetworkSocket)factory.ServerConnection.GetNetworkSocket()!;
             Assert.That(serverSocket, Is.Not.Null);
 
-            Assert.That(clientSocket!.RemoteEndPoint, Is.Not.Null);
-            Assert.That(clientSocket.LocalEndPoint, Is.Not.Null);
+            Assert.That(clientSocket.Socket!.RemoteEndPoint, Is.Not.Null);
+            Assert.That(clientSocket.Socket!.LocalEndPoint, Is.Not.Null);
 
-            Assert.That(serverSocket!.LocalEndPoint, Is.Not.Null);
+            Assert.That(serverSocket.Socket!.LocalEndPoint, Is.Not.Null);
 
             Assert.AreEqual("127.0.0.1", factory.ClientConnection.LocalEndpoint!.Host);
             Assert.AreEqual("127.0.0.1", factory.ClientConnection.RemoteEndpoint!.Host);
-            Assert.That(factory.ClientConnection.RemoteEndpoint!.Port, Is.EqualTo(factory.ServerConnection.LocalEndpoint!.Port));
+            Assert.That(factory.ClientConnection.RemoteEndpoint!.Port,
+                        Is.EqualTo(factory.ServerConnection.LocalEndpoint!.Port));
             if (transport == "udp")
             {
-                Assert.That(serverSocket.RemoteEndPoint, Is.Null);
+                Assert.That(serverSocket.Socket!.RemoteEndPoint, Is.Null);
                 Assert.That(factory.ServerConnection.RemoteEndpoint, Is.Null);
             }
             else
             {
-                Assert.That(serverSocket.RemoteEndPoint, Is.Not.Null);
-                Assert.That(factory.ClientConnection.LocalEndpoint.Port, Is.EqualTo(factory.ServerConnection.RemoteEndpoint!.Port));
+                Assert.That(serverSocket.Socket!.RemoteEndPoint, Is.Not.Null);
+                Assert.That(factory.ClientConnection.LocalEndpoint.Port,
+                            Is.EqualTo(factory.ServerConnection.RemoteEndpoint!.Port));
                 Assert.AreEqual("127.0.0.1", factory.ClientConnection.RemoteEndpoint.Host);
             }
             Assert.That(factory.ClientConnection.IsServer, Is.False);
             Assert.That(factory.ServerConnection.IsServer, Is.True);
 
-            Assert.AreEqual(factory.ClientConnection.RemoteEndpoint.Port, ((IPEndPoint)clientSocket.RemoteEndPoint!).Port);
-            Assert.AreEqual(factory.ClientConnection.LocalEndpoint.Port, ((IPEndPoint)clientSocket.LocalEndPoint!).Port);
+            Assert.AreEqual(factory.ClientConnection.RemoteEndpoint.Port,
+                            ((IPEndPoint)clientSocket.Socket!.RemoteEndPoint!).Port);
+            Assert.AreEqual(factory.ClientConnection.LocalEndpoint.Port,
+                            ((IPEndPoint)clientSocket.Socket!.LocalEndPoint!).Port);
 
-            Assert.AreEqual("127.0.0.1", ((IPEndPoint)clientSocket.LocalEndPoint).Address.ToString());
-            Assert.AreEqual("127.0.0.1", ((IPEndPoint)clientSocket.RemoteEndPoint).Address.ToString());
+            Assert.AreEqual("127.0.0.1", ((IPEndPoint)clientSocket.Socket!.LocalEndPoint).Address.ToString());
+            Assert.AreEqual("127.0.0.1", ((IPEndPoint)clientSocket.Socket!.RemoteEndPoint).Address.ToString());
 
-            Assert.That($"{factory.ClientConnection}", Does.StartWith(factory.ClientConnection.NetworkConnection!.GetType().Name));
-            Assert.That($"{factory.ServerConnection}", Does.StartWith(factory.ServerConnection.NetworkConnection!.GetType().Name));
+            Assert.That($"{factory.ClientConnection}", Does.StartWith(clientSocket.GetType().Name));
+            Assert.That($"{factory.ServerConnection}", Does.StartWith(serverSocket.GetType().Name));
 
             if (transport == "udp")
             {
-                Assert.AreEqual(SocketType.Dgram, clientSocket.SocketType);
+                Assert.AreEqual(SocketType.Dgram, clientSocket.Socket!.SocketType);
             }
             else if (transport == "tcp")
             {
-                Assert.AreEqual(SocketType.Stream, clientSocket.SocketType);
+                Assert.AreEqual(SocketType.Stream, clientSocket.Socket!.SocketType);
             }
 
             if (secure)
             {
                 Assert.AreEqual("tcp", transport);
-                SslStream? clientSslStream =
-                    (factory.ClientConnection.NetworkConnection as SocketConnection)?.NetworkSocket.SslStream;
 
+                SslStream? clientSslStream = factory.ClientConnection!.GetNetworkSocket()!.SslStream;
                 Assert.That(clientSslStream, Is.Not.Null);
 
-                SslStream? serverSslStream =
-                    (factory.ServerConnection.NetworkConnection as SocketConnection)?.NetworkSocket.SslStream;
-
+                SslStream? serverSslStream = factory.ServerConnection!.GetNetworkSocket()!.SslStream;
                 Assert.That(serverSslStream, Is.Not.Null);
 
                 Assert.That(clientSslStream!.CheckCertRevocationStatus, Is.False);
@@ -525,7 +525,8 @@ namespace IceRpc.Tests.Internal
             await waitForDispatchSemaphore.WaitAsync();
 
             // Shutdown the connection.
-            Task shutdownTask = (closeClientSide ? factory.ClientConnection : factory.ServerConnection).ShutdownAsync("message");
+            Task shutdownTask =
+                (closeClientSide ? factory.ClientConnection : factory.ServerConnection).ShutdownAsync("message");
             Assert.That(dispatchSemaphore.Release(), Is.EqualTo(0));
             await shutdownTask;
 
@@ -597,7 +598,7 @@ namespace IceRpc.Tests.Internal
                 if (protocol == Protocol.Ice1)
                 {
                     // Client-side Ice1 invocations are canceled immediately on shutdown.
-                    Assert.That(ex!.Message, Is.EqualTo("connection shutdown"));
+                    Assert.That(ex!.Message, Is.EqualTo("client message"));
                 }
                 else
                 {

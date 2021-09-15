@@ -112,14 +112,14 @@ namespace IceRpc
                     throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
 
-                SocketConnection? networkSocketConnection;
-                (_listener, networkSocketConnection) = ServerTransport.Listen(
+                NetworkSocketConnection? socketConnection;
+                (_listener, socketConnection) = ServerTransport.Listen(
                     _endpoint,
                     _loggerFactory ?? NullLoggerFactory.Instance);
 
                 if (_listener != null)
                 {
-                    Debug.Assert(networkSocketConnection == null);
+                    Debug.Assert(socketConnection == null);
                     _endpoint = _listener.Endpoint;
 
                     // Run task to start accepting new connections.
@@ -127,17 +127,17 @@ namespace IceRpc
                 }
                 else
                 {
-                    Debug.Assert(networkSocketConnection != null);
+                    Debug.Assert(socketConnection != null);
 
                     // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
                     var serverConnection = new Connection(
-                        networkSocketConnection,
+                        socketConnection,
                         Dispatcher,
                         ConnectionOptions,
                         LoggerFactory);
 #pragma warning restore CA2000
-                    _endpoint = networkSocketConnection.LocalEndpoint!;
+                    _endpoint = socketConnection.LocalEndpoint!;
 
                     // Connect the connection to start accepting new streams.
                     _ = serverConnection.ConnectAsync(default);

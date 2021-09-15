@@ -48,7 +48,7 @@ namespace IceRpc.Tests.Internal
 
         [TestCase(1)]
         [TestCase(1024)]
-        public async Task DatagramMulticast_SendReceiveAsync(int size)
+        public async Task Multicast_SendReceiveAsync(int size)
         {
             var sendBuffer = new byte[size];
             new Random().NextBytes(sendBuffer);

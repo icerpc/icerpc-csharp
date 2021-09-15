@@ -35,7 +35,7 @@ namespace IceRpc.Tests.Internal
             int bidirectionalStreamMaxCount = 0,
             int unidirectionalStreamMaxCount = 0)
         {
-            int port = 12000;
+            int port = 11000;
             if (TestContext.Parameters.Names.Contains("IceRpc.Tests.Internal.BasePort"))
             {
                 port = int.Parse(TestContext.Parameters["IceRpc.Tests.Internal.BasePort"]!,
@@ -43,14 +43,19 @@ namespace IceRpc.Tests.Internal
             }
             port += Interlocked.Add(ref _nextBasePort, 1);
 
-            string transport = connectionType == MultiStreamConnectionType.Coloc ? "coloc" : "tcp";
-            string endpoint = $"ice+{transport}://127.0.0.1:{port}";
+            string endpoint;
+            if (connectionType == MultiStreamConnectionType.Coloc)
+            {
+                endpoint = $"ice+coloc://127.0.0.1:{port}";
+                ServerMultiStreamOptions = new MultiStreamOptions();
+            }
+            else
+            {
+                endpoint = $"ice+tcp://127.0.0.1:{port}?tls=false";
+                ServerMultiStreamOptions = new SlicOptions();
+            }
             _serverEndpoint = endpoint;
             _clientEndpoint = endpoint;
-
-            ServerMultiStreamOptions = connectionType == MultiStreamConnectionType.Coloc ?
-                 new MultiStreamOptions() :
-                 new SlicOptions();
 
             if (bidirectionalStreamMaxCount > 0)
             {
@@ -118,7 +123,6 @@ namespace IceRpc.Tests.Internal
             INetworkConnection networkConnection = clientTransport.CreateConnection(
                     _clientEndpoint,
                     LogAttributeLoggerFactory.Instance);
-
             await networkConnection.ConnectAsync(default);
             return (MultiStreamConnection)networkConnection;
         }
@@ -131,7 +135,7 @@ namespace IceRpc.Tests.Internal
                     _serverEndpoint,
                     LogAttributeLoggerFactory.Instance).Listener!;
 
-        protected static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateSendPayload(RpcStream stream, int length = 10)
+        protected static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateSendPayload(NetworkStream stream, int length = 10)
         {
             byte[] buffer = new byte[stream.TransportHeader.Length + length];
             stream.TransportHeader.CopyTo(buffer);

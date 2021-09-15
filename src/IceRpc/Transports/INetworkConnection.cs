@@ -5,9 +5,6 @@ namespace IceRpc.Transports
     /// <summary>A network connection represents the low-level transport to exchange data as bytes.</summary>
     public interface INetworkConnection : IDisposable
     {
-        /// <summary><c>true</c> for datagram connection; <c>false</c> otherwise.</summary>
-        bool IsDatagram { get; }
-
         /// <summary>Indicates whether or not this network connection is secure.</summary>
         /// <value><c>true</c> means the network connection is secure. <c>false</c> means the network
         /// connection transport is not secure. If the connection is not established, secure is always

@@ -12,7 +12,7 @@ namespace IceRpc.Transports
 {
     /// <summary>A multi-stream connection represents a network connection that provides multiple independent
     /// streams of binary data.</summary>
-    /// <seealso cref="RpcStream"/>
+    /// <seealso cref="NetworkStream"/>
     public abstract class MultiStreamConnection : INetworkConnection
     {
         /// <summary><c>true</c> for datagram connection; <c>false</c> otherwise.</summary>
@@ -74,14 +74,14 @@ namespace IceRpc.Transports
         private long _lastIncomingUnidirectionalStreamId = -1;
         private readonly object _mutex = new();
         private int _outgoingStreamCount;
-        private readonly ConcurrentDictionary<long, RpcStream> _streams = new();
+        private readonly ConcurrentDictionary<long, NetworkStream> _streams = new();
         private bool _shutdown;
         private Action? _streamRemoved;
 
         /// <summary>Accepts an incoming stream.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <return>The accepted stream.</return>
-        public abstract ValueTask<RpcStream> AcceptStreamAsync(CancellationToken cancel);
+        public abstract ValueTask<NetworkStream> AcceptStreamAsync(CancellationToken cancel);
 
         /// <summary>Connects a new client connection. This is called after the endpoint created a new connection
         /// to establish the connection and perform blocking socket level initialization (TLS handshake, etc).
@@ -94,7 +94,7 @@ namespace IceRpc.Transports
         /// call on the stream.</summary>
         /// <param name="bidirectional"><c>True</c> to create a bidirectional stream, <c>false</c> otherwise.</param>
         /// <return>The outgoing stream.</return>
-        public abstract RpcStream CreateStream(bool bidirectional);
+        public abstract NetworkStream CreateStream(bool bidirectional);
 
         /// <summary>Releases the resources used by the connection.</summary>
         public void Dispose()
@@ -146,11 +146,11 @@ namespace IceRpc.Transports
             // Shutdown the connection to ensure stream creation fails after the connection is disposed.
             _ = Shutdown();
 
-            foreach (RpcStream stream in _streams.Values)
+            foreach (NetworkStream stream in _streams.Values)
             {
                 try
                 {
-                    stream.Abort(RpcStreamError.ConnectionAborted);
+                    stream.Abort(StreamError.ConnectionAborted);
                 }
                 catch (Exception ex)
                 {
@@ -203,20 +203,6 @@ namespace IceRpc.Transports
             {
                 LastActivity = Time.Elapsed;
             }
-
-            if (Logger.IsEnabled(LogLevel.Trace))
-            {
-                var sb = new StringBuilder();
-                for (int i = 0; i < Math.Min(buffer.Length, 32); ++i)
-                {
-                    sb.Append($"0x{buffer.Span[i]:X2} ");
-                }
-                if (buffer.Length > 32)
-                {
-                    sb.Append("...");
-                }
-                Logger.LogReceivedData(buffer.Length, sb.ToString().Trim());
-            }
         }
 
         /// <summary>Traces the given sent amount of data. Transport implementations should call this method to
@@ -228,29 +214,6 @@ namespace IceRpc.Transports
             {
                 LastActivity = Time.Elapsed;
             }
-
-            if (Logger.IsEnabled(LogLevel.Trace))
-            {
-                var sb = new StringBuilder();
-                int size = 0;
-                for (int i = 0; i < buffers.Length; ++i)
-                {
-                    ReadOnlyMemory<byte> buffer = buffers.Span[i];
-                    if (size < 32)
-                    {
-                        for (int j = 0; j < Math.Min(buffer.Length, 32 - size); ++j)
-                        {
-                            sb.Append($"0x{buffer.Span[j]:X2} ");
-                        }
-                    }
-                    size += buffer.Length;
-                    if (size == 32 && i != buffers.Length)
-                    {
-                        sb.Append("...");
-                    }
-                }
-                Logger.LogSentData(size, sb.ToString().Trim());
-            }
         }
 
         /// <summary>Try to get a stream with the given ID. Transport implementations can use this method to lookup
@@ -259,9 +222,9 @@ namespace IceRpc.Transports
         /// <param name="value">If found, value is assigned to the stream value, null otherwise.</param>
         /// <return>True if the stream was found and value contains a non-null value, False otherwise.</return>
         protected bool TryGetStream<T>(long streamId, [NotNullWhen(returnValue: true)] out T? value)
-            where T : RpcStream
+            where T : NetworkStream
         {
-            if (_streams.TryGetValue(streamId, out RpcStream? stream))
+            if (_streams.TryGetValue(streamId, out NetworkStream? stream))
             {
                 value = (T)stream;
                 return true;
@@ -274,11 +237,11 @@ namespace IceRpc.Transports
         public abstract Task PingAsync(CancellationToken cancel);
 
         internal void AbortOutgoingStreams(
-            RpcStreamError errorCode,
+            StreamError errorCode,
             (long Bidirectional, long Unidirectional) ids)
         {
             // Abort outgoing streams with IDs larger than the given IDs, they haven't been dispatch by the peer.
-            foreach (RpcStream stream in _streams.Values)
+            foreach (NetworkStream stream in _streams.Values)
             {
                 if (!stream.IsIncoming && stream.Id > (stream.IsBidirectional ? ids.Bidirectional : ids.Unidirectional))
                 {
@@ -289,7 +252,7 @@ namespace IceRpc.Transports
 
         internal void CancelDispatch()
         {
-            foreach (RpcStream stream in _streams.Values)
+            foreach (NetworkStream stream in _streams.Values)
             {
                 try
                 {
@@ -302,7 +265,7 @@ namespace IceRpc.Transports
             }
         }
 
-        internal void AddStream(long id, RpcStream stream, ref long streamId)
+        internal void AddStream(long id, NetworkStream stream, ref long streamId)
         {
             lock (_mutex)
             {
@@ -347,7 +310,7 @@ namespace IceRpc.Transports
         {
             lock (_mutex)
             {
-                if (_streams.TryRemove(id, out RpcStream? stream))
+                if (_streams.TryRemove(id, out NetworkStream? stream))
                 {
                     if (stream.IsIncoming)
                     {

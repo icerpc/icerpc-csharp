@@ -19,13 +19,14 @@ namespace IceRpc.Transports.Internal
 
         public async ValueTask<INetworkConnection> AcceptAsync()
         {
-            TcpSocket tcpSocket;
+            TcpSocket? tcpSocket;
             try
             {
+#pragma warning disable CA2000 // Dispose objects before losing scope
                 tcpSocket = new TcpServerSocket(
                     await _socket.AcceptAsync().ConfigureAwait(false),
-                    _logger,
                     _authenticationOptions);
+#pragma warning restore CA2000 // Dispose objects before losing scope
             }
             catch (Exception ex)
             {
@@ -38,7 +39,7 @@ namespace IceRpc.Transports.Internal
             }
             else
             {
-                return new SocketConnection(tcpSocket, Endpoint, isServer: true);
+                return new NetworkSocketConnection(tcpSocket, Endpoint, isServer: true, _logger);
             }
         }
 

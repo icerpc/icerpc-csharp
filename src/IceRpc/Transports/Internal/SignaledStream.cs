@@ -12,7 +12,7 @@ namespace IceRpc.Transports.Internal
     /// or values can be queued using QueueResult. QueueResult might require allocating a queue on the
     /// heap. Stream implementations will typically only use it when needed.
     /// </summary>
-    internal abstract class SignaledStream<T> : RpcStream, IValueTaskSource<T>
+    internal abstract class SignaledStream<T> : NetworkStream, IValueTaskSource<T>
     {
         internal bool IsSignaled
         {
@@ -44,15 +44,15 @@ namespace IceRpc.Transports.Internal
         private ManualResetValueTaskSourceCore<T> _source;
         private CancellationTokenRegistration _tokenRegistration;
 
-        public override void AbortRead(RpcStreamError errorCode)
+        public override void AbortRead(StreamError errorCode)
         {
             // It's important to set the exception before completing the reads because WaitAsync expects the
             // exception to be set if reads are completed.
-            SetException(new RpcStreamAbortedException(errorCode));
+            SetException(new StreamAbortedException(errorCode));
 
             if (TrySetReadCompleted(shutdown: false))
             {
-                if (IsStarted && !IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
+                if (IsStarted && !IsShutdown && errorCode != StreamError.ConnectionAborted)
                 {
                     // Notify the peer of the read abort by sending a stop sending frame.
                     _ = SendStopSendingFrameAndShutdownAsync();
@@ -78,9 +78,9 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override void AbortWrite(RpcStreamError errorCode)
+        public override void AbortWrite(StreamError errorCode)
         {
-            if (IsStarted && !IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
+            if (IsStarted && !IsShutdown && errorCode != StreamError.ConnectionAborted)
             {
                 // Notify the peer of the write abort by sending a reset frame.
                 _ = SendResetFrameAndCompleteWritesAsync();
@@ -121,7 +121,7 @@ namespace IceRpc.Transports.Internal
 
             // The stream might not be signaled if it's shutdown gracefully after receiving endStream. We
             // make sure to set the exception in this case to prevent WaitAsync calls to block.
-            SetException(new RpcStreamAbortedException(RpcStreamError.StreamAborted));
+            SetException(new StreamAbortedException(StreamError.StreamAborted));
 
             // Unregister the cancellation token callback
             _tokenRegistration.Dispose();
@@ -267,9 +267,9 @@ namespace IceRpc.Transports.Internal
             return new ValueTask<T>(this, _source.Version);
         }
 
-        private protected abstract Task SendResetFrameAsync(RpcStreamError errorCode);
+        private protected abstract Task SendResetFrameAsync(StreamError errorCode);
 
-        private protected abstract Task SendStopSendingFrameAsync(RpcStreamError errorCode);
+        private protected abstract Task SendStopSendingFrameAsync(StreamError errorCode);
 
         T IValueTaskSource<T>.GetResult(short token)
         {

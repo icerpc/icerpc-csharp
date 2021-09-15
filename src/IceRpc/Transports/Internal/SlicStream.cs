@@ -189,7 +189,7 @@ namespace IceRpc.Transports.Internal
             {
                 if (WriteCompleted)
                 {
-                    throw new RpcStreamAbortedException(RpcStreamError.StreamAborted);
+                    throw new StreamAbortedException(StreamError.StreamAborted);
                 }
 
                 if (_sendSemaphore != null)
@@ -437,7 +437,7 @@ namespace IceRpc.Transports.Internal
                 catch
                 {
                     // Socket failure, just set the exception on the stream.
-                    AbortRead(RpcStreamError.ConnectionAborted);
+                    AbortRead(StreamError.ConnectionAborted);
                 }
 
                 // Queue the frame before notifying the connection we're done with the receive. It's important
@@ -458,7 +458,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal void ReceivedReset(RpcStreamError errorCode)
+        internal void ReceivedReset(StreamError errorCode)
         {
             if (!IsBidirectional && !IsIncoming)
             {
@@ -467,7 +467,7 @@ namespace IceRpc.Transports.Internal
 
             // It's important to set the exception before completing the reads because ReceiveAsync expects the
             // exception to be set if reads are completed.
-            SetException(new RpcStreamAbortedException(errorCode));
+            SetException(new StreamAbortedException(errorCode));
 
             // Cancel the dispatch source before completing reads otherwise the source might be disposed after
             // and the dispatch won't be canceled.
@@ -483,14 +483,14 @@ namespace IceRpc.Transports.Internal
             TrySetReadCompleted();
         }
 
-        private protected override Task SendResetFrameAsync(RpcStreamError errorCode) =>
+        private protected override Task SendResetFrameAsync(StreamError errorCode) =>
             _connection.PrepareAndSendFrameAsync(
                 SlicDefinitions.FrameType.StreamReset,
                 encoder => new StreamResetBody((ulong)errorCode).Encode(encoder),
                 frameSize => _connection.Logger.LogSendingSlicResetFrame(frameSize, errorCode),
                 this);
 
-        private protected override Task SendStopSendingFrameAsync(RpcStreamError errorCode) =>
+        private protected override Task SendStopSendingFrameAsync(StreamError errorCode) =>
             _connection.PrepareAndSendFrameAsync(
                 SlicDefinitions.FrameType.StreamStopSending,
                 encoder => new StreamStopSendingBody((ulong)errorCode).Encode(encoder),

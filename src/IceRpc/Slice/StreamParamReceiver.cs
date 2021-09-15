@@ -7,10 +7,10 @@ using System.Runtime.CompilerServices;
 
 namespace IceRpc.Slice
 {
-    /// <summary>A stream param receiver to receive stream param over a <see cref="RpcStream"/>.</summary>
+    /// <summary>A stream param receiver to receive stream param over a <see cref="NetworkStream"/>.</summary>
     public sealed class StreamParamReceiver
     {
-        private readonly RpcStream _stream;
+        private readonly NetworkStream _stream;
         private readonly Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? _streamDecompressor;
 
         /// <summary>Construct an <see cref="IAsyncEnumerable{T}"/> to receive the streamed param from an incoming
@@ -62,7 +62,7 @@ namespace IceRpc.Slice
         public System.IO.Stream ToByteStream() => new ByteStreamParamReceiver(_stream, _streamDecompressor);
 
         internal StreamParamReceiver(
-            RpcStream stream,
+            NetworkStream stream,
             Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? streamDecompressor)
         {
             _stream = stream;
@@ -83,7 +83,7 @@ namespace IceRpc.Slice
             }
 
             private System.IO.Stream? _ioStream;
-            private readonly RpcStream _rpcStream;
+            private readonly NetworkStream? _networkStream;
             private readonly Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? _streamDecompressor;
 
             public override void Flush() => throw new NotImplementedException();
@@ -106,11 +106,16 @@ namespace IceRpc.Slice
 
             public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
             {
+                if (_networkStream == null)
+                {
+                    return 0;
+                }
+
                 if (_ioStream == null)
                 {
                     // Receive the data frame header.
                     byte[] header = new byte[2];
-                    await _rpcStream.ReceiveAsync(header, default).ConfigureAwait(false);
+                    await _networkStream.ReceiveAsync(header, default).ConfigureAwait(false);
                     if (header[0] != (byte)Ice2FrameType.UnboundedData)
                     {
                         throw new InvalidDataException("invalid stream data");
@@ -118,7 +123,7 @@ namespace IceRpc.Slice
                     var compressionFormat = (CompressionFormat)header[1];
 
                     // Read the unbounded data from the Rpc stream.
-                    _ioStream = _rpcStream.AsByteStream();
+                    _ioStream = _networkStream.AsByteStream();
                     if (compressionFormat != CompressionFormat.NotCompressed)
                     {
                         if (_streamDecompressor == null)
@@ -147,16 +152,16 @@ namespace IceRpc.Slice
                 if (disposing)
                 {
                     _ioStream?.Dispose();
-                    _rpcStream.AbortRead(RpcStreamError.StreamingCanceledByReader);
+                    _networkStream?.AbortRead(StreamError.StreamingCanceledByReader);
                 }
             }
 
             internal ByteStreamParamReceiver(
-                RpcStream stream,
+                NetworkStream? stream,
                 Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? streamDecompressor)
             {
-                _rpcStream = stream;
-                _rpcStream.EnableReceiveFlowControl();
+                _networkStream = stream;
+                _networkStream?.EnableReceiveFlowControl();
                 _streamDecompressor = streamDecompressor;
             }
         }
@@ -170,16 +175,17 @@ namespace IceRpc.Slice
             private readonly Func<IceDecoder, T> _decodeAction;
             private readonly IIceDecoderFactory<IceDecoder> _decoderFactory;
             private readonly IInvoker? _invoker;
-            private readonly RpcStream _rpcStream;
+            private readonly NetworkStream? _networkStream;
 
             internal AsyncEnumerableStreamParamReceiver(
-                RpcStream rpcStream,
+                NetworkStream? networkStream,
                 Connection connection,
                 IInvoker? invoker,
                 IIceDecoderFactory<IceDecoder> decoderFactory,
                 Func<IceDecoder, T> decodeAction)
             {
-                _rpcStream = rpcStream;
+                _networkStream = networkStream;
+                _networkStream?.EnableReceiveFlowControl();
                 _connection = connection;
                 _invoker = invoker;
                 _decoderFactory = decoderFactory;
@@ -188,7 +194,12 @@ namespace IceRpc.Slice
 
             internal async IAsyncEnumerable<T> ReadAsync([EnumeratorCancellation] CancellationToken cancel = default)
             {
-                cancel.Register(() => _rpcStream.AbortRead(RpcStreamError.StreamingCanceledByReader));
+                if (_networkStream == null)
+                {
+                    yield break; // finish iteration
+                }
+
+                cancel.Register(() => _networkStream.AbortRead(StreamError.StreamingCanceledByReader));
 
                 while (true)
                 {
@@ -230,11 +241,11 @@ namespace IceRpc.Slice
                     }
                     catch
                     {
-                        _rpcStream.AbortRead(RpcStreamError.StreamingCanceledByReader);
+                        _networkStream.AbortRead(StreamError.StreamingCanceledByReader);
                         yield break; // finish iteration
                     }
 
-                    var decoder = _decoderFactory.CreateIceDecoder(buffer, _connection, _invoker);
+                    IceDecoder decoder = _decoderFactory.CreateIceDecoder(buffer, _connection, _invoker);
                     T value = default!;
                     do
                     {
@@ -244,7 +255,7 @@ namespace IceRpc.Slice
                         }
                         catch
                         {
-                            _rpcStream.AbortRead(RpcStreamError.StreamingCanceledByReader);
+                            _networkStream.AbortRead(StreamError.StreamingCanceledByReader);
                             yield break; // finish iteration
                         }
                         yield return value;
@@ -257,7 +268,7 @@ namespace IceRpc.Slice
                     int offset = 0;
                     while (offset < buffer.Length)
                     {
-                        int received = await _rpcStream.ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
+                        int received = await _networkStream.ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
                         if (received == 0)
                         {
                             if (checkEof && offset == 0)

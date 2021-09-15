@@ -19,7 +19,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void MultiStreamConnection_Dispose()
         {
-            ValueTask<RpcStream> acceptStreamTask = ServerConnection.AcceptStreamAsync(default);
+            ValueTask<NetworkStream> acceptStreamTask = ServerConnection.AcceptStreamAsync(default);
             ClientConnection.Dispose();
             Assert.ThrowsAsync<ConnectionLostException>(async () => await acceptStreamTask);
         }
@@ -42,17 +42,17 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task MultiStreamConnection_Dispose_StreamAbortedAsync()
         {
-            RpcStream clientStream = ClientConnection.CreateStream(true);
+            NetworkStream clientStream = ClientConnection.CreateStream(true);
             await clientStream.SendAsync(CreateSendPayload(clientStream), true, default);
 
             ClientConnection.Dispose();
             (long clientBidirectional, long clientUnidirectional) = ClientConnection.Shutdown();
 
-            RpcStreamAbortedException? ex;
+            StreamAbortedException? ex;
             // Stream is aborted
-            ex = Assert.ThrowsAsync<RpcStreamAbortedException>(
+            ex = Assert.ThrowsAsync<StreamAbortedException>(
                 async () => await clientStream.ReceiveAsync(CreateReceivePayload(), default));
-            Assert.That(ex!.ErrorCode, Is.EqualTo(RpcStreamError.ConnectionAborted));
+            Assert.That(ex!.ErrorCode, Is.EqualTo(StreamError.ConnectionAborted));
 
             // Can't create new stream
             clientStream = ClientConnection.CreateStream(true);
@@ -73,15 +73,15 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task MultiStreamConnection_AbortOutgoingStreams_NoAbortStreamAsync()
         {
-            RpcStream clientStream = ClientConnection.CreateStream(true);
+            NetworkStream clientStream = ClientConnection.CreateStream(true);
             await clientStream.SendAsync(CreateSendPayload(clientStream), true, default);
 
-            RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
+            NetworkStream serverStream = await ServerConnection.AcceptStreamAsync(default);
             _ = await serverStream.ReceiveAsync(CreateReceivePayload(), default);
 
             await serverStream.SendAsync(CreateSendPayload(serverStream), true, default);
 
-            ClientConnection.AbortOutgoingStreams(RpcStreamError.ConnectionShutdown, (clientStream.Id, 0));
+            ClientConnection.AbortOutgoingStreams(StreamError.ConnectionShutdown, (clientStream.Id, 0));
 
             // Stream is not aborted
             _ = ClientConnection.AcceptStreamAsync(default).AsTask();
@@ -100,10 +100,10 @@ namespace IceRpc.Tests.Internal
         {
             var ex = new InvalidOperationException();
 
-            RpcStream clientStream = ClientConnection.CreateStream(true);
+            NetworkStream clientStream = ClientConnection.CreateStream(true);
             await clientStream.SendAsync(CreateSendPayload(clientStream), true, default);
 
-            RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
+            NetworkStream serverStream = await ServerConnection.AcceptStreamAsync(default);
             await serverStream.ReceiveAsync(CreateReceivePayload(), default);
 
             await serverStream.SendAsync(CreateSendPayload(serverStream), true, default);
@@ -135,13 +135,13 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task MultiStreamConnection_AcceptStreamAsync()
         {
-            RpcStream clientStream = ClientConnection.CreateStream(bidirectional: true);
-            ValueTask<RpcStream> acceptTask = ServerConnection.AcceptStreamAsync(default);
+            NetworkStream clientStream = ClientConnection.CreateStream(bidirectional: true);
+            ValueTask<NetworkStream> acceptTask = ServerConnection.AcceptStreamAsync(default);
 
             // The server-side won't accept the stream until the first frame is sent.
             await clientStream.SendAsync(CreateSendPayload(clientStream), true, default);
 
-            RpcStream serverStream = await acceptTask;
+            NetworkStream serverStream = await acceptTask;
 
             Assert.That(serverStream.IsBidirectional, Is.True);
             Assert.That(serverStream.IsStarted, Is.True);
@@ -152,7 +152,7 @@ namespace IceRpc.Tests.Internal
         public void MultiStreamConnection_AcceptStream_Cancellation()
         {
             using var source = new CancellationTokenSource();
-            ValueTask<RpcStream> acceptTask = ServerConnection.AcceptStreamAsync(source.Token);
+            ValueTask<NetworkStream> acceptTask = ServerConnection.AcceptStreamAsync(source.Token);
             source.Cancel();
             Assert.ThrowsAsync<OperationCanceledException>(async () => await acceptTask);
         }
@@ -168,7 +168,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(true)]
         public async Task MultiStreamConnection_CreateStream(bool bidirectional)
         {
-            RpcStream clientStream = ClientConnection.CreateStream(bidirectional);
+            NetworkStream clientStream = ClientConnection.CreateStream(bidirectional);
             Assert.That(clientStream.IsStarted, Is.False);
             Assert.Throws<InvalidOperationException>(() => _ = clientStream.Id); // stream is not started
             Assert.AreEqual(bidirectional, clientStream.IsBidirectional);
@@ -181,11 +181,11 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task MultiStreamConnection_StreamMaxCount_BidirectionalAsync()
         {
-            var clientStreams = new List<RpcStream>();
-            var serverStreams = new List<RpcStream>();
+            var clientStreams = new List<NetworkStream>();
+            var serverStreams = new List<NetworkStream>();
             for (int i = 0; i < ServerMultiStreamOptions!.BidirectionalStreamMaxCount; ++i)
             {
-                RpcStream stream = ClientConnection.CreateStream(true);
+                NetworkStream stream = ClientConnection.CreateStream(true);
                 clientStreams.Add(stream);
 
                 await stream.SendAsync(CreateSendPayload(stream), true, default);
@@ -195,11 +195,11 @@ namespace IceRpc.Tests.Internal
             }
 
             // Ensure the client side accepts streams to receive data.
-            ValueTask<RpcStream> acceptClientStream = ClientConnection.AcceptStreamAsync(default);
+            ValueTask<NetworkStream> acceptClientStream = ClientConnection.AcceptStreamAsync(default);
 
-            RpcStream clientStream = ClientConnection.CreateStream(true);
+            NetworkStream clientStream = ClientConnection.CreateStream(true);
             ValueTask sendTask = clientStream.SendAsync(CreateSendPayload(clientStream), true, default);
-            ValueTask<RpcStream> acceptTask = ServerConnection.AcceptStreamAsync(default);
+            ValueTask<NetworkStream> acceptTask = ServerConnection.AcceptStreamAsync(default);
 
             await Task.Delay(200);
 
@@ -243,7 +243,7 @@ namespace IceRpc.Tests.Internal
                 _ = ReceiveAndSendAsync(await ServerConnection.AcceptStreamAsync(default));
             }
 
-            async Task SendAndReceiveAsync(RpcStream stream)
+            async Task SendAndReceiveAsync(NetworkStream stream)
             {
                 await stream.SendAsync(CreateSendPayload(stream), true, default);
 
@@ -255,7 +255,7 @@ namespace IceRpc.Tests.Internal
                 }
             }
 
-            async Task ReceiveAndSendAsync(RpcStream stream)
+            async Task ReceiveAndSendAsync(NetworkStream stream)
             {
                 // Make sure the connection didn't accept more streams than it is allowed to.
                 Assert.That(Thread.VolatileRead(ref streamCount), Is.LessThanOrEqualTo(maxCount));
@@ -284,23 +284,23 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task MultiStreamConnection_StreamMaxCount_UnidirectionalAsync()
         {
-            var clientStreams = new List<RpcStream>();
+            var clientStreams = new List<NetworkStream>();
             for (int i = 0; i < ServerMultiStreamOptions!.UnidirectionalStreamMaxCount; ++i)
             {
-                RpcStream stream = ClientConnection.CreateStream(false);
+                NetworkStream stream = ClientConnection.CreateStream(false);
                 clientStreams.Add(stream);
                 await stream.SendAsync(CreateSendPayload(stream), true, default);
             }
 
             // Ensure the client side accepts streams to receive acknowledgement of stream completion.
-            ValueTask<RpcStream> acceptClientStream = ClientConnection.AcceptStreamAsync(default);
+            ValueTask<NetworkStream> acceptClientStream = ClientConnection.AcceptStreamAsync(default);
 
-            RpcStream clientStream = ClientConnection.CreateStream(false);
+            NetworkStream clientStream = ClientConnection.CreateStream(false);
             ValueTask sendTask = clientStream.SendAsync(CreateSendPayload(clientStream), true, default);
 
             // Accept a new unidirectional stream. This shouldn't allow the new stream send to complete since
             // the payload wasn't read yet on the stream.
-            RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
+            NetworkStream serverStream = await ServerConnection.AcceptStreamAsync(default);
 
             await Task.Delay(200);
 
@@ -336,7 +336,7 @@ namespace IceRpc.Tests.Internal
             using var source = new CancellationTokenSource();
 
             // Start accept stream on the server side to receive transport frames.
-            ValueTask<RpcStream> acceptStreamTask = ServerConnection.AcceptStreamAsync(source.Token);
+            ValueTask<NetworkStream> acceptStreamTask = ServerConnection.AcceptStreamAsync(source.Token);
 
             await ClientConnection.PingAsync(default);
             await semaphore.WaitAsync();
@@ -390,7 +390,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void MultiStreamConnection_SendRequest_Failure()
         {
-            RpcStream stream = ClientConnection.CreateStream(false);
+            NetworkStream stream = ClientConnection.CreateStream(false);
             ClientConnection.Dispose();
             Assert.CatchAsync<TransportException>(async () => await stream.SendAsync(CreateSendPayload(stream), true, default));
         }
@@ -398,13 +398,13 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task MultiStreamConnection_SendAsync_FailureAsync()
         {
-            RpcStream stream = ClientConnection.CreateStream(true);
+            NetworkStream stream = ClientConnection.CreateStream(true);
             await stream.SendAsync(CreateSendPayload(stream), true, default);
 
-            RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
+            NetworkStream serverStream = await ServerConnection.AcceptStreamAsync(default);
             await serverStream.ReceiveAsync(CreateReceivePayload(), default);
             ServerConnection.Dispose();
-            Assert.CatchAsync<RpcStreamAbortedException>(
+            Assert.CatchAsync<StreamAbortedException>(
                 async () => await serverStream.SendAsync(CreateSendPayload(serverStream), true, default));
         }
 
@@ -430,13 +430,13 @@ namespace IceRpc.Tests.Internal
                 MultiStreamConnection peerConnection,
                 int expectedCount)
             {
-                RpcStream clientStream = connection.CreateStream(true);
+                NetworkStream clientStream = connection.CreateStream(true);
                 Assert.AreEqual(expectedCount - 1, connection.OutgoingStreamCount);
                 await clientStream.SendAsync(CreateSendPayload(clientStream), true, default);
                 Assert.AreEqual(expectedCount, connection.OutgoingStreamCount);
 
                 Assert.AreEqual(expectedCount - 1, peerConnection.IncomingStreamCount);
-                RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
+                NetworkStream serverStream = await ServerConnection.AcceptStreamAsync(default);
                 Assert.AreEqual(expectedCount, peerConnection.IncomingStreamCount);
 
                 var incomingRequest = await serverStream.ReceiveAsync(CreateReceivePayload(), default);

@@ -26,7 +26,7 @@ namespace IceRpc.Transports.Internal
         private AsyncSemaphore? _unidirectionalStreamSemaphore;
         private readonly ChannelWriter<(long, object, bool)> _writer;
 
-        public override async ValueTask<RpcStream> AcceptStreamAsync(CancellationToken cancel)
+        public override async ValueTask<NetworkStream> AcceptStreamAsync(CancellationToken cancel)
         {
             while (true)
             {
@@ -93,7 +93,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override RpcStream CreateStream(bool bidirectional) =>
+        public override NetworkStream CreateStream(bool bidirectional) =>
             new ColocStream(this, bidirectional);
 
         public override async ValueTask ConnectAsync(CancellationToken cancel)
@@ -243,7 +243,7 @@ namespace IceRpc.Transports.Internal
                     {
                         streamSemaphore.Release();
                     }
-                    throw new RpcStreamAbortedException(RpcStreamError.StreamAborted);
+                    throw new StreamAbortedException(StreamError.StreamAborted);
                 }
 
                 ValueTask task;

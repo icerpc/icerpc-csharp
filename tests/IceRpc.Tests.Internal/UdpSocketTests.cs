@@ -11,8 +11,8 @@ namespace IceRpc.Tests.Internal
     [Timeout(5000)]
     public class UdpTests : NetworkSocketBaseTest
     {
-        private NetworkSocket ClientSocket => _clientSocket!;
-        private NetworkSocket ServerSocket => _serverSocket!;
+        private INetworkSocket ClientSocket => _clientSocket!;
+        private INetworkSocket ServerSocket => _serverSocket!;
         private NetworkSocket? _clientSocket;
         private NetworkSocket? _serverSocket;
 
@@ -24,10 +24,8 @@ namespace IceRpc.Tests.Internal
         [SetUp]
         public async Task SetupAsync()
         {
-            Task<NetworkSocket> connectTask = ConnectAsync();
-            Task<NetworkSocket> acceptTask = AcceptAsync();
-            _clientSocket = await connectTask;
-            _serverSocket = await acceptTask;
+            _serverSocket = CreateServerNetworkSocket();
+            _clientSocket = await ConnectAsync();
         }
 
         [TearDown]
@@ -47,7 +45,7 @@ namespace IceRpc.Tests.Internal
             byte[] sendBuffer = new byte[size];
             new Random().NextBytes(sendBuffer);
 
-            List<NetworkSocket> clientSockets = new();
+            List<INetworkSocket> clientSockets = new();
             clientSockets.Add(ClientSocket);
             for (int i = 0; i < clientConnectionCount; ++i)
             {
@@ -60,7 +58,7 @@ namespace IceRpc.Tests.Internal
             {
                 try
                 {
-                    foreach (NetworkSocket connection in clientSockets)
+                    foreach (INetworkSocket connection in clientSockets)
                     {
                         using var source = new CancellationTokenSource(1000);
                         ValueTask sendTask = connection.SendAsync(sendBuffer, default);
@@ -120,7 +118,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void UdpSocket_ReceiveAsync_Dispose()
         {
-            ClientSocket.Dispose();
+            _clientSocket!.Dispose();
             Assert.CatchAsync<TransportException>(async () => await ClientSocket.ReceiveAsync(new byte[256], default));
         }
 
@@ -129,7 +127,7 @@ namespace IceRpc.Tests.Internal
         {
             using var canceled = new CancellationTokenSource();
             canceled.Cancel();
-            var buffer = new byte[1];
+            byte[] buffer = new byte[1];
             Assert.CatchAsync<OperationCanceledException>(
                 async () => await ClientSocket.SendAsync(buffer, canceled.Token));
         }
@@ -137,7 +135,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void UdpSocket_SendAsync_Dispose()
         {
-            ClientSocket.Dispose();
+            _clientSocket!.Dispose();
             Assert.CatchAsync<TransportException>(async () => await ClientSocket.SendAsync(OneBSendBuffer, default));
         }
 
@@ -155,7 +153,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(4096)]
         public async Task UdpSocket_SendReceiveAsync(int size)
         {
-            var sendBuffer = new byte[size];
+            byte[] sendBuffer = new byte[size];
             new Random().NextBytes(sendBuffer);
 
             // Datagrams aren't reliable, try up to 5 times in case the datagram is lost.

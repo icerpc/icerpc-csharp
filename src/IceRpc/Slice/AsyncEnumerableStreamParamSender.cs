@@ -12,7 +12,7 @@ namespace IceRpc.Slice
         private readonly IAsyncEnumerable<T> _inputStream;
         private readonly Action<IceEncoder, T> _encodeAction;
         private readonly IceEncoding _encoding;
-        private readonly Func<RpcStream, Task> _encoder;
+        private readonly Func<NetworkStream, Task> _encoder;
 
         /// <summary>Constructs an async enumerable stream parameter sender from the given
         /// <see cref="IAsyncEnumerable{T}"/>.</summary>
@@ -32,12 +32,12 @@ namespace IceRpc.Slice
 
         // TODO support compression
         Task IStreamParamSender.SendAsync(
-            RpcStream stream,
+            NetworkStream stream,
             Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? streamCompressor) =>
             _encoder(stream);
 
         private static async Task SendAsync(
-            RpcStream rpcStream,
+            NetworkStream rpcStream,
             IAsyncEnumerable<T> asyncEnumerable,
             IceEncoding encoding,
             Action<IceEncoder, T> encodeAction)
@@ -103,13 +103,13 @@ namespace IceRpc.Slice
                     true,
                     default).ConfigureAwait(false);
             }
-            catch (RpcStreamAbortedException)
+            catch (StreamAbortedException)
             {
                 cancelationSource.Cancel();
             }
             catch
             {
-                rpcStream.AbortWrite(RpcStreamError.StreamingCanceledByWriter);
+                rpcStream.AbortWrite(StreamError.StreamingCanceledByWriter);
                 throw;
             }
             finally

@@ -134,7 +134,7 @@ namespace IceRpc
                     _ = await response.GetPayloadAsync(cancel).ConfigureAwait(false);
 
                     StreamParamReceiver? streamParamReceiver = null;
-                    if (returnStreamParamReceiver)
+                    if (returnStreamParamReceiver && request.Stream != null)
                     {
                         streamParamReceiver = new StreamParamReceiver(request.Stream, request.StreamDecompressor);
                     }

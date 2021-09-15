@@ -80,14 +80,16 @@ namespace IceRpc.Transports
                 throw new TransportException(ex);
             }
 
-            var tcpSocket = new TcpClientSocket(socket, logger, _authenticationOptions, netEndPoint);
+#pragma warning disable CA2000 // Dispose objects before losing scope
+            var tcpSocket = new TcpClientSocket(socket, _authenticationOptions, netEndPoint);
+#pragma warning restore CA2000 // Dispose objects before losing scope
             if (remoteEndpoint.Protocol == Protocol.Ice2)
             {
                 return new SlicConnection(tcpSocket, remoteEndpoint, isServer: false, logger, _slicOptions);
             }
             else
             {
-                return new SocketConnection(tcpSocket, remoteEndpoint, isServer: false);
+                return new NetworkSocketConnection(tcpSocket, remoteEndpoint, isServer: false, logger);
             }
         }
     }

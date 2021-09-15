@@ -14,7 +14,6 @@ namespace IceRpc.Transports.Internal
     {
         public override int DatagramMaxReceiveSize { get; }
         public override bool IsDatagram => true;
-        protected internal override Socket? Socket => _socket;
 
         // The maximum IP datagram size is 65535. Subtract 20 bytes for the IP header and 8 bytes for the UDP header
         // to get the maximum payload.
@@ -25,7 +24,6 @@ namespace IceRpc.Transports.Internal
         private readonly bool _isServer;
         private readonly IPEndPoint? _multicastEndpoint;
         private readonly string? _multicastInterface;
-        private readonly Socket _socket;
         private readonly int _ttl;
 
         public override async ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
@@ -39,8 +37,8 @@ namespace IceRpc.Transports.Internal
                 Debug.Assert(_addr != null);
                 try
                 {
-                    await _socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
-                    var ipEndPoint = (IPEndPoint)_socket.LocalEndPoint!;
+                    await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
+                    var ipEndPoint = (IPEndPoint)Socket.LocalEndPoint!;
                     return endpoint with
                     {
                         Host = ipEndPoint.Address.ToString(),
@@ -68,11 +66,11 @@ namespace IceRpc.Transports.Internal
                 if (_isServer)
                 {
                     EndPoint remoteAddress = new IPEndPoint(
-                        _socket.AddressFamily == AddressFamily.InterNetwork ? IPAddress.Any : IPAddress.IPv6Any,
+                        Socket.AddressFamily == AddressFamily.InterNetwork ? IPAddress.Any : IPAddress.IPv6Any,
                         0);
 
                     SocketReceiveFromResult result =
-                        await _socket.ReceiveFromAsync(buffer,
+                        await Socket.ReceiveFromAsync(buffer,
                                                        SocketFlags.None,
                                                        remoteAddress,
                                                        cancel).ConfigureAwait(false);
@@ -81,7 +79,7 @@ namespace IceRpc.Transports.Internal
                 }
                 else
                 {
-                    received = await _socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
+                    received = await Socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
                 }
                 return received;
             }
@@ -100,7 +98,7 @@ namespace IceRpc.Transports.Internal
 
             try
             {
-                await _socket.SendAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
+                await Socket.SendAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -126,35 +124,22 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        protected override void Dispose(bool disposing) => _socket.Dispose();
-
-        protected override bool PrintMembers(StringBuilder builder)
-        {
-            if (base.PrintMembers(builder))
-            {
-                builder.Append(", ");
-            }
-            builder.Append("LocalEndPoint = ").Append(_socket.LocalEndPoint).Append(", ");
-            builder.Append("RemoteEndPoint = ").Append(_socket.RemoteEndPoint);
-            return true;
-        }
+        protected override void Dispose(bool disposing) => Socket.Dispose();
 
         // Only for use by UdpEndpoint.
         internal UdpSocket(
             Socket socket,
-            ILogger logger,
             bool isServer,
             EndPoint? addr,
             int ttl = -1,
             string? multicastInterface = null)
-            : base(logger)
+            : base(socket)
         {
-            _socket = socket;
             _isServer = isServer;
             _ttl = ttl;
             _multicastInterface = multicastInterface;
 
-            DatagramMaxReceiveSize = Math.Min(MaxPacketSize, _socket.ReceiveBufferSize - UdpOverhead);
+            DatagramMaxReceiveSize = Math.Min(MaxPacketSize, base.Socket.ReceiveBufferSize - UdpOverhead);
 
             if (isServer)
             {

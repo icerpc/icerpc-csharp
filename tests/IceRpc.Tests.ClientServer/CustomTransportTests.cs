@@ -32,7 +32,7 @@ namespace IceRpc.Tests.ClientServer
     {
         private readonly IServerTransport _transport = new TcpServerTransport();
 
-        public (IListener? Listener, SocketConnection? Connection) Listen(
+        public (IListener? Listener, NetworkSocketConnection? Connection) Listen(
             Endpoint endpoint,
             ILoggerFactory loggerFactory)
         {

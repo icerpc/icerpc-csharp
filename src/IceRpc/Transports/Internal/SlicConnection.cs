@@ -19,9 +19,9 @@ namespace IceRpc.Transports.Internal
         public override bool IsDatagram => false;
 
         /// <inheritdoc/>
-        public override bool IsSecure => NetworkSocket.SslStream != null;
+        public override bool IsSecure => _socket.SslStream != null;
 
-        internal NetworkSocket NetworkSocket { get; }
+        internal INetworkSocket NetworkSocket => _socket;
         internal int PacketMaxSize { get; }
         internal int PeerPacketMaxSize { get; private set; }
         internal int PeerStreamBufferMaxSize { get; private set; }
@@ -30,7 +30,8 @@ namespace IceRpc.Transports.Internal
         private int _bidirectionalStreamCount;
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly int _bidirectionalMaxStreams;
-        private BufferedReceiveOverNetworkSocket? _bufferedSocket;
+        private readonly BufferedReceiveNetworkSocketDecorator _bufferedSocket;
+        private readonly NetworkSocket _socket;
         private long _nextBidirectionalId;
         private long _nextUnidirectionalId;
         private readonly ManualResetValueTaskCompletionSource<int> _receiveStreamCompletionTaskSource = new();
@@ -40,7 +41,7 @@ namespace IceRpc.Transports.Internal
         private int _unidirectionalStreamCount;
         private AsyncSemaphore? _unidirectionalStreamSemaphore;
 
-        public override async ValueTask<RpcStream> AcceptStreamAsync(CancellationToken cancel)
+        public override async ValueTask<NetworkStream> AcceptStreamAsync(CancellationToken cancel)
         {
             // Eventually wait for the stream data receive to complete if stream data is being received.
             await WaitForReceivedStreamDataCompletionAsync(cancel).ConfigureAwait(false);
@@ -201,7 +202,7 @@ namespace IceRpc.Transports.Internal
 
                         var decoder = new Ice20Decoder(data);
                         var streamReset = new StreamResetBody(decoder);
-                        var errorCode = (RpcStreamError)streamReset.ApplicationProtocolErrorCode;
+                        var errorCode = (StreamError)streamReset.ApplicationProtocolErrorCode;
 
                         Logger.LogReceivedSlicResetFrame(frameSize, errorCode);
 
@@ -227,7 +228,7 @@ namespace IceRpc.Transports.Internal
 
                         var decoder = new Ice20Decoder(data);
                         var streamReset = new StreamStopSendingBody(decoder);
-                        var errorCode = (RpcStreamError)streamReset.ApplicationProtocolErrorCode;
+                        var errorCode = (StreamError)streamReset.ApplicationProtocolErrorCode;
 
                         Logger.LogReceivedSlicStopSendingFrame(frameSize, errorCode);
 
@@ -245,22 +246,19 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override RpcStream CreateStream(bool bidirectional) =>
+        public override NetworkStream CreateStream(bool bidirectional) =>
             new SlicStream(this, bidirectional);
 
         public override async ValueTask ConnectAsync(CancellationToken cancel)
         {
             if (IsServer)
             {
-                RemoteEndpoint = await NetworkSocket.ConnectAsync(LocalEndpoint!, cancel).ConfigureAwait(false);
+                RemoteEndpoint = await _socket.ConnectAsync(LocalEndpoint!, cancel).ConfigureAwait(false);
             }
             else
             {
-                LocalEndpoint = await NetworkSocket.ConnectAsync(RemoteEndpoint!, cancel).ConfigureAwait(false);
+                LocalEndpoint = await _socket.ConnectAsync(RemoteEndpoint!, cancel).ConfigureAwait(false);
             }
-
-            // Create a buffered receive single stream on top of the underlying connection.
-            _bufferedSocket = new BufferedReceiveOverNetworkSocket(NetworkSocket);
 
             if (IsServer)
             {
@@ -383,7 +381,10 @@ namespace IceRpc.Transports.Internal
         public override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             !IsServer &&
             EndpointComparer.ParameterLess.Equals(remoteEndpoint, RemoteEndpoint) &&
-            NetworkSocket.HasCompatibleParams(remoteEndpoint);
+            _socket.HasCompatibleParams(remoteEndpoint);
+
+        /// <inheritdoc/>
+        public override string ToString() => _socket.ToString();
 
         public override Task PingAsync(CancellationToken cancel) =>
             // TODO: shall we set a timer for expecting the Pong frame? or should we return only once
@@ -396,7 +397,7 @@ namespace IceRpc.Transports.Internal
 
             if (disposing)
             {
-                _bufferedSocket?.Dispose();
+                _socket.Dispose();
 
                 // Unblock requests waiting on the semaphores.
                 var exception = new ConnectionClosedException();
@@ -406,14 +407,25 @@ namespace IceRpc.Transports.Internal
         }
 
         internal SlicConnection(
-            NetworkSocket socket,
+            NetworkSocket networkSocket,
             Endpoint endpoint,
             bool isServer,
             ILogger logger,
             MultiStreamOptions options)
             : base(endpoint, isServer, logger)
         {
-            NetworkSocket = socket;
+            _socket = networkSocket;
+
+            // Create a buffered network socket decorator to enable buffered receive.
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                _bufferedSocket = new BufferedReceiveNetworkSocketDecorator(
+                    new LogNetworkSocketDecorator(networkSocket, logger));
+            }
+            else
+            {
+                _bufferedSocket = new BufferedReceiveNetworkSocketDecorator(networkSocket);
+            }
 
             _receiveStreamCompletionTaskSource.SetResult(0);
 
@@ -566,7 +578,7 @@ namespace IceRpc.Transports.Internal
                 if (stream.WriteCompleted)
                 {
                     _sendSemaphore.Release();
-                    throw new RpcStreamAbortedException(RpcStreamError.StreamAborted);
+                    throw new StreamAbortedException(StreamError.StreamAborted);
                 }
 
                 // Allocate stream ID if the stream isn't started. Thread-safety is provided by the send semaphore.

@@ -121,7 +121,7 @@ namespace IceRpc.Transports.Internal
         {
             if (WriteCompleted)
             {
-                throw new RpcStreamAbortedException(RpcStreamError.StreamAborted);
+                throw new StreamAbortedException(StreamError.StreamAborted);
             }
 
             await _connection.SendFrameAsync(this, buffers, endStream, cancel).ConfigureAwait(false);
@@ -155,13 +155,13 @@ namespace IceRpc.Transports.Internal
 
         internal void ReceivedFrame(object frame, bool endStream)
         {
-            if (frame is RpcStreamError errorCode)
+            if (frame is StreamError errorCode)
             {
                 // An error code indicates a reset frame.
 
                 // It's important to set the exception before completing the reads because ReceiveAsync
                 // expects the exception to be set if reads are completed.
-                SetException(new RpcStreamAbortedException(errorCode));
+                SetException(new StreamAbortedException(errorCode));
 
                 // Cancel the dispatch source before completing reads otherwise the source might be disposed
                 // after and the dispatch won't be canceled.
@@ -195,10 +195,10 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private protected override Task SendResetFrameAsync(RpcStreamError errorCode) =>
+        private protected override Task SendResetFrameAsync(StreamError errorCode) =>
             _ = _connection.SendFrameAsync(this, frame: errorCode, endStream: true, default).AsTask();
 
-        private protected override Task SendStopSendingFrameAsync(RpcStreamError errorCode) =>
+        private protected override Task SendStopSendingFrameAsync(StreamError errorCode) =>
             _ = _connection.SendFrameAsync(this, frame: _stopSendingFrame, endStream: false, default).AsTask();
     }
 }

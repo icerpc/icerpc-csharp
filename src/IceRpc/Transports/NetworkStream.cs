@@ -1,25 +1,21 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Features;
-using IceRpc.Internal;
-using IceRpc.Slice;
-using IceRpc.Slice.Internal;
 using IceRpc.Transports.Internal;
 using System.Diagnostics;
 
 namespace IceRpc.Transports
 {
     /// <summary>Raised if a stream is aborted. This exception is internal.</summary>
-    public class RpcStreamAbortedException : Exception
+    public class StreamAbortedException : Exception
     {
-        internal RpcStreamError ErrorCode { get; }
+        internal StreamError ErrorCode { get; }
 
-        internal RpcStreamAbortedException(RpcStreamError errorCode) :
+        internal StreamAbortedException(StreamError errorCode) :
             base($"stream aborted with error code {errorCode}") => ErrorCode = errorCode;
     }
 
     /// <summary>Error codes for stream errors.</summary>
-    public enum RpcStreamError : byte
+    public enum StreamError : byte
     {
         /// <summary>The stream was aborted because the invocation was canceled.</summary>
         InvocationCanceled,
@@ -52,7 +48,7 @@ namespace IceRpc.Transports
     /// <summary>The NetworkStream abstract base class to be overridden by multi-stream network connection
     /// implementations. There's an instance of this class for each active stream managed by the multi-stream
     /// network connection.</summary>
-    public abstract class RpcStream
+    public abstract class NetworkStream
     {
         /// <summary>The stream ID. If the stream ID hasn't been assigned yet, an exception is thrown. Assigning the
         /// stream ID registers the stream with the connection.</summary>
@@ -107,9 +103,6 @@ namespace IceRpc.Transports
         /// <summary>Returns true if the stream ID is assigned</summary>
         internal bool IsStarted => _id != -1;
 
-        // TODO: remove when we implement Ice1 with the protocol handler
-        private int RequestId => IsBidirectional ? ((int)(Id >> 2) + 1) : 0;
-
         private readonly MultiStreamConnection _connection;
 
         // Depending on the stream implementation, the _id can be assigned on construction or only once SendAsync
@@ -121,11 +114,11 @@ namespace IceRpc.Transports
 
         /// <summary>Abort the stream read side.</summary>
         /// <param name="errorCode">The reason of the abort.</param>
-        public abstract void AbortRead(RpcStreamError errorCode);
+        public abstract void AbortRead(StreamError errorCode);
 
         /// <summary>Abort the stream write side.</summary>
         /// <param name="errorCode">The reason of the abort.</param>
-        public abstract void AbortWrite(RpcStreamError errorCode);
+        public abstract void AbortWrite(StreamError errorCode);
 
         /// <summary>Get a <see cref="System.IO.Stream"/> to allow using this stream using the C# stream API.</summary>
         /// <returns>The <see cref="System.IO.Stream"/> object.</returns>
@@ -165,7 +158,7 @@ namespace IceRpc.Transports
         /// <summary>Constructs a stream with the given ID.</summary>
         /// <param name="streamId">The stream ID.</param>
         /// <param name="connection">The parent connection.</param>
-        protected RpcStream(MultiStreamConnection connection, long streamId)
+        protected NetworkStream(MultiStreamConnection connection, long streamId)
         {
             _connection = connection;
             IsBidirectional = streamId % 4 < 2;
@@ -192,7 +185,7 @@ namespace IceRpc.Transports
         /// <summary>Constructs an outgoing stream.</summary>
         /// <param name="bidirectional"><c>true</c> to create a bidirectional stream, <c>false</c> otherwise.</param>
         /// <param name="connection">The parent connection.</param>
-        protected RpcStream(MultiStreamConnection connection, bool bidirectional)
+        protected NetworkStream(MultiStreamConnection connection, bool bidirectional)
         {
             _connection = connection;
             IsBidirectional = bidirectional;
@@ -248,7 +241,7 @@ namespace IceRpc.Transports
             }
         }
 
-        internal void Abort(RpcStreamError errorCode)
+        internal void Abort(StreamError errorCode)
         {
             // Abort writes.
             AbortWrite(errorCode);
@@ -313,7 +306,7 @@ namespace IceRpc.Transports
             }
 
             private readonly ReadOnlyMemory<byte>[] _buffers;
-            private readonly RpcStream _stream;
+            private readonly NetworkStream _stream;
 
             public override void Flush()
             {
@@ -334,15 +327,15 @@ namespace IceRpc.Transports
                     }
                     return await _stream.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
                 }
-                catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.StreamingCanceledByWriter)
+                catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.StreamingCanceledByWriter)
                 {
                     throw new System.IO.IOException("streaming canceled by the writer", ex);
                 }
-                catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.StreamingCanceledByReader)
+                catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.StreamingCanceledByReader)
                 {
                     throw new System.IO.IOException("streaming canceled by the reader", ex);
                 }
-                catch (RpcStreamAbortedException ex)
+                catch (StreamAbortedException ex)
                 {
                     throw new System.IO.IOException($"unexpected streaming error {ex.ErrorCode}", ex);
                 }
@@ -368,15 +361,15 @@ namespace IceRpc.Transports
                     _buffers[^1] = buffer;
                     await _stream.SendAsync(_buffers, buffer.Length == 0, cancel).ConfigureAwait(false);
                 }
-                catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.StreamingCanceledByWriter)
+                catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.StreamingCanceledByWriter)
                 {
                     throw new System.IO.IOException("streaming canceled by the writer", ex);
                 }
-                catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.StreamingCanceledByReader)
+                catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.StreamingCanceledByReader)
                 {
                     throw new System.IO.IOException("streaming canceled by the reader", ex);
                 }
-                catch (RpcStreamAbortedException ex)
+                catch (StreamAbortedException ex)
                 {
                     throw new System.IO.IOException($"unexpected streaming error {ex.ErrorCode}", ex);
                 }
@@ -386,7 +379,7 @@ namespace IceRpc.Transports
                 }
             }
 
-            internal ByteStream(RpcStream stream)
+            internal ByteStream(NetworkStream stream)
             {
                 _stream = stream;
                 if (_stream.TransportHeader.Length > 0)

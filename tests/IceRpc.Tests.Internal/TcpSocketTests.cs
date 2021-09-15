@@ -9,11 +9,11 @@ namespace IceRpc.Tests.Internal
     [TestFixture("tcp", false, AddressFamily.InterNetwork)]
     [TestFixture("tcp", true, AddressFamily.InterNetwork)]
     [TestFixture("tcp", false, AddressFamily.InterNetworkV6)]
-    [Timeout(30000)]
+    [Timeout(5000)]
     public class TcpTests : NetworkSocketBaseTest
     {
-        private NetworkSocket ClientSocket => _clientSocket!;
-        private NetworkSocket ServerSocket => _serverSocket!;
+        private INetworkSocket ClientSocket => _clientSocket!;
+        private INetworkSocket ServerSocket => _serverSocket!;
         private NetworkSocket? _clientSocket;
         private NetworkSocket? _serverSocket;
 
@@ -25,8 +25,9 @@ namespace IceRpc.Tests.Internal
         [SetUp]
         public async Task SetupAsync()
         {
-            _serverSocket = CreateServerNetworkSocket();
+            Task<NetworkSocket> acceptTask = AcceptAsync();
             Task<NetworkSocket> connectTask = ConnectAsync();
+            _serverSocket = await acceptTask;
             _clientSocket = await connectTask;
         }
 
@@ -50,7 +51,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void TcpSocket_ReceiveAsync_ConnectionLostException()
         {
-            ServerSocket.Dispose();
+            _serverSocket!.Dispose();
             Assert.CatchAsync<ConnectionLostException>(
                 async () => await ClientSocket.ReceiveAsync(new byte[1], default));
         }
@@ -58,7 +59,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void TcpSocket_ReceiveAsync_Dispose()
         {
-            ClientSocket.Dispose();
+            _clientSocket!.Dispose();
             Assert.CatchAsync<TransportException>(async () => await ClientSocket.ReceiveAsync(new byte[1], default));
         }
 
@@ -74,8 +75,7 @@ namespace IceRpc.Tests.Internal
                 async () => await ClientSocket.ReceiveAsync(new byte[1], canceled.Token));
         }
 
-        // [Test]
-        // TODO: why support cancellation of SendAsync on a TCP connection?
+        [Test]
         public async Task TcpSocket_SendAsync_CancellationAsync()
         {
             ServerSocket.Socket!.ReceiveBufferSize = 4096;
@@ -106,7 +106,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void TcpSocket_SendAsync_ConnectionLostException()
         {
-            ServerSocket.Dispose();
+            _serverSocket!.Dispose();
             Assert.CatchAsync<ConnectionLostException>(
                 async () =>
                 {
@@ -120,12 +120,11 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void TcpSocket_SendAsync_Dispose()
         {
-            ClientSocket.Dispose();
+            _clientSocket!.Dispose();
             Assert.CatchAsync<TransportException>(async () => await ClientSocket.SendAsync(OneBSendBuffer, default));
         }
 
-        // [Test]
-        // See TODO above
+        [Test]
         public void TcpSocket_SendAsync_Exception()
         {
             using var canceled = new CancellationTokenSource();
@@ -148,7 +147,7 @@ namespace IceRpc.Tests.Internal
             await test1;
             await test2;
 
-            async ValueTask Test(NetworkSocket connection1, NetworkSocket connection2)
+            async ValueTask Test(INetworkSocket connection1, INetworkSocket connection2)
             {
                 ValueTask sendTask = connection1.SendAsync(sendBuffer, default);
                 Memory<byte> receiveBuffer = new byte[size];

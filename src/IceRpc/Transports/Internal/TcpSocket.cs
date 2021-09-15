@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -16,8 +15,6 @@ namespace IceRpc.Transports.Internal
     internal abstract class TcpSocket : NetworkSocket
     {
         public override bool IsDatagram => false;
-
-        protected internal override Socket Socket { get; }
 
         // The MaxDataSize of the SSL implementation.
         private const int MaxSslDataSize = 16 * 1024;
@@ -55,12 +52,6 @@ namespace IceRpc.Transports.Internal
 
         public override async ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
         {
-            if (cancel.CanBeCanceled)
-            {
-                throw new NotSupportedException(
-                    $"{nameof(SendAsync)} on a tcp connection does not support cancellation");
-            }
-
             try
             {
                 if (SslStream is SslStream sslStream)
@@ -83,12 +74,6 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel)
         {
             Debug.Assert(buffers.Length > 0);
-
-            if (cancel.CanBeCanceled)
-            {
-                throw new NotSupportedException(
-                    $"{nameof(SendAsync)} on a tcp connection does not support cancellation");
-            }
 
             if (buffers.Length == 1)
             {
@@ -173,10 +158,10 @@ namespace IceRpc.Transports.Internal
             return true;
         }
 
-        internal TcpSocket(Socket fd, ILogger logger)
-            : base(logger) =>
-            // The socket is not connected if a client socket, it's connected otherwise.
-            Socket = fd;
+        internal TcpSocket(Socket socket)
+            : base(socket)
+        {
+        }
     }
 
     internal class TcpClientSocket : TcpSocket
@@ -224,22 +209,19 @@ namespace IceRpc.Transports.Internal
                 if (tls == true)
                 {
                     // This can only be created with a connected socket.
-                    SslStream = new SslStream(new NetworkStream(Socket, false), false);
+                    SslStream = new SslStream(new System.Net.Sockets.NetworkStream(Socket, false), false);
                     try
                     {
                         await SslStream.AuthenticateAsClientAsync(authenticationOptions!, cancel).ConfigureAwait(false);
                     }
                     catch (AuthenticationException ex)
                     {
-                        Logger.LogTlsAuthenticationFailed(ex);
                         throw new TransportException(ex);
                     }
                     catch (Exception ex)
                     {
                         throw ExceptionUtil.Throw(ex.ToTransportException(default));
                     }
-
-                    Logger.LogTlsAuthenticationSucceeded(SslStream);
                 }
 
                 var ipEndPoint = (IPEndPoint)Socket.LocalEndPoint!;
@@ -273,11 +255,10 @@ namespace IceRpc.Transports.Internal
         }
 
         internal TcpClientSocket(
-            Socket fd,
-            ILogger logger,
+            Socket socket,
             SslClientAuthenticationOptions? authenticationOptions,
             EndPoint addr)
-           : base(fd, logger)
+           : base(socket)
         {
             _authenticationOptions = authenticationOptions;
             _addr = addr;
@@ -336,22 +317,19 @@ namespace IceRpc.Transports.Internal
                     Debug.Assert(_authenticationOptions != null);
 
                     // This can only be created with a connected socket.
-                    SslStream = new SslStream(new NetworkStream(Socket, false), false);
+                    SslStream = new SslStream(new System.Net.Sockets.NetworkStream(Socket, false), false);
                     try
                     {
                         await SslStream.AuthenticateAsServerAsync(_authenticationOptions, cancel).ConfigureAwait(false);
                     }
                     catch (AuthenticationException ex)
                     {
-                        Logger.LogTlsAuthenticationFailed(ex);
                         throw new TransportException(ex);
                     }
                     catch (Exception ex)
                     {
                         throw ExceptionUtil.Throw(ex.ToTransportException(default));
                     }
-
-                    Logger.LogTlsAuthenticationSucceeded(SslStream);
                 }
 
                 ImmutableList<EndpointParam> endpointParams = endpoint.Params;
@@ -379,9 +357,8 @@ namespace IceRpc.Transports.Internal
             throw new NotSupportedException($"{nameof(HasCompatibleParams)} is only supported by client sockets.");
 
         internal TcpServerSocket(
-            Socket fd,
-            ILogger logger,
+            Socket socket,
             SslServerAuthenticationOptions? authenticationOptions)
-           : base(fd, logger) => _authenticationOptions = authenticationOptions;
+           : base(socket) => _authenticationOptions = authenticationOptions;
     }
 }

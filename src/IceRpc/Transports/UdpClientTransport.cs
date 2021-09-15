@@ -39,7 +39,7 @@ namespace IceRpc.Transports
                     $"endpoint '{remoteEndpoint}' cannot use interface '*' to send datagrams");
             }
 
-            ILogger logger = loggerFactory.CreateLogger("IceRpc");
+            ILogger logger = loggerFactory.CreateLogger("IceRpc.Transports");
             Socket socket = ipAddress == null ?
                 new Socket(SocketType.Dgram, ProtocolType.Udp) :
                 new Socket(ipAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
@@ -96,9 +96,9 @@ namespace IceRpc.Transports
             }
 
 #pragma warning disable CA2000 // Dispose objects before losing scope
-            var udpSocket = new UdpSocket(socket, logger, isServer: false, netEndPoint, ttl, multicastInterface);
+            var udpSocket = new UdpSocket(socket, isServer: false, netEndPoint, ttl, multicastInterface);
 #pragma warning restore CA2000 // Dispose objects before losing scope
-            return new SocketConnection(udpSocket, remoteEndpoint, isServer: false);
+            return new NetworkSocketConnection(udpSocket, remoteEndpoint, isServer: false, logger);
         }
     }
 }

@@ -22,10 +22,10 @@ namespace IceRpc.Internal
         public TimeSpan LastActivity => _networkConnection.LastActivity;
 
         private TaskCompletionSource? _cancelGoAwaySource;
-        private RpcStream? _controlStream;
+        private NetworkStream? _controlStream;
         private readonly int _incomingFrameMaxSize;
         private readonly ILogger _logger;
-        private RpcStream? _peerControlStream;
+        private NetworkStream? _peerControlStream;
         private int? _peerIncomingFrameMaxSize;
 
         private readonly MultiStreamConnection _networkConnection;
@@ -50,65 +50,60 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task InitializeAsync(CancellationToken cancel)
         {
-            await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+            // Create the control stream and send the protocol initialize frame
+            _controlStream = _networkConnection.CreateStream(false);
 
-            if (!_networkConnection.IsDatagram)
+            await SendControlFrameAsync(
+                Ice2FrameType.Initialize,
+                encoder =>
+                {
+                    // Encode the transport parameters as Fields
+                    encoder.EncodeSize(1);
+
+                    // Transmit out local incoming frame maximum size
+                    encoder.EncodeField((int)Ice2ParameterKey.IncomingFrameMaxSize,
+                                        (ulong)_incomingFrameMaxSize,
+                                        (encoder, value) => encoder.EncodeVarULong(value));
+                },
+                cancel).ConfigureAwait(false);
+
+            // Wait for the peer control stream to be accepted and read the protocol initialize frame
+            _peerControlStream = await _networkConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
+
+            ReadOnlyMemory<byte> buffer = await ReceiveFrameAsync(
+                _peerControlStream,
+                Ice2FrameType.Initialize,
+                cancel).ConfigureAwait(false);
+
+            // Read the protocol parameters which are encoded as IceRpc.Fields.
+
+            var decoder = new Ice20Decoder(buffer);
+            int dictionarySize = decoder.DecodeSize();
+            for (int i = 0; i < dictionarySize; ++i)
             {
-                // Create the control stream and send the protocol initialize frame
-                _controlStream = _networkConnection.CreateStream(false);
-
-                await SendControlFrameAsync(
-                    Ice2FrameType.Initialize,
-                    encoder =>
-                    {
-                        // Encode the transport parameters as Fields
-                        encoder.EncodeSize(1);
-
-                        // Transmit out local incoming frame maximum size
-                        encoder.EncodeField((int)Ice2ParameterKey.IncomingFrameMaxSize,
-                                            (ulong)_incomingFrameMaxSize,
-                                            (encoder, value) => encoder.EncodeVarULong(value));
-                    },
-                    cancel).ConfigureAwait(false);
-
-                // Wait for the peer control stream to be accepted and read the protocol initialize frame
-                _peerControlStream = await _networkConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
-
-                ReadOnlyMemory<byte> buffer = await ReceiveFrameAsync(
-                    _peerControlStream,
-                    Ice2FrameType.Initialize,
-                    cancel).ConfigureAwait(false);
-
-                // Read the protocol parameters which are encoded as IceRpc.Fields.
-
-                var decoder = new Ice20Decoder(buffer);
-                int dictionarySize = decoder.DecodeSize();
-                for (int i = 0; i < dictionarySize; ++i)
+                (int key, ReadOnlyMemory<byte> value) = decoder.DecodeField();
+                if (key == (int)Ice2ParameterKey.IncomingFrameMaxSize)
                 {
-                    (int key, ReadOnlyMemory<byte> value) = decoder.DecodeField();
-                    if (key == (int)Ice2ParameterKey.IncomingFrameMaxSize)
+                    checked
                     {
-                        checked
-                        {
-                            _peerIncomingFrameMaxSize = (int)IceDecoder.DecodeVarULong(value.Span).Value;
-                        }
-
-                        if (_peerIncomingFrameMaxSize < 1024)
-                        {
-                            throw new InvalidDataException($@"the peer's IncomingFrameMaxSize ({
-                                _peerIncomingFrameMaxSize} bytes) value is inferior to 1KB");
-                        }
+                        _peerIncomingFrameMaxSize = (int)IceDecoder.DecodeVarULong(value.Span).Value;
                     }
-                    else
+
+                    if (_peerIncomingFrameMaxSize < 1024)
                     {
-                        // Ignore unsupported parameters.
+                        throw new InvalidDataException($@"the peer's IncomingFrameMaxSize ({
+                            _peerIncomingFrameMaxSize} bytes) value is inferior to 1KB");
                     }
                 }
-
-                if (_peerIncomingFrameMaxSize == null)
+                else
                 {
-                    throw new InvalidDataException("missing IncomingFrameMaxSize Ice2 connection parameter");
+                    // Ignore unsupported parameters.
                 }
+            }
+
+            if (_peerIncomingFrameMaxSize == null)
+            {
+                throw new InvalidDataException("missing IncomingFrameMaxSize Ice2 connection parameter");
             }
         }
 
@@ -118,11 +113,7 @@ namespace IceRpc.Internal
             // send the GoAwayCanceled frame once the GoAway frame has been sent.
             _cancelGoAwaySource?.TrySetResult();
 
-        public void Dispose()
-        {
-            _cancelGoAwaySource?.TrySetCanceled();
-            _networkConnection.Dispose();
-        }
+        public void Dispose() => _cancelGoAwaySource?.TrySetCanceled();
 
         public Task PingAsync(CancellationToken cancel) => _networkConnection.PingAsync(cancel);
 
@@ -130,7 +121,7 @@ namespace IceRpc.Internal
         public async Task<IncomingRequest?> ReceiveRequestAsync(CancellationToken cancel)
         {
             // Accepts a new stream.
-            RpcStream stream = await _networkConnection!.AcceptStreamAsync(cancel).ConfigureAwait(false);
+            NetworkStream stream = await _networkConnection!.AcceptStreamAsync(cancel).ConfigureAwait(false);
 
             // Receives the request frame from the stream. TODO: Only read the request header, the payload
             // should be received by calling IProtocolStream.ReceivePayloadAsync from the incoming frame
@@ -212,13 +203,17 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task<IncomingResponse> ReceiveResponseAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            if (request.IsOneway)
+            if (request.Stream == null)
+            {
+                throw new InvalidOperationException($"{nameof(request.Stream)} is not set");
+            }
+            else if (request.IsOneway)
             {
                 throw new InvalidOperationException("can't receive a response for a one-way request");
             }
 
             ReadOnlyMemory<byte> buffer = await ReceiveFrameAsync(
-                request.Stream,
+                request.Stream!,
                 Ice2FrameType.Response,
                 cancel).ConfigureAwait(false);
 
@@ -349,9 +344,14 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task SendResponseAsync(IncomingRequest request, OutgoingResponse response, CancellationToken cancel)
         {
-            if (request.IsOneway)
+            if (request.Stream == null)
             {
-                throw new InvalidOperationException("can't send a response for a one-way request");
+                throw new InvalidOperationException($"{nameof(request.Stream)} is not set");
+            }
+            else if (request.IsOneway)
+            {
+                // Nothing to send, we're done.
+                return;
             }
 
             var bufferWriter = new BufferWriter();
@@ -407,9 +407,7 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task ShutdownAsync(bool shutdownByPeer, string message, CancellationToken cancel)
         {
-            // Shutdown the multi-stream connection to prevent new streams from being created. This is done
-            // before the yield to ensure consistency between the connection shutdown state and the connection
-            // closing State.
+            // Shutdown the multi-stream connection to prevent new streams from being created.
             (long lastBidirectionalId, long lastUnidirectionalId) = _networkConnection.Shutdown();
 
             if (!shutdownByPeer)
@@ -439,9 +437,9 @@ namespace IceRpc.Internal
             await _networkConnection.WaitForStreamCountAsync(1, 1, cancel).ConfigureAwait(false);
 
             // Abort the control stream.
-            _controlStream!.AbortWrite(RpcStreamError.ConnectionShutdown);
+            _controlStream!.AbortWrite(StreamError.ConnectionShutdown);
 
-            // Wait for the streams to be closed.
+            // Wait for the control streams to be closed.
             await _networkConnection.WaitForStreamCountAsync(0, 0, cancel).ConfigureAwait(false);
 
             async Task SendGoAwayCancelIfShutdownCanceledAsync()
@@ -457,7 +455,7 @@ namespace IceRpc.Internal
                     // Write the GoAwayCanceled frame to the peer's streams.
                     await SendControlFrameAsync(Ice2FrameType.GoAwayCanceled, null, default).ConfigureAwait(false);
                 }
-                catch (RpcStreamAbortedException)
+                catch (StreamAbortedException)
                 {
                     // Expected if the control stream is closed.
                 }
@@ -480,7 +478,7 @@ namespace IceRpc.Internal
                     // Cancel the dispatch if the peer canceled the shutdown.
                     _networkConnection!.CancelDispatch();
                 }
-                catch (RpcStreamAbortedException)
+                catch (StreamAbortedException)
                 {
                     // Expected if the control stream is closed.
                 }
@@ -499,15 +497,15 @@ namespace IceRpc.Internal
 
             // Abort non-processed outgoing streams before closing the connection to ensure the invocations
             // will fail with a retryable exception.
-            _networkConnection.AbortOutgoingStreams(RpcStreamError.ConnectionShutdownByPeer,
-                                                      (goAwayFrame.LastBidirectionalStreamId,
-                                                       goAwayFrame.LastUnidirectionalStreamId));
+            _networkConnection.AbortOutgoingStreams(StreamError.ConnectionShutdownByPeer,
+                                                    (goAwayFrame.LastBidirectionalStreamId,
+                                                     goAwayFrame.LastUnidirectionalStreamId));
 
             return goAwayFrame.Message;
         }
 
         private async ValueTask<ReadOnlyMemory<byte>> ReceiveFrameAsync(
-            RpcStream stream,
+            NetworkStream stream,
             Ice2FrameType expectedFrameType,
             CancellationToken cancel)
         {

@@ -156,8 +156,8 @@ namespace IceRpc
             }
         }
 
-        /// <summary>The transport connection used by this connection.</summary>
-        public INetworkConnection? NetworkConnection { get; private set; }
+        /// <summary>The network connection used by this connection.</summary>
+        internal INetworkConnection? NetworkConnection { get; private set; }
 
         // Delegate used to remove the connection once it has been closed.
         internal Action<Connection>? Remove
@@ -272,6 +272,10 @@ namespace IceRpc
                 {
                     await Task.Yield();
 
+                    // Establish the network connection.
+                    await NetworkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+
+                    // Create the protocol connection.
                     Action pingAction = () =>
                         {
                             Task.Run(() =>
@@ -287,12 +291,12 @@ namespace IceRpc
                             });
                         };
 
-                    // TODO: Add protocol connection factories to avoid the protocol chck and the nasty casts
+                    // TODO: Add protocol connection factories to avoid the protocol check and the nasty casts
                     // here.
                     if (Protocol == Protocol.Ice1)
                     {
                         _protocolConnection = new Ice1ProtocolConnection(
-                            (SocketConnection)NetworkConnection,
+                            (NetworkSocketConnection)NetworkConnection,
                             _options.IdleTimeout,
                             _options.IncomingFrameMaxSize,
                             IsServer,
@@ -309,11 +313,9 @@ namespace IceRpc
                             _loggerFactory ?? NullLoggerFactory.Instance);
                     }
 
+                    // Initializes the protocol connection.
                     await _protocolConnection.InitializeAsync(connectCancellationSource.Token).ConfigureAwait(false);
 
-                    // Start the scope only once the connection is connected/accepted to ensure that the .NET
-                    // connection endpoints are available.
-                    using IDisposable? scope = _logger.StartConnectionScope(this);
                     lock (_mutex)
                     {
                         if (_state == ConnectionState.Closed)
@@ -328,17 +330,14 @@ namespace IceRpc
                         // Setup a timer to check for the connection idle time every IdleTimeout / 2 period. If the
                         // transport doesn't support idle timeout (e.g.: the colocated transport), IdleTimeout will
                         // be infinite.
-                        if (_protocolConnection!.IdleTimeout != Timeout.InfiniteTimeSpan)
+                        if (_protocolConnection.IdleTimeout != Timeout.InfiniteTimeSpan)
                         {
                             TimeSpan period = _protocolConnection.IdleTimeout / 2;
                             _timer = new Timer(value => Monitor(), null, period, period);
                         }
 
                         // Start a task to wait for graceful shutdown.
-                        if (!NetworkConnection.IsDatagram)
-                        {
-                            _ = Task.Run(() => WaitForShutdownAsync(), CancellationToken.None);
-                        }
+                        _ = Task.Run(() => WaitForShutdownAsync(), CancellationToken.None);
 
                         // Start the receive request task. The task accepts new incoming requests and processes
                         // them. It only completes once the connection is closed.
@@ -347,14 +346,15 @@ namespace IceRpc
                             () => AcceptIncomingRequestAsync(Dispatcher ?? NullDispatcher.Instance),
                             CancellationToken.None);
 
-                        Action logSuccess = (IsServer, NetworkConnection.IsDatagram) switch
-                        {
-                            (false, false) => _logger.LogConnectionEstablished,
-                            (false, true) => _logger.LogStartSendingDatagrams,
-                            (true, false) => _logger.LogConnectionAccepted,
-                            (true, true) => _logger.LogStartReceivingDatagrams
-                        };
-                        logSuccess();
+                        // TODO: move logging to decorator
+                        // Action logSuccess = (IsServer, NetworkConnection.IsDatagram) switch
+                        // {
+                        //     (false, false) => _logger.LogConnectionEstablished,
+                        //     (false, true) => _logger.LogStartSendingDatagrams,
+                        //     (true, false) => _logger.LogConnectionAccepted,
+                        //     (true, true) => _logger.LogStartReceivingDatagrams
+                        // };
+                        // logSuccess();
                     }
                 }
                 catch (Exception exception)
@@ -408,11 +408,6 @@ namespace IceRpc
                 throw;
             }
 
-            if (NetworkConnection!.IsDatagram && !request.IsOneway)
-            {
-                throw new InvalidOperationException("cannot send twoway request over datagram connection");
-            }
-
             try
             {
                 // Send the request.
@@ -437,46 +432,48 @@ namespace IceRpc
             }
             catch (OperationCanceledException)
             {
-                request.Stream?.Abort(RpcStreamError.InvocationCanceled);
+                request.Stream?.Abort(StreamError.InvocationCanceled);
                 throw;
             }
-            catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.DispatchCanceled)
+            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.DispatchCanceled)
             {
                 throw new OperationCanceledException("dispatch canceled by peer", ex);
             }
-            // catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.ConnectionShutdown)
-            // {
-            //     // Invocations are canceled immediately when Shutdown is called on the connection.
-            //     throw new OperationCanceledException("connection shutdown", ex);
-            // }
-            catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.ConnectionShutdownByPeer)
+            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.ConnectionShutdownByPeer)
             {
                 // If the peer shuts down the connection, streams which are aborted with this error code are
                 // always safe to retry since only streams not processed by the peer are aborted.
                 request.RetryPolicy = RetryPolicy.Immediately;
                 throw new ConnectionClosedException("connection shutdown by peer", ex);
             }
-            // catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.ConnectionAborted)
-            // {
-            //     if (request.IsIdempotent || !request.IsSent)
-            //     {
-            //         // Only retry if it's safe to retry: the request is idempotent or it hasn't been sent.
-            //         request.RetryPolicy = RetryPolicy.Immediately;
-            //     }
-            //     throw new ConnectionLostException(ex);
-            // }
-            catch (RpcStreamAbortedException ex)
+            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.ConnectionAborted)
+            {
+                if (request.IsIdempotent || !request.IsSent)
+                {
+                    // Only retry if it's safe to retry: the request is idempotent or it hasn't been sent.
+                    request.RetryPolicy = RetryPolicy.Immediately;
+                }
+                throw new ConnectionLostException(ex);
+            }
+            catch (StreamAbortedException ex)
             {
                 // Unexpected stream abort. This shouldn't occur unless the peer sends bogus data.
                 throw new InvalidDataException($"unexpected stream abort (ErrorCode = {ex.ErrorCode})", ex);
             }
-            catch (TransportException ex)
+            catch (ConnectionClosedException)
             {
-                if (State < ConnectionState.Closing)
-                {
-                    // Close the connection if the request fails with a transport exception.
-                    _ = CloseAsync(ex);
-                }
+                // If the peer gracefully shuts down the connection, it's always safe to retry since only
+                // streams not processed by the peer are aborted.
+                request.RetryPolicy = RetryPolicy.Immediately;
+                throw;
+            }
+            catch (TransportException) when (!request.IsSent && State > ConnectionState.Active)
+            {
+                // The connection is being closed.
+                throw new ConnectionClosedException("connection shutdown");
+            }
+            catch (TransportException)
+            {
                 if (request.IsIdempotent || !request.IsSent)
                 {
                     // If the connection is being shutdown, exceptions are expected since the request send or
@@ -544,7 +541,7 @@ namespace IceRpc
                     if (_protocolConnection.HasInvocationsInProgress)
                     {
                         // Close the connection if we didn't receive a heartbeat and the connection is idle.
-                        // The server is supposed to send heartbeats when dispatch are in progress.                        Console.Error.WriteLine("XXXXX");
+                        // The server is supposed to send heartbeats when dispatch are in progress.
                         _ = CloseAsync("connection timed out");
                     }
                     else
@@ -568,6 +565,10 @@ namespace IceRpc
             {
                 request = await _protocolConnection!.ReceiveRequestAsync(default).ConfigureAwait(false);
             }
+            catch (ConnectionClosedException)
+            {
+                return;
+            }
             catch (Exception exception)
             {
                 await CloseAsync(exception).ConfigureAwait(false);
@@ -586,33 +587,29 @@ namespace IceRpc
 
             try
             {
-                CancellationToken cancel = request.CancelDispatchSource?.Token ?? default;
-                request.Connection = this;
-
                 // Dispatch the request and get the response.
                 OutgoingResponse? response = null;
                 try
                 {
+                    CancellationToken cancel = request.CancelDispatchSource?.Token ?? default;
+                    request.Connection = this;
                     response = await dispatcher.DispatchAsync(request, cancel).ConfigureAwait(false);
                 }
                 catch (Exception exception)
                 {
-                    if (!request.IsOneway)
-                    {
-                        response = OutgoingResponse.ForException(request, exception);
-                    }
+                    response = OutgoingResponse.ForException(request, exception);
                 }
 
-                if (response != null)
-                {
-                    await _protocolConnection.SendResponseAsync(request, response, cancel).ConfigureAwait(false);
-                }
+                await _protocolConnection.SendResponseAsync(
+                    request,
+                    response,
+                    CancellationToken.None).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
-                request.Stream?.Abort(RpcStreamError.DispatchCanceled);
+                request.Stream?.Abort(StreamError.DispatchCanceled);
             }
-            catch (RpcStreamAbortedException exception)
+            catch (StreamAbortedException exception)
             {
                 request.Stream!.Abort(exception.ErrorCode);
             }
@@ -649,50 +646,70 @@ namespace IceRpc
                 // that _closeTask is assigned before any synchronous continuations are ran.
                 await Task.Yield();
 
-                if (_protocolConnection != null)
-                {
-                    _protocolConnection.Dispose();
+                // TODO: move logging to decorator
+                // if (_protocolConnection != null)
+                // {
 
-                    // Log the connection closure
-                    using IDisposable? scope = _logger.StartConnectionScope(this);
-                    bool isDatagram = NetworkConnection!.IsDatagram;
-                    if (_state == ConnectionState.Connecting)
-                    {
-                        // If the connection is connecting but not active yet, we print a trace to show that
-                        // the connection got connected or accepted before printing out the connection closed
-                        // trace.
-                        Action<Exception> logFailure = (IsServer, isDatagram) switch
-                        {
-                            (false, false) => _logger.LogConnectionConnectFailed,
-                            (false, true) => _logger.LogStartSendingDatagramsFailed,
-                            (true, false) => _logger.LogConnectionAcceptFailed,
-                            (true, true) => _logger.LogStartReceivingDatagramsFailed
-                        };
-                        logFailure(exception);
-                    }
-                    else
-                    {
-                        if (isDatagram && IsServer)
-                        {
-                            _logger.LogStopReceivingDatagrams();
-                        }
-                        else if (exception is ConnectionClosedException closedException)
-                        {
-                            _logger.LogConnectionClosed(exception.Message);
-                        }
-                        else if (_state == ConnectionState.Closing)
-                        {
-                            _logger.LogConnectionClosed(exception.Message);
-                        }
-                        else if (exception.IsConnectionLost())
-                        {
-                            _logger.LogConnectionClosed("connection lost");
-                        }
-                        else
-                        {
-                            _logger.LogConnectionClosed(exception.Message, exception);
-                        }
-                    }
+                //     // Log the connection closure
+                //     using IDisposable? scope = _logger.StartConnectionScope(this);
+                //     bool isDatagram = NetworkConnection!.IsDatagram;
+                //     if (_state == ConnectionState.Connecting)
+                //     {
+                //         // If the connection is connecting but not active yet, we print a trace to show that
+                //         // the connection got connected or accepted before printing out the connection closed
+                //         // trace.
+                //         Action<Exception> logFailure = (IsServer, isDatagram) switch
+                //         {
+                //             (false, false) => _logger.LogConnectionConnectFailed,
+                //             (false, true) => _logger.LogStartSendingDatagramsFailed,
+                //             (true, false) => _logger.LogConnectionAcceptFailed,
+                //             (true, true) => _logger.LogStartReceivingDatagramsFailed
+                //         };
+                //         logFailure(exception);
+                //     }
+                //     else
+                //     {
+                //         if (isDatagram && IsServer)
+                //         {
+                //             _logger.LogStopReceivingDatagrams();
+                //         }
+                //         else if (exception is ConnectionClosedException closedException)
+                //         {
+                //             _logger.LogConnectionClosed(exception.Message);
+                //         }
+                //         else if (_state == ConnectionState.Closing)
+                //         {
+                //             _logger.LogConnectionClosed(exception.Message);
+                //         }
+                //         else if (exception.IsConnectionLost())
+                //         {
+                //             _logger.LogConnectionClosed("connection lost");
+                //         }
+                //         else
+                //         {
+                //             _logger.LogConnectionClosed(exception.Message, exception);
+                //         }
+                //     }
+                // }
+
+                try
+                {
+                    _protocolConnection?.Dispose();
+                }
+                catch (Exception exception)
+                {
+                    // The protocol or transport aren't supposed to raise.
+                    Debug.Assert(false, $"unexpected protocol close exception\n {exception}");
+                }
+
+                try
+                {
+                    NetworkConnection?.Dispose();
+                }
+                catch (Exception exception)
+                {
+                    // The protocol or transport aren't supposed to raise.
+                    Debug.Assert(false, $"unexpected transport close exception\n{exception}");
                 }
 
                 _timer?.Dispose();
@@ -721,7 +738,7 @@ namespace IceRpc
             IProtocolConnection? protocolConnection = null;
             lock (_mutex)
             {
-                if (_state == ConnectionState.Active && !NetworkConnection!.IsDatagram)
+                if (_state == ConnectionState.Active)
                 {
                     _state = ConnectionState.Closing;
                     _closeTask ??= PerformShutdownAsync(message);
@@ -782,6 +799,11 @@ namespace IceRpc
                     closedByPeer: true,
                     message,
                     CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (ConnectionClosedException)
+            {
+                Debug.Assert(false);
+                // Expected if closed locally.
             }
             catch (Exception exception)
             {

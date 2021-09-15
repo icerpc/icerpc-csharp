@@ -25,12 +25,12 @@ namespace IceRpc.Tests
             RemoteEndpoint = remoteEndpoint;
         }
 
-        public override ValueTask<RpcStream> AcceptStreamAsync(CancellationToken cancel) =>
+        public override ValueTask<NetworkStream> AcceptStreamAsync(CancellationToken cancel) =>
             throw new NotImplementedException();
 
         public override ValueTask ConnectAsync(CancellationToken cancel) => default;
 
-        public override RpcStream CreateStream(bool bidirectional) =>
+        public override NetworkStream CreateStream(bool bidirectional) =>
             throw new NotImplementedException();
 
         public override bool HasCompatibleParams(Endpoint remoteEndpoint) => throw new NotImplementedException();

@@ -1,31 +1,41 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Diagnostics;
+using System.Net.Security;
+using System.Net.Sockets;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The BufferedReceiveOverNetworkSocket is a wrapper around NetworkSocket to provide buffered data
-    /// receive. This helps to limit the number of operating system Receive calls when the user needs to read only a few
-    /// bytes before reading more (typically to read a frame header) by receiving the data in a small buffer. It's
-    /// similar to the C# System.IO.BufferedStream class. It's used by <see cref="SlicConnection"/>.</summary>
-    internal class BufferedReceiveOverNetworkSocket : NetworkSocket
+    /// <summary>The BufferedReceiveNetworkSocketDecorator is a NetworkSocket decorator to provide buffered
+    /// data receive. This helps to limit the number of operating system Receive calls when the user needs to
+    /// read only a few bytes before reading more (typically to read a frame header) by receiving the data in
+    /// a small buffer. It's similar to the C# System.IO.BufferedStream class. It's used by <see
+    /// cref="SlicConnection"/>.</summary>
+    internal class BufferedReceiveNetworkSocketDecorator : INetworkSocket
     {
-        public override bool IsDatagram => Underlying.IsDatagram;
+        /// <inheritdoc/>
+        public virtual int DatagramMaxReceiveSize => _decoratee.DatagramMaxReceiveSize;
 
-        protected internal override System.Net.Sockets.Socket? Socket => Underlying.Socket;
+        /// <inheritdoc/>
+        public bool IsDatagram => _decoratee.IsDatagram;
 
-        internal NetworkSocket Underlying { get; }
+        /// <inheritdoc/>
+        public Socket Socket => _decoratee.Socket;
+
+        /// <inheritdoc/>
+        public SslStream? SslStream => _decoratee.SslStream;
 
         // The buffered data.
         private ArraySegment<byte> _buffer;
+        private readonly INetworkSocket _decoratee;
 
-        public override ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel) =>
-            Underlying.ConnectAsync(endpoint, cancel);
+        public ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel) =>
+            _decoratee.ConnectAsync(endpoint, cancel);
 
-        public override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
-            Underlying.HasCompatibleParams(remoteEndpoint);
+        public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
+            _decoratee.HasCompatibleParams(remoteEndpoint);
 
-        public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel = default)
+        public async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             int received = 0;
             if (_buffer.Count > 0)
@@ -40,37 +50,27 @@ namespace IceRpc.Transports.Internal
             // Then, read the reminder from the underlying transport.
             if (received < buffer.Length)
             {
-                received += await Underlying.ReceiveAsync(buffer[received..], cancel).ConfigureAwait(false);
+                received += await _decoratee.ReceiveAsync(buffer[received..], cancel).ConfigureAwait(false);
             }
             return received;
         }
 
-        public override ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
-            Underlying.SendAsync(buffer, cancel);
+        public ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
+            _decoratee.SendAsync(buffer, cancel);
 
-        public override ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
-            Underlying.SendAsync(buffers, cancel);
+        public ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
+            _decoratee.SendAsync(buffers, cancel);
 
-        protected override void Dispose(bool disposing) => Underlying.Dispose();
-
-        internal BufferedReceiveOverNetworkSocket(NetworkSocket underlying, int bufferSize = 256)
-            : base(underlying.Logger)
+        internal BufferedReceiveNetworkSocketDecorator(INetworkSocket decoratee, int bufferSize = 256)
         {
-            Underlying = underlying;
+            _decoratee = decoratee;
 
             // The _buffer data member holds the buffered data. There's no buffered data until we receive data
             // from the underlying connection so the array segment point to an empty segment.
             _buffer = new ArraySegment<byte>(new byte[bufferSize], 0, 0);
         }
 
-        /// <summary>Returns buffered data. If there's no buffered data, the buffer is filled using the underlying
-        /// connection to receive additional data. The method returns when the buffer contains at least byteCount
-        /// data. If byteCount is set to zero, it returns all the buffered data.</summary>
-        /// <param name="byteCount">The number of bytes of buffered data to return. It can be set to null to get all
-        /// the buffered data.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <return>The buffered data. The returned data points to an internal buffer that is only valid until the next
-        /// ReceiveAsync call.</return>
+        /// <inheritdoc/>
         internal async ValueTask<ReadOnlyMemory<byte>> ReceiveAsync(int byteCount, CancellationToken cancel = default)
         {
             if (byteCount > _buffer.Array!.Length)
@@ -97,9 +97,6 @@ namespace IceRpc.Transports.Internal
             return buffer;
         }
 
-        /// <summary>Rewinds the buffered data. This can be used if too much buffered data has been read to add
-        /// it back to the buffer.</summary>
-        /// <param name="bytes">The number of bytes to unread from the buffer.</param>
         internal void Rewind(int bytes)
         {
             if (bytes > _buffer.Offset)
@@ -145,14 +142,14 @@ namespace IceRpc.Transports.Internal
             if (byteCount == 0)
             {
                 // Perform a single receive and we're done.
-                offset += await Underlying.ReceiveAsync(_buffer.Slice(offset), cancel).ConfigureAwait(false);
+                offset += await _decoratee.ReceiveAsync(_buffer.Slice(offset), cancel).ConfigureAwait(false);
             }
             else
             {
                 // Receive data until we have read at least "byteCount" bytes in the buffer.
                 while (offset < byteCount)
                 {
-                    offset += await Underlying.ReceiveAsync(_buffer.Slice(offset), cancel).ConfigureAwait(false);
+                    offset += await _decoratee.ReceiveAsync(_buffer.Slice(offset), cancel).ConfigureAwait(false);
                 }
             }
 
