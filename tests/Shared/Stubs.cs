@@ -11,9 +11,11 @@ namespace IceRpc.Tests
     internal class NetworkConnectionStub : INetworkConnection
     {
         public int DatagramMaxReceiveSize => throw new NotImplementedException();
+        public TimeSpan IdleTimeout => throw new NotImplementedException();
         public bool IsDatagram => false;
         public bool IsSecure => false;
         public bool IsServer { get;}
+        public TimeSpan LastActivity => throw new NotImplementedException();
         public Endpoint? LocalEndpoint { get; }
         public Endpoint? RemoteEndpoint { get; }
 
@@ -21,9 +23,11 @@ namespace IceRpc.Tests
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) => throw new NotImplementedException();
 
-        public ISingleStreamConnection GetSingleStreamConnection() => throw new NotImplementedException();
+        public ValueTask<IMultiStreamConnection> GetMultiStreamConnectionAsync(CancellationToken _) =>
+            throw new NotImplementedException();
 
-        public IMultiStreamConnection GetMultiStreamConnection() => throw new NotImplementedException();
+        public ValueTask<ISingleStreamConnection> GetSingleStreamConnectionAsync(CancellationToken _) =>
+            throw new NotImplementedException();
 
         public void Dispose()
         {

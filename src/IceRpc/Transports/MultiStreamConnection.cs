@@ -27,7 +27,11 @@ namespace IceRpc.Transports
 
         internal TimeSpan IdleTimeout { get; set; }
         internal bool IsServer { get; }
-        internal TimeSpan LastActivity { get; private set; }
+        internal TimeSpan LastActivity
+        {
+            get => TimeSpan.FromMilliseconds(Interlocked.Read(ref _lastActivity));
+            set => Interlocked.Exchange(ref _lastActivity, value.Milliseconds);
+        }
 
         internal int OutgoingStreamCount
         {
@@ -45,6 +49,7 @@ namespace IceRpc.Transports
         // The endpoint which created the connection. If it's a server connection, it's the local endpoint or
         // the remote endpoint otherwise.
         private int _incomingStreamCount;
+        private long _lastActivity;
         private long _lastIncomingBidirectionalStreamId = -1;
         private long _lastIncomingUnidirectionalStreamId = -1;
         private readonly object _mutex = new();
@@ -58,9 +63,6 @@ namespace IceRpc.Transports
 
         /// <inheritdoc/>
         public abstract INetworkStream CreateStream(bool bidirectional);
-
-        /// <inheritdoc/>
-        public abstract ValueTask InitializeAsync(CancellationToken cancel);
 
         /// <inheritdoc/>
         public void Dispose()
@@ -112,28 +114,6 @@ namespace IceRpc.Transports
                 {
                     return streamId > _lastIncomingUnidirectionalStreamId;
                 }
-            }
-        }
-
-        /// <summary>Traces the given received amount of data. Transport implementations should call this method
-        /// to trace the received data.</summary>
-        /// <param name="buffer">The received data.</param>
-        internal void Received(ReadOnlyMemory<byte> buffer)
-        {
-            lock (_mutex)
-            {
-                LastActivity = Time.Elapsed;
-            }
-        }
-
-        /// <summary>Traces the given sent amount of data. Transport implementations should call this method to
-        /// trace the data sent.</summary>
-        /// <param name="buffers">The buffers sent.</param>
-        internal void Sent(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
-        {
-            lock (_mutex)
-            {
-                LastActivity = Time.Elapsed;
             }
         }
 

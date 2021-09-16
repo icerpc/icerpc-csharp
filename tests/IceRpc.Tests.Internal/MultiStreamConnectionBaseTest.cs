@@ -7,18 +7,12 @@ using System.Globalization;
 
 namespace IceRpc.Tests.Internal
 {
-    public enum MultiStreamConnectionType
-    {
-        Coloc,
-        Slic
-    }
-
     [Parallelizable(scope: ParallelScope.Fixtures)]
     public class MultiStreamConnectionBaseTest
     {
         protected MultiStreamConnection ClientConnection => _clientConnection!;
         protected MultiStreamConnection ServerConnection => _serverConnection!;
-        protected MultiStreamOptions ServerMultiStreamOptions { get; }
+        protected SlicOptions ServerSlicOptions { get; }
 
         private readonly AsyncSemaphore _acceptSemaphore = new(1);
         private MultiStreamConnection? _clientConnection;
@@ -30,10 +24,7 @@ namespace IceRpc.Tests.Internal
         private MultiStreamConnection? _serverConnection;
         private readonly Endpoint _serverEndpoint;
 
-        public MultiStreamConnectionBaseTest(
-            MultiStreamConnectionType connectionType,
-            int bidirectionalStreamMaxCount = 0,
-            int unidirectionalStreamMaxCount = 0)
+        public MultiStreamConnectionBaseTest(int bidirectionalStreamMaxCount = 0, int unidirectionalStreamMaxCount = 0)
         {
             int port = 11000;
             if (TestContext.Parameters.Names.Contains("IceRpc.Tests.Internal.BasePort"))
@@ -43,38 +34,31 @@ namespace IceRpc.Tests.Internal
             }
             port += Interlocked.Add(ref _nextBasePort, 1);
 
-            string endpoint;
-            if (connectionType == MultiStreamConnectionType.Coloc)
-            {
-                endpoint = $"ice+coloc://127.0.0.1:{port}";
-                ServerMultiStreamOptions = new MultiStreamOptions();
-            }
-            else
-            {
-                endpoint = $"ice+tcp://127.0.0.1:{port}?tls=false";
-                ServerMultiStreamOptions = new SlicOptions();
-            }
+            string endpoint = $"ice+coloc://127.0.0.1:{port}";
+            // string endpoint = $"ice+tcp://127.0.0.1:{port}?tls=false";
+            ServerSlicOptions = new SlicOptions();
+
             _serverEndpoint = endpoint;
             _clientEndpoint = endpoint;
 
             if (bidirectionalStreamMaxCount > 0)
             {
-                ServerMultiStreamOptions.BidirectionalStreamMaxCount = bidirectionalStreamMaxCount;
+                ServerSlicOptions.BidirectionalStreamMaxCount = bidirectionalStreamMaxCount;
             }
             if (unidirectionalStreamMaxCount > 0)
             {
-                ServerMultiStreamOptions.UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount;
+                ServerSlicOptions.UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount;
             }
         }
 
-        public async Task SetUpConnectionsAsync()
+        protected async Task SetUpConnectionsAsync()
         {
             Task<MultiStreamConnection> acceptTask = AcceptAsync();
             _clientConnection = await ConnectAsync();
             _serverConnection = await acceptTask;
         }
 
-        public void TearDownConnections()
+        protected void TearDownConnections()
         {
             _clientConnection?.Dispose();
             _serverConnection?.Dispose();
@@ -95,7 +79,7 @@ namespace IceRpc.Tests.Internal
             {
                 INetworkConnection networkConnection = await _listener.AcceptAsync();
                 await networkConnection.ConnectAsync(default);
-                return (MultiStreamConnection)networkConnection;
+                return (MultiStreamConnection)await networkConnection.GetMultiStreamConnectionAsync(default);
             }
             catch (Exception ex)
             {
@@ -124,14 +108,14 @@ namespace IceRpc.Tests.Internal
                     _clientEndpoint,
                     LogAttributeLoggerFactory.Instance);
             await networkConnection.ConnectAsync(default);
-            return (MultiStreamConnection)networkConnection;
+                return (MultiStreamConnection)await networkConnection.GetMultiStreamConnectionAsync(default);
         }
 
         protected IListener CreateListener() =>
             TestHelper.CreateServerTransport(
                 _serverEndpoint,
                 options: null,
-                multiStreamOptions: ServerMultiStreamOptions).Listen(
+                slicOptions: ServerSlicOptions).Listen(
                     _serverEndpoint,
                     LogAttributeLoggerFactory.Instance).Listener!;
 

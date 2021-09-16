@@ -102,6 +102,7 @@ namespace IceRpc.Transports
                         new UdpSocket(socket, isServer: true, multicastAddress),
                         endpoint with { Port = port },
                         isServer: true,
+                        idleTimeout: TimeSpan.MaxValue,
                         new(),
                         logger),
                     logger));

@@ -9,7 +9,7 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IClientTransport"/> for the coloc transport.</summary>
     public class ColocClientTransport : IClientTransport
     {
-        private readonly MultiStreamOptions _options;
+        private readonly SlicOptions _slicOptions;
 
         INetworkConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
         {
@@ -26,7 +26,7 @@ namespace IceRpc.Transports
                 (reader, writer) = listener.NewClientConnection();
                 ILogger logger = loggerFactory.CreateLogger("IceRpc.Transports");
                 return LogNetworkConnectionDecorator.Create(
-                    new ColocConnection(remoteEndpoint, isServer: false, _options, writer, reader, logger),
+                    new ColocConnection(remoteEndpoint, isServer: false, _slicOptions, writer, reader, logger),
                     logger);
             }
             else
@@ -36,7 +36,7 @@ namespace IceRpc.Transports
         }
 
         /// <summary>Construct a colocated server transport.</summary>
-        /// <param name="options">The transport options.</param>
-        public ColocClientTransport(MultiStreamOptions options) => _options = options;
+        /// <param name="slicOptions">The Slic options.</param>
+        public ColocClientTransport(SlicOptions slicOptions) => _slicOptions = slicOptions;
     }
 }

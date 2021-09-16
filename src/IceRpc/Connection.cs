@@ -86,9 +86,9 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Gets the connection idle timeout. With Ice2, the IdleTimeout is negotiated when the
-        /// connection is established. The lowest IdleTimeout from either the client or server is used.</summary>
-        public TimeSpan IdleTimeout => _protocolConnection?.IdleTimeout ?? _options.IdleTimeout;
+        /// <summary>Gets the connection idle timeout. The IdleTimeout is available once the connection is
+        /// established.</summary>
+        public TimeSpan IdleTimeout => NetworkConnection?.IdleTimeout ?? TimeSpan.MaxValue;
 
         /// <summary>The maximum size in bytes of an incoming Ice1 or Ice2 protocol frame.</summary>
         public int IncomingFrameMaxSize => _options.IncomingFrameMaxSize;
@@ -291,26 +291,12 @@ namespace IceRpc
                             });
                         };
 
-                    // TODO: Add protocol connection factories to avoid the protocol check and the nasty casts
-                    // here.
-                    if (Protocol == Protocol.Ice1)
-                    {
-                        _protocolConnection = new Ice1ProtocolConnection(
-                            NetworkConnection,
-                            _options.IdleTimeout,
-                            _options.IncomingFrameMaxSize,
-                            pingAction,
-                            _loggerFactory ?? NullLoggerFactory.Instance);
-                    }
-                    else
-                    {
-                        _protocolConnection = new Ice2ProtocolConnection(
-                            NetworkConnection,
-                            _options.IdleTimeout,
-                            _options.IncomingFrameMaxSize,
-                            pingAction,
-                            _loggerFactory ?? NullLoggerFactory.Instance);
-                    }
+                    _protocolConnection = await Protocol.CreateConnectionAsync(
+                        NetworkConnection,
+                        _options.IncomingFrameMaxSize,
+                        pingAction,
+                        _loggerFactory ?? NullLoggerFactory.Instance,
+                        cancel).ConfigureAwait(false);
 
                     // Initializes the protocol connection.
                     await _protocolConnection.InitializeAsync(connectCancellationSource.Token).ConfigureAwait(false);
@@ -329,9 +315,9 @@ namespace IceRpc
                         // Setup a timer to check for the connection idle time every IdleTimeout / 2 period. If the
                         // transport doesn't support idle timeout (e.g.: the colocated transport), IdleTimeout will
                         // be infinite.
-                        if (_protocolConnection.IdleTimeout != Timeout.InfiniteTimeSpan)
+                        if (NetworkConnection.IdleTimeout != TimeSpan.MaxValue)
                         {
-                            TimeSpan period = _protocolConnection.IdleTimeout / 2;
+                            TimeSpan period = NetworkConnection.IdleTimeout / 2;
                             _timer = new Timer(value => Monitor(), null, period, period);
                         }
 
@@ -344,16 +330,6 @@ namespace IceRpc
                         _ = Task.Run(
                             () => AcceptIncomingRequestAsync(Dispatcher ?? NullDispatcher.Instance),
                             CancellationToken.None);
-
-                        // TODO: move logging to decorator
-                        // Action logSuccess = (IsServer, NetworkConnection.IsDatagram) switch
-                        // {
-                        //     (false, false) => _logger.LogConnectionEstablished,
-                        //     (false, true) => _logger.LogStartSendingDatagrams,
-                        //     (true, false) => _logger.LogConnectionAccepted,
-                        //     (true, true) => _logger.LogStartReceivingDatagrams
-                        // };
-                        // logSuccess();
                     }
                 }
                 catch (Exception exception)
@@ -520,9 +496,9 @@ namespace IceRpc
                 {
                     return;
                 }
-                Debug.Assert(_protocolConnection != null);
-                TimeSpan idleTime = Time.Elapsed - _protocolConnection!.LastActivity;
-                if (idleTime > _protocolConnection.IdleTimeout / 4 &&
+                Debug.Assert(NetworkConnection != null && _protocolConnection != null);
+                TimeSpan idleTime = Time.Elapsed - NetworkConnection!.LastActivity;
+                if (idleTime > NetworkConnection.IdleTimeout / 4 &&
                     (_options.KeepAlive || _protocolConnection.HasDispatchInProgress))
                 {
                     // We send a ping if there was no activity in the last (IdleTimeout / 4) period. Sending a
@@ -535,7 +511,7 @@ namespace IceRpc
                     // because Monitor is still only called every (IdleTimeout / 2) period.
                     _ = _protocolConnection.PingAsync(CancellationToken.None);
                 }
-                else if (idleTime > _protocolConnection.IdleTimeout)
+                else if (idleTime > NetworkConnection.IdleTimeout)
                 {
                     if (_protocolConnection.HasInvocationsInProgress)
                     {
@@ -644,52 +620,6 @@ namespace IceRpc
                 // Yield before continuing to ensure the code below isn't executed with the mutex locked and
                 // that _closeTask is assigned before any synchronous continuations are ran.
                 await Task.Yield();
-
-                // TODO: move logging to decorator
-                // if (_protocolConnection != null)
-                // {
-
-                //     // Log the connection closure
-                //     using IDisposable? scope = _logger.StartConnectionScope(this);
-                //     bool isDatagram = NetworkConnection!.IsDatagram;
-                //     if (_state == ConnectionState.Connecting)
-                //     {
-                //         // If the connection is connecting but not active yet, we print a trace to show that
-                //         // the connection got connected or accepted before printing out the connection closed
-                //         // trace.
-                //         Action<Exception> logFailure = (IsServer, isDatagram) switch
-                //         {
-                //             (false, false) => _logger.LogConnectionConnectFailed,
-                //             (false, true) => _logger.LogStartSendingDatagramsFailed,
-                //             (true, false) => _logger.LogConnectionAcceptFailed,
-                //             (true, true) => _logger.LogStartReceivingDatagramsFailed
-                //         };
-                //         logFailure(exception);
-                //     }
-                //     else
-                //     {
-                //         if (isDatagram && IsServer)
-                //         {
-                //             _logger.LogStopReceivingDatagrams();
-                //         }
-                //         else if (exception is ConnectionClosedException closedException)
-                //         {
-                //             _logger.LogConnectionClosed(exception.Message);
-                //         }
-                //         else if (_state == ConnectionState.Closing)
-                //         {
-                //             _logger.LogConnectionClosed(exception.Message);
-                //         }
-                //         else if (exception.IsConnectionLost())
-                //         {
-                //             _logger.LogConnectionClosed("connection lost");
-                //         }
-                //         else
-                //         {
-                //             _logger.LogConnectionClosed(exception.Message, exception);
-                //         }
-                //     }
-                // }
 
                 try
                 {

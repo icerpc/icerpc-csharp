@@ -145,7 +145,7 @@ namespace IceRpc.Tests.Internal
             TestHelper.CreateServerTransport(
                 serverEndpoint ?? ServerEndpoint,
                 options: options,
-                multiStreamOptions: null,
+                slicOptions: null,
                 _serverAuthenticationOptions).Listen(
                     serverEndpoint ?? ServerEndpoint,
                     LogAttributeLoggerFactory.Instance).Listener!;

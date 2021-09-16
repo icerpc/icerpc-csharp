@@ -9,15 +9,8 @@ namespace IceRpc.Tests.Internal
 {
     [Parallelizable(scope: ParallelScope.Fixtures)]
     [Timeout(10000)]
-    [TestFixture(MultiStreamConnectionType.Slic)]
-    [TestFixture(MultiStreamConnectionType.Coloc)]
     public class NetworkStreamTests : MultiStreamConnectionBaseTest
     {
-        public NetworkStreamTests(MultiStreamConnectionType connectionType)
-            : base(connectionType)
-        {
-        }
-
         [SetUp]
         public Task SetUp() => SetUpConnectionsAsync();
 

@@ -17,12 +17,6 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public bool HasInvocationsInProgress => _pendingIncomingResponses.Count > 0;
 
-        /// <inheritdoc/>
-        public TimeSpan IdleTimeout { get; private set; }
-
-        /// <inheritdoc/>
-        public TimeSpan LastActivity { get; private set; }
-
         // private readonly AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly TaskCompletionSource _completeShutdown = new();
         private readonly Dictionary<int, CancellationTokenSource> _dispatchCancellationTokenSources = new();
@@ -45,21 +39,20 @@ namespace IceRpc.Internal
 
         /// <summary>Creates a multi-stream protocol connection.</summary>
         public Ice1ProtocolConnection(
-            INetworkConnection networkConnection,
-            TimeSpan idleTimeout,
+            ISingleStreamConnection singleStreamConnection,
             int incomingFrameMaxSize,
+            bool isServer,
+            int? datagramMaxReceiveSize,
             Action? pingReceived,
-            ILoggerFactory loggerFactory)
+            ILogger logger)
         {
-            _stream = networkConnection.GetSingleStreamConnection();
-            IdleTimeout = idleTimeout;
+            _stream = singleStreamConnection;
             _incomingFrameMaxSize = incomingFrameMaxSize;
-            _isServer = networkConnection.IsServer;
-            _isDatagram = networkConnection.IsDatagram;
-            _datagramMaxReceiveSize = networkConnection.DatagramMaxReceiveSize;
-
+            _isServer = isServer;
+            _isDatagram = datagramMaxReceiveSize != null;
+            _datagramMaxReceiveSize = datagramMaxReceiveSize ?? 0;
             _pingReceived = pingReceived;
-            _logger = loggerFactory.CreateLogger("IceRpc.Protocol");
+            _logger = logger;
         }
 
         /// <inheritdoc/>

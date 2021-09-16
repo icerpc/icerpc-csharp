@@ -16,8 +16,5 @@ namespace IceRpc.Transports
         /// otherwise.</param>
         /// <return>The local stream.</return>
         INetworkStream CreateStream(bool bidirectional);
-
-        /// <summary>Perform multi-stream connection specific initialization.</summary>
-        ValueTask InitializeAsync(CancellationToken cancel);
     }
 }

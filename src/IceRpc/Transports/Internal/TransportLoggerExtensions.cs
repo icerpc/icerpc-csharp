@@ -39,7 +39,7 @@ namespace IceRpc.Transports.Internal
             EventName = nameof(TransportEventIds.ConnectionAcceptFailed),
             Level = LogLevel.Debug,
             Message = "failed to accept connection")]
-        internal static partial void LogConnectionAcceptFailed(this ILogger logger, Exception exception);
+        internal static partial void LogConnectionAcceptFailed(this ILogger logger, Exception? exception);
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.ConnectionClosed,
@@ -48,15 +48,14 @@ namespace IceRpc.Transports.Internal
             Message = "closed connection (Reason={Reason})")]
         internal static partial void LogConnectionClosed(
             this ILogger logger,
-            string reason,
-            Exception? exception = null);
+            string reason);
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.ConnectionConnectFailed,
             EventName = nameof(TransportEventIds.ConnectionConnectFailed),
             Level = LogLevel.Debug,
             Message = "connection establishment failed")]
-        internal static partial void LogConnectionConnectFailed(this ILogger logger, Exception exception);
+        internal static partial void LogConnectionConnectFailed(this ILogger logger, Exception? exception);
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.ConnectionEstablished,
@@ -134,7 +133,7 @@ namespace IceRpc.Transports.Internal
             EventName = nameof(TransportEventIds.StartReceivingDatagramsFailed),
             Level = LogLevel.Information,
             Message = "starting receiving datagrams failed")]
-        internal static partial void LogStartReceivingDatagramsFailed(this ILogger logger, Exception exception);
+        internal static partial void LogStartReceivingDatagramsFailed(this ILogger logger, Exception? exception);
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.StartSendingDatagrams,
@@ -148,7 +147,7 @@ namespace IceRpc.Transports.Internal
             EventName = nameof(TransportEventIds.StartSendingDatagramsFailed),
             Level = LogLevel.Debug,
             Message = "starting sending datagrams failed")]
-        internal static partial void LogStartSendingDatagramsFailed(this ILogger logger, Exception exception);
+        internal static partial void LogStartSendingDatagramsFailed(this ILogger logger, Exception? exception);
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.StopAcceptingConnections,

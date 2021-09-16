@@ -13,6 +13,7 @@ namespace IceRpc.Transports.Internal
         public Endpoint Endpoint { get; }
 
         private readonly SslServerAuthenticationOptions? _authenticationOptions;
+        private readonly TimeSpan _idleTimeout;
         private readonly ILogger _logger;
         private readonly Socket _socket;
         private readonly SlicOptions _slicOptions;
@@ -28,6 +29,7 @@ namespace IceRpc.Transports.Internal
                             _authenticationOptions),
                         Endpoint,
                         isServer: true,
+                        _idleTimeout,
                         _slicOptions,
                         _logger),
                     _logger);
@@ -46,6 +48,7 @@ namespace IceRpc.Transports.Internal
             Socket socket,
             Endpoint endpoint,
             ILogger logger,
+            TimeSpan idleTimeout,
             SlicOptions slicOptions,
             SslServerAuthenticationOptions? authenticationOptions)
         {
@@ -54,6 +57,7 @@ namespace IceRpc.Transports.Internal
             _logger = logger;
             _slicOptions = slicOptions;
             _socket = socket;
+            _idleTimeout = idleTimeout;
 
             // We always call ParseTcpParams to make sure the params are ok, even when Protocol is ice1.
             _ = endpoint.ParseTcpParams();

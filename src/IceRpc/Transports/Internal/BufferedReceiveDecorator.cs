@@ -123,14 +123,24 @@ namespace IceRpc.Transports.Internal
             if (byteCount == 0)
             {
                 // Perform a single receive and we're done.
-                offset += await _decoratee.ReceiveAsync(_buffer.Slice(offset), cancel).ConfigureAwait(false);
+                int received = await _decoratee.ReceiveAsync(_buffer.Slice(offset), cancel).ConfigureAwait(false);
+                if (received == 0)
+                {
+                    throw new ConnectionLostException();
+                }
+                offset += received;
             }
             else
             {
                 // Receive data until we have read at least "byteCount" bytes in the buffer.
                 while (offset < byteCount)
                 {
-                    offset += await _decoratee.ReceiveAsync(_buffer.Slice(offset), cancel).ConfigureAwait(false);
+                    int received = await _decoratee.ReceiveAsync(_buffer.Slice(offset), cancel).ConfigureAwait(false);
+                    if (received == 0)
+                    {
+                        throw new ConnectionLostException();
+                    }
+                    offset += received;
                 }
             }
 

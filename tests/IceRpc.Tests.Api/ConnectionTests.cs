@@ -12,7 +12,6 @@ namespace IceRpc.Tests.Api
         {
             var options = new ConnectionOptions();
             Assert.Throws<ArgumentException>(() => options.CloseTimeout = TimeSpan.Zero);
-            Assert.Throws<ArgumentException>(() => options.IdleTimeout = TimeSpan.Zero);
             Assert.Throws<ArgumentException>(() => options.IncomingFrameMaxSize = 512);
 
             Assert.Throws<ArgumentException>(() => options.ConnectTimeout = TimeSpan.Zero);

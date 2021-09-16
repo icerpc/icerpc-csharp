@@ -14,12 +14,6 @@ namespace IceRpc.Internal
         /// <summary>Returns <c>true</c> if invocations are in progress, <c>false</c> otherwise.</summary>
         bool HasInvocationsInProgress { get; }
 
-        /// <summary>Gets or set the idle timeout.</summary>
-        TimeSpan IdleTimeout { get; }
-
-        /// <summary>The time of the connection's last activity.</summary>
-        TimeSpan LastActivity { get; }
-
         /// <summary>Initializes the connection.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         Task InitializeAsync(CancellationToken cancel);

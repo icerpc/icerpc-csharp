@@ -8,15 +8,15 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IServerTransport"/> for the coloc transport.</summary>
     public class ColocServerTransport : IServerTransport
     {
-        private readonly MultiStreamOptions _multiStreamOptions;
+        private readonly SlicOptions _slicOptions;
 
         (IListener?, INetworkConnection?) IServerTransport.Listen(
             Endpoint endpoint,
             ILoggerFactory loggerFactory) =>
-            (new ColocListener(endpoint, _multiStreamOptions, loggerFactory.CreateLogger("IceRpc.Transports")), null);
+            (new ColocListener(endpoint, _slicOptions, loggerFactory.CreateLogger("IceRpc.Transports")), null);
 
         /// <summary>Constructs a colocated server transport.</summary>
-        /// <param name="options">The transport options.</param>
-        public ColocServerTransport(MultiStreamOptions options) => _multiStreamOptions = options;
+        /// <param name="slicOptions">The transport options.</param>
+        public ColocServerTransport(SlicOptions slicOptions) => _slicOptions = slicOptions;
     }
 }

@@ -9,6 +9,9 @@ namespace IceRpc.Transports
         /// connection.</summary>
         int DatagramMaxReceiveSize { get; }
 
+        /// <summary>Gets or set the idle timeout.</summary>
+        TimeSpan IdleTimeout { get; }
+
         /// <summary><c>true</c> for a datagram network connection; <c>false</c> otherwise.</summary>
         bool IsDatagram { get; }
 
@@ -23,6 +26,9 @@ namespace IceRpc.Transports
         /// the endpoint by the client-side.
         /// </summary>
         bool IsServer { get; }
+
+        /// <summary>The time of the connection's last activity.</summary>
+        TimeSpan LastActivity { get; }
 
         /// <summary>The local endpoint. The endpoint may not be available until the connection is connected.
         /// </summary>
@@ -41,13 +47,15 @@ namespace IceRpc.Transports
 
         /// <summary>Get the single-stream connection to allow single-stream communications over this network
         /// connection.</summary>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The <see cref="ISingleStreamConnection"/>.</returns>
-        ISingleStreamConnection GetSingleStreamConnection();
+        ValueTask<ISingleStreamConnection> GetSingleStreamConnectionAsync(CancellationToken cancel);
 
         /// <summary>Get the multi-stream connection to allow multi-stream communications over this network
         /// connection.</summary>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The <see cref="IMultiStreamConnection"/>.</returns>
-        IMultiStreamConnection GetMultiStreamConnection();
+        ValueTask<IMultiStreamConnection> GetMultiStreamConnectionAsync(CancellationToken cancel);
 
         /// <summary>Checks if the parameters of the provided endpoint are compatible with this network
         /// connection. Compatible means a client could reuse this network connection instead of establishing

@@ -3,6 +3,7 @@
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
+using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
 using System.Diagnostics;
 
@@ -55,6 +56,35 @@ namespace IceRpc.Internal
                 throw new NotSupportedException(
                     @$"Ice protocol '{protocol.GetName()
                     }' is not supported by this IceRPC runtime ({typeof(Protocol).Assembly.GetName().Version})");
+            }
+        }
+
+        internal static async ValueTask<IProtocolConnection> CreateConnectionAsync(
+            this Protocol protocol,
+            INetworkConnection networkConnection,
+            int incomingFrameMaxSize,
+            Action? pingAction,
+            ILoggerFactory loggerFactory,
+            CancellationToken cancel)
+        {
+            ILogger logger = loggerFactory.CreateLogger("IceRpc.Protocol");
+            if (protocol == Protocol.Ice1)
+            {
+                return new Ice1ProtocolConnection(
+                    await networkConnection.GetSingleStreamConnectionAsync(cancel).ConfigureAwait(false),
+                    incomingFrameMaxSize,
+                    networkConnection.IsServer,
+                    networkConnection.IsDatagram ? networkConnection.DatagramMaxReceiveSize : null,
+                    pingAction,
+                    logger);
+            }
+            else
+            {
+                return new Ice2ProtocolConnection(
+                    await networkConnection.GetMultiStreamConnectionAsync(cancel).ConfigureAwait(false),
+                    incomingFrameMaxSize,
+                    //pingAction,
+                    logger);
             }
         }
 

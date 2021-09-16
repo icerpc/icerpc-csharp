@@ -18,7 +18,7 @@ namespace IceRpc.Transports.Internal
 
         private readonly Channel<(ChannelWriter<ReadOnlyMemory<byte>>, ChannelReader<ReadOnlyMemory<byte>>)> _channel;
         private readonly ILogger _logger;
-        private readonly MultiStreamOptions _options;
+        private readonly SlicOptions _options;
 
         public async ValueTask<INetworkConnection> AcceptAsync()
         {
@@ -43,7 +43,7 @@ namespace IceRpc.Transports.Internal
             [NotNullWhen(returnValue: true)] out ColocListener? listener) =>
             _colocListenerDictionary.TryGetValue(endpoint, out listener);
 
-        internal ColocListener(Endpoint endpoint, MultiStreamOptions options, ILogger logger)
+        internal ColocListener(Endpoint endpoint, SlicOptions options, ILogger logger)
         {
             if (endpoint.Params.Count > 0)
             {

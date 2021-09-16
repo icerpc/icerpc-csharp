@@ -84,6 +84,7 @@ namespace IceRpc.Transports
                     new TcpClientSocket(socket, _authenticationOptions, netEndPoint),
                     remoteEndpoint,
                     isServer: false,
+                    _tcpOptions.IdleTimeout,
                     _slicOptions,
                     logger),
                 logger);

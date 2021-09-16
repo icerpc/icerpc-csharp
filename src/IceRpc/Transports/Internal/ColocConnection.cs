@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
-using System.Diagnostics;
 using System.Threading.Channels;
 
 namespace IceRpc.Transports.Internal
@@ -11,18 +11,22 @@ namespace IceRpc.Transports.Internal
     {
         public int DatagramMaxReceiveSize => throw new InvalidOperationException();
 
+        public TimeSpan IdleTimeout => TimeSpan.MaxValue;
+
         public bool IsDatagram => false;
 
         public bool IsSecure => true;
 
         public bool IsServer { get; }
 
+        public TimeSpan LastActivity => TimeSpan.MinValue;
+
         public Endpoint? LocalEndpoint { get; }
 
         public Endpoint? RemoteEndpoint { get; }
 
         private readonly ILogger _logger;
-        private readonly MultiStreamOptions _options;
+        private readonly SlicOptions _options;
         private readonly ChannelReader<ReadOnlyMemory<byte>> _reader;
         private ReadOnlyMemory<byte> _receivedBuffer;
         private SlicConnection? _slicConnection;
@@ -30,23 +34,25 @@ namespace IceRpc.Transports.Internal
 
         public ValueTask ConnectAsync(CancellationToken cancel) => default;
 
-        public void Dispose() => _slicConnection?.Dispose();
+        public void Dispose()
+        {
+            _slicConnection?.Dispose();
+            _writer.Complete();
+        }
 
-        public IMultiStreamConnection GetMultiStreamConnection()
+        public async ValueTask<IMultiStreamConnection> GetMultiStreamConnectionAsync(CancellationToken cancel)
         {
             _slicConnection = new SlicConnection(
                 this,
                 IsServer,
+                TimeSpan.MaxValue,
                 _logger,
-                new SlicOptions()
-                {
-                    BidirectionalStreamMaxCount = _options.BidirectionalStreamMaxCount,
-                    UnidirectionalStreamMaxCount = _options.UnidirectionalStreamMaxCount
-                });
+                _options);
+            await _slicConnection.InitializeAsync(cancel).ConfigureAwait(false);
             return _slicConnection;
         }
 
-        public ISingleStreamConnection GetSingleStreamConnection() => this;
+        public ValueTask<ISingleStreamConnection> GetSingleStreamConnectionAsync(CancellationToken cancel) => new(this);
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
@@ -73,9 +79,10 @@ namespace IceRpc.Transports.Internal
             }
             else
             {
-                _receivedBuffer.CopyTo(buffer[0.._receivedBuffer.Length]);
+                int received = _receivedBuffer.Length;
+                _receivedBuffer.CopyTo(buffer[0..received]);
                 _receivedBuffer = ReadOnlyMemory<byte>.Empty;
-                return _receivedBuffer.Length;
+                return received;
             }
         }
 
@@ -83,12 +90,12 @@ namespace IceRpc.Transports.Internal
             _writer.WriteAsync(buffer, cancel);
 
         public ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
-            SendAsync(buffers.ToArray(), cancel);
+            SendAsync(buffers.ToSingleBuffer(), cancel);
 
         internal ColocConnection(
             Endpoint endpoint,
             bool isServer,
-            MultiStreamOptions options,
+            SlicOptions options,
             ChannelWriter<ReadOnlyMemory<byte>> writer,
             ChannelReader<ReadOnlyMemory<byte>> reader,
             ILogger logger)

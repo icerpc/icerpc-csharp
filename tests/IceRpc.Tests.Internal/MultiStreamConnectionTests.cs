@@ -5,14 +5,12 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests.Internal
 {
-    // Test the varions multi-stream connection implementations.
+    // Test the Slic multi-stream implementation.
     [Timeout(30000)]
-    [TestFixture(MultiStreamConnectionType.Slic)]
-    [TestFixture(MultiStreamConnectionType.Coloc)]
     public class MultiStreamConnectionTests : MultiStreamConnectionBaseTest
     {
-        public MultiStreamConnectionTests(MultiStreamConnectionType type)
-            : base(type, bidirectionalStreamMaxCount: 15, unidirectionalStreamMaxCount: 10)
+        public MultiStreamConnectionTests()
+            : base(bidirectionalStreamMaxCount: 15, unidirectionalStreamMaxCount: 10)
         {
         }
 
@@ -178,7 +176,7 @@ namespace IceRpc.Tests.Internal
         {
             var clientStreams = new List<INetworkStream>();
             var serverStreams = new List<INetworkStream>();
-            for (int i = 0; i < ServerMultiStreamOptions!.BidirectionalStreamMaxCount; ++i)
+            for (int i = 0; i < ServerSlicOptions!.BidirectionalStreamMaxCount; ++i)
             {
                 INetworkStream stream = ClientConnection.CreateStream(true);
                 clientStreams.Add(stream);
@@ -219,8 +217,8 @@ namespace IceRpc.Tests.Internal
         public async Task MultiStreamConnection_StreamMaxCount_StressTestAsync(bool bidirectional)
         {
             int maxCount = bidirectional ?
-                ServerMultiStreamOptions!.BidirectionalStreamMaxCount :
-                ServerMultiStreamOptions!.UnidirectionalStreamMaxCount;
+                ServerSlicOptions!.BidirectionalStreamMaxCount :
+                ServerSlicOptions!.UnidirectionalStreamMaxCount;
             int streamCount = 0;
 
             // Ensure the client side accepts streams to receive payloads.
@@ -280,7 +278,7 @@ namespace IceRpc.Tests.Internal
         public async Task MultiStreamConnection_StreamMaxCount_UnidirectionalAsync()
         {
             var clientStreams = new List<INetworkStream>();
-            for (int i = 0; i < ServerMultiStreamOptions!.UnidirectionalStreamMaxCount; ++i)
+            for (int i = 0; i < ServerSlicOptions!.UnidirectionalStreamMaxCount; ++i)
             {
                 INetworkStream stream = ClientConnection.CreateStream(false);
                 clientStreams.Add(stream);
@@ -381,7 +379,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void MultiStreamConnection_SendRequest_Failure()
+        public void MultiStreamConnection_SendAsync_Failure()
         {
             INetworkStream stream = ClientConnection.CreateStream(false);
             ClientConnection.Dispose();

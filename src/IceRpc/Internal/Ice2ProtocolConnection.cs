@@ -15,12 +15,6 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public bool HasInvocationsInProgress => _multiStreamConnection.OutgoingStreamCount > 1; // Ignore control stream
 
-        /// <inheritdoc/>
-        public TimeSpan IdleTimeout => _multiStreamConnection.IdleTimeout;
-
-        /// <inheritdoc/>
-        public TimeSpan LastActivity => _multiStreamConnection.LastActivity;
-
         private TaskCompletionSource? _cancelGoAwaySource;
         private INetworkStream? _controlStream;
         private readonly int _incomingFrameMaxSize;
@@ -32,19 +26,13 @@ namespace IceRpc.Internal
 
         /// <summary>Creates a multi-stream protocol connection.</summary>
         public Ice2ProtocolConnection(
-            INetworkConnection networkConnection,
-            TimeSpan idleTimeout,
+            IMultiStreamConnection multiStreamConnection,
             int incomingFrameMaxSize,
-            Action? pingReceived,
-            ILoggerFactory loggerFactory)
+            ILogger logger)
         {
-            _multiStreamConnection = (MultiStreamConnection)networkConnection.GetMultiStreamConnection();
+            _multiStreamConnection = (MultiStreamConnection)multiStreamConnection;
             _incomingFrameMaxSize = incomingFrameMaxSize;
-            _logger = loggerFactory.CreateLogger("IceRpc.Protocol");
-
-            // The multi-stream transport is responsible for ping/idle timeout.
-            _multiStreamConnection.PingReceived = pingReceived;
-            _multiStreamConnection.IdleTimeout = idleTimeout;
+            _logger = logger;
         }
 
         /// <inheritdoc/>
@@ -115,7 +103,11 @@ namespace IceRpc.Internal
 
         public void Dispose() => _cancelGoAwaySource?.TrySetCanceled();
 
-        public Task PingAsync(CancellationToken cancel) => _multiStreamConnection.PingAsync(cancel);
+        public Task PingAsync(CancellationToken cancel)
+        {
+            // TODO
+            return Task.CompletedTask;
+        }
 
         /// <inheritdoc/>
         public async Task<IncomingRequest?> ReceiveRequestAsync(CancellationToken cancel)

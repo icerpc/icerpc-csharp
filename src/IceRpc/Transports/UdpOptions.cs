@@ -7,6 +7,17 @@ namespace IceRpc.Transports
     /// <summary>An options class for configuring UDP based transports.</summary>
     public sealed class UdpOptions
     {
+        /// <summary>The idle timeout. This timeout is used to monitor the network connection. If the connection
+        /// is idle within this timeout period, the connection is gracefully closed. It can't be 0 and the default
+        /// value is 60s.</summary>
+        /// <value>The network connection idle timeout value.</value>
+        public TimeSpan IdleTimeout
+        {
+            get => _idleTimeout;
+            set => _idleTimeout = value != TimeSpan.Zero ? value :
+                throw new ArgumentException($"0 is not a valid value for {nameof(IdleTimeout)}", nameof(value));
+        }
+
         /// <summary>Configures an IPv6 socket to only support IPv6. The socket won't support IPv4 mapped addresses
         /// when this property is set to true. The default value is false.</summary>
         /// <value>The boolean value to enable or disable IPv6-only support.</value>
@@ -37,6 +48,7 @@ namespace IceRpc.Transports
                 throw new ArgumentException($"{nameof(SendBufferSize)} can't be less than 1KB", nameof(value));
         }
 
+        private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
         private int? _receiveBufferSize;
         private int? _sendBufferSize;
     }

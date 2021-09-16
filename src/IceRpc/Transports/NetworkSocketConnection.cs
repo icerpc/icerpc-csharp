@@ -7,11 +7,13 @@ namespace IceRpc.Transports
     /// <summary>A network socket connection based on a <see cref="NetworkSocket"/>.</summary>
     public sealed class NetworkSocketConnection : INetworkConnection, ISingleStreamConnection
     {
-        /// <summary>When this connection is a datagram connection, the maximum size of a received datagram.
-        /// </summary>
+        /// <inheritdoc/>
         public int DatagramMaxReceiveSize => NetworkSocket.DatagramMaxReceiveSize;
 
-        /// <summary><c>true</c> for a datagram network connection; <c>false</c> otherwise.</summary>
+        /// <inheritdoc/>
+        public TimeSpan IdleTimeout => _slicConnection?.IdleTimeout ?? _idleTimeout;
+
+        /// <inheritdoc/>
         public bool IsDatagram => NetworkSocket.IsDatagram;
 
         /// <inheritdoc/>
@@ -21,13 +23,18 @@ namespace IceRpc.Transports
         public bool IsServer { get; }
 
         /// <inheritdoc/>
-        public Endpoint? LocalEndpoint { get; private set; }
+        public TimeSpan LastActivity => _slicConnection?.LastActivity ?? TimeSpan.FromMilliseconds(_lastActivity);
 
-        internal NetworkSocket NetworkSocket { get; }
+        /// <inheritdoc/>
+        public Endpoint? LocalEndpoint { get; private set; }
 
         /// <inheritdoc/>
         public Endpoint? RemoteEndpoint { get; private set; }
 
+        internal NetworkSocket NetworkSocket { get; }
+
+        private readonly TimeSpan _idleTimeout;
+        private long _lastActivity;
         private readonly ILogger _logger;
         private Internal.SlicConnection? _slicConnection;
         private readonly SlicOptions _slicOptions;
@@ -38,18 +45,21 @@ namespace IceRpc.Transports
         /// <param name="endpoint">For a client connection, the remote endpoint; for a server connection, the
         /// endpoint the server is listening on.</param>
         /// <param name="isServer">The connection is a server connection.</param>
+        /// <param name="idleTimeout">The connection idle timeout.</param>
         /// <param name="slicOptions">The Slic options.</param>
         /// <param name="logger">The logger.</param>
         public NetworkSocketConnection(
             NetworkSocket socket,
             Endpoint endpoint,
             bool isServer,
+            TimeSpan idleTimeout,
             SlicOptions slicOptions,
             ILogger logger)
         {
             IsServer = isServer;
             LocalEndpoint = IsServer ? endpoint : null;
             RemoteEndpoint = IsServer ? null : endpoint;
+            _idleTimeout = idleTimeout;
             _logger = logger;
             _slicOptions = slicOptions;
 
@@ -77,12 +87,13 @@ namespace IceRpc.Transports
         }
 
         /// <inheritdoc/>
-        public ISingleStreamConnection GetSingleStreamConnection() => this;
+        public ValueTask<ISingleStreamConnection> GetSingleStreamConnectionAsync(CancellationToken cancel) => new(this);
 
         /// <inheritdoc/>
-        public IMultiStreamConnection GetMultiStreamConnection()
+        public async ValueTask<IMultiStreamConnection> GetMultiStreamConnectionAsync(CancellationToken cancel)
         {
-            _slicConnection = new Internal.SlicConnection(this, IsServer, _logger, _slicOptions);
+            _slicConnection = new Internal.SlicConnection(this, IsServer, _idleTimeout, _logger, _slicOptions);
+            await _slicConnection.InitializeAsync(cancel).ConfigureAwait(false);
             return _slicConnection;
         }
 
@@ -93,12 +104,19 @@ namespace IceRpc.Transports
             NetworkSocket.HasCompatibleParams(remoteEndpoint);
 
         /// <inheritdoc/>
-        ValueTask<int> ISingleStreamConnection.ReceiveAsync(Memory<byte> buffer, CancellationToken cancel) =>
-            NetworkSocket.ReceiveAsync(buffer, cancel);
+        async ValueTask<int> ISingleStreamConnection.ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
+        {
+            int received = await NetworkSocket.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
+            Interlocked.Exchange(ref _lastActivity, IceRpc.Internal.Time.Elapsed.Milliseconds);
+            return received;
+        }
 
         /// <inheritdoc/>
-        ValueTask ISingleStreamConnection.SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
-            NetworkSocket.SendAsync(buffer, cancel);
+        async ValueTask ISingleStreamConnection.SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
+        {
+            await NetworkSocket.SendAsync(buffer, cancel).ConfigureAwait(false);
+            Interlocked.Exchange(ref _lastActivity, IceRpc.Internal.Time.Elapsed.Milliseconds);
+        }
 
         /// <inheritdoc/>
         ValueTask ISingleStreamConnection.SendAsync(

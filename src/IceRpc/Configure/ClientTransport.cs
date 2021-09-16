@@ -60,7 +60,7 @@ namespace IceRpc.Configure
         /// <returns>The transport being configured.</returns>
         public static ClientTransport UseColoc(
             this ClientTransport clientTransport,
-            MultiStreamOptions options)
+            SlicOptions options)
         {
             var colocClientTransport = new ColocClientTransport(options);
             clientTransport.Add(TransportNames.Coloc, Protocol.Ice2, colocClientTransport);
