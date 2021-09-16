@@ -10,19 +10,26 @@ namespace IceRpc.Internal
 {
     internal sealed class Ice2ProtocolConnection : IProtocolConnection
     {
-        /// <inheritdoc/>
-        public bool HasDispatchInProgress => _multiStreamConnection.IncomingStreamCount > 1; // Ignore control stream
-        /// <inheritdoc/>
-        public bool HasInvocationsInProgress => _multiStreamConnection.OutgoingStreamCount > 1; // Ignore control stream
+        public bool HasDispatchInProgress => _dispatch.Count == 0;
+
+        public bool HasInvocationsInProgress => _invocations.Count == 0;
 
         private TaskCompletionSource? _cancelGoAwaySource;
+        private readonly TaskCompletionSource _completeShutdown = new();
         private INetworkStream? _controlStream;
+        private readonly HashSet<IncomingRequest> _dispatch = new();
         private readonly int _incomingFrameMaxSize;
+        private readonly HashSet<OutgoingRequest> _invocations = new();
+        private long _lastRemoteBidirectionalStreamId = -1;
+        // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
+        private long _lastRemoteUnidirectionalStreamId = -1;
         private readonly ILogger _logger;
+        private readonly object _mutex = new();
         private INetworkStream? _peerControlStream;
         private int? _peerIncomingFrameMaxSize;
+        private bool _shutdown;
 
-        private readonly MultiStreamConnection _multiStreamConnection;
+        private readonly IMultiStreamConnection _multiStreamConnection;
 
         /// <summary>Creates a multi-stream protocol connection.</summary>
         public Ice2ProtocolConnection(
@@ -30,7 +37,7 @@ namespace IceRpc.Internal
             int incomingFrameMaxSize,
             ILogger logger)
         {
-            _multiStreamConnection = (MultiStreamConnection)multiStreamConnection;
+            _multiStreamConnection = multiStreamConnection;
             _incomingFrameMaxSize = incomingFrameMaxSize;
             _logger = logger;
         }
@@ -103,93 +110,115 @@ namespace IceRpc.Internal
 
         public void Dispose() => _cancelGoAwaySource?.TrySetCanceled();
 
-        public Task PingAsync(CancellationToken cancel)
-        {
-            // TODO
-            return Task.CompletedTask;
-        }
+        public Task PingAsync(CancellationToken cancel) => SendControlFrameAsync(Ice2FrameType.Ping, null, cancel);
 
         /// <inheritdoc/>
-        public async Task<IncomingRequest?> ReceiveRequestAsync(CancellationToken cancel)
+        public async Task<IncomingRequest> ReceiveRequestAsync(CancellationToken cancel)
         {
-            // Accepts a new stream.
-            INetworkStream stream = await _multiStreamConnection!.AcceptStreamAsync(cancel).ConfigureAwait(false);
-
-            // Receives the request frame from the stream. TODO: Only read the request header, the payload
-            // should be received by calling IProtocolStream.ReceivePayloadAsync from the incoming frame
-            // classes.
-
-            ReadOnlyMemory<byte> buffer = await ReceiveFrameAsync(
-                stream,
-                Ice2FrameType.Request,
-                cancel).ConfigureAwait(false);
-
-            var decoder = new Ice20Decoder(buffer);
-            int headerSize = decoder.DecodeSize();
-            int headerStartPos = decoder.Pos;
-
-            // We use the generated code for the header body and read the rest of the header "by hand".
-            var requestHeaderBody = new Ice2RequestHeaderBody(decoder);
-            if (requestHeaderBody.Deadline < -1 || requestHeaderBody.Deadline == 0)
+            while (true)
             {
-                throw new InvalidDataException($"received invalid deadline value {requestHeaderBody.Deadline}");
+                // Accepts a new stream.
+                INetworkStream stream = await _multiStreamConnection!.AcceptStreamAsync(cancel).ConfigureAwait(false);
+
+                // Receives the request frame from the stream. TODO: Only read the request header, the payload
+                // should be received by calling IProtocolStream.ReceivePayloadAsync from the incoming frame
+                // classes.
+
+                ReadOnlyMemory<byte> buffer = await ReceiveFrameAsync(
+                    stream,
+                    Ice2FrameType.Request,
+                    cancel).ConfigureAwait(false);
+
+                var decoder = new Ice20Decoder(buffer);
+                int headerSize = decoder.DecodeSize();
+                int headerStartPos = decoder.Pos;
+
+                // We use the generated code for the header body and read the rest of the header "by hand".
+                var requestHeaderBody = new Ice2RequestHeaderBody(decoder);
+                if (requestHeaderBody.Deadline < -1 || requestHeaderBody.Deadline == 0)
+                {
+                    throw new InvalidDataException($"received invalid deadline value {requestHeaderBody.Deadline}");
+                }
+
+                // Read the fields.
+                IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields = decoder.DecodeFieldDictionary();
+
+                // Ensure the payload data matches the payload size from the frame.
+                int payloadSize = decoder.DecodeSize();
+                if (decoder.Pos - headerStartPos != headerSize)
+                {
+                    throw new InvalidDataException(
+                        @$"received invalid request header: expected {headerSize} bytes but read {
+                            decoder.Pos - headerStartPos} bytes");
+                }
+
+                var request = new IncomingRequest(
+                    Protocol.Ice2,
+                    path: requestHeaderBody.Path,
+                    operation: requestHeaderBody.Operation)
+                {
+                    IsIdempotent = requestHeaderBody.Idempotent ?? false,
+                    IsOneway = !stream.IsBidirectional,
+                    Priority = requestHeaderBody.Priority ?? default,
+                    // The infinite deadline is encoded as -1 and converted to DateTime.MaxValue
+                    Deadline = requestHeaderBody.Deadline == -1 ?
+                        DateTime.MaxValue : DateTime.UnixEpoch + TimeSpan.FromMilliseconds(requestHeaderBody.Deadline),
+                    PayloadEncoding = requestHeaderBody.PayloadEncoding is string payloadEncoding ?
+                        Encoding.FromString(payloadEncoding) : Ice2Definitions.Encoding,
+                    Fields = fields,
+                    Payload = buffer[decoder.Pos..],
+                    Stream = stream,
+                    CancelDispatchSource = new()
+                };
+
+                // Decode Context from Fields and set corresponding feature.
+                if (request.Fields.Get(
+                        (int)FieldKey.Context,
+                        decoder => decoder.DecodeDictionary(
+                            minKeySize: 1,
+                            minValueSize: 1,
+                            keyDecodeFunc: decoder => decoder.DecodeString(),
+                            valueDecodeFunc: decoder => decoder.DecodeString())) is Dictionary<string, string> context)
+                {
+                    request.Features = request.Features.WithContext(context);
+                }
+
+                if (payloadSize != request.Payload.Length)
+                {
+                    throw new InvalidDataException(
+                        @$"request payload size mismatch: expected {payloadSize} bytes, read {
+                            request.Payload.Length} bytes");
+                }
+
+                if (request.Operation.Length == 0)
+                {
+                    throw new InvalidDataException("received request with empty operation name");
+                }
+
+                lock (_mutex)
+                {
+                    // If shutdown, ignore the incoming request and continue receiving frames until the connection
+                    // is closed.
+                    if (_shutdown)
+                    {
+                        request.CancelDispatchSource.Dispose();
+                    }
+                    else
+                    {
+                        _dispatch.Add(request);
+                        if (stream.IsBidirectional)
+                        {
+                            _lastRemoteBidirectionalStreamId = stream.Id;
+                        }
+                        else
+                        {
+                            _lastRemoteUnidirectionalStreamId = stream.Id;
+                        }
+                        stream.ShutdownAction = () => request.CancelDispatchSource.Cancel();
+                        return request;
+                    }
+                }
             }
-
-            // Read the fields.
-            IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields = decoder.DecodeFieldDictionary();
-
-            // Ensure the payload data matches the payload size from the frame.
-            int payloadSize = decoder.DecodeSize();
-            if (decoder.Pos - headerStartPos != headerSize)
-            {
-                throw new InvalidDataException(
-                    @$"received invalid request header: expected {headerSize} bytes but read {
-                        decoder.Pos - headerStartPos} bytes");
-            }
-
-            var request = new IncomingRequest(
-                Protocol.Ice2,
-                path: requestHeaderBody.Path,
-                operation: requestHeaderBody.Operation)
-            {
-                IsIdempotent = requestHeaderBody.Idempotent ?? false,
-                IsOneway = !stream.IsBidirectional,
-                Priority = requestHeaderBody.Priority ?? default,
-                // The infinite deadline is encoded as -1 and converted to DateTime.MaxValue
-                Deadline = requestHeaderBody.Deadline == -1 ?
-                    DateTime.MaxValue : DateTime.UnixEpoch + TimeSpan.FromMilliseconds(requestHeaderBody.Deadline),
-                PayloadEncoding = requestHeaderBody.PayloadEncoding is string payloadEncoding ?
-                    Encoding.FromString(payloadEncoding) : Ice2Definitions.Encoding,
-                Fields = fields,
-                Payload = buffer[decoder.Pos..],
-                Stream = stream,
-                CancelDispatchSource = ((NetworkStream)stream).CancelDispatchSource
-            };
-
-            // Decode Context from Fields and set corresponding feature.
-            if (request.Fields.Get(
-                    (int)FieldKey.Context,
-                    decoder => decoder.DecodeDictionary(
-                        minKeySize: 1,
-                        minValueSize: 1,
-                        keyDecodeFunc: decoder => decoder.DecodeString(),
-                        valueDecodeFunc: decoder => decoder.DecodeString())) is Dictionary<string, string> context)
-            {
-                request.Features = request.Features.WithContext(context);
-            }
-
-            if (payloadSize != request.Payload.Length)
-            {
-                throw new InvalidDataException(
-                    $"request payload size mismatch: expected {payloadSize} bytes, read {request.Payload.Length} bytes");
-            }
-
-            if (request.Operation.Length == 0)
-            {
-                throw new InvalidDataException("received request with empty operation name");
-            }
-
-            return request;
         }
 
         /// <inheritdoc/>
@@ -202,6 +231,22 @@ namespace IceRpc.Internal
             else if (request.IsOneway)
             {
                 throw new InvalidOperationException("can't receive a response for a one-way request");
+            }
+
+            lock (_mutex)
+            {
+                if (_shutdown)
+                {
+                    throw new ConnectionClosedException();
+                }
+
+                _invocations.Remove(request);
+
+                // If no more invocations or dispatch and shutting down, shutdown can complete.
+                if (_shutdown && _invocations.Count == 0 && _dispatch.Count == 0)
+                {
+                    _completeShutdown.SetResult();
+                }
             }
 
             ReadOnlyMemory<byte> buffer = await ReceiveFrameAsync(
@@ -331,6 +376,17 @@ namespace IceRpc.Internal
             {
                 request.SendStreamParam(request.Stream);
             }
+
+            if (!request.IsOneway)
+            {
+                lock (_mutex)
+                {
+                    if (!_shutdown)
+                    {
+                        _invocations.Add(request);
+                    }
+                }
+            }
         }
 
         /// <inheritdoc/>
@@ -340,59 +396,70 @@ namespace IceRpc.Internal
             {
                 throw new InvalidOperationException($"{nameof(request.Stream)} is not set");
             }
-            else if (request.IsOneway)
+
+            request.CancelDispatchSource!.Dispose();
+
+            if (!request.IsOneway)
             {
-                // Nothing to send, we're done.
-                return;
+                var bufferWriter = new BufferWriter();
+                bufferWriter.WriteByteSpan(request.Stream.TransportHeader.Span);
+                var encoder = new Ice20Encoder(bufferWriter);
+
+                // Write the Ice2 response header.
+                encoder.EncodeIce2FrameType(Ice2FrameType.Response);
+
+                // TODO: simplify sizes, we should be able to remove one of the sizes (the frame size or the
+                // frame header size).
+                BufferWriter.Position frameSizeStart = encoder.StartFixedLengthSize();
+                BufferWriter.Position frameHeaderStart = encoder.StartFixedLengthSize(2);
+
+                new Ice2ResponseHeaderBody(
+                    response.ResultType,
+                    response.PayloadEncoding == Ice2Definitions.Encoding ? null :
+                        response.PayloadEncoding.ToString()).Encode(encoder);
+
+                encoder.EncodeFields(response.Fields, response.FieldsDefaults);
+                encoder.EncodeSize(response.PayloadSize);
+
+                // We're done with the header encoding, write the header size.
+                int headerSize = encoder.EndFixedLengthSize(frameHeaderStart, 2);
+
+                // We're done with the frame encoding, write the frame size.
+                int frameSize = headerSize + 2 + response.PayloadSize;
+                encoder.EncodeFixedLengthSize(frameSize, frameSizeStart);
+                if (frameSize > _peerIncomingFrameMaxSize)
+                {
+                    // Throw a remote exception instead of this response, the Ice connection will catch it and send it
+                    // as the response instead of sending this response which is too large.
+                    throw new DispatchException(
+                    $@"the response size ({frameSize} bytes) is larger than IncomingFrameMaxSize ({
+                        _peerIncomingFrameMaxSize} bytes)");
+                }
+
+                // Add the payload to the buffer writer.
+                bufferWriter.Add(response.Payload);
+
+                // Send the response frame.
+                await request.Stream.SendAsync(bufferWriter.Finish(),
+                                            endStream: response.StreamParamSender == null,
+                                            cancel).ConfigureAwait(false);
+
+                // If there's a stream param sender, we can start sending the data.
+                if (response.StreamParamSender != null)
+                {
+                    response.SendStreamParam(request.Stream);
+                }
             }
 
-            var bufferWriter = new BufferWriter();
-            bufferWriter.WriteByteSpan(request.Stream.TransportHeader.Span);
-            var encoder = new Ice20Encoder(bufferWriter);
-
-            // Write the Ice2 response header.
-            encoder.EncodeIce2FrameType(Ice2FrameType.Response);
-
-            // TODO: simplify sizes, we should be able to remove one of the sizes (the frame size or the
-            // frame header size).
-            BufferWriter.Position frameSizeStart = encoder.StartFixedLengthSize();
-            BufferWriter.Position frameHeaderStart = encoder.StartFixedLengthSize(2);
-
-            new Ice2ResponseHeaderBody(
-                response.ResultType,
-                response.PayloadEncoding == Ice2Definitions.Encoding ? null :
-                    response.PayloadEncoding.ToString()).Encode(encoder);
-
-            encoder.EncodeFields(response.Fields, response.FieldsDefaults);
-            encoder.EncodeSize(response.PayloadSize);
-
-            // We're done with the header encoding, write the header size.
-            int headerSize = encoder.EndFixedLengthSize(frameHeaderStart, 2);
-
-            // We're done with the frame encoding, write the frame size.
-            int frameSize = headerSize + 2 + response.PayloadSize;
-            encoder.EncodeFixedLengthSize(frameSize, frameSizeStart);
-            if (frameSize > _peerIncomingFrameMaxSize)
+            lock(_mutex)
             {
-                // Throw a remote exception instead of this response, the Ice connection will catch it and send it
-                // as the response instead of sending this response which is too large.
-                throw new DispatchException(
-                $@"the response size ({frameSize} bytes) is larger than IncomingFrameMaxSize ({
-                    _peerIncomingFrameMaxSize} bytes)");
-            }
+                _dispatch.Remove(request);
 
-            // Add the payload to the buffer writer.
-            bufferWriter.Add(response.Payload);
-
-            // Send the response frame.
-            await request.Stream.SendAsync(bufferWriter.Finish(),
-                                           endStream: response.StreamParamSender == null,
-                                           cancel).ConfigureAwait(false);
-
-            // If there's a stream param sender, we can start sending the data.
-            if (response.StreamParamSender != null)
-            {
-                response.SendStreamParam(request.Stream);
+                // If no more invocations or dispatch and shutting down, shutdown can complete.
+                if (_shutdown && _invocations.Count == 0 && _dispatch.Count == 0)
+                {
+                    _completeShutdown.SetResult();
+                }
             }
         }
 
@@ -400,17 +467,25 @@ namespace IceRpc.Internal
         public async Task ShutdownAsync(bool shutdownByPeer, string message, CancellationToken cancel)
         {
             // Shutdown the multi-stream connection to prevent new streams from being created.
-            (long lastBidirectionalId, long lastUnidirectionalId) = _multiStreamConnection.Shutdown();
-
-            if (!shutdownByPeer)
+            lock (_mutex)
             {
-                _cancelGoAwaySource = new();
+                _shutdown = true;
+
+                // (long lastBidirectionalId, long lastUnidirectionalId) = _multiStreamConnection.Shutdown();
+                // TODO
+                if (!shutdownByPeer)
+                {
+                    _cancelGoAwaySource = new();
+                }
             }
 
             // Send GoAway frame
             await SendControlFrameAsync(
                 Ice2FrameType.GoAway,
-                encoder => new Ice2GoAwayBody(lastBidirectionalId, lastUnidirectionalId, message).Encode(encoder),
+                encoder => new Ice2GoAwayBody(
+                    _lastRemoteBidirectionalStreamId,
+                    _lastRemoteUnidirectionalStreamId,
+                    message).Encode(encoder),
                 cancel).ConfigureAwait(false);
 
             if (shutdownByPeer)
@@ -424,15 +499,16 @@ namespace IceRpc.Internal
                 _ = SendGoAwayCancelIfShutdownCanceledAsync();
             }
 
-            // Wait for all the streams to complete (expect the local control streams which are closed
-            // once all the other streams are closed).
-            await _multiStreamConnection.WaitForStreamCountAsync(1, 1, cancel).ConfigureAwait(false);
+            // Wait fo the dispatch and invocations to completed.
+            await _completeShutdown.Task.WaitAsync(cancel).ConfigureAwait(false);
 
             // Abort the control stream.
             _controlStream!.AbortWrite(StreamError.ConnectionShutdown);
 
             // Wait for the control streams to be closed.
-            await _multiStreamConnection.WaitForStreamCountAsync(0, 0, cancel).ConfigureAwait(false);
+            var shutdownCompletion = new TaskCompletionSource();
+            _peerControlStream!.ShutdownAction = () => shutdownCompletion.TrySetResult();
+            await shutdownCompletion.Task.WaitAsync(cancel).ConfigureAwait(false);
 
             async Task SendGoAwayCancelIfShutdownCanceledAsync()
             {
@@ -442,7 +518,10 @@ namespace IceRpc.Internal
                     await _cancelGoAwaySource!.Task.ConfigureAwait(false);
 
                     // Cancel dispatch if shutdown is canceled.
-                    _multiStreamConnection!.CancelDispatch();
+                    foreach (IncomingRequest request in _dispatch)
+                    {
+                        request.CancelDispatchSource!.Cancel();
+                    }
 
                     // Write the GoAwayCanceled frame to the peer's streams.
                     await SendControlFrameAsync(Ice2FrameType.GoAwayCanceled, null, default).ConfigureAwait(false);
@@ -468,7 +547,10 @@ namespace IceRpc.Internal
                     }
 
                     // Cancel the dispatch if the peer canceled the shutdown.
-                    _multiStreamConnection!.CancelDispatch();
+                    foreach (IncomingRequest request in _dispatch)
+                    {
+                        request.CancelDispatchSource!.Cancel();
+                    }
                 }
                 catch (StreamAbortedException)
                 {
@@ -487,11 +569,22 @@ namespace IceRpc.Internal
 
             var goAwayFrame = new Ice2GoAwayBody(new Ice20Decoder(buffer));
 
-            // Abort non-processed outgoing streams before closing the connection to ensure the invocations
-            // will fail with a retryable exception.
-            _multiStreamConnection.AbortOutgoingStreams(StreamError.ConnectionShutdownByPeer,
-                                                        (goAwayFrame.LastBidirectionalStreamId,
-                                                         goAwayFrame.LastUnidirectionalStreamId));
+            lock(_mutex)
+            {
+                // Mark the connection as shutdown to prevent further request to be accepted.
+                _shutdown = true;
+            }
+
+            foreach (OutgoingRequest request in _invocations)
+            {
+                INetworkStream stream = request.Stream!;
+                if (stream.Id > (stream.IsBidirectional ?
+                    goAwayFrame.LastBidirectionalStreamId :
+                    goAwayFrame.LastUnidirectionalStreamId))
+                {
+                    stream.Abort(StreamError.ConnectionShutdownByPeer);
+                }
+            }
 
             return goAwayFrame.Message;
         }
@@ -504,12 +597,24 @@ namespace IceRpc.Internal
             Memory<byte> buffer = new byte[256];
 
             // Read the frame type and first byte of the size.
-            await ReceiveFullAsync(stream, buffer.Slice(0, 2), cancel).ConfigureAwait(false);
-            var frameType = (Ice2FrameType)buffer.Span[0];
-            if (frameType != expectedFrameType)
+            Ice2FrameType frameType;
+            do
             {
-                throw new InvalidDataException($"received frame type {frameType} but expected {expectedFrameType}");
+                await ReceiveFullAsync(stream, buffer.Slice(0, 2), cancel).ConfigureAwait(false);
+                frameType = (Ice2FrameType)buffer.Span[0];
+                if (frameType == Ice2FrameType.Ping)
+                {
+                    if (stream != _peerControlStream)
+                    {
+                        throw new InvalidDataException($"the {frameType} frame is only supported on the control stream");
+                    }
+                }
+                else if(frameType != expectedFrameType)
+                {
+                    throw new InvalidDataException($"received frame type {frameType} but expected {expectedFrameType}");
+                }
             }
+            while (frameType == Ice2FrameType.Ping);
 
             // Read the remainder of the size if needed.
             int sizeLength = Ice20Decoder.DecodeSizeLength(buffer.Span[1]);

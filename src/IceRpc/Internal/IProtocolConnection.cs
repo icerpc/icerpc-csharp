@@ -25,7 +25,7 @@ namespace IceRpc.Internal
         /// <summary>Receives a request.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The incoming request or null if the connection has been gracefully shutdown.</returns>
-        Task<IncomingRequest?> ReceiveRequestAsync(CancellationToken cancel);
+        Task<IncomingRequest> ReceiveRequestAsync(CancellationToken cancel);
 
         /// <summary>Receives a response for a given request.</summary>
         /// <param name="request">The outgoing request associated to the response to receive.</param>

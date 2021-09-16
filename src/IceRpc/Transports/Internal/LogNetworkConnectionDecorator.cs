@@ -257,6 +257,11 @@ namespace IceRpc.Transports.Internal
 
         public long Id => _decoratee.Id;
         public bool IsBidirectional => _decoratee.IsBidirectional;
+        public Action? ShutdownAction
+        {
+            get => _decoratee.ShutdownAction;
+            set => _decoratee.ShutdownAction = value;
+        }
 
         public void AbortRead(StreamError errorCode) => _decoratee.AbortRead(errorCode);
 

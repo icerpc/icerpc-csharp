@@ -47,27 +47,6 @@ namespace IceRpc.Transports.Internal
 
                 switch (type)
                 {
-                    case SlicDefinitions.FrameType.Ping:
-                    {
-                        Logger.LogReceivingSlicFrame(type, frameSize);
-                        if (frameSize != 0)
-                        {
-                            throw new InvalidDataException("unexpected data for Slic Ping fame");
-                        }
-                        _ = PrepareAndSendFrameAsync(SlicDefinitions.FrameType.Pong, cancel: CancellationToken.None);
-                        PingReceived?.Invoke();
-                        break;
-                    }
-                    case SlicDefinitions.FrameType.Pong:
-                    {
-                        Logger.LogReceivingSlicFrame(type, frameSize);
-                        if (frameSize != 0)
-                        {
-                            throw new InvalidDataException("unexpected data for Slic Pong fame");
-                        }
-                        // TODO: setup and reset timer here for the pong frame response?
-                        break;
-                    }
                     case SlicDefinitions.FrameType.Stream:
                     case SlicDefinitions.FrameType.StreamLast:
                     {
@@ -362,11 +341,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override Task PingAsync(CancellationToken cancel) =>
-            // TODO: shall we set a timer for expecting the Pong frame? or should we return only once
-            // the pong from is received? which timeout to use for expecting the pong frame?
-            PrepareAndSendFrameAsync(SlicDefinitions.FrameType.Ping, cancel: cancel);
-
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
@@ -483,7 +457,7 @@ namespace IceRpc.Transports.Internal
 
         internal void ReleaseStream(SlicStream stream)
         {
-            if (stream.IsIncoming)
+            if (stream.IsRemote)
             {
                 if (stream.IsBidirectional)
                 {

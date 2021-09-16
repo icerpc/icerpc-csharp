@@ -330,9 +330,9 @@ namespace IceRpc.Transports.Internal
             _connection.ReleaseStream(this);
 
             // Outgoing streams are released from the connection when the StreamLast or StreamReset frame is
-            // received. Since an incoming un-directional stream doesn't send stream frames, we have to send a
+            // received. Since a remote un-directional stream doesn't send stream frames, we have to send a
             // stream last frame here to ensure the outgoing stream is released from the connection.
-            if (IsIncoming && !IsBidirectional)
+            if (IsRemote && !IsBidirectional)
             {
                 // It's important to decrement the stream count before sending the StreamLast frame to prevent
                 // a race where the peer could start a new stream before the counter is decremented.
@@ -368,7 +368,7 @@ namespace IceRpc.Transports.Internal
 
         internal void ReceivedFrame(int size, bool endStream)
         {
-            if (!IsBidirectional && !IsIncoming)
+            if (!IsBidirectional && !IsRemote)
             {
                 throw new InvalidDataException("received stream frame on outgoing unidirectional stream");
             }
@@ -458,7 +458,7 @@ namespace IceRpc.Transports.Internal
 
         internal void ReceivedReset(StreamError errorCode)
         {
-            if (!IsBidirectional && !IsIncoming)
+            if (!IsBidirectional && !IsRemote)
             {
                 throw new InvalidDataException("received reset frame on outgoing unidirectional stream");
             }
@@ -466,17 +466,6 @@ namespace IceRpc.Transports.Internal
             // It's important to set the exception before completing the reads because ReceiveAsync expects the
             // exception to be set if reads are completed.
             SetException(new StreamAbortedException(errorCode));
-
-            // Cancel the dispatch source before completing reads otherwise the source might be disposed after
-            // and the dispatch won't be canceled.
-            try
-            {
-                CancelDispatchSource?.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-                // Expected if the stream is already shutdown.
-            }
 
             TrySetReadCompleted();
         }

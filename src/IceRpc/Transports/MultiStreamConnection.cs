@@ -14,17 +14,6 @@ namespace IceRpc.Transports
     /// streams of binary data.</summary>
     public abstract class MultiStreamConnection : IMultiStreamConnection, IDisposable
     {
-        internal int IncomingStreamCount
-        {
-            get
-            {
-                lock (_mutex)
-                {
-                    return _incomingStreamCount;
-                }
-            }
-        }
-
         internal TimeSpan IdleTimeout { get; set; }
         internal bool IsServer { get; }
         internal TimeSpan LastActivity
@@ -33,30 +22,11 @@ namespace IceRpc.Transports
             set => Interlocked.Exchange(ref _lastActivity, value.Milliseconds);
         }
 
-        internal int OutgoingStreamCount
-        {
-            get
-            {
-                lock (_mutex)
-                {
-                    return _outgoingStreamCount;
-                }
-            }
-        }
-
-        internal Action? PingReceived;
-
-        // The endpoint which created the connection. If it's a server connection, it's the local endpoint or
-        // the remote endpoint otherwise.
-        private int _incomingStreamCount;
         private long _lastActivity;
-        private long _lastIncomingBidirectionalStreamId = -1;
-        private long _lastIncomingUnidirectionalStreamId = -1;
+        private long _lastRemoteBidirectionalStreamId = -1;
+        private long _lastRemoteUnidirectionalStreamId = -1;
         private readonly object _mutex = new();
-        private int _outgoingStreamCount;
         private readonly ConcurrentDictionary<long, NetworkStream> _streams = new();
-        private bool _shutdown;
-        private Action? _streamRemoved;
 
         /// <inheritdoc/>
         public abstract ValueTask<INetworkStream> AcceptStreamAsync(CancellationToken cancel);
@@ -80,13 +50,10 @@ namespace IceRpc.Transports
         }
 
         /// <summary>Releases the resources used by the connection.</summary>
-        /// <param name="disposing">True to release both managed and unmanaged resources; false to release only
-        /// unmanaged resources.</param>
+        /// <param name="disposing">True to release both managed and unmanaged resources; false to release
+        /// only unmanaged resources.</param>
         protected virtual void Dispose(bool disposing)
         {
-            // Shutdown the connection to ensure stream creation fails after the connection is disposed.
-            _ = Shutdown();
-
             foreach (NetworkStream stream in _streams.Values)
             {
                 try
@@ -108,11 +75,11 @@ namespace IceRpc.Transports
             {
                 if (bidirectional)
                 {
-                    return streamId > _lastIncomingBidirectionalStreamId;
+                    return streamId > _lastRemoteBidirectionalStreamId;
                 }
                 else
                 {
-                    return streamId > _lastIncomingUnidirectionalStreamId;
+                    return streamId > _lastRemoteUnidirectionalStreamId;
                 }
             }
         }
@@ -134,74 +101,27 @@ namespace IceRpc.Transports
             return false;
         }
 
-        /// <summary>Ping</summary>
-        public abstract Task PingAsync(CancellationToken cancel);
-
-        internal void AbortOutgoingStreams(
-            StreamError errorCode,
-            (long Bidirectional, long Unidirectional) ids)
-        {
-            // Abort outgoing streams with IDs larger than the given IDs, they haven't been dispatch by the peer.
-            foreach (NetworkStream stream in _streams.Values)
-            {
-                if (!stream.IsIncoming && stream.Id > (stream.IsBidirectional ? ids.Bidirectional : ids.Unidirectional))
-                {
-                    stream.Abort(errorCode);
-                }
-            }
-        }
-
-        internal void CancelDispatch()
-        {
-            foreach (NetworkStream stream in _streams.Values)
-            {
-                try
-                {
-                    stream.CancelDispatchSource?.Cancel();
-                }
-                catch (ObjectDisposedException)
-                {
-                    // Ignore
-                }
-            }
-        }
-
         internal void AddStream(long id, NetworkStream stream, ref long streamId)
         {
             lock (_mutex)
             {
-                // It's important to hold the mutex here to ensure the check for _streamsAborted and the stream
-                // addition to the dictionary is atomic.
-                if (_shutdown)
-                {
-                    throw new ConnectionClosedException();
-                }
                 _streams[id] = stream;
 
                 // Assign the stream ID within the mutex as well to ensure that the addition of the stream to
                 // the connection and the stream ID assignment are atomic.
                 streamId = id;
 
-                if (stream.IsIncoming)
-                {
-                    ++_incomingStreamCount;
-                }
-                else
-                {
-                    ++_outgoingStreamCount;
-                }
-
                 // Keep track of the last assigned stream ID. This is used for the shutdown logic to tell the peer
                 // which streams were received last.
-                if (stream.IsIncoming)
+                if (stream.IsRemote)
                 {
                     if (stream.IsBidirectional)
                     {
-                        _lastIncomingBidirectionalStreamId = id;
+                        _lastRemoteBidirectionalStreamId = id;
                     }
                     else
                     {
-                        _lastIncomingUnidirectionalStreamId = id;
+                        _lastRemoteUnidirectionalStreamId = id;
                     }
                 }
             }
@@ -211,62 +131,7 @@ namespace IceRpc.Transports
         {
             lock (_mutex)
             {
-                if (_streams.TryRemove(id, out NetworkStream? stream))
-                {
-                    if (stream.IsIncoming)
-                    {
-                        --_incomingStreamCount;
-                    }
-                    else
-                    {
-                        --_outgoingStreamCount;
-                    }
-                    _streamRemoved?.Invoke();
-                }
-                else
-                {
-                    Debug.Assert(false);
-                }
-            }
-        }
-
-        internal (long Bidirectional, long Unidirectional) Shutdown()
-        {
-            lock (_mutex)
-            {
-                // Set the _shutdown flag to prevent addition of new streams by AddStream. No more streams
-                // will be added to _streams once this flag is true.
-                _shutdown = true;
-                return (_lastIncomingBidirectionalStreamId, _lastIncomingUnidirectionalStreamId);
-            }
-        }
-
-        internal async ValueTask WaitForStreamCountAsync(
-            int outgoingStreamCount,
-            int incomingStreamCount,
-            CancellationToken cancel)
-        {
-            TaskCompletionSource? taskSource = null;
-            lock (_mutex)
-            {
-                if (_outgoingStreamCount > outgoingStreamCount || _incomingStreamCount > incomingStreamCount)
-                {
-                    taskSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
-                    _streamRemoved = () =>
-                        {
-                            if (_outgoingStreamCount <= outgoingStreamCount &&
-                                _incomingStreamCount <= incomingStreamCount)
-                            {
-                                taskSource.SetResult();
-                                _streamRemoved = null;
-                            }
-                        };
-                }
-            }
-
-            if (taskSource?.Task is Task task)
-            {
-                await task.WaitAsync(cancel).ConfigureAwait(false);
+                _streams.TryRemove(id, out NetworkStream? _);
             }
         }
     }

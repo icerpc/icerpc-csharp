@@ -124,7 +124,7 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
-        public async Task<IncomingRequest?> ReceiveRequestAsync(CancellationToken cancel)
+        public async Task<IncomingRequest> ReceiveRequestAsync(CancellationToken cancel)
         {
             while (true)
             {
@@ -136,15 +136,15 @@ namespace IceRpc.Internal
                 }
                 catch
                 {
-                    if (_shutdown)
+                    lock (_mutex)
                     {
-                        _pendingClose.SetResult();
-                        throw new ConnectionClosedException();
+                        if (_shutdown)
+                        {
+                            _pendingClose.SetResult();
+                            throw new ConnectionClosedException();
+                        }
                     }
-                    else
-                    {
-                        throw;
-                    }
+                    throw;
                 }
 
                 var decoder = new Ice11Decoder(buffer);
@@ -180,6 +180,7 @@ namespace IceRpc.Internal
                         Encoding.FromMajorMinor(requestHeader.PayloadEncodingMajor, requestHeader.PayloadEncodingMinor),
                     Deadline = DateTime.MaxValue,
                     Payload = payload,
+                    CancelDispatchSource = new()
                 };
                 request.Features = request.Features.WithRequestId(requestId);
                 if (requestHeader.Context.Count > 0)
@@ -191,13 +192,16 @@ namespace IceRpc.Internal
                 {
                     // If shutdown, ignore the incoming request and continue receiving frames until the connection
                     // is closed.
-                    if (!_shutdown)
+                    if (_shutdown)
                     {
-                        request.CancelDispatchSource = new();
+                        request.CancelDispatchSource.Dispose();
+                    }
+                    else
+                    {
                         _dispatchCancellationTokenSources[requestId] = request.CancelDispatchSource;
+                        return request;
                     }
                 }
-                return request;
             }
         }
 
@@ -225,7 +229,7 @@ namespace IceRpc.Internal
                     throw new InvalidOperationException($"unknown request with requestId {requestId}");
                 }
 
-                // If no more invocations or dispatch and shutting down, notify shutdown can complete.
+                // If no more invocations or dispatch and shutting down, shutdown can complete.
                 if (_shutdown && _pendingIncomingResponses.Count == 0 && _dispatchCancellationTokenSources.Count == 0)
                 {
                     _completeShutdown.SetResult();
@@ -371,7 +375,7 @@ namespace IceRpc.Internal
                 throw new InvalidOperationException("request ID feature is not set");
             }
 
-            request.CancelDispatchSource?.Dispose();
+            request.CancelDispatchSource!.Dispose();
 
             // Send the response if the request is not a one-way request.
             if (!request.IsOneway)
@@ -430,7 +434,7 @@ namespace IceRpc.Internal
                 // Dispatch is done, remove the cancellation token source for the dispatch.
                 _dispatchCancellationTokenSources.Remove(requestId);
 
-                // If no more invocations or dispatch and shutting down, notify shutdown can complete.
+                // If no more invocations or dispatch and shutting down, shutdown can complete.
                 if (_shutdown && _pendingIncomingResponses.Count == 0 && _dispatchCancellationTokenSources.Count == 0)
                 {
                     _completeShutdown.SetResult();

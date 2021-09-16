@@ -39,7 +39,7 @@ namespace IceRpc
         public Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? StreamDecompressor { get; set; }
 
         /// <summary>Get the cancellation dispatch source.</summary>
-        internal CancellationTokenSource? CancelDispatchSource { get; set; }
+        internal CancellationTokenSource? CancelDispatchSource { get; init; }
 
         /// <summary>The stream used to receive the request.</summary>
         internal INetworkStream? Stream { get; init; }

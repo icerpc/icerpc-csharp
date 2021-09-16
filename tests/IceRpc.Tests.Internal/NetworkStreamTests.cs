@@ -32,7 +32,7 @@ namespace IceRpc.Tests.Internal
 
             Assert.That(received, Is.EqualTo(1));
             var dispatchCanceled = new TaskCompletionSource();
-            ((NetworkStream)serverStream).CancelDispatchSource!.Token.Register(() => dispatchCanceled.SetResult());
+            serverStream.ShutdownAction = () => dispatchCanceled.SetResult();
 
             // Abort the stream
             clientStream.Abort(errorCode);
@@ -179,7 +179,7 @@ namespace IceRpc.Tests.Internal
             _ = ServerConnection.AcceptStreamAsync(default).AsTask();
 
             var dispatchCanceled = new TaskCompletionSource();
-            ((NetworkStream)serverStream).CancelDispatchSource!.Token.Register(() => dispatchCanceled.SetResult());
+            serverStream.ShutdownAction = () => dispatchCanceled.SetResult();
 
             using var source = new CancellationTokenSource();
             ValueTask<int> receiveTask = stream.ReceiveAsync(CreateReceivePayload(), source.Token);

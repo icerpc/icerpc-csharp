@@ -550,13 +550,6 @@ namespace IceRpc
                 return;
             }
 
-            if (request == null)
-            {
-                Debug.Assert(State >= ConnectionState.Closing);
-                // TODO: Set closed state?
-                return;
-            }
-
             // Start a new task to accept a new incoming request before dispatching this one.
             _ = Task.Run(() => AcceptIncomingRequestAsync(dispatcher));
 

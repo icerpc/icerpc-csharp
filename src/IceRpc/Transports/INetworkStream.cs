@@ -54,6 +54,9 @@ namespace IceRpc.Transports
         /// <summary>Returns <c>true</c> if the stream is a bidirectional stream, <c>false</c> otherwise.</summary>
         bool IsBidirectional { get; }
 
+        /// <summary>Sets the action which is called when the stream is shutdown.</summary>
+        Action? ShutdownAction { get; set; }
+
         /// <summary>The transport header sentinel. Transport implementations that need to add an additional header
         /// to transmit data over the stream can provide the header data here. This can improve performance by reducing
         /// the number of allocations as Ice will allocate buffer space for both the transport header and the Ice

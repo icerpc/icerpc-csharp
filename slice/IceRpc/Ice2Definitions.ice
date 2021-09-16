@@ -19,8 +19,9 @@ module IceRpc
         Response = 2,
         BoundedData = 3,
         UnboundedData = 4,
-        GoAway = 5,
-        GoAwayCanceled = 6
+        Ping = 5,
+        GoAway = 6,
+        GoAwayCanceled = 7
     }
 
     /// Keys of reserved ice2 connection parameters.

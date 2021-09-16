@@ -33,7 +33,7 @@ namespace IceRpc.Transports
         }
 
         /// <inheritdoc/>
-        public bool IsIncoming => _id != -1 && _id % 2 == (_connection.IsServer ? 0 : 1);
+        public bool IsRemote => _id != -1 && _id % 2 == (_connection.IsServer ? 0 : 1);
 
         /// <inheritdoc/>
         public bool IsBidirectional { get; }
@@ -50,10 +50,23 @@ namespace IceRpc.Transports
         public bool WriteCompleted => (Thread.VolatileRead(ref _state) & (int)State.WriteCompleted) > 0;
 
         /// <inheritdoc/>
-        public virtual ReadOnlyMemory<byte> TransportHeader => default;
+        public Action? ShutdownAction
+        {
+            get => _shutdownAction;
+            set
+            {
+                _shutdownAction = value;
+                if (IsShutdown)
+                {
+                    // It's possible for the action to be called twice if shutdown occurs between the assignment
+                    // and the IsShutdown check. Callers should make sure the action is safe when called twice.
+                    _shutdownAction?.Invoke();
+                }
+            }
+        }
 
-        /// <summary>Get the cancellation dispatch source.</summary>
-        internal CancellationTokenSource? CancelDispatchSource { get; }
+        /// <inheritdoc/>
+        public virtual ReadOnlyMemory<byte> TransportHeader => default;
 
         /// <summary>Returns true if the stream ID is assigned</summary>
         internal bool IsStarted => _id != -1;
@@ -64,8 +77,8 @@ namespace IceRpc.Transports
         // is called. Once it's assigned, it's immutable. The specialization of the stream is responsible for not
         // accessing this data member concurrently when it's not safe.
         private long _id = -1;
-
         private int _state;
+        private Action? _shutdownAction;
 
         /// <inheritdoc/>
         public abstract void AbortRead(StreamError errorCode);
@@ -94,7 +107,7 @@ namespace IceRpc.Transports
         /// <inheritdoc/>
         public override string ToString() => $"{base.ToString()} (ID={Id})";
 
-        /// <summary>Constructs a stream with the given ID.</summary>
+        /// <summary>Constructs a remote stream with the given ID.</summary>
         /// <param name="streamId">The stream ID.</param>
         /// <param name="connection">The parent connection.</param>
         protected NetworkStream(MultiStreamConnection connection, long streamId)
@@ -103,25 +116,14 @@ namespace IceRpc.Transports
             IsBidirectional = streamId % 4 < 2;
             _connection.AddStream(streamId, this, ref _id);
 
-            if (IsBidirectional && IsIncoming)
-            {
-                CancelDispatchSource = new CancellationTokenSource();
-            }
-            else
+            if (!IsBidirectional)
             {
                 // Write-side or read-size of unidirectional stream is marked as completed.
-                if (IsIncoming)
-                {
-                    TrySetWriteCompleted();
-                }
-                else
-                {
-                    TrySetReadCompleted();
-                }
+                TrySetWriteCompleted();
             }
         }
 
-        /// <summary>Constructs an outgoing stream.</summary>
+        /// <summary>Constructs a local stream.</summary>
         /// <param name="bidirectional"><c>true</c> to create a bidirectional stream, <c>false</c> otherwise.</param>
         /// <param name="connection">The parent connection.</param>
         protected NetworkStream(MultiStreamConnection connection, bool bidirectional)
@@ -139,15 +141,7 @@ namespace IceRpc.Transports
         protected virtual void Shutdown()
         {
             Debug.Assert(_state == (int)(State.ReadCompleted | State.WriteCompleted | State.Shutdown));
-
-            if (CancelDispatchSource is CancellationTokenSource source)
-            {
-                // Cancel the dispatch.
-                source.Cancel();
-
-                // We're done with the source, dispose it.
-                source.Dispose();
-            }
+            ShutdownAction?.Invoke();
             _connection.RemoveStream(Id);
         }
 

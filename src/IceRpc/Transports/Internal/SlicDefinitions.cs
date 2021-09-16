@@ -7,16 +7,14 @@ namespace IceRpc.Transports.Internal
         internal enum FrameType : byte
         {
             Initialize = 1,
-            InitializeAck = 2,
-            Version = 3,
-            Ping = 4,
-            Pong = 5,
-            Stream = 6,
-            StreamLast = 7,
-            StreamReset = 8,
-            StreamConsumed = 9,
-            StreamStopSending = 10,
-            Close = 11
+            InitializeAck,
+            Version,
+            Stream,
+            StreamLast,
+            StreamReset,
+            StreamConsumed,
+            StreamStopSending,
+            Close
         }
 
         // The header below is a sentinel header used to reserve space in the protocol frame to avoid
