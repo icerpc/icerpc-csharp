@@ -6,34 +6,15 @@ using System.Net.Sockets;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The BufferedReceiveNetworkSocketDecorator is a NetworkSocket decorator to provide buffered
-    /// data receive. This helps to limit the number of operating system Receive calls when the user needs to
-    /// read only a few bytes before reading more (typically to read a frame header) by receiving the data in
-    /// a small buffer. It's similar to the C# System.IO.BufferedStream class. It's used by <see
+    /// <summary>The BufferedReceiveDecorator is a single-stream connection decorator to provide buffered data
+    /// receive. This helps to limit the number of operating system Receive calls when the user needs to read
+    /// only a few bytes before reading more (typically to read a frame header) by receiving the data in a
+    /// small buffer. It's similar to the C# System.IO.BufferedStream class. It's used by <see
     /// cref="SlicConnection"/>.</summary>
-    internal class BufferedReceiveNetworkSocketDecorator : INetworkSocket
+    internal class BufferedReceiveDecorator : ISingleStreamConnection
     {
-        /// <inheritdoc/>
-        public virtual int DatagramMaxReceiveSize => _decoratee.DatagramMaxReceiveSize;
-
-        /// <inheritdoc/>
-        public bool IsDatagram => _decoratee.IsDatagram;
-
-        /// <inheritdoc/>
-        public Socket Socket => _decoratee.Socket;
-
-        /// <inheritdoc/>
-        public SslStream? SslStream => _decoratee.SslStream;
-
-        // The buffered data.
         private ArraySegment<byte> _buffer;
-        private readonly INetworkSocket _decoratee;
-
-        public ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel) =>
-            _decoratee.ConnectAsync(endpoint, cancel);
-
-        public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
-            _decoratee.HasCompatibleParams(remoteEndpoint);
+        private readonly ISingleStreamConnection _decoratee;
 
         public async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
@@ -61,7 +42,7 @@ namespace IceRpc.Transports.Internal
         public ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
             _decoratee.SendAsync(buffers, cancel);
 
-        internal BufferedReceiveNetworkSocketDecorator(INetworkSocket decoratee, int bufferSize = 256)
+        internal BufferedReceiveDecorator(ISingleStreamConnection decoratee, int bufferSize = 256)
         {
             _decoratee = decoratee;
 

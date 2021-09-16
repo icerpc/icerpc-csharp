@@ -139,7 +139,7 @@ namespace IceRpc.Transports.Internal
             _ttl = ttl;
             _multicastInterface = multicastInterface;
 
-            DatagramMaxReceiveSize = Math.Min(MaxPacketSize, base.Socket.ReceiveBufferSize - UdpOverhead);
+            DatagramMaxReceiveSize = Math.Min(MaxPacketSize, socket.ReceiveBufferSize - UdpOverhead);
 
             if (isServer)
             {

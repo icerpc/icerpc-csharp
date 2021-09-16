@@ -28,9 +28,11 @@ namespace IceRpc.Internal
         private readonly Dictionary<int, CancellationTokenSource> _dispatchCancellationTokenSources = new();
         private readonly int _incomingFrameMaxSize;
         private readonly bool _isServer;
+        private readonly bool _isDatagram;
+        private readonly int _datagramMaxReceiveSize;
         private readonly ILogger _logger;
         private readonly object _mutex = new();
-        private readonly INetworkConnection _networkConnection;
+        private readonly ISingleStreamConnection _stream;
         private int _nextRequestId;
         private readonly TaskCompletionSource _pendingCloseConnection =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -40,34 +42,34 @@ namespace IceRpc.Internal
         private readonly AsyncSemaphore _sendSemaphore = new(1);
         // private readonly AsyncSemaphore? _unidirectionalStreamSemaphore;
         private bool _shutdown;
-        private readonly INetworkSocket _socket;
 
         /// <summary>Creates a multi-stream protocol connection.</summary>
         public Ice1ProtocolConnection(
-            NetworkSocketConnection networkConnection,
+            INetworkConnection networkConnection,
             TimeSpan idleTimeout,
             int incomingFrameMaxSize,
-            bool isServer,
             Action? pingReceived,
             ILoggerFactory loggerFactory)
         {
-            _networkConnection = networkConnection;
+            _stream = networkConnection.GetSingleStreamConnection();
             IdleTimeout = idleTimeout;
             _incomingFrameMaxSize = incomingFrameMaxSize;
-            _isServer = isServer;
+            _isServer = networkConnection.IsServer;
+            _isDatagram = networkConnection.IsDatagram;
+            _datagramMaxReceiveSize = networkConnection.DatagramMaxReceiveSize;
+
             _pingReceived = pingReceived;
             _logger = loggerFactory.CreateLogger("IceRpc.Protocol");
-            _socket = networkConnection.NetworkSocket;
         }
 
         /// <inheritdoc/>
         public async Task InitializeAsync(CancellationToken cancel)
         {
-            if (!_socket.IsDatagram)
+            if (!_isDatagram)
             {
                 if (_isServer)
                 {
-                    await _socket.SendAsync(Ice1Definitions.ValidateConnectionFrame, cancel).ConfigureAwait(false);
+                    await _stream.SendAsync(Ice1Definitions.ValidateConnectionFrame, cancel).ConfigureAwait(false);
                 }
                 else
                 {
@@ -118,7 +120,7 @@ namespace IceRpc.Internal
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
             try
             {
-                await _socket.SendAsync(Ice1Definitions.ValidateConnectionFrame, cancel).ConfigureAwait(false);
+                await _stream.SendAsync(Ice1Definitions.ValidateConnectionFrame, cancel).ConfigureAwait(false);
             }
             finally
             {
@@ -298,7 +300,7 @@ namespace IceRpc.Internal
             {
                 throw new NotSupportedException($"{nameof(Protocol.Ice1)} doesn't support fields");
             }
-            else if (_socket.IsDatagram && !request.IsOneway)
+            else if (_isDatagram && !request.IsOneway)
             {
                 throw new InvalidOperationException("cannot send twoway request over datagram connection");
             }
@@ -343,7 +345,7 @@ namespace IceRpc.Internal
                 // connection), we need to send the entire frame even when cancel gets canceled since the
                 // recipient cannot read a partial frame and then keep going.
                 ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
-                await _socket.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+                await _stream.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
 
                 // Mark the request as sent and keep track of it if it's a two-way request to receive the response.
                 request.IsSent = true;
@@ -422,7 +424,7 @@ namespace IceRpc.Internal
 
                     // Send the response frame.
                     ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
-                    await _socket.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+                    await _stream.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -447,7 +449,7 @@ namespace IceRpc.Internal
         public async Task ShutdownAsync(bool shutdownByPeer, string message, CancellationToken cancel)
         {
             var exception = new ConnectionClosedException(message);
-            if (_socket.IsDatagram)
+            if (_isDatagram)
             {
                 lock (_mutex)
                 {
@@ -498,7 +500,7 @@ namespace IceRpc.Internal
                 if (!shutdownByPeer)
                 {
                     // Send the CloseConnection frame once all the dispatch are done.
-                    await _socket.SendAsync(Ice1Definitions.CloseConnectionFrame, cancel).ConfigureAwait(false);
+                    await _stream.SendAsync(Ice1Definitions.CloseConnectionFrame, cancel).ConfigureAwait(false);
 
                     // Wait for the peer to close the connection. When the peer receives the CloseConnectionFrame
                     // the peer closes the connection. This will cause ReceiveRequestAsync to throw and the
@@ -531,10 +533,10 @@ namespace IceRpc.Internal
             {
                 // Receive the Ice1 frame header.
                 Memory<byte> buffer;
-                if (_socket.IsDatagram)
+                if (_isDatagram)
                 {
-                    buffer = new byte[_socket.DatagramMaxReceiveSize];
-                    int received = await _socket.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
+                    buffer = new byte[_datagramMaxReceiveSize];
+                    int received = await _stream.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
                     if (received < Ice1Definitions.HeaderSize)
                     {
                         _logger.LogReceivedInvalidDatagram(received);
@@ -554,7 +556,7 @@ namespace IceRpc.Internal
                 int frameSize = IceDecoder.DecodeInt(buffer.AsReadOnlySpan().Slice(10, 4));
                 if (frameSize < Ice1Definitions.HeaderSize)
                 {
-                    if (_socket.IsDatagram)
+                    if (_isDatagram)
                     {
                         _logger.LogReceivedInvalidDatagram(frameSize);
                     }
@@ -564,10 +566,9 @@ namespace IceRpc.Internal
                     }
                     continue; // while
                 }
-                if (frameSize > _incomingFrameMaxSize ||
-                    (_socket.IsDatagram && frameSize > _socket.DatagramMaxReceiveSize))
+                if (frameSize > _incomingFrameMaxSize || (_isDatagram && frameSize > _datagramMaxReceiveSize))
                 {
-                    if (_socket.IsDatagram)
+                    if (_isDatagram)
                     {
                         _logger.LogDatagramSizeExceededIncomingFrameMaxSize(frameSize);
                         continue;
@@ -589,7 +590,7 @@ namespace IceRpc.Internal
 
                 // Read the remainder of the frame if needed.
                 int remainingSize = frameSize - Ice1Definitions.HeaderSize;
-                if (_socket.IsDatagram)
+                if (_isDatagram)
                 {
                     Debug.Assert(remainingSize < buffer.Length);
                     buffer = buffer[0..remainingSize];
@@ -685,7 +686,7 @@ namespace IceRpc.Internal
             int offset = 0;
             while (offset != buffer.Length)
             {
-                offset += await _socket.ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
+                offset += await _stream.ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
             }
         }
     }

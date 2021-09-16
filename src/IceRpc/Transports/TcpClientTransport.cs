@@ -44,8 +44,6 @@ namespace IceRpc.Transports
 
         INetworkConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
         {
-            ILogger logger = loggerFactory.CreateLogger("IceRpc");
-
             EndPoint netEndPoint = IPAddress.TryParse(remoteEndpoint.Host, out IPAddress? ipAddress) ?
                 new IPEndPoint(ipAddress, remoteEndpoint.Port) :
                 new DnsEndPoint(remoteEndpoint.Host, remoteEndpoint.Port);
@@ -56,6 +54,7 @@ namespace IceRpc.Transports
                 new Socket(SocketType.Stream, ProtocolType.Tcp) :
                 new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
+            ILogger logger = loggerFactory.CreateLogger("IceRpc.Transports");
             try
             {
                 if (ipAddress?.AddressFamily == AddressFamily.InterNetworkV6)
@@ -80,17 +79,14 @@ namespace IceRpc.Transports
                 throw new TransportException(ex);
             }
 
-#pragma warning disable CA2000 // Dispose objects before losing scope
-            var tcpSocket = new TcpClientSocket(socket, _authenticationOptions, netEndPoint);
-#pragma warning restore CA2000 // Dispose objects before losing scope
-            if (remoteEndpoint.Protocol == Protocol.Ice2)
-            {
-                return new SlicConnection(tcpSocket, remoteEndpoint, isServer: false, logger, _slicOptions);
-            }
-            else
-            {
-                return new NetworkSocketConnection(tcpSocket, remoteEndpoint, isServer: false, logger);
-            }
+            return LogNetworkConnectionDecorator.Create(
+                new NetworkSocketConnection(
+                    new TcpClientSocket(socket, _authenticationOptions, netEndPoint),
+                    remoteEndpoint,
+                    isServer: false,
+                    _slicOptions,
+                    logger),
+                logger);
         }
     }
 }

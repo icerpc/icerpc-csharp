@@ -11,17 +11,11 @@ using System.Runtime.InteropServices;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The Slic connection implements a multi-stream connection on top of a network socket such as TCP. It
-    /// supports the same set of features as Quic.</summary>
+    /// <summary>The Slic connection implements a multi-stream connection on top of a network socket such as
+    /// TCP. It supports the same set of features as Quic.</summary>
     internal class SlicConnection : MultiStreamConnection
     {
-        /// <inheritdoc/>
-        public override bool IsDatagram => false;
-
-        /// <inheritdoc/>
-        public override bool IsSecure => _socket.SslStream != null;
-
-        internal INetworkSocket NetworkSocket => _socket;
+        internal ILogger Logger { get; }
         internal int PacketMaxSize { get; }
         internal int PeerPacketMaxSize { get; private set; }
         internal int PeerStreamBufferMaxSize { get; private set; }
@@ -30,8 +24,8 @@ namespace IceRpc.Transports.Internal
         private int _bidirectionalStreamCount;
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly int _bidirectionalMaxStreams;
-        private readonly BufferedReceiveNetworkSocketDecorator _bufferedSocket;
-        private readonly NetworkSocket _socket;
+        private readonly BufferedReceiveDecorator _bufferedConnection;
+        private readonly ISingleStreamConnection _connection;
         private long _nextBidirectionalId;
         private long _nextUnidirectionalId;
         private readonly ManualResetValueTaskCompletionSource<int> _receiveStreamCompletionTaskSource = new();
@@ -41,7 +35,7 @@ namespace IceRpc.Transports.Internal
         private int _unidirectionalStreamCount;
         private AsyncSemaphore? _unidirectionalStreamSemaphore;
 
-        public override async ValueTask<NetworkStream> AcceptStreamAsync(CancellationToken cancel)
+        public override async ValueTask<INetworkStream> AcceptStreamAsync(CancellationToken cancel)
         {
             // Eventually wait for the stream data receive to complete if stream data is being received.
             await WaitForReceivedStreamDataCompletionAsync(cancel).ConfigureAwait(false);
@@ -249,17 +243,8 @@ namespace IceRpc.Transports.Internal
         public override NetworkStream CreateStream(bool bidirectional) =>
             new SlicStream(this, bidirectional);
 
-        public override async ValueTask ConnectAsync(CancellationToken cancel)
+        public override async ValueTask InitializeAsync(CancellationToken cancel)
         {
-            if (IsServer)
-            {
-                RemoteEndpoint = await _socket.ConnectAsync(LocalEndpoint!, cancel).ConfigureAwait(false);
-            }
-            else
-            {
-                LocalEndpoint = await _socket.ConnectAsync(RemoteEndpoint!, cancel).ConfigureAwait(false);
-            }
-
             if (IsServer)
             {
                 (SlicDefinitions.FrameType type, ReadOnlyMemory<byte> data) =
@@ -377,15 +362,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        /// <inheritdoc/>
-        public override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
-            !IsServer &&
-            EndpointComparer.ParameterLess.Equals(remoteEndpoint, RemoteEndpoint) &&
-            _socket.HasCompatibleParams(remoteEndpoint);
-
-        /// <inheritdoc/>
-        public override string ToString() => _socket.ToString();
-
         public override Task PingAsync(CancellationToken cancel) =>
             // TODO: shall we set a timer for expecting the Pong frame? or should we return only once
             // the pong from is received? which timeout to use for expecting the pong frame?
@@ -397,8 +373,6 @@ namespace IceRpc.Transports.Internal
 
             if (disposing)
             {
-                _socket.Dispose();
-
                 // Unblock requests waiting on the semaphores.
                 var exception = new ConnectionClosedException();
                 _bidirectionalStreamSemaphore?.Complete(exception);
@@ -407,33 +381,20 @@ namespace IceRpc.Transports.Internal
         }
 
         internal SlicConnection(
-            NetworkSocket networkSocket,
-            Endpoint endpoint,
+            ISingleStreamConnection connection,
             bool isServer,
             ILogger logger,
-            MultiStreamOptions options)
-            : base(endpoint, isServer, logger)
+            SlicOptions options)
+            : base(isServer)
         {
-            _socket = networkSocket;
-
-            // Create a buffered network socket decorator to enable buffered receive.
-            if (logger.IsEnabled(LogLevel.Debug))
-            {
-                _bufferedSocket = new BufferedReceiveNetworkSocketDecorator(
-                    new LogNetworkSocketDecorator(networkSocket, logger));
-            }
-            else
-            {
-                _bufferedSocket = new BufferedReceiveNetworkSocketDecorator(networkSocket);
-            }
+            _connection = connection;
+            Logger = logger;
+            _bufferedConnection = new BufferedReceiveDecorator(connection);
 
             _receiveStreamCompletionTaskSource.SetResult(0);
 
-            if (options is SlicOptions slicOptions)
-            {
-                PacketMaxSize = slicOptions.SlicPacketMaxSize;
-                StreamBufferMaxSize = slicOptions.SlicStreamBufferMaxSize;
-            }
+            PacketMaxSize = options.SlicPacketMaxSize;
+            StreamBufferMaxSize = options.SlicStreamBufferMaxSize;
 
             // Initially set the peer packet max size to the local max size to ensure we can receive the first
             // initialize frame.
@@ -492,7 +453,7 @@ namespace IceRpc.Transports.Internal
 
             try
             {
-                using IDisposable? scope = stream?.StartScope();
+                using IDisposable? scope = stream != null ? Logger.StartStreamScope(stream.Id) : null;
                 if (logAction != null)
                 {
                     logAction?.Invoke(frameSize);
@@ -513,7 +474,7 @@ namespace IceRpc.Transports.Internal
         {
             for (int offset = 0; offset != buffer.Length;)
             {
-                offset += await _bufferedSocket!.ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
+                offset += await _bufferedConnection!.ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
             }
             Received(buffer);
         }
@@ -547,7 +508,7 @@ namespace IceRpc.Transports.Internal
             // Perform the write
 
             // A Slic packet must always be sent entirely even if the sending of the stream data is canceled.
-            await _bufferedSocket!.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+            await _bufferedConnection!.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
             Sent(buffers);
         }
 
@@ -630,7 +591,8 @@ namespace IceRpc.Transports.Internal
             {
                 try
                 {
-                    // Compute how much space the size and stream ID require to figure out the start of the Slic header.
+                    // Compute how much space the size and stream ID require to figure out the start of the
+                    // Slic header.
                     int streamIdLength = Ice20Encoder.GetSizeLength(stream.Id);
                     packetSize += streamIdLength;
                     int sizeLength = Ice20Encoder.GetSizeLength(packetSize);
@@ -638,11 +600,11 @@ namespace IceRpc.Transports.Internal
                     SlicDefinitions.FrameType frameType =
                         endStream ? SlicDefinitions.FrameType.StreamLast : SlicDefinitions.FrameType.Stream;
 
-                    // Write the Slic frame header (frameType - byte, frameSize - varint, streamId - varlong). Since
-                    // we might not need the full space reserved for the header, we modify the send buffer to ensure
-                    // the first element points at the start of the Slic header. We'll restore the send buffer once
-                    // the send is complete (it's important for the tracing code which might rely on the encoded
-                    // data).
+                    // Write the Slic frame header (frameType - byte, frameSize - varint, streamId - varlong).
+                    // Since we might not need the full space reserved for the header, we modify the send
+                    // buffer to ensure the first element points at the start of the Slic header. We'll
+                    // restore the send buffer once the send is complete (it's important for the tracing code
+                    // which might rely on the encoded data).
                     ReadOnlyMemory<byte> previous = buffers.Span[0];
                     Memory<byte> headerData = MemoryMarshal.AsMemory(
                         buffers.Span[0][(SlicDefinitions.FrameHeader.Length - sizeLength - streamIdLength - 1)..]);
@@ -654,7 +616,7 @@ namespace IceRpc.Transports.Internal
                     // Update the first buffer entry
                     MemoryMarshal.AsMemory(buffers).Span[0] = headerData;
 
-                    using IDisposable? scope = stream.StartScope();
+                    using IDisposable? scope = Logger.StartStreamScope(stream.Id);
                     Logger.LogSendingSlicFrame(frameType, packetSize);
                     try
                     {
@@ -792,15 +754,15 @@ namespace IceRpc.Transports.Internal
         {
             // Receive at most 2 bytes for the Slic header (the minimum size of a Slic header). The first byte
             // will be the frame type and the second is the first byte of the Slic frame size.
-            ReadOnlyMemory<byte> buffer = await _bufferedSocket!.ReceiveAsync(2, cancel).ConfigureAwait(false);
+            ReadOnlyMemory<byte> buffer = await _bufferedConnection!.ReceiveAsync(2, cancel).ConfigureAwait(false);
             var type = (SlicDefinitions.FrameType)buffer.Span[0];
             int sizeLength = Ice20Decoder.DecodeSizeLength(buffer.Span[1]);
             int size;
             if (sizeLength > 1)
             {
                 Received(buffer.Slice(0, 1));
-                _bufferedSocket!.Rewind(1);
-                buffer = await _bufferedSocket!.ReceiveAsync(sizeLength, cancel).ConfigureAwait(false);
+                _bufferedConnection!.Rewind(1);
+                buffer = await _bufferedConnection!.ReceiveAsync(sizeLength, cancel).ConfigureAwait(false);
                 size = Ice20Decoder.DecodeSize(buffer.Span).Size;
                 Received(buffer.Slice(0, sizeLength));
             }
@@ -823,9 +785,9 @@ namespace IceRpc.Transports.Internal
             // We receive at most 8 or maxSize bytes and rewind the connection buffered position if we read
             // too much data.
             int size = Math.Min(frameSize, 8);
-            ReadOnlyMemory<byte> buffer = await _bufferedSocket!.ReceiveAsync(size, cancel).ConfigureAwait(false);
+            ReadOnlyMemory<byte> buffer = await _bufferedConnection!.ReceiveAsync(size, cancel).ConfigureAwait(false);
             (ulong streamId, int streamIdLength) = IceDecoder.DecodeVarULong(buffer.Span);
-            _bufferedSocket!.Rewind(size - streamIdLength);
+            _bufferedConnection!.Rewind(size - streamIdLength);
             Received(buffer[0..streamIdLength]);
 
             // Return the stream ID and the size of the data remaining to read for the frame.

@@ -296,17 +296,16 @@ namespace IceRpc
                     if (Protocol == Protocol.Ice1)
                     {
                         _protocolConnection = new Ice1ProtocolConnection(
-                            (NetworkSocketConnection)NetworkConnection,
+                            NetworkConnection,
                             _options.IdleTimeout,
                             _options.IncomingFrameMaxSize,
-                            IsServer,
                             pingAction,
                             _loggerFactory ?? NullLoggerFactory.Instance);
                     }
                     else
                     {
                         _protocolConnection = new Ice2ProtocolConnection(
-                            (MultiStreamConnection)NetworkConnection,
+                            NetworkConnection,
                             _options.IdleTimeout,
                             _options.IncomingFrameMaxSize,
                             pingAction,

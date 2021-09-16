@@ -135,7 +135,7 @@ namespace IceRpc.Tests.Internal
                     _serverEndpoint,
                     LogAttributeLoggerFactory.Instance).Listener!;
 
-        protected static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateSendPayload(NetworkStream stream, int length = 10)
+        protected static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateSendPayload(INetworkStream stream, int length = 10)
         {
             byte[] buffer = new byte[stream.TransportHeader.Length + length];
             stream.TransportHeader.CopyTo(buffer);

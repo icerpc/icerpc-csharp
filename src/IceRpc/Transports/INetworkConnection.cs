@@ -5,6 +5,13 @@ namespace IceRpc.Transports
     /// <summary>A network connection represents the low-level transport to exchange data as bytes.</summary>
     public interface INetworkConnection : IDisposable
     {
+        /// <summary>The maximum size of a received datagram if this connection is a datagram
+        /// connection.</summary>
+        int DatagramMaxReceiveSize { get; }
+
+        /// <summary><c>true</c> for a datagram network connection; <c>false</c> otherwise.</summary>
+        bool IsDatagram { get; }
+
         /// <summary>Indicates whether or not this network connection is secure.</summary>
         /// <value><c>true</c> means the network connection is secure. <c>false</c> means the network
         /// connection transport is not secure. If the connection is not established, secure is always
@@ -31,6 +38,16 @@ namespace IceRpc.Transports
         /// </summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         ValueTask ConnectAsync(CancellationToken cancel);
+
+        /// <summary>Get the single-stream connection to allow single-stream communications over this network
+        /// connection.</summary>
+        /// <returns>The <see cref="ISingleStreamConnection"/>.</returns>
+        ISingleStreamConnection GetSingleStreamConnection();
+
+        /// <summary>Get the multi-stream connection to allow multi-stream communications over this network
+        /// connection.</summary>
+        /// <returns>The <see cref="IMultiStreamConnection"/>.</returns>
+        IMultiStreamConnection GetMultiStreamConnection();
 
         /// <summary>Checks if the parameters of the provided endpoint are compatible with this network
         /// connection. Compatible means a client could reuse this network connection instead of establishing

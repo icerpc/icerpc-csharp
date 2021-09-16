@@ -2,15 +2,14 @@
 
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
-using ColocChannelReader = System.Threading.Channels.ChannelReader<(long StreamId, object Frame, bool Fin)>;
-using ColocChannelWriter = System.Threading.Channels.ChannelWriter<(long StreamId, object Frame, bool Fin)>;
+using System.Threading.Channels;
 
 namespace IceRpc.Transports
 {
     /// <summary>Implements <see cref="IClientTransport"/> for the coloc transport.</summary>
     public class ColocClientTransport : IClientTransport
     {
-        private readonly MultiStreamOptions _multiStreamOptions;
+        private readonly MultiStreamOptions _options;
 
         INetworkConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
         {
@@ -22,15 +21,12 @@ namespace IceRpc.Transports
 
             if (ColocListener.TryGetValue(remoteEndpoint, out ColocListener? listener))
             {
-                ILogger logger = loggerFactory.CreateLogger("IceRpc");
-                (ColocChannelReader reader, ColocChannelWriter writer, long id) = listener.NewClientConnection();
-                return new ColocConnection(
-                    remoteEndpoint,
-                    id,
-                    writer,
-                    reader,
-                    isServer: false,
-                    _multiStreamOptions,
+                ChannelReader<ReadOnlyMemory<byte>> reader;
+                ChannelWriter<ReadOnlyMemory<byte>> writer;
+                (reader, writer) = listener.NewClientConnection();
+                ILogger logger = loggerFactory.CreateLogger("IceRpc.Transports");
+                return LogNetworkConnectionDecorator.Create(
+                    new ColocConnection(remoteEndpoint, isServer: false, _options, writer, reader, logger),
                     logger);
             }
             else
@@ -41,6 +37,6 @@ namespace IceRpc.Transports
 
         /// <summary>Construct a colocated server transport.</summary>
         /// <param name="options">The transport options.</param>
-        public ColocClientTransport(MultiStreamOptions options) => _multiStreamOptions = options;
+        public ColocClientTransport(MultiStreamOptions options) => _options = options;
     }
 }

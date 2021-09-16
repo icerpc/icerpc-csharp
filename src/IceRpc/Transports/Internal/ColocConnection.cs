@@ -6,131 +6,49 @@ using System.Threading.Channels;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The MultiStreamConnection class for the colocated transport.</summary>
-    internal class ColocConnection : MultiStreamConnection
+    /// <summary>The network connection class the colocated transport.</summary>
+    internal class ColocConnection : INetworkConnection, ISingleStreamConnection
     {
-        public override bool IsDatagram => false;
-        public override bool IsSecure => true;
+        public int DatagramMaxReceiveSize => throw new InvalidOperationException();
 
-        internal long Id { get; }
+        public bool IsDatagram => false;
 
-        private static readonly object _pingFrame = new();
-        private readonly int _bidirectionalStreamMaxCount;
-        private AsyncSemaphore? _bidirectionalStreamSemaphore;
-        private readonly object _mutex = new();
-        private long _nextBidirectionalId;
-        private long _nextUnidirectionalId;
-        private AsyncSemaphore? _peerUnidirectionalStreamSemaphore;
-        private readonly ChannelReader<(long, object, bool)> _reader;
-        private readonly int _unidirectionalStreamMaxCount;
-        private AsyncSemaphore? _unidirectionalStreamSemaphore;
-        private readonly ChannelWriter<(long, object, bool)> _writer;
+        public bool IsSecure => true;
 
-        public override async ValueTask<NetworkStream> AcceptStreamAsync(CancellationToken cancel)
+        public bool IsServer { get; }
+
+        public Endpoint? LocalEndpoint { get; }
+
+        public Endpoint? RemoteEndpoint { get; }
+
+        private readonly ILogger _logger;
+        private readonly MultiStreamOptions _options;
+        private readonly ChannelReader<ReadOnlyMemory<byte>> _reader;
+        private ReadOnlyMemory<byte> _receivedBuffer;
+        private SlicConnection? _slicConnection;
+        private readonly ChannelWriter<ReadOnlyMemory<byte>> _writer;
+
+        public ValueTask ConnectAsync(CancellationToken cancel) => default;
+
+        public void Dispose() => _slicConnection?.Dispose();
+
+        public IMultiStreamConnection GetMultiStreamConnection()
         {
-            while (true)
-            {
-                long streamId;
-                object frame;
-                bool endStream;
-                try
+            _slicConnection = new SlicConnection(
+                this,
+                IsServer,
+                _logger,
+                new SlicOptions()
                 {
-                    (streamId, frame, endStream) = await _reader.ReadAsync(cancel).ConfigureAwait(false);
-                }
-                catch (ChannelClosedException exception)
-                {
-                    throw new ConnectionLostException(exception);
-                }
-
-                bool isIncoming = streamId % 2 == (IsServer ? 0 : 1);
-                bool isBidirectional = streamId % 4 < 2;
-
-                // The -1 stream ID value indicates a connection frame, not belonging to any stream.
-                if (streamId == -1)
-                {
-                    if (frame == _pingFrame)
-                    {
-                        PingReceived?.Invoke();
-                    }
-                    else if (endStream)
-                    {
-                        throw new ConnectionClosedException();
-                    }
-                    else
-                    {
-                        Debug.Assert(false);
-                    }
-                }
-                else if (TryGetStream(streamId, out ColocStream? stream))
-                {
-                    try
-                    {
-                        stream.ReceivedFrame(frame, endStream);
-                    }
-                    catch
-                    {
-                        // Ignore, the stream got aborted possibly because the connection is being shutdown.
-                    }
-                }
-                else if (isIncoming && IsIncomingStreamUnknown(streamId, isBidirectional))
-                {
-                    Debug.Assert(frame != null);
-                    try
-                    {
-                        stream = new ColocStream(this, streamId);
-                        stream.ReceivedFrame(frame, endStream);
-                        return stream;
-                    }
-                    catch
-                    {
-                        // Ignore, the stream got aborted possibly because the connection is being shutdown.
-                    }
-                }
-                else
-                {
-                    // Canceled request, ignore
-                }
-            }
+                    BidirectionalStreamMaxCount = _options.BidirectionalStreamMaxCount,
+                    UnidirectionalStreamMaxCount = _options.UnidirectionalStreamMaxCount
+                });
+            return _slicConnection;
         }
 
-        public override NetworkStream CreateStream(bool bidirectional) =>
-            new ColocStream(this, bidirectional);
+        public ISingleStreamConnection GetSingleStreamConnection() => this;
 
-        public override async ValueTask ConnectAsync(CancellationToken cancel)
-        {
-            try
-            {
-                var initializeFrame = new InitializeFrame()
-                {
-                    BidirectionalStreamSemaphore = new AsyncSemaphore(_bidirectionalStreamMaxCount),
-                    UnidirectionalStreamSemaphore = new AsyncSemaphore(_unidirectionalStreamMaxCount)
-                };
-
-                // We keep track of the peer's unidirectional stream semaphore. This side of the colocated connection
-                // releases the peer's unidirectional stream semaphore when an incoming unidirectional stream is
-                // released.
-                _peerUnidirectionalStreamSemaphore = initializeFrame.UnidirectionalStreamSemaphore;
-
-                await _writer.WriteAsync((-1, initializeFrame, false), cancel).ConfigureAwait(false);
-                (_, object? frame, _) = await _reader.ReadAsync(cancel).ConfigureAwait(false);
-
-                initializeFrame = (InitializeFrame)frame!;
-
-                // Get the semphores from the initialize frame.
-                _bidirectionalStreamSemaphore = initializeFrame.BidirectionalStreamSemaphore!;
-                _unidirectionalStreamSemaphore = initializeFrame.UnidirectionalStreamSemaphore!;
-            }
-            catch (Exception ex) when (cancel.IsCancellationRequested)
-            {
-                throw new OperationCanceledException(null, ex, cancel);
-            }
-            catch (Exception exception)
-            {
-                throw new TransportException(exception);
-            }
-        }
-
-        public override bool HasCompatibleParams(Endpoint remoteEndpoint)
+        public bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
             if (remoteEndpoint.Params.Count > 0)
             {
@@ -140,162 +58,48 @@ namespace IceRpc.Transports.Internal
             return !IsServer;
         }
 
-        public override async Task PingAsync(CancellationToken cancel)
+        public async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
-            cancel.ThrowIfCancellationRequested();
-            try
+            if (_receivedBuffer.Length == 0)
             {
-                await _writer.WriteAsync((-1, _pingFrame, false), cancel).ConfigureAwait(false);
+                _receivedBuffer = await _reader.ReadAsync(cancel).ConfigureAwait(false);
             }
-            catch (Exception exception)
+
+            if (_receivedBuffer.Length > buffer.Length)
             {
-                throw new TransportException(exception);
-            }
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-
-            if (disposing)
-            {
-                _writer.TryComplete();
-
-                var exception = new ConnectionClosedException();
-                _bidirectionalStreamSemaphore?.Complete(exception);
-                _unidirectionalStreamSemaphore?.Complete(exception);
-            }
-        }
-
-        internal ColocConnection(
-            Endpoint endpoint,
-            long id,
-            ChannelWriter<(long, object, bool)> writer,
-            ChannelReader<(long, object, bool)> reader,
-            bool isServer,
-            MultiStreamOptions options,
-            ILogger logger)
-            : base(endpoint, isServer, logger)
-        {
-            LocalEndpoint = endpoint;
-            RemoteEndpoint = endpoint;
-
-            Id = id;
-            _writer = writer;
-            _reader = reader;
-
-            _bidirectionalStreamMaxCount = options.BidirectionalStreamMaxCount;
-            _unidirectionalStreamMaxCount = options.UnidirectionalStreamMaxCount;
-
-            // We use the same stream ID numbering scheme as Quic
-            if (IsServer)
-            {
-                _nextBidirectionalId = 1;
-                _nextUnidirectionalId = 3;
+                _receivedBuffer[0..buffer.Length].CopyTo(buffer);
+                _receivedBuffer = _receivedBuffer[buffer.Length..];
+                return buffer.Length;
             }
             else
             {
-                _nextBidirectionalId = 0;
-                _nextUnidirectionalId = 2;
+                _receivedBuffer.CopyTo(buffer[0.._receivedBuffer.Length]);
+                _receivedBuffer = ReadOnlyMemory<byte>.Empty;
+                return _receivedBuffer.Length;
             }
         }
 
-        internal void ReleaseStream(ColocStream stream)
+        public ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
+            _writer.WriteAsync(buffer, cancel);
+
+        public ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
+            SendAsync(buffers.ToArray(), cancel);
+
+        internal ColocConnection(
+            Endpoint endpoint,
+            bool isServer,
+            MultiStreamOptions options,
+            ChannelWriter<ReadOnlyMemory<byte>> writer,
+            ChannelReader<ReadOnlyMemory<byte>> reader,
+            ILogger logger)
         {
-            if (stream.IsIncoming && !stream.IsBidirectional)
-            {
-                // This client side stream acquires the semaphore before opening an unidirectional stream. The
-                // semaphore is released when this server side stream is disposed.
-                _peerUnidirectionalStreamSemaphore?.Release();
-            }
-            else if (!stream.IsIncoming && stream.IsBidirectional && stream.IsStarted)
-            {
-                // This client side stream acquires the semaphore before opening a bidirectional stream. The
-                // semaphore is released when this client side stream is disposed.
-                _bidirectionalStreamSemaphore?.Release();
-            }
-        }
-
-        internal async ValueTask SendFrameAsync(
-            ColocStream stream,
-            object frame,
-            bool endStream,
-            CancellationToken cancel)
-        {
-            AsyncSemaphore streamSemaphore = stream.IsBidirectional ?
-                _bidirectionalStreamSemaphore! :
-                _unidirectionalStreamSemaphore!;
-
-            if (!stream.IsStarted)
-            {
-                // Wait on the stream semaphore to ensure that we don't open more streams than the peer
-                // allows. The wait is done on the client side to ensure the sent callback for the request
-                // isn't called until the server is ready to dispatch a new request.
-                await streamSemaphore.EnterAsync(cancel).ConfigureAwait(false);
-            }
-
-            try
-            {
-                // If the stream is aborted, stop sending stream frames.
-                if (stream.WriteCompleted && (frame is IncomingFrame || frame is ReadOnlyMemory<ReadOnlyMemory<byte>>))
-                {
-                    if (!stream.IsStarted)
-                    {
-                        streamSemaphore.Release();
-                    }
-                    throw new StreamAbortedException(StreamError.StreamAborted);
-                }
-
-                ValueTask task;
-                lock (_mutex)
-                {
-                    // If the stream isn't started, allocate the stream ID (according to Quic numbering scheme)
-                    if (!stream.IsStarted)
-                    {
-                        if (stream.IsBidirectional)
-                        {
-                            stream.Id = _nextBidirectionalId;
-                            _nextBidirectionalId += 4;
-                        }
-                        else
-                        {
-                            stream.Id = _nextUnidirectionalId;
-                            _nextUnidirectionalId += 4;
-                        }
-                    }
-
-                    // Write the frame. It's important to allocate the ID and to send the frame within the
-                    // synchronization block to ensure the reader won't receive frames with out-of-order
-                    // stream IDs.
-                    task = _writer.WriteAsync((stream.Id, frame, endStream), cancel);
-                }
-
-                await task.ConfigureAwait(false);
-
-                if (endStream)
-                {
-                    stream.TrySetWriteCompleted();
-                }
-            }
-            catch (ChannelClosedException ex)
-            {
-                Debug.Assert(stream.IsStarted);
-                throw new TransportException(ex);
-            }
-            catch
-            {
-                if (!stream.IsStarted)
-                {
-                    streamSemaphore.Release();
-                }
-                throw;
-            }
-        }
-
-        private sealed class InitializeFrame
-        {
-            internal AsyncSemaphore? BidirectionalStreamSemaphore { get; set; }
-            internal AsyncSemaphore? UnidirectionalStreamSemaphore { get; set; }
+            IsServer = isServer;
+            LocalEndpoint = endpoint;
+            RemoteEndpoint = endpoint;
+            _options = options;
+            _reader = reader;
+            _writer = writer;
+            _logger = logger;
         }
     }
 }

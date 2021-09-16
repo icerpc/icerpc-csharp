@@ -5,54 +5,13 @@ using System.Diagnostics;
 
 namespace IceRpc.Transports
 {
-    /// <summary>Raised if a stream is aborted. This exception is internal.</summary>
-    public class StreamAbortedException : Exception
-    {
-        internal StreamError ErrorCode { get; }
-
-        internal StreamAbortedException(StreamError errorCode) :
-            base($"stream aborted with error code {errorCode}") => ErrorCode = errorCode;
-    }
-
-    /// <summary>Error codes for stream errors.</summary>
-    public enum StreamError : byte
-    {
-        /// <summary>The stream was aborted because the invocation was canceled.</summary>
-        InvocationCanceled,
-
-        /// <summary>The stream was aborted because the dispatch was canceled.</summary>
-        DispatchCanceled,
-
-        /// <summary>Streaming was canceled by the reader.</summary>
-        StreamingCanceledByReader,
-
-        /// <summary>Streaming was canceled by the writer.</summary>
-        StreamingCanceledByWriter,
-
-        /// <summary>The stream was aborted because the connection was shutdown.</summary>
-        ConnectionShutdown,
-
-        /// <summary>The stream was aborted because the connection was shutdown by the peer.</summary>
-        ConnectionShutdownByPeer,
-
-        /// <summary>The stream was aborted because the connection was aborted.</summary>
-        ConnectionAborted,
-
-        /// <summary>Stream data is not expected.</summary>
-        UnexpectedStreamData,
-
-        /// <summary>The stream was aborted.</summary>
-        StreamAborted
-    }
 
     /// <summary>The NetworkStream abstract base class to be overridden by multi-stream network connection
     /// implementations. There's an instance of this class for each active stream managed by the multi-stream
     /// network connection.</summary>
-    public abstract class NetworkStream
+    public abstract class NetworkStream : INetworkStream
     {
-        /// <summary>The stream ID. If the stream ID hasn't been assigned yet, an exception is thrown. Assigning the
-        /// stream ID registers the stream with the connection.</summary>
-        /// <exception cref="InvalidOperationException">If the stream ID has not been assigned yet.</exception>
+        /// <inheritdoc/>
         public long Id
         {
             get
@@ -73,13 +32,13 @@ namespace IceRpc.Transports
             }
         }
 
-        /// <summary>Returns <c>true</c> if the stream is an incoming stream, <c>false</c> otherwise.</summary>
+        /// <inheritdoc/>
         public bool IsIncoming => _id != -1 && _id % 2 == (_connection.IsServer ? 0 : 1);
 
-        /// <summary>Returns <c>true</c> if the stream is a bidirectional stream, <c>false</c> otherwise.</summary>
+        /// <inheritdoc/>
         public bool IsBidirectional { get; }
 
-        /// <summary>Returns <c>true</c> if the stream is shutdown, <c>false</c> otherwise.</summary>
+        /// <inheritdoc/>
         public bool IsShutdown => (Thread.VolatileRead(ref _state) & (int)State.Shutdown) > 0;
 
         /// <summary>Returns <c>true</c> if the receiving side of the stream is completed, <c>false</c> otherwise.
@@ -90,11 +49,7 @@ namespace IceRpc.Transports
         /// </summary>
         public bool WriteCompleted => (Thread.VolatileRead(ref _state) & (int)State.WriteCompleted) > 0;
 
-        /// <summary>The transport header sentinel. Transport implementations that need to add an additional header
-        /// to transmit data over the stream can provide the header data here. This can improve performance by reducing
-        /// the number of allocations as Ice will allocate buffer space for both the transport header and the Ice
-        /// protocol header. If a header is returned here, the implementation of the SendAsync method should expect
-        /// this header to be set at the start of the first buffer.</summary>
+        /// <inheritdoc/>
         public virtual ReadOnlyMemory<byte> TransportHeader => default;
 
         /// <summary>Get the cancellation dispatch source.</summary>
@@ -112,41 +67,25 @@ namespace IceRpc.Transports
 
         private int _state;
 
-        /// <summary>Abort the stream read side.</summary>
-        /// <param name="errorCode">The reason of the abort.</param>
+        /// <inheritdoc/>
         public abstract void AbortRead(StreamError errorCode);
 
-        /// <summary>Abort the stream write side.</summary>
-        /// <param name="errorCode">The reason of the abort.</param>
+        /// <inheritdoc/>
         public abstract void AbortWrite(StreamError errorCode);
 
-        /// <summary>Get a <see cref="System.IO.Stream"/> to allow using this stream using the C# stream API.</summary>
-        /// <returns>The <see cref="System.IO.Stream"/> object.</returns>
+        /// <inheritdoc/>
         public virtual System.IO.Stream AsByteStream() => new ByteStream(this);
 
-        /// <summary>Enable flow control for receiving data from the peer over the stream. This is called after
-        /// receiving a request or response frame to receive data for a stream parameter. Flow control isn't
-        /// enabled for receiving the request or response frame whose size is limited with IncomingFrameSizeMax.
-        /// The stream relies on the underlying transport flow control instead (TCP, Quic, ...). For stream
-        /// parameters, whose size is not limited, it's important that the transport doesn't send an unlimited
-        /// amount of data if the receiver doesn't process it. For TCP based transports, this would cause the
-        /// send buffer to fill up and this would prevent other streams to be processed.</summary>
+        /// <inheritdoc/>
         public abstract void EnableReceiveFlowControl();
 
-        /// <summary>Enable flow control for sending data to the peer over the stream. This is called after
-        /// sending a request or response frame to send data from a stream parameter.</summary>
+        /// <inheritdoc/>
         public abstract void EnableSendFlowControl();
 
-        /// <summary>Receives data in the given buffer and return the number of received bytes.</summary>
-        /// <param name="buffer">The buffer to store the received data.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <return>The number of bytes received.</return>
+        /// <inheritdoc/>
         public abstract ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel);
 
-        /// <summary>Sends data from the given buffers and returns once the buffers are sent.</summary>
-        /// <param name="buffers">The buffers with the data to send.</param>
-        /// <param name="endStream">True if no more data will be sent over this stream, False otherwise.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        /// <inheritdoc/>
         public abstract ValueTask SendAsync(
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             bool endStream,
@@ -213,21 +152,22 @@ namespace IceRpc.Transports
         }
 
         /// <summary>Mark reads as completed for this stream.</summary>
-        /// <returns><c>true</c> if the stream reads were successfully marked as completed, <c>false</c> if the stream
-        /// reads were already completed.</returns>
+        /// <returns><c>true</c> if the stream reads were successfully marked as completed, <c>false</c> if
+        /// the stream reads were already completed.</returns>
         protected internal bool TrySetReadCompleted(bool shutdown = true) =>
             TrySetState(State.ReadCompleted, shutdown);
 
         /// <summary>Mark writes as completed for this stream.</summary>
-        /// <returns><c>true</c> if the stream writes were successfully marked as completed, <c>false</c> if the stream
-        /// writes were already completed.</returns>
+        /// <returns><c>true</c> if the stream writes were successfully marked as completed, <c>false</c> if
+        /// the stream writes were already completed.</returns>
         protected internal bool TrySetWriteCompleted(bool shutdown = true) =>
             TrySetState(State.WriteCompleted, shutdown);
 
         /// <summary>Shutdown the stream if it's not already shutdown.</summary>
         protected void TryShutdown()
         {
-            // If both reads and writes are completed, the stream is started and not already shutdown, call shutdown.
+            // If both reads and writes are completed, the stream is started and not already shutdown, call
+            // shutdown.
             if (ReadCompleted && WriteCompleted && TrySetState(State.Shutdown, false) && IsStarted)
             {
                 try
@@ -249,23 +189,6 @@ namespace IceRpc.Transports
             // Abort reads.
             AbortRead(errorCode);
         }
-
-        internal async ValueTask ReceiveFullAsync(Memory<byte> buffer, CancellationToken cancel = default)
-        {
-            // Loop until we received enough data to fully fill the given buffer.
-            int offset = 0;
-            while (offset < buffer.Length)
-            {
-                int received = await ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
-                if (received == 0)
-                {
-                    throw new InvalidDataException("unexpected end of stream");
-                }
-                offset += received;
-            }
-        }
-
-        internal IDisposable? StartScope() => _connection.Logger.StartStreamScope(Id);
 
         private bool TrySetState(State state, bool shutdown)
         {

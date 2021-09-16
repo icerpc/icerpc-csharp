@@ -12,30 +12,8 @@ namespace IceRpc.Transports
 {
     /// <summary>A multi-stream connection represents a network connection that provides multiple independent
     /// streams of binary data.</summary>
-    /// <seealso cref="NetworkStream"/>
-    public abstract class MultiStreamConnection : INetworkConnection
+    public abstract class MultiStreamConnection : IMultiStreamConnection, IDisposable
     {
-        /// <summary><c>true</c> for datagram connection; <c>false</c> otherwise.</summary>
-        public abstract bool IsDatagram { get; }
-
-        /// <summary>Indicates whether or not this connection's transport is secure.</summary>
-        /// <value><c>true</c> means the connection's transport is secure. <c>false</c> means the connection's
-        /// transport is not secure. If the connection is not established, secure is always <c>false</c>.</value>
-        public abstract bool IsSecure { get; }
-
-        /// <summary><c>true</c> for server connections; otherwise, <c>false</c>. A server connection is created
-        /// by a server-side listener while a client connection is created from the endpoint by the client-side.
-        /// </summary>
-        public bool IsServer { get; }
-
-        /// <summary>The local endpoint. The endpoint may not be available until the connection is connected.
-        /// </summary>
-        public Endpoint? LocalEndpoint { get; protected set; }
-
-        /// <summary>The remote endpoint. This endpoint may not be available until the connection is accepted.
-        /// </summary>
-        public Endpoint? RemoteEndpoint { get; protected set; }
-
         internal int IncomingStreamCount
         {
             get
@@ -48,7 +26,7 @@ namespace IceRpc.Transports
         }
 
         internal TimeSpan IdleTimeout { get; set; }
-
+        internal bool IsServer { get; }
         internal TimeSpan LastActivity { get; private set; }
 
         internal int OutgoingStreamCount
@@ -62,13 +40,10 @@ namespace IceRpc.Transports
             }
         }
 
-        internal ILogger Logger { get; }
-
         internal Action? PingReceived;
 
         // The endpoint which created the connection. If it's a server connection, it's the local endpoint or
         // the remote endpoint otherwise.
-        private readonly Endpoint _endpoint;
         private int _incomingStreamCount;
         private long _lastIncomingBidirectionalStreamId = -1;
         private long _lastIncomingUnidirectionalStreamId = -1;
@@ -78,64 +53,28 @@ namespace IceRpc.Transports
         private bool _shutdown;
         private Action? _streamRemoved;
 
-        /// <summary>Accepts an incoming stream.</summary>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <return>The accepted stream.</return>
-        public abstract ValueTask<NetworkStream> AcceptStreamAsync(CancellationToken cancel);
+        /// <inheritdoc/>
+        public abstract ValueTask<INetworkStream> AcceptStreamAsync(CancellationToken cancel);
 
-        /// <summary>Connects a new client connection. This is called after the endpoint created a new connection
-        /// to establish the connection and perform blocking socket level initialization (TLS handshake, etc).
-        /// </summary>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public abstract ValueTask ConnectAsync(CancellationToken cancel);
+        /// <inheritdoc/>
+        public abstract INetworkStream CreateStream(bool bidirectional);
 
-        /// <summary>Creates an outgoing stream. Depending on the transport implementation, the stream ID might not
-        /// be immediately available after the stream creation. It will be available after the first successful send
-        /// call on the stream.</summary>
-        /// <param name="bidirectional"><c>True</c> to create a bidirectional stream, <c>false</c> otherwise.</param>
-        /// <return>The outgoing stream.</return>
-        public abstract NetworkStream CreateStream(bool bidirectional);
+        /// <inheritdoc/>
+        public abstract ValueTask InitializeAsync(CancellationToken cancel);
 
-        /// <summary>Releases the resources used by the connection.</summary>
+        /// <inheritdoc/>
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
-        /// <summary>Checks if the parameters of the provided endpoint are compatible with this connection. Compatible
-        /// means a client could reuse this connection instead of establishing a new connection.</summary>
-        /// <param name="remoteEndpoint">The endpoint to check.</param>
-        /// <returns><c>true</c> when this connection is a client connection whose parameters are compatible with the
-        /// parameters of the provided endpoint; otherwise, <c>false</c>.</returns>
-        public abstract bool HasCompatibleParams(Endpoint remoteEndpoint);
-
-        /// <inheritdoc/>
-        public override string ToString()
-        {
-            var builder = new StringBuilder();
-            builder.Append(GetType().Name);
-            builder.Append(" { ");
-            if (PrintMembers(builder))
-            {
-                builder.Append(' ');
-            }
-            builder.Append('}');
-            return builder.ToString();
-        }
-
         /// <summary>The MultiStreamConnection constructor.</summary>
-        /// <param name="endpoint">The endpoint that created the connection.</param>
         /// <param name="isServer">The connection is a server connection.</param>
-        /// <param name="logger">The logger.</param>
-        protected MultiStreamConnection(Endpoint endpoint, bool isServer, ILogger logger)
+        protected MultiStreamConnection(bool isServer)
         {
-            _endpoint = endpoint;
             IsServer = isServer;
-            LocalEndpoint = IsServer ? _endpoint : null;
-            RemoteEndpoint = IsServer ? null : _endpoint;
             LastActivity = Time.Elapsed;
-            Logger = logger;
         }
 
         /// <summary>Releases the resources used by the connection.</summary>
@@ -174,24 +113,6 @@ namespace IceRpc.Transports
                     return streamId > _lastIncomingUnidirectionalStreamId;
                 }
             }
-        }
-
-        /// <summary>Prints the fields/properties of this class using the Records format.</summary>
-        /// <param name="builder">The string builder.</param>
-        /// <returns><c>true</c>when members are appended to the builder; otherwise, <c>false</c>.</returns>
-        protected virtual bool PrintMembers(StringBuilder builder)
-        {
-            builder.Append("IsSecure = ").Append(IsSecure).Append(", ");
-            builder.Append("IsServer = ").Append(IsServer);
-            if (LocalEndpoint != null)
-            {
-                builder.Append(", LocalEndpoint = ").Append(LocalEndpoint);
-            }
-            if (RemoteEndpoint != null)
-            {
-                builder.Append(", RemoteEndpoint = ").Append(RemoteEndpoint);
-            }
-            return true;
         }
 
         /// <summary>Traces the given received amount of data. Transport implementations should call this method

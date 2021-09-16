@@ -9,14 +9,14 @@ namespace IceRpc.Transports.Internal
 {
     /// <summary>The stream implementation for Slic. The stream implementation implements flow control to
     /// ensure data isn't buffered indefinitely if the application doesn't consume it. Buffering and flow
-    /// control are only enable when EnableReceiveFlowControl is called. Until this is called, the data is
-    /// not buffered, instead, the data is not received from the Slic connection until the application protocol
+    /// control are only enable when EnableReceiveFlowControl is called. Until this is called, the data is not
+    /// buffered, instead, the data is not received from the Slic connection until the application protocol
     /// provides a buffer (by calling ReceiveAsync), to receive the data. With Ice2, this means that the
-    /// request or response frame is received directly from the Slic connection with intermediate buffering and
-    /// data copying and Ice2 enables receive buffering and flow control for receiving the data associated
-    /// to a stream a parameter. Enabling buffering only for stream parameters also ensure a lightweight
-    /// Slic stream object where no additional heap objects (such as the circular buffer, send semaphore,
-    /// etc) are necessary to receive a simple response/request frame.</summary>
+    /// request or response frame is received directly from the Slic connection with intermediate buffering
+    /// and data copying and Ice2 enables receive buffering and flow control for receiving the data associated
+    /// to a stream a parameter. Enabling buffering only for stream parameters also ensure a lightweight Slic
+    /// stream object where no additional heap objects (such as the circular buffer, send semaphore, etc) are
+    /// necessary to receive a simple response/request frame.</summary>
     internal class SlicStream : SignaledStream<(int, bool)>
     {
         public override ReadOnlyMemory<byte> TransportHeader => SlicDefinitions.FrameHeader;
@@ -112,7 +112,6 @@ namespace IceRpc.Transports.Internal
             if (_receiveBuffer == null)
             {
                 // Read and append the received stream frame data into the given buffer.
-                using IDisposable? scope = StartScope();
                 await _connection.ReceiveDataAsync(buffer.Slice(0, size), CancellationToken.None).ConfigureAwait(false);
             }
             else
@@ -419,7 +418,6 @@ namespace IceRpc.Transports.Internal
 
             async Task PerformReceiveInBufferAsync()
             {
-                using IDisposable? scope = StartScope();
                 Debug.Assert(_receiveBuffer != null);
                 try
                 {

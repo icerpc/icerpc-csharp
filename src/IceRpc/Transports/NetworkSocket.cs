@@ -44,20 +44,6 @@ namespace IceRpc.Transports
         /// <inheritdoc/>
         public abstract ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel);
 
-        /// <inheritdoc/>
-        public override string ToString()
-        {
-            var builder = new StringBuilder();
-            builder.Append(GetType().Name);
-            builder.Append(" { ");
-            if (PrintMembers(builder))
-            {
-                builder.Append(' ');
-            }
-            builder.Append('}');
-            return builder.ToString();
-        }
-
         /// <summary>Releases the resources used by the socket.</summary>
         /// <param name="disposing">True to release both managed and unmanaged resources; false to release only
         /// unmanaged resources.</param>

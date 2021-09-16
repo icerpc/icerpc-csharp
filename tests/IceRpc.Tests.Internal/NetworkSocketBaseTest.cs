@@ -151,11 +151,11 @@ namespace IceRpc.Tests.Internal
                     LogAttributeLoggerFactory.Instance).Listener!;
 
         protected NetworkSocket CreateServerNetworkSocket() =>
-            (NetworkSocket)TestHelper.CreateServerTransport(
+            ((NetworkSocketConnection)TestHelper.CreateServerTransport(
                 ServerEndpoint,
                 authenticationOptions: _serverAuthenticationOptions).Listen(
                     ServerEndpoint,
-                    LogAttributeLoggerFactory.Instance).Connection!.NetworkSocket;
+                    LogAttributeLoggerFactory.Instance).Connection!).NetworkSocket;
 
         protected NetworkSocket CreateClientNetworkSocket() =>
             GetNetworkSocket(TestHelper.CreateClientTransport(
@@ -164,18 +164,7 @@ namespace IceRpc.Tests.Internal
                     ClientEndpoint,
                     LogAttributeLoggerFactory.Instance));
 
-        protected static NetworkSocket GetNetworkSocket(INetworkConnection connection)
-        {
-            INetworkSocket? networkSocket = null;
-            if (connection is SlicConnection slicConnection)
-            {
-                networkSocket = slicConnection.NetworkSocket;
-            }
-            else if (connection is NetworkSocketConnection socketConnection)
-            {
-                networkSocket = socketConnection.NetworkSocket;
-            }
-            return (NetworkSocket)networkSocket!;
-        }
+        protected static NetworkSocket GetNetworkSocket(INetworkConnection connection) =>
+            ((NetworkSocketConnection)connection).NetworkSocket;
     }
 }

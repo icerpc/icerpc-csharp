@@ -1,87 +1,112 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Transports
 {
-    /// <summary>A network socket connection represents a network connection based on a <see
-    /// cref="_socket"/>.</summary>
-    public sealed class NetworkSocketConnection : INetworkConnection
+    /// <summary>A network socket connection based on a <see cref="NetworkSocket"/>.</summary>
+    public sealed class NetworkSocketConnection : INetworkConnection, ISingleStreamConnection
     {
-        /// <inheritdoc/>
-        public bool IsSecure => _socket.SslStream != null;
-
-        /// <summary>The underlying network socket.</summary>
-        public INetworkSocket NetworkSocket => _socket;
-
-        /// <summary><c>true</c> for server connections; otherwise, <c>false</c>. A server connection is created
-        /// by a server-side listener while a client connection is created from the endpoint by the client-side.
+        /// <summary>When this connection is a datagram connection, the maximum size of a received datagram.
         /// </summary>
+        public int DatagramMaxReceiveSize => NetworkSocket.DatagramMaxReceiveSize;
+
+        /// <summary><c>true</c> for a datagram network connection; <c>false</c> otherwise.</summary>
+        public bool IsDatagram => NetworkSocket.IsDatagram;
+
+        /// <inheritdoc/>
+        public bool IsSecure => NetworkSocket.SslStream != null;
+
+        /// <inheritdoc/>
         public bool IsServer { get; }
 
-        /// <summary>The local endpoint. The endpoint may not be available until the connection is connected.
-        /// </summary>
+        /// <inheritdoc/>
         public Endpoint? LocalEndpoint { get; private set; }
 
-        /// <summary>The remote endpoint. This endpoint may not be available until the connection is accepted.
-        /// </summary>
+        internal NetworkSocket NetworkSocket { get; }
+
+        /// <inheritdoc/>
         public Endpoint? RemoteEndpoint { get; private set; }
 
-        private readonly NetworkSocket _socket;
-        private readonly INetworkSocket _decoratedSocket;
+        private readonly ILogger _logger;
+        private Internal.SlicConnection? _slicConnection;
+        private readonly SlicOptions _slicOptions;
+
+        /// <summary>Creates a new network socket connection based on <see cref="NetworkSocket"/></summary>
+        /// <param name="socket">The network socket. It can be a client socket or server socket, and
+        /// the resulting connection will be likewise a client or server network connection.</param>
+        /// <param name="endpoint">For a client connection, the remote endpoint; for a server connection, the
+        /// endpoint the server is listening on.</param>
+        /// <param name="isServer">The connection is a server connection.</param>
+        /// <param name="slicOptions">The Slic options.</param>
+        /// <param name="logger">The logger.</param>
+        public NetworkSocketConnection(
+            NetworkSocket socket,
+            Endpoint endpoint,
+            bool isServer,
+            SlicOptions slicOptions,
+            ILogger logger)
+        {
+            IsServer = isServer;
+            LocalEndpoint = IsServer ? endpoint : null;
+            RemoteEndpoint = IsServer ? null : endpoint;
+            _logger = logger;
+            _slicOptions = slicOptions;
+
+            NetworkSocket = socket;
+        }
 
         /// <inheritdoc/>
         public async ValueTask ConnectAsync(CancellationToken cancel)
         {
             if (!IsServer)
             {
-                LocalEndpoint = await _decoratedSocket.ConnectAsync(RemoteEndpoint!, cancel).ConfigureAwait(false);
+                LocalEndpoint = await NetworkSocket.ConnectAsync(RemoteEndpoint!, cancel).ConfigureAwait(false);
             }
-            else if (!_decoratedSocket.IsDatagram)
+            else if (!NetworkSocket.IsDatagram)
             {
-                RemoteEndpoint = await _decoratedSocket.ConnectAsync(LocalEndpoint!, cancel).ConfigureAwait(false);
+                RemoteEndpoint = await NetworkSocket.ConnectAsync(LocalEndpoint!, cancel).ConfigureAwait(false);
             }
         }
 
         /// <inheritdoc/>
         public void Dispose()
         {
-            _socket.Dispose();
-            GC.SuppressFinalize(this);
+            _slicConnection?.Dispose();
+            NetworkSocket.Dispose();
+        }
+
+        /// <inheritdoc/>
+        public ISingleStreamConnection GetSingleStreamConnection() => this;
+
+        /// <inheritdoc/>
+        public IMultiStreamConnection GetMultiStreamConnection()
+        {
+            _slicConnection = new Internal.SlicConnection(this, IsServer, _logger, _slicOptions);
+            return _slicConnection;
         }
 
         /// <inheritdoc/>
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             !IsServer &&
             EndpointComparer.ParameterLess.Equals(remoteEndpoint, RemoteEndpoint) &&
-            _decoratedSocket.HasCompatibleParams(remoteEndpoint);
+            NetworkSocket.HasCompatibleParams(remoteEndpoint);
 
         /// <inheritdoc/>
-        public override string? ToString() => _decoratedSocket.ToString();
+        ValueTask<int> ISingleStreamConnection.ReceiveAsync(Memory<byte> buffer, CancellationToken cancel) =>
+            NetworkSocket.ReceiveAsync(buffer, cancel);
 
-        /// <summary>Constructs a connection.</summary>
-        /// <param name="networkSocket">The network socket. It can be a client socket or server socket, and
-        /// the resulting connection will be likewise a client or server network connection.</param>
-        /// <param name="endpoint">For a client connection, the remote endpoint; for a server connection, the
-        /// endpoint the server is listening on.</param>
-        /// <param name="isServer">The connection is a server connection.</param>
-        /// <param name="logger">The logger.</param>
-        public NetworkSocketConnection(NetworkSocket networkSocket, Endpoint endpoint, bool isServer, ILogger logger)
-        {
-            IsServer = isServer;
-            LocalEndpoint = IsServer ? endpoint : null;
-            RemoteEndpoint = IsServer ? null : endpoint;
+        /// <inheritdoc/>
+        ValueTask ISingleStreamConnection.SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
+            NetworkSocket.SendAsync(buffer, cancel);
 
-            _socket = networkSocket;
-            if (logger.IsEnabled(LogLevel.Debug))
-            {
-                _decoratedSocket = new LogNetworkSocketDecorator(networkSocket, logger);
-            }
-            else
-            {
-                _decoratedSocket = networkSocket;
-            }
-        }
+        /// <inheritdoc/>
+        ValueTask ISingleStreamConnection.SendAsync(
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            CancellationToken cancel) =>
+            NetworkSocket.SendAsync(buffers, cancel);
+
+        /// <inheritdoc/>
+        public override string? ToString() => NetworkSocket.ToString();
     }
 }

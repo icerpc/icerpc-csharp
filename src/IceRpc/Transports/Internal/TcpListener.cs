@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
+using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -19,27 +19,22 @@ namespace IceRpc.Transports.Internal
 
         public async ValueTask<INetworkConnection> AcceptAsync()
         {
-            TcpSocket? tcpSocket;
             try
             {
-#pragma warning disable CA2000 // Dispose objects before losing scope
-                tcpSocket = new TcpServerSocket(
-                    await _socket.AcceptAsync().ConfigureAwait(false),
-                    _authenticationOptions);
-#pragma warning restore CA2000 // Dispose objects before losing scope
+                return LogNetworkConnectionDecorator.Create(
+                    new NetworkSocketConnection(
+                        new TcpServerSocket(
+                            await _socket.AcceptAsync().ConfigureAwait(false),
+                            _authenticationOptions),
+                        Endpoint,
+                        isServer: true,
+                        _slicOptions,
+                        _logger),
+                    _logger);
             }
             catch (Exception ex)
             {
-                throw ExceptionUtil.Throw(ex.ToTransportException(default));
-            }
-
-            if (Endpoint.Protocol == Protocol.Ice2)
-            {
-                return new SlicConnection(tcpSocket, Endpoint, isServer: true, _logger, _slicOptions);
-            }
-            else
-            {
-                return new NetworkSocketConnection(tcpSocket, Endpoint, isServer: true, _logger);
+                throw IceRpc.Internal.ExceptionUtil.Throw(ex.ToTransportException(default));
             }
         }
 

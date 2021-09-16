@@ -59,7 +59,7 @@ namespace IceRpc
         internal RetryPolicy RetryPolicy { get; set; } = RetryPolicy.NoRetry;
 
         /// <summary>The stream used to send the request.</summary>
-        internal NetworkStream? Stream { get; set; }
+        internal INetworkStream? Stream { get; set; }
 
         /// <summary>Constructs an outgoing request.</summary>
         /// <param name="protocol">The <see cref="Protocol"/> used to send the request.</param>

@@ -7,10 +7,10 @@ using System.Runtime.CompilerServices;
 
 namespace IceRpc.Slice
 {
-    /// <summary>A stream param receiver to receive stream param over a <see cref="NetworkStream"/>.</summary>
+    /// <summary>A stream param receiver to receive stream param over an <see cref="INetworkStream"/>.</summary>
     public sealed class StreamParamReceiver
     {
-        private readonly NetworkStream _stream;
+        private readonly INetworkStream _stream;
         private readonly Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? _streamDecompressor;
 
         /// <summary>Construct an <see cref="IAsyncEnumerable{T}"/> to receive the streamed param from an incoming
@@ -62,7 +62,7 @@ namespace IceRpc.Slice
         public System.IO.Stream ToByteStream() => new ByteStreamParamReceiver(_stream, _streamDecompressor);
 
         internal StreamParamReceiver(
-            NetworkStream stream,
+            INetworkStream stream,
             Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? streamDecompressor)
         {
             _stream = stream;
@@ -83,7 +83,7 @@ namespace IceRpc.Slice
             }
 
             private System.IO.Stream? _ioStream;
-            private readonly NetworkStream? _networkStream;
+            private readonly INetworkStream? _networkStream;
             private readonly Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? _streamDecompressor;
 
             public override void Flush() => throw new NotImplementedException();
@@ -157,7 +157,7 @@ namespace IceRpc.Slice
             }
 
             internal ByteStreamParamReceiver(
-                NetworkStream? stream,
+                INetworkStream? stream,
                 Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? streamDecompressor)
             {
                 _networkStream = stream;
@@ -175,10 +175,10 @@ namespace IceRpc.Slice
             private readonly Func<IceDecoder, T> _decodeAction;
             private readonly IIceDecoderFactory<IceDecoder> _decoderFactory;
             private readonly IInvoker? _invoker;
-            private readonly NetworkStream? _networkStream;
+            private readonly INetworkStream? _networkStream;
 
             internal AsyncEnumerableStreamParamReceiver(
-                NetworkStream? networkStream,
+                INetworkStream? networkStream,
                 Connection connection,
                 IInvoker? invoker,
                 IIceDecoderFactory<IceDecoder> decoderFactory,

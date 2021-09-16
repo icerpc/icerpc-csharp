@@ -17,10 +17,6 @@ namespace IceRpc.Transports
             {
                 return networkSocketConnection.NetworkSocket;
             }
-            else if (connection.NetworkConnection is SlicConnection slicConnection)
-            {
-                return slicConnection.NetworkSocket;
-            }
             else
             {
                 return null;

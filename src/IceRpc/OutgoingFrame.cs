@@ -90,7 +90,7 @@ namespace IceRpc
             }
         }
 
-        internal void SendStreamParam(NetworkStream stream)
+        internal void SendStreamParam(INetworkStream stream)
         {
             Debug.Assert(StreamParamSender != null);
             _ = Task.Run(() =>
