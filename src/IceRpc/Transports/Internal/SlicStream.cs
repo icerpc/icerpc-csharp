@@ -186,7 +186,7 @@ namespace IceRpc.Transports.Internal
 
             while (offset < size)
             {
-                if (WriteCompleted)
+                if (WritesCompleted)
                 {
                     throw new StreamAbortedException(StreamError.StreamAborted);
                 }
@@ -214,7 +214,7 @@ namespace IceRpc.Transports.Internal
                     // to send. We directly send the buffer.
                     sendBuffer = buffers.ToArray();
                     sendSize = size;
-                    lastBuffer = endStream;
+                    lastBuffer = true;
                 }
                 else
                 {
@@ -370,7 +370,7 @@ namespace IceRpc.Transports.Internal
         {
             if (!IsBidirectional && !IsRemote)
             {
-                throw new InvalidDataException("received stream frame on outgoing unidirectional stream");
+                throw new InvalidDataException($"received stream frame on outgoing unidirectional stream");
             }
 
             // Set the result if buffering is not enabled, the data will be consumed when ReceiveAsync is

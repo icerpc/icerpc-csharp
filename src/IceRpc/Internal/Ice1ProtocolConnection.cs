@@ -32,7 +32,6 @@ namespace IceRpc.Internal
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly Dictionary<int, TaskCompletionSource<ReadOnlyMemory<byte>>> _pendingIncomingResponses = new();
-        private readonly Action? _pingReceived;
         private readonly AsyncSemaphore _sendSemaphore = new(1);
         // private readonly AsyncSemaphore? _unidirectionalStreamSemaphore;
         private bool _shutdown;
@@ -43,7 +42,6 @@ namespace IceRpc.Internal
             int incomingFrameMaxSize,
             bool isServer,
             int? datagramMaxReceiveSize,
-            Action? pingReceived,
             ILogger logger)
         {
             _stream = singleStreamConnection;
@@ -51,7 +49,6 @@ namespace IceRpc.Internal
             _isServer = isServer;
             _isDatagram = datagramMaxReceiveSize != null;
             _datagramMaxReceiveSize = datagramMaxReceiveSize ?? 0;
-            _pingReceived = pingReceived;
             _logger = logger;
         }
 
@@ -91,7 +88,7 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public void Dispose()
         {
-            _pendingClose.SetResult();
+            _pendingClose.TrySetResult();
             var exception = new ConnectionLostException();
             _sendSemaphore.Complete(exception);
             _pendingCloseConnection.TrySetException(exception);
@@ -140,7 +137,7 @@ namespace IceRpc.Internal
                     {
                         if (_shutdown)
                         {
-                            _pendingClose.SetResult();
+                            _pendingClose.TrySetResult();
                             throw new ConnectionClosedException();
                         }
                     }
@@ -227,12 +224,6 @@ namespace IceRpc.Internal
                 else if (!_pendingIncomingResponses.TryGetValue(requestId, out source))
                 {
                     throw new InvalidOperationException($"unknown request with requestId {requestId}");
-                }
-
-                // If no more invocations or dispatch and shutting down, shutdown can complete.
-                if (_shutdown && _pendingIncomingResponses.Count == 0 && _dispatchCancellationTokenSources.Count == 0)
-                {
-                    _completeShutdown.SetResult();
                 }
             }
 
@@ -618,7 +609,7 @@ namespace IceRpc.Internal
                             throw new InvalidDataException(
                                 $"unexpected data for {nameof(Ice1FrameType.CloseConnection)}");
                         }
-                        _pendingCloseConnection.SetResult();
+                        _pendingCloseConnection.TrySetResult();
                         break;
                     }
 
@@ -652,6 +643,14 @@ namespace IceRpc.Internal
                             {
                                 source.SetResult(buffer[4..]);
                                 _pendingIncomingResponses.Remove(requestId);
+
+                                // If no more invocations or dispatch and shutting down, shutdown can complete.
+                                if (_shutdown &&
+                                    _pendingIncomingResponses.Count == 0 &&
+                                    _dispatchCancellationTokenSources.Count == 0)
+                                {
+                                    _completeShutdown.SetResult();
+                                }
                             }
                         }
                         break;
@@ -666,7 +665,6 @@ namespace IceRpc.Internal
                                 $"unexpected data for {nameof(Ice1FrameType.ValidateConnection)}");
                         }
                         _logger.LogReceivedIce1ValidateConnectionFrame();
-                        _pingReceived?.Invoke();
                         break;
                     }
 

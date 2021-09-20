@@ -37,7 +37,7 @@ namespace IceRpc.Transports.Internal
         public void Dispose()
         {
             _slicConnection?.Dispose();
-            _writer.Complete();
+            _writer.TryComplete(); // Dispose might be called multiple times
         }
 
         public async ValueTask<IMultiStreamConnection> GetMultiStreamConnectionAsync(CancellationToken cancel)
@@ -68,7 +68,22 @@ namespace IceRpc.Transports.Internal
         {
             if (_receivedBuffer.Length == 0)
             {
-                _receivedBuffer = await _reader.ReadAsync(cancel).ConfigureAwait(false);
+                try
+                {
+                    _receivedBuffer = await _reader.ReadAsync(cancel).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (ChannelClosedException exception)
+                {
+                    throw new ConnectionLostException(exception);
+                }
+                catch (Exception exception)
+                {
+                    throw new TransportException(exception);
+                }
             }
 
             if (_receivedBuffer.Length > buffer.Length)
@@ -86,8 +101,25 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
-            _writer.WriteAsync(buffer, cancel);
+        public async ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
+        {
+            try
+            {
+                await _writer.WriteAsync(buffer, cancel).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (ChannelClosedException exception)
+            {
+                throw new ConnectionLostException(exception);
+            }
+            catch (Exception exception)
+            {
+                throw new TransportException(exception);
+            }
+        }
 
         public ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
             SendAsync(buffers.ToSingleBuffer(), cancel);

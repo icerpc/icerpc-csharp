@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Transports
@@ -107,7 +108,7 @@ namespace IceRpc.Transports
         async ValueTask<int> ISingleStreamConnection.ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             int received = await NetworkSocket.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
-            Interlocked.Exchange(ref _lastActivity, IceRpc.Internal.Time.Elapsed.Milliseconds);
+            Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
             return received;
         }
 
@@ -115,7 +116,7 @@ namespace IceRpc.Transports
         async ValueTask ISingleStreamConnection.SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
         {
             await NetworkSocket.SendAsync(buffer, cancel).ConfigureAwait(false);
-            Interlocked.Exchange(ref _lastActivity, IceRpc.Internal.Time.Elapsed.Milliseconds);
+            Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
         }
 
         /// <inheritdoc/>

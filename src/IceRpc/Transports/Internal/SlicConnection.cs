@@ -25,6 +25,7 @@ namespace IceRpc.Transports.Internal
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly int _bidirectionalMaxStreams;
         private readonly BufferedReceiveDecorator _bufferedConnection;
+        private readonly CancellationTokenSource _cancelAcceptStreamSource = new();
         private readonly ISingleStreamConnection _connection;
         private long _nextBidirectionalId;
         private long _nextUnidirectionalId;
@@ -64,9 +65,8 @@ namespace IceRpc.Transports.Internal
                             Logger.LogReceivingSlicFrame(type, frameSize);
                         }
 
-                        bool isIncoming = streamId % 2 == (IsServer ? 0 : 1);
+                        bool isRemote = streamId % 2 == (IsServer ? 0 : 1);
                         bool isBidirectional = streamId % 4 < 2;
-
                         if (TryGetStream(streamId, out SlicStream? stream))
                         {
                             // Notify the stream that data is available for read.
@@ -78,10 +78,10 @@ namespace IceRpc.Transports.Internal
                                 await WaitForReceivedStreamDataCompletionAsync(cancel).ConfigureAwait(false);
                             }
                         }
-                        else if (isIncoming && IsIncomingStreamUnknown(streamId, isBidirectional))
+                        else if (isRemote && IsRemoteStreamUnknown(streamId, isBidirectional))
                         {
-                            // Create a new stream if the incoming stream is unknown (the client could be sending
-                            // frames for old canceled incoming streams, these are ignored).
+                            // Create a new stream if the incoming stream is unknown (the client could be
+                            // sending frames for old canceled incoming streams, these are ignored).
 
                             if (dataSize == 0)
                             {
@@ -95,10 +95,10 @@ namespace IceRpc.Transports.Internal
                             }
                             catch
                             {
-                                // The connection is being closed, we make sure to receive the frame data. When the
-                                // connection is being closed gracefully, the connection waits for the connection to
-                                // receive the RST from the peer so it's important to receive and skip all the
-                                // data until the RST is received.
+                                // The connection is being closed, we make sure to receive the frame data.
+                                // When the connection is being closed gracefully, the connection waits for
+                                // the connection to receive the RST from the peer so it's important to
+                                // receive and skip all the data until the RST is received.
                                 await IgnoreDataAsync(dataSize, cancel).ConfigureAwait(false);
                                 continue;
                             }
@@ -149,7 +149,8 @@ namespace IceRpc.Transports.Internal
 
                         _streamConsumedBuffer ??= new byte[8];
 
-                        await ReceiveDataAsync(_streamConsumedBuffer.Value[0..dataSize], cancel).ConfigureAwait(false);
+                        await ReceiveDataAsync(
+                            _streamConsumedBuffer.Value[0..dataSize], cancel).ConfigureAwait(false);
 
                         var decoder = new Ice20Decoder(_streamConsumedBuffer.Value[0..dataSize]);
                         var streamConsumed = new StreamConsumedBody(decoder);
@@ -219,10 +220,70 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override NetworkStream CreateStream(bool bidirectional) =>
-            new SlicStream(this, bidirectional);
+        public override NetworkStream CreateStream(bool bidirectional) => new SlicStream(this, bidirectional);
 
-        public async ValueTask InitializeAsync(CancellationToken cancel)
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+
+            if (disposing)
+            {
+
+                // Unblock requests waiting on the semaphores.
+                var exception = new ConnectionClosedException();
+                _bidirectionalStreamSemaphore?.Complete(exception);
+                _unidirectionalStreamSemaphore?.Complete(exception);
+                _sendSemaphore.Complete(exception);
+            }
+        }
+
+        internal SlicConnection(
+            ISingleStreamConnection connection,
+            bool isServer,
+            TimeSpan idleTimeout,
+            ILogger logger,
+            SlicOptions options)
+            : base(isServer)
+        {
+            Logger = logger;
+            IdleTimeout = idleTimeout;
+            _connection = connection;
+            _bufferedConnection = new BufferedReceiveDecorator(connection);
+
+            _receiveStreamCompletionTaskSource.SetResult(0);
+
+            PacketMaxSize = options.SlicPacketMaxSize;
+            StreamBufferMaxSize = options.SlicStreamBufferMaxSize;
+
+            // Initially set the peer packet max size to the local max size to ensure we can receive the first
+            // initialize frame.
+            PeerPacketMaxSize = PacketMaxSize;
+            PeerStreamBufferMaxSize = StreamBufferMaxSize;
+
+            // Configure the maximum stream counts to ensure the peer won't open more than one stream.
+            _bidirectionalMaxStreams = options.BidirectionalStreamMaxCount;
+            _unidirectionalMaxStreams = options.UnidirectionalStreamMaxCount;
+
+            // We use the same stream ID numbering scheme as Quic
+            if (IsServer)
+            {
+                _nextBidirectionalId = 1;
+                _nextUnidirectionalId = 3;
+            }
+            else
+            {
+                _nextBidirectionalId = 0;
+                _nextUnidirectionalId = 2;
+            }
+        }
+
+        internal void FinishedReceivedStreamData(int remainingSize)
+        {
+            Debug.Assert(!_receiveStreamCompletionTaskSource.IsCompleted);
+            _receiveStreamCompletionTaskSource.SetResult(remainingSize);
+        }
+
+        internal async ValueTask InitializeAsync(CancellationToken cancel)
         {
             if (IsServer)
             {
@@ -341,65 +402,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-
-            if (disposing)
-            {
-                // Unblock requests waiting on the semaphores.
-                var exception = new ConnectionClosedException();
-                _bidirectionalStreamSemaphore?.Complete(exception);
-                _unidirectionalStreamSemaphore?.Complete(exception);
-            }
-        }
-
-        internal SlicConnection(
-            ISingleStreamConnection connection,
-            bool isServer,
-            TimeSpan idleTimeout,
-            ILogger logger,
-            SlicOptions options)
-            : base(isServer)
-        {
-            Logger = logger;
-            IdleTimeout = idleTimeout;
-            _connection = connection;
-            _bufferedConnection = new BufferedReceiveDecorator(connection);
-
-            _receiveStreamCompletionTaskSource.SetResult(0);
-
-            PacketMaxSize = options.SlicPacketMaxSize;
-            StreamBufferMaxSize = options.SlicStreamBufferMaxSize;
-
-            // Initially set the peer packet max size to the local max size to ensure we can receive the first
-            // initialize frame.
-            PeerPacketMaxSize = PacketMaxSize;
-            PeerStreamBufferMaxSize = StreamBufferMaxSize;
-
-            // Configure the maximum stream counts to ensure the peer won't open more than one stream.
-            _bidirectionalMaxStreams = options.BidirectionalStreamMaxCount;
-            _unidirectionalMaxStreams = options.UnidirectionalStreamMaxCount;
-
-            // We use the same stream ID numbering scheme as Quic
-            if (IsServer)
-            {
-                _nextBidirectionalId = 1;
-                _nextUnidirectionalId = 3;
-            }
-            else
-            {
-                _nextBidirectionalId = 0;
-                _nextUnidirectionalId = 2;
-            }
-        }
-
-        internal void FinishedReceivedStreamData(int remainingSize)
-        {
-            Debug.Assert(!_receiveStreamCompletionTaskSource.IsCompleted);
-            _receiveStreamCompletionTaskSource.SetResult(remainingSize);
-        }
-
         internal async Task PrepareAndSendFrameAsync(
             SlicDefinitions.FrameType type,
             Action<Ice20Encoder>? encodeAction = null,
@@ -452,6 +454,7 @@ namespace IceRpc.Transports.Internal
             {
                 offset += await _bufferedConnection!.ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
             }
+
             LastActivity = Time.Elapsed;
         }
 
@@ -512,7 +515,7 @@ namespace IceRpc.Transports.Internal
                 await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
 
                 // If the stream is aborted, stop sending stream frames.
-                if (stream.WriteCompleted)
+                if (stream.WritesCompleted)
                 {
                     _sendSemaphore.Release();
                     throw new StreamAbortedException(StreamError.StreamAborted);

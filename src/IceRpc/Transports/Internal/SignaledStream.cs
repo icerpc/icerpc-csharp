@@ -230,7 +230,7 @@ namespace IceRpc.Transports.Internal
         /// <return>The value used to signaled the stream.</return>
         protected ValueTask<T> WaitAsync(CancellationToken cancel = default)
         {
-            if (ReadCompleted && _exception == null)
+            if (ReadsCompleted && _exception == null)
             {
                 // If reads are completed and no exception is set, it's probably because ReceiveAsync is called after
                 // receiving the end stream flag.

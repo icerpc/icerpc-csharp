@@ -125,10 +125,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>This event is raised when the connection receives a ping frame. The connection object is
-        /// passed as the event sender argument.</summary>
-        public event EventHandler? PingReceived;
-
         /// <summary>The protocol used by the connection.</summary>
         public Protocol Protocol => (_localEndpoint ?? _remoteEndpoint)?.Protocol ?? Protocol.Ice2;
 
@@ -275,26 +271,9 @@ namespace IceRpc
                     // Establish the network connection.
                     await NetworkConnection.ConnectAsync(cancel).ConfigureAwait(false);
 
-                    // Create the protocol connection.
-                    Action pingAction = () =>
-                        {
-                            Task.Run(() =>
-                            {
-                                try
-                                {
-                                    PingReceived?.Invoke(this, EventArgs.Empty);
-                                }
-                                catch (Exception ex)
-                                {
-                                    _logger.LogConnectionEventHandlerException("ping", ex);
-                                }
-                            });
-                        };
-
                     _protocolConnection = await Protocol.CreateConnectionAsync(
                         NetworkConnection,
                         _options.IncomingFrameMaxSize,
-                        pingAction,
                         _loggerFactory ?? NullLoggerFactory.Instance,
                         cancel).ConfigureAwait(false);
 
@@ -404,11 +383,6 @@ namespace IceRpc
                 }
                 response.Connection = this;
                 return response;
-            }
-            catch (OperationCanceledException)
-            {
-                request.Stream?.Abort(StreamError.InvocationCanceled);
-                throw;
             }
             catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.DispatchCanceled)
             {
@@ -583,6 +557,7 @@ namespace IceRpc
             }
             catch (Exception exception)
             {
+                Console.Error.WriteLine(exception);
                 // Unexpected exception, close the connection.
                 await CloseAsync(exception).ConfigureAwait(false);
             }

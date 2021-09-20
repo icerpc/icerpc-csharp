@@ -35,8 +35,13 @@ namespace IceRpc.Slice
 
         /// <summary>The generated code calls this method to ensure that streaming is aborted if the operation
         /// doesn't specify a stream parameter.</summary>
-        public static void StreamReadingComplete(this IncomingRequest request) =>
-            request.Stream?.AbortRead(IceRpc.Transports.StreamError.UnexpectedStreamData);
+        public static void StreamReadingComplete(this IncomingRequest request)
+        {
+            if (!request.Stream?.ReadsCompleted ?? false)
+            {
+                request.Stream?.AbortRead(IceRpc.Transports.StreamError.UnexpectedStreamData);
+            }
+        }
 
         /// <summary>Decodes the request's payload into a list of arguments. The payload must be encoded with
         /// a specific Ice encoding.</summary>

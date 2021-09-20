@@ -10,19 +10,19 @@ namespace IceRpc.Tests.Internal
     [Parallelizable(scope: ParallelScope.Fixtures)]
     public class MultiStreamConnectionBaseTest
     {
-        protected MultiStreamConnection ClientConnection => _clientConnection!;
-        protected MultiStreamConnection ServerConnection => _serverConnection!;
+        protected INetworkConnection ClientConnection => _clientConnection!;
+        protected IMultiStreamConnection ClientMultiStreamConnection => _clientMultiStreamConnection!;
+        protected INetworkConnection ServerConnection => _serverConnection!;
+        protected IMultiStreamConnection ServerMultiStreamConnection => _serverMultiStreamConnection!;
         protected SlicOptions ServerSlicOptions { get; }
 
-        private readonly AsyncSemaphore _acceptSemaphore = new(1);
-        private MultiStreamConnection? _clientConnection;
+        private INetworkConnection? _clientConnection;
         private readonly Endpoint _clientEndpoint;
-        // Protects the _listener data member
-        private IListener? _listener;
-        private readonly object _mutex = new();
+        private IMultiStreamConnection? _clientMultiStreamConnection;
         private static int _nextBasePort;
-        private MultiStreamConnection? _serverConnection;
+        private INetworkConnection? _serverConnection;
         private readonly Endpoint _serverEndpoint;
+        private IMultiStreamConnection? _serverMultiStreamConnection;
 
         public MultiStreamConnectionBaseTest(int bidirectionalStreamMaxCount = 0, int unidirectionalStreamMaxCount = 0)
         {
@@ -53,9 +53,13 @@ namespace IceRpc.Tests.Internal
 
         protected async Task SetUpConnectionsAsync()
         {
-            Task<MultiStreamConnection> acceptTask = AcceptAsync();
+            Task<INetworkConnection> acceptTask = AcceptAsync();
             _clientConnection = await ConnectAsync();
             _serverConnection = await acceptTask;
+
+            ValueTask<IMultiStreamConnection> multiStreamTask = _serverConnection.GetMultiStreamConnectionAsync(default);
+            _clientMultiStreamConnection = await _clientConnection.GetMultiStreamConnectionAsync(default);
+            _serverMultiStreamConnection = await multiStreamTask;
         }
 
         protected void TearDownConnections()
@@ -64,60 +68,30 @@ namespace IceRpc.Tests.Internal
             _serverConnection?.Dispose();
         }
 
-        [OneTimeTearDown]
-        public void Shutdown() => _listener?.Dispose();
-
-        protected async Task<MultiStreamConnection> AcceptAsync()
+        private async Task<INetworkConnection> AcceptAsync()
         {
-            lock (_mutex)
-            {
-                _listener ??= CreateListener();
-            }
+            using IListener listener = TestHelper.CreateServerTransport(
+                _serverEndpoint,
+                options: null,
+                slicOptions: ServerSlicOptions).Listen(
+                    _serverEndpoint,
+                    LogAttributeLoggerFactory.Instance).Listener!;
 
-            await _acceptSemaphore.EnterAsync();
-            try
-            {
-                INetworkConnection networkConnection = await _listener.AcceptAsync();
-                await networkConnection.ConnectAsync(default);
-                return (MultiStreamConnection)await networkConnection.GetMultiStreamConnectionAsync(default);
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine(ex);
-                throw;
-            }
-            finally
-            {
-                _acceptSemaphore.Release();
-            }
+            INetworkConnection networkConnection = await listener.AcceptAsync();
+            await networkConnection.ConnectAsync(default);
+            return networkConnection;
         }
 
-        protected async Task<MultiStreamConnection> ConnectAsync()
+        private async Task<INetworkConnection> ConnectAsync()
         {
-            if (_clientEndpoint.Transport != "udp")
-            {
-                lock (_mutex)
-                {
-                    _listener ??= CreateListener();
-                }
-            }
-
             IClientTransport clientTransport = TestHelper.CreateClientTransport(_clientEndpoint);
 
             INetworkConnection networkConnection = clientTransport.CreateConnection(
                     _clientEndpoint,
                     LogAttributeLoggerFactory.Instance);
             await networkConnection.ConnectAsync(default);
-                return (MultiStreamConnection)await networkConnection.GetMultiStreamConnectionAsync(default);
+            return networkConnection;
         }
-
-        protected IListener CreateListener() =>
-            TestHelper.CreateServerTransport(
-                _serverEndpoint,
-                options: null,
-                slicOptions: ServerSlicOptions).Listen(
-                    _serverEndpoint,
-                    LogAttributeLoggerFactory.Instance).Listener!;
 
         protected static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateSendPayload(INetworkStream stream, int length = 10)
         {

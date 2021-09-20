@@ -43,11 +43,11 @@ namespace IceRpc.Transports
 
         /// <summary>Returns <c>true</c> if the receiving side of the stream is completed, <c>false</c> otherwise.
         /// </summary>
-        public bool ReadCompleted => (Thread.VolatileRead(ref _state) & (int)State.ReadCompleted) > 0;
+        public bool ReadsCompleted => (Thread.VolatileRead(ref _state) & (int)State.ReadCompleted) > 0;
 
         /// <summary>Returns <c>true</c> if the sending side of the stream is completed, <c>false</c> otherwise.
         /// </summary>
-        public bool WriteCompleted => (Thread.VolatileRead(ref _state) & (int)State.WriteCompleted) > 0;
+        public bool WritesCompleted => (Thread.VolatileRead(ref _state) & (int)State.WriteCompleted) > 0;
 
         /// <inheritdoc/>
         public Action? ShutdownAction
@@ -141,7 +141,15 @@ namespace IceRpc.Transports
         protected virtual void Shutdown()
         {
             Debug.Assert(_state == (int)(State.ReadCompleted | State.WriteCompleted | State.Shutdown));
-            ShutdownAction?.Invoke();
+            try
+            {
+                ShutdownAction?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                Debug.Assert(false, $"unexpected exception {ex}");
+                throw;
+            }
             _connection.RemoveStream(Id);
         }
 
@@ -162,7 +170,7 @@ namespace IceRpc.Transports
         {
             // If both reads and writes are completed, the stream is started and not already shutdown, call
             // shutdown.
-            if (ReadCompleted && WriteCompleted && TrySetState(State.Shutdown, false) && IsStarted)
+            if (ReadsCompleted && WritesCompleted && TrySetState(State.Shutdown, false) && IsStarted)
             {
                 try
                 {
@@ -238,7 +246,7 @@ namespace IceRpc.Transports
             {
                 try
                 {
-                    if (_stream.ReadCompleted)
+                    if (_stream.ReadsCompleted)
                     {
                         return 0;
                     }

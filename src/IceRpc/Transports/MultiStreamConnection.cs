@@ -19,7 +19,7 @@ namespace IceRpc.Transports
         internal TimeSpan LastActivity
         {
             get => TimeSpan.FromMilliseconds(Interlocked.Read(ref _lastActivity));
-            set => Interlocked.Exchange(ref _lastActivity, value.Milliseconds);
+            set => Interlocked.Exchange(ref _lastActivity, (long)value.TotalMilliseconds);
         }
 
         private long _lastActivity;
@@ -69,7 +69,7 @@ namespace IceRpc.Transports
 
         /// <summary>Returns <c>true</c> if an incoming stream is unknown, <c>false</c> otherwise. An incoming
         /// is known if its the ID is inferior or equal to the last allocated incoming stream ID.</summary>
-        protected bool IsIncomingStreamUnknown(long streamId, bool bidirectional)
+        protected bool IsRemoteStreamUnknown(long streamId, bool bidirectional)
         {
             lock (_mutex)
             {

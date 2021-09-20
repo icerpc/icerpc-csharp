@@ -54,7 +54,10 @@ namespace IceRpc.Transports
         /// <summary>Returns <c>true</c> if the stream is a bidirectional stream, <c>false</c> otherwise.</summary>
         bool IsBidirectional { get; }
 
-        /// <summary>Sets the action which is called when the stream is shutdown.</summary>
+        /// <summary>Returns <c>true</c> if reads are completed, , <c>false</c> otherwise.</summary>
+        bool ReadsCompleted { get; }
+
+        /// <summary>Sets the action which is called when the stream is reset.</summary>
         Action? ShutdownAction { get; set; }
 
         /// <summary>The transport header sentinel. Transport implementations that need to add an additional header

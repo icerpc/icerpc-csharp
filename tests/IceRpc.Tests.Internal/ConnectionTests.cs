@@ -452,7 +452,7 @@ namespace IceRpc.Tests.Internal
                 protocol,
                 clientTransportOptions: new TcpOptions()
                 {
-                    IdleTimeout = TimeSpan.FromSeconds(1),
+                    IdleTimeout = TimeSpan.FromMilliseconds(500),
                 },
                 clientConnectionOptions: new()
                 {
@@ -460,32 +460,17 @@ namespace IceRpc.Tests.Internal
                 },
                 serverTransportOptions: new TcpOptions()
                 {
-                    IdleTimeout = TimeSpan.FromSeconds(1),
+                    IdleTimeout = TimeSpan.FromMilliseconds(500),
                 },
                 serverConnectionOptions: new()
                 {
                     KeepAlive = !heartbeatOnClient
                 });
 
-            using var semaphore = new SemaphoreSlim(0);
-            EventHandler handler = (sender, args) =>
-            {
-                Assert.That(sender, Is.EqualTo(heartbeatOnClient ? factory.ServerConnection : factory.ClientConnection));
-                semaphore.Release();
-            };
-            if (heartbeatOnClient)
-            {
-                factory.ClientConnection.PingReceived += (sender, args) => Assert.Fail();
-                factory.ServerConnection.PingReceived += handler;
-            }
-            else
-            {
-                factory.ClientConnection.PingReceived += handler;
-                factory.ServerConnection.PingReceived += (sender, args) => Assert.Fail();
-            }
+            await Task.Delay(TimeSpan.FromSeconds(2));
 
-            await semaphore.WaitAsync();
-            await semaphore.WaitAsync();
+            Assert.That(factory.ClientConnection.State, Is.EqualTo(ConnectionState.Active));
+            Assert.That(factory.ServerConnection.State, Is.EqualTo(ConnectionState.Active));
         }
 
         [TestCase(Protocol.Ice1)]
@@ -496,24 +481,19 @@ namespace IceRpc.Tests.Internal
             await using var factory = new ConnectionFactory(
                 "tcp",
                 protocol,
-                serverTransportOptions: new TcpOptions() { IdleTimeout = TimeSpan.FromMilliseconds(1000) },
+                serverTransportOptions: new TcpOptions() { IdleTimeout = TimeSpan.FromSeconds(1) },
                 dispatcher: new InlineDispatcher(async (request, cancel) =>
                 {
                     await dispatchSemaphore.WaitAsync(cancel);
                     return OutgoingResponse.ForPayload(request, default);
                 }));
 
-            // Perform an invocation
+            // Perform an invocation and wait 2 seconds. The connection shouldn't close.
             Task pingTask = factory.ServicePrx.IcePingAsync();
-
-            // Make sure we receive few pings while the invocation is pending.
-            using var semaphore = new SemaphoreSlim(0);
-            factory.ClientConnection.PingReceived += (sender, args) => semaphore.Release();
-            await semaphore.WaitAsync();
-            await semaphore.WaitAsync();
-
+            await Task.Delay(TimeSpan.FromSeconds(2));
+            Assert.That(factory.ClientConnection.State, Is.EqualTo(ConnectionState.Active));
+            Assert.That(factory.ServerConnection.State, Is.EqualTo(ConnectionState.Active));
             dispatchSemaphore.Release();
-
             await pingTask;
         }
 
@@ -610,7 +590,7 @@ namespace IceRpc.Tests.Internal
                 dispatchSemaphore.Wait();
 
                 // The invocation on the connection has been canceled by the shutdown cancellation
-                var ex = Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
+                Exception? ex = Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
 
                 if (protocol == Protocol.Ice1)
                 {
@@ -640,7 +620,7 @@ namespace IceRpc.Tests.Internal
                 }
                 else
                 {
-                    var ex = Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
+                    Exception? ex = Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
                     Assert.That(ex!.Message, Is.EqualTo("dispatch canceled by peer"));
                 }
             }

@@ -14,6 +14,9 @@ namespace IceRpc.Internal
         /// <summary>Returns <c>true</c> if invocations are in progress, <c>false</c> otherwise.</summary>
         bool HasInvocationsInProgress { get; }
 
+        /// <summary>Cancel the shutdown which is progress.</summary>
+        void CancelShutdown();
+
         /// <summary>Initializes the connection.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         Task InitializeAsync(CancellationToken cancel);
@@ -50,9 +53,6 @@ namespace IceRpc.Internal
         /// <param name="message">The reason of the connection shutdown.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         Task ShutdownAsync(bool closedByPeer, string message, CancellationToken cancel);
-
-        /// <summary>Cancel the shutdown which is progress.</summary>
-        void CancelShutdown();
 
         /// <summary>Waits for graceful shutdown of the connection.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

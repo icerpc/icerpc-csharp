@@ -63,7 +63,6 @@ namespace IceRpc.Internal
             this Protocol protocol,
             INetworkConnection networkConnection,
             int incomingFrameMaxSize,
-            Action? pingAction,
             ILoggerFactory loggerFactory,
             CancellationToken cancel)
         {
@@ -75,7 +74,6 @@ namespace IceRpc.Internal
                     incomingFrameMaxSize,
                     networkConnection.IsServer,
                     networkConnection.IsDatagram ? networkConnection.DatagramMaxReceiveSize : null,
-                    pingAction,
                     logger);
             }
             else
@@ -83,7 +81,6 @@ namespace IceRpc.Internal
                 return new Ice2ProtocolConnection(
                     await networkConnection.GetMultiStreamConnectionAsync(cancel).ConfigureAwait(false),
                     incomingFrameMaxSize,
-                    //pingAction,
                     logger);
             }
         }

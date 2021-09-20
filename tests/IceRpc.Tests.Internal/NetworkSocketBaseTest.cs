@@ -106,11 +106,6 @@ namespace IceRpc.Tests.Internal
                 }
                 return networkSocket;
             }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine(ex);
-                throw;
-            }
             finally
             {
                 _acceptSemaphore.Release();
