@@ -14,7 +14,9 @@ namespace IceRpc.Internal
 
         public bool HasInvocationsInProgress => _invocations.Count > 0;
 
-        private TaskCompletionSource? _cancelShutdown;
+        private readonly TaskCompletionSource _cancelShutdown =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         private readonly TaskCompletionSource _dispatchAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private INetworkStream? _controlStream;
@@ -107,9 +109,9 @@ namespace IceRpc.Internal
         public void CancelShutdown() =>
             // Notify the task completion source that shutdown was canceled. PerformShutdownAsync will
             // send the GoAwayCanceled frame once the GoAway frame has been sent.
-            _cancelShutdown?.TrySetResult();
+            _cancelShutdown.TrySetResult();
 
-        public void Dispose() => _cancelShutdown?.TrySetCanceled();
+        public void Dispose() => _cancelShutdown.TrySetResult();
 
         public Task PingAsync(CancellationToken cancel) => SendControlFrameAsync(Ice2FrameType.Ping, null, cancel);
 
@@ -526,11 +528,6 @@ namespace IceRpc.Internal
                 {
                     invocations = _invocations.Count > 0 ? _invocations.ToList() : null;
                 }
-                else
-                {
-                    // The cancel shutdown task completes when CancelShutdown() is called.
-                    _cancelShutdown = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-                }
             }
 
             if (shutdownByPeer && invocations != null)
@@ -582,7 +579,7 @@ namespace IceRpc.Internal
                 try
                 {
                     // Wait for the shutdown cancellation.
-                    await _cancelShutdown!.Task.ConfigureAwait(false);
+                    await _cancelShutdown.Task.ConfigureAwait(false);
 
                     // Cancel dispatch if shutdown is canceled.
                     foreach (IncomingRequest request in _dispatch)

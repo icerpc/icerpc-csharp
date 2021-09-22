@@ -17,7 +17,10 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public bool HasInvocationsInProgress => _pendingIncomingResponses.Count > 0;
 
+        // TODO: XXX
         // private readonly AsyncSemaphore? _bidirectionalStreamSemaphore;
+        private readonly TaskCompletionSource _cancelShutdown =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly TaskCompletionSource _dispatchAndInvocationsCompleted = new();
         private readonly Dictionary<int, CancellationTokenSource> _dispatchCancellationTokenSources = new();
         private readonly int _incomingFrameMaxSize;
@@ -83,13 +86,17 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
-        public void CancelShutdown() => CancelDispatch();
+        public void CancelShutdown() =>
+            // Notify the task completion source that shutdown was canceled. PerformShutdownAsync will
+            // cancel the dispatch. We can't cancel the dispatch until ShutdownAsync is called.
+            _cancelShutdown.TrySetResult();
 
         /// <inheritdoc/>
         public void Dispose()
         {
             lock (_mutex)
             {
+                _cancelShutdown.TrySetResult();
                 _pendingClose.TrySetResult();
                 var exception = new ConnectionLostException();
                 _sendSemaphore.Complete(exception);
@@ -531,6 +538,8 @@ namespace IceRpc.Internal
                 }
                 else
                 {
+                    _ = CancelDispatchIfShutdownCanceledAsync();
+
                     // Wait for dispatch to complete.
                     await _dispatchAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
                 }
@@ -548,6 +557,15 @@ namespace IceRpc.Internal
                     await _pendingClose.Task.WaitAsync(cancel).ConfigureAwait(false);
                 }
             }
+
+            async Task CancelDispatchIfShutdownCanceledAsync()
+            {
+                // Wait for the shutdown cancellation.
+                await _cancelShutdown.Task.ConfigureAwait(false);
+
+                // Cancel dispatch if shutdown is canceled.
+                CancelDispatch();
+            }
         }
 
         public async Task<string> WaitForShutdownAsync(CancellationToken cancel)
@@ -560,11 +578,11 @@ namespace IceRpc.Internal
         {
             lock (_mutex)
             {
-                // Debug.Assert(_shutdown);
-                // foreach (CancellationTokenSource source in _dispatchCancellationTokenSources.Values)
-                // {
-                //     source.Cancel();
-                // }
+                Debug.Assert(_shutdown);
+                foreach (CancellationTokenSource source in _dispatchCancellationTokenSources.Values)
+                {
+                    source.Cancel();
+                }
             }
         }
 

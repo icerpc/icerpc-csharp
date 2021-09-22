@@ -70,7 +70,7 @@ namespace IceRpc.Transports.Internal
                 {
                     await SendStopSendingFrameAsync(errorCode).ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch
                 {
                     // Ignore.
                 }
@@ -96,7 +96,7 @@ namespace IceRpc.Transports.Internal
                 {
                     await SendResetFrameAsync(errorCode).ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch
                 {
                     // Ignore.
                 }
