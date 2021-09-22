@@ -36,6 +36,9 @@ namespace IceRpc.Internal
         // private readonly AsyncSemaphore? _unidirectionalStreamSemaphore;
         private bool _shutdown;
 
+        static int _nextId = 0;
+        private int _id;
+
         /// <summary>Creates a multi-stream protocol connection.</summary>
         public Ice1ProtocolConnection(
             ISingleStreamConnection singleStreamConnection,
@@ -44,6 +47,7 @@ namespace IceRpc.Internal
             int? datagramMaxReceiveSize,
             ILogger logger)
         {
+            _id = ++_nextId;
             _stream = singleStreamConnection;
             _incomingFrameMaxSize = incomingFrameMaxSize;
             _isServer = isServer;
@@ -138,6 +142,7 @@ namespace IceRpc.Internal
                 }
                 catch
                 {
+                    // TODO: XXX Is this really needed??
                     lock (_mutex)
                     {
                         if (_shutdown)
@@ -219,33 +224,33 @@ namespace IceRpc.Internal
                 throw new InvalidOperationException("request ID feature is not set");
             }
 
-            Task<ReadOnlyMemory<byte>> responseTask;
-            lock (_mutex)
-            {
-                if (_shutdown)
-                {
-                    throw new ConnectionClosedException();
-                }
-                else if (_pendingIncomingResponses.TryGetValue(requestId,
-                                                               out TaskCompletionSource<ReadOnlyMemory<byte>>? source))
-                {
-                    responseTask = source.Task;
-                }
-                else
-                {
-                    throw new InvalidOperationException($"unknown request with requestId {requestId}");
-                }
-            }
-
             // Wait for the response.
             ReadOnlyMemory<byte> buffer;
             try
             {
+                Task<ReadOnlyMemory<byte>> responseTask;
+                lock (_mutex)
+                {
+                    if (_shutdown)
+                    {
+                        throw new ConnectionClosedException();
+                    }
+                    else if (_pendingIncomingResponses.TryGetValue(
+                        requestId,
+                        out TaskCompletionSource<ReadOnlyMemory<byte>>? source))
+                    {
+                        responseTask = source.Task;
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException($"unknown request with requestId {requestId}");
+                    }
+                }
                 buffer = await responseTask.WaitAsync(cancel).ConfigureAwait(false);
             }
             finally
             {
-                lock (this)
+                lock (_mutex)
                 {
                     if (_pendingIncomingResponses.Remove(requestId))
                     {
@@ -381,6 +386,23 @@ namespace IceRpc.Internal
                 // Mark the request as sent and, if it's a twoway request, keep track of it.
                 request.IsSent = true;
             }
+            catch
+            {
+                lock (_mutex)
+                {
+                    if (_pendingIncomingResponses.Remove(requestId))
+                    {
+                        // If no more invocations or dispatch and shutting down, shutdown can complete.
+                        if (_shutdown &&
+                            _pendingIncomingResponses.Count == 0 &&
+                            _dispatchCancellationTokenSources.Count == 0)
+                        {
+                            _dispatchAndInvocationsCompleted.SetResult();
+                        }
+                    }
+                }
+                throw;
+            }
             finally
             {
                 _sendSemaphore.Release();
@@ -406,7 +428,6 @@ namespace IceRpc.Internal
                     // Wait for sending of other frames to complete. The semaphore is used as an asynchronous
                     // queue to serialize the sending of frames.
                     await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
-
                     try
                     {
                         var bufferWriter = new BufferWriter();
@@ -499,6 +520,11 @@ namespace IceRpc.Internal
                         source.TrySetException(closeException);
                     }
                     _pendingIncomingResponses.Clear();
+
+                    if (_dispatchCancellationTokenSources.Count == 0)
+                    {
+                        _dispatchAndInvocationsCompleted.TrySetResult();
+                    }
                 }
 
                 if (shutdownByPeer)
@@ -510,10 +536,7 @@ namespace IceRpc.Internal
                 else
                 {
                     // Wait for dispatch to complete.
-                    if (_dispatchCancellationTokenSources.Count > 0)
-                    {
-                        await _dispatchAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
-                    }
+                    await _dispatchAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
                 }
 
                 _sendSemaphore.Complete(exception);

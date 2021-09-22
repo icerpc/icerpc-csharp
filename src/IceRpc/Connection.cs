@@ -416,11 +416,11 @@ namespace IceRpc
                 request.RetryPolicy = RetryPolicy.Immediately;
                 throw;
             }
-            catch (TransportException) when (!request.IsSent && State > ConnectionState.Active)
-            {
-                // The connection is being closed.
-                throw new ConnectionClosedException("connection shutdown");
-            }
+            // catch (TransportException) when (!request.IsSent && State > ConnectionState.Active)
+            // {
+            //     // The connection is being closed.
+            //     throw new ConnectionClosedException("connection shutdown");
+            // }
             catch (TransportException)
             {
                 if (request.IsIdempotent || !request.IsSent)
@@ -443,7 +443,7 @@ namespace IceRpc
         /// <param name="message">The message transmitted to the peer with the GoAway frame.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public Task ShutdownAsync(string? message = null, CancellationToken cancel = default) =>
-            ShutdownAsync(closedByPeer: false, message ?? "connection closed gracefully", cancel);
+            ShutdownAsync(shutdownByPeer: false, message ?? "connection closed gracefully", cancel);
 
         /// <inheritdoc/>
         public override string ToString() => NetworkConnection?.ToString() ?? "";
@@ -513,10 +513,6 @@ namespace IceRpc
             try
             {
                 request = await _protocolConnection!.ReceiveRequestAsync(default).ConfigureAwait(false);
-            }
-            catch (ConnectionClosedException)
-            {
-                return;
             }
             catch (Exception exception)
             {
@@ -628,19 +624,19 @@ namespace IceRpc
         }
 
         /// <summary>Shutdown the connection.</summary>
-        private async Task ShutdownAsync(bool closedByPeer, string message, CancellationToken cancel)
+        private async Task ShutdownAsync(bool shutdownByPeer, string message, CancellationToken cancel)
         {
             Task shutdownTask;
-            IProtocolConnection? protocolConnection = null;
+            IProtocolConnection protocolConnection;
             lock (_mutex)
             {
                 if (_state == ConnectionState.Active)
                 {
                     _state = ConnectionState.Closing;
                     _closeTask ??= PerformShutdownAsync(message);
-                    protocolConnection = _protocolConnection!;
                 }
                 shutdownTask = _closeTask ?? CloseAsync(new ConnectionClosedException(message));
+                protocolConnection = _protocolConnection!;
             }
 
             try
@@ -666,7 +662,7 @@ namespace IceRpc
                 {
                     // Shutdown the connection.
                     await _protocolConnection!.ShutdownAsync(
-                        closedByPeer,
+                        shutdownByPeer,
                         message,
                         closeCancellationSource.Token).ConfigureAwait(false);
 
@@ -696,7 +692,7 @@ namespace IceRpc
 
                 // Shutdown the connection.
                 await ShutdownAsync(
-                    closedByPeer: true,
+                    shutdownByPeer: true,
                     message,
                     CancellationToken.None).ConfigureAwait(false);
             }

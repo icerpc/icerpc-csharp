@@ -143,7 +143,7 @@ namespace IceRpc.Transports.Internal
 
         protected override void Dispose(bool disposing)
         {
-            Socket.Dispose();
+            base.Dispose(disposing);
             SslStream?.Dispose();
         }
 

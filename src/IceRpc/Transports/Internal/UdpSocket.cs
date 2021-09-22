@@ -124,8 +124,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        protected override void Dispose(bool disposing) => Socket.Dispose();
-
         // Only for use by UdpEndpoint.
         internal UdpSocket(
             Socket socket,

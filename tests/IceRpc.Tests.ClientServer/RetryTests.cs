@@ -52,7 +52,8 @@ namespace IceRpc.Tests.ClientServer
                 {
                     Dispatcher = new RetryTest(),
                     Endpoint = GetTestEndpoint(port: port, protocol: protocol),
-                    ServerTransport = new ServerTransport().UseTcp()
+                    ServerTransport = new ServerTransport().UseTcp(),
+                    ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) }
                 };
                 server.Listen();
                 Assert.DoesNotThrowAsync(async () => await prx1.IcePingAsync());
@@ -93,10 +94,10 @@ namespace IceRpc.Tests.ClientServer
         [Repeat(1000)]
         // [TestCase(Protocol.Ice1, 2)]
         // [TestCase(Protocol.Ice1, 10)]
-        // [TestCase(Protocol.Ice1, 20)]
+        [TestCase(Protocol.Ice1, 20)]
         // [TestCase(Protocol.Ice2, 2)]
         // [TestCase(Protocol.Ice2, 10)]
-        [TestCase(Protocol.Ice2, 20)]
+        // [TestCase(Protocol.Ice2, 20)]
         public async Task Retry_GracefulClose(Protocol protocol, int maxQueue)
         {
             await WithRetryServiceAsync(protocol, null, async (service, retry) =>
@@ -121,8 +122,6 @@ namespace IceRpc.Tests.ClientServer
                 }
 
                 await Task.WhenAll(results);
-
-                await shutdownTask;
             });
         }
 
@@ -429,7 +428,8 @@ namespace IceRpc.Tests.ClientServer
         {
             var pool = new ConnectionPool()
             {
-                ClientTransport = new ClientTransport().UseTcp()
+                ClientTransport = new ClientTransport().UseTcp(),
+                ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) }
             };
             return pool;
         }
@@ -440,7 +440,8 @@ namespace IceRpc.Tests.ClientServer
                 i => new Server
                 {
                     Endpoint = GetTestEndpoint(port: i),
-                    ServerTransport = new ServerTransport().UseTcp()
+                    ServerTransport = new ServerTransport().UseTcp(),
+                    ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) }
                 }).ToArray();
 
             Router[] routers = Enumerable.Range(0, replicas).Select(i => new Router()).ToArray();
@@ -482,17 +483,13 @@ namespace IceRpc.Tests.ClientServer
             {
                 Dispatcher = router,
                 Endpoint = GetTestEndpoint(protocol: protocol),
-                ServerTransport = new ServerTransport().UseTcp()
+                ServerTransport = new ServerTransport().UseTcp(),
+                ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) }
             };
             server.Listen();
 
-            Console.Error.WriteLine("STARTING TEST");
             var retry = RetryTestPrx.Parse(GetTestProxy("/retry", protocol: protocol), pipeline);
             await closure(service, retry);
-
-            await server.ShutdownAsync();
-            await pool.ShutdownAsync();
-            Console.Error.WriteLine("FINISHED TEST");
         }
 
         private Task WithRetryServiceAsync(Func<RetryTest, RetryTestPrx, Task> closure) =>

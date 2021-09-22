@@ -12,6 +12,7 @@
         <Nullable>enable</Nullable>
         <LangVersion>10.0</LangVersion>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <ImplicitUsings>true</ImplicitUsings>
     </PropertyGroup>
 
     <!-- Import Ice version settings -->
