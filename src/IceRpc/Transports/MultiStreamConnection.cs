@@ -67,8 +67,9 @@ namespace IceRpc.Transports
             }
         }
 
-        /// <summary>Returns <c>true</c> if an incoming stream is unknown, <c>false</c> otherwise. An incoming
-        /// is known if its the ID is inferior or equal to the last allocated incoming stream ID.</summary>
+        /// <summary>Returns <c>true</c> if a remote stream is unknown, <c>false</c> otherwise. A remote
+        /// stream is known if its the ID is inferior or equal to the last allocated remote stream
+        /// ID.</summary>
         protected bool IsRemoteStreamUnknown(long streamId, bool bidirectional)
         {
             lock (_mutex)
@@ -84,11 +85,12 @@ namespace IceRpc.Transports
             }
         }
 
-        /// <summary>Try to get a stream with the given ID. Transport implementations can use this method to lookup
-        /// an existing stream.</summary>
+        /// <summary>Try to get a stream with the given ID. Transport implementations can use this method to
+        /// lookup an existing stream.</summary>
         /// <param name="streamId">The stream ID.</param>
         /// <param name="value">If found, value is assigned to the stream value, null otherwise.</param>
-        /// <return>True if the stream was found and value contains a non-null value, False otherwise.</return>
+        /// <return>True if the stream was found and value contains a non-null value, False
+        /// otherwise.</return>
         protected bool TryGetStream<T>(long streamId, [NotNullWhen(returnValue: true)] out T? value)
             where T : NetworkStream
         {

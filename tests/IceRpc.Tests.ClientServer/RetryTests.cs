@@ -90,12 +90,16 @@ namespace IceRpc.Tests.ClientServer
             await bidir.AfterDelayAsync(2);
         }
 
-        [TestCase(2)]
-        [TestCase(10)]
-        [TestCase(20)]
-        public async Task Retry_GracefulClose(int maxQueue)
+        [Repeat(1000)]
+        // [TestCase(Protocol.Ice1, 2)]
+        // [TestCase(Protocol.Ice1, 10)]
+        // [TestCase(Protocol.Ice1, 20)]
+        // [TestCase(Protocol.Ice2, 2)]
+        // [TestCase(Protocol.Ice2, 10)]
+        [TestCase(Protocol.Ice2, 20)]
+        public async Task Retry_GracefulClose(Protocol protocol, int maxQueue)
         {
-            await WithRetryServiceAsync(async (service, retry) =>
+            await WithRetryServiceAsync(protocol, null, async (service, retry) =>
             {
                 // Remote case: send multiple OpWithData, followed by a close and followed by multiple OpWithData.
                 // The goal is to make sure that none of the OpWithData fail even if the server closes the
@@ -109,7 +113,7 @@ namespace IceRpc.Tests.ClientServer
                     results.Add(retry.OpWithDataAsync(-1, 0, seq));
                 }
 
-                _ = service.Connection!.ShutdownAsync();
+                Task shutdownTask = service.Connection!.ShutdownAsync();
 
                 for (int i = 0; i < maxQueue; i++)
                 {
@@ -117,6 +121,8 @@ namespace IceRpc.Tests.ClientServer
                 }
 
                 await Task.WhenAll(results);
+
+                await shutdownTask;
             });
         }
 
@@ -480,8 +486,13 @@ namespace IceRpc.Tests.ClientServer
             };
             server.Listen();
 
+            Console.Error.WriteLine("STARTING TEST");
             var retry = RetryTestPrx.Parse(GetTestProxy("/retry", protocol: protocol), pipeline);
             await closure(service, retry);
+
+            await server.ShutdownAsync();
+            await pool.ShutdownAsync();
+            Console.Error.WriteLine("FINISHED TEST");
         }
 
         private Task WithRetryServiceAsync(Func<RetryTest, RetryTestPrx, Task> closure) =>

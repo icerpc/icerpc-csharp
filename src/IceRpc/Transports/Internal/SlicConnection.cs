@@ -230,7 +230,7 @@ namespace IceRpc.Transports.Internal
             {
 
                 // Unblock requests waiting on the semaphores.
-                var exception = new ConnectionClosedException();
+                var exception = new ConnectionClosedException("SLIC XXXX");
                 _bidirectionalStreamSemaphore?.Complete(exception);
                 _unidirectionalStreamSemaphore?.Complete(exception);
                 _sendSemaphore.Complete(exception);

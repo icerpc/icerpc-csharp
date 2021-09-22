@@ -48,15 +48,14 @@ namespace IceRpc.Internal
         Task SendResponseAsync(IncomingRequest request, OutgoingResponse response, CancellationToken cancel);
 
         /// <summary>Shutdowns gracefully the connection.</summary>
-        /// <param name="closedByPeer"><c>true</c> if the shutdown is the result of the peer shutting down the
-        /// connection, <c>false</c> otherwise.</param>
+        /// <param name="shutdownByPeer"><c>true</c> if the shutdown is from the peer, <c>false</c> otherwise.</param>
         /// <param name="message">The reason of the connection shutdown.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        Task ShutdownAsync(bool closedByPeer, string message, CancellationToken cancel);
+        Task ShutdownAsync(bool shutdownByPeer, string message, CancellationToken cancel);
 
         /// <summary>Waits for graceful shutdown of the connection.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The reason why the peer shutdown the connection.</returns>
+        /// <returns>The reason of the peer shutdown.</returns>
         Task<string> WaitForShutdownAsync(CancellationToken cancel);
     }
 }

@@ -18,7 +18,7 @@ namespace IceRpc.Internal
         public bool HasInvocationsInProgress => _pendingIncomingResponses.Count > 0;
 
         // private readonly AsyncSemaphore? _bidirectionalStreamSemaphore;
-        private readonly TaskCompletionSource _completeShutdown = new();
+        private readonly TaskCompletionSource _dispatchAndInvocationsCompleted = new();
         private readonly Dictionary<int, CancellationTokenSource> _dispatchCancellationTokenSources = new();
         private readonly int _incomingFrameMaxSize;
         private readonly bool _isServer;
@@ -88,17 +88,22 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public void Dispose()
         {
-            _pendingClose.TrySetResult();
-            var exception = new ConnectionLostException();
-            _sendSemaphore.Complete(exception);
-            _pendingCloseConnection.TrySetException(exception);
-            foreach (TaskCompletionSource<ReadOnlyMemory<byte>> source in _pendingIncomingResponses.Values)
+            lock (_mutex)
             {
-                source.SetException(exception);
-            }
-            foreach (CancellationTokenSource cancellationTokenSource in _dispatchCancellationTokenSources.Values)
-            {
-                cancellationTokenSource.Dispose();
+                _pendingClose.TrySetResult();
+                var exception = new ConnectionLostException();
+                _sendSemaphore.Complete(exception);
+                _pendingCloseConnection.TrySetException(exception);
+                foreach (TaskCompletionSource<ReadOnlyMemory<byte>> source in _pendingIncomingResponses.Values)
+                {
+                    source.SetException(exception);
+                }
+                _pendingIncomingResponses.Clear();
+                foreach (CancellationTokenSource cancellationTokenSource in _dispatchCancellationTokenSources.Values)
+                {
+                    cancellationTokenSource.Dispose();
+                }
+                _dispatchCancellationTokenSources.Clear();
             }
         }
 
@@ -214,21 +219,46 @@ namespace IceRpc.Internal
                 throw new InvalidOperationException("request ID feature is not set");
             }
 
-            TaskCompletionSource<ReadOnlyMemory<byte>>? source;
+            Task<ReadOnlyMemory<byte>> responseTask;
             lock (_mutex)
             {
                 if (_shutdown)
                 {
                     throw new ConnectionClosedException();
                 }
-                else if (!_pendingIncomingResponses.TryGetValue(requestId, out source))
+                else if (_pendingIncomingResponses.TryGetValue(requestId,
+                                                               out TaskCompletionSource<ReadOnlyMemory<byte>>? source))
+                {
+                    responseTask = source.Task;
+                }
+                else
                 {
                     throw new InvalidOperationException($"unknown request with requestId {requestId}");
                 }
             }
 
             // Wait for the response.
-            ReadOnlyMemory<byte> buffer = await source.Task.WaitAsync(cancel).ConfigureAwait(false);
+            ReadOnlyMemory<byte> buffer;
+            try
+            {
+                buffer = await responseTask.WaitAsync(cancel).ConfigureAwait(false);
+            }
+            finally
+            {
+                lock (this)
+                {
+                    if (_pendingIncomingResponses.Remove(requestId))
+                    {
+                        // If no more invocations or dispatch and shutting down, shutdown can complete.
+                        if (_shutdown &&
+                            _pendingIncomingResponses.Count == 0 &&
+                            _dispatchCancellationTokenSources.Count == 0)
+                        {
+                            _dispatchAndInvocationsCompleted.SetResult();
+                        }
+                    }
+                }
+            }
 
             // Decode the response.
             var decoder = new Ice11Decoder(buffer);
@@ -297,6 +327,20 @@ namespace IceRpc.Internal
             // serialize the sending of frames.
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
 
+            int requestId = 0;
+            if (!request.IsOneway)
+            {
+                lock (_mutex)
+                {
+                    if (_shutdown)
+                    {
+                        throw new ConnectionClosedException();
+                    }
+                    requestId = request.IsOneway ? 0 : ++_nextRequestId;
+                    _pendingIncomingResponses[requestId] = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                }
+            }
+
             try
             {
                 var bufferWriter = new BufferWriter();
@@ -308,7 +352,6 @@ namespace IceRpc.Internal
                 encoder.EncodeByte(0); // compression status
                 BufferWriter.Position frameSizeStart = encoder.StartFixedLengthSize();
 
-                int requestId = request.IsOneway ? 0 : ++_nextRequestId;
                 request.Features = request.Features.WithRequestId(requestId);
                 encoder.EncodeInt(requestId);
 
@@ -335,19 +378,8 @@ namespace IceRpc.Internal
                 ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
                 await _stream.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
 
-                // Mark the request as sent and keep track of it if it's a two-way request to receive the response.
+                // Mark the request as sent and, if it's a twoway request, keep track of it.
                 request.IsSent = true;
-                if (!request.IsOneway)
-                {
-                    lock (_mutex)
-                    {
-                        if (!_shutdown)
-                        {
-                            _pendingIncomingResponses[requestId] =
-                                new(TaskCreationOptions.RunContinuationsAsynchronously);
-                        }
-                    }
-                }
             }
             finally
             {
@@ -366,69 +398,77 @@ namespace IceRpc.Internal
                 throw new InvalidOperationException("request ID feature is not set");
             }
 
-            request.CancelDispatchSource!.Dispose();
-
             // Send the response if the request is not a one-way request.
-            if (!request.IsOneway)
+            try
             {
-                // Wait for sending of other frames to complete. The semaphore is used as an asynchronous
-                // queue to serialize the sending of frames.
-                await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
-
-                try
+                if (!request.IsOneway)
                 {
-                    var bufferWriter = new BufferWriter();
-                    if (response.StreamParamSender != null)
+                    // Wait for sending of other frames to complete. The semaphore is used as an asynchronous
+                    // queue to serialize the sending of frames.
+                    await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+
+                    try
                     {
-                        throw new NotSupportedException("stream parameters are not supported with ice1");
+                        var bufferWriter = new BufferWriter();
+                        if (response.StreamParamSender != null)
+                        {
+                            throw new NotSupportedException("stream parameters are not supported with ice1");
+                        }
+
+                        var encoder = new Ice11Encoder(bufferWriter);
+
+                        // Write the response header.
+                        bufferWriter.WriteByteSpan(Ice1Definitions.FramePrologue);
+                        encoder.EncodeIce1FrameType(Ice1FrameType.Reply);
+                        encoder.EncodeByte(0); // compression status
+                        BufferWriter.Position frameSizeStart = encoder.StartFixedLengthSize();
+
+                        encoder.EncodeInt(requestId);
+
+                        ReplyStatus replyStatus = response.Features.Get<ReplyStatus>();
+                        encoder.EncodeReplyStatus(replyStatus);
+                        if (replyStatus <= ReplyStatus.UserException)
+                        {
+                            (byte encodingMajor, byte encodingMinor) = response.PayloadEncoding.ToMajorMinor();
+
+                            var responseHeader = new Ice1ResponseHeader(encapsulationSize: response.PayloadSize + 6,
+                                                                        encodingMajor,
+                                                                        encodingMinor);
+                            responseHeader.Encode(encoder);
+                        }
+
+                        encoder.EncodeFixedLengthSize(bufferWriter.Size + response.PayloadSize, frameSizeStart);
+
+                        // Add the payload to the buffer writer.
+                        bufferWriter.Add(response.Payload);
+
+                        // Send the response frame.
+                        ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
+                        await _stream.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
                     }
-
-                    var encoder = new Ice11Encoder(bufferWriter);
-
-                    // Write the response header.
-                    bufferWriter.WriteByteSpan(Ice1Definitions.FramePrologue);
-                    encoder.EncodeIce1FrameType(Ice1FrameType.Reply);
-                    encoder.EncodeByte(0); // compression status
-                    BufferWriter.Position frameSizeStart = encoder.StartFixedLengthSize();
-
-                    encoder.EncodeInt(requestId);
-
-                    ReplyStatus replyStatus = response.Features.Get<ReplyStatus>();
-                    encoder.EncodeReplyStatus(replyStatus);
-                    if (replyStatus <= ReplyStatus.UserException)
+                    finally
                     {
-                        (byte encodingMajor, byte encodingMinor) = response.PayloadEncoding.ToMajorMinor();
-
-                        var responseHeader = new Ice1ResponseHeader(encapsulationSize: response.PayloadSize + 6,
-                                                                    encodingMajor,
-                                                                    encodingMinor);
-                        responseHeader.Encode(encoder);
+                        _sendSemaphore.Release();
                     }
-
-                    encoder.EncodeFixedLengthSize(bufferWriter.Size + response.PayloadSize, frameSizeStart);
-
-                    // Add the payload to the buffer writer.
-                    bufferWriter.Add(response.Payload);
-
-                    // Send the response frame.
-                    ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
-                    await _stream.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
-                }
-                finally
-                {
-                    _sendSemaphore.Release();
                 }
             }
-
-            lock (_mutex)
+            finally
             {
-                // Dispatch is done, remove the cancellation token source for the dispatch.
-                _dispatchCancellationTokenSources.Remove(requestId);
-
-                // If no more invocations or dispatch and shutting down, shutdown can complete.
-                if (_shutdown && _pendingIncomingResponses.Count == 0 && _dispatchCancellationTokenSources.Count == 0)
+                lock (_mutex)
                 {
-                    _completeShutdown.SetResult();
+                    // Dispatch is done, remove the cancellation token source for the dispatch.
+                    if (_dispatchCancellationTokenSources.Remove(requestId))
+                    {
+                        request.CancelDispatchSource!.Dispose();
+
+                        // If no more invocations or dispatch and shutting down, shutdown can complete.
+                        if (_shutdown &&
+                            _pendingIncomingResponses.Count == 0 &&
+                            _dispatchCancellationTokenSources.Count == 0)
+                        {
+                            _dispatchAndInvocationsCompleted.SetResult();
+                        }
+                    }
                 }
             }
         }
@@ -450,6 +490,15 @@ namespace IceRpc.Internal
                 lock (_mutex)
                 {
                     _shutdown = true;
+
+                    // If shutdown locally, we raise OperationCanceledException for pending invocations. The
+                    // invocation won't be retried, otherwise we raise the shutdown close exception.
+                    Exception closeException = shutdownByPeer ? exception : new OperationCanceledException(message);
+                    foreach (TaskCompletionSource<ReadOnlyMemory<byte>> source in _pendingIncomingResponses.Values)
+                    {
+                        source.TrySetException(closeException);
+                    }
+                    _pendingIncomingResponses.Clear();
                 }
 
                 if (shutdownByPeer)
@@ -457,29 +506,13 @@ namespace IceRpc.Internal
                     // Peer sent CloseConnection frame, we can cancel remaining dispatch since the peer is no
                     // longer interested in the dispatch responses.
                     CancelDispatch();
-
-                    // Remaining invocations have not been dispatch by the peer and can safely be retried.
-                    foreach (TaskCompletionSource<ReadOnlyMemory<byte>> source in _pendingIncomingResponses.Values)
-                    {
-                        source.SetException(exception);
-                    }
-                    _pendingIncomingResponses.Clear();
                 }
                 else
                 {
-                    // If shutdown locally, we raise OperationCanceledException for pending invocations. The
-                    // invocation won't be retried.
-                    Exception cancelException = new OperationCanceledException(message);
-                    foreach (TaskCompletionSource<ReadOnlyMemory<byte>> source in _pendingIncomingResponses.Values)
-                    {
-                        source.SetException(cancelException);
-                    }
-                    _pendingIncomingResponses.Clear();
-
                     // Wait for dispatch to complete.
                     if (_dispatchCancellationTokenSources.Count > 0)
                     {
-                        await _completeShutdown.Task.WaitAsync(cancel).ConfigureAwait(false);
+                        await _dispatchAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
                     }
                 }
 
@@ -508,6 +541,7 @@ namespace IceRpc.Internal
         {
             lock (_mutex)
             {
+                Debug.Assert(_shutdown);
                 foreach (CancellationTokenSource source in _dispatchCancellationTokenSources.Values)
                 {
                     source.Cancel();
@@ -637,20 +671,12 @@ namespace IceRpc.Internal
                         int requestId = IceDecoder.DecodeInt(buffer.Span.Slice(0, 4));
                         lock (_mutex)
                         {
-                            if (_pendingIncomingResponses.TryGetValue(
+                            if (!_shutdown &&
+                                _pendingIncomingResponses.TryGetValue(
                                 requestId,
                                 out TaskCompletionSource<ReadOnlyMemory<byte>>? source))
                             {
                                 source.SetResult(buffer[4..]);
-                                _pendingIncomingResponses.Remove(requestId);
-
-                                // If no more invocations or dispatch and shutting down, shutdown can complete.
-                                if (_shutdown &&
-                                    _pendingIncomingResponses.Count == 0 &&
-                                    _dispatchCancellationTokenSources.Count == 0)
-                                {
-                                    _completeShutdown.SetResult();
-                                }
                             }
                         }
                         break;

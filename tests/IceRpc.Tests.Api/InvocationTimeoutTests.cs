@@ -63,7 +63,8 @@ namespace IceRpc.Tests.Api
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync(invocation));
             Assert.That(dispatchDeadline, Is.Not.Null);
             Assert.That(invocationDeadline, Is.Not.Null);
-            Assert.AreEqual(dispatchDeadline, invocationDeadline);
+            Assert.AreEqual((long)new TimeSpan(dispatchDeadline!.Value.Ticks).TotalSeconds,
+                            (long)new TimeSpan(invocationDeadline!.Value.Ticks).TotalSeconds);
             Assert.That(dispatchDeadline, Is.GreaterThanOrEqualTo(expectedDeadline));
         }
 
@@ -106,13 +107,14 @@ namespace IceRpc.Tests.Api
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync());
             Assert.That(dispatchDeadline, Is.Not.Null);
             Assert.That(invocationDeadline, Is.Not.Null);
-            Assert.AreEqual(dispatchDeadline, invocationDeadline);
+            Assert.AreEqual((long)new TimeSpan(dispatchDeadline!.Value.Ticks).TotalSeconds,
+                            (long)new TimeSpan(invocationDeadline!.Value.Ticks).TotalSeconds);
             Assert.That(dispatchDeadline, Is.GreaterThanOrEqualTo(expectedDeadline));
         }
 
         /// <summary>Ensure that a request fails with OperationCanceledException after the invocation timeout expires.
         /// </summary>
-        /// <param name="delay">The time in milliseconds to hold the dispatch to simulate an slow server.</param>
+        /// <param name="delay">The time in milliseconds to hold the dispatch to simulate a slow server.</param>
         /// <param name="timeout">The time in milliseconds used as the invocation timeout.</param>
         [TestCase(10000, 1000)]
         public async Task InvocationTimeout_InvocationPrevails(int delay, int timeout)
@@ -153,7 +155,8 @@ namespace IceRpc.Tests.Api
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync(invocation));
             Assert.That(dispatchDeadline, Is.Not.Null);
             Assert.That(invocationDeadline, Is.Not.Null);
-            Assert.AreEqual(dispatchDeadline, invocationDeadline);
+            Assert.AreEqual((long)new TimeSpan(dispatchDeadline!.Value.Ticks).TotalSeconds,
+                            (long)new TimeSpan(invocationDeadline!.Value.Ticks).TotalSeconds);
             Assert.That(dispatchDeadline, Is.GreaterThanOrEqualTo(expectedDeadline));
         }
 

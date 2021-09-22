@@ -315,6 +315,8 @@ namespace IceRpc.Transports.Internal
             }
         }
 
+        public ValueTask ShutdownCompleted(CancellationToken cancel) => _decoratee.ShutdownCompleted(cancel);
+
         public override string? ToString() => _decoratee.ToString();
 
         internal LogNetworkStreamDecorator(INetworkStream decoratee, LogNetworkConnectionDecorator parent)

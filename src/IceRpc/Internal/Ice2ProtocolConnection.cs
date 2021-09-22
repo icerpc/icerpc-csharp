@@ -15,7 +15,8 @@ namespace IceRpc.Internal
         public bool HasInvocationsInProgress => _invocations.Count > 0;
 
         private TaskCompletionSource? _cancelShutdown;
-        private readonly TaskCompletionSource _completeShutdown = new();
+        private readonly TaskCompletionSource _dispatchAndInvocationsCompleted =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
         private INetworkStream? _controlStream;
         private readonly HashSet<IncomingRequest> _dispatch = new();
         private readonly int _incomingFrameMaxSize;
@@ -25,10 +26,10 @@ namespace IceRpc.Internal
         private long _lastRemoteUnidirectionalStreamId = -1;
         private readonly ILogger _logger;
         private readonly object _mutex = new();
-        private INetworkStream? _peerControlStream;
+        private INetworkStream? _remoteControlStream;
         private int? _peerIncomingFrameMaxSize;
         private bool _shutdown;
-
+        private (long Bidirectional, long Unidirectional)? _lastRemoteStreamIds;
         private readonly IMultiStreamConnection _multiStreamConnection;
 
         /// <summary>Creates a multi-stream protocol connection.</summary>
@@ -62,11 +63,11 @@ namespace IceRpc.Internal
                 },
                 cancel).ConfigureAwait(false);
 
-            // Wait for the peer control stream to be accepted and read the protocol initialize frame
-            _peerControlStream = await _multiStreamConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
+            // Wait for the remote control stream to be accepted and read the protocol initialize frame
+            _remoteControlStream = await _multiStreamConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
 
             ReadOnlyMemory<byte> buffer = await ReceiveFrameAsync(
-                _peerControlStream,
+                _remoteControlStream,
                 Ice2FrameType.Initialize,
                 cancel).ConfigureAwait(false);
 
@@ -118,7 +119,25 @@ namespace IceRpc.Internal
             while (true)
             {
                 // Accepts a new stream.
-                INetworkStream stream = await _multiStreamConnection!.AcceptStreamAsync(cancel).ConfigureAwait(false);
+                INetworkStream stream;
+                try
+                {
+                    stream = await _multiStreamConnection!.AcceptStreamAsync(cancel).ConfigureAwait(false);
+                }
+                catch
+                {
+                    lock(_mutex)
+                    {
+                        if (_shutdown && _dispatch.Count == 0 && _invocations.Count == 0)
+                        {
+                            throw new ConnectionClosedException("XXXXX1");
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
+                }
 
                 // Receives the request frame from the stream. TODO: Only read the request header, the payload
                 // should be received by calling IProtocolStream.ReceivePayloadAsync from the incoming frame
@@ -197,8 +216,8 @@ namespace IceRpc.Internal
 
                 lock (_mutex)
                 {
-                    // If shutdown, ignore the incoming request and continue receiving frames until the connection
-                    // is closed.
+                    // If shutdown, ignore the incoming request and continue receiving frames until the
+                    // connection is closed.
                     if (_shutdown)
                     {
                         request.CancelDispatchSource.Dispose();
@@ -214,26 +233,20 @@ namespace IceRpc.Internal
                         {
                             _lastRemoteUnidirectionalStreamId = stream.Id;
                         }
+
                         stream.ShutdownAction = () =>
                             {
-                                try
-                                {
-                                    request.CancelDispatchSource.Cancel();
-                                }
-                                catch (ObjectDisposedException)
-                                {
-                                    // Expected if the response has been sent shortly before the stream is reset.
-                                }
+                                request.CancelDispatchSource.Cancel();
+                                request.CancelDispatchSource.Dispose();
 
                                 lock (_mutex)
                                 {
-                                    if (_dispatch.Remove(request))
+                                    _dispatch.Remove(request);
+
+                                    // If no more invocations or dispatch and shutting down, shutdown can complete.
+                                    if (_shutdown && _invocations.Count == 0 && _dispatch.Count == 0)
                                     {
-                                        // If no more invocations or dispatch and shutting down, shutdown can complete.
-                                        if (_shutdown && _invocations.Count == 0 && _dispatch.Count == 0)
-                                        {
-                                            _completeShutdown.SetResult();
-                                        }
+                                        _dispatchAndInvocationsCompleted.SetResult();
                                     }
                                 }
                             };
@@ -267,16 +280,16 @@ namespace IceRpc.Internal
             }
             finally
             {
-                lock (_mutex)
-                {
-                    _invocations.Remove(request);
+                // lock (_mutex)
+                // {
+                //     _invocations.Remove(request);
 
-                    // If no more invocations or dispatch and shutting down, shutdown can complete.
-                    if (_shutdown && _invocations.Count == 0 && _dispatch.Count == 0)
-                    {
-                        _completeShutdown.SetResult();
-                    }
-                }
+                //     // If no more invocations or dispatch and shutting down, shutdown can complete.
+                //     if (_shutdown && _invocations.Count == 0 && _dispatch.Count == 0)
+                //     {
+                //         _completeShutdown.SetResult();
+                //     }
+                // }
             }
 
             var decoder = new Ice20Decoder(buffer);
@@ -297,9 +310,7 @@ namespace IceRpc.Internal
                     Encoding.FromString(encoding) : Ice2Definitions.Encoding;
 
             FeatureCollection features = FeatureCollection.Empty;
-            RetryPolicy retryPolicy = fields.Get((int)FieldKey.RetryPolicy,
-                                                    decoder => new RetryPolicy(decoder));
-
+            RetryPolicy retryPolicy = fields.Get((int)FieldKey.RetryPolicy, decoder => new RetryPolicy(decoder));
             if (retryPolicy != default)
             {
                 features = new();
@@ -327,8 +338,34 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            // Creates the stream.
+            // Create the stream.
             request.Stream = _multiStreamConnection!.CreateStream(!request.IsOneway);
+
+            if (!request.IsOneway || request.StreamParamSender != null)
+            {
+                lock (_mutex)
+                {
+                    if (_shutdown)
+                    {
+                        throw new ConnectionClosedException("XXXX2222 ");
+                    }
+                    _invocations.Add(request);
+
+                    request.Stream.ShutdownAction = () =>
+                        {
+                            lock (_mutex)
+                            {
+                                _invocations.Remove(request);
+
+                                // If no more invocations or dispatch and shutting down, shutdown can complete.
+                                if (_shutdown && _invocations.Count == 0 && _dispatch.Count == 0)
+                                {
+                                    _dispatchAndInvocationsCompleted.SetResult();
+                                }
+                            }
+                        };
+                }
+            }
 
             var bufferWriter = new BufferWriter();
             bufferWriter.WriteByteSpan(request.Stream.TransportHeader.Span);
@@ -401,17 +438,6 @@ namespace IceRpc.Internal
             {
                 request.SendStreamParam(request.Stream);
             }
-
-            if (!request.IsOneway)
-            {
-                lock (_mutex)
-                {
-                    if (!_shutdown)
-                    {
-                        _invocations.Add(request);
-                    }
-                }
-            }
         }
 
         /// <inheritdoc/>
@@ -422,25 +448,8 @@ namespace IceRpc.Internal
                 throw new InvalidOperationException($"{nameof(request.Stream)} is not set");
             }
 
-            request.Stream.ShutdownAction = null;
-            request.CancelDispatchSource!.Dispose();
-
-            lock (_mutex)
-            {
-                if (_dispatch.Remove(request))
-                {
-                    // If no more invocations or dispatch and shutting down, shutdown can complete.
-                    if (_shutdown && _invocations.Count == 0 && _dispatch.Count == 0)
-                    {
-                        _completeShutdown.SetResult();
-                    }
-                }
-                else
-                {
-                    // No need to send the response if the stream has been reset.
-                    return;
-                }
-            }
+            // request.Stream.ShutdownAction = null;
+            // request.CancelDispatchSource!.Dispose();
 
             if (!request.IsOneway)
             {
@@ -498,6 +507,7 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task ShutdownAsync(bool shutdownByPeer, string message, CancellationToken cancel)
         {
+            List<OutgoingRequest>? invocations = null;
             lock (_mutex)
             {
                 if (_shutdown)
@@ -507,11 +517,36 @@ namespace IceRpc.Internal
 
                 // Mark the connection as shutdown to prevent further request from being accepted.
                 _shutdown = true;
-
-                if (!shutdownByPeer)
+                if (_invocations.Count == 0 && _dispatch.Count == 0)
                 {
-                    _cancelShutdown = new();
+                    _dispatchAndInvocationsCompleted.SetResult();
                 }
+
+                if (shutdownByPeer)
+                {
+                    invocations = _invocations.Count > 0 ? _invocations.ToList() : null;
+                }
+                else
+                {
+                    // The cancel shutdown task completes when CancelShutdown() is called.
+                    _cancelShutdown = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                }
+            }
+
+            if (shutdownByPeer && invocations != null)
+            {
+                // Console.Error.WriteLine($"ABORTING {invocations.Count}");
+                foreach (OutgoingRequest request in invocations)
+                {
+                    INetworkStream stream = request.Stream!;
+                    if (stream.Id > (stream.IsBidirectional ?
+                        _lastRemoteStreamIds!.Value.Bidirectional :
+                        _lastRemoteStreamIds!.Value.Unidirectional))
+                    {
+                        stream.Abort(StreamError.ConnectionShutdownByPeer);
+                    }
+                }
+                // Console.Error.WriteLine($"ABORTED {invocations.Count}");
             }
 
             // Send GoAway frame
@@ -534,19 +569,27 @@ namespace IceRpc.Internal
                 _ = SendGoAwayCancelIfShutdownCanceledAsync();
             }
 
-            // Wait fo the dispatch and invocations to complete.
-            if (_invocations.Count > 0 || _dispatch.Count > 0)
-            {
-                await _completeShutdown.Task.WaitAsync(cancel).ConfigureAwait(false);
-            }
+            // Wait for dispatch and invocations to complete.
+            await _dispatchAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
 
-            // Abort the control stream.
+            Console.Error.WriteLine($"XXXX {shutdownByPeer}");
+
+            // Abort the control stream and wait for its shutdown.
             _controlStream!.AbortWrite(StreamError.ConnectionShutdown);
+            await _controlStream.ShutdownCompleted(cancel).ConfigureAwait(false);
 
-            // Wait for the control stream to be closed by the peer.
-            var shutdownCompletion = new TaskCompletionSource();
-            _peerControlStream!.ShutdownAction = () => shutdownCompletion.TrySetResult();
-            await shutdownCompletion.Task.WaitAsync(cancel).ConfigureAwait(false);
+            // Wait for the remote control stream shutdown.
+            try
+            {
+                // Console.Error.WriteLine($"XXXX1 {((Transports.Internal.SlicStream)_remoteControlStream!).IsRemote} {_remoteControlStream!.Id} {((Transports.Internal.SlicStream)_remoteControlStream!).IsShutdown} {shutdownByPeer}");
+                await _remoteControlStream!.ShutdownCompleted(cancel).ConfigureAwait(false);
+                // Console.Error.WriteLine($"XXXX1 done {((Transports.Internal.SlicStream)_remoteControlStream!).IsRemote} {_remoteControlStream!.Id}  {((Transports.Internal.SlicStream)_remoteControlStream!).IsShutdown} {shutdownByPeer}");
+            }
+            catch (Exception)
+            {
+                // Console.Error.WriteLine($"XXXX2 {((Transports.Internal.SlicStream)_remoteControlStream!).IsRemote} {_remoteControlStream!.Id} {((Transports.Internal.SlicStream)_remoteControlStream!).IsShutdown} {shutdownByPeer}\n{Environment.StackTrace}");
+                throw;
+            }
 
             async Task SendGoAwayCancelIfShutdownCanceledAsync()
             {
@@ -561,7 +604,7 @@ namespace IceRpc.Internal
                         request.CancelDispatchSource!.Cancel();
                     }
 
-                    // Write the GoAwayCanceled frame to the peer's streams.
+                    // Write the GoAwayCanceled frame to the remote control stream.
                     await SendControlFrameAsync(Ice2FrameType.GoAwayCanceled, null, default).ConfigureAwait(false);
                 }
                 catch (StreamAbortedException)
@@ -576,7 +619,7 @@ namespace IceRpc.Internal
                 {
                     // Wait to receive the GoAwayCanceled frame.
                     ReadOnlyMemory<byte> buffer = await ReceiveFrameAsync(
-                        _peerControlStream!,
+                        _remoteControlStream!,
                         Ice2FrameType.GoAwayCanceled,
                         cancel).ConfigureAwait(false);
                     if (buffer.Length > 0)
@@ -601,22 +644,12 @@ namespace IceRpc.Internal
         {
             // Receive GoAway frame
             ReadOnlyMemory<byte> buffer = await ReceiveFrameAsync(
-                _peerControlStream!,
+                _remoteControlStream!,
                 Ice2FrameType.GoAway,
                 cancel).ConfigureAwait(false);
 
             var goAwayFrame = new Ice2GoAwayBody(new Ice20Decoder(buffer));
-            foreach (OutgoingRequest request in _invocations)
-            {
-                INetworkStream stream = request.Stream!;
-                if (stream.Id > (stream.IsBidirectional ?
-                    goAwayFrame.LastBidirectionalStreamId :
-                    goAwayFrame.LastUnidirectionalStreamId))
-                {
-                    stream.Abort(StreamError.ConnectionShutdownByPeer);
-                }
-            }
-
+            _lastRemoteStreamIds = (goAwayFrame.LastBidirectionalStreamId, goAwayFrame.LastUnidirectionalStreamId);
             return goAwayFrame.Message;
         }
 
@@ -660,7 +693,7 @@ namespace IceRpc.Internal
 
                 if (frameType == Ice2FrameType.Ping)
                 {
-                    if (stream != _peerControlStream)
+                    if (stream != _remoteControlStream)
                     {
                         throw new InvalidDataException($"the {frameType} frame is only supported on the control stream");
                     }

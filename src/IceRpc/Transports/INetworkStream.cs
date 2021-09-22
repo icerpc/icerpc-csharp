@@ -114,5 +114,10 @@ namespace IceRpc.Transports
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A value task that completes once the buffers are sent.</returns>
         ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, bool endStream, CancellationToken cancel);
+
+        /// <summary>Wait for the stream shutdown completion.</summary>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        /// <returns>A value task that completes once the stream is shutdown.</returns>
+        ValueTask ShutdownCompleted(CancellationToken cancel);
     }
 }

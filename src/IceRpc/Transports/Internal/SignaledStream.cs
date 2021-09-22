@@ -70,9 +70,10 @@ namespace IceRpc.Transports.Internal
                 {
                     await SendStopSendingFrameAsync(errorCode).ConfigureAwait(false);
                 }
-                catch
+                catch (Exception ex)
                 {
                     // Ignore.
+                    Console.Error.WriteLine(ex);
                 }
                 TryShutdown();
             }
@@ -92,20 +93,20 @@ namespace IceRpc.Transports.Internal
 
             async Task SendResetFrameAndCompleteWritesAsync()
             {
-                // Mark the stream as completed for writes before sending the reset frame. Otherwise, the peer
-                // could receive the frame and terminate the connection before writes are marked as completed.
-                // This is an issue for the control stream where the connection code relies on this flag to
-                // figure out if the connection loss is expected or not.
-                TrySetWriteCompleted();
-
                 try
                 {
                     await SendResetFrameAsync(errorCode).ConfigureAwait(false);
+                    if (errorCode == StreamError.ConnectionShutdown)
+                    {
+                        // Console.Error.WriteLine($"sent reset {IsRemote} {Id} {errorCode}");
+                    }
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Console.Error.WriteLine($"sent reset failed {IsRemote} {Id} {errorCode} {ex}");
                     // Ignore.
                 }
+                TrySetWriteCompleted();
             }
         }
 

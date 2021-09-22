@@ -329,9 +329,9 @@ namespace IceRpc.Transports.Internal
             // Release connection stream count or semaphore for this stream.
             _connection.ReleaseStream(this);
 
-            // Outgoing streams are released from the connection when the StreamLast or StreamReset frame is
-            // received. Since a remote un-directional stream doesn't send stream frames, we have to send a
-            // stream last frame here to ensure the outgoing stream is released from the connection.
+            // Local streams are released from the connection when the StreamLast or StreamReset frame is
+            // received. Since a local un-directional stream doesn't send stream frames, we have to send a
+            // stream last frame here to ensure the local stream is released from the connection.
             if (IsRemote && !IsBidirectional)
             {
                 // It's important to decrement the stream count before sending the StreamLast frame to prevent
@@ -368,9 +368,10 @@ namespace IceRpc.Transports.Internal
 
         internal void ReceivedFrame(int size, bool endStream)
         {
-            if (!IsBidirectional && !IsRemote)
+            // Receiving a 0-byte StreamLast frame is expected on a local unidirectional stream.
+            if (!IsBidirectional && !IsRemote && (size > 0 || !endStream))
             {
-                throw new InvalidDataException($"received stream frame on outgoing unidirectional stream");
+                throw new InvalidDataException($"received stream frame on local unidirectional stream");
             }
 
             // Set the result if buffering is not enabled, the data will be consumed when ReceiveAsync is
@@ -458,9 +459,13 @@ namespace IceRpc.Transports.Internal
 
         internal void ReceivedReset(StreamError errorCode)
         {
+            if (errorCode == StreamError.ConnectionShutdown)
+            {
+                // Console.Error.WriteLine($"received reset {IsRemote} {Id} {errorCode}");
+            }
             if (!IsBidirectional && !IsRemote)
             {
-                throw new InvalidDataException("received reset frame on outgoing unidirectional stream");
+                throw new InvalidDataException("received reset frame on local unidirectional stream");
             }
 
             // It's important to set the exception before completing the reads because ReceiveAsync expects the

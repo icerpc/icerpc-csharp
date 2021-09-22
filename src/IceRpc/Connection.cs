@@ -557,7 +557,6 @@ namespace IceRpc
             }
             catch (Exception exception)
             {
-                Console.Error.WriteLine(exception);
                 // Unexpected exception, close the connection.
                 await CloseAsync(exception).ConfigureAwait(false);
             }
@@ -658,6 +657,10 @@ namespace IceRpc
 
             async Task PerformShutdownAsync(string message)
             {
+                // Yield before continuing to ensure the code below isn't executed with the mutex locked and
+                // that _closeTask is assigned before any synchronous continuations are ran.
+                await Task.Yield();
+
                 using var closeCancellationSource = new CancellationTokenSource(_options.CloseTimeout);
                 try
                 {
