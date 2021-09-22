@@ -535,7 +535,6 @@ namespace IceRpc.Internal
 
             if (shutdownByPeer && invocations != null)
             {
-                // Console.Error.WriteLine($"ABORTING {invocations.Count}");
                 foreach (OutgoingRequest request in invocations)
                 {
                     INetworkStream stream = request.Stream!;
@@ -546,7 +545,6 @@ namespace IceRpc.Internal
                         stream.Abort(StreamError.ConnectionShutdownByPeer);
                     }
                 }
-                // Console.Error.WriteLine($"ABORTED {invocations.Count}");
             }
 
             // Send GoAway frame
@@ -572,24 +570,12 @@ namespace IceRpc.Internal
             // Wait for dispatch and invocations to complete.
             await _dispatchAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
 
-            Console.Error.WriteLine($"XXXX {shutdownByPeer}");
-
             // Abort the control stream and wait for its shutdown.
             _controlStream!.AbortWrite(StreamError.ConnectionShutdown);
             await _controlStream.ShutdownCompleted(cancel).ConfigureAwait(false);
 
             // Wait for the remote control stream shutdown.
-            try
-            {
-                // Console.Error.WriteLine($"XXXX1 {((Transports.Internal.SlicStream)_remoteControlStream!).IsRemote} {_remoteControlStream!.Id} {((Transports.Internal.SlicStream)_remoteControlStream!).IsShutdown} {shutdownByPeer}");
-                await _remoteControlStream!.ShutdownCompleted(cancel).ConfigureAwait(false);
-                // Console.Error.WriteLine($"XXXX1 done {((Transports.Internal.SlicStream)_remoteControlStream!).IsRemote} {_remoteControlStream!.Id}  {((Transports.Internal.SlicStream)_remoteControlStream!).IsShutdown} {shutdownByPeer}");
-            }
-            catch (Exception)
-            {
-                // Console.Error.WriteLine($"XXXX2 {((Transports.Internal.SlicStream)_remoteControlStream!).IsRemote} {_remoteControlStream!.Id} {((Transports.Internal.SlicStream)_remoteControlStream!).IsShutdown} {shutdownByPeer}\n{Environment.StackTrace}");
-                throw;
-            }
+            await _remoteControlStream!.ShutdownCompleted(cancel).ConfigureAwait(false);
 
             async Task SendGoAwayCancelIfShutdownCanceledAsync()
             {

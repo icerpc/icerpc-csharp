@@ -36,9 +36,6 @@ namespace IceRpc.Internal
         // private readonly AsyncSemaphore? _unidirectionalStreamSemaphore;
         private bool _shutdown;
 
-        static int _nextId = 0;
-        private int _id;
-
         /// <summary>Creates a multi-stream protocol connection.</summary>
         public Ice1ProtocolConnection(
             ISingleStreamConnection singleStreamConnection,
@@ -47,7 +44,6 @@ namespace IceRpc.Internal
             int? datagramMaxReceiveSize,
             ILogger logger)
         {
-            _id = ++_nextId;
             _stream = singleStreamConnection;
             _incomingFrameMaxSize = incomingFrameMaxSize;
             _isServer = isServer;
@@ -564,11 +560,11 @@ namespace IceRpc.Internal
         {
             lock (_mutex)
             {
-                Debug.Assert(_shutdown);
-                foreach (CancellationTokenSource source in _dispatchCancellationTokenSources.Values)
-                {
-                    source.Cancel();
-                }
+                // Debug.Assert(_shutdown);
+                // foreach (CancellationTokenSource source in _dispatchCancellationTokenSources.Values)
+                // {
+                //     source.Cancel();
+                // }
             }
         }
 

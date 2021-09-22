@@ -56,10 +56,6 @@ namespace IceRpc.Transports
             set
             {
                 _shutdownAction = value;
-                if (IsStarted && (Id == 2 || Id == 3))
-                {
-                    // Console.Error.WriteLine($"shut down action set {IsRemote} {Id} {IsShutdown}");
-                }
                 if (IsShutdown)
                 {
                     // It's possible for the action to be called twice if shutdown occurs between the assignment
@@ -119,7 +115,6 @@ namespace IceRpc.Transports
             var shutdownCompletionSource = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             ShutdownAction = () => shutdownCompletionSource.TrySetResult();
             await shutdownCompletionSource.Task.WaitAsync(cancel).ConfigureAwait(false);
-            // Console.Error.WriteLine($"shutdown completed {IsRemote} {Id}");
         }
 
         /// <inheritdoc/>
@@ -138,11 +133,6 @@ namespace IceRpc.Transports
             {
                 // Write-side of remote unidirectional stream is marked as completed.
                 TrySetWriteCompleted();
-            }
-
-            if (_id == 2 || _id == 3)
-            {
-                // Console.Error.WriteLine($"create stream {IsRemote} {_id}");
             }
         }
 
@@ -166,12 +156,7 @@ namespace IceRpc.Transports
             Debug.Assert(_state == (int)(State.ReadCompleted | State.WriteCompleted | State.Shutdown));
             try
             {
-                var action = ShutdownAction;
-                action?.Invoke();
-                if (Id == 2 || Id == 3)
-                {
-                    // Console.Error.WriteLine($"shutting down {IsRemote} {Id} {action != null}");
-                }
+                ShutdownAction?.Invoke();
             }
             catch (Exception ex)
             {

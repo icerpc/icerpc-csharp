@@ -459,10 +459,6 @@ namespace IceRpc.Transports.Internal
 
         internal void ReceivedReset(StreamError errorCode)
         {
-            if (errorCode == StreamError.ConnectionShutdown)
-            {
-                // Console.Error.WriteLine($"received reset {IsRemote} {Id} {errorCode}");
-            }
             if (!IsBidirectional && !IsRemote)
             {
                 throw new InvalidDataException("received reset frame on local unidirectional stream");

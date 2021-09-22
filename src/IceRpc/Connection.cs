@@ -416,11 +416,6 @@ namespace IceRpc
                 request.RetryPolicy = RetryPolicy.Immediately;
                 throw;
             }
-            // catch (TransportException) when (!request.IsSent && State > ConnectionState.Active)
-            // {
-            //     // The connection is being closed.
-            //     throw new ConnectionClosedException("connection shutdown");
-            // }
             catch (TransportException)
             {
                 if (request.IsIdempotent || !request.IsSent)

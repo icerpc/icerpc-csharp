@@ -73,7 +73,6 @@ namespace IceRpc.Transports.Internal
                 catch (Exception ex)
                 {
                     // Ignore.
-                    Console.Error.WriteLine(ex);
                 }
                 TryShutdown();
             }
@@ -96,14 +95,9 @@ namespace IceRpc.Transports.Internal
                 try
                 {
                     await SendResetFrameAsync(errorCode).ConfigureAwait(false);
-                    if (errorCode == StreamError.ConnectionShutdown)
-                    {
-                        // Console.Error.WriteLine($"sent reset {IsRemote} {Id} {errorCode}");
-                    }
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"sent reset failed {IsRemote} {Id} {errorCode} {ex}");
                     // Ignore.
                 }
                 TrySetWriteCompleted();

@@ -9,6 +9,7 @@
         <AnalysisMode>AllEnabledByDefault</AnalysisMode>
 
         <PackageVersion>4.0.0-alpha.0</PackageVersion>
+
         <Authors>ZeroC</Authors>
         <PackageId>zeroc.ice.net</PackageId>
         <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
@@ -19,7 +20,6 @@
         <PackageReleaseNotes>TODO</PackageReleaseNotes>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
         <PackageTags>IceRPC</PackageTags>
-        <ImplicitUsings>true</ImplicitUsings>
     </PropertyGroup>
     <ItemGroup>
         <!-- TODO: output in Slice and Transports/Slic subdirs -->
