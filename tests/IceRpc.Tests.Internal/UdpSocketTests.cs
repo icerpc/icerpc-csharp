@@ -11,8 +11,8 @@ namespace IceRpc.Tests.Internal
     [Timeout(5000)]
     public class UdpTests : NetworkSocketBaseTest
     {
-        private INetworkSocket ClientSocket => _clientSocket!;
-        private INetworkSocket ServerSocket => _serverSocket!;
+        private NetworkSocket ClientSocket => _clientSocket!;
+        private NetworkSocket ServerSocket => _serverSocket!;
         private NetworkSocket? _clientSocket;
         private NetworkSocket? _serverSocket;
 
@@ -45,7 +45,7 @@ namespace IceRpc.Tests.Internal
             byte[] sendBuffer = new byte[size];
             new Random().NextBytes(sendBuffer);
 
-            List<INetworkSocket> clientSockets = new();
+            List<NetworkSocket> clientSockets = new();
             clientSockets.Add(ClientSocket);
             for (int i = 0; i < clientConnectionCount; ++i)
             {
@@ -58,7 +58,7 @@ namespace IceRpc.Tests.Internal
             {
                 try
                 {
-                    foreach (INetworkSocket connection in clientSockets)
+                    foreach (NetworkSocket connection in clientSockets)
                     {
                         using var source = new CancellationTokenSource(1000);
                         ValueTask sendTask = connection.SendAsync(sendBuffer, default);

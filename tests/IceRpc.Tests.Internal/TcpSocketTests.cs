@@ -12,8 +12,8 @@ namespace IceRpc.Tests.Internal
     [Timeout(5000)]
     public class TcpTests : NetworkSocketBaseTest
     {
-        private INetworkSocket ClientSocket => _clientSocket!;
-        private INetworkSocket ServerSocket => _serverSocket!;
+        private NetworkSocket ClientSocket => _clientSocket!;
+        private NetworkSocket ServerSocket => _serverSocket!;
         private NetworkSocket? _clientSocket;
         private NetworkSocket? _serverSocket;
 
@@ -147,7 +147,7 @@ namespace IceRpc.Tests.Internal
             await test1;
             await test2;
 
-            async ValueTask Test(INetworkSocket connection1, INetworkSocket connection2)
+            async ValueTask Test(NetworkSocket connection1, NetworkSocket connection2)
             {
                 ValueTask sendTask = connection1.SendAsync(sendBuffer, default);
                 Memory<byte> receiveBuffer = new byte[size];
