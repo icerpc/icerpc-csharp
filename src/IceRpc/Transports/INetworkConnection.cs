@@ -12,7 +12,7 @@ namespace IceRpc.Transports
         /// connection.</summary>
         int DatagramMaxReceiveSize { get; }
 
-        /// <summary>Gets or set the idle timeout.</summary>
+        /// <summary>Gets the idle timeout.</summary>
         TimeSpan IdleTimeout { get; }
 
         /// <summary><c>true</c> for a datagram network connection; <c>false</c> otherwise.</summary>

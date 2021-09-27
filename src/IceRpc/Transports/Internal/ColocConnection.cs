@@ -43,7 +43,8 @@ namespace IceRpc.Transports.Internal
 
         public async ValueTask<IMultiStreamConnection> GetMultiStreamConnectionAsync(CancellationToken cancel)
         {
-            _slicConnection = await NetworkConnection.CreateSlicConnection(
+            // Multi-stream support for a colocated connection is provided by Slic.
+            _slicConnection ??= await NetworkConnection.CreateSlicConnection(
                 this,
                 IsServer,
                 TimeSpan.MaxValue,

@@ -4,10 +4,10 @@ using IceRpc.Internal;
 using IceRpc.Transports.Internal.Slic;
 using Microsoft.Extensions.Logging;
 
-namespace IceRpc.Transports
+namespace IceRpc.Transports.Internal
 {
     /// <summary>A network socket connection based on a <see cref="NetworkSocket"/>.</summary>
-    public sealed class NetworkSocketConnection : INetworkConnection, ISingleStreamConnection
+    internal sealed class NetworkSocketConnection : INetworkConnection, ISingleStreamConnection
     {
         /// <inheritdoc/>
         public int DatagramMaxReceiveSize => NetworkSocket.DatagramMaxReceiveSize;
@@ -36,7 +36,7 @@ namespace IceRpc.Transports
         internal NetworkSocket NetworkSocket { get; }
 
         private readonly TimeSpan _idleTimeout;
-        private long _lastActivity;
+        private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
         private readonly ILogger _logger;
         private SlicConnection? _slicConnection;
         private readonly SlicOptions _slicOptions;
@@ -67,7 +67,8 @@ namespace IceRpc.Transports
         /// <inheritdoc/>
         public async ValueTask<IMultiStreamConnection> GetMultiStreamConnectionAsync(CancellationToken cancel)
         {
-            _slicConnection = await NetworkConnection.CreateSlicConnection(
+            // Multi-stream support for a network socket connection is provided by Slic.
+            _slicConnection ??= await NetworkConnection.CreateSlicConnection(
                 this,
                 IsServer,
                 _idleTimeout,
@@ -99,10 +100,13 @@ namespace IceRpc.Transports
         }
 
         /// <inheritdoc/>
-        ValueTask ISingleStreamConnection.SendAsync(
+        async ValueTask ISingleStreamConnection.SendAsync(
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
-            CancellationToken cancel) =>
-            NetworkSocket.SendAsync(buffers, cancel);
+            CancellationToken cancel)
+        {
+            await NetworkSocket.SendAsync(buffers, cancel).ConfigureAwait(false);
+            Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
+        }
 
         /// <inheritdoc/>
         public override string? ToString() => NetworkSocket.ToString();

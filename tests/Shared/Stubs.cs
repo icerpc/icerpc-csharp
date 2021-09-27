@@ -1,11 +1,43 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IceRpc.Tests
 {
+    /// <summary>A network socket stub</summary>
+    internal class NetworkSocketStub : NetworkSocket
+    {
+        public override bool IsDatagram => _isDatagram;
+        public bool Disposed { get; private set; }
+
+        internal Endpoint? Endpoint { get; private set; }
+
+        private readonly bool _isDatagram;
+
+        public override ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
+        {
+            Endpoint = endpoint;
+            return new(endpoint);
+        }
+
+        public override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
+            Endpoint?.Params.SequenceEqual(remoteEndpoint.Params) ?? false;
+
+        public override ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel) =>
+            new(buffer.Length);
+
+        public override ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
+            default;
+
+        public override ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
+             default;
+
+        protected override void Dispose(bool disposing) => Disposed = true;
+
+        internal NetworkSocketStub(bool isDatagram) :
+            base(null!) => _isDatagram = isDatagram;
+    }
+
     /// <summary>A network connection stub can be used just to provide the local and remote endpoint
     /// properties for a connection.</summary>
     internal class NetworkConnectionStub : INetworkConnection
