@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Transports
 {
-    /// <summary>The NetworkConnection factory methods for creating network connections.</summary>
+    /// <summary>The NetworkConnection static class provides methods to create network connections.</summary>
     public static class NetworkConnection
     {
         /// <summary>Creates a new network socket connection based on <see cref="NetworkSocket"/></summary>
@@ -34,8 +34,8 @@ namespace IceRpc.Transports
                 logger),
                 logger);
 
-        /// <summary>Creates a network connection decorator to log received and sent bytes from the network
-        /// connection.</summary>
+        /// <summary>Creates a network connection decorator to log received and sent bytes from the given
+        /// network connection. This enables 3rd-party transports to provide logging.</summary>
         public static INetworkConnection CreateLogNetworkConnection(
             INetworkConnection networkConnection,
             ILogger logger)
@@ -50,6 +50,12 @@ namespace IceRpc.Transports
             }
         }
 
+        /// <summary>Creates a Slic multi-stream connection to provide multi-stream connection support for
+        /// transports that only provide a single-stream connection implementation.</summary>
+        // TODO: This is not public right now because it returns a non-public SlicConnection object (required
+        // because IMultiStreamConnection is not disposable). However, it should be public to allow 3rd-party
+        // transports to use use Slic. So ... perhaps return (IMultiStreamConnection, IDisposable) or make
+        // IMultiStreamConnection inherit from IDisposable.
         internal static async ValueTask<SlicConnection> CreateSlicConnection(
             ISingleStreamConnection singleStreamConnection,
             bool isServer,
