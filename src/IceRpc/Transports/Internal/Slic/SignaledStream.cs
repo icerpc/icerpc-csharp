@@ -3,7 +3,7 @@
 using System.Diagnostics;
 using System.Threading.Tasks.Sources;
 
-namespace IceRpc.Transports.Internal
+namespace IceRpc.Transports.Internal.Slic
 {
     /// <summary>The SignaledStream abstract class provides signaling functionality using the
     /// IValueTaskSource interface. It's useful for stream implementations that depend on the connection

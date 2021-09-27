@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Transports.Internal.Slic;
 using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Transports
@@ -37,35 +38,8 @@ namespace IceRpc.Transports
         private readonly TimeSpan _idleTimeout;
         private long _lastActivity;
         private readonly ILogger _logger;
-        private Internal.SlicConnection? _slicConnection;
+        private SlicConnection? _slicConnection;
         private readonly SlicOptions _slicOptions;
-
-        /// <summary>Creates a new network socket connection based on <see cref="NetworkSocket"/></summary>
-        /// <param name="socket">The network socket. It can be a client socket or server socket, and
-        /// the resulting connection will be likewise a client or server network connection.</param>
-        /// <param name="endpoint">For a client connection, the remote endpoint; for a server connection, the
-        /// endpoint the server is listening on.</param>
-        /// <param name="isServer">The connection is a server connection.</param>
-        /// <param name="idleTimeout">The connection idle timeout.</param>
-        /// <param name="slicOptions">The Slic options.</param>
-        /// <param name="logger">The logger.</param>
-        public NetworkSocketConnection(
-            NetworkSocket socket,
-            Endpoint endpoint,
-            bool isServer,
-            TimeSpan idleTimeout,
-            SlicOptions slicOptions,
-            ILogger logger)
-        {
-            IsServer = isServer;
-            LocalEndpoint = IsServer ? endpoint : null;
-            RemoteEndpoint = IsServer ? null : endpoint;
-            _idleTimeout = idleTimeout;
-            _logger = logger;
-            _slicOptions = slicOptions;
-
-            NetworkSocket = socket;
-        }
 
         /// <inheritdoc/>
         public async ValueTask ConnectAsync(CancellationToken cancel)
@@ -93,8 +67,13 @@ namespace IceRpc.Transports
         /// <inheritdoc/>
         public async ValueTask<IMultiStreamConnection> GetMultiStreamConnectionAsync(CancellationToken cancel)
         {
-            _slicConnection = new Internal.SlicConnection(this, IsServer, _idleTimeout, _logger, _slicOptions);
-            await _slicConnection.InitializeAsync(cancel).ConfigureAwait(false);
+            _slicConnection = await NetworkConnection.CreateSlicConnection(
+                this,
+                IsServer,
+                _idleTimeout,
+                _slicOptions,
+                _logger,
+                cancel).ConfigureAwait(false);
             return _slicConnection;
         }
 
@@ -127,5 +106,23 @@ namespace IceRpc.Transports
 
         /// <inheritdoc/>
         public override string? ToString() => NetworkSocket.ToString();
+
+        internal NetworkSocketConnection(
+            NetworkSocket socket,
+            Endpoint endpoint,
+            bool isServer,
+            TimeSpan idleTimeout,
+            SlicOptions slicOptions,
+            ILogger logger)
+        {
+            IsServer = isServer;
+            LocalEndpoint = IsServer ? endpoint : null;
+            RemoteEndpoint = IsServer ? null : endpoint;
+            _idleTimeout = idleTimeout;
+            _logger = logger;
+            _slicOptions = slicOptions;
+
+            NetworkSocket = socket;
+        }
     }
 }

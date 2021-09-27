@@ -79,14 +79,12 @@ namespace IceRpc.Transports
                 throw new TransportException(ex);
             }
 
-            return LogNetworkConnectionDecorator.Create(
-                new NetworkSocketConnection(
-                    new TcpClientSocket(socket, _authenticationOptions, netEndPoint),
-                    remoteEndpoint,
-                    isServer: false,
-                    _tcpOptions.IdleTimeout,
-                    _slicOptions,
-                    logger),
+            return NetworkConnection.CreateNetworkSocketConnection(
+                new TcpClientSocket(socket, _authenticationOptions, netEndPoint),
+                remoteEndpoint,
+                isServer: false,
+                _tcpOptions.IdleTimeout,
+                _slicOptions,
                 logger);
         }
     }

@@ -1,9 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports.Internal;
 using System.Diagnostics;
 
-namespace IceRpc.Transports
+namespace IceRpc.Transports.Internal.Slic
 {
 
     /// <summary>The NetworkStream abstract base class to be overridden by multi-stream network connection

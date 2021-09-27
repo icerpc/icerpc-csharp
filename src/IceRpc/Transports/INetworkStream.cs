@@ -65,7 +65,7 @@ namespace IceRpc.Transports
         /// the number of allocations as Ice will allocate buffer space for both the transport header and the Ice
         /// protocol header. If a header is returned here, the implementation of the SendAsync method should expect
         /// this header to be set at the start of the first buffer.</summary>
-        ReadOnlyMemory<byte> TransportHeader => default;
+        ReadOnlyMemory<byte> TransportHeader { get; }
 
         /// <summary>Abort the stream.</summary>
         /// <param name="errorCode">The reason of the abort.</param>
@@ -107,6 +107,25 @@ namespace IceRpc.Transports
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The number of bytes received.</returns>
         ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel);
+
+        /// <summary>Receives data from the stream until the given buffer is full.</summary>
+        /// <param name="buffer">The buffer that holds the received data.</param>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        /// <returns>A value task that completes once the buffer is filled up with received data.</returns>
+        async ValueTask ReceiveUntilFullAsync(Memory<byte> buffer, CancellationToken cancel)
+        {
+            // Loop until we received enough data to fully fill the given buffer.
+            int offset = 0;
+            while (offset < buffer.Length)
+            {
+                int received = await ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
+                if (received == 0)
+                {
+                    throw new InvalidDataException("unexpected end of stream");
+                }
+                offset += received;
+            }
+        }
 
         /// <summary>Sends data over the stream.</summary>
         /// <param name="buffers">The buffers containing the data to send.</param>

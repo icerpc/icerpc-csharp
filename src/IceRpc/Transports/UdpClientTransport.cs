@@ -95,15 +95,13 @@ namespace IceRpc.Transports
                 throw new TransportException(ex);
             }
 
-            return LogNetworkConnectionDecorator.Create(
-                    new NetworkSocketConnection(
-                        new UdpSocket(socket, isServer: false, netEndPoint, ttl, multicastInterface),
-                        remoteEndpoint,
-                        isServer: false,
-                        idleTimeout: _options.IdleTimeout,
-                        new(),
-                        logger),
-                    logger);
+            return NetworkConnection.CreateNetworkSocketConnection(
+                new UdpSocket(socket, isServer: false, netEndPoint, ttl, multicastInterface),
+                remoteEndpoint,
+                isServer: false,
+                idleTimeout: _options.IdleTimeout,
+                new(),
+                logger);
         }
     }
 }

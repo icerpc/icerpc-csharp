@@ -25,9 +25,21 @@ namespace IceRpc.Transports.Internal
             (ChannelWriter<ReadOnlyMemory<byte>> writer, ChannelReader<ReadOnlyMemory<byte>> reader) =
                 await _channel.Reader.ReadAsync().ConfigureAwait(false);
 
-            return LogNetworkConnectionDecorator.Create(
-                new ColocConnection(Endpoint, isServer: true, _options, writer, reader, _logger),
+            var networkConnection = new ColocConnection(
+                Endpoint,
+                isServer: true,
+                _options,
+                writer,
+                reader,
                 _logger);
+            if (_logger.IsEnabled(LogLevel.Trace))
+            {
+                return new LogNetworkConnectionDecorator(networkConnection, _logger);
+            }
+            else
+            {
+                return networkConnection;
+            }
         }
 
         public void Dispose()

@@ -207,10 +207,14 @@ namespace IceRpc.Slice
                     Memory<byte> buffer = new byte[256];
                     try
                     {
-                        int received = await ReceiveFullAsync(buffer.Slice(0, 2), true, cancel).ConfigureAwait(false);
+                        int received = await _networkStream.ReceiveAsync(buffer[0..2], cancel).ConfigureAwait(false);
                         if (received == 0)
                         {
                             break; // EOF
+                        }
+                        else if (received == 1)
+                        {
+                            await _networkStream.ReceiveUntilFullAsync(buffer[1..2], cancel).ConfigureAwait(false);
                         }
 
                         if ((Ice2FrameType)buffer.Span[0] != Ice2FrameType.BoundedData)
@@ -223,10 +227,12 @@ namespace IceRpc.Slice
                         int sizeLength = Ice20Decoder.DecodeSizeLength(buffer.Span[1]);
                         if (sizeLength > 1)
                         {
-                            await ReceiveFullAsync(buffer.Slice(2, sizeLength - 1), false, cancel).ConfigureAwait(false);
+                            await _networkStream.ReceiveUntilFullAsync(
+                                buffer[2..(sizeLength - 1)],
+                                cancel).ConfigureAwait(false);
                         }
-                        int size = Ice20Decoder.DecodeSize(buffer[1..].AsReadOnlySpan()).Size;
 
+                        int size = Ice20Decoder.DecodeSize(buffer[1..].AsReadOnlySpan()).Size;
                         if (size > _connection.IncomingFrameMaxSize)
                         {
                             throw new InvalidDataException(
@@ -237,7 +243,7 @@ namespace IceRpc.Slice
 
                         buffer = size > buffer.Length ? new byte[size] : buffer.Slice(0, size);
 
-                        await ReceiveFullAsync(buffer, false, cancel).ConfigureAwait(false);
+                        await _networkStream.ReceiveUntilFullAsync(buffer, cancel).ConfigureAwait(false);
                     }
                     catch
                     {
@@ -261,28 +267,6 @@ namespace IceRpc.Slice
                         yield return value;
                     }
                     while (decoder.Pos < buffer.Length);
-                }
-
-                async ValueTask<int> ReceiveFullAsync(Memory<byte> buffer, bool checkEof, CancellationToken cancel)
-                {
-                    int offset = 0;
-                    while (offset < buffer.Length)
-                    {
-                        int received = await _networkStream.ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
-                        if (received == 0)
-                        {
-                            if (checkEof && offset == 0)
-                            {
-                                return 0;
-                            }
-                            else
-                            {
-                                throw new InvalidDataException("unexpected end of stream");
-                            }
-                        }
-                        offset += received;
-                    }
-                    return offset;
                 }
             }
         }

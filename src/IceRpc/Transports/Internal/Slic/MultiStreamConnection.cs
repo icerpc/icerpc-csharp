@@ -8,7 +8,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
-namespace IceRpc.Transports
+namespace IceRpc.Transports.Internal.Slic
 {
     /// <summary>A multi-stream connection represents a network connection that provides multiple independent
     /// streams of binary data.</summary>

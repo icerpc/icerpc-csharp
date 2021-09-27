@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Transports.Internal.Slic;
 using Microsoft.Extensions.Logging;
 using System.Threading.Channels;
 
@@ -42,13 +43,13 @@ namespace IceRpc.Transports.Internal
 
         public async ValueTask<IMultiStreamConnection> GetMultiStreamConnectionAsync(CancellationToken cancel)
         {
-            _slicConnection = new SlicConnection(
+            _slicConnection = await NetworkConnection.CreateSlicConnection(
                 this,
                 IsServer,
                 TimeSpan.MaxValue,
+                _options,
                 _logger,
-                _options);
-            await _slicConnection.InitializeAsync(cancel).ConfigureAwait(false);
+                cancel).ConfigureAwait(false);
             return _slicConnection;
         }
 

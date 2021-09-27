@@ -5,7 +5,7 @@ using IceRpc.Slice.Internal;
 using IceRpc.Transports.Slic;
 using System.Diagnostics;
 
-namespace IceRpc.Transports.Internal
+namespace IceRpc.Transports.Internal.Slic
 {
     /// <summary>The stream implementation for Slic. The stream implementation implements flow control to
     /// ensure data isn't buffered indefinitely if the application doesn't consume it. Buffering and flow
@@ -20,7 +20,9 @@ namespace IceRpc.Transports.Internal
     internal class SlicStream : SignaledStream<(int, bool)>
     {
         public override ReadOnlyMemory<byte> TransportHeader => SlicDefinitions.FrameHeader;
-
+        private readonly SlicConnection _connection;
+        private SpinLock _lock;
+        private readonly ISlicFrameReader _reader;
         private volatile CircularBuffer? _receiveBuffer;
         // The receive credit. This is the amount of data received from the peer that we didn't acknowledge as
         // received yet. Once the credit reach a given threshold, we'll notify the peer with a StreamConsumed
@@ -36,9 +38,8 @@ namespace IceRpc.Transports.Internal
         private volatile int _sendCredit = int.MaxValue;
         // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
         private AsyncSemaphore? _sendSemaphore;
-        private readonly SlicConnection _connection;
         // A lock to ensure ReceivedFrame and EnableReceiveFlowControl are thread-safe.
-        private SpinLock _lock;
+        private readonly ISlicFrameWriter _writer;
 
         public override void EnableReceiveFlowControl()
         {
@@ -112,7 +113,7 @@ namespace IceRpc.Transports.Internal
             if (_receiveBuffer == null)
             {
                 // Read and append the received stream frame data into the given buffer.
-                await _connection.ReceiveDataAsync(buffer.Slice(0, size), CancellationToken.None).ConfigureAwait(false);
+                await _reader.ReadStreamFrameDataAsync(buffer[0..size], CancellationToken.None).ConfigureAwait(false);
             }
             else
             {
@@ -129,13 +130,9 @@ namespace IceRpc.Transports.Internal
                     Interlocked.Exchange(ref _receiveCredit, 0);
 
                     // Notify the peer that it can send additional data.
-                    await _connection.PrepareAndSendFrameAsync(
-                        SlicDefinitions.FrameType.StreamConsumed,
-                        encoder => new StreamConsumedBody((ulong)consumed).Encode(encoder),
-                        frameSize => _connection.Logger.LogSendingSlicFrame(
-                            SlicDefinitions.FrameType.StreamConsumed,
-                            frameSize),
+                    await _writer.WriteStreamConsumedAsync(
                         this,
+                        new StreamConsumedBody((ulong)consumed),
                         CancellationToken.None).ConfigureAwait(false);
                 }
             }
@@ -168,10 +165,10 @@ namespace IceRpc.Transports.Internal
             int size = buffers.GetByteCount() - TransportHeader.Length;
             if (size == 0)
             {
-                // Send an empty last stream frame if there's no data to send. There's no need to check
-                // send flow control credit if there's no data to send.
+                // Send an empty last stream frame if there's no data to send. There's no need to check send
+                // flow control credit if there's no data to send.
                 Debug.Assert(endStream);
-                await _connection.SendStreamFrameAsync(this, 0, true, buffers, cancel).ConfigureAwait(false);
+                await _connection.SendStreamFrameAsync(this, buffers, true, cancel).ConfigureAwait(false);
                 return;
             }
 
@@ -260,9 +257,8 @@ namespace IceRpc.Transports.Internal
                 {
                     await _connection.SendStreamFrameAsync(
                         this,
-                        sendSize,
-                        lastBuffer && endStream,
                         sendBuffer.ToArray(),
+                        lastBuffer && endStream,
                         cancel).ConfigureAwait(false);
                 }
                 else
@@ -279,9 +275,8 @@ namespace IceRpc.Transports.Internal
 
                         await _connection.SendStreamFrameAsync(
                             this,
-                            sendSize,
-                            lastBuffer && endStream,
                             sendBuffer.ToArray(),
+                            lastBuffer && endStream,
                             cancel).ConfigureAwait(false);
 
                         // If flow control allows sending more data, release the semaphore.
@@ -336,15 +331,33 @@ namespace IceRpc.Transports.Internal
             {
                 // It's important to decrement the stream count before sending the StreamLast frame to prevent
                 // a race where the peer could start a new stream before the counter is decremented.
-                _ = _connection.PrepareAndSendFrameAsync(SlicDefinitions.FrameType.StreamLast, stream: this);
+                _writer.WriteStreamFrameAsync(
+                    this,
+                    new ReadOnlyMemory<byte>[] { SlicDefinitions.FrameHeader.ToArray() },
+                    true,
+                    default).AsTask();
             }
         }
 
-        internal SlicStream(SlicConnection connection, long streamId)
-            : base(connection, streamId) => _connection = connection;
+        internal SlicStream(SlicConnection connection, long streamId, ISlicFrameReader reader, ISlicFrameWriter writer)
+            : base(connection, streamId)
+        {
+            _connection = connection;
+            _reader = reader;
+            _writer = writer;
+        }
 
-        internal SlicStream(SlicConnection connection, bool bidirectional)
-            : base(connection, bidirectional) => _connection = connection;
+        internal SlicStream(
+            SlicConnection connection,
+            bool bidirectional,
+            ISlicFrameReader reader,
+            ISlicFrameWriter writer)
+            : base(connection, bidirectional)
+        {
+            _connection = connection;
+            _reader = reader;
+            _writer = writer;
+        }
 
         internal void ReceivedConsumed(int size)
         {
@@ -429,7 +442,7 @@ namespace IceRpc.Transports.Internal
                         // chunk than the requested size. If this is the case, we loop to receive the remaining
                         // data in a next available chunk.
                         Memory<byte> chunk = _receiveBuffer.Enqueue(size - offset);
-                        await _connection.ReceiveDataAsync(chunk, CancellationToken.None).ConfigureAwait(false);
+                        await _reader.ReadStreamFrameDataAsync(chunk, CancellationToken.None).ConfigureAwait(false);
                         offset += chunk.Length;
                     }
                 }
@@ -472,17 +485,9 @@ namespace IceRpc.Transports.Internal
         }
 
         private protected override Task SendResetFrameAsync(StreamError errorCode) =>
-            _connection.PrepareAndSendFrameAsync(
-                SlicDefinitions.FrameType.StreamReset,
-                encoder => new StreamResetBody((ulong)errorCode).Encode(encoder),
-                frameSize => _connection.Logger.LogSendingSlicResetFrame(frameSize, errorCode),
-                this);
+            _writer.WriteStreamResetAsync(this, new StreamResetBody((ulong)errorCode), default).AsTask();
 
         private protected override Task SendStopSendingFrameAsync(StreamError errorCode) =>
-            _connection.PrepareAndSendFrameAsync(
-                SlicDefinitions.FrameType.StreamStopSending,
-                encoder => new StreamStopSendingBody((ulong)errorCode).Encode(encoder),
-                frameSize => _connection.Logger.LogSendingSlicStopSendingFrame(frameSize, errorCode),
-                this);
+            _writer.WriteStreamStopSendingAsync(this, new StreamStopSendingBody((ulong)errorCode), default).AsTask();
     }
 }

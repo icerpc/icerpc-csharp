@@ -95,17 +95,14 @@ namespace IceRpc.Transports
                 throw;
             }
 
-            return (
-                null,
-                LogNetworkConnectionDecorator.Create(
-                    new NetworkSocketConnection(
+            return (null,
+                    NetworkConnection.CreateNetworkSocketConnection(
                         new UdpSocket(socket, isServer: true, multicastAddress),
                         endpoint with { Port = port },
                         isServer: true,
                         idleTimeout: TimeSpan.MaxValue,
                         new(),
-                        logger),
-                    logger));
+                        logger));
         }
     }
 }

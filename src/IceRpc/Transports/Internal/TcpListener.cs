@@ -22,16 +22,14 @@ namespace IceRpc.Transports.Internal
         {
             try
             {
-                return LogNetworkConnectionDecorator.Create(
-                    new NetworkSocketConnection(
-                        new TcpServerSocket(
-                            await _socket.AcceptAsync().ConfigureAwait(false),
-                            _authenticationOptions),
-                        Endpoint,
-                        isServer: true,
-                        _idleTimeout,
-                        _slicOptions,
-                        _logger),
+                return NetworkConnection.CreateNetworkSocketConnection(
+                    new TcpServerSocket(
+                        await _socket.AcceptAsync().ConfigureAwait(false),
+                        _authenticationOptions),
+                    Endpoint,
+                    isServer: true,
+                    _idleTimeout,
+                    _slicOptions,
                     _logger);
             }
             catch (Exception ex)

@@ -4,9 +4,24 @@
 
 [[suppress-warning(reserved-identifier)]]
 
+#include <IceRpc/BuiltinSequences.ice>
+
 // These definitions help with the encoding of Slic frames.
 module IceRpc::Transports::Slic
 {
+    /// The Slic frame types
+    enum FrameType : byte
+    {
+        Initialize = 1,
+        InitializeAck,
+        Version,
+        Stream,
+        StreamLast,
+        StreamReset,
+        StreamConsumed,
+        StreamStopSending
+    }
+
     /// The keys for supported Slic connection parameters.
     unchecked enum ParameterKey : int
     {
@@ -17,13 +32,25 @@ module IceRpc::Transports::Slic
         StreamBufferMaxSize = 4,
     }
 
-    /// The header of the Slic initialize frame body. This header is followed by connection parameters encoded as
-    /// Fields.
+    dictionary<varint, ByteSeq> ParameterFields;
+
+    /// The Slic initialize frame body.
     [cs:readonly]
-    struct InitializeHeaderBody
+    struct InitializeBody
     {
         /// The application protocol name.
         string applicationProtocolName;
+
+        /// The parameters.
+        ParameterFields parameters;
+    }
+
+    /// The Slic initialize acknowledgment frame body.
+    [cs:readonly]
+    struct InitializeAckBody
+    {
+        /// The parameters.
+        ParameterFields parameters;
     }
 
     sequence<varuint> VersionSeq;

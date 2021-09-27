@@ -31,11 +31,6 @@ namespace IceRpc.Transports.Internal
         private ISingleStreamConnection? _singleStreamDecoratee;
         private IMultiStreamConnection? _multiStreamDecoratee;
 
-        public static INetworkConnection Create(INetworkConnection networkConnection, ILogger logger) =>
-            logger.IsEnabled(LogLevel.Trace) ?
-                new LogNetworkConnectionDecorator(networkConnection, logger) :
-                networkConnection;
-
         async ValueTask<INetworkStream> IMultiStreamConnection.AcceptStreamAsync(CancellationToken cancel)
         {
             try
@@ -141,7 +136,7 @@ namespace IceRpc.Transports.Internal
                 int received = await _singleStreamDecoratee!.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
                 if (Logger.IsEnabled(LogLevel.Trace))
                 {
-                    Logger.LogReceivedData(buffer.Length, PrintReceivedData(buffer[0..received]));
+                    Logger.LogReceivedData(received, PrintReceivedData(buffer[0..received]));
                 }
                 return received;
             }
@@ -263,6 +258,7 @@ namespace IceRpc.Transports.Internal
             get => _decoratee.ShutdownAction;
             set => _decoratee.ShutdownAction = value;
         }
+        public ReadOnlyMemory<byte> TransportHeader => _decoratee.TransportHeader;
 
         public void AbortRead(StreamError errorCode) => _decoratee.AbortRead(errorCode);
 
@@ -281,9 +277,8 @@ namespace IceRpc.Transports.Internal
                 int received = await _decoratee.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
                 if (_parent.Logger.IsEnabled(LogLevel.Trace))
                 {
-                    _parent.Logger.LogReceivedData(
-                        buffer.Length,
-                        LogNetworkConnectionDecorator.PrintReceivedData(buffer[0..received]));
+                    string data = LogNetworkConnectionDecorator.PrintReceivedData(buffer[0..received]);
+                    _parent.Logger.LogReceivedData(received, data);
                 }
                 return received;
             }

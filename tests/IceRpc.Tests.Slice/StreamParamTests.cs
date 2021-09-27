@@ -13,6 +13,7 @@ namespace IceRpc.Tests.Slice.Stream
     [Parallelizable(ParallelScope.All)]
     [TestFixture("slic")]
     [TestFixture("coloc")]
+    [Log(LogAttributeLevel.Trace)]
     public sealed class StreamParamTests : IAsyncDisposable
     {
         private readonly Connection _connection;

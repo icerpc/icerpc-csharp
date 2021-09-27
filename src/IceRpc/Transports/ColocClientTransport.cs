@@ -25,8 +25,13 @@ namespace IceRpc.Transports
                 ChannelWriter<ReadOnlyMemory<byte>> writer;
                 (reader, writer) = listener.NewClientConnection();
                 ILogger logger = loggerFactory.CreateLogger("IceRpc.Transports");
-                return LogNetworkConnectionDecorator.Create(
-                    new ColocConnection(remoteEndpoint, isServer: false, _slicOptions, writer, reader, logger),
+                return NetworkConnection.CreateLogNetworkConnection(new ColocConnection(
+                        remoteEndpoint,
+                        isServer: false,
+                        _slicOptions,
+                        writer,
+                        reader,
+                        logger),
                     logger);
             }
             else
