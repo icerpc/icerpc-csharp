@@ -1,9 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
 using System.Net.Security;
 using System.Net.Sockets;
-using System.Text;
 
 namespace IceRpc.Transports
 {

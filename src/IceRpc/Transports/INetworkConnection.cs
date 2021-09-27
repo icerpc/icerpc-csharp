@@ -2,7 +2,10 @@
 
 namespace IceRpc.Transports
 {
-    /// <summary>A network connection represents the low-level transport to exchange data as bytes.</summary>
+    /// <summary>A network connection represents the low-level transport to exchange data as bytes. A network
+    /// connection supports both exchanging data using an <see cref="ISingleStreamConnection"/> (for the Ice1
+    /// protocol) or a <see cref="IMultiStreamConnection"/> (for the Ice2 protocol). A single-stream transport
+    /// such as TCP or Coloc, uses Slic to provide multi-stream support.</summary>
     public interface INetworkConnection : IDisposable
     {
         /// <summary>The maximum size of a received datagram if this connection is a datagram
@@ -40,8 +43,7 @@ namespace IceRpc.Transports
 
         /// <summary>Connects a new client or server network connection. This is called after the endpoint
         /// created a new connection to establish the connection and perform blocking network level
-        /// initialization such as the TLS handshake or the Slic network protocol initialization.
-        /// </summary>
+        /// initialization such as the TLS handshake. </summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         ValueTask ConnectAsync(CancellationToken cancel);
 

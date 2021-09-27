@@ -2,7 +2,7 @@
 
 namespace IceRpc.Transports
 {
-    /// <summary>A multi-stream connection enable byte data exchange over multiple <see
+    /// <summary>A multi-stream connection enables byte data exchange over multiple <see
     /// cref="INetworkStream"/>.</summary>
     public interface IMultiStreamConnection
     {

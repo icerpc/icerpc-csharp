@@ -2,12 +2,15 @@
 
 namespace IceRpc.Transports
 {
-    /// <summary>Raised if a stream is aborted. This exception is internal.</summary>
+    /// <summary>Raised if a stream is aborted.</summary>
     public class StreamAbortedException : Exception
     {
-        internal StreamError ErrorCode { get; }
+        /// <summary>The stream error code.</summary>
+        public StreamError ErrorCode { get; }
 
-        internal StreamAbortedException(StreamError errorCode) :
+        /// <summary>Constructs a new exception.</summary>
+        /// <param name="errorCode">The stream error code.</param>
+        public StreamAbortedException(StreamError errorCode) :
             base($"stream aborted with error code {errorCode}") => ErrorCode = errorCode;
     }
 
@@ -112,6 +115,7 @@ namespace IceRpc.Transports
         /// <param name="buffer">The buffer that holds the received data.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A value task that completes once the buffer is filled up with received data.</returns>
+        /// TODO: XXX REMOVE
         async ValueTask ReceiveUntilFullAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             // Loop until we received enough data to fully fill the given buffer.
