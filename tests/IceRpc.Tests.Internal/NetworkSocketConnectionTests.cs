@@ -38,6 +38,7 @@ namespace IceRpc.Tests.Internal
                 slicOptions: new(),
                 null!);
             connection.Dispose();
+            connection.Dispose();
             Assert.That(((NetworkSocketStub)connection.NetworkSocket).Disposed, Is.True);
         }
 

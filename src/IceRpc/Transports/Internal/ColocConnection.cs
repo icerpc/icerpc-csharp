@@ -20,14 +20,14 @@ namespace IceRpc.Transports.Internal
 
         public bool IsServer { get; }
 
-        public TimeSpan LastActivity => TimeSpan.MinValue;
+        public TimeSpan LastActivity => TimeSpan.FromSeconds(0);
 
         public Endpoint? LocalEndpoint { get; }
 
         public Endpoint? RemoteEndpoint { get; }
 
         private readonly ILogger _logger;
-        private readonly SlicOptions _options;
+        private readonly SlicOptions _slicOptions;
         private readonly ChannelReader<ReadOnlyMemory<byte>> _reader;
         private ReadOnlyMemory<byte> _receivedBuffer;
         private SlicConnection? _slicConnection;
@@ -48,7 +48,7 @@ namespace IceRpc.Transports.Internal
                 this,
                 IsServer,
                 TimeSpan.MaxValue,
-                _options,
+                _slicOptions,
                 _logger,
                 cancel).ConfigureAwait(false);
             return _slicConnection;
@@ -129,7 +129,7 @@ namespace IceRpc.Transports.Internal
         internal ColocConnection(
             Endpoint endpoint,
             bool isServer,
-            SlicOptions options,
+            SlicOptions slicOptions,
             ChannelWriter<ReadOnlyMemory<byte>> writer,
             ChannelReader<ReadOnlyMemory<byte>> reader,
             ILogger logger)
@@ -137,7 +137,7 @@ namespace IceRpc.Transports.Internal
             IsServer = isServer;
             LocalEndpoint = endpoint;
             RemoteEndpoint = endpoint;
-            _options = options;
+            _slicOptions = slicOptions;
             _reader = reader;
             _writer = writer;
             _logger = logger;
