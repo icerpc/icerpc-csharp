@@ -69,6 +69,10 @@ namespace IceRpc.Transports
             SlicConnection? slicConnection = null;
             try
             {
+                if (logger.IsEnabled(LogLevel.Debug))
+                {
+                    singleStreamConnection = new LogSingleStreamConnectionDecorator(singleStreamConnection, logger);
+                }
                 reader = new StreamSlicFrameReader(singleStreamConnection);
                 writer = new StreamSlicFrameWriter(singleStreamConnection);
                 if (logger.IsEnabled(LogLevel.Debug))

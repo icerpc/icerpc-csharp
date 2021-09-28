@@ -68,11 +68,11 @@ namespace IceRpc.Transports.Internal.Slic
             {
                 logger.LogReceivedSlicInitializeAckFrame(
                     frameSize,
-                    string.Join(", ", body.Parameters.DecodedParameters().Select((k, v) => $"{k}={v}")));
+                    string.Join(", ", body.Parameters.DecodedParameters().Select(pair => $"{pair.Item1}={pair.Item2}")));
             }
         }
 
-        internal static void LogReceivingSlicInitializeFrame(
+        internal static void LogReceivedSlicInitializeFrame(
             this ILogger logger,
             int frameSize,
             uint version,
@@ -84,7 +84,7 @@ namespace IceRpc.Transports.Internal.Slic
                     frameSize,
                     version,
                     body.ApplicationProtocolName,
-                    string.Join(", ", body.Parameters.DecodedParameters().Select((k, v) => $"{k}={v}")));
+                    string.Join(", ", body.Parameters.DecodedParameters().Select(pair => $"{pair.Item1}={pair.Item2}")));
             }
         }
 
@@ -107,7 +107,7 @@ namespace IceRpc.Transports.Internal.Slic
             EventId = (int)SlicEventIds.SentConsumedFrame,
             EventName = nameof(SlicEventIds.SentConsumedFrame),
             Level = LogLevel.Debug,
-            Message = "sending Slic StreamConsumed frame (FrameSize={FrameSize}, ConsumedSize={ConsumedSize})")]
+            Message = "sent Slic StreamConsumed frame (FrameSize={FrameSize}, ConsumedSize={ConsumedSize})")]
         internal static partial void LogSentSlicConsumedFrame(
             this ILogger logger,
             int frameSize,
@@ -122,7 +122,7 @@ namespace IceRpc.Transports.Internal.Slic
             {
                 logger.LogSentSlicInitializeAckFrame(
                     frameSize,
-                    string.Join(", ", body.Parameters.DecodedParameters().Select((k, v) => $"{k}={v}")));
+                    string.Join(", ", body.Parameters.DecodedParameters().Select(pair => $"{pair.Item1}={pair.Item2}")));
             }
         }
 
@@ -138,7 +138,7 @@ namespace IceRpc.Transports.Internal.Slic
                     frameSize,
                     version,
                     body.ApplicationProtocolName,
-                    string.Join(", ", body.Parameters.DecodedParameters().Select((k, v) => $"{k}={v}")));
+                    string.Join(", ", body.Parameters.DecodedParameters().Select(pair => $"{pair.Item1}={pair.Item2}")));
             }
         }
 
@@ -146,7 +146,7 @@ namespace IceRpc.Transports.Internal.Slic
             EventId = (int)SlicEventIds.SentResetFrame,
             EventName = nameof(SlicEventIds.SentResetFrame),
             Level = LogLevel.Debug,
-            Message = "sending Slic StreamReset frame (FrameSize={FrameSize}, ErrorCode={ErrorCode})")]
+            Message = "sent Slic StreamReset frame (FrameSize={FrameSize}, ErrorCode={ErrorCode})")]
         internal static partial void LogSentSlicResetFrame(
             this ILogger logger,
             int frameSize,
@@ -156,7 +156,7 @@ namespace IceRpc.Transports.Internal.Slic
             EventId = (int)SlicEventIds.SentStopSendingFrame,
             EventName = nameof(SlicEventIds.SentStopSendingFrame),
             Level = LogLevel.Debug,
-            Message = "sending Slic StreamStopSending frame (FrameSize={FrameSize}, ErrorCode={ErrorCode})")]
+            Message = "sent Slic StreamStopSending frame (FrameSize={FrameSize}, ErrorCode={ErrorCode})")]
         internal static partial void LogSentSlicStopSendingFrame(
             this ILogger logger,
             int frameSize,
@@ -177,7 +177,7 @@ namespace IceRpc.Transports.Internal.Slic
             EventId = (int)SlicEventIds.ReceivedInitializeFrame,
             EventName = nameof(SlicEventIds.ReceivedInitializeFrame),
             Level = LogLevel.Debug,
-            Message = "receiving Slic Initialize frame (FrameSize={FrameSize}, Version={Version}, " +
+            Message = "received Slic Initialize frame (FrameSize={FrameSize}, Version={Version}, " +
                       "Apln={Apln}, {Parameters})")]
         private static partial void LogReceivedSlicInitializeFrame(
             this ILogger logger,
@@ -190,7 +190,7 @@ namespace IceRpc.Transports.Internal.Slic
             EventId = (int)SlicEventIds.ReceivedInitializeAckFrame,
             EventName = nameof(SlicEventIds.ReceivedInitializeAckFrame),
             Level = LogLevel.Debug,
-            Message = "receiving Slic InitializeAck frame (FrameSize={FrameSize}, {Parameters})")]
+            Message = "received Slic InitializeAck frame (FrameSize={FrameSize}, {Parameters})")]
         private static partial void LogReceivedSlicInitializeAckFrame(
             this ILogger logger,
             int frameSize,
@@ -200,14 +200,14 @@ namespace IceRpc.Transports.Internal.Slic
             EventId = (int)SlicEventIds.ReceivedVersionFrame,
             EventName = nameof(SlicEventIds.ReceivedVersionFrame),
             Level = LogLevel.Debug,
-            Message = "receiving Slic Version frame (FrameSize={FrameSize}, Versions=[{Versions}])")]
+            Message = "received Slic Version frame (FrameSize={FrameSize}, Versions=[{Versions}])")]
         private static partial void LogReceivedSlicVersionFrame(this ILogger logger, int FrameSize, string versions);
 
         [LoggerMessage(
             EventId = (int)SlicEventIds.SentInitializeFrame,
             EventName = nameof(SlicEventIds.SentInitializeFrame),
             Level = LogLevel.Debug,
-            Message = "sending Slic Initialize frame (FrameSize={FrameSize}, Version={Version}, Apln={Apln}, " +
+            Message = "sent Slic Initialize frame (FrameSize={FrameSize}, Version={Version}, Apln={Apln}, " +
                       "{Parameters})")]
         private static partial void LogSentSlicInitializeFrame(
             this ILogger logger,
@@ -220,7 +220,7 @@ namespace IceRpc.Transports.Internal.Slic
             EventId = (int)SlicEventIds.SentInitializeAckFrame,
             EventName = nameof(SlicEventIds.SentInitializeAckFrame),
             Level = LogLevel.Debug,
-            Message = "sending Slic InitializeAck frame (FrameSize={FrameSize}, {Parameters})")]
+            Message = "sent Slic InitializeAck frame (FrameSize={FrameSize}, {Parameters})")]
         private static partial void LogSentSlicInitializeAckFrame(
             this ILogger logger,
             int frameSize,
@@ -230,7 +230,7 @@ namespace IceRpc.Transports.Internal.Slic
             EventId = (int)SlicEventIds.SentVersionFrame,
             EventName = nameof(SlicEventIds.SentVersionFrame),
             Level = LogLevel.Debug,
-            Message = "sending Slic Version frame (FrameSize={FrameSize}, Versions=[{Versions}])")]
+            Message = "sent Slic Version frame (FrameSize={FrameSize}, Versions=[{Versions}])")]
         private static partial void LogSentSlicVersionFrame(this ILogger logger, int frameSize, string versions);
     }
 }

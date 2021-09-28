@@ -42,7 +42,7 @@ namespace IceRpc.Transports.Internal.Slic
             BufferWriter.Position sizePos = encoder.StartFixedLengthSize();
             encoder.EncodeVarULong((ulong)stream.Id);
             encode(encoder);
-            encoder.EndFixedLengthSize(sizePos);
+            int frameSize = encoder.EndFixedLengthSize(sizePos);
             return WriteFrameAsync(bufferWriter.Finish(), cancel);
         }
 
@@ -72,12 +72,8 @@ namespace IceRpc.Transports.Internal.Slic
             headerData = headerData[(SlicDefinitions.FrameHeader.Length - sizeLength - streamIdLength - 1)..];
 
             headerData.Span[0] = (byte)(endStream ? FrameType.StreamLast : FrameType.Stream);
-            Ice20Encoder.EncodeFixedLengthSize(
-                bufferSize,
-                headerData.Span[1..(1 + sizeLength)]);
-            Ice20Encoder.EncodeFixedLengthSize(
-                stream.Id,
-                headerData.Span[(1 + sizeLength)..(1 + sizeLength + streamIdLength)]);
+            Ice20Encoder.EncodeFixedLengthSize(bufferSize, headerData.Span.Slice(1, sizeLength));
+            Ice20Encoder.EncodeFixedLengthSize(stream.Id, headerData.Span.Slice(1 + sizeLength, streamIdLength));
 
             // Update the first buffer entry
             MemoryMarshal.AsMemory(buffers).Span[0] = headerData;

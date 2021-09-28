@@ -271,6 +271,8 @@ namespace IceRpc
                     // Establish the network connection.
                     await NetworkConnection.ConnectAsync(cancel).ConfigureAwait(false);
 
+                    using IDisposable? scope = _logger.StartConnectionScope(this);
+
                     _protocolConnection = await Protocol.CreateConnectionAsync(
                         NetworkConnection,
                         _options.IncomingFrameMaxSize,
@@ -364,6 +366,8 @@ namespace IceRpc
 
             try
             {
+                using IDisposable? scope = _logger.StartConnectionScope(this);
+
                 // Send the request.
                 await _protocolConnection!.SendRequestAsync(request, cancel).ConfigureAwait(false);
 
@@ -504,6 +508,7 @@ namespace IceRpc
 
         private async Task AcceptIncomingRequestAsync(IDispatcher dispatcher)
         {
+            using IDisposable? scope = _logger.StartConnectionScope(this);
             IncomingRequest? request = null;
             try
             {

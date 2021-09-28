@@ -12,7 +12,7 @@ namespace IceRpc.Transports.Internal.Slic
             this IDictionary<int, IList<byte>> parameters) =>
             parameters.Select(pair =>
                 ((ParameterKey)pair.Key,
-                Ice20Decoder.DecodeBuffer(pair.Value.ToArray(), decoder => decoder.DecodeVarULong())));
+                 Ice20Decoder.DecodeBuffer(pair.Value.ToArray(), decoder => decoder.DecodeVarULong())));
 
         internal static async ValueTask<(uint, InitializeBody?)> ReadInitializeAsync(
             this ISlicFrameReader reader,
@@ -135,7 +135,7 @@ namespace IceRpc.Transports.Internal.Slic
             CancellationToken cancel)
         {
             using IMemoryOwner<byte> data = await reader.ReadStreamFrameDataAsync(size, cancel).ConfigureAwait(false);
-            return decodeFunc(new Ice20Decoder(data.Memory));
+            return decodeFunc(new Ice20Decoder(data.Memory[0..size]));
         }
     }
 }

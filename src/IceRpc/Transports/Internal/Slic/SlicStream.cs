@@ -21,6 +21,7 @@ namespace IceRpc.Transports.Internal.Slic
     {
         public override ReadOnlyMemory<byte> TransportHeader => SlicDefinitions.FrameHeader;
         private readonly SlicConnection _connection;
+        // A lock to ensure ReceivedFrame and EnableReceiveFlowControl are thread-safe.
         private SpinLock _lock;
         private readonly ISlicFrameReader _reader;
         private volatile CircularBuffer? _receiveBuffer;
@@ -38,7 +39,6 @@ namespace IceRpc.Transports.Internal.Slic
         private volatile int _sendCredit = int.MaxValue;
         // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
         private AsyncSemaphore? _sendSemaphore;
-        // A lock to ensure ReceivedFrame and EnableReceiveFlowControl are thread-safe.
         private readonly ISlicFrameWriter _writer;
 
         public override void EnableReceiveFlowControl()
@@ -325,7 +325,7 @@ namespace IceRpc.Transports.Internal.Slic
             _connection.ReleaseStream(this);
 
             // Local streams are released from the connection when the StreamLast or StreamReset frame is
-            // received. Since a local un-directional stream doesn't send stream frames, we have to send a
+            // received. Since a remote un-directional stream doesn't send stream frames, we have to send a
             // stream last frame here to ensure the local stream is released from the connection.
             if (IsRemote && !IsBidirectional)
             {

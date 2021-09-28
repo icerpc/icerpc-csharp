@@ -132,7 +132,7 @@ namespace IceRpc.Internal
                     {
                         if (_shutdown && _dispatch.Count == 0 && _invocations.Count == 0)
                         {
-                            throw new ConnectionClosedException("XXXXX1");
+                            throw new ConnectionClosedException();
                         }
                         else
                         {
@@ -349,7 +349,7 @@ namespace IceRpc.Internal
                 {
                     if (_shutdown)
                     {
-                        throw new ConnectionClosedException("XXXX2222 ");
+                        throw new ConnectionClosedException();
                     }
                     _invocations.Add(request);
 

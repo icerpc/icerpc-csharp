@@ -48,7 +48,7 @@ namespace IceRpc.Transports.Internal.Slic
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
             try
             {
-                await _decoratee.WriteFrameAsync(type, encode, cancel).ConfigureAwait(false);
+                await _decoratee.WriteStreamFrameAsync(stream, type, encode, cancel).ConfigureAwait(false);
             }
             finally
             {
@@ -65,8 +65,10 @@ namespace IceRpc.Transports.Internal.Slic
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
             try
             {
-                // If the stream is aborted, stop sending stream frames.
-                if (stream.WritesCompleted)
+                // If the stream is aborted, don't send additional stream frames. We make an exception for
+                // unidirectional remote streams which need to send the StreamLast frame to ensure the local
+                // stream releases the unidirectional semaphore.
+                if (stream.WritesCompleted && (!stream.IsRemote || stream.IsBidirectional))
                 {
                     throw new StreamAbortedException(StreamError.StreamAborted);
                 }

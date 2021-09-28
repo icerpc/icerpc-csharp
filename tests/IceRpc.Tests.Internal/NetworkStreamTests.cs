@@ -18,8 +18,9 @@ namespace IceRpc.Tests.Internal
         public void TearDown() => TearDownConnections();
 
         [TestCase(StreamError.DispatchCanceled)]
-        [TestCase(StreamError.InvocationCanceled)]
-        [TestCase((StreamError)10)]
+        // [TestCase(StreamError.InvocationCanceled)]
+        // [TestCase((StreamError)10)]
+        [Log(LogAttributeLevel.Trace)]
         public async Task Stream_Abort(StreamError errorCode)
         {
             Task<(int, INetworkStream)> serverTask = ReceiveAsync();
@@ -41,12 +42,13 @@ namespace IceRpc.Tests.Internal
             StreamAbortedException? ex = Assert.CatchAsync<StreamAbortedException>(
                 async () => await serverStream.ReceiveAsync(new byte[1], default));
             Assert.That(ex!.ErrorCode, Is.EqualTo(errorCode));
+
             await dispatchCanceled.Task;
 
             // Ensure we can still create a new stream after the cancellation
             INetworkStream clientStream2 = ClientMultiStreamConnection.CreateStream(true);
             await clientStream2.SendAsync(CreateSendPayload(clientStream2, 1), true, default);
-
+Assert.Fail();
             async Task<(int, INetworkStream)> ReceiveAsync()
             {
                 INetworkStream serverStream = await ServerMultiStreamConnection.AcceptStreamAsync(default);

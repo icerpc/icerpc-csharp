@@ -335,6 +335,7 @@ namespace IceRpc.Transports.Internal.Slic
                 // don't open more streams than the peer allows.
                 await streamSemaphore.EnterAsync(cancel).ConfigureAwait(false);
             }
+
             try
             {
                 await _writer.WriteStreamFrameAsync(stream, buffers, endStream, cancel).ConfigureAwait(false);
@@ -372,6 +373,7 @@ namespace IceRpc.Transports.Internal.Slic
         private void SetParameters(IDictionary<int, IList<byte>>  parameters)
         {
             TimeSpan? peerIdleTimeout = null;
+
             foreach ((ParameterKey key, ulong value) in parameters.DecodedParameters())
             {
                 if (key == ParameterKey.MaxBidirectionalStreams)
