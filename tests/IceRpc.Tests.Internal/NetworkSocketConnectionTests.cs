@@ -2,6 +2,7 @@
 
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
 #pragma warning disable CA2000 // NetworkSocketStub is Disposed by the NetworkSocketConnection
@@ -19,7 +20,7 @@ namespace IceRpc.Tests.Internal
                 isServer: false,
                 TimeSpan.FromSeconds(10),
                 slicOptions: new(),
-                null!);
+                NullLogger.Instance);
 
             await connection.ConnectAsync(default);
 
@@ -96,7 +97,7 @@ namespace IceRpc.Tests.Internal
                 isServer: false,
                 TimeSpan.FromSeconds(10),
                 slicOptions: new(),
-                null!);
+                NullLogger.Instance);
 
             ISingleStreamConnection stream = await connection.GetSingleStreamConnectionAsync(default);
 

@@ -21,34 +21,15 @@ namespace IceRpc.Transports.Internal.Slic
             _sendSemaphore.Complete(new ConnectionClosedException());
         }
 
-        public async ValueTask WriteFrameAsync(FrameType type, Action<IceEncoder> encode, CancellationToken cancel)
-        {
-            await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
-            try
-            {
-                await _decoratee.WriteFrameAsync(type, encode, cancel).ConfigureAwait(false);
-            }
-            finally
-            {
-                _sendSemaphore.Release();
-            }
-        }
-
-        public async ValueTask WriteStreamFrameAsync(
-            SlicStream stream,
-            FrameType type,
-            Action<IceEncoder> encode,
+        public async ValueTask WriteFrameAsync(
+            SlicStream? stream,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             CancellationToken cancel)
         {
-            if (!stream.IsStarted)
-            {
-                throw new NotSupportedException("can't send stream frame on non-started stream");
-            }
-
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
             try
             {
-                await _decoratee.WriteStreamFrameAsync(stream, type, encode, cancel).ConfigureAwait(false);
+                await _decoratee.WriteFrameAsync(stream, buffers, cancel).ConfigureAwait(false);
             }
             finally
             {

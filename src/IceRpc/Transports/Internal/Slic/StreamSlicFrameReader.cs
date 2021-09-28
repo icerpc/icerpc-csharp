@@ -9,14 +9,18 @@ namespace IceRpc.Transports.Internal.Slic
     /// <summary>The Slic frame reader class reads Slic frames received from a buffered receiver.</summary>
     internal class BufferedReceiverSlicFrameReader : ISlicFrameReader
     {
-        private readonly BufferedReceiver _bufferedStream;
+        private readonly BufferedReceiver _receiver;
 
-        public void Dispose() => _bufferedStream.Dispose();
+        public void Dispose() => _receiver.Dispose();
 
-        public async ValueTask<(FrameType, int, IMemoryOwner<byte>)> ReadFrameAsync(CancellationToken cancel)
+        public ValueTask ReadFrameDataAsync(Memory<byte> buffer, CancellationToken cancel) =>
+            _receiver.ReceiveAsync(buffer, cancel);
+
+        public async ValueTask<(FrameType, int)> ReadFrameHeaderAsync(CancellationToken cancel)
         {
-            (FrameType frameType, int frameSize) = await ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
-            return (frameType, frameSize, await _bufferedStream.ReceiveAsync(frameSize, cancel).ConfigureAwait(false));
+            var frameType = (FrameType)await _receiver.ReceiveByteAsync(cancel).ConfigureAwait(false);
+            int frameSize = await _receiver.ReceiveSizeAsync(cancel).ConfigureAwait(false);
+            return (frameType, frameSize);
         }
 
         public async ValueTask<(FrameType, int, long)> ReadStreamFrameHeaderAsync(CancellationToken cancel)
@@ -26,25 +30,11 @@ namespace IceRpc.Transports.Internal.Slic
             {
                 throw new InvalidDataException($"unexpected Slic frame '{frameType}'");
             }
-            (ulong id, int idLength) = await _bufferedStream.ReceiveVarULongAsync(cancel).ConfigureAwait(false);
+            (ulong id, int idLength) = await _receiver.ReceiveVarULongAsync(cancel).ConfigureAwait(false);
             return (frameType, frameSize - idLength, (long)id);
         }
 
-        public ValueTask ReadStreamFrameDataAsync(Memory<byte> buffer, CancellationToken cancel) =>
-            _bufferedStream.ReceiveAsync(buffer, cancel);
-
-        public ValueTask<IMemoryOwner<byte>> ReadStreamFrameDataAsync(int length, CancellationToken cancel) =>
-            _bufferedStream.ReceiveAsync(length, cancel);
-
-        internal BufferedReceiverSlicFrameReader(BufferedReceiver bufferedStream) =>
-            _bufferedStream = bufferedStream;
-
-        private async ValueTask<(FrameType, int)> ReadFrameHeaderAsync(CancellationToken cancel)
-        {
-            var frameType = (FrameType)await _bufferedStream.ReceiveByteAsync(cancel).ConfigureAwait(false);
-            int frameSize = await _bufferedStream.ReceiveSizeAsync(cancel).ConfigureAwait(false);
-            return (frameType, frameSize);
-        }
+        internal BufferedReceiverSlicFrameReader(BufferedReceiver receiver) => _receiver = receiver;
     }
 
     /// <summary>The Slic frame reader class reads Slic frames received them over the single stream

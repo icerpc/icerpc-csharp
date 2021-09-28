@@ -20,7 +20,6 @@ namespace IceRpc.Transports.Internal.Slic
         private int _bidirectionalStreamCount;
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly int _bidirectionalMaxStreams;
-        private readonly CancellationTokenSource _cancelAcceptStreamSource = new();
         private readonly ManualResetValueTaskCompletionSource<int> _receiveStreamCompletionTaskSource = new();
         private readonly ISlicFrameReader _reader;
         private readonly int _unidirectionalMaxStreams;
@@ -291,9 +290,6 @@ namespace IceRpc.Transports.Internal.Slic
                 }
             }
         }
-
-        internal ValueTask ReceiveDataAsync(Memory<byte> buffer, CancellationToken cancel) =>
-            _reader.ReadStreamFrameDataAsync(buffer, cancel);
 
         internal void ReleaseStream(SlicStream stream)
         {

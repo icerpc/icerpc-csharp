@@ -2,6 +2,7 @@
 
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.Threading.Channels;
 
@@ -87,7 +88,7 @@ namespace IceRpc.Tests.Internal
                 slicOptions: new(),
                 writer: channel.Writer,
                 reader: channel.Reader,
-                logger: null!);
+                logger: NullLogger.Instance);
         }
     }
 }

@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.Logging;
+
 namespace IceRpc.Transports
 {
     /// <summary>A network connection represents the low-level transport to exchange data as bytes. A network
@@ -36,6 +38,9 @@ namespace IceRpc.Transports
         /// <summary>The local endpoint. The endpoint may not be available until the connection is connected.
         /// </summary>
         Endpoint? LocalEndpoint { get; }
+
+        /// <summary>The logger used by the network connection.</summary>
+        ILogger Logger { get; }
 
         /// <summary>The remote endpoint. This endpoint may not be available until the connection is accepted.
         /// </summary>

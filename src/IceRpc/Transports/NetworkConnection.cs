@@ -40,7 +40,7 @@ namespace IceRpc.Transports
             INetworkConnection networkConnection,
             ILogger logger)
         {
-            if (logger.IsEnabled(LogLevel.Trace))
+            if (logger.IsEnabled(LogLevel.Debug))
             {
                 return new LogNetworkConnectionDecorator(networkConnection, logger);
             }
@@ -57,7 +57,7 @@ namespace IceRpc.Transports
         // transports to use use Slic. So ... perhaps return (IMultiStreamConnection, IDisposable) or make
         // IMultiStreamConnection inherit from IDisposable.
         internal static async ValueTask<SlicConnection> CreateSlicConnection(
-            ISingleStreamConnection singleStreamConnection,
+            INetworkConnection networkConnection,
             bool isServer,
             TimeSpan idleTimeout,
             SlicOptions slicOptions,
@@ -69,10 +69,8 @@ namespace IceRpc.Transports
             SlicConnection? slicConnection = null;
             try
             {
-                if (logger.IsEnabled(LogLevel.Debug))
-                {
-                    singleStreamConnection = new LogSingleStreamConnectionDecorator(singleStreamConnection, logger);
-                }
+                ISingleStreamConnection singleStreamConnection =
+                    await networkConnection.GetSingleStreamConnectionAsync(cancel).ConfigureAwait(false);
                 reader = new StreamSlicFrameReader(singleStreamConnection);
                 writer = new StreamSlicFrameWriter(singleStreamConnection);
                 if (logger.IsEnabled(LogLevel.Debug))
@@ -80,7 +78,12 @@ namespace IceRpc.Transports
                     reader = new LogSlicFrameReaderDecorator(reader, logger);
                     writer = new LogSlicFrameWriterDecorator(writer, logger);
                 }
-                slicConnection = new SlicConnection(reader, writer, isServer, idleTimeout, slicOptions);
+                slicConnection = new SlicConnection(
+                    reader,
+                    writer,
+                    isServer,
+                    idleTimeout,
+                    slicOptions);
                 reader = null;
                 writer = null;
                 await slicConnection.InitializeAsync(cancel).ConfigureAwait(false);

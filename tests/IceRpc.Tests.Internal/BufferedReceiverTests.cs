@@ -36,9 +36,9 @@ namespace IceRpc.Tests.Internal
             ReadOnlyMemory<byte> compareBuffer = sourceBuffer;
             for (int i = 0; i < 100; ++i)
             {
-                using IMemoryOwner<byte> owner = await receiver.ReceiveAsync(userBufferSize, default);
-                Assert.That(owner.Memory[0..userBufferSize].ToArray(),
-                            Is.EqualTo(compareBuffer[0..userBufferSize].ToArray()));
+                Memory<byte> buffer = new byte[userBufferSize];
+                await receiver.ReceiveAsync(buffer, default);
+                Assert.That(buffer.ToArray(), Is.EqualTo(compareBuffer[0..userBufferSize].ToArray()));
                 compareBuffer = compareBuffer[userBufferSize..];
             }
         }

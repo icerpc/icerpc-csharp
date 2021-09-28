@@ -24,6 +24,8 @@ namespace IceRpc.Transports.Internal
 
         public Endpoint? LocalEndpoint { get; }
 
+        public ILogger Logger => _logger;
+
         public Endpoint? RemoteEndpoint { get; }
 
         private readonly ILogger _logger;
@@ -54,9 +56,19 @@ namespace IceRpc.Transports.Internal
             return _slicConnection;
         }
 
-        public ValueTask<ISingleStreamConnection> GetSingleStreamConnectionAsync(CancellationToken cancel) => new(this);
+        public ValueTask<ISingleStreamConnection> GetSingleStreamConnectionAsync(CancellationToken cancel)
+        {
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                return new(new LogSingleStreamConnectionDecorator(this, _logger));
+            }
+            else
+            {
+                return new(this);
+            }
+        }
 
-        public bool HasCompatibleParams(Endpoint remoteEndpoint)
+    public bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
             if (remoteEndpoint.Params.Count > 0)
             {

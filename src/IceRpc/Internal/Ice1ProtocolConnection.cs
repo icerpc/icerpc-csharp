@@ -117,8 +117,6 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task PingAsync(CancellationToken cancel)
         {
-            cancel.ThrowIfCancellationRequested();
-
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
             try
             {
@@ -344,7 +342,7 @@ namespace IceRpc.Internal
                     {
                         throw new ConnectionClosedException();
                     }
-                    requestId = request.IsOneway ? 0 : ++_nextRequestId;
+                    requestId = ++_nextRequestId;
                     _pendingIncomingResponses[requestId] = new(TaskCreationOptions.RunContinuationsAsynchronously);
                 }
             }
@@ -621,7 +619,9 @@ namespace IceRpc.Internal
                     }
                     else
                     {
-                        throw new InvalidDataException($"received ice1 frame with only {frameSize} bytes");
+                        throw new InvalidDataException(
+                            @$"received ice1 frame with invalid size, expected '{Ice1Definitions.HeaderSize
+                                }' but received '{frameSize}' bytes");
                     }
                     continue; // while
                 }

@@ -10,12 +10,9 @@ namespace IceRpc.Transports.Internal
         private static readonly Func<ILogger, string, IDisposable> _listenerScope =
             LoggerMessage.DefineScope<string>("server(Endpoint={Server})");
 
-        private static readonly Func<ILogger, string, IDisposable> _serverConnectionScope =
-            LoggerMessage.DefineScope<string>("connection(RemoteEndpoint={RemoteEndpoint})");
-
-        private static readonly Func<ILogger, string, string, IDisposable> _clientConnectionScope =
-            LoggerMessage.DefineScope<string, string>(
-                "connection(LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint})");
+        private static readonly Func<ILogger, bool, string, string, IDisposable> _connectionScope =
+            LoggerMessage.DefineScope<bool, string, string>(
+                "connection(IsServer={IsServer}, LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint})");
 
         private static readonly Func<ILogger, long, string, string, IDisposable> _streamScope =
             LoggerMessage.DefineScope<long, string, string>("stream(ID={ID}, InitiatedBy={InitiatedBy}, Kind={Kind})");
@@ -166,21 +163,15 @@ namespace IceRpc.Transports.Internal
         internal static IDisposable? StartServerScope(this ILogger logger, IListener listener) =>
             logger.IsEnabled(LogLevel.Error) ? _listenerScope(logger, listener.Endpoint.ToString()) : null;
 
-        internal static IDisposable? StartConnectionScope(this ILogger logger, Connection connection)
+        internal static IDisposable? StartScope(this INetworkConnection connection)
         {
-            if (logger.IsEnabled(LogLevel.Error))
+            if (connection.Logger.IsEnabled(LogLevel.Error))
             {
-                if (connection.IsServer)
-                {
-                    return _serverConnectionScope(logger, connection.RemoteEndpoint?.ToString() ?? "undefined");
-                }
-                else
-                {
-                    return _clientConnectionScope(
-                        logger,
-                        connection.LocalEndpoint?.ToString() ?? "undefined",
-                        connection.RemoteEndpoint?.ToString() ?? "undefined");
-                }
+                return _connectionScope(
+                    connection.Logger,
+                    connection.IsServer,
+                    connection.LocalEndpoint?.ToString() ?? "undefined",
+                    connection.RemoteEndpoint?.ToString() ?? "undefined");
             }
             else
             {

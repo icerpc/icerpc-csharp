@@ -113,7 +113,7 @@ namespace IceRpc.Transports.Internal.Slic
             if (_receiveBuffer == null)
             {
                 // Read and append the received stream frame data into the given buffer.
-                await _reader.ReadStreamFrameDataAsync(buffer[0..size], CancellationToken.None).ConfigureAwait(false);
+                await _reader.ReadFrameDataAsync(buffer[0..size], CancellationToken.None).ConfigureAwait(false);
             }
             else
             {
@@ -442,7 +442,7 @@ namespace IceRpc.Transports.Internal.Slic
                         // chunk than the requested size. If this is the case, we loop to receive the remaining
                         // data in a next available chunk.
                         Memory<byte> chunk = _receiveBuffer.Enqueue(size - offset);
-                        await _reader.ReadStreamFrameDataAsync(chunk, CancellationToken.None).ConfigureAwait(false);
+                        await _reader.ReadFrameDataAsync(chunk, CancellationToken.None).ConfigureAwait(false);
                         offset += chunk.Length;
                     }
                 }

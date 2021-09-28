@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Tests
 {
@@ -49,6 +50,7 @@ namespace IceRpc.Tests
         public bool IsServer { get;}
         public TimeSpan LastActivity => throw new NotImplementedException();
         public Endpoint? LocalEndpoint { get; }
+        public ILogger Logger => throw new NotImplementedException();
         public Endpoint? RemoteEndpoint { get; }
 
         public ValueTask ConnectAsync(CancellationToken cancel) => default;

@@ -7,12 +7,9 @@ namespace IceRpc.Transports.Internal.Slic
 {
     internal interface ISlicFrameWriter : IDisposable
     {
-        ValueTask WriteFrameAsync(FrameType type, Action<IceEncoder> encode, CancellationToken cancel);
-
-        ValueTask WriteStreamFrameAsync(
-            SlicStream stream,
-            FrameType type,
-            Action<IceEncoder> encode,
+        ValueTask WriteFrameAsync(
+            SlicStream? stream,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             CancellationToken cancel);
 
         ValueTask WriteStreamFrameAsync(

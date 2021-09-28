@@ -12,6 +12,8 @@ namespace IceRpc.Tests.ClientServer
     public class RetryTests : ClientServerBaseTest
     {
         [Test]
+        [Repeat(10)]
+        [Log(LogAttributeLevel.Debug)]
         public async Task Retry_AfterDelay()
         {
             await WithRetryServiceAsync(
@@ -92,12 +94,13 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [Repeat(1000)]
-        // [TestCase(Protocol.Ice1, 2)]
-        // [TestCase(Protocol.Ice1, 10)]
+        [TestCase(Protocol.Ice1, 2)]
+        [TestCase(Protocol.Ice1, 10)]
         [TestCase(Protocol.Ice1, 20)]
-        // [TestCase(Protocol.Ice2, 2)]
-        // [TestCase(Protocol.Ice2, 10)]
-        // [TestCase(Protocol.Ice2, 20)]
+        [TestCase(Protocol.Ice2, 2)]
+        [TestCase(Protocol.Ice2, 10)]
+        [TestCase(Protocol.Ice2, 20)]
+        [Log(LogAttributeLevel.Debug)]
         public async Task Retry_GracefulClose(Protocol protocol, int maxQueue)
         {
             await WithRetryServiceAsync(protocol, null, async (service, retry) =>
@@ -429,7 +432,8 @@ namespace IceRpc.Tests.ClientServer
             var pool = new ConnectionPool()
             {
                 ClientTransport = new ClientTransport().UseTcp(),
-                ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) }
+                ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) },
+                LoggerFactory = LogAttributeLoggerFactory.Instance
             };
             return pool;
         }
@@ -441,7 +445,8 @@ namespace IceRpc.Tests.ClientServer
                 {
                     Endpoint = GetTestEndpoint(port: i),
                     ServerTransport = new ServerTransport().UseTcp(),
-                    ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) }
+                    ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) },
+                    LoggerFactory = LogAttributeLoggerFactory.Instance
                 }).ToArray();
 
             Router[] routers = Enumerable.Range(0, replicas).Select(i => new Router()).ToArray();
@@ -484,7 +489,8 @@ namespace IceRpc.Tests.ClientServer
                 Dispatcher = router,
                 Endpoint = GetTestEndpoint(protocol: protocol),
                 ServerTransport = new ServerTransport().UseTcp(),
-                ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) }
+                ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) },
+                LoggerFactory = LogAttributeLoggerFactory.Instance
             };
             server.Listen();
 

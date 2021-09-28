@@ -11,13 +11,13 @@ namespace IceRpc.Internal
     /// decoding data without necessarily knowing in advance how many bytes to read from the source.</summary>
     internal class BufferedReceiver : IDisposable
     {
-        private readonly Memory<byte> _buffer;
+        private readonly ReadOnlyMemory<byte> _buffer;
         private int _bufferOffset;
         private int _bufferLimitOffset;
-        private readonly IMemoryOwner<byte> _bufferOwner;
-        private readonly Func<Memory<byte>, CancellationToken, ValueTask<int>> _source;
+        private readonly IMemoryOwner<byte>? _bufferOwner;
+        private readonly Func<Memory<byte>, CancellationToken, ValueTask<int>>? _source;
 
-        public void Dispose() => _bufferOwner.Dispose();
+        public void Dispose() => _bufferOwner?.Dispose();
 
         /// <summary>Constructs a new buffer receiver.</summary>
         /// <param name="source">The data source function. This function is called when more data
@@ -34,14 +34,13 @@ namespace IceRpc.Internal
             _bufferLimitOffset = 0;
         }
 
-        /// <summary>Receives data from the source into a new rented buffer. This method only returns once the
-        /// buffer is full.</summary>
-        internal async ValueTask<IMemoryOwner<byte>> ReceiveAsync(int length, CancellationToken cancel)
+        /// <summary>Constructs a new buffer receiver.</summary>
+        /// <param name="buffer">The buffer to read the data from.</param>
+        internal BufferedReceiver(ReadOnlyMemory<byte> buffer)
         {
-            // Receives data from the source into a rented buffer.
-            IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.Rent(length);
-            await ReceiveAsync(owner.Memory[0..length], cancel).ConfigureAwait(false);
-            return owner;
+            _buffer = buffer;
+            _bufferOffset = 0;
+            _bufferLimitOffset = buffer.Length;
         }
 
         /// <summary>Receives data from the source into the given buffer. This method only returns once the
@@ -66,9 +65,17 @@ namespace IceRpc.Internal
                 }
             }
 
-            for (int offset = receivedFromBuffer; offset != buffer.Length;)
+            if (receivedFromBuffer != buffer.Length)
             {
-                offset += await _source(buffer[offset..], cancel).ConfigureAwait(false);
+                if (_source == null)
+                {
+                    throw new InvalidOperationException("can't receive additional data");
+                }
+
+                for (int offset = receivedFromBuffer; offset != buffer.Length;)
+                {
+                    offset += await _source(buffer[offset..], cancel).ConfigureAwait(false);
+                }
             }
         }
 
@@ -132,6 +139,11 @@ namespace IceRpc.Internal
 
         private async ValueTask ReceiveMoreAsync(int length, CancellationToken cancel)
         {
+            if(_bufferOwner == null || _source == null)
+            {
+                throw new InvalidOperationException("can't receive additional data");
+            }
+
             // Receives additional data into the buffer from the source.
             int remaining = _bufferLimitOffset - _bufferOffset;
             if (length <= remaining)
@@ -143,7 +155,7 @@ namespace IceRpc.Internal
             {
                 // There's still buffered data, move the buffered data at the start of the memory buffer and
                 // read the additional data.
-                _buffer[_bufferOffset.._bufferLimitOffset].CopyTo(_buffer);
+                _buffer[_bufferOffset.._bufferLimitOffset].CopyTo(_bufferOwner!.Memory);
                 _bufferOffset = 0;
                 _bufferLimitOffset = remaining;
             }
@@ -155,7 +167,7 @@ namespace IceRpc.Internal
 
             while ((_bufferLimitOffset - _bufferOffset) < length)
             {
-                int received = await _source(_buffer[_bufferLimitOffset..], cancel).ConfigureAwait(false);
+                int received = await _source!(_bufferOwner!.Memory[_bufferLimitOffset..], cancel).ConfigureAwait(false);
                 if (received == 0)
                 {
                     throw new InvalidDataException($"received 0 bytes where {length} bytes were expected");

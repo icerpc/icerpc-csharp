@@ -7,9 +7,8 @@ namespace IceRpc.Transports.Internal.Slic
 {
     internal interface ISlicFrameReader : IDisposable
     {
-        ValueTask<(FrameType, int, IMemoryOwner<byte>)> ReadFrameAsync(CancellationToken cancel);
+        ValueTask ReadFrameDataAsync(Memory<byte> buffer, CancellationToken cancel);
+        ValueTask<(FrameType, int)> ReadFrameHeaderAsync(CancellationToken cancel);
         ValueTask<(FrameType, int, long)> ReadStreamFrameHeaderAsync(CancellationToken cancel);
-        ValueTask ReadStreamFrameDataAsync(Memory<byte> buffer, CancellationToken cancel);
-        ValueTask<IMemoryOwner<byte>> ReadStreamFrameDataAsync(int length, CancellationToken cancel);
     }
 }

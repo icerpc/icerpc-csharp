@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports;
-
 namespace IceRpc.Internal
 {
     /// <summary>A protocol connection enables communication over a network connection using either the Ice1
@@ -14,7 +12,7 @@ namespace IceRpc.Internal
         /// <summary>Returns <c>true</c> if invocations are in progress, <c>false</c> otherwise.</summary>
         bool HasInvocationsInProgress { get; }
 
-        /// <summary>Cancel the shutdown which is progress.</summary>
+        /// <summary>Cancel the shutdown which is in progress.</summary>
         void CancelShutdown();
 
         /// <summary>Initializes the connection.</summary>
@@ -27,7 +25,7 @@ namespace IceRpc.Internal
 
         /// <summary>Receives a request.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The incoming request or null if the connection has been gracefully shutdown.</returns>
+        /// <returns>The incoming request.</returns>
         Task<IncomingRequest> ReceiveRequestAsync(CancellationToken cancel);
 
         /// <summary>Receives a response for a given request.</summary>
@@ -41,7 +39,7 @@ namespace IceRpc.Internal
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel);
 
-        /// <summary>Sends a request.</summary>
+        /// <summary>Sends a response.</summary>
         /// <param name="request">The incoming request associated to the response to send.</param>
         /// <param name="response">The outgoing response to send.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

@@ -2,7 +2,6 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
-using IceRpc.Slice.Internal;
 using IceRpc.Transports.Slic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -19,31 +18,21 @@ namespace IceRpc.Transports.Internal.Slic
         {
         }
 
-        public ValueTask WriteFrameAsync(FrameType type, Action<IceEncoder> encode, CancellationToken cancel)
-        {
-            var bufferWriter = new BufferWriter();
-            var encoder = new Ice20Encoder(bufferWriter);
-            encoder.EncodeByte((byte)type);
-            BufferWriter.Position sizePos = encoder.StartFixedLengthSize();
-            encode(encoder);
-            encoder.EndFixedLengthSize(sizePos);
-            return WriteFrameAsync(bufferWriter.Finish(), cancel);
-        }
-
-        public ValueTask WriteStreamFrameAsync(
-            SlicStream stream,
-            FrameType type,
-            Action<IceEncoder> encode,
+        public async ValueTask WriteFrameAsync(
+            SlicStream? stream,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             CancellationToken cancel)
         {
-            var bufferWriter = new BufferWriter();
-            var encoder = new Ice20Encoder(bufferWriter);
-            encoder.EncodeByte((byte)type);
-            BufferWriter.Position sizePos = encoder.StartFixedLengthSize();
-            encoder.EncodeVarULong((ulong)stream.Id);
-            encode(encoder);
-            int frameSize = encoder.EndFixedLengthSize(sizePos);
-            return WriteFrameAsync(bufferWriter.Finish(), cancel);
+            // A Slic frame must always be sent entirely even if the sending is canceled.
+            ValueTask task = _stream.SendAsync(buffers, CancellationToken.None);
+            if (task.IsCompleted || !cancel.CanBeCanceled)
+            {
+                await task.ConfigureAwait(false);
+            }
+            else
+            {
+                await task.AsTask().WaitAsync(cancel).ConfigureAwait(false);
+            }
         }
 
         public ValueTask WriteStreamFrameAsync(
@@ -79,7 +68,7 @@ namespace IceRpc.Transports.Internal.Slic
             MemoryMarshal.AsMemory(buffers).Span[0] = headerData;
             try
             {
-                return WriteFrameAsync(buffers, cancel);
+                return WriteFrameAsync(stream, buffers, cancel);
             }
             finally
             {
@@ -88,21 +77,6 @@ namespace IceRpc.Transports.Internal.Slic
             }
         }
 
-        internal StreamSlicFrameWriter(ISingleStreamConnection stream) =>
-            _stream = stream;
-
-        private async ValueTask WriteFrameAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
-        {
-            // A Slic frame must always be sent entirely even if the sending is canceled.
-            ValueTask task = _stream.SendAsync(buffers, CancellationToken.None);
-            if (task.IsCompleted || !cancel.CanBeCanceled)
-            {
-                await task.ConfigureAwait(false);
-            }
-            else
-            {
-                await task.AsTask().WaitAsync(cancel).ConfigureAwait(false);
-            }
-        }
+        internal StreamSlicFrameWriter(ISingleStreamConnection stream) => _stream = stream;
     }
 }

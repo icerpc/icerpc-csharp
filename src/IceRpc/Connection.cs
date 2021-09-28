@@ -258,7 +258,6 @@ namespace IceRpc
                 Debug.Assert(_state == ConnectionState.Connecting && _connectTask != null);
             }
 
-            // TODO: Also cancel PerformConnectAsync if the ConnectAsync cancellation token is canceled?
             return _connectTask.WaitAsync(cancel);
 
             async Task PerformConnectAsync()
@@ -269,15 +268,15 @@ namespace IceRpc
                     await Task.Yield();
 
                     // Establish the network connection.
-                    await NetworkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+                    await NetworkConnection.ConnectAsync(connectCancellationSource.Token).ConfigureAwait(false);
 
-                    using IDisposable? scope = _logger.StartConnectionScope(this);
+                    using IDisposable? scope = NetworkConnection.StartScope();
 
                     _protocolConnection = await Protocol.CreateConnectionAsync(
                         NetworkConnection,
                         _options.IncomingFrameMaxSize,
                         _loggerFactory ?? NullLoggerFactory.Instance,
-                        cancel).ConfigureAwait(false);
+                        connectCancellationSource.Token).ConfigureAwait(false);
 
                     // Initializes the protocol connection.
                     await _protocolConnection.InitializeAsync(connectCancellationSource.Token).ConfigureAwait(false);
@@ -366,7 +365,7 @@ namespace IceRpc
 
             try
             {
-                using IDisposable? scope = _logger.StartConnectionScope(this);
+                using IDisposable? scope = NetworkConnection!.StartScope();
 
                 // Send the request.
                 await _protocolConnection!.SendRequestAsync(request, cancel).ConfigureAwait(false);
@@ -471,20 +470,7 @@ namespace IceRpc
                 }
                 Debug.Assert(NetworkConnection != null && _protocolConnection != null);
                 TimeSpan idleTime = Time.Elapsed - NetworkConnection!.LastActivity;
-                if (idleTime > NetworkConnection.IdleTimeout / 4 &&
-                    (_options.KeepAlive || _protocolConnection.HasDispatchInProgress))
-                {
-                    // We send a ping if there was no activity in the last (IdleTimeout / 4) period. Sending a
-                    // ping sooner than really needed is safer to ensure that the receiver will receive the
-                    // ping in time. Sending the ping if there was no activity in the last (IdleTimeout / 2)
-                    // period isn't enough since Monitor is called only every (IdleTimeout / 2) period. We
-                    // also send a ping if dispatch are in progress to notify the peer that we're still alive.
-                    //
-                    // Note that this doesn't imply that we are sending 4 heartbeats per timeout period
-                    // because Monitor is still only called every (IdleTimeout / 2) period.
-                    _ = _protocolConnection.PingAsync(CancellationToken.None);
-                }
-                else if (idleTime > NetworkConnection.IdleTimeout)
+                if (idleTime > NetworkConnection.IdleTimeout)
                 {
                     if (_protocolConnection.HasInvocationsInProgress)
                     {
@@ -498,6 +484,19 @@ namespace IceRpc
                         _ = ShutdownAsync("connection idle");
                     }
                 }
+                else if (idleTime > NetworkConnection.IdleTimeout / 4 &&
+                         (_options.KeepAlive || _protocolConnection.HasDispatchInProgress))
+                {
+                    // We send a ping if there was no activity in the last (IdleTimeout / 4) period. Sending a
+                    // ping sooner than really needed is safer to ensure that the receiver will receive the
+                    // ping in time. Sending the ping if there was no activity in the last (IdleTimeout / 2)
+                    // period isn't enough since Monitor is called only every (IdleTimeout / 2) period. We
+                    // also send a ping if dispatch are in progress to notify the peer that we're still alive.
+                    //
+                    // Note that this doesn't imply that we are sending 4 heartbeats per timeout period
+                    // because Monitor is still only called every (IdleTimeout / 2) period.
+                    _ = _protocolConnection.PingAsync(CancellationToken.None);
+                }
             }
         }
 
@@ -505,10 +504,8 @@ namespace IceRpc
         /// and before dispatching it, a new accept incoming request task is started to allow multiple
         /// incoming requests to be dispatched. The underlying transport might limit the number of concurrent
         /// incoming requests in progress by holding on accepting a new request.</summary>
-
         private async Task AcceptIncomingRequestAsync(IDispatcher dispatcher)
         {
-            using IDisposable? scope = _logger.StartConnectionScope(this);
             IncomingRequest? request = null;
             try
             {
@@ -646,7 +643,7 @@ namespace IceRpc
             catch (OperationCanceledException) when (cancel.IsCancellationRequested)
             {
                 // Cancel the shutdown if cancellation is requested.
-                protocolConnection?.CancelShutdown();
+                protocolConnection.CancelShutdown();
             }
 
             await shutdownTask.ConfigureAwait(false);
@@ -680,8 +677,8 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Waits for the shutdown of the connection by the peer. Once the peer requested requested
-        /// the connection shutdown, shutdown this side of connection.</summary>
+        /// <summary>Waits for the shutdown of the connection by the peer. Once the peer requested the
+        /// connection shutdown, shutdown this side of connection.</summary>
         private async Task WaitForShutdownAsync()
         {
             try

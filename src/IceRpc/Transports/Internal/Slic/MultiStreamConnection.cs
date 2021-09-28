@@ -16,13 +16,6 @@ namespace IceRpc.Transports.Internal.Slic
     {
         internal TimeSpan IdleTimeout { get; set; }
         internal bool IsServer { get; }
-        internal TimeSpan LastActivity
-        {
-            get => TimeSpan.FromMilliseconds(Interlocked.Read(ref _lastActivity));
-            set => Interlocked.Exchange(ref _lastActivity, (long)value.TotalMilliseconds);
-        }
-
-        private long _lastActivity;
         private long _lastRemoteBidirectionalStreamId = -1;
         private long _lastRemoteUnidirectionalStreamId = -1;
         private readonly object _mutex = new();
@@ -43,11 +36,7 @@ namespace IceRpc.Transports.Internal.Slic
 
         /// <summary>The MultiStreamConnection constructor.</summary>
         /// <param name="isServer">The connection is a server connection.</param>
-        protected MultiStreamConnection(bool isServer)
-        {
-            IsServer = isServer;
-            LastActivity = Time.Elapsed;
-        }
+        protected MultiStreamConnection(bool isServer) => IsServer = isServer;
 
         /// <summary>Releases the resources used by the connection.</summary>
         /// <param name="disposing">True to release both managed and unmanaged resources; false to release

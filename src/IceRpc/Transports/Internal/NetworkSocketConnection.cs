@@ -25,10 +25,13 @@ namespace IceRpc.Transports.Internal
         public bool IsServer { get; }
 
         /// <inheritdoc/>
-        public TimeSpan LastActivity => _slicConnection?.LastActivity ?? TimeSpan.FromMilliseconds(_lastActivity);
+        public TimeSpan LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
 
         /// <inheritdoc/>
         public Endpoint? LocalEndpoint { get; private set; }
+
+        /// <inheritdoc/>
+        public ILogger Logger { get; }
 
         /// <inheritdoc/>
         public Endpoint? RemoteEndpoint { get; private set; }
@@ -37,7 +40,6 @@ namespace IceRpc.Transports.Internal
 
         private readonly TimeSpan _idleTimeout;
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
-        private readonly ILogger _logger;
         private SlicConnection? _slicConnection;
         private readonly SlicOptions _slicOptions;
 
@@ -62,9 +64,6 @@ namespace IceRpc.Transports.Internal
         }
 
         /// <inheritdoc/>
-        public ValueTask<ISingleStreamConnection> GetSingleStreamConnectionAsync(CancellationToken cancel) => new(this);
-
-        /// <inheritdoc/>
         public async ValueTask<IMultiStreamConnection> GetMultiStreamConnectionAsync(CancellationToken cancel)
         {
             // Multi-stream support for a network socket connection is provided by Slic.
@@ -73,9 +72,22 @@ namespace IceRpc.Transports.Internal
                 IsServer,
                 _idleTimeout,
                 _slicOptions,
-                _logger,
+                Logger,
                 cancel).ConfigureAwait(false);
             return _slicConnection;
+        }
+
+        /// <inheritdoc/>
+        public ValueTask<ISingleStreamConnection> GetSingleStreamConnectionAsync(CancellationToken cancel)
+        {
+            if (Logger.IsEnabled(LogLevel.Debug))
+            {
+                return new(new LogSingleStreamConnectionDecorator(this, Logger));
+            }
+            else
+            {
+                return new(this);
+            }
         }
 
         /// <inheritdoc/>
@@ -123,7 +135,7 @@ namespace IceRpc.Transports.Internal
             LocalEndpoint = IsServer ? endpoint : null;
             RemoteEndpoint = IsServer ? null : endpoint;
             _idleTimeout = idleTimeout;
-            _logger = logger;
+            Logger = logger;
             _slicOptions = slicOptions;
 
             NetworkSocket = socket;
