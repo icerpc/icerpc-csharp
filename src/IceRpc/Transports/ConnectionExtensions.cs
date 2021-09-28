@@ -11,16 +11,7 @@ namespace IceRpc.Transports
         /// <param name="connection">The connection.</param>
         /// <returns>The <see cref="NetworkSocket"/> or null if the connection doesn't use a network
         /// connection based on sockets.</returns>
-        public static NetworkSocket? GetNetworkSocket(this Connection connection)
-        {
-            if (connection.NetworkConnection is NetworkSocketConnection networkSocketConnection)
-            {
-                return networkSocketConnection.NetworkSocket;
-            }
-            else
-            {
-                return null;
-            }
-        }
+        public static NetworkSocket? GetNetworkSocket(this Connection connection) =>
+            (connection.NetworkConnection as NetworkSocketConnection)?.NetworkSocket;
     }
 }

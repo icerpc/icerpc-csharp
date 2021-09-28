@@ -164,13 +164,39 @@ namespace IceRpc.Internal
                 // Read the fields.
                 IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields = decoder.DecodeFieldDictionary();
 
-                // Ensure the payload data matches the payload size from the frame.
+                // Ensure we read the same number of bytes as the header size.
                 int payloadSize = decoder.DecodeSize();
                 if (decoder.Pos - headerStartPos != headerSize)
                 {
                     throw new InvalidDataException(
                         @$"received invalid request header: expected {headerSize} bytes but read {
                             decoder.Pos - headerStartPos} bytes");
+                }
+
+                // Decode Context from Fields and set corresponding feature.
+                FeatureCollection features = FeatureCollection.Empty;
+                if (fields.Get(
+                        (int)FieldKey.Context,
+                        decoder => decoder.DecodeDictionary(
+                            minKeySize: 1,
+                            minValueSize: 1,
+                            keyDecodeFunc: decoder => decoder.DecodeString(),
+                            valueDecodeFunc: decoder => decoder.DecodeString())) is Dictionary<string, string> context)
+                {
+                    features = features.WithContext(context);
+                }
+
+                ReadOnlyMemory<byte> payload = buffer[decoder.Pos..];
+                if (payloadSize != payload.Length)
+                {
+                    throw new InvalidDataException(
+                        @$"request payload size mismatch: expected {payloadSize} bytes, read {
+                            payload.Length} bytes");
+                }
+
+                if (requestHeaderBody.Operation.Length == 0)
+                {
+                    throw new InvalidDataException("received request with empty operation name");
                 }
 
                 var request = new IncomingRequest(
@@ -187,34 +213,10 @@ namespace IceRpc.Internal
                     PayloadEncoding = requestHeaderBody.PayloadEncoding is string payloadEncoding ?
                         Encoding.FromString(payloadEncoding) : Ice2Definitions.Encoding,
                     Fields = fields,
-                    Payload = buffer[decoder.Pos..],
+                    Payload = payload,
                     Stream = stream,
                     CancelDispatchSource = new()
                 };
-
-                // Decode Context from Fields and set corresponding feature.
-                if (request.Fields.Get(
-                        (int)FieldKey.Context,
-                        decoder => decoder.DecodeDictionary(
-                            minKeySize: 1,
-                            minValueSize: 1,
-                            keyDecodeFunc: decoder => decoder.DecodeString(),
-                            valueDecodeFunc: decoder => decoder.DecodeString())) is Dictionary<string, string> context)
-                {
-                    request.Features = request.Features.WithContext(context);
-                }
-
-                if (payloadSize != request.Payload.Length)
-                {
-                    throw new InvalidDataException(
-                        @$"request payload size mismatch: expected {payloadSize} bytes, read {
-                            request.Payload.Length} bytes");
-                }
-
-                if (request.Operation.Length == 0)
-                {
-                    throw new InvalidDataException("received request with empty operation name");
-                }
 
                 lock (_mutex)
                 {
@@ -279,19 +281,6 @@ namespace IceRpc.Internal
             {
                 request.Stream?.Abort(StreamError.InvocationCanceled);
                 throw;
-            }
-            finally
-            {
-                // lock (_mutex)
-                // {
-                //     _invocations.Remove(request);
-
-                //     // If no more invocations or dispatch and shutting down, shutdown can complete.
-                //     if (_shutdown && _invocations.Count == 0 && _dispatch.Count == 0)
-                //     {
-                //         _completeShutdown.SetResult();
-                //     }
-                // }
             }
 
             var decoder = new Ice20Decoder(buffer);
@@ -486,8 +475,8 @@ namespace IceRpc.Internal
                     // Throw a remote exception instead of this response, the Ice connection will catch it and send it
                     // as the response instead of sending this response which is too large.
                     throw new DispatchException(
-                    $@"the response size ({frameSize} bytes) is larger than IncomingFrameMaxSize ({
-                        _peerIncomingFrameMaxSize} bytes)");
+                        $@"the response size ({frameSize} bytes) is larger than IncomingFrameMaxSize ({
+                            _peerIncomingFrameMaxSize} bytes)");
                 }
 
                 // Add the payload to the buffer writer.

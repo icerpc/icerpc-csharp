@@ -32,7 +32,7 @@ namespace IceRpc.Transports
         /// </summary>
         bool IsServer { get; }
 
-        /// <summary>The time of the connection's last activity.</summary>
+        /// <summary>The time elapsed since the last activity of the connection.</summary>
         TimeSpan LastActivity { get; }
 
         /// <summary>The local endpoint. The endpoint may not be available until the connection is connected.

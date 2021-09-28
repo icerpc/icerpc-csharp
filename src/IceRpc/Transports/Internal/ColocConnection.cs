@@ -20,15 +20,14 @@ namespace IceRpc.Transports.Internal
 
         public bool IsServer { get; }
 
-        public TimeSpan LastActivity => TimeSpan.FromSeconds(0);
+        public TimeSpan LastActivity => TimeSpan.Zero;
 
         public Endpoint? LocalEndpoint { get; }
 
-        public ILogger Logger => _logger;
+        public ILogger Logger { get; }
 
         public Endpoint? RemoteEndpoint { get; }
 
-        private readonly ILogger _logger;
         private readonly SlicOptions _slicOptions;
         private readonly ChannelReader<ReadOnlyMemory<byte>> _reader;
         private ReadOnlyMemory<byte> _receivedBuffer;
@@ -51,16 +50,16 @@ namespace IceRpc.Transports.Internal
                 IsServer,
                 TimeSpan.MaxValue,
                 _slicOptions,
-                _logger,
+                Logger,
                 cancel).ConfigureAwait(false);
             return _slicConnection;
         }
 
         public ValueTask<ISingleStreamConnection> GetSingleStreamConnectionAsync(CancellationToken cancel)
         {
-            if (_logger.IsEnabled(LogLevel.Debug))
+            if (Logger.IsEnabled(LogLevel.Debug))
             {
-                return new(new LogSingleStreamConnectionDecorator(this, _logger));
+                return new(new LogSingleStreamConnectionDecorator(this, Logger));
             }
             else
             {
@@ -152,7 +151,7 @@ namespace IceRpc.Transports.Internal
             _slicOptions = slicOptions;
             _reader = reader;
             _writer = writer;
-            _logger = logger;
+            Logger = logger;
         }
     }
 }

@@ -206,6 +206,7 @@ namespace IceRpc.Internal
                     }
                     else
                     {
+                        // TODO: XXX fix this, it's wrong for oneway requests which use 0 for the requestId.
                         _dispatchCancellationTokenSources[requestId] = request.CancelDispatchSource;
                         return request;
                     }
@@ -378,7 +379,7 @@ namespace IceRpc.Internal
                 // Add the payload to the buffer writer.
                 bufferWriter.Add(request.Payload);
 
-                // Perform the sending. When an an Ice1 frame is sent over a connection (such as a TCP
+                // Perform the sending. When an Ice1 frame is sent over a connection (such as a TCP
                 // connection), we need to send the entire frame even when cancel gets canceled since the
                 // recipient cannot read a partial frame and then keep going.
                 ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
