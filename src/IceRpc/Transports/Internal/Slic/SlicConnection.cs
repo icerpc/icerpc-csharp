@@ -114,7 +114,7 @@ namespace IceRpc.Transports.Internal.Slic
                         }
                         else
                         {
-                            throw new InvalidDataException("received stream frame for unknown stream");
+                            throw new InvalidDataException($"received stream frame for unknown stream ID={streamId}");
                         }
                         break;
                     }

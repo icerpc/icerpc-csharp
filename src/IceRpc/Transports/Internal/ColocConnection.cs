@@ -34,13 +34,13 @@ namespace IceRpc.Transports.Internal
         private SlicConnection? _slicConnection;
         private readonly ChannelWriter<ReadOnlyMemory<byte>> _writer;
 
-        public ValueTask ConnectAsync(CancellationToken cancel) => default;
-
-        public void Dispose()
+        public void Close(Exception? exception = null)
         {
             _slicConnection?.Dispose();
             _writer.TryComplete(); // Dispose might be called multiple times
         }
+
+        public ValueTask ConnectAsync(CancellationToken cancel) => default;
 
         public async ValueTask<IMultiStreamConnection> GetMultiStreamConnectionAsync(CancellationToken cancel)
         {

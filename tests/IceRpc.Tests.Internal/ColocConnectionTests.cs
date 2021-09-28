@@ -14,45 +14,49 @@ namespace IceRpc.Tests.Internal
         [TestCase(true)]
         public void ColocConnection_ConnectAsync(bool isServer)
         {
-            using ColocConnection connection = CreateConnection(isServer);
+            ColocConnection connection = CreateConnection(isServer);
             Assert.DoesNotThrowAsync(async () => await connection.ConnectAsync(default));
+            connection.Close();
         }
 
         [Test]
-        public void ColocConnection_Dispose()
+        public void ColocConnection_Close()
         {
-            using ColocConnection connection = CreateConnection(false);
-            connection.Dispose();
-            connection.Dispose();
+            ColocConnection connection = CreateConnection(false);
+            connection.Close();
+            connection.Close();
         }
 
         [TestCase(true, false)]
         [TestCase(false, true)]
         public async Task ColocConnection_HasCompatibleParams(bool isServer, bool expectedResult)
         {
-            using ColocConnection connection = CreateConnection(isServer);
+            ColocConnection connection = CreateConnection(isServer);
             await connection.ConnectAsync(default);
             Assert.That(connection.HasCompatibleParams(Endpoint.FromString("ice+coloc://host")),
                         Is.EqualTo(expectedResult));
+            connection.Close();
         }
 
         [TestCase(false)]
         [TestCase(true)]
         public void ColocConnection_Properties(bool isServer)
         {
-            using ColocConnection connection = CreateConnection(isServer);
+            ColocConnection connection = CreateConnection(isServer);
 
             Assert.That(connection.LocalEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
             Assert.That(connection.RemoteEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
             Assert.That(connection.IsServer, Is.EqualTo(isServer));
             Assert.That(connection.IdleTimeout, Is.EqualTo(TimeSpan.MaxValue));
             Assert.That(connection.IsDatagram, Is.False);
+
+            connection.Close();
         }
 
         [Test]
         public async Task ColocConnection_LastActivity()
         {
-            using ColocConnection connection = CreateConnection(false);
+            ColocConnection connection = CreateConnection(false);
 
             ISingleStreamConnection stream = await connection.GetSingleStreamConnectionAsync(default);
 
@@ -70,6 +74,8 @@ namespace IceRpc.Tests.Internal
             await Task.Delay(2);
             await stream.ReceiveAsync(new byte[1], default);
             Assert.That(connection.LastActivity, Is.EqualTo(TimeSpan.FromSeconds(0)));
+
+            connection.Close();
         }
 
         private ColocConnection CreateConnection(bool isServer)

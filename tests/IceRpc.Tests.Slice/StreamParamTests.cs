@@ -13,7 +13,7 @@ namespace IceRpc.Tests.Slice.Stream
     [Parallelizable(ParallelScope.All)]
     [TestFixture("slic")]
     [TestFixture("coloc")]
-    [Log(LogAttributeLevel.Trace)]
+    [Log(LogAttributeLevel.Debug)]
     public sealed class StreamParamTests : IAsyncDisposable
     {
         private readonly Connection _connection;
@@ -261,6 +261,7 @@ namespace IceRpc.Tests.Slice.Stream
         }
 
         [Test]
+        [Log(LogAttributeLevel.Debug)]
         public async Task StreamParam_Receive_AnotherStruct()
         {
             AnotherStruct v1 = GetAnotherStruct(1);

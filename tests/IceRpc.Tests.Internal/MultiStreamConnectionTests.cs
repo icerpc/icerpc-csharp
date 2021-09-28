@@ -18,15 +18,15 @@ namespace IceRpc.Tests.Internal
         public void MultiStreamConnection_Dispose()
         {
             ValueTask<INetworkStream> acceptStreamTask = ServerMultiStreamConnection.AcceptStreamAsync(default);
-            ClientConnection.Dispose();
+            ClientConnection.Close(new ConnectionClosedException());
             Assert.ThrowsAsync<ConnectionLostException>(async () => await acceptStreamTask);
         }
 
         // [Test]
         // public void MultiStreamConnection_Dispose_EmptyStreams()
         // {
-        //     ClientConnection.Dispose();
-        //     ServerConnection.Dispose();
+        //     ClientConnection.Close(new ConnectionClosedException());
+        //     ServerConnection.Close(new ConnectionClosedException());
 
         //     (long clientBidirectional, long clientUnidirectional) = ClientConnection.Shutdown();
         //     (long serverBidirectional, long serverUnidirectional) = ServerConnection.Shutdown();
@@ -43,7 +43,7 @@ namespace IceRpc.Tests.Internal
             INetworkStream clientStream = ClientMultiStreamConnection.CreateStream(true);
             await clientStream.SendAsync(CreateSendPayload(clientStream), true, default);
 
-            ClientConnection.Dispose();
+            ClientConnection.Close(new ConnectionClosedException());
 
             StreamAbortedException? ex;
             // Stream is aborted
@@ -119,7 +119,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void MultiStreamConnection_AcceptStream_Failure()
         {
-            ClientConnection.Dispose();
+            ClientConnection.Close(new ConnectionClosedException());
             Assert.CatchAsync<TransportException>(async () => await ServerMultiStreamConnection.AcceptStreamAsync(default));
         }
 
@@ -321,7 +321,7 @@ namespace IceRpc.Tests.Internal
         // [Test]
         // public void MultiStreamConnection_Ping_Failure()
         // {
-        //     ClientConnection.Dispose();
+        //     ClientConnection.Close(new ConnectionClosedException());
         //     Assert.CatchAsync<TransportException>(async () => await ClientConnection.PingAsync(default));
         // }
 
@@ -329,7 +329,7 @@ namespace IceRpc.Tests.Internal
         public void MultiStreamConnection_SendAsync_Failure()
         {
             INetworkStream stream = ClientMultiStreamConnection.CreateStream(false);
-            ClientConnection.Dispose();
+            ClientConnection.Close(new ConnectionClosedException());
             Assert.CatchAsync<TransportException>(
                 async () => await stream.SendAsync(CreateSendPayload(stream), true, default));
         }
@@ -342,7 +342,7 @@ namespace IceRpc.Tests.Internal
 
             INetworkStream serverStream = await ServerMultiStreamConnection.AcceptStreamAsync(default);
             await serverStream.ReceiveAsync(CreateReceivePayload(), default);
-            ServerConnection.Dispose();
+            ServerConnection.Close(new ConnectionClosedException());
             Assert.CatchAsync<StreamAbortedException>(
                 async () => await serverStream.SendAsync(CreateSendPayload(serverStream), true, default));
         }

@@ -17,7 +17,7 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public bool HasInvocationsInProgress => _pendingIncomingResponses.Count > 0;
 
-        // TODO: XXX
+        // TODO: XXX, add back configuration to limit the number of concurrent dispatch.
         // private readonly AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly TaskCompletionSource _cancelShutdown =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -36,6 +36,7 @@ namespace IceRpc.Internal
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly Dictionary<int, TaskCompletionSource<ReadOnlyMemory<byte>>> _pendingIncomingResponses = new();
         private readonly AsyncSemaphore _sendSemaphore = new(1);
+        // TODO: XXX, add back configuration to limit the number of concurrent dispatch.
         // private readonly AsyncSemaphore? _unidirectionalStreamSemaphore;
         private bool _shutdown;
 

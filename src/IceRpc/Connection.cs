@@ -588,12 +588,12 @@ namespace IceRpc
                 catch (Exception exception)
                 {
                     // The protocol or transport aren't supposed to raise.
-                    Debug.Assert(false, $"unexpected protocol close exception\n {exception}");
+                    Debug.Assert(false, $"unexpected protocol close exception\n{exception}");
                 }
 
                 try
                 {
-                    NetworkConnection?.Dispose();
+                    NetworkConnection?.Close(exception);
                 }
                 catch (Exception exception)
                 {

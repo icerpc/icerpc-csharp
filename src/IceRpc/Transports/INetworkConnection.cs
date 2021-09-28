@@ -8,7 +8,7 @@ namespace IceRpc.Transports
     /// connection supports both exchanging data using an <see cref="ISingleStreamConnection"/> (for the Ice1
     /// protocol) or a <see cref="IMultiStreamConnection"/> (for the Ice2 protocol). A single-stream transport
     /// such as TCP or Coloc, uses Slic to provide multi-stream support.</summary>
-    public interface INetworkConnection : IDisposable
+    public interface INetworkConnection
     {
         /// <summary>The maximum size of a received datagram if this connection is a datagram
         /// connection.</summary>
@@ -45,6 +45,10 @@ namespace IceRpc.Transports
         /// <summary>The remote endpoint. This endpoint may not be available until the connection is accepted.
         /// </summary>
         Endpoint? RemoteEndpoint { get; }
+
+        /// <summary>Closes the network connection.</summary>
+        /// <param name="exception">The reason of the connection closure.</param>
+        void Close(Exception? exception = null);
 
         /// <summary>Connects a new client or server network connection. This is called after the endpoint
         /// created a new connection to establish the connection and perform blocking network level

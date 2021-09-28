@@ -207,6 +207,7 @@ namespace IceRpc.Slice
                     Memory<byte> buffer = new byte[256];
                     try
                     {
+                        // TODO: Use Ice2 protocol frame reader to read the frame
                         int received = await _networkStream.ReceiveAsync(buffer[0..2], cancel).ConfigureAwait(false);
                         if (received == 0)
                         {
@@ -228,7 +229,7 @@ namespace IceRpc.Slice
                         if (sizeLength > 1)
                         {
                             await _networkStream.ReceiveUntilFullAsync(
-                                buffer[2..(sizeLength - 1)],
+                                buffer.Slice(2, sizeLength - 1),
                                 cancel).ConfigureAwait(false);
                         }
 

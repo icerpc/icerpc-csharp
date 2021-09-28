@@ -64,8 +64,8 @@ namespace IceRpc.Tests.Internal
 
         protected void TearDownConnections()
         {
-            _clientConnection?.Dispose();
-            _serverConnection?.Dispose();
+            _clientConnection?.Close(new ConnectionClosedException());
+            _serverConnection?.Close(new ConnectionClosedException());
         }
 
         private async Task<INetworkConnection> AcceptAsync()

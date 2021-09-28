@@ -24,7 +24,7 @@ namespace IceRpc.Transports.Internal.Slic
         public async ValueTask ReadFrameDataAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             await _decoratee.ReadFrameDataAsync(buffer, cancel).ConfigureAwait(false);
-            if (_frameType != FrameType.Stream || _frameType != FrameType.StreamLast)
+            if (_frameType != FrameType.Stream && _frameType != FrameType.StreamLast)
             {
                 LogReadFrame(_frameType, _frameDataSize, _frameStreamId, buffer);
             }

@@ -53,6 +53,10 @@ namespace IceRpc.Tests
         public ILogger Logger => throw new NotImplementedException();
         public Endpoint? RemoteEndpoint { get; }
 
+        public void Close(Exception? exception = null)
+        {
+        }
+
         public ValueTask ConnectAsync(CancellationToken cancel) => default;
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) => throw new NotImplementedException();
@@ -62,10 +66,6 @@ namespace IceRpc.Tests
 
         public ValueTask<ISingleStreamConnection> GetSingleStreamConnectionAsync(CancellationToken _) =>
             throw new NotImplementedException();
-
-        public void Dispose()
-        {
-        }
 
         public NetworkConnectionStub(Endpoint localEndpoint, Endpoint remoteEndpoint, bool isServer)
         {

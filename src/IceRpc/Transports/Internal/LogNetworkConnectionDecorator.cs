@@ -20,10 +20,39 @@ namespace IceRpc.Transports.Internal
         public ILogger Logger { get; }
         public Endpoint? RemoteEndpoint => _decoratee.RemoteEndpoint;
 
-        internal Exception? FailureException { get; set; }
-
         private bool _connected;
         private readonly INetworkConnection _decoratee;
+
+        public void Close(Exception? exception)
+        {
+            if (_connected || exception == null)
+            {
+                if (_decoratee.IsDatagram && _decoratee.IsServer)
+                {
+                    Logger.LogStopReceivingDatagrams();
+                }
+                else
+                {
+                    Logger.LogConnectionClosed(exception?.Message ?? "graceful close");
+                }
+            }
+            else
+            {
+                // If the connection is connecting but not active yet, we print a trace to show that
+                // the connection got connected or accepted before printing out the connection closed
+                // trace.
+                Action<Exception?> logFailure = (_decoratee.IsServer, _decoratee.IsDatagram) switch
+                {
+                    (false, false) => Logger.LogConnectionConnectFailed,
+                    (false, true) => Logger.LogStartSendingDatagramsFailed,
+                    (true, false) => Logger.LogConnectionAcceptFailed,
+                    (true, true) => Logger.LogStartReceivingDatagramsFailed,
+                };
+                logFailure(exception);
+            }
+
+            _decoratee.Close(exception);
+        }
 
         public async ValueTask ConnectAsync(CancellationToken cancel)
         {
@@ -48,45 +77,8 @@ namespace IceRpc.Transports.Internal
             catch (TransportException exception) when (exception.InnerException is AuthenticationException ex)
             {
                 Logger.LogTlsAuthenticationFailed(ex);
-                FailureException = exception;
                 throw;
             }
-            catch (Exception exception)
-            {
-                FailureException = exception;
-                throw;
-            }
-        }
-
-        public void Dispose()
-        {
-            if (_connected)
-            {
-                if (_decoratee.IsDatagram && _decoratee.IsServer)
-                {
-                    Logger.LogStopReceivingDatagrams();
-                }
-                else
-                {
-                    Logger.LogConnectionClosed(FailureException?.Message ?? "graceful close");
-                }
-            }
-            else
-            {
-                // If the connection is connecting but not active yet, we print a trace to show that
-                // the connection got connected or accepted before printing out the connection closed
-                // trace.
-                Action<Exception?> logFailure = (_decoratee.IsServer, _decoratee.IsDatagram) switch
-                {
-                    (false, false) => Logger.LogConnectionConnectFailed,
-                    (false, true) => Logger.LogStartSendingDatagramsFailed,
-                    (true, false) => Logger.LogConnectionAcceptFailed,
-                    (true, true) => Logger.LogStartReceivingDatagramsFailed,
-                };
-                logFailure(FailureException);
-            }
-
-            _decoratee.Dispose();
         }
 
         public ValueTask<ISingleStreamConnection> GetSingleStreamConnectionAsync(CancellationToken cancel) =>

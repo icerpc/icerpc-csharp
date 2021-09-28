@@ -44,6 +44,13 @@ namespace IceRpc.Transports.Internal
         private readonly SlicOptions _slicOptions;
 
         /// <inheritdoc/>
+        public void Close(Exception? exception = null)
+        {
+            _slicConnection?.Dispose();
+            NetworkSocket.Dispose();
+        }
+
+        /// <inheritdoc/>
         public async ValueTask ConnectAsync(CancellationToken cancel)
         {
             if (!IsServer)
@@ -54,13 +61,6 @@ namespace IceRpc.Transports.Internal
             {
                 RemoteEndpoint = await NetworkSocket.ConnectAsync(LocalEndpoint!, cancel).ConfigureAwait(false);
             }
-        }
-
-        /// <inheritdoc/>
-        public void Dispose()
-        {
-            _slicConnection?.Dispose();
-            NetworkSocket.Dispose();
         }
 
         /// <inheritdoc/>
