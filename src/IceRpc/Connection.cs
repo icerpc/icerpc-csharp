@@ -389,6 +389,11 @@ namespace IceRpc
                 response.Connection = this;
                 return response;
             }
+            catch (OperationCanceledException)
+            {
+                request.Stream?.Abort(StreamError.InvocationCanceled);
+                throw;
+            }
             catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.DispatchCanceled)
             {
                 throw new OperationCanceledException("dispatch canceled by peer", ex);

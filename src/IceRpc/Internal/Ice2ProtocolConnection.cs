@@ -259,16 +259,8 @@ namespace IceRpc.Internal
                 throw new InvalidOperationException("can't receive a response for a one-way request");
             }
 
-            ReadOnlyMemory<byte> buffer;
-            try
-            {
-                buffer = await ReceiveFrameAsync(request.Stream!, Ice2FrameType.Response, cancel).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                request.Stream?.Abort(StreamError.InvocationCanceled);
-                throw;
-            }
+            ReadOnlyMemory<byte> buffer =
+                await ReceiveFrameAsync(request.Stream!, Ice2FrameType.Response, cancel).ConfigureAwait(false);
 
             var decoder = new Ice20Decoder(buffer);
             int headerSize = decoder.DecodeSize();
@@ -345,78 +337,90 @@ namespace IceRpc.Internal
                 }
             }
 
-            var bufferWriter = new BufferWriter();
-            bufferWriter.WriteByteSpan(request.Stream.TransportHeader.Span);
-            var encoder = new Ice20Encoder(bufferWriter);
-
-            // Write the Ice2 request header.
-
-            encoder.EncodeIce2FrameType(Ice2FrameType.Request);
-
-            // TODO: simplify sizes, we should be able to remove one of the sizes (the frame size, the
-            // frame header size).
-            BufferWriter.Position frameSizeStart = encoder.StartFixedLengthSize();
-            BufferWriter.Position frameHeaderStart = encoder.StartFixedLengthSize(2);
-
-            // DateTime.MaxValue represents an infinite deadline and it is encoded as -1
-            long deadline = request.Deadline == DateTime.MaxValue ? -1 :
-                    (long)(request.Deadline - DateTime.UnixEpoch).TotalMilliseconds;
-
-            var requestHeaderBody = new Ice2RequestHeaderBody(
-                request.Path,
-                request.Operation,
-                request.IsIdempotent ? true : null,
-                priority: null,
-                deadline,
-                request.PayloadEncoding == Ice2Definitions.Encoding ? null : request.PayloadEncoding.ToString());
-
-            requestHeaderBody.Encode(encoder);
-
-            IDictionary<string, string> context = request.Features.GetContext();
-            // TODO: should this just check for context.Count > 0? See
-            // https://github.com/zeroc-ice/icerpc-csharp/issues/542
-            if (request.FieldsDefaults.ContainsKey((int)FieldKey.Context) || context.Count > 0)
+            try
             {
-                // Encodes context
-                request.Fields[(int)FieldKey.Context] =
-                    encoder => encoder.EncodeDictionary(context,
-                                                        (encoder, value) => encoder.EncodeString(value),
-                                                        (encoder, value) => encoder.EncodeString(value));
+                var bufferWriter = new BufferWriter();
+                bufferWriter.WriteByteSpan(request.Stream.TransportHeader.Span);
+                var encoder = new Ice20Encoder(bufferWriter);
+
+                // Write the Ice2 request header.
+
+                encoder.EncodeIce2FrameType(Ice2FrameType.Request);
+
+                // TODO: simplify sizes, we should be able to remove one of the sizes (the frame size, the
+                // frame header size).
+                BufferWriter.Position frameSizeStart = encoder.StartFixedLengthSize();
+                BufferWriter.Position frameHeaderStart = encoder.StartFixedLengthSize(2);
+
+                // DateTime.MaxValue represents an infinite deadline and it is encoded as -1
+                long deadline = request.Deadline == DateTime.MaxValue ? -1 :
+                        (long)(request.Deadline - DateTime.UnixEpoch).TotalMilliseconds;
+
+                var requestHeaderBody = new Ice2RequestHeaderBody(
+                    request.Path,
+                    request.Operation,
+                    request.IsIdempotent ? true : null,
+                    priority: null,
+                    deadline,
+                    request.PayloadEncoding == Ice2Definitions.Encoding ? null : request.PayloadEncoding.ToString());
+
+                requestHeaderBody.Encode(encoder);
+
+                IDictionary<string, string> context = request.Features.GetContext();
+                // TODO: should this just check for context.Count > 0? See
+                // https://github.com/zeroc-ice/icerpc-csharp/issues/542
+                if (request.FieldsDefaults.ContainsKey((int)FieldKey.Context) || context.Count > 0)
+                {
+                    // Encodes context
+                    request.Fields[(int)FieldKey.Context] =
+                        encoder => encoder.EncodeDictionary(context,
+                                                            (encoder, value) => encoder.EncodeString(value),
+                                                            (encoder, value) => encoder.EncodeString(value));
+                }
+                // else context remains empty (not set)
+
+                encoder.EncodeFields(request.Fields, request.FieldsDefaults);
+                encoder.EncodeSize(request.PayloadSize);
+
+                // We're done with the header encoding, write the header size.
+                int headerSize = encoder.EndFixedLengthSize(frameHeaderStart, 2);
+
+                // We're done with the frame encoding, write the frame size.
+                int frameSize = headerSize + 2 + request.PayloadSize;
+                encoder.EncodeFixedLengthSize(frameSize, frameSizeStart);
+                if (frameSize > _peerIncomingFrameMaxSize)
+                {
+                    throw new ArgumentException(
+                        $@"the request size ({frameSize} bytes) is larger than the peer's IncomingFrameMaxSize ({
+                        _peerIncomingFrameMaxSize} bytes)",
+                        nameof(request));
+                }
+
+                // Add the payload to the buffer writer.
+                bufferWriter.Add(request.Payload);
+
+                // Send the request frame.
+                await request.Stream.SendAsync(bufferWriter.Finish(),
+                                               endStream: request.StreamParamSender == null,
+                                               cancel).ConfigureAwait(false);
+
+                // Mark the request as sent.
+                request.IsSent = true;
+
+                // If there's a stream param sender, we can start sending the data.
+                if (request.StreamParamSender != null)
+                {
+                    request.SendStreamParam(request.Stream);
+                }
             }
-            // else context remains empty (not set)
-
-            encoder.EncodeFields(request.Fields, request.FieldsDefaults);
-            encoder.EncodeSize(request.PayloadSize);
-
-            // We're done with the header encoding, write the header size.
-            int headerSize = encoder.EndFixedLengthSize(frameHeaderStart, 2);
-
-            // We're done with the frame encoding, write the frame size.
-            int frameSize = headerSize + 2 + request.PayloadSize;
-            encoder.EncodeFixedLengthSize(frameSize, frameSizeStart);
-            if (frameSize > _peerIncomingFrameMaxSize)
+            catch
             {
-                throw new ArgumentException(
-                    $@"the request size ({frameSize} bytes) is larger than the peer's IncomingFrameMaxSize ({
-                    _peerIncomingFrameMaxSize} bytes)",
-                    nameof(request));
-            }
-
-            // Add the payload to the buffer writer.
-            bufferWriter.Add(request.Payload);
-
-            // Send the request frame.
-            await request.Stream.SendAsync(bufferWriter.Finish(),
-                                           endStream: request.StreamParamSender == null,
-                                           cancel).ConfigureAwait(false);
-
-            // Mark the request as sent.
-            request.IsSent = true;
-
-            // If there's a stream param sender, we can start sending the data.
-            if (request.StreamParamSender != null)
-            {
-                request.SendStreamParam(request.Stream);
+                // Make sure the shutdown action is executed, it might not be executed otherwise if the stream
+                // is not started. TODO: XXX review this when the SlicStream/NetworkStream classes are merged.
+                // The shutdown action should proably be invoked regardless. If the stream isn't started, it
+                // should not send reset/stop sending frames however.
+                request.Stream.ShutdownAction?.Invoke();
+                throw;
             }
         }
 
@@ -427,57 +431,58 @@ namespace IceRpc.Internal
             {
                 throw new InvalidOperationException($"{nameof(request.Stream)} is not set");
             }
-
-            if (!request.IsOneway)
+            else  if (request.IsOneway)
             {
-                var bufferWriter = new BufferWriter();
-                bufferWriter.WriteByteSpan(request.Stream.TransportHeader.Span);
-                var encoder = new Ice20Encoder(bufferWriter);
+                return;
+            }
 
-                // Write the Ice2 response header.
-                encoder.EncodeIce2FrameType(Ice2FrameType.Response);
+            var bufferWriter = new BufferWriter();
+            bufferWriter.WriteByteSpan(request.Stream.TransportHeader.Span);
+            var encoder = new Ice20Encoder(bufferWriter);
 
-                // TODO: simplify sizes, we should be able to remove one of the sizes (the frame size or the
-                // frame header size).
-                BufferWriter.Position frameSizeStart = encoder.StartFixedLengthSize();
-                BufferWriter.Position frameHeaderStart = encoder.StartFixedLengthSize(2);
+            // Write the Ice2 response header.
+            encoder.EncodeIce2FrameType(Ice2FrameType.Response);
 
-                new Ice2ResponseHeaderBody(
-                    response.ResultType,
-                    response.PayloadEncoding == Ice2Definitions.Encoding ? null :
-                        response.PayloadEncoding.ToString()).Encode(encoder);
+            // TODO: simplify sizes, we should be able to remove one of the sizes (the frame size or the
+            // frame header size).
+            BufferWriter.Position frameSizeStart = encoder.StartFixedLengthSize();
+            BufferWriter.Position frameHeaderStart = encoder.StartFixedLengthSize(2);
 
-                encoder.EncodeFields(response.Fields, response.FieldsDefaults);
-                encoder.EncodeSize(response.PayloadSize);
+            new Ice2ResponseHeaderBody(
+                response.ResultType,
+                response.PayloadEncoding == Ice2Definitions.Encoding ? null :
+                    response.PayloadEncoding.ToString()).Encode(encoder);
 
-                // We're done with the header encoding, write the header size.
-                int headerSize = encoder.EndFixedLengthSize(frameHeaderStart, 2);
+            encoder.EncodeFields(response.Fields, response.FieldsDefaults);
+            encoder.EncodeSize(response.PayloadSize);
 
-                // We're done with the frame encoding, write the frame size.
-                int frameSize = headerSize + 2 + response.PayloadSize;
-                encoder.EncodeFixedLengthSize(frameSize, frameSizeStart);
-                if (frameSize > _peerIncomingFrameMaxSize)
-                {
-                    // Throw a remote exception instead of this response, the Ice connection will catch it and send it
-                    // as the response instead of sending this response which is too large.
-                    throw new DispatchException(
-                        $@"the response size ({frameSize} bytes) is larger than IncomingFrameMaxSize ({
-                            _peerIncomingFrameMaxSize} bytes)");
-                }
+            // We're done with the header encoding, write the header size.
+            int headerSize = encoder.EndFixedLengthSize(frameHeaderStart, 2);
 
-                // Add the payload to the buffer writer.
-                bufferWriter.Add(response.Payload);
+            // We're done with the frame encoding, write the frame size.
+            int frameSize = headerSize + 2 + response.PayloadSize;
+            encoder.EncodeFixedLengthSize(frameSize, frameSizeStart);
+            if (frameSize > _peerIncomingFrameMaxSize)
+            {
+                // Throw a remote exception instead of this response, the Ice connection will catch it and send it
+                // as the response instead of sending this response which is too large.
+                throw new DispatchException(
+                    $@"the response size ({frameSize} bytes) is larger than IncomingFrameMaxSize ({
+                        _peerIncomingFrameMaxSize} bytes)");
+            }
 
-                // Send the response frame.
-                await request.Stream.SendAsync(bufferWriter.Finish(),
-                                               endStream: response.StreamParamSender == null,
-                                               cancel).ConfigureAwait(false);
+            // Add the payload to the buffer writer.
+            bufferWriter.Add(response.Payload);
 
-                // If there's a stream param sender, we can start sending the data.
-                if (response.StreamParamSender != null)
-                {
-                    response.SendStreamParam(request.Stream);
-                }
+            // Send the response frame.
+            await request.Stream.SendAsync(bufferWriter.Finish(),
+                                            endStream: response.StreamParamSender == null,
+                                            cancel).ConfigureAwait(false);
+
+            // If there's a stream param sender, we can start sending the data.
+            if (response.StreamParamSender != null)
+            {
+                response.SendStreamParam(request.Stream);
             }
         }
 

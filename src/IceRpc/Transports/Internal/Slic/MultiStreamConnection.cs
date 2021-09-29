@@ -48,7 +48,7 @@ namespace IceRpc.Transports.Internal.Slic
             {
                 try
                 {
-                    stream.Abort(StreamError.ConnectionAborted);
+                    ((INetworkStream)stream).Abort(StreamError.ConnectionAborted);
                 }
                 catch (Exception ex)
                 {

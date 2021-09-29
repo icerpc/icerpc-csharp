@@ -8,7 +8,7 @@ using NUnit.Framework;
 namespace IceRpc.Tests.Api
 {
     [Parallelizable(scope: ParallelScope.All)]
-    [Timeout(30000)]
+    [Timeout(5000)]
     public class ProxyTests
     {
         [TestCase(Protocol.Ice1)]

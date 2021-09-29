@@ -287,7 +287,6 @@ namespace IceRpc.Transports.Internal.Slic
                     }
                     catch (Exception ex)
                     {
-                        TrySetWriteCompleted();
                         _sendSemaphore.Complete(ex);
                         throw;
                     }

@@ -167,8 +167,8 @@ namespace IceRpc.Transports.Internal.Slic
         /// <summary>Mark writes as completed for this stream.</summary>
         /// <returns><c>true</c> if the stream writes were successfully marked as completed, <c>false</c> if
         /// the stream writes were already completed.</returns>
-        protected internal bool TrySetWriteCompleted(bool shutdown = true) =>
-            TrySetState(State.WriteCompleted, shutdown);
+        protected internal bool TrySetWriteCompleted() =>
+            TrySetState(State.WriteCompleted, true);
 
         /// <summary>Shutdown the stream if it's not already shutdown.</summary>
         protected void TryShutdown()
@@ -186,15 +186,6 @@ namespace IceRpc.Transports.Internal.Slic
                     Debug.Assert(false, $"unexpected exception {exception}");
                 }
             }
-        }
-
-        internal void Abort(StreamError errorCode)
-        {
-            // Abort writes.
-            AbortWrite(errorCode);
-
-            // Abort reads.
-            AbortRead(errorCode);
         }
 
         private bool TrySetState(State state, bool shutdown)

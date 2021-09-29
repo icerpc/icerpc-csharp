@@ -149,7 +149,6 @@ namespace IceRpc.Transports.Internal.Slic
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine(ex);
                     Debug.Assert(false, $"failed to read Slic frame\n{ex}");
                     return default;
                 }
