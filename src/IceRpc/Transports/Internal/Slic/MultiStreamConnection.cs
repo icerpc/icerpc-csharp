@@ -12,6 +12,7 @@ namespace IceRpc.Transports.Internal.Slic
 {
     /// <summary>A multi-stream connection represents a network connection that provides multiple independent
     /// streams of binary data.</summary>
+    // TODO: XXX merge into SlicConnection
     public abstract class MultiStreamConnection : IMultiStreamConnection, IDisposable
     {
         internal TimeSpan IdleTimeout { get; set; }
@@ -57,8 +58,7 @@ namespace IceRpc.Transports.Internal.Slic
         }
 
         /// <summary>Returns <c>true</c> if a remote stream is unknown, <c>false</c> otherwise. A remote
-        /// stream is known if its the ID is inferior or equal to the last allocated remote stream
-        /// ID.</summary>
+        /// stream is known if its ID is inferior or equal to the last allocated remote stream ID.</summary>
         protected bool IsRemoteStreamUnknown(long streamId, bool bidirectional)
         {
             lock (_mutex)

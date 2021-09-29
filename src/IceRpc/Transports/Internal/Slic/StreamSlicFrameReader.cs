@@ -2,7 +2,6 @@
 
 using IceRpc.Internal;
 using IceRpc.Transports.Slic;
-using System.Buffers;
 
 namespace IceRpc.Transports.Internal.Slic
 {

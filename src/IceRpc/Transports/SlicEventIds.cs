@@ -23,6 +23,8 @@ namespace IceRpc.Transports
         ReceivingStreamFrame,
         /// <summary>Sending Slic frame.</summary>
         SendingStreamFrame,
+        /// <summary>Sending Slic frame failed.</summary>
+        SendFailure,
         /// <summary>Sent Slic stream consumed frame.</summary>
         SentConsumedFrame,
         /// <summary>Sent Slic initialize frame.</summary>

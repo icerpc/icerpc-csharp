@@ -9,7 +9,7 @@ namespace IceRpc.Transports.Internal.Slic
 {
     internal static class SlicExtensions
     {
-        internal static IEnumerable<(ParameterKey, ulong)> DecodedParameters(
+        internal static IEnumerable<(ParameterKey Key, ulong Value)> DecodedParameters(
             this IDictionary<int, IList<byte>> parameters) =>
             parameters.Select(pair =>
                 ((ParameterKey)pair.Key,
@@ -137,9 +137,17 @@ namespace IceRpc.Transports.Internal.Slic
         {
             (FrameType frameType, int frameSize) = await reader.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
             IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.Rent(frameSize);
-            Memory<byte> buffer = owner.Memory[0..frameSize];
-            await reader.ReadFrameDataAsync(buffer, cancel).ConfigureAwait(false);
-            return (frameType, frameSize, owner);
+            try
+            {
+                Memory<byte> buffer = owner.Memory[0..frameSize];
+                await reader.ReadFrameDataAsync(buffer, cancel).ConfigureAwait(false);
+                return (frameType, frameSize, owner);
+            }
+            catch
+            {
+                owner.Dispose();
+                throw;
+            }
         }
 
         private static async ValueTask<IMemoryOwner<byte>> ReadFrameDataAsync(
@@ -148,9 +156,17 @@ namespace IceRpc.Transports.Internal.Slic
             CancellationToken cancel)
         {
             IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.Rent(dataSize);
-            Memory<byte> buffer = owner.Memory[0..dataSize];
-            await reader.ReadFrameDataAsync(buffer, cancel).ConfigureAwait(false);
-            return owner;
+            try
+            {
+                Memory<byte> buffer = owner.Memory[0..dataSize];
+                await reader.ReadFrameDataAsync(buffer, cancel).ConfigureAwait(false);
+                return owner;
+            }
+            catch
+            {
+                owner.Dispose();
+                throw;
+            }
         }
 
         private static async ValueTask<T> ReadFrameDataAsync<T>(

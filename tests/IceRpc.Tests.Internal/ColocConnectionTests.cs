@@ -65,15 +65,15 @@ namespace IceRpc.Tests.Internal
 
             await Task.Delay(2);
             await stream.SendAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
-            Assert.That(connection.LastActivity, Is.EqualTo(TimeSpan.FromSeconds(0)));
+            Assert.That(connection.LastActivity, Is.EqualTo(TimeSpan.Zero));
 
             await Task.Delay(2);
             await stream.SendAsync(new byte[1], default);
-            Assert.That(connection.LastActivity, Is.EqualTo(TimeSpan.FromSeconds(0)));
+            Assert.That(connection.LastActivity, Is.EqualTo(TimeSpan.Zero));
 
             await Task.Delay(2);
             await stream.ReceiveAsync(new byte[1], default);
-            Assert.That(connection.LastActivity, Is.EqualTo(TimeSpan.FromSeconds(0)));
+            Assert.That(connection.LastActivity, Is.EqualTo(TimeSpan.Zero));
 
             connection.Close();
         }

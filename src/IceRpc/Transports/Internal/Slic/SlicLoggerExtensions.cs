@@ -68,7 +68,7 @@ namespace IceRpc.Transports.Internal.Slic
             {
                 logger.LogReceivedSlicInitializeAckFrame(
                     frameSize,
-                    string.Join(", ", body.Parameters.DecodedParameters().Select(pair => $"{pair.Item1}={pair.Item2}")));
+                    string.Join(", ", body.Parameters.DecodedParameters().Select(pair => $"{pair.Key}={pair.Value}")));
             }
         }
 
@@ -84,7 +84,7 @@ namespace IceRpc.Transports.Internal.Slic
                     frameSize,
                     version,
                     body.ApplicationProtocolName,
-                    string.Join(", ", body.Parameters.DecodedParameters().Select(pair => $"{pair.Item1}={pair.Item2}")));
+                    string.Join(", ", body.Parameters.DecodedParameters().Select(pair => $"{pair.Key}={pair.Value}")));
             }
         }
 
@@ -102,6 +102,16 @@ namespace IceRpc.Transports.Internal.Slic
             Level = LogLevel.Debug,
             Message = "sending Slic {FrameType} frame (FrameSize={FrameSize})")]
         internal static partial void LogSendingSlicFrame(this ILogger logger, FrameType frameType, int frameSize);
+
+        [LoggerMessage(
+            EventId = (int)SlicEventIds.SendFailure,
+            EventName = nameof(SlicEventIds.SendFailure),
+            Level = LogLevel.Debug,
+            Message = "sending of Slic {FrameType} frame failed")]
+        internal static partial void LogSendSlicFrameFailure(
+            this ILogger logger,
+            FrameType frameType,
+            Exception exception);
 
         [LoggerMessage(
             EventId = (int)SlicEventIds.SentConsumedFrame,

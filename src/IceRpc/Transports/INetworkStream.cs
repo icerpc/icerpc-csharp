@@ -57,7 +57,7 @@ namespace IceRpc.Transports
         /// <summary>Returns <c>true</c> if the stream is a bidirectional stream, <c>false</c> otherwise.</summary>
         bool IsBidirectional { get; }
 
-        /// <summary>Returns <c>true</c> if reads are completed, , <c>false</c> otherwise.</summary>
+        /// <summary>Returns <c>true</c> if reads are completed, <c>false</c> otherwise.</summary>
         bool ReadsCompleted { get; }
 
         /// <summary>Sets the action which is called when the stream is reset.</summary>

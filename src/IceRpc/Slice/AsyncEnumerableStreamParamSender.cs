@@ -99,7 +99,7 @@ namespace IceRpc.Slice
                 await rpcStream.SendAsync(
                     rpcStream.TransportHeader.Length == 0 ?
                         ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty :
-                        new ReadOnlyMemory<byte>[1] { rpcStream.TransportHeader },
+                        new ReadOnlyMemory<byte>[1] { rpcStream.TransportHeader.ToArray() },
                     true,
                     default).ConfigureAwait(false);
             }
@@ -124,10 +124,7 @@ namespace IceRpc.Slice
             {
                 var bufferWriter = new BufferWriter();
                 IceEncoder encoder = encoding.CreateIceEncoder(bufferWriter);
-                if (rpcStream.TransportHeader.Length > 0)
-                {
-                    bufferWriter.WriteByteSpan(rpcStream.TransportHeader.Span);
-                }
+                bufferWriter.WriteByteSpan(rpcStream.TransportHeader.Span);
                 encoder.EncodeByte((byte)Ice2FrameType.BoundedData);
                 BufferWriter.Position sizeStart = encoder.StartFixedLengthSize();
                 return (encoder, sizeStart, encoder.BufferWriter.Tail);

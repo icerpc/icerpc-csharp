@@ -71,25 +71,6 @@ namespace IceRpc
         /// <param name="protocol">The protocol used to send the frame.</param>
         protected OutgoingFrame(Protocol protocol) => Protocol = protocol;
 
-        /// <summary>Gets or builds a combined fields dictionary using <see cref="Fields"/> and
-        /// <see cref="FieldsDefaults"/>. This method is used for colocated calls.</summary>
-        internal IReadOnlyDictionary<int, ReadOnlyMemory<byte>> GetAllFields()
-        {
-            if (Fields.Count == 0)
-            {
-                return FieldsDefaults;
-            }
-            else
-            {
-                // Need to encode/decode these fields
-                var bufferWriter = new BufferWriter();
-                var encoder = new Ice20Encoder(bufferWriter);
-                encoder.EncodeFields(Fields, FieldsDefaults);
-                return Ice20Decoder.DecodeBuffer(bufferWriter.Finish().ToSingleBuffer(),
-                                                 decoder => decoder.DecodeFieldDictionary());
-            }
-        }
-
         internal void SendStreamParam(INetworkStream stream)
         {
             Debug.Assert(StreamParamSender != null);

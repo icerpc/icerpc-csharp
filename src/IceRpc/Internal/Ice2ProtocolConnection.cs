@@ -387,6 +387,8 @@ namespace IceRpc.Internal
             requestHeaderBody.Encode(encoder);
 
             IDictionary<string, string> context = request.Features.GetContext();
+            // TODO: should this just check for context.Count > 0? See
+            // https://github.com/zeroc-ice/icerpc-csharp/issues/542
             if (request.FieldsDefaults.ContainsKey((int)FieldKey.Context) || context.Count > 0)
             {
                 // Encodes context
@@ -689,11 +691,8 @@ namespace IceRpc.Internal
             CancellationToken cancel)
         {
             var bufferWriter = new BufferWriter(new byte[1024]);
+            bufferWriter.WriteByteSpan(_controlStream!.TransportHeader.Span);
             var encoder = new Ice20Encoder(bufferWriter);
-            if (!_controlStream!.TransportHeader.IsEmpty)
-            {
-                bufferWriter.WriteByteSpan(_controlStream.TransportHeader.Span);
-            }
             encoder.EncodeByte((byte)frameType);
             BufferWriter.Position sizePos = encoder.StartFixedLengthSize();
             frameEncodeAction?.Invoke(encoder);

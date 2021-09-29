@@ -12,6 +12,7 @@ namespace IceRpc.Transports.Internal.Slic
     /// or values can be queued using QueueResult. QueueResult might require allocating a queue on the
     /// heap. Stream implementations will typically only use it when needed.
     /// </summary>
+    // TODO: XXX merge with SlicStream
     internal abstract class SignaledStream<T> : NetworkStream, IValueTaskSource<T>
     {
         internal bool IsSignaled

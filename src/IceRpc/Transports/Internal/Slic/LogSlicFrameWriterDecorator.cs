@@ -23,7 +23,14 @@ namespace IceRpc.Transports.Internal.Slic
             CancellationToken cancel)
         {
             using IDisposable? scope = stream == null ? null : _logger.StartStreamScope(stream.Id);
-            await _decoratee.WriteFrameAsync(stream, buffers, cancel).ConfigureAwait(false);
+            try
+            {
+                await _decoratee.WriteFrameAsync(stream, buffers, cancel).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogSendSlicFrameFailure((FrameType)buffers.Span[0].Span[0], exception);
+            }
             LogSentFrame(buffers);
         }
 
@@ -36,7 +43,14 @@ namespace IceRpc.Transports.Internal.Slic
             using IDisposable? scope = _logger.StartStreamScope(stream.Id);
             int frameSize = buffers.GetByteCount() - SlicDefinitions.FrameHeader.Length;
             _logger.LogSendingSlicFrame(endStream ? FrameType.StreamLast : FrameType.Stream, frameSize);
-            await _decoratee.WriteStreamFrameAsync(stream, buffers, endStream, cancel).ConfigureAwait(false);
+            try
+            {
+                await _decoratee.WriteStreamFrameAsync(stream, buffers, endStream, cancel).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogSendSlicFrameFailure(endStream ? FrameType.StreamLast : FrameType.Stream, exception);
+            }
         }
 
         internal LogSlicFrameWriterDecorator(ISlicFrameWriter decoratee, ILogger logger)

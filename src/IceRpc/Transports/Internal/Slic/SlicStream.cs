@@ -190,11 +190,11 @@ namespace IceRpc.Transports.Internal.Slic
 
                 if (_sendSemaphore != null)
                 {
-                    // Acquire the semaphore to ensure flow control allows sending additional data. It's important
-                    // to acquire the semaphore before checking _sendMaxSize. The semaphore acquisition will block
-                    // if we can't send additional data (_sendMaxSize == 0). Acquiring the semaphore ensures that
-                    // we are allowed to send additional data and _sendMaxSize can be used to figure out the size
-                    // of the next packet to send.
+                    // Acquire the semaphore to ensure flow control allows sending additional data. It's
+                    // important to acquire the semaphore before checking _sendCredit. The semaphore
+                    // acquisition will block if we can't send additional data (_sendCredit == 0). Acquiring
+                    // the semaphore ensures that we are allowed to send additional data and _sendCredit can
+                    // be used to figure out the size of the next packet to send.
                     await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
                     Debug.Assert(_sendCredit > 0);
                 }

@@ -8,6 +8,7 @@ namespace IceRpc.Transports.Internal.Slic
     /// <summary>The NetworkStream abstract base class to be overridden by multi-stream network connection
     /// implementations. There's an instance of this class for each active stream managed by the multi-stream
     /// network connection.</summary>
+    // TODO: XXX merge with SlicStream
     public abstract class NetworkStream : INetworkStream
     {
         /// <inheritdoc/>
@@ -31,22 +32,17 @@ namespace IceRpc.Transports.Internal.Slic
             }
         }
 
-        /// <inheritdoc/>
-        public bool IsRemote => _id != -1 && _id % 2 == (_connection.IsServer ? 0 : 1);
+        internal bool IsRemote => _id != -1 && _id % 2 == (_connection.IsServer ? 0 : 1);
 
         /// <inheritdoc/>
         public bool IsBidirectional { get; }
 
-        /// <inheritdoc/>
-        public bool IsShutdown => (Thread.VolatileRead(ref _state) & (int)State.Shutdown) > 0;
+        internal bool IsShutdown => (Thread.VolatileRead(ref _state) & (int)State.Shutdown) > 0;
 
-        /// <summary>Returns <c>true</c> if the receiving side of the stream is completed, <c>false</c> otherwise.
-        /// </summary>
+        /// <inheritdoc/>
         public bool ReadsCompleted => (Thread.VolatileRead(ref _state) & (int)State.ReadCompleted) > 0;
 
-        /// <summary>Returns <c>true</c> if the sending side of the stream is completed, <c>false</c> otherwise.
-        /// </summary>
-        public bool WritesCompleted => (Thread.VolatileRead(ref _state) & (int)State.WriteCompleted) > 0;
+        internal bool WritesCompleted => (Thread.VolatileRead(ref _state) & (int)State.WriteCompleted) > 0;
 
         /// <inheritdoc/>
         public Action? ShutdownAction
@@ -54,6 +50,7 @@ namespace IceRpc.Transports.Internal.Slic
             get => _shutdownAction;
             set
             {
+                // TODO: XXX use the spin lock from SignalStream when it's merged into SlicStream?
                 _shutdownAction = value;
                 if (IsShutdown)
                 {
@@ -67,14 +64,10 @@ namespace IceRpc.Transports.Internal.Slic
         /// <inheritdoc/>
         public virtual ReadOnlyMemory<byte> TransportHeader => default;
 
-        /// <summary>Returns true if the stream ID is assigned</summary>
         internal bool IsStarted => _id != -1;
 
         private readonly MultiStreamConnection _connection;
 
-        // Depending on the stream implementation, the _id can be assigned on construction or only once SendAsync
-        // is called. Once it's assigned, it's immutable. The specialization of the stream is responsible for not
-        // accessing this data member concurrently when it's not safe.
         private long _id = -1;
         private int _state;
         private volatile Action? _shutdownAction;

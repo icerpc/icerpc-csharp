@@ -80,7 +80,6 @@ namespace IceRpc.Tests
         /// <summary>Creates a connection stub to provide the local and remote endpoint properties for a
         /// connection.</summary>
         public static Connection Create(Endpoint localEndpoint, Endpoint remoteEndpoint, bool isServer) =>
-#pragma warning disable CA2000
             new(new NetworkConnectionStub(
                     localEndpoint,
                     remoteEndpoint,
@@ -88,6 +87,5 @@ namespace IceRpc.Tests
                 dispatcher: null,
                 new(),
                 loggerFactory: null);
-#pragma warning restore CA2000
     }
 }
