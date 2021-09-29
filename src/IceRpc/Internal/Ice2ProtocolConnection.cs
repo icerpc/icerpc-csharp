@@ -165,12 +165,12 @@ namespace IceRpc.Internal
                 // Decode Context from Fields and set corresponding feature.
                 FeatureCollection features = FeatureCollection.Empty;
                 if (fields.Get(
-                        (int)FieldKey.Context,
-                        decoder => decoder.DecodeDictionary(
-                            minKeySize: 1,
-                            minValueSize: 1,
-                            keyDecodeFunc: decoder => decoder.DecodeString(),
-                            valueDecodeFunc: decoder => decoder.DecodeString())) is Dictionary<string, string> context)
+                    (int)FieldKey.Context,
+                    decoder => decoder.DecodeDictionary(
+                        minKeySize: 1,
+                        minValueSize: 1,
+                        keyDecodeFunc: decoder => decoder.DecodeString(),
+                        valueDecodeFunc: decoder => decoder.DecodeString())) is Dictionary<string, string> context)
                 {
                     features = features.WithContext(context);
                 }
@@ -280,8 +280,8 @@ namespace IceRpc.Internal
                     Encoding.FromString(encoding) : Ice2Definitions.Encoding;
 
             FeatureCollection features = FeatureCollection.Empty;
-            RetryPolicy retryPolicy = fields.Get((int)FieldKey.RetryPolicy, decoder => new RetryPolicy(decoder));
-            if (retryPolicy != default)
+            RetryPolicy? retryPolicy = fields.Get((int)FieldKey.RetryPolicy, decoder => new RetryPolicy(decoder));
+            if (retryPolicy != null)
             {
                 features = new();
                 features.Set(retryPolicy);

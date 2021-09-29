@@ -361,7 +361,7 @@ namespace IceRpc
             }
             catch
             {
-                request.RetryPolicy = RetryPolicy.Immediately;
+                request.Features = request.Features.With(RetryPolicy.Immediately);
                 throw;
             }
 
@@ -402,7 +402,7 @@ namespace IceRpc
             {
                 // If the peer shuts down the connection, streams which are aborted with this error code are
                 // always safe to retry since only streams not processed by the peer are aborted.
-                request.RetryPolicy = RetryPolicy.Immediately;
+                request.Features = request.Features.With(RetryPolicy.Immediately);
                 throw new ConnectionClosedException("connection shutdown by peer", ex);
             }
             catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.ConnectionAborted)
@@ -410,7 +410,7 @@ namespace IceRpc
                 if (request.IsIdempotent || !request.IsSent)
                 {
                     // Only retry if it's safe to retry: the request is idempotent or it hasn't been sent.
-                    request.RetryPolicy = RetryPolicy.Immediately;
+                    request.Features = request.Features.With(RetryPolicy.Immediately);
                 }
                 throw new ConnectionLostException(ex);
             }
@@ -423,7 +423,7 @@ namespace IceRpc
             {
                 // If the peer gracefully shuts down the connection, it's always safe to retry since only
                 // streams not processed by the peer are aborted.
-                request.RetryPolicy = RetryPolicy.Immediately;
+                request.Features = request.Features.With(RetryPolicy.Immediately);
                 throw;
             }
             catch (TransportException)
@@ -433,7 +433,7 @@ namespace IceRpc
                     // If the connection is being shutdown, exceptions are expected since the request send or
                     // response receive can fail. If the request is idempotent or hasn't been sent it's safe
                     // to retry it.
-                    request.RetryPolicy = RetryPolicy.Immediately;
+                    request.Features = request.Features.With(RetryPolicy.Immediately);
                 }
                 throw;
             }

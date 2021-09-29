@@ -9,6 +9,46 @@ namespace IceRpc.Tests.ClientServer
     [Parallelizable(ParallelScope.All)]
     class CompressTests
     {
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task Compress_Override(bool keepDefault)
+        {
+            bool executed = false;
+
+            await using var connection = new Connection(); // dummy connection
+
+            var pipeline = new Pipeline();
+            pipeline.Use(next => new InlineInvoker((request, cancel) =>
+            {
+                executed = true;
+                Assert.AreEqual("opCompressArgs", request.Operation);
+                Assert.AreEqual(keepDefault ? Features.CompressPayload.Yes : Features.CompressPayload.No,
+                                request.Features.Get<Features.CompressPayload>());
+
+                return Task.FromResult(new IncomingResponse(request.Protocol, ResultType.Success)
+                    {
+                        Connection = connection, // without a connection, the decoding of response fails, even for void
+                        Payload = default,
+                        PayloadEncoding = Encoding.Ice20
+                    });
+            }));
+
+            var prx = CompressTestPrx.FromPath(CompressTestPrx.DefaultPath);
+            prx.Proxy.Invoker = pipeline;
+
+            Invocation? invocation = null;
+
+            if (!keepDefault)
+            {
+                // The generated code does not and should not override a value set explicitly.
+                invocation = new Invocation();
+                invocation.RequestFeatures = invocation.RequestFeatures.With(Features.CompressPayload.No);
+            }
+
+            await prx.OpCompressArgsAsync(0, new byte[0], invocation);
+            Assert.That(executed, Is.True);
+        }
+
         [TestCase(512, 100, "Optimal")]
         [TestCase(2048, 100, "Optimal")]
         [TestCase(512, 512, "Optimal")]

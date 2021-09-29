@@ -1471,7 +1471,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
             if (i == 0)
             {
                 // Add retryPolicy last
-                allParameters.push_back("IceRpc.RetryPolicy " + retryPolicyParamName + " = default");
+                allParameters.push_back("IceRpc.RetryPolicy? " + retryPolicyParamName + " = null");
                 baseParamNames.push_back(retryPolicyParamName);
             }
             _out << sp;
@@ -1527,7 +1527,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
             allParameters.push_back("global::System.Exception? " + innerExceptionParamName + " = null");
             baseParamNames.push_back(innerExceptionParamName);
 
-            allParameters.push_back("IceRpc.RetryPolicy " + retryPolicyParamName + " = default");
+            allParameters.push_back("IceRpc.RetryPolicy? " + retryPolicyParamName + " = null");
             baseParamNames.push_back(retryPolicyParamName);
         }
     }
@@ -1538,7 +1538,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
         _out << sp;
         _out << nl << "/// <summary>Constructs a new instance of <see cref=\"" << name << "\"/>.</summary>";
         _out << nl << "/// <param name=\"" << retryPolicyParamName << "\">The retry policy for the exception.</param>";
-        _out << nl << "public " << name << "(IceRpc.RetryPolicy retryPolicy = default)";
+        _out << nl << "public " << name << "(IceRpc.RetryPolicy? retryPolicy = null)";
         _out.inc();
         _out << nl << ": base(retryPolicy)";
         _out.dec();
@@ -2323,6 +2323,17 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
         << getInvocationParams(operation, ns, true) << epar;
     _out << sb;
 
+    if (opCompressArgs(operation))
+    {
+        _out << nl << "if (" << invocation << "?.RequestFeatures.Get<IceRpc.Features.CompressPayload>() == null)";
+        _out << sb;
+        _out << nl << invocation << " ?\?= new IceRpc.Invocation();"; // \? = trigraph fix
+        _out << nl << invocation << ".RequestFeatures = IceRpc.FeatureCollectionExtensions.CompressPayload("
+            << invocation << ".RequestFeatures);";
+        _out << eb;
+        // else keep the value set in Invocation
+    }
+
     bool sendsClasses = operation->sendsClasses(true);
     string payloadEncoding;
     if (sendsClasses)
@@ -2409,10 +2420,6 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     }
 
     _out << nl << invocation << ",";
-    if (opCompressArgs(operation))
-    {
-        _out << nl << "compress: true,";
-    }
     if (isIdempotent(operation))
     {
         _out << nl << "idempotent: true,";
@@ -2839,7 +2846,8 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
 
     if (opCompressReturn(operation))
     {
-        _out << nl << "dispatch.ResponseFeatures = IceRpc.Features.CompressPayloadExtensions.CompressPayload(dispatch.ResponseFeatures);";
+        // At this point, Dispatch is just created and the application had no opportunity to set any response feature.
+        _out << nl << "dispatch.ResponseFeatures = IceRpc.FeatureCollectionExtensions.CompressPayload(dispatch.ResponseFeatures);";
     }
 
     // Even when the parameters are empty, we verify the payload is indeed empty (can contain tagged params

@@ -67,7 +67,7 @@ namespace IceRpc
                 catch (TransportException)
                 {
                     // If obtaining a connection failed with a transport exception, the request can be retried.
-                    request.RetryPolicy = RetryPolicy.Immediately;
+                    request.Features = request.Features.With(RetryPolicy.Immediately);
                     throw;
                 }
                 return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);

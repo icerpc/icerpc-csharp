@@ -28,7 +28,7 @@ namespace IceRpc
         public RemoteExceptionOrigin Origin { get; internal set; } = RemoteExceptionOrigin.Unknown;
 
         /// <summary>The remote exception retry policy.</summary>
-        public RetryPolicy RetryPolicy { get; }
+        public RetryPolicy RetryPolicy { get; } = RetryPolicy.NoRetry;
 
         /// <summary>When DefaultMessage is not null and the application does not construct the exception with a
         /// constructor that takes a message parameter, Message returns DefaultMessage. This property should be
@@ -39,7 +39,7 @@ namespace IceRpc
 
         /// <summary>Constructs a remote exception with the default system message.</summary>
         /// <param name="retryPolicy">The retry policy for the exception.</param>
-        public RemoteException(RetryPolicy retryPolicy = default) => RetryPolicy = retryPolicy;
+        public RemoteException(RetryPolicy? retryPolicy = null) => RetryPolicy = retryPolicy ?? RetryPolicy.NoRetry;
 
         /// <summary>Constructs a remote exception with the provided message and inner exception.</summary>
         /// <param name="message">Message that describes the exception.</param>
@@ -48,10 +48,10 @@ namespace IceRpc
         public RemoteException(
             string? message,
             Exception? innerException = null,
-            RetryPolicy retryPolicy = default)
+            RetryPolicy? retryPolicy = null)
             : base(message, innerException)
         {
-            RetryPolicy = retryPolicy;
+            RetryPolicy = retryPolicy ?? RetryPolicy.NoRetry;
             _hasCustomMessage = message != null;
         }
 

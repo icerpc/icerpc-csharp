@@ -11,7 +11,7 @@ namespace IceRpc
         public Connection Connection
         {
             get => _connection ?? throw new InvalidOperationException("connection not set");
-            internal set => _connection = value;
+            set => _connection = value;
         }
 
         /// <summary>The features of this request.</summary>
