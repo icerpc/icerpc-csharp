@@ -37,7 +37,10 @@ namespace IceRpc.Tests.Api
             router.Use(next => new InlineDispatcher(
                     async (current, cancel) =>
                     {
-                        dispatchDeadline = current.Deadline;
+                        // Add 1ms is necessary to prevent sporadic test failures when the dispatch deadline
+                        // could be slightly lower than expectedDeadline because of the precision loss when
+                        // transfering the deadline as milliseconds over the wire.
+                        dispatchDeadline = current.Deadline + TimeSpan.FromMilliseconds(1);
                         await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
                         return await next.DispatchAsync(current, cancel);
                     }));
