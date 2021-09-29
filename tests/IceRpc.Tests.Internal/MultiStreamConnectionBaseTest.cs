@@ -1,54 +1,35 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
-using IceRpc.Transports.Internal;
-using NUnit.Framework;
-using System.Globalization;
 
 namespace IceRpc.Tests.Internal
 {
-    [Parallelizable(scope: ParallelScope.Fixtures)]
     public class MultiStreamConnectionBaseTest
     {
         protected INetworkConnection ClientConnection => _clientConnection!;
         protected IMultiStreamConnection ClientMultiStreamConnection => _clientMultiStreamConnection!;
         protected INetworkConnection ServerConnection => _serverConnection!;
         protected IMultiStreamConnection ServerMultiStreamConnection => _serverMultiStreamConnection!;
-        protected SlicOptions ServerSlicOptions { get; }
 
         private INetworkConnection? _clientConnection;
         private readonly Endpoint _clientEndpoint;
         private IMultiStreamConnection? _clientMultiStreamConnection;
-        private static int _nextBasePort;
+        private readonly object? _clientOptions;
         private INetworkConnection? _serverConnection;
         private readonly Endpoint _serverEndpoint;
         private IMultiStreamConnection? _serverMultiStreamConnection;
+        private readonly object? _serverOptions;
 
-        public MultiStreamConnectionBaseTest(int bidirectionalStreamMaxCount = 0, int unidirectionalStreamMaxCount = 0)
+        public MultiStreamConnectionBaseTest(
+            string clientEndpoint = "ice+coloc://127.0.0.1",
+            object? clientOptions = null,
+            string serverEndpoint = "ice+coloc://127.0.0.1",
+            object? serverOptions = null)
         {
-            int port = 11000;
-            if (TestContext.Parameters.Names.Contains("IceRpc.Tests.Internal.BasePort"))
-            {
-                port = int.Parse(TestContext.Parameters["IceRpc.Tests.Internal.BasePort"]!,
-                                 CultureInfo.InvariantCulture.NumberFormat);
-            }
-            port += Interlocked.Add(ref _nextBasePort, 1);
-
-            string endpoint = $"ice+coloc://127.0.0.1:{port}";
-            // string endpoint = $"ice+tcp://127.0.0.1:{port}?tls=false";
-            ServerSlicOptions = new SlicOptions();
-
-            _serverEndpoint = endpoint;
-            _clientEndpoint = endpoint;
-
-            if (bidirectionalStreamMaxCount > 0)
-            {
-                ServerSlicOptions.BidirectionalStreamMaxCount = bidirectionalStreamMaxCount;
-            }
-            if (unidirectionalStreamMaxCount > 0)
-            {
-                ServerSlicOptions.UnidirectionalStreamMaxCount = unidirectionalStreamMaxCount;
-            }
+            _clientEndpoint = clientEndpoint;
+            _clientOptions = clientOptions;
+            _serverEndpoint = serverEndpoint;
+            _serverOptions = serverOptions;
         }
 
         protected async Task SetUpConnectionsAsync()
@@ -73,7 +54,7 @@ namespace IceRpc.Tests.Internal
             using IListener listener = TestHelper.CreateServerTransport(
                 _serverEndpoint,
                 options: null,
-                slicOptions: ServerSlicOptions).Listen(
+                multiStreamOptions: _serverOptions).Listen(
                     _serverEndpoint,
                     LogAttributeLoggerFactory.Instance).Listener!;
 
@@ -84,7 +65,9 @@ namespace IceRpc.Tests.Internal
 
         private async Task<INetworkConnection> ConnectAsync()
         {
-            IClientTransport clientTransport = TestHelper.CreateClientTransport(_clientEndpoint);
+            IClientTransport clientTransport = TestHelper.CreateClientTransport(
+                _clientEndpoint,
+                multiStreamOptions: _clientOptions);
 
             INetworkConnection networkConnection = clientTransport.CreateConnection(
                     _clientEndpoint,

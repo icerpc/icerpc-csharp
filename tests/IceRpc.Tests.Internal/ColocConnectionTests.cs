@@ -84,7 +84,7 @@ namespace IceRpc.Tests.Internal
                 new UnboundedChannelOptions
                 {
                     SingleReader = true,
-                    SingleWriter = false,
+                    SingleWriter = true,
                     AllowSynchronousContinuations = false
                 });
 

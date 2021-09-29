@@ -9,8 +9,14 @@ namespace IceRpc.Tests.Internal
     [Timeout(5000)]
     public class MultiStreamConnectionTests : MultiStreamConnectionBaseTest
     {
+        private static readonly SlicOptions _serverSlicOptions = new()
+            {
+                BidirectionalStreamMaxCount = 15,
+                UnidirectionalStreamMaxCount = 10
+            };
+
         public MultiStreamConnectionTests()
-            : base(bidirectionalStreamMaxCount: 15, unidirectionalStreamMaxCount: 10)
+            : base(serverOptions: _serverSlicOptions)
         {
         }
 
@@ -21,21 +27,6 @@ namespace IceRpc.Tests.Internal
             ClientConnection.Close(new ConnectionClosedException());
             Assert.ThrowsAsync<ConnectionLostException>(async () => await acceptStreamTask);
         }
-
-        // [Test]
-        // public void MultiStreamConnection_Dispose_EmptyStreams()
-        // {
-        //     ClientConnection.Close(new ConnectionClosedException());
-        //     ServerConnection.Close(new ConnectionClosedException());
-
-        //     (long clientBidirectional, long clientUnidirectional) = ClientConnection.Shutdown();
-        //     (long serverBidirectional, long serverUnidirectional) = ServerConnection.Shutdown();
-
-        //     Assert.AreEqual(-1, clientBidirectional);
-        //     Assert.AreEqual(-1, clientUnidirectional);
-        //     Assert.AreEqual(-1, serverBidirectional);
-        //     Assert.AreEqual(-1, serverUnidirectional);
-        // }
 
         [Test]
         public async Task MultiStreamConnection_Dispose_StreamAbortedAsync()
@@ -56,41 +47,6 @@ namespace IceRpc.Tests.Internal
             Assert.ThrowsAsync<ConnectionClosedException>(
                 async () => await clientStream.SendAsync(CreateSendPayload(clientStream), true, default));
         }
-
-        // [Test]
-        // public async Task MultiStreamConnection_LargestStreamIdsAsync()
-        // {
-        //     INetworkStream clientStream = ClientConnection.CreateStream(true);
-        //     await clientStream.SendAsync(CreateSendPayload(clientStream), true, default);
-
-        //     INetworkStream serverStream = await ServerConnection.AcceptStreamAsync(default);
-        //     await serverStream.ReceiveAsync(CreateReceivePayload(), default);
-
-        //     await serverStream.SendAsync(CreateSendPayload(serverStream), true, default);
-
-        //     _ = ClientConnection.AcceptStreamAsync(default).AsTask();
-        //     await clientStream.ReceiveAsync(CreateReceivePayload(), default);
-
-        //     clientStream = ClientConnection.CreateStream(true);
-        //     await clientStream.SendAsync(CreateSendPayload(clientStream), true, default);
-
-        //     serverStream = await ServerConnection.AcceptStreamAsync(default);
-        //     await serverStream.ReceiveAsync(CreateReceivePayload(), default);
-
-        //     (long clientBidirectional, long _) = ClientConnection.Shutdown();
-        //     (long serverBidirectional, long _) = ServerConnection.Shutdown();
-
-        //     // Check that largest stream IDs are correct
-        //     Assert.AreEqual(-1, clientBidirectional);
-        //     Assert.AreEqual(4, serverBidirectional);
-
-        //     // Terminate the streams
-        //     await serverStream.SendAsync(CreateSendPayload(serverStream), true, default);
-        //     await clientStream.ReceiveAsync(CreateReceivePayload(), default);
-
-        //     Assert.AreEqual(0, ClientConnection.OutgoingStreamCount);
-        //     Assert.AreEqual(0, ServerConnection.IncomingStreamCount);
-        // }
 
         [Test]
         public async Task MultiStreamConnection_AcceptStreamAsync()
@@ -140,7 +96,7 @@ namespace IceRpc.Tests.Internal
         {
             var clientStreams = new List<INetworkStream>();
             var serverStreams = new List<INetworkStream>();
-            for (int i = 0; i < ServerSlicOptions!.BidirectionalStreamMaxCount; ++i)
+            for (int i = 0; i < _serverSlicOptions!.BidirectionalStreamMaxCount; ++i)
             {
                 INetworkStream stream = ClientMultiStreamConnection.CreateStream(true);
                 clientStreams.Add(stream);
@@ -181,8 +137,8 @@ namespace IceRpc.Tests.Internal
         public async Task MultiStreamConnection_StreamMaxCount_StressTestAsync(bool bidirectional)
         {
             int maxCount = bidirectional ?
-                ServerSlicOptions!.BidirectionalStreamMaxCount :
-                ServerSlicOptions!.UnidirectionalStreamMaxCount;
+                _serverSlicOptions!.BidirectionalStreamMaxCount :
+                _serverSlicOptions!.UnidirectionalStreamMaxCount;
             int streamCount = 0;
 
             // Ensure the client side accepts streams to receive payloads.
@@ -242,7 +198,7 @@ namespace IceRpc.Tests.Internal
         public async Task MultiStreamConnection_StreamMaxCount_UnidirectionalAsync()
         {
             var clientStreams = new List<INetworkStream>();
-            for (int i = 0; i < ServerSlicOptions!.UnidirectionalStreamMaxCount; ++i)
+            for (int i = 0; i < _serverSlicOptions!.UnidirectionalStreamMaxCount; ++i)
             {
                 INetworkStream stream = ClientMultiStreamConnection.CreateStream(false);
                 clientStreams.Add(stream);
@@ -274,56 +230,6 @@ namespace IceRpc.Tests.Internal
             // The send task of the new stream should now succeed.
             await sendTask;
         }
-
-        // TODO: XXX move to protocol tests
-
-        // [Test]
-        // public void MultiStreamConnection_PeerIncomingFrameMaxSize()
-        // {
-        //     // PeerIncomingFrameMaxSize is set when control streams are initialized in Setup()
-        //     Assert.AreEqual(ClientConnection.IncomingFrameMaxSize, ServerConnection.PeerIncomingFrameMaxSize!.Value);
-        //     Assert.AreEqual(ServerConnection.IncomingFrameMaxSize, ClientConnection.PeerIncomingFrameMaxSize!.Value);
-        // }
-
-        // [Test]
-        // public async Task MultiStreamConnection_PingAsync()
-        // {
-        //     using var semaphore = new SemaphoreSlim(0);
-        //     ServerConnection.PingReceived = () => semaphore.Release();
-        //     using var source = new CancellationTokenSource();
-
-        //     // Start accept stream on the server side to receive transport frames.
-        //     ValueTask<INetworkStream> acceptStreamTask = ServerConnection.AcceptStreamAsync(source.Token);
-
-        //     await ClientConnection.PingAsync(default);
-        //     await semaphore.WaitAsync();
-
-        //     await ClientConnection.PingAsync(default);
-        //     await ClientConnection.PingAsync(default);
-        //     await ClientConnection.PingAsync(default);
-        //     await semaphore.WaitAsync();
-        //     await semaphore.WaitAsync();
-        //     await semaphore.WaitAsync();
-
-        //     // Cancel AcceptStreamAsync
-        //     source.Cancel();
-        //     Assert.CatchAsync<OperationCanceledException>(async () => await acceptStreamTask);
-        // }
-
-        // [Test]
-        // public void MultiStreamConnection_Ping_Cancellation()
-        // {
-        //     using var source = new CancellationTokenSource();
-        //     source.Cancel();
-        //     Assert.ThrowsAsync<OperationCanceledException>(async () => await ClientConnection.PingAsync(source.Token));
-        // }
-
-        // [Test]
-        // public void MultiStreamConnection_Ping_Failure()
-        // {
-        //     ClientConnection.Close(new ConnectionClosedException());
-        //     Assert.CatchAsync<TransportException>(async () => await ClientConnection.PingAsync(default));
-        // }
 
         [Test]
         public void MultiStreamConnection_SendAsync_Failure()

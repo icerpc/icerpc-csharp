@@ -7,7 +7,6 @@ using System.IO.Compression;
 
 namespace IceRpc.Tests.Internal
 {
-    [Parallelizable(scope: ParallelScope.Fixtures)]
     [Timeout(5000)]
     public class NetworkStreamTests : MultiStreamConnectionBaseTest
     {
@@ -190,13 +189,12 @@ namespace IceRpc.Tests.Internal
         }
 
         [TestCase(256, 256)]
-        // [TestCase(1024, 256)]
-        // [TestCase(256, 1024)]
-        // [TestCase(64 * 1024, 384)]
-        // [TestCase(384, 64 * 1024)]
-        // [TestCase(1024 * 1024, 1024)]
-        // [TestCase(1024, 1024 * 1024)]
-        [Log(LogAttributeLevel.Trace)]
+        [TestCase(1024, 256)]
+        [TestCase(256, 1024)]
+        [TestCase(64 * 1024, 384)]
+        [TestCase(384, 64 * 1024)]
+        [TestCase(1024 * 1024, 1024)]
+        [TestCase(1024, 1024 * 1024)]
         public async Task Stream_StreamReaderWriterAsync(int sendSize, int recvSize)
         {
             Task<INetworkStream> serverAcceptStream = AcceptServerStreamAsync();

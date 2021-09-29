@@ -12,7 +12,6 @@ namespace IceRpc.Transports.Internal.Slic
     /// cref="ISingleStreamConnection"/>.</summary>
     internal class SlicConnection : MultiStreamConnection
     {
-        internal int PacketMaxSize { get; }
         internal int PeerPacketMaxSize { get; private set; }
         internal int PeerStreamBufferMaxSize { get; private set; }
         internal int StreamBufferMaxSize { get; }
@@ -20,6 +19,7 @@ namespace IceRpc.Transports.Internal.Slic
         private int _bidirectionalStreamCount;
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly int _bidirectionalMaxStreams;
+        private readonly int _packetMaxSize;
         private readonly ManualResetValueTaskCompletionSource<int> _receiveStreamCompletionTaskSource = new();
         private readonly ISlicFrameReader _reader;
         private readonly int _unidirectionalMaxStreams;
@@ -205,12 +205,12 @@ namespace IceRpc.Transports.Internal.Slic
 
             _receiveStreamCompletionTaskSource.SetResult(0);
 
-            PacketMaxSize = options.SlicPacketMaxSize;
-            StreamBufferMaxSize = options.SlicStreamBufferMaxSize;
+            _packetMaxSize = options.PacketMaxSize;
+            StreamBufferMaxSize = options.StreamBufferMaxSize;
 
             // Initially set the peer packet max size to the local max size to ensure we can receive the first
             // initialize frame.
-            PeerPacketMaxSize = PacketMaxSize;
+            PeerPacketMaxSize = _packetMaxSize;
             PeerStreamBufferMaxSize = StreamBufferMaxSize;
 
             // Configure the maximum stream counts to ensure the peer won't open more than one stream.
@@ -350,7 +350,7 @@ namespace IceRpc.Transports.Internal.Slic
                     EncodeParameter(ParameterKey.MaxBidirectionalStreams, (ulong)_bidirectionalMaxStreams),
                     EncodeParameter(ParameterKey.MaxUnidirectionalStreams, (ulong)_unidirectionalMaxStreams),
                     EncodeParameter(ParameterKey.IdleTimeout, (ulong)IdleTimeout.TotalMilliseconds),
-                    EncodeParameter(ParameterKey.PacketMaxSize, (ulong)PacketMaxSize),
+                    EncodeParameter(ParameterKey.PacketMaxSize, (ulong)_packetMaxSize),
                     EncodeParameter(ParameterKey.StreamBufferMaxSize, (ulong)StreamBufferMaxSize)
                 });
 

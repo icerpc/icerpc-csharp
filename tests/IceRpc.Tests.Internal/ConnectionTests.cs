@@ -288,13 +288,17 @@ namespace IceRpc.Tests.Internal
         [TestCase(Protocol.Ice2)]
         public async Task Connection_ConnectTimeoutAsync(Protocol protocol)
         {
-            await using var factory = new ConnectionFactory("tcp", protocol: protocol);
+            Endpoint endpoint = TestHelper.GetTestEndpoint(transport: "tcp", protocol: protocol);
 
             IServerTransport transport = new TcpServerTransport(new TcpOptions { ListenerBackLog = 1 }, new(), null);
-            using IListener listener = transport.Listen(factory.Endpoint, LogAttributeLoggerFactory.Instance).Listener!;
+            using IListener listener = transport.Listen(endpoint, LogAttributeLoggerFactory.Instance).Listener!;
 
-            // TODO: add test once it's possible to create a connection directly. Right now, the connect timeout
-            // is handled by the client connection factory.
+            await using var connection = new Connection(new() { ConnectTimeout = TimeSpan.FromMilliseconds(100) })
+            {
+                RemoteEndpoint = listener.Endpoint,
+            };
+
+            Assert.ThrowsAsync<ConnectTimeoutException>(() => connection.ConnectAsync(default));
         }
 
         [TestCase("tcp", false)]

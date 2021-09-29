@@ -312,12 +312,14 @@ namespace IceRpc
                             CancellationToken.None);
                     }
                 }
+                catch (OperationCanceledException)
+                {
+                    var exception = new ConnectTimeoutException();
+                    await CloseAsync(exception).ConfigureAwait(false);
+                    throw exception;
+                }
                 catch (Exception exception)
                 {
-                    if (exception is OperationCanceledException)
-                    {
-                        exception = new ConnectTimeoutException();
-                    }
                     await CloseAsync(exception).ConfigureAwait(false);
                     throw;
                 }

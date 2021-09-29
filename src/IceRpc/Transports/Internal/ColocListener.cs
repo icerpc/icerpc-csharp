@@ -81,19 +81,26 @@ namespace IceRpc.Transports.Internal
 
         internal (ChannelReader<ReadOnlyMemory<byte>>, ChannelWriter<ReadOnlyMemory<byte>>) NewClientConnection()
         {
-            var reader = Channel.CreateUnbounded<ReadOnlyMemory<byte>>(
-                new UnboundedChannelOptions
+            // We use a capacity of 100 buffers for the channels. This is mostly useful for the Ice1 protocol
+            // which doesn't provide any flow control or limits the number of invocations on the client side.
+            // If the Ice1 server can't dispatch more invocations, the colloc transport will eventually
+            // prevent the client to send further requests once the channel is full.
+
+            var reader = Channel.CreateBounded<ReadOnlyMemory<byte>>(
+                new BoundedChannelOptions(capacity: 100)
                 {
+                    FullMode = BoundedChannelFullMode.Wait,
                     SingleReader = true,
-                    SingleWriter = false,
+                    SingleWriter = true,
                     AllowSynchronousContinuations = false
                 });
 
-            var writer = Channel.CreateUnbounded<ReadOnlyMemory<byte>>(
-                new UnboundedChannelOptions
+            var writer = Channel.CreateBounded<ReadOnlyMemory<byte>>(
+                new BoundedChannelOptions(capacity: 100)
                 {
+                    FullMode = BoundedChannelFullMode.Wait,
                     SingleReader = true,
-                    SingleWriter = false,
+                    SingleWriter = true,
                     AllowSynchronousContinuations = false
                 });
 
