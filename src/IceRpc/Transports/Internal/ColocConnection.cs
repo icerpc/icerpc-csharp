@@ -7,7 +7,8 @@ using System.Threading.Channels;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The network connection class the colocated transport.</summary>
+    /// <summary>The collocated network connection class to exchange data within the same process. The
+    /// implemention copies the send buffer into the receive buffer.</summary>
     internal class ColocConnection : INetworkConnection, ISingleStreamConnection
     {
         public int DatagramMaxReceiveSize => throw new InvalidOperationException();
@@ -67,7 +68,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-    public bool HasCompatibleParams(Endpoint remoteEndpoint)
+        public bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
             if (remoteEndpoint.Params.Count > 0)
             {

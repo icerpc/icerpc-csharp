@@ -34,17 +34,6 @@ namespace IceRpc.Internal
         private (long Bidirectional, long Unidirectional)? _lastRemoteStreamIds;
         private readonly IMultiStreamConnection _multiStreamConnection;
 
-        /// <summary>Creates a multi-stream protocol connection.</summary>
-        public Ice2ProtocolConnection(
-            IMultiStreamConnection multiStreamConnection,
-            int incomingFrameMaxSize,
-            ILogger logger)
-        {
-            _multiStreamConnection = multiStreamConnection;
-            _incomingFrameMaxSize = incomingFrameMaxSize;
-            _logger = logger;
-        }
-
         /// <inheritdoc/>
         public async Task InitializeAsync(CancellationToken cancel)
         {
@@ -215,21 +204,18 @@ namespace IceRpc.Internal
                         Encoding.FromString(payloadEncoding) : Ice2Definitions.Encoding,
                     Fields = fields,
                     Payload = payload,
-                    Stream = stream,
-                    CancelDispatchSource = new()
+                    Stream = stream
                 };
 
                 lock (_mutex)
                 {
                     // If shutdown, ignore the incoming request and continue receiving frames until the
                     // connection is closed.
-                    if (_shutdown)
-                    {
-                        request.CancelDispatchSource.Dispose();
-                    }
-                    else
+                    if (!_shutdown)
                     {
                         _dispatch.Add(request);
+                        request.CancelDispatchSource = new();
+
                         if (stream.IsBidirectional)
                         {
                             _lastRemoteBidirectionalStreamId = stream.Id;
@@ -627,6 +613,16 @@ namespace IceRpc.Internal
             var goAwayFrame = new Ice2GoAwayBody(new Ice20Decoder(buffer));
             _lastRemoteStreamIds = (goAwayFrame.LastBidirectionalStreamId, goAwayFrame.LastUnidirectionalStreamId);
             return goAwayFrame.Message;
+        }
+
+        internal Ice2ProtocolConnection(
+            IMultiStreamConnection multiStreamConnection,
+            int incomingFrameMaxSize,
+            ILogger logger)
+        {
+            _multiStreamConnection = multiStreamConnection;
+            _incomingFrameMaxSize = incomingFrameMaxSize;
+            _logger = logger;
         }
 
         private async ValueTask<ReadOnlyMemory<byte>> ReceiveFrameAsync(

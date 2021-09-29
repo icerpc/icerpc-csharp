@@ -40,22 +40,6 @@ namespace IceRpc.Internal
         // private readonly AsyncSemaphore? _unidirectionalStreamSemaphore;
         private bool _shutdown;
 
-        /// <summary>Creates a multi-stream protocol connection.</summary>
-        public Ice1ProtocolConnection(
-            ISingleStreamConnection singleStreamConnection,
-            int incomingFrameMaxSize,
-            bool isServer,
-            int? datagramMaxReceiveSize,
-            ILogger logger)
-        {
-            _stream = singleStreamConnection;
-            _incomingFrameMaxSize = incomingFrameMaxSize;
-            _isServer = isServer;
-            _isDatagram = datagramMaxReceiveSize != null;
-            _datagramMaxReceiveSize = datagramMaxReceiveSize ?? 0;
-            _logger = logger;
-        }
-
         /// <inheritdoc/>
         public async Task InitializeAsync(CancellationToken cancel)
         {
@@ -191,7 +175,6 @@ namespace IceRpc.Internal
                         Encoding.FromMajorMinor(requestHeader.PayloadEncodingMajor, requestHeader.PayloadEncodingMinor),
                     Deadline = DateTime.MaxValue,
                     Payload = payload,
-                    CancelDispatchSource = new()
                 };
                 request.Features = request.Features.WithRequestId(requestId);
                 if (requestHeader.Context.Count > 0)
@@ -203,13 +186,10 @@ namespace IceRpc.Internal
                 {
                     // If shutdown, ignore the incoming request and continue receiving frames until the connection
                     // is closed.
-                    if (_shutdown)
-                    {
-                        request.CancelDispatchSource.Dispose();
-                    }
-                    else
+                    if (!_shutdown)
                     {
                         _dispatch.Add(request);
+                        request.CancelDispatchSource = new();
                         return request;
                     }
                 }
@@ -573,6 +553,21 @@ namespace IceRpc.Internal
         {
             await _pendingCloseConnection.Task.WaitAsync(cancel).ConfigureAwait(false);
             return "connection graceful shutdown";
+        }
+
+        internal Ice1ProtocolConnection(
+            ISingleStreamConnection singleStreamConnection,
+            int incomingFrameMaxSize,
+            bool isServer,
+            int? datagramMaxReceiveSize,
+            ILogger logger)
+        {
+            _stream = singleStreamConnection;
+            _incomingFrameMaxSize = incomingFrameMaxSize;
+            _isServer = isServer;
+            _isDatagram = datagramMaxReceiveSize != null;
+            _datagramMaxReceiveSize = datagramMaxReceiveSize ?? 0;
+            _logger = logger;
         }
 
         private void CancelDispatch()

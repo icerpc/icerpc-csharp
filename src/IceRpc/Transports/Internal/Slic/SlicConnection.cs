@@ -8,8 +8,8 @@ using System.Diagnostics;
 
 namespace IceRpc.Transports.Internal.Slic
 {
-    /// <summary>The Slic connection implements a multi-stream connection on top of a network socket such as
-    /// TCP. It supports the same set of features as Quic.</summary>
+    /// <summary>The Slic connection implements an <see cref="IMultiStreamConnection"/> on top of an <see
+    /// cref="ISingleStreamConnection"/>.</summary>
     internal class SlicConnection : MultiStreamConnection
     {
         internal int PacketMaxSize { get; }

@@ -17,22 +17,16 @@ namespace IceRpc.Transports.Internal
 
         /// <inheritdoc/>
         public bool IsDatagram => NetworkSocket.IsDatagram;
-
         /// <inheritdoc/>
         public bool IsSecure => NetworkSocket.SslStream != null;
-
         /// <inheritdoc/>
         public bool IsServer { get; }
-
         /// <inheritdoc/>
         public TimeSpan LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
-
         /// <inheritdoc/>
         public Endpoint? LocalEndpoint { get; private set; }
-
         /// <inheritdoc/>
         public ILogger Logger { get; }
-
         /// <inheritdoc/>
         public Endpoint? RemoteEndpoint { get; private set; }
 
@@ -132,13 +126,13 @@ namespace IceRpc.Transports.Internal
             ILogger logger)
         {
             IsServer = isServer;
-            LocalEndpoint = IsServer ? endpoint : null;
-            RemoteEndpoint = IsServer ? null : endpoint;
-            _idleTimeout = idleTimeout;
-            Logger = logger;
-            _slicOptions = slicOptions;
-
+            LocalEndpoint = isServer ? endpoint : null;
+            RemoteEndpoint = isServer ? null : endpoint;
             NetworkSocket = socket;
+            Logger = logger;
+
+            _idleTimeout = idleTimeout;
+            _slicOptions = slicOptions;
         }
     }
 }

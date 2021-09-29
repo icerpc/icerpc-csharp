@@ -63,14 +63,15 @@ namespace IceRpc.Transports
         /// <summary>Sets the action which is called when the stream is reset.</summary>
         Action? ShutdownAction { get; set; }
 
-        /// <summary>The transport header sentinel. Transport implementations that need to add an additional header
-        /// to transmit data over the stream can provide the header data here. This can improve performance by reducing
-        /// the number of allocations as Ice will allocate buffer space for both the transport header and the Ice
-        /// protocol header. If a header is returned here, the implementation of the SendAsync method should expect
-        /// this header to be set at the start of the first buffer.</summary>
+        /// <summary>The transport header sentinel. Transport implementations that need to add an additional
+        /// header to transmit data over the stream can provide the header data here. This can improve
+        /// performance by reducing the number of allocations since the protocol implementation  will allocate
+        /// buffer space for both the transport header and the protocol header. If a header is returned here,
+        /// the implementation of the SendAsync method should expect this header to be set at the start of the
+        /// first buffer.</summary>
         ReadOnlyMemory<byte> TransportHeader { get; }
 
-        /// <summary>Abort the stream.</summary>
+        /// <summary>Aborts the stream.</summary>
         /// <param name="errorCode">The reason of the abort.</param>
         void Abort(StreamError errorCode)
         {
@@ -78,11 +79,11 @@ namespace IceRpc.Transports
             AbortWrite(errorCode);
         }
 
-        /// <summary>Abort the stream read side.</summary>
+        /// <summary>Aborts the stream read side.</summary>
         /// <param name="errorCode">The reason of the abort.</param>
         void AbortRead(StreamError errorCode);
 
-        /// <summary>Abort the stream write side.</summary>
+        /// <summary>Aborts the stream write side.</summary>
         /// <param name="errorCode">The reason of the abort.</param>
         void AbortWrite(StreamError errorCode);
 
@@ -91,7 +92,7 @@ namespace IceRpc.Transports
         /// <returns>The <see cref="System.IO.Stream"/> object.</returns>
         System.IO.Stream AsByteStream();
 
-        /// <summary>Enable flow control for receiving data from the peer over the stream. This is called
+        /// <summary>Enables flow control for receiving data from the peer over the stream. This is called
         /// after receiving a request or response frame to receive data for a stream parameter. Flow control
         /// isn't enabled for receiving the request or response frame whose size is limited with
         /// IncomingFrameSizeMax. The stream relies on the underlying transport flow control instead (TCP,
@@ -101,7 +102,7 @@ namespace IceRpc.Transports
         /// processed.</summary>
         void EnableReceiveFlowControl();
 
-        /// <summary>Enable flow control for sending data to the peer over the stream. This is called after
+        /// <summary>Enables flow control for sending data to the peer over the stream. This is called after
         /// sending a request or response frame to send data from a stream parameter.</summary>
         void EnableSendFlowControl();
 
@@ -139,7 +140,7 @@ namespace IceRpc.Transports
         /// <returns>A value task that completes once the buffers are sent.</returns>
         ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, bool endStream, CancellationToken cancel);
 
-        /// <summary>Wait for the stream shutdown completion.</summary>
+        /// <summary>Waits for the stream shutdown completion.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A value task that completes once the stream is shutdown.</returns>
         ValueTask ShutdownCompleted(CancellationToken cancel);

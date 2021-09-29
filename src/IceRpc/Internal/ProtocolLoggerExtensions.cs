@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 namespace IceRpc.Internal
 {
     /// <summary>This class contains the ILogger extension methods for logging protocol messages.</summary>
-    // TODO: split Ice1 and Ice1 protocol logger extensions.
+    // TODO: split Ice1 and Ice2 protocol logger extensions.
     internal static partial class ProtocolLoggerExtensions
     {
         [LoggerMessage(

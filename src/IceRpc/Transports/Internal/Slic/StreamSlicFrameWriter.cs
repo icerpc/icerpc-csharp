@@ -8,8 +8,8 @@ using System.Runtime.InteropServices;
 
 namespace IceRpc.Transports.Internal.Slic
 {
-    /// <summary>The Slic frame writer class writes Slic frames and sends them over the single stream
-    /// connection.</summary>
+    /// <summary>The Slic frame writer class writes Slic frames and sends them over an <see
+    /// cref="ISingleStreamConnection"/>.</summary>
     internal sealed class StreamSlicFrameWriter : ISlicFrameWriter
     {
         private readonly ISingleStreamConnection _stream;
@@ -41,7 +41,7 @@ namespace IceRpc.Transports.Internal.Slic
             bool endStream,
             CancellationToken cancel)
         {
-            Debug.Assert(buffers.Span[0].Length > SlicDefinitions.FrameHeader.Length);
+            Debug.Assert(buffers.Span[0].Length >= SlicDefinitions.FrameHeader.Length);
 
             int bufferSize = buffers.GetByteCount() - SlicDefinitions.FrameHeader.Length;
 

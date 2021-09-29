@@ -7,7 +7,6 @@ using System.Text;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The LogNetworkConnectionDecorator is a NetworkSocket decorator to log network socket calls.</summary>
     internal sealed class LogNetworkConnectionDecorator : INetworkConnection
     {
         public int DatagramMaxReceiveSize => _decoratee.DatagramMaxReceiveSize;

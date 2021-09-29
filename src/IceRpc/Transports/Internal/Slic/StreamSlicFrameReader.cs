@@ -5,7 +5,8 @@ using IceRpc.Transports.Slic;
 
 namespace IceRpc.Transports.Internal.Slic
 {
-    /// <summary>The Slic frame reader class reads Slic frames received from a buffered receiver.</summary>
+    /// <summary>The buffered receiver Slic frame reader class reads Slic frames from a buffered
+    /// receiver.</summary>
     internal class BufferedReceiverSlicFrameReader : ISlicFrameReader
     {
         private readonly BufferedReceiver _receiver;
@@ -36,8 +37,8 @@ namespace IceRpc.Transports.Internal.Slic
         internal BufferedReceiverSlicFrameReader(BufferedReceiver receiver) => _receiver = receiver;
     }
 
-    /// <summary>The Slic frame reader class reads Slic frames received them over the single stream
-    /// connection.</summary>
+    /// <summary>The stream Slic frame reader class reads Slic frames received over an <see
+    /// cref="ISingleStreamConnection"/>.</summary>
     internal sealed class StreamSlicFrameReader : BufferedReceiverSlicFrameReader
     {
         internal StreamSlicFrameReader(ISingleStreamConnection stream) :

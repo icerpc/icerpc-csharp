@@ -56,13 +56,13 @@ namespace IceRpc.Transports
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         ValueTask ConnectAsync(CancellationToken cancel);
 
-        /// <summary>Get the single-stream connection to allow single-stream communications over this network
+        /// <summary>Gets the single-stream connection to allow single-stream communications over this network
         /// connection.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The <see cref="ISingleStreamConnection"/>.</returns>
         ValueTask<ISingleStreamConnection> GetSingleStreamConnectionAsync(CancellationToken cancel);
 
-        /// <summary>Get the multi-stream connection to allow multi-stream communications over this network
+        /// <summary>Gets the multi-stream connection to allow multi-stream communications over this network
         /// connection.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The <see cref="IMultiStreamConnection"/>.</returns>
