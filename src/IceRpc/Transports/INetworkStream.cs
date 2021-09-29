@@ -115,7 +115,8 @@ namespace IceRpc.Transports
         /// <param name="buffer">The buffer that holds the received data.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A value task that completes once the buffer is filled up with received data.</returns>
-        /// TODO: XXX REMOVE
+        /// TODO: XXX Remove this, this is used by the Ice2 protocol implementation to read the header. It should
+        /// instead use something like BufferedReceiver to receive the type and frame size.
         async ValueTask ReceiveUntilFullAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             // Loop until we received enough data to fully fill the given buffer.

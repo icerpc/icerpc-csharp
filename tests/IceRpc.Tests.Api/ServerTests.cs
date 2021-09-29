@@ -150,7 +150,6 @@ namespace IceRpc.Tests.Api
             Assert.Throws<FormatException>(() => new Server { Endpoint = endpoint });
 
         [Test]
-        [Log(LogAttributeLevel.Debug)]
         // When a client cancels a request, the dispatch is canceled.
         public async Task Server_RequestCancelAsync()
         {

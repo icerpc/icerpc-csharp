@@ -121,8 +121,8 @@ namespace IceRpc.Transports.Internal.Slic
                 Debug.Assert(_receiveBuffer.Count > 0);
                 _receiveBuffer.Consume(buffer.Slice(0, size));
 
-                // If we've consumed 75% or more of the circular buffer capacity, notify the peer to allow more data
-                // to be sent.
+                // If we've consumed 75% or more of the circular buffer capacity, notify the peer to allow
+                // more data to be sent.
                 int consumed = Interlocked.Add(ref _receiveCredit, size);
                 if (consumed >= _receiveBuffer.Capacity * 0.75)
                 {

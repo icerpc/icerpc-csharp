@@ -13,7 +13,6 @@ namespace IceRpc.Tests.ClientServer
     {
         [Test]
         [Repeat(10)]
-        [Log(LogAttributeLevel.Debug)]
         public async Task Retry_AfterDelay()
         {
             await WithRetryServiceAsync(
@@ -101,7 +100,6 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(Protocol.Ice2, 2)]
         [TestCase(Protocol.Ice2, 10)]
         [TestCase(Protocol.Ice2, 20)]
-        [Log(LogAttributeLevel.Debug)]
         public async Task Retry_GracefulClose(Protocol protocol, int maxQueue)
         {
             await WithRetryServiceAsync(protocol, null, async (service, retry) =>

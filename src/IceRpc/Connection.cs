@@ -506,7 +506,7 @@ namespace IceRpc
         /// incoming requests in progress by holding on accepting a new request.</summary>
         private async Task AcceptIncomingRequestAsync(IDispatcher dispatcher)
         {
-            IncomingRequest? request = null;
+            IncomingRequest request;
             try
             {
                 request = await _protocolConnection!.ReceiveRequestAsync(default).ConfigureAwait(false);
@@ -581,6 +581,8 @@ namespace IceRpc
                 // that _closeTask is assigned before any synchronous continuations are ran.
                 await Task.Yield();
 
+                using IDisposable? scope = NetworkConnection?.StartScope();
+
                 try
                 {
                     _protocolConnection?.Dispose();
@@ -624,7 +626,7 @@ namespace IceRpc
         private async Task ShutdownAsync(bool shutdownByPeer, string message, CancellationToken cancel)
         {
             Task shutdownTask;
-            IProtocolConnection protocolConnection;
+            IProtocolConnection? protocolConnection;
             lock (_mutex)
             {
                 if (_state == ConnectionState.Active)
@@ -633,7 +635,7 @@ namespace IceRpc
                     _closeTask ??= PerformShutdownAsync(message);
                 }
                 shutdownTask = _closeTask ?? CloseAsync(new ConnectionClosedException(message));
-                protocolConnection = _protocolConnection!;
+                protocolConnection = _protocolConnection;
             }
 
             try
@@ -643,7 +645,7 @@ namespace IceRpc
             catch (OperationCanceledException) when (cancel.IsCancellationRequested)
             {
                 // Cancel the shutdown if cancellation is requested.
-                protocolConnection.CancelShutdown();
+                protocolConnection?.CancelShutdown();
             }
 
             await shutdownTask.ConfigureAwait(false);
@@ -657,11 +659,16 @@ namespace IceRpc
                 using var closeCancellationSource = new CancellationTokenSource(_options.CloseTimeout);
                 try
                 {
-                    // Shutdown the connection.
-                    await _protocolConnection!.ShutdownAsync(
-                        shutdownByPeer,
-                        message,
-                        closeCancellationSource.Token).ConfigureAwait(false);
+                    if (_protocolConnection != null)
+                    {
+                        using IDisposable? scope = NetworkConnection!.StartScope();
+
+                        // Shutdown the connection.
+                        await _protocolConnection.ShutdownAsync(
+                            shutdownByPeer,
+                            message,
+                            closeCancellationSource.Token).ConfigureAwait(false);
+                    }
 
                     // Close the connection.
                     await CloseAsync(new ConnectionClosedException(message)).ConfigureAwait(false);

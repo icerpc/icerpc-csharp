@@ -13,16 +13,16 @@ namespace IceRpc.Internal
     internal sealed class Ice1ProtocolConnection : IProtocolConnection
     {
         /// <inheritdoc/>
-        public bool HasDispatchInProgress => _dispatchCancellationTokenSources.Count > 0;
+        public bool HasDispatchInProgress => _dispatch.Count > 0;
         /// <inheritdoc/>
-        public bool HasInvocationsInProgress => _pendingIncomingResponses.Count > 0;
+        public bool HasInvocationsInProgress => _invocations.Count > 0;
 
         // TODO: XXX, add back configuration to limit the number of concurrent dispatch.
         // private readonly AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly TaskCompletionSource _cancelShutdown =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly TaskCompletionSource _dispatchAndInvocationsCompleted = new();
-        private readonly Dictionary<int, CancellationTokenSource> _dispatchCancellationTokenSources = new();
+        private readonly HashSet<IncomingRequest> _dispatch = new();
         private readonly int _incomingFrameMaxSize;
         private readonly bool _isServer;
         private readonly bool _isDatagram;
@@ -34,7 +34,7 @@ namespace IceRpc.Internal
         private readonly TaskCompletionSource _pendingCloseConnection =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly Dictionary<int, TaskCompletionSource<ReadOnlyMemory<byte>>> _pendingIncomingResponses = new();
+        private readonly Dictionary<int, TaskCompletionSource<ReadOnlyMemory<byte>>> _invocations = new();
         private readonly AsyncSemaphore _sendSemaphore = new(1);
         // TODO: XXX, add back configuration to limit the number of concurrent dispatch.
         // private readonly AsyncSemaphore? _unidirectionalStreamSemaphore;
@@ -97,21 +97,21 @@ namespace IceRpc.Internal
         {
             lock (_mutex)
             {
-                _cancelShutdown.TrySetResult();
                 _pendingClose.TrySetResult();
+                _cancelShutdown.TrySetResult();
                 var exception = new ConnectionLostException();
                 _sendSemaphore.Complete(exception);
                 _pendingCloseConnection.TrySetException(exception);
-                foreach (TaskCompletionSource<ReadOnlyMemory<byte>> source in _pendingIncomingResponses.Values)
+                foreach (TaskCompletionSource<ReadOnlyMemory<byte>> source in _invocations.Values)
                 {
                     source.SetException(exception);
                 }
-                _pendingIncomingResponses.Clear();
-                foreach (CancellationTokenSource cancellationTokenSource in _dispatchCancellationTokenSources.Values)
+                _invocations.Clear();
+                foreach (IncomingRequest request in _dispatch)
                 {
-                    cancellationTokenSource.Dispose();
+                    request.CancelDispatchSource!.Dispose();
                 }
-                _dispatchCancellationTokenSources.Clear();
+                _dispatch.Clear();
             }
         }
 
@@ -144,7 +144,6 @@ namespace IceRpc.Internal
                 }
                 catch
                 {
-                    // TODO: XXX Is this really needed??
                     lock (_mutex)
                     {
                         if (_shutdown)
@@ -152,8 +151,11 @@ namespace IceRpc.Internal
                             _pendingClose.TrySetResult();
                             throw new ConnectionClosedException();
                         }
+                        else
+                        {
+                            throw;
+                        }
                     }
-                    throw;
                 }
 
                 var decoder = new Ice11Decoder(buffer);
@@ -207,8 +209,7 @@ namespace IceRpc.Internal
                     }
                     else
                     {
-                        // TODO: XXX fix this, it's wrong for oneway requests which use 0 for the requestId.
-                        _dispatchCancellationTokenSources[requestId] = request.CancelDispatchSource;
+                        _dispatch.Add(request);
                         return request;
                     }
                 }
@@ -238,7 +239,7 @@ namespace IceRpc.Internal
                     {
                         throw new ConnectionClosedException();
                     }
-                    else if (_pendingIncomingResponses.TryGetValue(
+                    else if (_invocations.TryGetValue(
                         requestId,
                         out TaskCompletionSource<ReadOnlyMemory<byte>>? source))
                     {
@@ -255,12 +256,12 @@ namespace IceRpc.Internal
             {
                 lock (_mutex)
                 {
-                    if (_pendingIncomingResponses.Remove(requestId))
+                    if (_invocations.Remove(requestId))
                     {
                         // If no more invocations or dispatch and shutting down, shutdown can complete.
                         if (_shutdown &&
-                            _pendingIncomingResponses.Count == 0 &&
-                            _dispatchCancellationTokenSources.Count == 0)
+                            _invocations.Count == 0 &&
+                            _dispatch.Count == 0)
                         {
                             _dispatchAndInvocationsCompleted.SetResult();
                         }
@@ -345,7 +346,7 @@ namespace IceRpc.Internal
                         throw new ConnectionClosedException();
                     }
                     requestId = ++_nextRequestId;
-                    _pendingIncomingResponses[requestId] = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                    _invocations[requestId] = new(TaskCreationOptions.RunContinuationsAsynchronously);
                 }
             }
 
@@ -393,12 +394,12 @@ namespace IceRpc.Internal
             {
                 lock (_mutex)
                 {
-                    if (_pendingIncomingResponses.Remove(requestId))
+                    if (_invocations.Remove(requestId))
                     {
                         // If no more invocations or dispatch and shutting down, shutdown can complete.
                         if (_shutdown &&
-                            _pendingIncomingResponses.Count == 0 &&
-                            _dispatchCancellationTokenSources.Count == 0)
+                            _invocations.Count == 0 &&
+                            _dispatch.Count == 0)
                         {
                             _dispatchAndInvocationsCompleted.SetResult();
                         }
@@ -481,14 +482,14 @@ namespace IceRpc.Internal
                 lock (_mutex)
                 {
                     // Dispatch is done, remove the cancellation token source for the dispatch.
-                    if (_dispatchCancellationTokenSources.Remove(requestId))
+                    if (_dispatch.Remove(request))
                     {
                         request.CancelDispatchSource!.Dispose();
 
                         // If no more invocations or dispatch and shutting down, shutdown can complete.
                         if (_shutdown &&
-                            _pendingIncomingResponses.Count == 0 &&
-                            _dispatchCancellationTokenSources.Count == 0)
+                            _invocations.Count == 0 &&
+                            _dispatch.Count == 0)
                         {
                             _dispatchAndInvocationsCompleted.SetResult();
                         }
@@ -518,13 +519,13 @@ namespace IceRpc.Internal
                     // If shutdown locally, we raise OperationCanceledException for pending invocations. The
                     // invocation won't be retried, otherwise we raise the shutdown close exception.
                     Exception closeException = shutdownByPeer ? exception : new OperationCanceledException(message);
-                    foreach (TaskCompletionSource<ReadOnlyMemory<byte>> source in _pendingIncomingResponses.Values)
+                    foreach (TaskCompletionSource<ReadOnlyMemory<byte>> source in _invocations.Values)
                     {
                         source.TrySetException(closeException);
                     }
-                    _pendingIncomingResponses.Clear();
+                    _invocations.Clear();
 
-                    if (_dispatchCancellationTokenSources.Count == 0)
+                    if (_dispatch.Count == 0)
                     {
                         _dispatchAndInvocationsCompleted.TrySetResult();
                     }
@@ -579,9 +580,9 @@ namespace IceRpc.Internal
             lock (_mutex)
             {
                 Debug.Assert(_shutdown);
-                foreach (CancellationTokenSource source in _dispatchCancellationTokenSources.Values)
+                foreach (IncomingRequest request in _dispatch)
                 {
-                    source.Cancel();
+                    request.CancelDispatchSource!.Cancel();
                 }
             }
         }
@@ -711,7 +712,7 @@ namespace IceRpc.Internal
                         lock (_mutex)
                         {
                             if (!_shutdown &&
-                                _pendingIncomingResponses.TryGetValue(
+                                _invocations.TryGetValue(
                                 requestId,
                                 out TaskCompletionSource<ReadOnlyMemory<byte>>? source))
                             {

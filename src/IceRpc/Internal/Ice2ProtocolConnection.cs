@@ -111,7 +111,7 @@ namespace IceRpc.Internal
             // send the GoAwayCanceled frame once the GoAway frame has been sent.
             _cancelShutdown.TrySetResult();
 
-        public void Dispose() => _cancelShutdown.TrySetResult();
+        public void Dispose() => _cancelShutdown.TrySetException(new ConnectionClosedException());
 
         public Task PingAsync(CancellationToken cancel) => SendControlFrameAsync(Ice2FrameType.Ping, null, cancel);
 
@@ -206,6 +206,7 @@ namespace IceRpc.Internal
                 {
                     IsIdempotent = requestHeaderBody.Idempotent ?? false,
                     IsOneway = !stream.IsBidirectional,
+                    Features = features,
                     Priority = requestHeaderBody.Priority ?? default,
                     // The infinite deadline is encoded as -1 and converted to DateTime.MaxValue
                     Deadline = requestHeaderBody.Deadline == -1 ?
@@ -439,9 +440,6 @@ namespace IceRpc.Internal
                 throw new InvalidOperationException($"{nameof(request.Stream)} is not set");
             }
 
-            // request.Stream.ShutdownAction = null;
-            // request.CancelDispatchSource!.Dispose();
-
             if (!request.IsOneway)
             {
                 var bufferWriter = new BufferWriter();
@@ -578,6 +576,10 @@ namespace IceRpc.Internal
 
                     // Write the GoAwayCanceled frame to the remote control stream.
                     await SendControlFrameAsync(Ice2FrameType.GoAwayCanceled, null, default).ConfigureAwait(false);
+                }
+                catch (ConnectionClosedException)
+                {
+                    // Expected the connection is closed.
                 }
                 catch (StreamAbortedException)
                 {

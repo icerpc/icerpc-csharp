@@ -11,8 +11,6 @@ namespace IceRpc.Tests.Slice.Stream
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    [TestFixture("slic")]
-    [TestFixture("coloc")]
     [Log(LogAttributeLevel.Debug)]
     public sealed class StreamParamTests : IAsyncDisposable
     {
@@ -22,7 +20,7 @@ namespace IceRpc.Tests.Slice.Stream
         private readonly byte[] _sendBuffer;
         private readonly StreamParamOperations _servant;
 
-        public StreamParamTests(string transport)
+        public StreamParamTests()
         {
             _sendBuffer = new byte[256];
             new Random().NextBytes(_sendBuffer);
@@ -31,9 +29,7 @@ namespace IceRpc.Tests.Slice.Stream
             _server = new Server
             {
                 Dispatcher = _servant,
-                Endpoint = transport == "coloc" ?
-                    TestHelper.GetUniqueColocEndpoint(Protocol.Ice2) :
-                    TestHelper.GetTestEndpoint(protocol: Protocol.Ice2),
+                Endpoint = TestHelper.GetUniqueColocEndpoint(Protocol.Ice2),
                 LoggerFactory = LogAttributeLoggerFactory.Instance
             };
 

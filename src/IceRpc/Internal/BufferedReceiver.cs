@@ -41,6 +41,8 @@ namespace IceRpc.Internal
             _buffer = buffer;
             _bufferOffset = 0;
             _bufferLimitOffset = buffer.Length;
+            _bufferOwner = null;
+            _source = null;
         }
 
         /// <summary>Receives data from the source into the given buffer. This method only returns once the

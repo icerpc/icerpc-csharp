@@ -203,9 +203,6 @@ namespace IceRpc.Transports.Internal.Slic
             _reader = reader;
             _writer = new SynchronizedSlicFrameWriterDecorator(writer, isServer);
 
-            // We use buffered stream receiver to allow easily receiving the Slic header which contains
-            // variable size types.
-
             _receiveStreamCompletionTaskSource.SetResult(0);
 
             PacketMaxSize = options.SlicPacketMaxSize;
