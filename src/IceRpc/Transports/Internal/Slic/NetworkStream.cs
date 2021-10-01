@@ -25,9 +25,6 @@ namespace IceRpc.Transports.Internal.Slic
             set
             {
                 Debug.Assert(_id == -1);
-                // First add the stream and then assign the ID. AddStream can throw if the connection is closed and
-                // in this case we want to make sure the id isn't assigned since the stream isn't considered
-                // allocated if not added to the connection.
                 _connection.AddStream(value, this, ref _id);
             }
         }

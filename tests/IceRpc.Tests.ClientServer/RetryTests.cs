@@ -79,7 +79,7 @@ namespace IceRpc.Tests.ClientServer
             retryBidir.Proxy.Endpoint = server.Endpoint;
             retryBidir.Proxy.Invoker = pipeline;
             await retryBidir.IcePingAsync();
-            retryBidir.Proxy.Connection!.Dispatcher = server.Dispatcher;
+
             var bidir = new RetryBidirTestPrx(retryBidir.Proxy.Clone()); // keeps Connection
             bidir.Proxy.Endpoint = null; // endpointless proxy with a connection
 

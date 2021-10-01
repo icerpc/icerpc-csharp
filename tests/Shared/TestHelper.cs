@@ -2,6 +2,7 @@
 
 using IceRpc.Transports;
 using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Tests
 {
@@ -15,6 +16,27 @@ namespace IceRpc.Tests
                 Protocol.Ice1 => address.Contains(':', StringComparison.InvariantCulture) ? $"\"{address}\"" : address,
                 _ => address.Contains(':', StringComparison.InvariantCulture) ? $"[{address}]" : address
             };
+
+        public static IClientTransport GetSecureClientTransport(string caFile = "cacert.der") =>
+            new TcpClientTransport(authenticationOptions:
+                new()
+                {
+                    RemoteCertificateValidationCallback =
+                        CertificateValidaton.GetServerCertificateValidationCallback(
+                            certificateAuthorities: new X509Certificate2Collection
+                            {
+                                new X509Certificate2(Path.Combine(Environment.CurrentDirectory, "certs", caFile))
+                            })
+                });
+
+        public static IServerTransport GetSecureServerTransport(string certificateFile = "server.p12") =>
+            new TcpServerTransport(authenticationOptions:
+                new()
+                {
+                    ServerCertificate = new X509Certificate2(
+                        Path.Combine(Environment.CurrentDirectory, "certs", certificateFile),
+                        "password")
+                });
 
         public static Endpoint GetTestEndpoint(
              string host = "127.0.0.1",

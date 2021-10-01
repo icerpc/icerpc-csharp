@@ -26,7 +26,6 @@ namespace IceRpc.Internal
         private readonly int _incomingFrameMaxSize;
         private readonly bool _isServer;
         private readonly bool _isDatagram;
-        private readonly int _datagramMaxReceiveSize;
         private readonly ILogger _logger;
         private readonly object _mutex = new();
         private readonly ISingleStreamConnection _stream;
@@ -563,10 +562,9 @@ namespace IceRpc.Internal
             ILogger logger)
         {
             _stream = singleStreamConnection;
-            _incomingFrameMaxSize = incomingFrameMaxSize;
+            _incomingFrameMaxSize = Math.Min(incomingFrameMaxSize, datagramMaxReceiveSize ?? int.MaxValue);
             _isServer = isServer;
             _isDatagram = datagramMaxReceiveSize != null;
-            _datagramMaxReceiveSize = datagramMaxReceiveSize ?? 0;
             _logger = logger;
         }
 
@@ -590,7 +588,7 @@ namespace IceRpc.Internal
                 Memory<byte> buffer;
                 if (_isDatagram)
                 {
-                    buffer = new byte[_datagramMaxReceiveSize];
+                    buffer = new byte[_incomingFrameMaxSize];
                     int received = await _stream.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
                     if (received < Ice1Definitions.HeaderSize)
                     {
@@ -602,6 +600,7 @@ namespace IceRpc.Internal
                 }
                 else
                 {
+                    // TODO: rent buffer from memory pool
                     buffer = new byte[256];
                     await ReceiveUntilFullAsync(buffer[0..Ice1Definitions.HeaderSize], cancel).ConfigureAwait(false);
                 }
@@ -609,21 +608,12 @@ namespace IceRpc.Internal
                 // Check the header
                 Ice1Definitions.CheckHeader(buffer.Span.Slice(0, Ice1Definitions.HeaderSize));
                 int frameSize = IceDecoder.DecodeInt(buffer.AsReadOnlySpan().Slice(10, 4));
-                if (frameSize < Ice1Definitions.HeaderSize)
+                if (_isDatagram && frameSize != buffer.Length)
                 {
-                    if (_isDatagram)
-                    {
-                        _logger.LogReceivedInvalidDatagram(frameSize);
-                    }
-                    else
-                    {
-                        throw new InvalidDataException(
-                            @$"received ice1 frame with invalid size, expected '{Ice1Definitions.HeaderSize
-                                }' but received '{frameSize}' bytes");
-                    }
+                    _logger.LogReceivedInvalidDatagram(frameSize);
                     continue; // while
                 }
-                if (frameSize > _incomingFrameMaxSize || (_isDatagram && frameSize > _datagramMaxReceiveSize))
+                else if (frameSize > _incomingFrameMaxSize)
                 {
                     if (_isDatagram)
                     {
@@ -646,27 +636,21 @@ namespace IceRpc.Internal
                 }
 
                 // Read the remainder of the frame if needed.
-                int remainingSize = frameSize - Ice1Definitions.HeaderSize;
                 if (_isDatagram)
                 {
-                    Debug.Assert(remainingSize < buffer.Length);
-                    buffer = buffer[0..remainingSize];
+                    Debug.Assert(frameSize == buffer.Length);
+                    buffer = buffer[Ice1Definitions.HeaderSize..];
                 }
-                else if (remainingSize > 0)
+                else if(frameSize == Ice1Definitions.HeaderSize)
                 {
-                    if (buffer.Length < remainingSize)
-                    {
-                        buffer = new byte[remainingSize];
-                    }
-                    else
-                    {
-                        buffer = buffer[0..remainingSize];
-                    }
-                    await ReceiveUntilFullAsync(buffer, cancel).ConfigureAwait(false);
+                    buffer = Memory<byte>.Empty;
                 }
                 else
                 {
-                    buffer = Memory<byte>.Empty;
+                    int remainingSize = frameSize - Ice1Definitions.HeaderSize;
+                    // TODO: rent buffer from memory pool
+                    buffer = buffer.Length < remainingSize ? new byte[remainingSize] : buffer[0..remainingSize];
+                    await ReceiveUntilFullAsync(buffer, cancel).ConfigureAwait(false);
                 }
 
                 switch (frameType)
@@ -698,7 +682,7 @@ namespace IceRpc.Internal
                             throw new InvalidDataException(
                                 $"received ice1 RequestBatchMessage with {invokeNum} batch requests");
                         }
-                        break; // Batch requests are not ignored because not supported
+                        break; // Batch requests are ignored because not supported
                     }
 
                     case Ice1FrameType.Reply:

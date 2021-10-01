@@ -63,28 +63,10 @@ namespace IceRpc
             remove => _closed -= value;
         }
 
-        /// <summary>Gets or sets the dispatcher that dispatches requests received by this connection. For server
-        /// connections, set is an invalid operation and get returns the dispatcher of the server that created this
-        /// connection. For client connections, set can be called during configuration.</summary>
+        /// <summary>Gets or sets the dispatcher that dispatches requests received by this connection..</summary>
         /// <value>The dispatcher that dispatches requests received by this connection, or null if no dispatcher is
         /// set.</value>
-        /// <exception cref="InvalidOperationException">Thrown if the connection is a server connection.</exception>
-        public IDispatcher? Dispatcher
-        {
-            get => _dispatcher;
-
-            set
-            {
-                if (IsServer)
-                {
-                    throw new InvalidOperationException("cannot change the dispatcher of a server connection");
-                }
-                else
-                {
-                    _dispatcher = value;
-                }
-            }
-        }
+        public IDispatcher? Dispatcher { get; init; }
 
         /// <summary>Gets the connection idle timeout. The IdleTimeout is available once the connection is
         /// established.</summary>
@@ -181,7 +163,6 @@ namespace IceRpc
         private EventHandler<ClosedEventArgs>? _closed;
         // The close task is assigned when ShutdownAsync or CloseAsync are called, it's protected with _mutex.
         private Task? _closeTask;
-        private IDispatcher? _dispatcher;
         private readonly Endpoint? _localEndpoint;
         private ILogger _logger;
         private ILoggerFactory? _loggerFactory;
@@ -304,9 +285,8 @@ namespace IceRpc
                         // Start a task to wait for graceful shutdown.
                         _ = Task.Run(() => WaitForShutdownAsync(), CancellationToken.None);
 
-                        // Start the receive request task. The task accepts new incoming requests and processes
-                        // them. It only completes once the connection is closed.
-                        // TODO: should we allow changing the dispatcher after connection establishment?
+                        // Start the receive request task. The task accepts new incoming requests and
+                        // processes them. It only completes once the connection is closed.
                         _ = Task.Run(
                             () => AcceptIncomingRequestAsync(Dispatcher ?? NullDispatcher.Instance),
                             CancellationToken.None);
@@ -460,11 +440,11 @@ namespace IceRpc
             ConnectionOptions options,
             ILoggerFactory? loggerFactory)
         {
+            Dispatcher = dispatcher;
             NetworkConnection = connection;
             _localEndpoint = connection.LocalEndpoint!;
             _options = options;
             _logger = loggerFactory?.CreateLogger("IceRpc") ?? NullLogger.Instance;
-            _dispatcher = dispatcher;
         }
 
         internal void Monitor()
@@ -509,8 +489,8 @@ namespace IceRpc
 
         /// <summary>Accept an incoming request and dispatch it. As soon a new incoming request is accepted
         /// and before dispatching it, a new accept incoming request task is started to allow multiple
-        /// incoming requests to be dispatched. The underlying transport might limit the number of concurrent
-        /// incoming requests in progress by holding on accepting a new request.</summary>
+        /// incoming requests to be dispatched. The protocol implementation can limit the number of concurrent
+        /// dispatch by no longer accepting a new request when a limit is reached.</summary>
         private async Task AcceptIncomingRequestAsync(IDispatcher dispatcher)
         {
             IncomingRequest request;
@@ -633,7 +613,6 @@ namespace IceRpc
         private async Task ShutdownAsync(bool shutdownByPeer, string message, CancellationToken cancel)
         {
             Task shutdownTask;
-            IProtocolConnection? protocolConnection;
             lock (_mutex)
             {
                 if (_state == ConnectionState.Active)
@@ -642,7 +621,6 @@ namespace IceRpc
                     _closeTask ??= PerformShutdownAsync(message);
                 }
                 shutdownTask = _closeTask ?? CloseAsync(new ConnectionClosedException(message));
-                protocolConnection = _protocolConnection;
             }
 
             try
@@ -652,7 +630,7 @@ namespace IceRpc
             catch (OperationCanceledException) when (cancel.IsCancellationRequested)
             {
                 // Cancel the shutdown if cancellation is requested.
-                protocolConnection?.CancelShutdown();
+                _protocolConnection?.CancelShutdown();
             }
 
             await shutdownTask.ConfigureAwait(false);
@@ -666,16 +644,13 @@ namespace IceRpc
                 using var closeCancellationSource = new CancellationTokenSource(_options.CloseTimeout);
                 try
                 {
-                    if (_protocolConnection != null)
-                    {
-                        using IDisposable? scope = NetworkConnection!.StartScope();
+                    using IDisposable? scope = NetworkConnection!.StartScope();
 
-                        // Shutdown the connection.
-                        await _protocolConnection.ShutdownAsync(
-                            shutdownByPeer,
-                            message,
-                            closeCancellationSource.Token).ConfigureAwait(false);
-                    }
+                    // Shutdown the connection.
+                    await _protocolConnection!.ShutdownAsync(
+                        shutdownByPeer,
+                        message,
+                        closeCancellationSource.Token).ConfigureAwait(false);
 
                     // Close the connection.
                     await CloseAsync(new ConnectionClosedException(message)).ConfigureAwait(false);

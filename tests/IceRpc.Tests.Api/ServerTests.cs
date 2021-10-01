@@ -121,25 +121,6 @@ namespace IceRpc.Tests.Api
                         server2.Listen();
                     });
             }
-
-            {
-                await using var server = new Server
-                {
-                    Endpoint = "ice+tcp://127.0.0.1:15001"
-                };
-
-                server.Listen();
-
-                await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
-
-                var prx = ServicePrx.FromConnection(connection);
-
-                IDispatcher dispatcher = new Greeter();
-
-                // We can set Dispatcher on a client connection
-                Assert.DoesNotThrow(() => connection.Dispatcher = dispatcher);
-                Assert.DoesNotThrow(() => connection.Dispatcher = null);
-            }
         }
 
         [TestCase(" :")]

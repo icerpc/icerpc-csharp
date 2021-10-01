@@ -8,7 +8,7 @@ using System.Threading.Channels;
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The collocated network connection class to exchange data within the same process. The
-    /// implemention copies the send buffer into the receive buffer.</summary>
+    /// implementation copies the send buffer into the receive buffer.</summary>
     internal class ColocConnection : INetworkConnection, ISingleStreamConnection
     {
         public int DatagramMaxReceiveSize => throw new InvalidOperationException();

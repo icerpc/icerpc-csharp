@@ -8,7 +8,8 @@ namespace IceRpc.Features
         internal int Value { get; init; }
     }
 
-    /// <summary>Provides an extension method for FeatureCollection to set the <see cref="CompressPayload"/> feature.
+    /// <summary>Provides an extension method for FeatureCollection to set the <see cref="RequestId"/>
+    /// feature.
     /// </summary>
     public static class RequestIdExtensions
     {

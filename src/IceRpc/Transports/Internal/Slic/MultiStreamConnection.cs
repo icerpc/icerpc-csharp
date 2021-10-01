@@ -1,12 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
-using IceRpc.Transports.Internal;
-using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Text;
 
 namespace IceRpc.Transports.Internal.Slic
 {
@@ -19,6 +15,8 @@ namespace IceRpc.Transports.Internal.Slic
         internal bool IsServer { get; }
         private long _lastRemoteBidirectionalStreamId = -1;
         private long _lastRemoteUnidirectionalStreamId = -1;
+        // _mutex ensure the assignment of _lastRemoteXxx members and the addition of the stream to _streams is
+        // an atomic operation.
         private readonly object _mutex = new();
         private readonly ConcurrentDictionary<long, NetworkStream> _streams = new();
 
@@ -98,8 +96,8 @@ namespace IceRpc.Transports.Internal.Slic
             {
                 _streams[id] = stream;
 
-                // Assign the stream ID within the mutex as well to ensure that the addition of the stream to
-                // the connection and the stream ID assignment are atomic.
+                // Assign the stream ID within the mutex to ensure that the addition of the stream to the
+                // connection and the stream ID assignment are atomic.
                 streamId = id;
 
                 // Keep track of the last assigned stream ID. This is used for the shutdown logic to tell the peer
@@ -118,12 +116,6 @@ namespace IceRpc.Transports.Internal.Slic
             }
         }
 
-        internal void RemoveStream(long id)
-        {
-            lock (_mutex)
-            {
-                _streams.TryRemove(id, out NetworkStream? _);
-            }
-        }
+        internal void RemoveStream(long id) => _streams.TryRemove(id, out NetworkStream? _);
     }
 }

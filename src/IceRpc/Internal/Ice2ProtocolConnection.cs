@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Features;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
@@ -277,7 +276,7 @@ namespace IceRpc.Internal
             }
 
             Encoding payloadEncoding = responseHeaderBody.PayloadEncoding is string encoding ?
-                    Encoding.FromString(encoding) : Ice2Definitions.Encoding;
+                Encoding.FromString(encoding) : Ice2Definitions.Encoding;
 
             FeatureCollection features = FeatureCollection.Empty;
             RetryPolicy? retryPolicy = fields.Get((int)FieldKey.RetryPolicy, decoder => new RetryPolicy(decoder));
@@ -660,7 +659,8 @@ namespace IceRpc.Internal
 
                 if (frameSize > 0)
                 {
-                    buffer = frameSize > buffer.Length ? new byte[frameSize] : buffer.Slice(0, frameSize);
+                    // TODO: rent buffer from Memory pool
+                    buffer = frameSize > buffer.Length ? new byte[frameSize] : buffer[..frameSize];
                     await stream.ReceiveUntilFullAsync(buffer, cancel).ConfigureAwait(false);
                 }
                 else

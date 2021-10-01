@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
+
 namespace IceRpc.Slice
 {
     /// <summary>Extension methods to decode the payloads of incoming requests when such payloads are encoded with the
@@ -37,9 +39,10 @@ namespace IceRpc.Slice
         /// doesn't specify a stream parameter.</summary>
         public static void StreamReadingComplete(this IncomingRequest request)
         {
-            if (!request.Stream?.ReadsCompleted ?? false)
+            // If there's still data on available on the stream abort the stream.
+            if (request.Stream?.ReadsCompleted is bool readCompleted && !readCompleted)
             {
-                request.Stream?.AbortRead(IceRpc.Transports.StreamError.UnexpectedStreamData);
+                request.Stream.AbortRead(StreamError.UnexpectedStreamData);
             }
         }
 

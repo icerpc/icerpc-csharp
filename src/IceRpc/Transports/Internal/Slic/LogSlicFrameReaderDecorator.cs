@@ -57,8 +57,8 @@ namespace IceRpc.Transports.Internal.Slic
 
         private void LogReadFrame(FrameType type, int dataSize, long? streamId, ReadOnlyMemory<byte> buffer)
         {
-            // If the frame is not a stream frame, we need to encode again the frame header because read methods
-            // non-stream frames require to read the header.
+            // If the frame is not a stream frame, we need to re-encode the frame with the header and data because
+            // Slice Read reader extension methods read the header.
             int frameSize;
             if (streamId == null)
             {
@@ -66,10 +66,6 @@ namespace IceRpc.Transports.Internal.Slic
                 var encoder = new Ice20Encoder(bufferWriter);
                 encoder.EncodeByte((byte)type);
                 BufferWriter.Position sizePos = encoder.StartFixedLengthSize();
-                if (streamId != null)
-                {
-                    encoder.EncodeVarULong((ulong)streamId.Value);
-                }
                 bufferWriter.WriteByteSpan(buffer.Span);
                 frameSize = encoder.EndFixedLengthSize(sizePos);
                 buffer = bufferWriter.Finish().Span[0];
@@ -79,9 +75,9 @@ namespace IceRpc.Transports.Internal.Slic
                 frameSize = dataSize + IceEncoder.GetVarULongEncodedSize((ulong)streamId.Value);
             }
 
+            // Create a reader to read again the frame from the memory buffer.
             using var reader = new BufferedReceiverSlicFrameReader(new BufferedReceiver(buffer));
 
-            // Log the read frame
             switch (type)
             {
                 case FrameType.Initialize:
@@ -142,6 +138,8 @@ namespace IceRpc.Transports.Internal.Slic
             {
                 try
                 {
+                    // The reading of the frame should always complete synchronously since we're reading the
+                    // frame from a memory buffer.
                     ValueTask<T> task = readFunc();
                     Debug.Assert(task.IsCompleted);
                     return task.Result;

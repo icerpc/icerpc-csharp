@@ -18,6 +18,12 @@ namespace IceRpc
         /// <summary>The connection options.</summary>
         public ConnectionOptions ConnectionOptions { get; init; } = new();
 
+        /// <summary>The dispatcher that will be set on connections from the pool to enable connections to
+        /// receive requests over the client conneciton.</summary>
+        /// <value>The dispatcher of this connection pool.</value>
+        /// <seealso cref="IDispatcher"/>
+        public IDispatcher? Dispatcher { get; init; }
+
         /// <summary>Gets or sets the logger factory of this connection pool. When null, the connection pool creates
         /// its logger using <see cref="NullLoggerFactory.Instance"/>.</summary>
         /// <value>The logger factory of this connection pool.</value>
@@ -209,6 +215,7 @@ namespace IceRpc
                     // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
                     connection = new Connection(ConnectionOptions)
                     {
+                        Dispatcher = Dispatcher,
                         RemoteEndpoint = endpoint,
                         LoggerFactory = LoggerFactory,
                         ClientTransport = ClientTransport,

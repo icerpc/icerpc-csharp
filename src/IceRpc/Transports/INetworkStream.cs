@@ -50,7 +50,7 @@ namespace IceRpc.Transports
     public interface INetworkStream
     {
         /// <summary>The stream ID. If the stream ID hasn't been assigned yet, an exception is thrown. Assigning the
-        /// stream ID registers the stream with the connection.</summary>
+        /// stream ID registers the stream with the multi-stream connection.</summary>
         /// <exception cref="InvalidOperationException">If the stream ID has not been assigned yet.</exception>
         long Id { get; }
 
