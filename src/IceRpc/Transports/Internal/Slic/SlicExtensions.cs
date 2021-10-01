@@ -19,15 +19,14 @@ namespace IceRpc.Transports.Internal.Slic
             this ISlicFrameReader reader,
             CancellationToken cancel)
         {
-            (FrameType type, int frameSize, IMemoryOwner<byte> data) =
-                await ReadFrameAsync(reader, cancel).ConfigureAwait(false);
-            using IMemoryOwner<byte> _ = data;
-            if (type != FrameType.Initialize)
+            using SlicFrame frame = await ReadFrameAsync(reader, cancel).ConfigureAwait(false);
+            if (frame.Type != FrameType.Initialize)
             {
-                throw new InvalidDataException($"unexpected Slic frame type {type}, expected {FrameType.Initialize}");
+                throw new InvalidDataException(
+                    $"unexpected Slic frame type {frame.Type}, expected {FrameType.Initialize}");
             }
 
-            var decoder = new Ice20Decoder(data.Memory[0..frameSize]);
+            var decoder = new Ice20Decoder(frame.Buffer);
             uint version = decoder.DecodeVarUInt();
             if (version == SlicDefinitions.V1)
             {
@@ -43,21 +42,13 @@ namespace IceRpc.Transports.Internal.Slic
             this ISlicFrameReader reader,
             CancellationToken cancel)
         {
-            (FrameType type, int frameSize, IMemoryOwner<byte> data) =
-                await ReadFrameAsync(reader, cancel).ConfigureAwait(false);
-            using IMemoryOwner<byte> _ = data;
-            if (type == FrameType.InitializeAck)
+            using SlicFrame frame = await ReadFrameAsync(reader, cancel).ConfigureAwait(false);
+            return frame.Type switch
             {
-                return (new InitializeAckBody(new Ice20Decoder(data.Memory[0..frameSize])), null);
-            }
-            else if (type == FrameType.Version)
-            {
-                return (null, new VersionBody(new Ice20Decoder(data.Memory[0..frameSize])));
-            }
-            else
-            {
-                throw new InvalidDataException($"unexpected Slic frame '{type}'");
-            }
+                FrameType.InitializeAck => (new InitializeAckBody(new Ice20Decoder(frame.Buffer)), null),
+                FrameType.Version =>  (null, new VersionBody(new Ice20Decoder(frame.Buffer))),
+                _ => throw new InvalidDataException($"unexpected Slic frame '{frame.Type}'")
+            };
         }
 
         internal static ValueTask<StreamResetBody> ReadStreamResetAsync(
@@ -131,9 +122,7 @@ namespace IceRpc.Transports.Internal.Slic
             CancellationToken cancel) =>
             WriteFrameAsync(writer, FrameType.StreamStopSending, stream, frame.Encode, cancel);
 
-        private static async ValueTask<(FrameType, int, IMemoryOwner<byte>)> ReadFrameAsync(
-            ISlicFrameReader reader,
-            CancellationToken cancel)
+        private static async ValueTask<SlicFrame> ReadFrameAsync(ISlicFrameReader reader, CancellationToken cancel)
         {
             (FrameType frameType, int frameSize) = await reader.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
             IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.Rent(frameSize);
@@ -141,7 +130,7 @@ namespace IceRpc.Transports.Internal.Slic
             {
                 Memory<byte> buffer = owner.Memory[0..frameSize];
                 await reader.ReadFrameDataAsync(buffer, cancel).ConfigureAwait(false);
-                return (frameType, frameSize, owner);
+                return new SlicFrame { Type = frameType, Size = frameSize, MemoryOwner = owner };
             }
             catch
             {
@@ -197,6 +186,16 @@ namespace IceRpc.Transports.Internal.Slic
             encode(encoder);
             encoder.EndFixedLengthSize(sizePos);
             return writer.WriteFrameAsync(stream, bufferWriter.Finish(), cancel);
+        }
+
+        private readonly struct SlicFrame : IDisposable
+        {
+            public ReadOnlyMemory<byte> Buffer => MemoryOwner.Memory[0..Size];
+            public IMemoryOwner<byte> MemoryOwner { get; init; }
+            public int Size { get; init; }
+            public FrameType Type { get; init; }
+
+            public void Dispose() => MemoryOwner.Dispose();
         }
     }
 }

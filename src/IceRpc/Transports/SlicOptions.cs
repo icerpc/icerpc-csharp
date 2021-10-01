@@ -7,7 +7,7 @@ namespace IceRpc.Transports
     {
         /// <summary>Configures the bidirectional stream maximum count to limit the number of concurrent
         /// bidirectional streams opened on a connection. When this limit is reached, trying to open a new
-        /// bidirectional stream will be delayed until an bidirectional stream is closed. Since an
+        /// bidirectional stream will be delayed until a bidirectional stream is closed. Since an
         /// bidirectional stream is opened for each two-way proxy invocation, the sending of the two-way
         /// invocation will be delayed until another two-way invocation on the connection completes. It can't
         /// be less than 1 and the default value is 100.</summary>
@@ -33,8 +33,7 @@ namespace IceRpc.Transports
 
         /// <summary>The stream buffer maximum size in bytes. The stream buffer is used when streaming data
         /// with a stream Slice parameter. It can't be less than 1KB and the default value is twice the packet
-        /// maximum size.
-        /// </summary>
+        /// maximum size.</summary>
         /// <value>The stream buffer maximum size in bytes.</value>
         public int StreamBufferMaxSize
         {

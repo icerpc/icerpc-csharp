@@ -1,12 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 
 namespace IceRpc.Transports.Internal
 {
@@ -71,9 +69,9 @@ namespace IceRpc.Transports.Internal
 
                     SocketReceiveFromResult result =
                         await Socket.ReceiveFromAsync(buffer,
-                                                       SocketFlags.None,
-                                                       remoteAddress,
-                                                       cancel).ConfigureAwait(false);
+                                                      SocketFlags.None,
+                                                      remoteAddress,
+                                                      cancel).ConfigureAwait(false);
 
                     received = result.ReceivedBytes;
                 }

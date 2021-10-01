@@ -35,7 +35,7 @@ namespace IceRpc.Transports.Internal.Slic
             }
         }
 
-        public ValueTask WriteStreamFrameAsync(
+        public async ValueTask WriteStreamFrameAsync(
             SlicStream stream,
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             bool endStream,
@@ -51,11 +51,11 @@ namespace IceRpc.Transports.Internal.Slic
             bufferSize += streamIdLength;
             int sizeLength = Ice20Encoder.GetSizeLength(bufferSize);
 
-            // Write the Slic frame header (frameType - byte, frameSize - varint, streamId - varlong). Since
-            // we might not need the full space reserved for the header, we modify the send buffer to ensure
-            // the first element points at the start of the Slic header. We'll restore the send buffer once
-            // the send is complete (it's important for the tracing code which might rely on the encoded
-            // data).
+            // Write the Slic frame header (frameType as a byte, frameSize as a varint, streamId as a
+            // varulong). Since we might not need the full space reserved for the header, we modify the send
+            // buffer to ensure the first element points at the start of the Slic header. We'll restore the
+            // send buffer once the send is complete (it's important for the tracing code which might rely on
+            // the encoded data).
             ReadOnlyMemory<byte> previous = buffers.Span[0];
             Memory<byte> headerData = MemoryMarshal.AsMemory(buffers.Span[0]);
             headerData = headerData[(SlicDefinitions.FrameHeader.Length - sizeLength - streamIdLength - 1)..];
@@ -68,7 +68,7 @@ namespace IceRpc.Transports.Internal.Slic
             MemoryMarshal.AsMemory(buffers).Span[0] = headerData;
             try
             {
-                return WriteFrameAsync(stream, buffers, cancel);
+                await WriteFrameAsync(stream, buffers, cancel).ConfigureAwait(false);
             }
             finally
             {
