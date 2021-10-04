@@ -73,7 +73,7 @@ namespace IceRpc.Internal
             if (header[0] != Magic[0] || header[1] != Magic[1] || header[2] != Magic[2] || header[3] != Magic[3])
             {
                 throw new InvalidDataException(
-                    $"received incorrect magic bytes in header of ice1 frame: {BytesToString(header.Slice(0, 4))}");
+                    $"received incorrect magic bytes in header of ice1 frame: {BytesToString(header[0..4])}");
             }
 
             header = header[4..];

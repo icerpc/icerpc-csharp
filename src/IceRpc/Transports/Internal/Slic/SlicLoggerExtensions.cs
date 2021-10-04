@@ -132,7 +132,7 @@ namespace IceRpc.Transports.Internal.Slic
             {
                 logger.LogSentSlicInitializeAckFrame(
                     frameSize,
-                    string.Join(", ", body.Parameters.DecodedParameters().Select(pair => $"{pair.Item1}={pair.Item2}")));
+                    string.Join(", ", body.Parameters.DecodedParameters().Select(pair => $"{pair.Key}={pair.Value}")));
             }
         }
 

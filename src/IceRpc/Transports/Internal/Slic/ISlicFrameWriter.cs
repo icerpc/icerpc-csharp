@@ -1,8 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice;
-using IceRpc.Transports.Slic;
-
 namespace IceRpc.Transports.Internal.Slic
 {
     internal interface ISlicFrameWriter : IDisposable

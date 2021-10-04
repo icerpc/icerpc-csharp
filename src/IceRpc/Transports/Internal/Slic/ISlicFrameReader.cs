@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Slic;
-using System.Buffers;
 
 namespace IceRpc.Transports.Internal.Slic
 {

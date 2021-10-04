@@ -274,7 +274,7 @@ namespace IceRpc.Internal
 
             if (protocol == Protocol.Ice2 && remoteException.RetryPolicy != RetryPolicy.NoRetry)
             {
-                var retryPolicy = remoteException.RetryPolicy;
+                RetryPolicy retryPolicy = remoteException.RetryPolicy;
                 response.Fields.Add((int)FieldKey.RetryPolicy, encoder => retryPolicy.Encode(encoder));
             }
 

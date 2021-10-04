@@ -119,7 +119,7 @@ namespace IceRpc.Transports.Internal.Slic
             {
                 // Copy the data from the stream's circular receive buffer to the given buffer.
                 Debug.Assert(_receiveBuffer.Count > 0);
-                _receiveBuffer.Consume(buffer.Slice(0, size));
+                _receiveBuffer.Consume(buffer[0..size]);
 
                 // If we've consumed 75% or more of the circular buffer capacity, notify the peer to allow
                 // more data to be sent.
@@ -226,7 +226,7 @@ namespace IceRpc.Transports.Internal.Slic
                         // If it's not the first fragment, we re-use the space reserved for the Slic header in
                         // the first buffer of the given protocol buffer.
                         sendBuffer.Clear();
-                        sendBuffer.Add(buffers.Span[0].Slice(0, TransportHeader.Length));
+                        sendBuffer.Add(buffers.Span[0][0..TransportHeader.Length]);
                     }
 
                     // Append data until we reach the allowed packet size or the end of the buffer to send.
