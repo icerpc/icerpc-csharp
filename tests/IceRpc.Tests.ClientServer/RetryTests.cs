@@ -7,7 +7,7 @@ using System.Collections.Immutable;
 namespace IceRpc.Tests.ClientServer
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    [Timeout(5000)]
+    [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
     public class RetryTests : ClientServerBaseTest
     {
