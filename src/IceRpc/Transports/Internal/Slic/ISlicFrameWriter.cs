@@ -2,6 +2,7 @@
 
 namespace IceRpc.Transports.Internal.Slic
 {
+    /// <summary>A Slic frame writer is used by the Slic transport to write Slic frames.</summary>
     internal interface ISlicFrameWriter : IDisposable
     {
         ValueTask WriteFrameAsync(

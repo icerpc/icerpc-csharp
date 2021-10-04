@@ -9,7 +9,8 @@ using System.Diagnostics;
 
 namespace IceRpc.Transports.Internal.Slic
 {
-    /// <summary>The LogSlicFrameWriterDecorator is a decorator to log written Slic frames.</summary>
+    /// <summary>The LogSlicFrameWriterDecorator is a Slic frame writer decorator to log written Slic
+    /// frames.</summary>
     internal sealed class LogSlicFrameWriterDecorator : ISlicFrameWriter
     {
         private readonly ISlicFrameWriter _decoratee;
