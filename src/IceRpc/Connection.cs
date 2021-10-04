@@ -63,9 +63,10 @@ namespace IceRpc
             remove => _closed -= value;
         }
 
-        /// <summary>Gets or sets the dispatcher that dispatches requests received by this connection..</summary>
-        /// <value>The dispatcher that dispatches requests received by this connection, or null if no dispatcher is
-        /// set.</value>
+        /// <summary>Gets or sets the dispatcher that dispatches requests received by this
+        /// connection.</summary>
+        /// <value>The dispatcher that dispatches requests received by this connection, or null if no
+        /// dispatcher is set.</value>
         public IDispatcher? Dispatcher { get; init; }
 
         /// <summary>Gets the connection idle timeout. The IdleTimeout is available once the connection is
@@ -487,8 +488,8 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Accept an incoming request and dispatch it. As soon a new incoming request is accepted
-        /// and before dispatching it, a new accept incoming request task is started to allow multiple
+        /// <summary>Accepts an incoming request and dispatch it. As soon as new incoming request is accepted
+        /// but before it's dispatched, a new accept incoming request task is started to allow multiple
         /// incoming requests to be dispatched. The protocol implementation can limit the number of concurrent
         /// dispatch by no longer accepting a new request when a limit is reached.</summary>
         private async Task AcceptIncomingRequestAsync(IDispatcher dispatcher)

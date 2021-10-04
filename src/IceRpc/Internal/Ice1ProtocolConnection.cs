@@ -13,9 +13,28 @@ namespace IceRpc.Internal
     internal sealed class Ice1ProtocolConnection : IProtocolConnection
     {
         /// <inheritdoc/>
-        public bool HasDispatchInProgress => _dispatch.Count > 0;
+        public bool HasDispatchInProgress
+        {
+            get
+            {
+                lock (_mutex)
+                {
+                    return _dispatch.Count > 0;
+                }
+            }
+        }
+
         /// <inheritdoc/>
-        public bool HasInvocationsInProgress => _invocations.Count > 0;
+        public bool HasInvocationsInProgress
+        {
+            get
+            {
+                lock (_mutex)
+                {
+                    return _invocations.Count > 0;
+                }
+            }
+        }
 
         // TODO: XXX, add back configuration to limit the number of concurrent dispatch.
         // private readonly AsyncSemaphore? _bidirectionalStreamSemaphore;

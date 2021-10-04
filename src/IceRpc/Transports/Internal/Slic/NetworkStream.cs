@@ -44,7 +44,7 @@ namespace IceRpc.Transports.Internal.Slic
             {
                 lock (_mutex)
                 {
-                    _shutdownAction;
+                    return _shutdownAction;
                 }
             }
             set
@@ -111,8 +111,8 @@ namespace IceRpc.Transports.Internal.Slic
                 {
                     return;
                 }
-                await _shutdownCompletedTaskSource.Task.WaitAsync(cancel).ConfigureAwait(false);
             }
+            await _shutdownCompletedTaskSource.Task.WaitAsync(cancel).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
