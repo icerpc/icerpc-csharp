@@ -4,14 +4,18 @@ using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports.Slic;
+using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace IceRpc.Transports.Internal.Slic
 {
     /// <summary>The Slic connection implements an <see cref="IMultiStreamConnection"/> on top of an <see
     /// cref="ISingleStreamConnection"/>.</summary>
-    internal class SlicConnection : MultiStreamConnection
+    internal class SlicConnection : IMultiStreamConnection, IDisposable
     {
+        internal TimeSpan IdleTimeout { get; set; }
+        internal bool IsServer { get; }
         internal int PeerPacketMaxSize { get; private set; }
         internal int PeerStreamBufferMaxSize { get; private set; }
         internal int StreamBufferMaxSize { get; }
@@ -19,15 +23,21 @@ namespace IceRpc.Transports.Internal.Slic
         private int _bidirectionalStreamCount;
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly int _bidirectionalMaxStreams;
+        private long _lastRemoteBidirectionalStreamId = -1;
+        private long _lastRemoteUnidirectionalStreamId = -1;
+        // _mutex ensure the assignment of _lastRemoteXxx members and the addition of the stream to _streams is
+        // an atomic operation.
+        private readonly object _mutex = new();
         private readonly int _packetMaxSize;
         private readonly ManualResetValueTaskCompletionSource<int> _receiveStreamCompletionTaskSource = new();
         private readonly ISlicFrameReader _reader;
+        private readonly ConcurrentDictionary<long, SlicStream> _streams = new();
         private readonly int _unidirectionalMaxStreams;
         private int _unidirectionalStreamCount;
         private AsyncSemaphore? _unidirectionalStreamSemaphore;
         private readonly ISlicFrameWriter _writer;
 
-        public override async ValueTask<INetworkStream> AcceptStreamAsync(CancellationToken cancel)
+        public async ValueTask<INetworkStream> AcceptStreamAsync(CancellationToken cancel)
         {
             // Eventually wait for the stream data receive to complete if stream data is being received.
             await WaitForReceivedStreamDataCompletionAsync(cancel).ConfigureAwait(false);
@@ -171,23 +181,30 @@ namespace IceRpc.Transports.Internal.Slic
             }
         }
 
-        public override NetworkStream CreateStream(bool bidirectional) =>
-            new SlicStream(this, bidirectional, _reader, _writer);
+        public INetworkStream CreateStream(bool bidirectional) => new SlicStream(this, bidirectional, _reader, _writer);
 
-        protected override void Dispose(bool disposing)
+        public void Dispose()
         {
-            base.Dispose(disposing);
-
-            if (disposing)
+            // Abort streams.
+            foreach (SlicStream stream in _streams.Values)
             {
-                // Unblock requests waiting on the semaphores.
-                var exception = new ConnectionClosedException();
-                _bidirectionalStreamSemaphore?.Complete(exception);
-                _unidirectionalStreamSemaphore?.Complete(exception);
-
-                _reader.Dispose();
-                _writer.Dispose();
+                try
+                {
+                    ((INetworkStream)stream).Abort(StreamError.ConnectionAborted);
+                }
+                catch (Exception ex)
+                {
+                    Debug.Assert(false, $"unexpected exception on Stream.Abort: {ex}");
+                }
             }
+
+            // Unblock requests waiting on the semaphores.
+            var exception = new ConnectionClosedException();
+            _bidirectionalStreamSemaphore?.Complete(exception);
+            _unidirectionalStreamSemaphore?.Complete(exception);
+
+            _reader.Dispose();
+            _writer.Dispose();
         }
 
         internal SlicConnection(
@@ -196,9 +213,9 @@ namespace IceRpc.Transports.Internal.Slic
             bool isServer,
             TimeSpan idleTimeout,
             SlicOptions options)
-            : base(isServer)
         {
             IdleTimeout = idleTimeout;
+            IsServer = isServer;
 
             _reader = reader;
             _writer = new SynchronizedSlicFrameWriterDecorator(writer, isServer);
@@ -216,6 +233,32 @@ namespace IceRpc.Transports.Internal.Slic
             // Configure the maximum stream counts to ensure the peer won't open more than one stream.
             _bidirectionalMaxStreams = options.BidirectionalStreamMaxCount;
             _unidirectionalMaxStreams = options.UnidirectionalStreamMaxCount;
+        }
+
+        internal void AddStream(long id, SlicStream stream, ref long streamId)
+        {
+            lock (_mutex)
+            {
+                _streams[id] = stream;
+
+                // Assign the stream ID within the mutex to ensure that the addition of the stream to the
+                // connection and the stream ID assignment are atomic.
+                streamId = id;
+
+                // Keep track of the last assigned stream ID. This is used to figure out if the stream is
+                // known or unknown.
+                if (stream.IsRemote)
+                {
+                    if (stream.IsBidirectional)
+                    {
+                        _lastRemoteBidirectionalStreamId = id;
+                    }
+                    else
+                    {
+                        _lastRemoteUnidirectionalStreamId = id;
+                    }
+                }
+            }
         }
 
         internal void FinishedReceivedStreamData(int remainingSize)
@@ -312,6 +355,8 @@ namespace IceRpc.Transports.Internal.Slic
             }
         }
 
+        internal void RemoveStream(long id) => _streams.TryRemove(id, out SlicStream? _);
+
         internal async ValueTask SendStreamFrameAsync(
             SlicStream stream,
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
@@ -360,6 +405,21 @@ namespace IceRpc.Transports.Internal.Slic
                 var encoder = new Ice20Encoder(bufferWriter);
                 encoder.EncodeVarULong(value);
                 return new((int)key, bufferWriter.Finish().ToSingleBuffer().ToArray());
+            }
+        }
+
+        private bool IsRemoteStreamUnknown(long streamId, bool bidirectional)
+        {
+            lock (_mutex)
+            {
+                if (bidirectional)
+                {
+                    return streamId > _lastRemoteBidirectionalStreamId;
+                }
+                else
+                {
+                    return streamId > _lastRemoteUnidirectionalStreamId;
+                }
             }
         }
 
@@ -423,6 +483,17 @@ namespace IceRpc.Transports.Internal.Slic
             {
                 throw new InvalidDataException($"invalid PacketMaxSize={PeerPacketMaxSize} Slic connection parameter");
             }
+        }
+
+        private bool TryGetStream(long streamId, [NotNullWhen(returnValue: true)] out SlicStream? value)
+        {
+            if (_streams.TryGetValue(streamId, out SlicStream? stream))
+            {
+                value = stream;
+                return true;
+            }
+            value = null;
+            return false;
         }
 
         private async ValueTask WaitForReceivedStreamDataCompletionAsync(CancellationToken cancel)

@@ -196,7 +196,6 @@ namespace IceRpc.Transports.Internal
     {
         public long Id => _decoratee.Id;
         public bool IsBidirectional => _decoratee.IsBidirectional;
-        public bool ReadsCompleted { get; }
         public Action? ShutdownAction
         {
             get => _decoratee.ShutdownAction;
@@ -207,6 +206,8 @@ namespace IceRpc.Transports.Internal
         private readonly ILogger _logger;
 
         public ReadOnlyMemory<byte> TransportHeader => _decoratee.TransportHeader;
+
+        public void Abort(StreamError errorCode) => _decoratee.Abort(errorCode);
 
         public void AbortRead(StreamError errorCode) => _decoratee.AbortRead(errorCode);
 
