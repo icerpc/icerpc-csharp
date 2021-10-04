@@ -9,9 +9,29 @@ namespace IceRpc.Internal
 {
     internal sealed class Ice2ProtocolConnection : IProtocolConnection
     {
-        public bool HasDispatchInProgress => _dispatch.Count > 0;
+        /// <inheritdoc/>
+        public bool HasDispatchInProgress
+        {
+            get
+            {
+                lock (_mutex)
+                {
+                    return _dispatch.Count > 0;
+                }
+            }
+        }
 
-        public bool HasInvocationsInProgress => _invocations.Count > 0;
+        /// <inheritdoc/>
+        public bool HasInvocationsInProgress
+        {
+            get
+            {
+                lock (_mutex)
+                {
+                    return _invocations.Count > 0;
+                }
+            }
+        }
 
         private readonly TaskCompletionSource _cancelShutdown =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
