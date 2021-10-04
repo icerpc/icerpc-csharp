@@ -54,7 +54,7 @@ namespace IceRpc.Internal
                     await ReceiveUntilFullAsync(buffer, cancel).ConfigureAwait(false);
 
                     // Check the header
-                    Ice1Definitions.CheckHeader(buffer.Span.Slice(0, Ice1Definitions.HeaderSize));
+                    Ice1Definitions.CheckHeader(buffer.Span[0..Ice1Definitions.HeaderSize]);
                     int frameSize = IceDecoder.DecodeInt(buffer.AsReadOnlySpan().Slice(10, 4));
                     if (frameSize != Ice1Definitions.HeaderSize)
                     {
@@ -493,6 +493,14 @@ namespace IceRpc.Internal
             {
                 lock (_mutex)
                 {
+                    if (_shutdown && shutdownByPeer)
+                    {
+                        // If shutdown is already in progress and the peer sent the CloseConnection frame, we
+                        // can return after canceling the dispatch which are still in progress. The peer is no
+                        // longer has pending dispatch and is no longer interested in the dispatch respones.
+                        CancelDispatch();
+                        return;
+                    }
                     _shutdown = true;
 
                     // If shutdown locally, we raise OperationCanceledException for pending invocations. The
@@ -606,7 +614,7 @@ namespace IceRpc.Internal
                 }
 
                 // Check the header
-                Ice1Definitions.CheckHeader(buffer.Span.Slice(0, Ice1Definitions.HeaderSize));
+                Ice1Definitions.CheckHeader(buffer.Span[0..Ice1Definitions.HeaderSize]);
                 int frameSize = IceDecoder.DecodeInt(buffer.AsReadOnlySpan().Slice(10, 4));
                 if (_isDatagram && frameSize != buffer.Length)
                 {
@@ -668,13 +676,13 @@ namespace IceRpc.Internal
 
                     case Ice1FrameType.Request:
                     {
-                        int requestId = IceDecoder.DecodeInt(buffer.Span.Slice(0, 4));
+                        int requestId = IceDecoder.DecodeInt(buffer.Span[0..4]);
                         return (requestId, buffer[4..]);
                     }
 
                     case Ice1FrameType.RequestBatch:
                     {
-                        int invokeNum = IceDecoder.DecodeInt(buffer.Span.Slice(0, 4));
+                        int invokeNum = IceDecoder.DecodeInt(buffer.Span[0..4]);
                         _logger.LogReceivedIce1RequestBatchFrame(invokeNum);
 
                         if (invokeNum < 0)
@@ -687,7 +695,7 @@ namespace IceRpc.Internal
 
                     case Ice1FrameType.Reply:
                     {
-                        int requestId = IceDecoder.DecodeInt(buffer.Span.Slice(0, 4));
+                        int requestId = IceDecoder.DecodeInt(buffer.Span[0..4]);
                         lock (_mutex)
                         {
                             if (!_shutdown &&

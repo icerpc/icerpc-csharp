@@ -29,8 +29,6 @@ namespace IceRpc.Transports.Internal.Slic
             }
         }
 
-        internal bool IsRemote => _id != -1 && _id % 2 == (_connection.IsServer ? 0 : 1);
-
         /// <inheritdoc/>
         public bool IsBidirectional { get; }
 
@@ -39,21 +37,25 @@ namespace IceRpc.Transports.Internal.Slic
         /// <inheritdoc/>
         public bool ReadsCompleted => (Thread.VolatileRead(ref _state) & (int)State.ReadCompleted) > 0;
 
-        internal bool WritesCompleted => (Thread.VolatileRead(ref _state) & (int)State.WriteCompleted) > 0;
-
         /// <inheritdoc/>
         public Action? ShutdownAction
         {
-            get => _shutdownAction;
+            get
+            {
+                lock (_mutex)
+                {
+                    _shutdownAction;
+                }
+            }
             set
             {
-                // TODO: XXX use the spin lock from SignalStream when it's merged into SlicStream?
-                _shutdownAction = value;
-                if (IsShutdown)
+                lock (_mutex)
                 {
-                    // It's possible for the action to be called twice if shutdown occurs between the assignment
-                    // and the IsShutdown check. Callers should make sure the action is safe when called twice.
-                    _shutdownAction?.Invoke();
+                    _shutdownAction = value;
+                    if (IsShutdown)
+                    {
+                        _shutdownAction?.Invoke();
+                    }
                 }
             }
         }
@@ -61,13 +63,19 @@ namespace IceRpc.Transports.Internal.Slic
         /// <inheritdoc/>
         public virtual ReadOnlyMemory<byte> TransportHeader => default;
 
+        internal bool IsRemote => _id != -1 && _id % 2 == (_connection.IsServer ? 0 : 1);
         internal bool IsStarted => _id != -1;
+        internal bool WritesCompleted => (Thread.VolatileRead(ref _state) & (int)State.WriteCompleted) > 0;
 
         private readonly MultiStreamConnection _connection;
 
         private long _id = -1;
+        // Protects _shutdownAction and _shutdownCompletedTaskSource. TODO: replace with the SlicStream lock
+        // when this class is merged with SlicStream.
+        private readonly object _mutex = new();
         private int _state;
         private volatile Action? _shutdownAction;
+        private TaskCompletionSource? _shutdownCompletedTaskSource;
 
         /// <inheritdoc/>
         public abstract void AbortRead(StreamError errorCode);
@@ -96,14 +104,15 @@ namespace IceRpc.Transports.Internal.Slic
         /// <inheritdoc/>
         public async ValueTask ShutdownCompleted(CancellationToken cancel)
         {
-            if (_shutdownAction != null)
+            lock (_mutex)
             {
-                throw new InvalidOperationException(
-                    $"{nameof(ShutdownCompleted)} can't be used if {nameof(ShutdownAction)} is set");
+                _shutdownCompletedTaskSource ??= new(TaskCreationOptions.RunContinuationsAsynchronously);
+                if (IsShutdown)
+                {
+                    return;
+                }
+                await _shutdownCompletedTaskSource.Task.WaitAsync(cancel).ConfigureAwait(false);
             }
-            var shutdownCompletionSource = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            ShutdownAction = () => shutdownCompletionSource.TrySetResult();
-            await shutdownCompletionSource.Task.WaitAsync(cancel).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
@@ -143,14 +152,18 @@ namespace IceRpc.Transports.Internal.Slic
         protected virtual void Shutdown()
         {
             Debug.Assert(_state == (int)(State.ReadCompleted | State.WriteCompleted | State.Shutdown));
-            try
+            lock (_mutex)
             {
-                ShutdownAction?.Invoke();
-            }
-            catch (Exception ex)
-            {
-                Debug.Assert(false, $"unexpected exception {ex}");
-                throw;
+                try
+                {
+                    ShutdownAction?.Invoke();
+                }
+                catch (Exception ex)
+                {
+                    Debug.Assert(false, $"unexpected exception {ex}");
+                    throw;
+                }
+                _shutdownCompletedTaskSource?.SetResult();
             }
             _connection.RemoveStream(Id);
         }

@@ -620,6 +620,10 @@ namespace IceRpc
                     _state = ConnectionState.Closing;
                     _closeTask ??= PerformShutdownAsync(message);
                 }
+                else if (_state == ConnectionState.Closing && shutdownByPeer)
+                {
+                    _ = PerformShutdownAsync(message);
+                }
                 shutdownTask = _closeTask ?? CloseAsync(new ConnectionClosedException(message));
             }
 

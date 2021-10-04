@@ -489,21 +489,21 @@ namespace IceRpc.Internal
         public async Task ShutdownAsync(bool shutdownByPeer, string message, CancellationToken cancel)
         {
             List<OutgoingRequest>? invocations = null;
+            bool alreadyShuttingDown = false;
             lock (_mutex)
             {
-                if (_shutdown)
-                {
-                    return;
-                }
+                alreadyShuttingDown = _shutdown;
 
-                // Mark the connection as shutdown to prevent further request from being accepted.
-                _shutdown = true;
-                if (_invocations.Count == 0 && _dispatch.Count == 0)
+                if (!alreadyShuttingDown)
                 {
-                    _dispatchAndInvocationsCompleted.SetResult();
+                    // Mark the connection as shutdown to prevent further request from being accepted.
+                    _shutdown = true;
+                    if (_invocations.Count == 0 && _dispatch.Count == 0)
+                    {
+                        _dispatchAndInvocationsCompleted.SetResult();
+                    }
                 }
-
-                if (shutdownByPeer)
+                else if (shutdownByPeer)
                 {
                     invocations = _invocations.Count > 0 ? _invocations.ToList() : null;
                 }
@@ -511,9 +511,8 @@ namespace IceRpc.Internal
 
             if (shutdownByPeer && invocations != null)
             {
-                foreach (OutgoingRequest request in invocations)
+                foreach (INetworkStream stream in invocations.Select(request => request.Stream!))
                 {
-                    INetworkStream stream = request.Stream!;
                     if (stream.Id > (stream.IsBidirectional ?
                         _lastRemoteStreamIds!.Value.Bidirectional :
                         _lastRemoteStreamIds!.Value.Unidirectional))
@@ -523,18 +522,22 @@ namespace IceRpc.Internal
                 }
             }
 
-            // Send GoAway frame
-            await SendControlFrameAsync(
-                Ice2FrameType.GoAway,
-                encoder => new Ice2GoAwayBody(
-                    _lastRemoteBidirectionalStreamId,
-                    _lastRemoteUnidirectionalStreamId,
-                    message).Encode(encoder),
-                cancel).ConfigureAwait(false);
+            if (!alreadyShuttingDown)
+            {
+                // Send GoAway frame
+                await SendControlFrameAsync(
+                    Ice2FrameType.GoAway,
+                    encoder => new Ice2GoAwayBody(
+                        _lastRemoteBidirectionalStreamId,
+                        _lastRemoteUnidirectionalStreamId,
+                        message).Encode(encoder),
+                    cancel).ConfigureAwait(false);
+            }
 
             if (shutdownByPeer)
             {
-                // Wait for the GoAwayCanceled frame from the peer and cancel dispatch if received.
+                // Wait for the control stream to be closed of for the GoAwayCanceled frame from the peer and
+                // cancel dispatch if received.
                 _ = WaitForGoAwayCanceledOrCloseAsync(cancel);
             }
             else
@@ -546,11 +549,14 @@ namespace IceRpc.Internal
             // Wait for dispatch and invocations to complete.
             await _dispatchAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
 
-            // Abort the control stream and wait for its shutdown.
-            _controlStream!.AbortWrite(StreamError.ConnectionShutdown);
-            await _controlStream.ShutdownCompleted(cancel).ConfigureAwait(false);
+            if (!alreadyShuttingDown)
+            {
+                // Abort the control stream and wait for its shutdown.
+                _controlStream!.AbortWrite(StreamError.ConnectionShutdown);
+            }
 
-            // Wait for the remote control stream shutdown.
+            // Wait for the control streams to shutdown.
+            await _controlStream!.ShutdownCompleted(cancel).ConfigureAwait(false);
             await _remoteControlStream!.ShutdownCompleted(cancel).ConfigureAwait(false);
 
             async Task SendGoAwayCancelIfShutdownCanceledAsync()
@@ -561,9 +567,12 @@ namespace IceRpc.Internal
                     await _cancelShutdown.Task.ConfigureAwait(false);
 
                     // Cancel dispatch if shutdown is canceled.
-                    foreach (IncomingRequest request in _dispatch)
+                    lock (_mutex)
                     {
-                        request.CancelDispatchSource!.Cancel();
+                        foreach (IncomingRequest request in _dispatch)
+                        {
+                            request.CancelDispatchSource!.Cancel();
+                        }
                     }
 
                     // Write the GoAwayCanceled frame to the remote control stream.
@@ -571,7 +580,7 @@ namespace IceRpc.Internal
                 }
                 catch (ConnectionClosedException)
                 {
-                    // Expected the connection is closed.
+                    // Expected if the connection is closed.
                 }
                 catch (StreamAbortedException)
                 {
@@ -594,9 +603,12 @@ namespace IceRpc.Internal
                     }
 
                     // Cancel the dispatch if the peer canceled the shutdown.
-                    foreach (IncomingRequest request in _dispatch)
+                    lock (_mutex)
                     {
-                        request.CancelDispatchSource!.Cancel();
+                        foreach (IncomingRequest request in _dispatch)
+                        {
+                            request.CancelDispatchSource!.Cancel();
+                        }
                     }
                 }
                 catch (StreamAbortedException)
@@ -640,7 +652,7 @@ namespace IceRpc.Internal
                 var buffer = new Memory<byte>(bufferArray);
 
                 // Read the frame type and first byte of the size.
-                await stream.ReceiveUntilFullAsync(buffer.Slice(0, 2), cancel).ConfigureAwait(false);
+                await stream.ReceiveUntilFullAsync(buffer[0..2], cancel).ConfigureAwait(false);
                 var frameType = (Ice2FrameType)buffer.Span[0];
 
                 // Read the remainder of the size if needed.

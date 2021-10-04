@@ -553,6 +553,8 @@ namespace IceRpc.Tests.Internal
         [TestCase(true, Protocol.Ice1)]
         [TestCase(false, Protocol.Ice2)]
         [TestCase(true, Protocol.Ice2)]
+        [Repeat(1000)]
+        [Log(LogAttributeLevel.Trace)]
         public async Task Connection_ShutdownCancellationAsync(bool closeClientSide, Protocol protocol)
         {
             using var waitForDispatchSemaphore = new SemaphoreSlim(0);
