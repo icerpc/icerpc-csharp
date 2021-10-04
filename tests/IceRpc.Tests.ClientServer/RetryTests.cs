@@ -92,8 +92,6 @@ namespace IceRpc.Tests.ClientServer
             await bidir.AfterDelayAsync(2);
         }
 
-        // TODO: XXX this eventually fails if running in a loop
-        // [Repeat(1000)]
         [TestCase(Protocol.Ice1, 2)]
         [TestCase(Protocol.Ice1, 10)]
         [TestCase(Protocol.Ice1, 20)]
