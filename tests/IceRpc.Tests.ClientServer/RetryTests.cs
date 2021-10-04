@@ -7,12 +7,11 @@ using System.Collections.Immutable;
 namespace IceRpc.Tests.ClientServer
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    [Timeout(30000)]
+    [Timeout(5000)]
     [Parallelizable(ParallelScope.All)]
     public class RetryTests : ClientServerBaseTest
     {
         [Test]
-        [Repeat(10)]
         public async Task Retry_AfterDelay()
         {
             await WithRetryServiceAsync(
