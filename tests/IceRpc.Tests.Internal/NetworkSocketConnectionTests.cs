@@ -111,11 +111,6 @@ namespace IceRpc.Tests.Internal
 
             lastActivity = connection.LastActivity;
             await Task.Delay(2);
-            await stream.SendAsync(new byte[1], default);
-            Assert.That(connection.LastActivity, Is.GreaterThan(lastActivity));
-
-            lastActivity = connection.LastActivity;
-            await Task.Delay(2);
             await stream.ReceiveAsync(new byte[1], default);
             Assert.That(connection.LastActivity, Is.GreaterThan(lastActivity));
 

@@ -115,11 +115,11 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public async ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
+        public async ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
         {
             try
             {
-                await _writer.WriteAsync(buffer, cancel).ConfigureAwait(false);
+                await _writer.WriteAsync(buffers.ToSingleBuffer(), cancel).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -134,9 +134,6 @@ namespace IceRpc.Transports.Internal
                 throw new TransportException(exception);
             }
         }
-
-        public ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
-            SendAsync(buffers.ToSingleBuffer(), cancel);
 
         internal ColocConnection(
             Endpoint endpoint,

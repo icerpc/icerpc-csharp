@@ -50,8 +50,9 @@ namespace IceRpc.Tests.Internal
         [TestCase(1024)]
         public async Task Multicast_SendReceiveAsync(int size)
         {
-            var sendBuffer = new byte[size];
+            byte[] sendBuffer = new byte[size];
             new Random().NextBytes(sendBuffer);
+            ReadOnlyMemory<ReadOnlyMemory<byte>> sendBuffers = new ReadOnlyMemory<byte>[] { sendBuffer };
 
             // Datagrams aren't reliable, try up to 5 times in case a datagram is lost.
             int count = 5;
@@ -60,7 +61,7 @@ namespace IceRpc.Tests.Internal
                 try
                 {
                     using var source = new CancellationTokenSource(1000);
-                    ValueTask sendTask = ClientConnection.SendAsync(sendBuffer, default);
+                    ValueTask sendTask = ClientConnection.SendAsync(sendBuffers, default);
                     foreach (NetworkSocket connection in ServerConnections)
                     {
                         Memory<byte> receiveBuffer = new byte[connection.DatagramMaxReceiveSize];

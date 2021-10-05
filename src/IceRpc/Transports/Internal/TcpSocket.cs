@@ -50,96 +50,84 @@ namespace IceRpc.Transports.Internal
             return received;
         }
 
-        public override async ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
-        {
-            try
-            {
-                if (SslStream is SslStream sslStream)
-                {
-                    await sslStream.WriteAsync(buffer, cancel).ConfigureAwait(false);
-                }
-                else
-                {
-                    await Socket.SendAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
-                }
-            }
-            catch (Exception ex)
-            {
-                throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
-            }
-        }
-
         public override async ValueTask SendAsync(
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             CancellationToken cancel)
         {
             Debug.Assert(buffers.Length > 0);
 
-            if (buffers.Length == 1)
+            try
             {
-                await SendAsync(buffers.Span[0], cancel).ConfigureAwait(false);
-            }
-            else
-            {
-                if (SslStream == null)
+                if (SslStream is SslStream sslStream)
                 {
-                    try
+                    if (buffers.Length == 1)
+                    {
+                        await sslStream.WriteAsync(buffers.Span[0], cancel).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        // Coalesce leading small buffers up to MaxSslDataSize. We assume buffers later on are
+                        // large enough and don't need coalescing.
+                        int index = 0;
+                        int writeBufferSize = 0;
+                        do
+                        {
+                            ReadOnlyMemory<byte> buffer = buffers.Span[index];
+                            if (writeBufferSize + buffer.Length < MaxSslDataSize)
+                            {
+                                index++;
+                                writeBufferSize += buffer.Length;
+                            }
+                            else
+                            {
+                                break; // while
+                            }
+                        } while (index < buffers.Length);
+
+                        if (index == 1)
+                        {
+                            // There is no point copying only the first buffer into another buffer.
+                            index = 0;
+                        }
+                        else if (writeBufferSize > 0)
+                        {
+                            using IMemoryOwner<byte> writeBufferOwner = MemoryPool<byte>.Shared.Rent(writeBufferSize);
+                            Memory<byte> writeBuffer = writeBufferOwner.Memory[0..writeBufferSize];
+                            int offset = 0;
+                            for (int i = 0; i < index; ++i)
+                            {
+                                ReadOnlyMemory<byte> buffer = buffers.Span[index];
+                                buffer.CopyTo(writeBuffer[offset..]);
+                                offset += buffer.Length;
+                            }
+                            // Send the "coalesced" initial buffers
+                            await sslStream.WriteAsync(writeBuffer, cancel).ConfigureAwait(false);
+                        }
+
+                        // Send the remaining buffers one by one
+                        for (int i = index; i < buffers.Length; ++i)
+                        {
+                            await sslStream.WriteAsync(buffers.Span[i], cancel).ConfigureAwait(false);
+                        }
+                    }
+                }
+                else
+                {
+                    if (buffers.Length == 1)
+                    {
+                        await Socket.SendAsync(buffers.Span[0], SocketFlags.None, cancel).ConfigureAwait(false);
+                    }
+                    else
                     {
                         await Socket.SendAsync(
                             buffers.ToSegmentList(),
                             SocketFlags.None).WaitAsync(cancel).ConfigureAwait(false);
                     }
-                    catch (Exception ex)
-                    {
-                        throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
-                    }
                 }
-                else
-                {
-                    // Coalesce leading small buffers up to MaxSslDataSize. We assume buffers later on are large enough
-                    // and don't need coalescing.
-                    int index = 0;
-                    int writeBufferSize = 0;
-                    do
-                    {
-                        ReadOnlyMemory<byte> buffer = buffers.Span[index];
-                        if (writeBufferSize + buffer.Length < MaxSslDataSize)
-                        {
-                            index++;
-                            writeBufferSize += buffer.Length;
-                        }
-                        else
-                        {
-                            break; // while
-                        }
-                    } while (index < buffers.Length);
-
-                    if (index == 1)
-                    {
-                        // There is no point copying only the first buffer into another buffer.
-                        index = 0;
-                    }
-                    else if (writeBufferSize > 0)
-                    {
-                        using IMemoryOwner<byte> writeBufferOwner = MemoryPool<byte>.Shared.Rent(writeBufferSize);
-                        Memory<byte> writeBuffer = writeBufferOwner.Memory[0..writeBufferSize];
-                        int offset = 0;
-                        for (int i = 0; i < index; ++i)
-                        {
-                            ReadOnlyMemory<byte> buffer = buffers.Span[index];
-                            buffer.CopyTo(writeBuffer[offset..]);
-                            offset += buffer.Length;
-                        }
-                        // Send the "coalesced" initial buffers
-                        await SendAsync(writeBuffer, cancel).ConfigureAwait(false);
-                    }
-
-                    // Send the remaining buffers one by one
-                    for (int i = index; i < buffers.Length; ++i)
-                    {
-                        await SendAsync(buffers.Span[i], cancel).ConfigureAwait(false);
-                    }
-                }
+            }
+            catch (Exception ex)
+            {
+                throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
             }
         }
 

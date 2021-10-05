@@ -149,7 +149,7 @@ namespace IceRpc.Tests.Internal
 
             async ValueTask Test(NetworkSocket connection1, NetworkSocket connection2)
             {
-                ValueTask sendTask = connection1.SendAsync(sendBuffer, default);
+                ValueTask sendTask = connection1.SendAsync(new ReadOnlyMemory<byte>[] { sendBuffer }, default);
                 Memory<byte> receiveBuffer = new byte[size];
                 int offset = 0;
                 while (offset < size)

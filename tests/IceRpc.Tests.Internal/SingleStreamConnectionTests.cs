@@ -32,7 +32,6 @@ namespace IceRpc.Tests.Internal
             source.Cancel();
             CancellationToken token = source.Token;
 
-            Assert.CatchAsync<OperationCanceledException>(async () => await ClientStream.SendAsync(buffer, token));
             Assert.CatchAsync<OperationCanceledException>(async () => await ClientStream.SendAsync(buffers, token));
             Assert.CatchAsync<OperationCanceledException>(async () => await ClientStream.ReceiveAsync(buffer, token));
         }
@@ -58,14 +57,15 @@ namespace IceRpc.Tests.Internal
         public async Task SingleStreamConnection_SendCancellation()
         {
             Memory<byte> buffer = new byte[1024 * 1024];
+            var buffers = new ReadOnlyMemory<byte>[] { buffer };
 
             using var source = new CancellationTokenSource();
-            while (ClientStream.SendAsync(buffer, source.Token).AsTask().IsCompleted)
+            while (ClientStream.SendAsync(buffers, source.Token).AsTask().IsCompleted)
             {
                 // Wait for send to block.
             }
 
-            Task task = ClientStream.SendAsync(buffer, source.Token).AsTask();
+            Task task = ClientStream.SendAsync(buffers, source.Token).AsTask();
             await Task.Delay(500);
 
             Assert.That(task.IsCompleted, Is.False);
@@ -77,9 +77,10 @@ namespace IceRpc.Tests.Internal
         public async Task SingleStreamConnection_SendReceive()
         {
             ReadOnlyMemory<byte> sendBuffer = new byte[] { 0x05, 0x06 };
+            var sendBuffers = new ReadOnlyMemory<byte>[] { sendBuffer };
             Memory<byte> receiveBuffer = new byte[10];
 
-            ValueTask task = ClientStream.SendAsync(sendBuffer, default);
+            ValueTask task = ClientStream.SendAsync(sendBuffers, default);
             Assert.That(await ServerStream.ReceiveAsync(receiveBuffer, default), Is.EqualTo(sendBuffer.Length));
             await task;
             Assert.That(receiveBuffer.ToArray()[0..2], Is.EqualTo(sendBuffer.ToArray()));
@@ -99,11 +100,10 @@ namespace IceRpc.Tests.Internal
 
             Memory<byte> buffer = new byte[1];
             var buffers = new ReadOnlyMemory<byte>[] { buffer };
-            Assert.CatchAsync<TransportException>(async () => await ClientStream.SendAsync(buffer, default));
+
             Assert.CatchAsync<TransportException>(async () => await ClientStream.SendAsync(buffers, default));
             Assert.CatchAsync <TransportException>(async () => await ClientStream.ReceiveAsync(buffer, default));
 
-            Assert.CatchAsync<TransportException>(async () => await ServerStream.SendAsync(buffer, default));
             Assert.CatchAsync<TransportException>(async () => await ServerStream.SendAsync(buffers, default));
             Assert.CatchAsync<TransportException>(async () => await ServerStream.ReceiveAsync(buffer, default));
         }

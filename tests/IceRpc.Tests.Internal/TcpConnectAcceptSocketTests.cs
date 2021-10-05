@@ -15,7 +15,7 @@ namespace IceRpc.Tests.Internal
     [Timeout(5000)]
     public class TcpConnectAcceptSocketTests : NetworkSocketBaseTest
     {
-        private bool? _tls;
+        private readonly bool? _tls;
 
         public TcpConnectAcceptSocketTests(bool? tls, AddressFamily addressFamily)
             : base("tcp", tls, addressFamily) =>
@@ -55,7 +55,7 @@ namespace IceRpc.Tests.Internal
 
             if (_tls == null)
             {
-                await clientSocket.SendAsync(new byte[1], default);
+                await clientSocket.SendAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
             }
 
             await acceptTask2;

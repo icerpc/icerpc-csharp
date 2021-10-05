@@ -68,10 +68,6 @@ namespace IceRpc.Tests.Internal
             Assert.That(connection.LastActivity, Is.EqualTo(TimeSpan.Zero));
 
             await Task.Delay(2);
-            await stream.SendAsync(new byte[1], default);
-            Assert.That(connection.LastActivity, Is.EqualTo(TimeSpan.Zero));
-
-            await Task.Delay(2);
             await stream.ReceiveAsync(new byte[1], default);
             Assert.That(connection.LastActivity, Is.EqualTo(TimeSpan.Zero));
 

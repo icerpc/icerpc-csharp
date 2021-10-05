@@ -87,7 +87,9 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override async ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
+        public override async ValueTask SendAsync(
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            CancellationToken cancel)
         {
             if (_isServer)
             {
@@ -96,29 +98,25 @@ namespace IceRpc.Transports.Internal
 
             try
             {
-                await Socket.SendAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
+                if (buffers.Length == 1)
+                {
+                    await Socket.SendAsync(buffers.Span[0], SocketFlags.None, cancel).ConfigureAwait(false);
+                }
+                else
+                {
+                    // Coalesce all buffers into a singled rented buffer.
+                    int size = buffers.GetByteCount();
+                    using IMemoryOwner<byte> writeBufferOwner = MemoryPool<byte>.Shared.Rent(size);
+                    buffers.CopyTo(writeBufferOwner.Memory);
+                    await Socket.SendAsync(
+                        writeBufferOwner.Memory[0..size],
+                        SocketFlags.None,
+                        cancel).ConfigureAwait(false);
+                }
             }
             catch (Exception ex)
             {
                 throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
-            }
-        }
-
-        public override async ValueTask SendAsync(
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
-            CancellationToken cancel)
-        {
-            if (buffers.Length == 1)
-            {
-                await SendAsync(buffers.Span[0], cancel).ConfigureAwait(false);
-            }
-            else
-            {
-                // Coalesce all buffers into a singled rented buffer.
-                int size = buffers.GetByteCount();
-                using IMemoryOwner<byte> writeBufferOwner = MemoryPool<byte>.Shared.Rent(size);
-                buffers.CopyTo(writeBufferOwner.Memory);
-                await SendAsync(writeBufferOwner.Memory[0..size], cancel).ConfigureAwait(false);
             }
         }
 

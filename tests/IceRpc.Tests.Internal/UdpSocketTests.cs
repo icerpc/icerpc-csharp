@@ -44,6 +44,7 @@ namespace IceRpc.Tests.Internal
         {
             byte[] sendBuffer = new byte[size];
             new Random().NextBytes(sendBuffer);
+            ReadOnlyMemory<ReadOnlyMemory<byte>> sendBuffers = new ReadOnlyMemory<byte>[] { sendBuffer };
 
             List<NetworkSocket> clientSockets = new();
             clientSockets.Add(ClientSocket);
@@ -61,7 +62,7 @@ namespace IceRpc.Tests.Internal
                     foreach (NetworkSocket connection in clientSockets)
                     {
                         using var source = new CancellationTokenSource(1000);
-                        ValueTask sendTask = connection.SendAsync(sendBuffer, default);
+                        ValueTask sendTask = connection.SendAsync(sendBuffers, default);
 
                         Memory<byte> receiveBuffer = new byte[ServerSocket.DatagramMaxReceiveSize];
                         int received = await ServerSocket.ReceiveAsync(receiveBuffer, source.Token);
@@ -87,7 +88,7 @@ namespace IceRpc.Tests.Internal
                 {
                     foreach (NetworkSocket connection in clientSockets)
                     {
-                        await connection.SendAsync(sendBuffer, default);
+                        await connection.SendAsync(sendBuffers, default);
                     }
                     foreach (NetworkSocket connection in clientSockets)
                     {
@@ -129,7 +130,7 @@ namespace IceRpc.Tests.Internal
             canceled.Cancel();
             byte[] buffer = new byte[1];
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await ClientSocket.SendAsync(buffer, canceled.Token));
+                async () => await ClientSocket.SendAsync(new ReadOnlyMemory<byte>[] { buffer }, canceled.Token));
         }
 
         [Test]
@@ -155,6 +156,7 @@ namespace IceRpc.Tests.Internal
         {
             byte[] sendBuffer = new byte[size];
             new Random().NextBytes(sendBuffer);
+            ReadOnlyMemory<ReadOnlyMemory<byte>> sendBuffers = new ReadOnlyMemory<byte>[] { sendBuffer };
 
             // Datagrams aren't reliable, try up to 5 times in case the datagram is lost.
             int count = 5;
@@ -163,7 +165,7 @@ namespace IceRpc.Tests.Internal
                 try
                 {
                     using var source = new CancellationTokenSource(1000);
-                    ValueTask sendTask = ClientSocket.SendAsync(sendBuffer, default);
+                    ValueTask sendTask = ClientSocket.SendAsync(sendBuffers, default);
                     Memory<byte> receiveBuffer = new byte[ServerSocket.DatagramMaxReceiveSize];
                     int received = await ServerSocket.ReceiveAsync(receiveBuffer, source.Token);
                     Assert.AreEqual(sendBuffer.Length, received);

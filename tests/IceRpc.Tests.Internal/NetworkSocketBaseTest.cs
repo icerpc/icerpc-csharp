@@ -13,8 +13,10 @@ namespace IceRpc.Tests.Internal
     [Parallelizable(scope: ParallelScope.Fixtures)]
     public class NetworkSocketBaseTest
     {
-        protected static readonly byte[] OneBSendBuffer = new byte[1];
-        protected static readonly byte[] OneMBSendBuffer = new byte[1024 * 1024];
+        protected static readonly ReadOnlyMemory<ReadOnlyMemory<byte>> OneBSendBuffer =
+            new ReadOnlyMemory<byte>[] { new byte[1] };
+        protected static readonly ReadOnlyMemory<ReadOnlyMemory<byte>> OneMBSendBuffer =
+            new ReadOnlyMemory<byte>[] { new byte[1024 * 1024] };
         protected Endpoint ClientEndpoint { get; }
         protected Endpoint ServerEndpoint { get; }
 
@@ -131,7 +133,7 @@ namespace IceRpc.Tests.Internal
             // indefinitely.
             if (ClientEndpoint.Transport == "tcp" && ClientEndpoint.ParseTcpParams().Tls == null)
             {
-                await networkSocket.SendAsync(new byte[1] { 0 }, default);
+                await networkSocket.SendAsync(new ReadOnlyMemory<byte>[] { new byte[1] { 0 } }, default);
             }
             return networkSocket;
         }

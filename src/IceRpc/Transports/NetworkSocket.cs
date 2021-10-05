@@ -50,11 +50,11 @@ namespace IceRpc.Transports
         /// <returns>The number of bytes received.</returns>
         public abstract ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel);
 
-        /// <summary>Sends data over the connection.</summary>
-        /// <param name="buffer">The buffer containing the data to send.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A value task that completes once the buffer is sent.</returns>
-        public abstract ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel);
+        // /// <summary>Sends data over the connection.</summary>
+        // /// <param name="buffer">The buffer containing the data to send.</param>
+        // /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        // /// <returns>A value task that completes once the buffer is sent.</returns>
+        // public abstract ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel);
 
         /// <summary>Sends data over the connection.</summary>
         /// <param name="buffers">The buffers containing the data to send.</param>

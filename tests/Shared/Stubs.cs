@@ -27,9 +27,6 @@ namespace IceRpc.Tests
         public override ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel) =>
             new(buffer.Length);
 
-        public override ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
-            default;
-
         public override ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
              default;
 

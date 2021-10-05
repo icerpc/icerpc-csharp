@@ -167,16 +167,6 @@ namespace IceRpc.Transports.Internal
             return received;
         }
 
-        public async ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
-        {
-            await _decoratee!.SendAsync(buffer, cancel).ConfigureAwait(false);
-            if (_logger.IsEnabled(LogLevel.Trace))
-            {
-                string data = LogNetworkConnectionDecorator.PrintSentData(buffer);
-                _logger.LogSentData(buffer.Length, data);
-            }
-        }
-
         public async ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
         {
             await _decoratee!.SendAsync(buffers, cancel).ConfigureAwait(false);

@@ -99,13 +99,6 @@ namespace IceRpc.Transports.Internal
         }
 
         /// <inheritdoc/>
-        async ValueTask ISingleStreamConnection.SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
-        {
-            await NetworkSocket.SendAsync(buffer, cancel).ConfigureAwait(false);
-            Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
-        }
-
-        /// <inheritdoc/>
         async ValueTask ISingleStreamConnection.SendAsync(
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             CancellationToken cancel)
