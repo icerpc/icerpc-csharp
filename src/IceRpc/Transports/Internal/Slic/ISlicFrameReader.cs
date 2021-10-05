@@ -4,7 +4,8 @@ using IceRpc.Transports.Slic;
 
 namespace IceRpc.Transports.Internal.Slic
 {
-    /// <summary>A Slic frame reader is used by the Slic transport to read Slic frames.</summary>
+    /// <summary>A Slic frame reader is used by the Slic transport to read Slic frames. The reader is
+    /// disposable to allow implementations to rely on disposable resources.</summary>
     internal interface ISlicFrameReader : IDisposable
     {
         /// <summary>Reads the data from a Slic frame into a buffer.</summary>

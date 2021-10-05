@@ -37,10 +37,7 @@ namespace IceRpc.Tests.Api
             router.Use(next => new InlineDispatcher(
                     async (current, cancel) =>
                     {
-                        // Add 1ms is necessary to prevent sporadic test failures when the dispatch deadline
-                        // could be slightly lower than expectedDeadline because of the precision loss when
-                        // transfering the deadline as milliseconds over the wire.
-                        dispatchDeadline = current.Deadline + TimeSpan.FromMilliseconds(1);
+                        dispatchDeadline = current.Deadline;
                         await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
                         return await next.DispatchAsync(current, cancel);
                     }));
@@ -66,8 +63,9 @@ namespace IceRpc.Tests.Api
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync(invocation));
             Assert.That(dispatchDeadline, Is.Not.Null);
             Assert.That(invocationDeadline, Is.Not.Null);
-            Assert.AreEqual((long)new TimeSpan(dispatchDeadline!.Value.Ticks).TotalSeconds,
-                            (long)new TimeSpan(invocationDeadline!.Value.Ticks).TotalSeconds);
+            // Compare the deadlines as milliseconds because the deadline is transferred as a millisecond
+            // value and the conversion of the DateTime to the "long" type can result in a dispatch
+            // deadline which is different from the invocation deadline.
             Assert.That(dispatchDeadline, Is.GreaterThanOrEqualTo(expectedDeadline));
         }
 
@@ -110,8 +108,10 @@ namespace IceRpc.Tests.Api
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync());
             Assert.That(dispatchDeadline, Is.Not.Null);
             Assert.That(invocationDeadline, Is.Not.Null);
-            Assert.AreEqual((long)new TimeSpan(dispatchDeadline!.Value.Ticks).TotalSeconds,
-                            (long)new TimeSpan(invocationDeadline!.Value.Ticks).TotalSeconds);
+            // Compare the deadlines as milliseconds because the deadline is transferred as a millisecond
+            // value and the conversion of the DateTime to the "long" type can result in a dispatch
+            // deadline which is different from the invocation deadline.
+            Assert.AreEqual(ToMilliSeconds(dispatchDeadline!.Value), ToMilliSeconds(invocationDeadline!.Value));
             Assert.That(dispatchDeadline, Is.GreaterThanOrEqualTo(expectedDeadline));
         }
 
@@ -158,12 +158,16 @@ namespace IceRpc.Tests.Api
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync(invocation));
             Assert.That(dispatchDeadline, Is.Not.Null);
             Assert.That(invocationDeadline, Is.Not.Null);
-            Assert.AreEqual((long)new TimeSpan(dispatchDeadline!.Value.Ticks).TotalSeconds,
-                            (long)new TimeSpan(invocationDeadline!.Value.Ticks).TotalSeconds);
+            // Compare the deadlines as milliseconds because the deadline is transferred as a millisecond
+            // value and the conversion of the DateTime to the "long" type can result in a dispatch
+            // deadline which is different from the invocation deadline.
+            Assert.AreEqual(ToMilliSeconds(dispatchDeadline!.Value), ToMilliSeconds(invocationDeadline!.Value));
             Assert.That(dispatchDeadline, Is.GreaterThanOrEqualTo(expectedDeadline));
         }
 
-        public class Greeter : Service, IGreeter
+        private static long ToMilliSeconds(DateTime time) => (long)new TimeSpan(time.Ticks).TotalMilliseconds;
+
+        private class Greeter : Service, IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new NotImplementedException();
