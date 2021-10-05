@@ -5,9 +5,10 @@ using Microsoft.Extensions.Logging;
 namespace IceRpc.Transports
 {
     /// <summary>A network connection represents the low-level transport to exchange data as bytes. A network
-    /// connection supports both exchanging data using an <see cref="ISingleStreamConnection"/> (for the Ice1
-    /// protocol) or a <see cref="IMultiStreamConnection"/> (for the Ice2 protocol). A single-stream transport
-    /// such as TCP or Coloc, uses Slic to provide multi-stream support.</summary>
+    /// connection supports both exchanging data with an <see cref="ISingleStreamConnection"/> (for the Ice1
+    /// protocol) or an <see cref="IMultiStreamConnection"/> (for the Ice2 protocol). A single-stream
+    /// transport such as TCP or Coloc uses the Slic multi-stream connection implementation to provide
+    /// multi-stream support.</summary>
     public interface INetworkConnection
     {
         /// <summary>The maximum size of a received datagram if this connection is a datagram

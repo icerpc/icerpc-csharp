@@ -85,7 +85,9 @@ namespace IceRpc.Transports.Internal
                 {
                     try
                     {
-                        await Socket.SendAsync(buffers.ToSegmentList(), SocketFlags.None).ConfigureAwait(false);
+                        await Socket.SendAsync(
+                            buffers.ToSegmentList(),
+                            SocketFlags.None).WaitAsync(cancel).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {

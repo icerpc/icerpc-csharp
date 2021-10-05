@@ -6,9 +6,9 @@ using System.Buffers;
 namespace IceRpc.Internal
 {
     /// <summary>The buffered receiver class receives data from a byte source function into a buffer. The
-    /// buffered data can be decoded into different Ice 2.0 encoded types (byte, size and varulong) or be
-    /// consumed as bytes. This class is useful to efficiently read Slic and Ice2 headers that require
-    /// decoding data without necessarily knowing in advance how many bytes to read from the source.</summary>
+    /// buffered data can be decoded into different Ice 2.0 types (byte, size and varulong) or be consumed as
+    /// bytes. This class is useful to efficiently read Slic and Ice2 headers that require decoding data
+    /// without necessarily knowing in advance how many bytes to read from the source.</summary>
     internal class BufferedReceiver : IDisposable
     {
         private readonly ReadOnlyMemory<byte> _buffer;
@@ -19,10 +19,9 @@ namespace IceRpc.Internal
 
         public void Dispose() => _bufferOwner?.Dispose();
 
-        /// <summary>Constructs a new buffer receiver.</summary>
-        /// <param name="source">The data source function. This function is called when more data
-        /// needs to be received.</param>
-        /// <param name="bufferSize">The size of the buffer for receiving data.</param>
+        /// <summary>Constructs a new buffered receiver.</summary>
+        /// <param name="source">The data source function to receive additional data.</param>
+        /// <param name="bufferSize">The size of the buffer.</param>
         internal BufferedReceiver(
             Func<Memory<byte>, CancellationToken, ValueTask<int>> source,
             int bufferSize)

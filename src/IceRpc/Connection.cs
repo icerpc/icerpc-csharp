@@ -108,6 +108,10 @@ namespace IceRpc
             }
         }
 
+        /// <summary>The <see cref="NetworkSocket"/> or null if the connection doesn't use a network
+        /// socket.</summary>
+        public NetworkSocket? NetworkSocket => (NetworkConnection as NetworkSocketConnection)?.NetworkSocket;
+
         /// <summary>The protocol used by the connection.</summary>
         public Protocol Protocol => (_localEndpoint ?? _remoteEndpoint)?.Protocol ?? Protocol.Ice2;
 

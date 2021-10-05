@@ -7,7 +7,7 @@ using System.Threading.Channels;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The collocated network connection class to exchange data within the same process. The
+    /// <summary>The colocated network connection class to exchange data within the same process. The
     /// implementation copies the send buffer into the receive buffer.</summary>
     internal class ColocConnection : INetworkConnection, ISingleStreamConnection
     {

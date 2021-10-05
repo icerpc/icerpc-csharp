@@ -71,14 +71,6 @@ namespace IceRpc.Transports
         /// first buffer.</summary>
         ReadOnlyMemory<byte> TransportHeader { get; }
 
-        /// <summary>Aborts the stream.</summary>
-        /// <param name="errorCode">The reason of the abort.</param>
-        void Abort(StreamError errorCode)
-        {
-            AbortRead(errorCode);
-            AbortWrite(errorCode);
-        }
-
         /// <summary>Aborts the stream read side.</summary>
         /// <param name="errorCode">The reason of the abort.</param>
         void AbortRead(StreamError errorCode);

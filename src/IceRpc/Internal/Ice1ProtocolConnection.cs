@@ -180,7 +180,7 @@ namespace IceRpc.Internal
                     Deadline = DateTime.MaxValue,
                     Payload = payload,
                 };
-                request.Features = request.Features.WithRequestId(requestId);
+                request.Features = request.Features.With(new RequestId { Value = requestId });
                 if (requestHeader.Context.Count > 0)
                 {
                     request.Features = request.Features.WithContext(requestHeader.Context);
@@ -353,7 +353,7 @@ namespace IceRpc.Internal
                 encoder.EncodeByte(0); // compression status
                 BufferWriter.Position frameSizeStart = encoder.StartFixedLengthSize();
 
-                request.Features = request.Features.WithRequestId(requestId);
+                request.Features = request.Features.With(new RequestId { Value = requestId});
                 encoder.EncodeInt(requestId);
 
                 (byte encodingMajor, byte encodingMinor) = request.PayloadEncoding.ToMajorMinor();

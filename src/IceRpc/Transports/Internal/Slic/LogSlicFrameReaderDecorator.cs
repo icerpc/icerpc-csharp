@@ -10,8 +10,8 @@ using System.Diagnostics;
 
 namespace IceRpc.Transports.Internal.Slic
 {
-    /// <summary>The LogSlicFrameReaderDecorator is a Slic frame reader decorator to log read Slic
-    /// frames.</summary>
+    /// <summary>The LogSlicFrameReaderDecorator is a decorator to log Slic frames read from the
+    /// decorated Slic frame reader.</summary>
     internal sealed class LogSlicFrameReaderDecorator : ISlicFrameReader
     {
         private readonly ISlicFrameReader _decoratee;

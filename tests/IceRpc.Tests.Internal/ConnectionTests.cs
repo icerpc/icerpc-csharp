@@ -311,10 +311,10 @@ namespace IceRpc.Tests.Internal
             Assert.That(factory.ClientConnection.IsSecure, Is.EqualTo(secure));
             Assert.That(factory.ServerConnection.IsSecure, Is.EqualTo(secure));
 
-            var clientSocket = (NetworkSocket)factory.ClientConnection.GetNetworkSocket()!;
+            var clientSocket = (NetworkSocket)factory.ClientConnection.NetworkSocket!;
             Assert.That(clientSocket, Is.Not.Null);
 
-            var serverSocket = (NetworkSocket)factory.ServerConnection.GetNetworkSocket()!;
+            var serverSocket = (NetworkSocket)factory.ServerConnection.NetworkSocket!;
             Assert.That(serverSocket, Is.Not.Null);
 
             Assert.That(clientSocket.Socket!.RemoteEndPoint, Is.Not.Null);
@@ -365,10 +365,10 @@ namespace IceRpc.Tests.Internal
             {
                 Assert.AreEqual("tcp", transport);
 
-                SslStream? clientSslStream = factory.ClientConnection!.GetNetworkSocket()!.SslStream;
+                SslStream? clientSslStream = factory.ClientConnection!.NetworkSocket!.SslStream;
                 Assert.That(clientSslStream, Is.Not.Null);
 
-                SslStream? serverSslStream = factory.ServerConnection!.GetNetworkSocket()!.SslStream;
+                SslStream? serverSslStream = factory.ServerConnection!.NetworkSocket!.SslStream;
                 Assert.That(serverSslStream, Is.Not.Null);
 
                 Assert.That(clientSslStream!.CheckCertRevocationStatus, Is.False);

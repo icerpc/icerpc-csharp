@@ -6,10 +6,12 @@ namespace IceRpc.Internal
     /// or Ice2 protocol.</summary>
     internal interface IProtocolConnection : IDisposable
     {
-        /// <summary>Returns <c>true</c> if dispatch are in progress, <c>false</c> otherwise.</summary>
+        /// <summary>Returns <c>true</c> if one or more dispatch are in progress, <c>false</c>
+        /// otherwise.</summary>
         bool HasDispatchInProgress { get; }
 
-        /// <summary>Returns <c>true</c> if invocations are in progress, <c>false</c> otherwise.</summary>
+        /// <summary>Returns <c>true</c> if one or more invocations are in progress, <c>false</c>
+        /// otherwise.</summary>
         bool HasInvocationsInProgress { get; }
 
         /// <summary>Cancel the shutdown which is in progress.</summary>
@@ -51,7 +53,7 @@ namespace IceRpc.Internal
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         Task ShutdownAsync(bool shutdownByPeer, string message, CancellationToken cancel);
 
-        /// <summary>Waits for graceful shutdown of the connection.</summary>
+        /// <summary>Waits for graceful shutdown of the connection by the peer.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The reason of the peer shutdown.</returns>
         Task<string> WaitForShutdownAsync(CancellationToken cancel);

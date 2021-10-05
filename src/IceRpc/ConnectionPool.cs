@@ -212,7 +212,6 @@ namespace IceRpc
                 }
                 else
                 {
-                    // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
                     connection = new Connection(ConnectionOptions)
                     {
                         Dispatcher = Dispatcher,
