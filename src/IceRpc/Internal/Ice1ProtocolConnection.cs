@@ -40,7 +40,8 @@ namespace IceRpc.Internal
         // private readonly AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly TaskCompletionSource _cancelShutdown =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly TaskCompletionSource _dispatchAndInvocationsCompleted = new();
+        private readonly TaskCompletionSource _dispatchAndInvocationsCompleted =
+            new (TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly HashSet<IncomingRequest> _dispatch = new();
         private readonly int _incomingFrameMaxSize;
         private readonly bool _isServer;
@@ -104,16 +105,21 @@ namespace IceRpc.Internal
                 var exception = new ConnectionLostException();
                 _sendSemaphore.Complete(exception);
                 _pendingCloseConnection.TrySetException(exception);
-                foreach (TaskCompletionSource<ReadOnlyMemory<byte>> source in _invocations.Values)
+                if (_invocations.Count > 0 || _dispatch.Count > 0)
                 {
-                    source.SetException(exception);
+                    foreach (TaskCompletionSource<ReadOnlyMemory<byte>> source in _invocations.Values)
+                    {
+                        source.TrySetException(exception);
+                    }
+                    _invocations.Clear();
+                    foreach (IncomingRequest request in _dispatch)
+                    {
+                        request.CancelDispatchSource!.Cancel();
+                        request.CancelDispatchSource!.Dispose();
+                    }
+                    _dispatch.Clear();
+                    _dispatchAndInvocationsCompleted.SetResult();
                 }
-                _invocations.Clear();
-                foreach (IncomingRequest request in _dispatch)
-                {
-                    request.CancelDispatchSource!.Dispose();
-                }
-                _dispatch.Clear();
             }
         }
 
@@ -138,27 +144,7 @@ namespace IceRpc.Internal
         {
             while (true)
             {
-                int requestId;
-                ReadOnlyMemory<byte> buffer;
-                try
-                {
-                    (requestId, buffer) = await ReceiveFrameAsync(cancel).ConfigureAwait(false);
-                }
-                catch
-                {
-                    lock (_mutex)
-                    {
-                        if (_shutdown)
-                        {
-                            _pendingClose.TrySetResult();
-                            throw new ConnectionClosedException();
-                        }
-                        else
-                        {
-                            throw;
-                        }
-                    }
-                }
+                (int requestId, ReadOnlyMemory<byte> buffer) = await ReceiveFrameAsync(cancel).ConfigureAwait(false);
 
                 var decoder = new Ice11Decoder(buffer);
 
@@ -202,8 +188,8 @@ namespace IceRpc.Internal
 
                 lock (_mutex)
                 {
-                    // If shutdown, ignore the incoming request and continue receiving frames until the connection
-                    // is closed.
+                    // If shutdown, ignore the incoming request and continue receiving frames until the
+                    // connection is closed.
                     if (!_shutdown)
                     {
                         _dispatch.Add(request);
@@ -233,15 +219,15 @@ namespace IceRpc.Internal
                 Task<ReadOnlyMemory<byte>> responseTask;
                 lock (_mutex)
                 {
-                    if (_shutdown)
-                    {
-                        throw new ConnectionClosedException();
-                    }
-                    else if (_invocations.TryGetValue(
+                    if (_invocations.TryGetValue(
                         requestId,
                         out TaskCompletionSource<ReadOnlyMemory<byte>>? source))
                     {
                         responseTask = source.Task;
+                    }
+                    else if (_shutdown)
+                    {
+                        throw new ConnectionClosedException();
                     }
                     else
                     {
@@ -257,9 +243,7 @@ namespace IceRpc.Internal
                     if (_invocations.Remove(requestId))
                     {
                         // If no more invocations or dispatch and shutting down, shutdown can complete.
-                        if (_shutdown &&
-                            _invocations.Count == 0 &&
-                            _dispatch.Count == 0)
+                        if (_shutdown && _invocations.Count == 0 && _dispatch.Count == 0)
                         {
                             _dispatchAndInvocationsCompleted.SetResult();
                         }
@@ -334,17 +318,27 @@ namespace IceRpc.Internal
             // serialize the sending of frames.
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
 
+            // Assign the request ID for twoway invocations and keep track of the invocation for receiving the
+            // response.
             int requestId = 0;
             if (!request.IsOneway)
             {
-                lock (_mutex)
+                try
                 {
-                    if (_shutdown)
+                    lock (_mutex)
                     {
-                        throw new ConnectionClosedException();
+                        if (_shutdown)
+                        {
+                            throw new ConnectionClosedException();
+                        }
+                        requestId = ++_nextRequestId;
+                        _invocations[requestId] = new(TaskCreationOptions.RunContinuationsAsynchronously);
                     }
-                    requestId = ++_nextRequestId;
-                    _invocations[requestId] = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                }
+                catch
+                {
+                    _sendSemaphore.Release();
+                    throw;
                 }
             }
 
@@ -395,9 +389,7 @@ namespace IceRpc.Internal
                     if (_invocations.Remove(requestId))
                     {
                         // If no more invocations or dispatch and shutting down, shutdown can complete.
-                        if (_shutdown &&
-                            _invocations.Count == 0 &&
-                            _dispatch.Count == 0)
+                        if (_shutdown && _invocations.Count == 0 && _dispatch.Count == 0)
                         {
                             _dispatchAndInvocationsCompleted.SetResult();
                         }
@@ -422,9 +414,9 @@ namespace IceRpc.Internal
                 throw new InvalidOperationException("request ID feature is not set");
             }
 
-            // Send the response if the request is not a one-way request.
             try
             {
+                // Send the response if the request is not a one-way request.
                 if (!request.IsOneway)
                 {
                     // Wait for sending of other frames to complete. The semaphore is used as an asynchronous
@@ -485,9 +477,7 @@ namespace IceRpc.Internal
                         request.CancelDispatchSource!.Dispose();
 
                         // If no more invocations or dispatch and shutting down, shutdown can complete.
-                        if (_shutdown &&
-                            _invocations.Count == 0 &&
-                            _dispatch.Count == 0)
+                        if (_shutdown && _invocations.Count == 0 && _dispatch.Count == 0)
                         {
                             _dispatchAndInvocationsCompleted.SetResult();
                         }
@@ -520,20 +510,24 @@ namespace IceRpc.Internal
                         CancelDispatch();
                         return;
                     }
+
                     _shutdown = true;
 
                     // If shutdown locally, we raise OperationCanceledException for pending invocations. The
                     // invocation won't be retried, otherwise we raise the shutdown close exception.
-                    Exception closeException = shutdownByPeer ? exception : new OperationCanceledException(message);
-                    foreach (TaskCompletionSource<ReadOnlyMemory<byte>> source in _invocations.Values)
+                    if (_invocations.Count > 0)
                     {
-                        source.TrySetException(closeException);
+                        Exception closeException = shutdownByPeer ? exception : new OperationCanceledException(message);
+                        foreach (TaskCompletionSource<ReadOnlyMemory<byte>> source in _invocations.Values)
+                        {
+                            source.TrySetException(closeException);
+                        }
+                        // _invocations.Clear();
                     }
-                    _invocations.Clear();
 
-                    if (_dispatch.Count == 0)
+                    if (_dispatch.Count == 0 && _invocations.Count == 0)
                     {
-                        _dispatchAndInvocationsCompleted.TrySetResult();
+                        _dispatchAndInvocationsCompleted.SetResult();
                     }
                 }
 
@@ -545,22 +539,20 @@ namespace IceRpc.Internal
                 }
                 else
                 {
+                    // If shutdown is canceled, cancel pending dispatch.
                     _ = CancelDispatchIfShutdownCanceledAsync();
 
                     // Wait for dispatch to complete.
                     await _dispatchAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
-                }
 
-                _sendSemaphore.Complete(exception);
+                    _sendSemaphore.Complete(exception);
 
-                if (!shutdownByPeer)
-                {
                     // Send the CloseConnection frame once all the dispatch are done.
                     await _stream.SendAsync(Ice1Definitions.CloseConnectionFrame, cancel).ConfigureAwait(false);
 
-                    // Wait for the peer to close the connection. When the peer receives the CloseConnectionFrame
-                    // the peer closes the connection. This will cause ReceiveRequestAsync to throw and the
-                    // connection will call Dispose to terminate the protocol connection.
+                    // Wait for the peer to close the connection. When the peer receives the CloseConnection
+                    // frame the peer closes the connection. This will cause ReceiveRequestAsync to throw and
+                    // the connection will call Dispose to terminate the protocol connection.
                     await _pendingClose.Task.WaitAsync(cancel).ConfigureAwait(false);
                 }
             }
@@ -622,7 +614,6 @@ namespace IceRpc.Internal
                         _logger.LogReceivedInvalidDatagram(received);
                         continue; // while
                     }
-
                     buffer = buffer[0..received];
                 }
                 else
@@ -717,12 +708,15 @@ namespace IceRpc.Internal
                         int requestId = IceDecoder.DecodeInt(buffer.Span[0..4]);
                         lock (_mutex)
                         {
-                            if (!_shutdown &&
-                                _invocations.TryGetValue(
+                            if (_invocations.TryGetValue(
                                 requestId,
                                 out TaskCompletionSource<ReadOnlyMemory<byte>>? source))
                             {
                                 source.SetResult(buffer[4..]);
+                            }
+                            else if (!_shutdown)
+                            {
+                                throw new InvalidDataException("received ice1 Reply for unknown invocation");
                             }
                         }
                         break;

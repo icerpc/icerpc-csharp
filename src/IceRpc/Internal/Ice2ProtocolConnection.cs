@@ -129,25 +129,7 @@ namespace IceRpc.Internal
             while (true)
             {
                 // Accepts a new stream.
-                INetworkStream stream;
-                try
-                {
-                    stream = await _multiStreamConnection!.AcceptStreamAsync(cancel).ConfigureAwait(false);
-                }
-                catch
-                {
-                    lock(_mutex)
-                    {
-                        if (_shutdown && _dispatch.Count == 0 && _invocations.Count == 0)
-                        {
-                            throw new ConnectionClosedException();
-                        }
-                        else
-                        {
-                            throw;
-                        }
-                    }
-                }
+                INetworkStream stream = await _multiStreamConnection!.AcceptStreamAsync(cancel).ConfigureAwait(false);
 
                 // Receives the request frame from the stream. TODO: Only read the request header, the payload
                 // should be received by calling IProtocolStream.ReceivePayloadAsync from the incoming frame

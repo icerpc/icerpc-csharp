@@ -499,9 +499,14 @@ namespace IceRpc
             {
                 request = await _protocolConnection!.ReceiveRequestAsync(default).ConfigureAwait(false);
             }
+            catch when (State >= ConnectionState.Closing)
+            {
+                _ = CloseAsync(new ConnectionClosedException());
+                return;
+            }
             catch (Exception exception)
             {
-                await CloseAsync(exception).ConfigureAwait(false);
+                _ = CloseAsync(exception);
                 return;
             }
 
