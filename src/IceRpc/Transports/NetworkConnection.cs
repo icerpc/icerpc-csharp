@@ -25,30 +25,13 @@ namespace IceRpc.Transports
             TimeSpan idleTimeout,
             SlicOptions slicOptions,
             ILogger logger) =>
-            CreateLogNetworkConnection(new NetworkSocketConnection(
+            new NetworkSocketConnection(
                 socket,
                 endpoint,
                 isServer: isServer,
                 idleTimeout: idleTimeout,
                 slicOptions,
-                logger),
                 logger);
-
-        /// <summary>Creates a network connection decorator to log received and sent bytes from the given
-        /// network connection. This enables 3rd-party transports to provide logging.</summary>
-        public static INetworkConnection CreateLogNetworkConnection(
-            INetworkConnection networkConnection,
-            ILogger logger)
-        {
-            if (logger.IsEnabled(LogLevel.Debug))
-            {
-                return new LogNetworkConnectionDecorator(networkConnection, logger);
-            }
-            else
-            {
-                return networkConnection;
-            }
-        }
 
         /// <summary>Creates a Slic multi-stream connection to provide multi-stream connection support for
         /// transports that only provide a single-stream connection implementation.</summary>

@@ -16,7 +16,7 @@ namespace IceRpc.Transports.Internal
         public bool IsServer => _decoratee.IsServer;
         public TimeSpan LastActivity => _decoratee.LastActivity;
         public Endpoint? LocalEndpoint => _decoratee.LocalEndpoint;
-        public ILogger Logger { get; }
+        public ILogger Logger => _decoratee.Logger;
         public Endpoint? RemoteEndpoint => _decoratee.RemoteEndpoint;
 
         private bool _connected;
@@ -89,11 +89,7 @@ namespace IceRpc.Transports.Internal
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             _decoratee.HasCompatibleParams(remoteEndpoint);
 
-        internal LogNetworkConnectionDecorator(INetworkConnection decoratee, ILogger logger)
-        {
-            _decoratee = decoratee;
-            Logger = logger;
-        }
+        internal LogNetworkConnectionDecorator(INetworkConnection decoratee) => _decoratee = decoratee;
 
         internal static string PrintReceivedData(ReadOnlyMemory<byte> buffer)
         {
