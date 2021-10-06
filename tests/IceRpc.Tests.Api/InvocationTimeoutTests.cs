@@ -5,7 +5,7 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests.Api
 {
-    [Timeout(30000)]
+    [Timeout(5000)]
     [Parallelizable(ParallelScope.All)]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class InvocationTimeoutTests : IAsyncDisposable
@@ -66,7 +66,8 @@ namespace IceRpc.Tests.Api
             // Compare the deadlines as milliseconds because the deadline is transferred as a millisecond
             // value and the conversion of the DateTime to the "long" type can result in a dispatch
             // deadline which is different from the invocation deadline.
-            Assert.That(dispatchDeadline, Is.GreaterThanOrEqualTo(expectedDeadline));
+            Assert.AreEqual(ToMilliSeconds(dispatchDeadline), ToMilliSeconds(invocationDeadline));
+            Assert.That(ToMilliSeconds(dispatchDeadline), Is.GreaterThanOrEqualTo(ToMilliSeconds(expectedDeadline)));
         }
 
         /// <summary>Ensure that a request fails with OperationCanceledException after the invocation timeout expires.
@@ -111,8 +112,8 @@ namespace IceRpc.Tests.Api
             // Compare the deadlines as milliseconds because the deadline is transferred as a millisecond
             // value and the conversion of the DateTime to the "long" type can result in a dispatch
             // deadline which is different from the invocation deadline.
-            Assert.AreEqual(ToMilliSeconds(dispatchDeadline!.Value), ToMilliSeconds(invocationDeadline!.Value));
-            Assert.That(dispatchDeadline, Is.GreaterThanOrEqualTo(expectedDeadline));
+            Assert.AreEqual(ToMilliSeconds(dispatchDeadline), ToMilliSeconds(invocationDeadline));
+            Assert.That(ToMilliSeconds(dispatchDeadline), Is.GreaterThanOrEqualTo(ToMilliSeconds(expectedDeadline)));
         }
 
         /// <summary>Ensure that a request fails with OperationCanceledException after the invocation timeout expires.
@@ -161,11 +162,12 @@ namespace IceRpc.Tests.Api
             // Compare the deadlines as milliseconds because the deadline is transferred as a millisecond
             // value and the conversion of the DateTime to the "long" type can result in a dispatch
             // deadline which is different from the invocation deadline.
-            Assert.AreEqual(ToMilliSeconds(dispatchDeadline!.Value), ToMilliSeconds(invocationDeadline!.Value));
-            Assert.That(dispatchDeadline, Is.GreaterThanOrEqualTo(expectedDeadline));
+            Assert.AreEqual(ToMilliSeconds(dispatchDeadline), ToMilliSeconds(invocationDeadline));
+            Assert.That(ToMilliSeconds(dispatchDeadline), Is.GreaterThanOrEqualTo(ToMilliSeconds(expectedDeadline)));
         }
 
-        private static long ToMilliSeconds(DateTime time) => (long)new TimeSpan(time.Ticks).TotalMilliseconds;
+        private static long ToMilliSeconds(DateTime? deadline) =>
+            (long)(deadline!.Value - DateTime.UnixEpoch).TotalMilliseconds;
 
         private class Greeter : Service, IGreeter
         {

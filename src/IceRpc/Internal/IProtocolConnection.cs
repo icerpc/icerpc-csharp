@@ -42,10 +42,10 @@ namespace IceRpc.Internal
         Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel);
 
         /// <summary>Sends a response.</summary>
-        /// <param name="request">The incoming request associated to the response to send.</param>
         /// <param name="response">The outgoing response to send.</param>
+        /// <param name="request">The incoming request associated to the response to send.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        Task SendResponseAsync(IncomingRequest request, OutgoingResponse response, CancellationToken cancel);
+        Task SendResponseAsync(OutgoingResponse response, IncomingRequest request, CancellationToken cancel);
 
         /// <summary>Shutdowns gracefully the connection.</summary>
         /// <param name="shutdownByPeer"><c>true</c> if the shutdown is from the peer, <c>false</c> otherwise.</param>

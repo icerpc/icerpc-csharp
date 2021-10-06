@@ -35,7 +35,6 @@ namespace IceRpc.Internal
 
         private readonly TaskCompletionSource _cancelShutdown =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
-
         private readonly TaskCompletionSource _dispatchAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private INetworkStream? _controlStream;
@@ -119,7 +118,10 @@ namespace IceRpc.Internal
             // send the GoAwayCanceled frame once the GoAway frame has been sent.
             _cancelShutdown.TrySetResult();
 
-        public void Dispose() => _cancelShutdown.TrySetException(new ConnectionClosedException());
+        public void Dispose() =>
+            // Unlike Ice1, there's no need to abort invocations wait for a response. The invocations will
+            // be aborted when the stream is aborted.
+            _cancelShutdown.TrySetException(new ConnectionClosedException());
 
         public Task PingAsync(CancellationToken cancel) => SendControlFrameAsync(Ice2FrameType.Ping, null, cancel);
 
@@ -426,7 +428,10 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
-        public async Task SendResponseAsync(IncomingRequest request, OutgoingResponse response, CancellationToken cancel)
+        public async Task SendResponseAsync(
+            OutgoingResponse response,
+            IncomingRequest request,
+            CancellationToken cancel)
         {
             if (request.Stream == null)
             {
@@ -490,7 +495,7 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task ShutdownAsync(bool shutdownByPeer, string message, CancellationToken cancel)
         {
-            List<OutgoingRequest>? invocations = null;
+            IEnumerable<OutgoingRequest>? invocations = null;
             bool alreadyShuttingDown = false;
             lock (_mutex)
             {
@@ -508,7 +513,7 @@ namespace IceRpc.Internal
 
                 if (shutdownByPeer)
                 {
-                    invocations = _invocations.Count > 0 ? _invocations.ToList() : null;
+                    invocations = _invocations.Count > 0 ? _invocations : null;
                 }
             }
 

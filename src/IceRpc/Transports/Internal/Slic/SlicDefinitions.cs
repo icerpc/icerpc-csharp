@@ -4,14 +4,10 @@ namespace IceRpc.Transports.Internal.Slic
 {
     internal static class SlicDefinitions
     {
-        // The header below is a sentinel header used to reserve space in the protocol frame to avoid
-        // allocating again a byte buffer for the Slic header.
-        internal static readonly ReadOnlyMemory<byte> FrameHeader = new byte[]
-        {
-            0x05, // Frame type
-            0x02, 0x04, 0x06, 0x08, // FrameSize (varuint)
-            0x03, 0x05, 0x07, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, // Stream ID (varulong)
-        };
+        // The header below is used to reserve space in the protocol frame to avoid allocating a separate byte
+        // buffer. The Slic header is composed of a FrameType byte enum value, a FrameSize varuint value (4
+        // bytes) and a stream ID varulong value (8 bytes).
+        internal static readonly ReadOnlyMemory<byte> FrameHeader = new byte[13];
 
         internal static readonly uint V1 = 1;
     }

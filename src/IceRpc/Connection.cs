@@ -381,6 +381,9 @@ namespace IceRpc
             }
             catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.DispatchCanceled)
             {
+                // TODO: XXX: Instead of the Ice2 protocol implementation letting the StreamAbortedException
+                // to propagate here and below, consider throwing the appropriate exception from the Ice2
+                // protocol implementation?
                 throw new OperationCanceledException("dispatch canceled by peer", ex);
             }
             catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.ConnectionShutdownByPeer)
@@ -533,8 +536,8 @@ namespace IceRpc
                 }
 
                 await _protocolConnection.SendResponseAsync(
-                    request,
                     response,
+                    request,
                     CancellationToken.None).ConfigureAwait(false);
             }
             catch (OperationCanceledException)

@@ -48,7 +48,7 @@ namespace IceRpc.Internal
         private readonly bool _isDatagram;
         private readonly ILogger _logger;
         private readonly object _mutex = new();
-        private readonly ISingleStreamConnection _stream;
+        private readonly ISingleStreamConnection _singleStreamConnection;
         private int _nextRequestId;
         private readonly TaskCompletionSource _pendingCloseConnection =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -66,7 +66,9 @@ namespace IceRpc.Internal
             {
                 if (_isServer)
                 {
-                    await _stream.SendAsync(Ice1Definitions.ValidateConnectionFrame, cancel).ConfigureAwait(false);
+                    await _singleStreamConnection.SendAsync(
+                        Ice1Definitions.ValidateConnectionFrame,
+                        cancel).ConfigureAwait(false);
                 }
                 else
                 {
@@ -129,7 +131,9 @@ namespace IceRpc.Internal
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
             try
             {
-                await _stream.SendAsync(Ice1Definitions.ValidateConnectionFrame, cancel).ConfigureAwait(false);
+                await _singleStreamConnection.SendAsync(
+                    Ice1Definitions.ValidateConnectionFrame,
+                    cancel).ConfigureAwait(false);
             }
             finally
             {
@@ -175,8 +179,9 @@ namespace IceRpc.Internal
                 {
                     IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
                     IsOneway = requestId == 0,
-                    PayloadEncoding =
-                        Encoding.FromMajorMinor(requestHeader.PayloadEncodingMajor, requestHeader.PayloadEncodingMinor),
+                    PayloadEncoding = Encoding.FromMajorMinor(
+                        requestHeader.PayloadEncodingMajor,
+                        requestHeader.PayloadEncodingMinor),
                     Deadline = DateTime.MaxValue,
                     Payload = payload,
                 };
@@ -377,7 +382,7 @@ namespace IceRpc.Internal
                 // connection), we need to send the entire frame even when cancel gets canceled since the
                 // recipient cannot read a partial frame and then keep going.
                 ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
-                await _stream.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+                await _singleStreamConnection.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
 
                 // Mark the request as sent and, if it's a twoway request, keep track of it.
                 request.IsSent = true;
@@ -405,8 +410,8 @@ namespace IceRpc.Internal
 
         /// <inheritdoc/>
         public async Task SendResponseAsync(
-            IncomingRequest request,
             OutgoingResponse response,
+            IncomingRequest request,
             CancellationToken cancel)
         {
             if (request.Features.GetRequestId() is not int requestId)
@@ -459,7 +464,7 @@ namespace IceRpc.Internal
 
                         // Send the response frame.
                         ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
-                        await _stream.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+                        await _singleStreamConnection.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
                     }
                     finally
                     {
@@ -548,7 +553,9 @@ namespace IceRpc.Internal
                     _sendSemaphore.Complete(exception);
 
                     // Send the CloseConnection frame once all the dispatch are done.
-                    await _stream.SendAsync(Ice1Definitions.CloseConnectionFrame, cancel).ConfigureAwait(false);
+                    await _singleStreamConnection.SendAsync(
+                        Ice1Definitions.CloseConnectionFrame,
+                        cancel).ConfigureAwait(false);
 
                     // Wait for the peer to close the connection. When the peer receives the CloseConnection
                     // frame the peer closes the connection. This will cause ReceiveRequestAsync to throw and
@@ -580,7 +587,7 @@ namespace IceRpc.Internal
             int? datagramMaxReceiveSize,
             ILogger logger)
         {
-            _stream = singleStreamConnection;
+            _singleStreamConnection = singleStreamConnection;
             _incomingFrameMaxSize = Math.Min(incomingFrameMaxSize, datagramMaxReceiveSize ?? int.MaxValue);
             _isServer = isServer;
             _isDatagram = datagramMaxReceiveSize != null;
@@ -608,7 +615,7 @@ namespace IceRpc.Internal
                 if (_isDatagram)
                 {
                     buffer = new byte[_incomingFrameMaxSize];
-                    int received = await _stream.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
+                    int received = await _singleStreamConnection.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
                     if (received < Ice1Definitions.HeaderSize)
                     {
                         _logger.LogReceivedInvalidDatagram(received);
@@ -747,7 +754,7 @@ namespace IceRpc.Internal
             int offset = 0;
             while (offset != buffer.Length)
             {
-                offset += await _stream.ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
+                offset += await _singleStreamConnection.ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
             }
         }
     }
