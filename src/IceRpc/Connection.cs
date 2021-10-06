@@ -259,9 +259,6 @@ namespace IceRpc
                         _loggerFactory ?? NullLoggerFactory.Instance,
                         connectCancellationSource.Token).ConfigureAwait(false);
 
-                    // Initializes the protocol connection.
-                    await _protocolConnection.InitializeAsync(connectCancellationSource.Token).ConfigureAwait(false);
-
                     lock (_mutex)
                     {
                         if (_state == ConnectionState.Closed)

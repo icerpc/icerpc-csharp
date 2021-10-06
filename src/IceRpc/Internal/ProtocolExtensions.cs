@@ -67,9 +67,10 @@ namespace IceRpc.Internal
             CancellationToken cancel)
         {
             ILogger logger = loggerFactory.CreateLogger("IceRpc.Protocol");
+            IProtocolConnection protocolConnection;
             if (protocol == Protocol.Ice1)
             {
-                return new Ice1ProtocolConnection(
+                protocolConnection = new Ice1ProtocolConnection(
                     await networkConnection.GetSingleStreamConnectionAsync(cancel).ConfigureAwait(false),
                     incomingFrameMaxSize,
                     networkConnection.IsServer,
@@ -78,11 +79,13 @@ namespace IceRpc.Internal
             }
             else
             {
-                return new Ice2ProtocolConnection(
+                protocolConnection = new Ice2ProtocolConnection(
                     await networkConnection.GetMultiStreamConnectionAsync(cancel).ConfigureAwait(false),
                     incomingFrameMaxSize,
                     logger);
             }
+            await protocolConnection.InitializeAsync(cancel).ConfigureAwait(false);
+            return protocolConnection;
         }
 
         /// <summary>Creates an outgoing response with the exception. With the ice1 protocol, this method sets the
