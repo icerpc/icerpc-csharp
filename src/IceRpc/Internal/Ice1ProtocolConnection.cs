@@ -44,6 +44,7 @@ namespace IceRpc.Internal
             new (TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly HashSet<IncomingRequest> _dispatch = new();
         private readonly int _incomingFrameMaxSize;
+        private readonly Dictionary<int, OutgoingRequest> _invocations = new();
         private readonly bool _isServer;
         private readonly bool _isDatagram;
         private readonly ILogger _logger;
@@ -53,7 +54,6 @@ namespace IceRpc.Internal
         private readonly TaskCompletionSource _pendingCloseConnection =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly Dictionary<int, TaskCompletionSource<ReadOnlyMemory<byte>>> _invocations = new();
         private readonly AsyncSemaphore _sendSemaphore = new(1);
         // TODO: XXX, add back configuration to limit the number of concurrent dispatch.
         // private readonly AsyncSemaphore? _unidirectionalStreamSemaphore;
@@ -109,9 +109,9 @@ namespace IceRpc.Internal
                 _pendingCloseConnection.TrySetException(exception);
                 if (_invocations.Count > 0 || _dispatch.Count > 0)
                 {
-                    foreach (TaskCompletionSource<ReadOnlyMemory<byte>> source in _invocations.Values)
+                    foreach (OutgoingRequest request in _invocations.Values)
                     {
-                        source.TrySetException(exception);
+                        request.Features.Get<Ice1Request>()?.ResponseCompletionSource?.TrySetException(exception);
                     }
                     _invocations.Clear();
                     foreach (IncomingRequest request in _dispatch)
@@ -185,7 +185,7 @@ namespace IceRpc.Internal
                     Deadline = DateTime.MaxValue,
                     Payload = payload,
                 };
-                request.Features = request.Features.With(new RequestId { Value = requestId });
+                request.Features = request.Features.With(new Ice1Request(requestId, incoming: true));
                 if (requestHeader.Context.Count > 0)
                 {
                     request.Features = request.Features.WithContext(requestHeader.Context);
@@ -212,40 +212,24 @@ namespace IceRpc.Internal
             {
                 throw new InvalidOperationException("can't receive a response for a one-way request");
             }
-            if (request.Features.GetRequestId() is not int requestId)
+
+            Ice1Request? requestFeature = request.Features.Get<Ice1Request>();
+            if (requestFeature == null || requestFeature.ResponseCompletionSource == null)
             {
-                throw new InvalidOperationException("request ID feature is not set");
+                throw new InvalidOperationException("unknown request");
             }
 
             // Wait for the response.
             ReadOnlyMemory<byte> buffer;
             try
             {
-                Task<ReadOnlyMemory<byte>> responseTask;
-                lock (_mutex)
-                {
-                    if (_invocations.TryGetValue(
-                        requestId,
-                        out TaskCompletionSource<ReadOnlyMemory<byte>>? source))
-                    {
-                        responseTask = source.Task;
-                    }
-                    else if (_shutdown)
-                    {
-                        throw new ConnectionClosedException();
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException($"unknown request with requestId {requestId}");
-                    }
-                }
-                buffer = await responseTask.WaitAsync(cancel).ConfigureAwait(false);
+                buffer = await requestFeature.ResponseCompletionSource.Task.WaitAsync(cancel).ConfigureAwait(false);
             }
             finally
             {
                 lock (_mutex)
                 {
-                    if (_invocations.Remove(requestId))
+                    if (_invocations.Remove(requestFeature.Id))
                     {
                         // If no more invocations or dispatch and shutting down, shutdown can complete.
                         if (_shutdown && _invocations.Count == 0 && _dispatch.Count == 0)
@@ -337,7 +321,7 @@ namespace IceRpc.Internal
                             throw new ConnectionClosedException();
                         }
                         requestId = ++_nextRequestId;
-                        _invocations[requestId] = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                        _invocations[requestId] = request;
                     }
                 }
                 catch
@@ -358,7 +342,7 @@ namespace IceRpc.Internal
                 encoder.EncodeByte(0); // compression status
                 BufferWriter.Position frameSizeStart = encoder.StartFixedLengthSize();
 
-                request.Features = request.Features.With(new RequestId { Value = requestId});
+                request.Features = request.Features.With(new Ice1Request(requestId, incoming: false));
                 encoder.EncodeInt(requestId);
 
                 (byte encodingMajor, byte encodingMinor) = request.PayloadEncoding.ToMajorMinor();
@@ -522,12 +506,11 @@ namespace IceRpc.Internal
                     // invocation won't be retried, otherwise we raise the shutdown close exception.
                     if (_invocations.Count > 0)
                     {
-                        Exception closeException = shutdownByPeer ? exception : new OperationCanceledException(message);
-                        foreach (TaskCompletionSource<ReadOnlyMemory<byte>> source in _invocations.Values)
+                        Exception closeEx = shutdownByPeer ? exception : new OperationCanceledException(message);
+                        foreach (OutgoingRequest request in _invocations.Values)
                         {
-                            source.TrySetException(closeException);
+                            request.Features.Get<Ice1Request>()?.ResponseCompletionSource?.TrySetException(closeEx);
                         }
-                        // _invocations.Clear();
                     }
 
                     if (_dispatch.Count == 0 && _invocations.Count == 0)
@@ -715,11 +698,9 @@ namespace IceRpc.Internal
                         int requestId = IceDecoder.DecodeInt(buffer.Span[0..4]);
                         lock (_mutex)
                         {
-                            if (_invocations.TryGetValue(
-                                requestId,
-                                out TaskCompletionSource<ReadOnlyMemory<byte>>? source))
+                            if (_invocations.TryGetValue(requestId, out OutgoingRequest? request))
                             {
-                                source.SetResult(buffer[4..]);
+                                request.Features.Get<Ice1Request>()?.ResponseCompletionSource?.SetResult(buffer[4..]);
                             }
                             else if (!_shutdown)
                             {
