@@ -6,6 +6,9 @@ using Microsoft.Extensions.Logging;
 namespace IceRpc.Transports
 {
     /// <summary>The NetworkConnection static class provides methods to create network connections.</summary>
+    // TODO: Remove this class and the CreateSlicConnectionAsync method. The creation of the slic connection
+    // needs to be improved. The Slic frame reader and writer should be created through a factory that is
+    // setup on the composition root (or an equivalent top-level creation method).
     public static class NetworkConnection
     {
         /// <summary>Creates a Slic multi-stream connection to provide multi-stream connection support for
