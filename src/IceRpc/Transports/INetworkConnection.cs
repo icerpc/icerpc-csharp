@@ -51,12 +51,6 @@ namespace IceRpc.Transports
         /// <param name="exception">The reason of the connection closure.</param>
         void Close(Exception? exception = null);
 
-        /// <summary>Connects a new client or server network connection. This is called after the endpoint
-        /// created a new connection to establish the connection and perform blocking network level
-        /// initialization such as the TLS handshake. </summary>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        ValueTask ConnectAsync(CancellationToken cancel);
-
         /// <summary>Gets the single-stream connection to allow single-stream communications over this network
         /// connection.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

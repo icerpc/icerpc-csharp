@@ -22,7 +22,7 @@ namespace IceRpc.Transports.Internal
         {
             try
             {
-                return NetworkConnection.CreateNetworkSocketConnection(
+                return new NetworkSocketConnection(
                     new TcpServerSocket(
                         await _socket.AcceptAsync().ConfigureAwait(false),
                         _authenticationOptions),

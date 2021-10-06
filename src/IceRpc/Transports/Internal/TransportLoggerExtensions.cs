@@ -163,39 +163,20 @@ namespace IceRpc.Transports.Internal
         internal static IDisposable? StartServerScope(this ILogger logger, IListener listener) =>
             logger.IsEnabled(LogLevel.Error) ? _listenerScope(logger, listener.Endpoint.ToString()) : null;
 
-        internal static IDisposable? StartScope(this INetworkConnection connection)
-        {
-            if (connection.Logger.IsEnabled(LogLevel.Error))
-            {
-                return _connectionScope(
-                    connection.Logger,
-                    connection.IsServer,
-                    connection.LocalEndpoint?.ToString() ?? "undefined",
-                    connection.RemoteEndpoint?.ToString() ?? "undefined");
-            }
-            else
-            {
-                return null;
-            }
-        }
+        internal static IDisposable? StartConnectionScope(this ILogger logger, INetworkConnection connection) =>
+            _connectionScope(
+                logger,
+                connection.IsServer,
+                connection.LocalEndpoint?.ToString() ?? "undefined",
+                connection.RemoteEndpoint?.ToString() ?? "undefined");
 
-        internal static IDisposable? StartStreamScope(this ILogger logger, long id)
-        {
-            if (logger.IsEnabled(LogLevel.Error))
+        internal static IDisposable? StartStreamScope(this ILogger logger, long id) =>
+            (id % 4) switch
             {
-                (string initiatedBy, string kind) = (id % 4) switch
-                {
-                    0 => ("Client", "Bidirectional"),
-                    1 => ("Server", "Bidirectional"),
-                    2 => ("Client", "Unidirectional"),
-                    _ => ("Server", "Unidirectional")
-                };
-                return _streamScope(logger, id, initiatedBy, kind);
-            }
-            else
-            {
-                return null;
-            }
-        }
+                0 => _streamScope(logger, id, "Client", "Bidirectional"),
+                1 => _streamScope(logger, id, "Server", "Bidirectional"),
+                2 => _streamScope(logger, id, "Client", "Unidirectional"),
+                _ => _streamScope(logger, id, "Server", "Unidirectional")
+            };
     }
 }

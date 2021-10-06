@@ -41,13 +41,11 @@ namespace IceRpc.Transports.Internal
             _writer.TryComplete(); // Dispose might be called multiple times
         }
 
-        public ValueTask ConnectAsync(CancellationToken cancel) => default;
-
         public async ValueTask<IMultiStreamConnection> GetMultiStreamConnectionAsync(CancellationToken cancel)
         {
             // Multi-stream support for a colocated connection is provided by Slic.
-            _slicConnection ??= await NetworkConnection.CreateSlicConnection(
-                this,
+            _slicConnection ??= await NetworkConnection.CreateSlicConnectionAsync(
+                await GetSingleStreamConnectionAsync(cancel).ConfigureAwait(false),
                 IsServer,
                 TimeSpan.MaxValue,
                 _slicOptions,
@@ -56,17 +54,7 @@ namespace IceRpc.Transports.Internal
             return _slicConnection;
         }
 
-        public ValueTask<ISingleStreamConnection> GetSingleStreamConnectionAsync(CancellationToken cancel)
-        {
-            if (Logger.IsEnabled(LogLevel.Debug))
-            {
-                return new(new LogSingleStreamConnectionDecorator(this, Logger));
-            }
-            else
-            {
-                return new(this);
-            }
-        }
+        public ValueTask<ISingleStreamConnection> GetSingleStreamConnectionAsync(CancellationToken cancel) => new(this);
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint)
         {

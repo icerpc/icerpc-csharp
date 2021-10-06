@@ -10,15 +10,6 @@ namespace IceRpc.Tests.Internal
 {
     public class ColocConnectionTests
     {
-        [TestCase(false)]
-        [TestCase(true)]
-        public void ColocConnection_ConnectAsync(bool isServer)
-        {
-            ColocConnection connection = CreateConnection(isServer);
-            Assert.DoesNotThrowAsync(async () => await connection.ConnectAsync(default));
-            connection.Close();
-        }
-
         [Test]
         public void ColocConnection_Close()
         {
@@ -29,10 +20,9 @@ namespace IceRpc.Tests.Internal
 
         [TestCase(true, false)]
         [TestCase(false, true)]
-        public async Task ColocConnection_HasCompatibleParams(bool isServer, bool expectedResult)
+        public void ColocConnection_HasCompatibleParams(bool isServer, bool expectedResult)
         {
             ColocConnection connection = CreateConnection(isServer);
-            await connection.ConnectAsync(default);
             Assert.That(connection.HasCompatibleParams(Endpoint.FromString("ice+coloc://host")),
                         Is.EqualTo(expectedResult));
             connection.Close();

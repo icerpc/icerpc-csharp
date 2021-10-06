@@ -9,8 +9,8 @@ namespace IceRpc.Tests
     internal class NetworkSocketStub : NetworkSocket
     {
         public override bool IsDatagram => _isDatagram;
+        public bool Connected { get; private set; }
         public bool Disposed { get; private set; }
-
         internal Endpoint? Endpoint { get; private set; }
 
         private readonly bool _isDatagram;
@@ -18,6 +18,7 @@ namespace IceRpc.Tests
         public override ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
         {
             Endpoint = endpoint;
+            Connected = true;
             return new(endpoint);
         }
 

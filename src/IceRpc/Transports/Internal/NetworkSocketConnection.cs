@@ -45,24 +45,11 @@ namespace IceRpc.Transports.Internal
         }
 
         /// <inheritdoc/>
-        public async ValueTask ConnectAsync(CancellationToken cancel)
-        {
-            if (!IsServer)
-            {
-                LocalEndpoint = await NetworkSocket.ConnectAsync(RemoteEndpoint!, cancel).ConfigureAwait(false);
-            }
-            else if (!NetworkSocket.IsDatagram)
-            {
-                RemoteEndpoint = await NetworkSocket.ConnectAsync(LocalEndpoint!, cancel).ConfigureAwait(false);
-            }
-        }
-
-        /// <inheritdoc/>
         public async ValueTask<IMultiStreamConnection> GetMultiStreamConnectionAsync(CancellationToken cancel)
         {
             // Multi-stream support for a network socket connection is provided by Slic.
-            _slicConnection ??= await NetworkConnection.CreateSlicConnection(
-                this,
+            _slicConnection ??= await NetworkConnection.CreateSlicConnectionAsync(
+                await GetSingleStreamConnectionAsync(cancel).ConfigureAwait(false),
                 IsServer,
                 _idleTimeout,
                 _slicOptions,
@@ -72,16 +59,17 @@ namespace IceRpc.Transports.Internal
         }
 
         /// <inheritdoc/>
-        public ValueTask<ISingleStreamConnection> GetSingleStreamConnectionAsync(CancellationToken cancel)
+        public async ValueTask<ISingleStreamConnection> GetSingleStreamConnectionAsync(CancellationToken cancel)
         {
-            if (Logger.IsEnabled(LogLevel.Debug))
+            if (!IsServer)
             {
-                return new(new LogSingleStreamConnectionDecorator(this, Logger));
+                LocalEndpoint = await NetworkSocket.ConnectAsync(RemoteEndpoint!, cancel).ConfigureAwait(false);
             }
-            else
+            else if (!NetworkSocket.IsDatagram)
             {
-                return new(this);
+                RemoteEndpoint = await NetworkSocket.ConnectAsync(LocalEndpoint!, cancel).ConfigureAwait(false);
             }
+            return this;
         }
 
         /// <inheritdoc/>

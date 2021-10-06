@@ -74,6 +74,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [TestCase]
+        [Log(LogAttributeLevel.Trace)]
         public async Task SingleStreamConnection_SendReceive()
         {
             ReadOnlyMemory<byte> sendBuffer = new byte[] { 0x05, 0x06 };
@@ -89,7 +90,7 @@ namespace IceRpc.Tests.Internal
             Assert.That(await ServerStream.ReceiveAsync(receiveBuffer, default), Is.EqualTo(sendBuffer.Length * 2));
             await task2;
             Assert.That(receiveBuffer.ToArray()[0..2], Is.EqualTo(sendBuffer.ToArray()));
-                Assert.That(receiveBuffer.ToArray()[2..4], Is.EqualTo(sendBuffer.ToArray()));
+            Assert.That(receiveBuffer.ToArray()[2..4], Is.EqualTo(sendBuffer.ToArray()));
         }
 
         [TestCase]
@@ -116,35 +117,18 @@ namespace IceRpc.Tests.Internal
                     endpoint,
                     LogAttributeLoggerFactory.Instance).Listener!;
 
-            Task<INetworkConnection> acceptTask = AcceptAsync(listener);
-            _clientConnection = await ConnectAsync(listener.Endpoint);
+            IClientTransport clientTransport = TestHelper.CreateClientTransport(listener.Endpoint);
+            _clientConnection = clientTransport.CreateConnection(listener.Endpoint, LogAttributeLoggerFactory.Instance);
+
+            ValueTask<INetworkConnection> acceptTask = listener.AcceptAsync();
+            ValueTask<ISingleStreamConnection> connectTask = _clientConnection.GetSingleStreamConnectionAsync(default);
             _serverConnection = await acceptTask;
-
-            ValueTask<ISingleStreamConnection> serverTask = _serverConnection.GetSingleStreamConnectionAsync(default);
-            _clientSingleStreamConnection = await _clientConnection.GetSingleStreamConnectionAsync(default);
-            _serverSingleStreamConnection = await serverTask;
-
-            async Task<INetworkConnection> AcceptAsync(IListener listener)
-            {
-                INetworkConnection networkConnection = await listener.AcceptAsync();
-                await networkConnection.ConnectAsync(default);
-                return networkConnection;
-            }
-
-            async Task<INetworkConnection> ConnectAsync(Endpoint clientEndpoint)
-            {
-                IClientTransport clientTransport = TestHelper.CreateClientTransport(clientEndpoint);
-                INetworkConnection networkConnection = clientTransport.CreateConnection(
-                        clientEndpoint,
-                        LogAttributeLoggerFactory.Instance);
-                await networkConnection.ConnectAsync(default);
-                return networkConnection;
-            }
+            _clientSingleStreamConnection = await connectTask;
+            _serverSingleStreamConnection = await _serverConnection.GetSingleStreamConnectionAsync(default);
         }
 
         [TearDown]
         public void TearDown()
-
         {
             _clientConnection?.Close(new ConnectionClosedException());
             _serverConnection?.Close(new ConnectionClosedException());

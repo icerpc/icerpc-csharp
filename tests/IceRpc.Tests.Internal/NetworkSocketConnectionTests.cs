@@ -12,25 +12,6 @@ namespace IceRpc.Tests.Internal
     public class NetworkSocketConnectionTests
     {
         [Test]
-        public async Task NetworkSocketConnection_ConnectAsync()
-        {
-            var connection = new NetworkSocketConnection(
-                new NetworkSocketStub(isDatagram: false),
-                Endpoint.FromString("ice+tcp://host"),
-                isServer: false,
-                TimeSpan.FromSeconds(10),
-                slicOptions: new(),
-                NullLogger.Instance);
-
-            await connection.ConnectAsync(default);
-
-            var stub = (NetworkSocketStub)connection.NetworkSocket;
-            Assert.That(stub.Endpoint, Is.EqualTo(Endpoint.FromString("ice+tcp://host")));
-
-            connection.Close();
-        }
-
-        [Test]
         public void NetworkSocketConnection_Dispose()
         {
             var connection = new NetworkSocketConnection(
@@ -43,6 +24,26 @@ namespace IceRpc.Tests.Internal
             connection.Close();
             connection.Close();
             Assert.That(((NetworkSocketStub)connection.NetworkSocket).Disposed, Is.True);
+        }
+
+        [Test]
+        public async Task NetworkSocketConnection_GetSingleStreamConnectionAsync()
+        {
+            var connection = new NetworkSocketConnection(
+                new NetworkSocketStub(isDatagram: false),
+                Endpoint.FromString("ice+tcp://host"),
+                isServer: false,
+                TimeSpan.FromSeconds(10),
+                slicOptions: new(),
+                NullLogger.Instance);
+
+            _ = await connection.GetSingleStreamConnectionAsync(default);
+
+            var stub = (NetworkSocketStub)connection.NetworkSocket;
+            Assert.That(stub.Connected, Is.True);
+            Assert.That(stub.Endpoint, Is.EqualTo(Endpoint.FromString("ice+tcp://host")));
+
+            connection.Close();
         }
 
         [TestCase(true, "ice+tcp://host", "ice+tcp://host", false)]
@@ -64,7 +65,7 @@ namespace IceRpc.Tests.Internal
                 slicOptions: new(),
                 null!);
 
-            await connection.ConnectAsync(default);
+            _ = await connection.GetSingleStreamConnectionAsync(default);
 
             Assert.That(connection.HasCompatibleParams(otherEndpoint), Is.EqualTo(expectedResult));
             connection.Close();

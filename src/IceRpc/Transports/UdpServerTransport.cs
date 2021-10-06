@@ -96,7 +96,7 @@ namespace IceRpc.Transports
             }
 
             return (null,
-                    NetworkConnection.CreateNetworkSocketConnection(
+                    new NetworkSocketConnection(
                         new UdpSocket(socket, isServer: true, multicastAddress),
                         endpoint with { Port = port },
                         isServer: true,

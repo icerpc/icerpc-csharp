@@ -253,11 +253,6 @@ namespace IceRpc
                 {
                     await Task.Yield();
 
-                    // Establish the network connection.
-                    await NetworkConnection.ConnectAsync(connectCancellationSource.Token).ConfigureAwait(false);
-
-                    using IDisposable? scope = NetworkConnection.StartScope();
-
                     _protocolConnection = await Protocol.CreateConnectionAsync(
                         NetworkConnection,
                         _options.IncomingFrameMaxSize,
@@ -352,7 +347,8 @@ namespace IceRpc
 
             try
             {
-                using IDisposable? scope = NetworkConnection!.StartScope();
+                // TODO: remove once we add log protocol decorators.
+                using IDisposable? scope = NetworkConnection!.Logger.StartConnectionScope(NetworkConnection);
 
                 // Send the request.
                 await _protocolConnection!.SendRequestAsync(request, cancel).ConfigureAwait(false);
@@ -501,6 +497,9 @@ namespace IceRpc
         /// dispatch by no longer accepting a new request when a limit is reached.</summary>
         private async Task AcceptIncomingRequestAsync(IDispatcher dispatcher)
         {
+            // TODO: remove once we add log protocol decorators.
+            using IDisposable? scope = NetworkConnection!.Logger.StartConnectionScope(NetworkConnection);
+
             IncomingRequest request;
             try
             {
@@ -581,8 +580,6 @@ namespace IceRpc
                 // that _closeTask is assigned before any synchronous continuations are ran.
                 await Task.Yield();
 
-                using IDisposable? scope = NetworkConnection?.StartScope();
-
                 try
                 {
                     _protocolConnection?.Dispose();
@@ -661,7 +658,8 @@ namespace IceRpc
                 using var closeCancellationSource = new CancellationTokenSource(_options.CloseTimeout);
                 try
                 {
-                    using IDisposable? scope = NetworkConnection!.StartScope();
+                    // TODO: remove once we add log protocol decorators.
+                    using IDisposable? scope = NetworkConnection!.Logger.StartConnectionScope(NetworkConnection);
 
                     // Shutdown the connection.
                     await _protocolConnection!.ShutdownAsync(

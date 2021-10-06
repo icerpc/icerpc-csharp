@@ -95,7 +95,7 @@ namespace IceRpc.Transports
                 throw new TransportException(ex);
             }
 
-            return NetworkConnection.CreateNetworkSocketConnection(
+            return new NetworkSocketConnection(
                 new UdpSocket(socket, isServer: false, netEndPoint, ttl, multicastInterface),
                 remoteEndpoint,
                 isServer: false,

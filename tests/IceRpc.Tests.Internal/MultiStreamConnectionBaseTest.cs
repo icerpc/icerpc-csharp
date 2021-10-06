@@ -35,7 +35,7 @@ namespace IceRpc.Tests.Internal
         protected async Task SetUpConnectionsAsync()
         {
             Task<INetworkConnection> acceptTask = AcceptAsync();
-            _clientConnection = await ConnectAsync();
+            _clientConnection = Connect();
             _serverConnection = await acceptTask;
 
             ValueTask<IMultiStreamConnection> multiStreamTask = _serverConnection.GetMultiStreamConnectionAsync(default);
@@ -58,22 +58,15 @@ namespace IceRpc.Tests.Internal
                     _serverEndpoint,
                     LogAttributeLoggerFactory.Instance).Listener!;
 
-            INetworkConnection networkConnection = await listener.AcceptAsync();
-            await networkConnection.ConnectAsync(default);
-            return networkConnection;
+            return await listener.AcceptAsync();
         }
 
-        private async Task<INetworkConnection> ConnectAsync()
+        private INetworkConnection Connect()
         {
             IClientTransport clientTransport = TestHelper.CreateClientTransport(
                 _clientEndpoint,
                 multiStreamOptions: _clientOptions);
-
-            INetworkConnection networkConnection = clientTransport.CreateConnection(
-                    _clientEndpoint,
-                    LogAttributeLoggerFactory.Instance);
-            await networkConnection.ConnectAsync(default);
-            return networkConnection;
+            return clientTransport.CreateConnection(_clientEndpoint, LogAttributeLoggerFactory.Instance); ;
         }
 
         protected static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateSendPayload(INetworkStream stream, int length = 10)
