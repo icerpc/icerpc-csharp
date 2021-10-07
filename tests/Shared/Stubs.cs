@@ -2,60 +2,88 @@
 
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IceRpc.Tests
 {
-    /// <summary>A MultiStreamConnection stub which can be used just to provide the local and remote endpoint
-    /// properties for a connection.</summary>
-    public class MultiStreamConnectionStub : MultiStreamConnection
+    /// <summary>A network socket stub</summary>
+    internal class NetworkSocketStub : NetworkSocket
     {
-        public override bool IsDatagram => false;
+        public override bool IsDatagram => _isDatagram;
+        public bool Connected { get; private set; }
+        public bool Disposed { get; private set; }
+        internal Endpoint? Endpoint { get; private set; }
 
-        public override bool IsSecure => false;
+        private readonly bool _isDatagram;
 
-        public MultiStreamConnectionStub(
-            Endpoint localEndpoint,
-            Endpoint remoteEndpoint,
-            bool isServer,
-            ILogger logger) :
-            base(remoteEndpoint, isServer, logger)
+        public override ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
         {
+            Endpoint = endpoint;
+            Connected = true;
+            return new(endpoint);
+        }
+
+        public override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
+            Endpoint?.Params.SequenceEqual(remoteEndpoint.Params) ?? false;
+
+        public override ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel) =>
+            new(buffer.Length);
+
+        public override ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
+             default;
+
+        protected override void Dispose(bool disposing) => Disposed = true;
+
+        internal NetworkSocketStub(bool isDatagram) :
+            base(null!) => _isDatagram = isDatagram;
+    }
+
+    /// <summary>A network connection stub can be used just to provide the local and remote endpoint
+    /// properties for a connection.</summary>
+    internal class NetworkConnectionStub : INetworkConnection
+    {
+        public int DatagramMaxReceiveSize => throw new NotImplementedException();
+        public TimeSpan IdleTimeout => throw new NotImplementedException();
+        public bool IsDatagram => false;
+        public bool IsSecure => false;
+        public bool IsServer { get;}
+        public TimeSpan LastActivity => throw new NotImplementedException();
+        public Endpoint? LocalEndpoint { get; }
+        public ILogger Logger => throw new NotImplementedException();
+        public Endpoint? RemoteEndpoint { get; }
+
+        public void Close(Exception? exception = null)
+        {
+        }
+
+        public ValueTask ConnectAsync(CancellationToken cancel) => default;
+
+        public bool HasCompatibleParams(Endpoint remoteEndpoint) => throw new NotImplementedException();
+
+        public ValueTask<IMultiStreamConnection> GetMultiStreamConnectionAsync(CancellationToken _) =>
+            throw new NotImplementedException();
+
+        public ValueTask<ISingleStreamConnection> GetSingleStreamConnectionAsync(CancellationToken _) =>
+            throw new NotImplementedException();
+
+        public NetworkConnectionStub(Endpoint localEndpoint, Endpoint remoteEndpoint, bool isServer)
+        {
+            IsServer = isServer;
             LocalEndpoint = localEndpoint;
             RemoteEndpoint = remoteEndpoint;
         }
-
-        public override ValueTask<RpcStream> AcceptStreamAsync(CancellationToken cancel) =>
-            throw new NotImplementedException();
-        public override ValueTask ConnectAsync(CancellationToken cancel) => default;
-
-        public override RpcStream CreateStream(bool bidirectional) =>
-            throw new NotImplementedException();
-
-        public override bool HasCompatibleParams(Endpoint remoteEndpoint) => throw new NotImplementedException();
-
-        public override ValueTask InitializeAsync(CancellationToken cancel) => throw new NotImplementedException();
-
-        public override Task PingAsync(CancellationToken cancel) => throw new NotImplementedException();
     }
 
     public static class ConnectionStub
     {
         /// <summary>Creates a connection stub to provide the local and remote endpoint properties for a
         /// connection.</summary>
-        public static Connection Create(Endpoint localEndpoint, Endpoint remoteEndpoint, bool isServer)
-        {
-            return new Connection(
-#pragma warning disable CA2000 // Dispose objects before losing scope
-                new MultiStreamConnectionStub(
+        public static Connection Create(Endpoint localEndpoint, Endpoint remoteEndpoint, bool isServer) =>
+            new(new NetworkConnectionStub(
                     localEndpoint,
                     remoteEndpoint,
-                    isServer,
-                    NullLogger.Instance),
-#pragma warning restore CA2000 // Dispose objects before losing scope
+                    isServer),
                 dispatcher: null,
                 new(),
                 loggerFactory: null);
-        }
     }
 }

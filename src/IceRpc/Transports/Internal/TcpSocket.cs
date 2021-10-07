@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -16,8 +15,6 @@ namespace IceRpc.Transports.Internal
     internal abstract class TcpSocket : NetworkSocket
     {
         public override bool IsDatagram => false;
-
-        protected internal override Socket Socket { get; }
 
         // The MaxDataSize of the SSL implementation.
         private const int MaxSslDataSize = 16 * 1024;
@@ -53,23 +50,79 @@ namespace IceRpc.Transports.Internal
             return received;
         }
 
-        public override async ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
+        public override async ValueTask SendAsync(
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            CancellationToken cancel)
         {
-            if (cancel.CanBeCanceled)
-            {
-                throw new NotSupportedException(
-                    $"{nameof(SendAsync)} on a tcp connection does not support cancellation");
-            }
+            Debug.Assert(buffers.Length > 0);
 
             try
             {
                 if (SslStream is SslStream sslStream)
                 {
-                    await sslStream.WriteAsync(buffer, cancel).ConfigureAwait(false);
+                    if (buffers.Length == 1)
+                    {
+                        await sslStream.WriteAsync(buffers.Span[0], cancel).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        // Coalesce leading small buffers up to MaxSslDataSize. We assume buffers later on are
+                        // large enough and don't need coalescing.
+                        int index = 0;
+                        int writeBufferSize = 0;
+                        do
+                        {
+                            ReadOnlyMemory<byte> buffer = buffers.Span[index];
+                            if (writeBufferSize + buffer.Length < MaxSslDataSize)
+                            {
+                                index++;
+                                writeBufferSize += buffer.Length;
+                            }
+                            else
+                            {
+                                break; // while
+                            }
+                        } while (index < buffers.Length);
+
+                        if (index == 1)
+                        {
+                            // There is no point copying only the first buffer into another buffer.
+                            index = 0;
+                        }
+                        else if (writeBufferSize > 0)
+                        {
+                            using IMemoryOwner<byte> writeBufferOwner = MemoryPool<byte>.Shared.Rent(writeBufferSize);
+                            Memory<byte> writeBuffer = writeBufferOwner.Memory[0..writeBufferSize];
+                            int offset = 0;
+                            for (int i = 0; i < index; ++i)
+                            {
+                                ReadOnlyMemory<byte> buffer = buffers.Span[index];
+                                buffer.CopyTo(writeBuffer[offset..]);
+                                offset += buffer.Length;
+                            }
+                            // Send the "coalesced" initial buffers
+                            await sslStream.WriteAsync(writeBuffer, cancel).ConfigureAwait(false);
+                        }
+
+                        // Send the remaining buffers one by one
+                        for (int i = index; i < buffers.Length; ++i)
+                        {
+                            await sslStream.WriteAsync(buffers.Span[i], cancel).ConfigureAwait(false);
+                        }
+                    }
                 }
                 else
                 {
-                    await Socket.SendAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
+                    if (buffers.Length == 1)
+                    {
+                        await Socket.SendAsync(buffers.Span[0], SocketFlags.None, cancel).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        await Socket.SendAsync(
+                            buffers.ToSegmentList(),
+                            SocketFlags.None).WaitAsync(cancel).ConfigureAwait(false);
+                    }
                 }
             }
             catch (Exception ex)
@@ -78,87 +131,9 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override async ValueTask SendAsync(
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
-            CancellationToken cancel)
-        {
-            Debug.Assert(buffers.Length > 0);
-
-            if (cancel.CanBeCanceled)
-            {
-                throw new NotSupportedException(
-                    $"{nameof(SendAsync)} on a tcp connection does not support cancellation");
-            }
-
-            if (buffers.Length == 1)
-            {
-                await SendAsync(buffers.Span[0], cancel).ConfigureAwait(false);
-            }
-            else
-            {
-                if (SslStream == null)
-                {
-                    try
-                    {
-                        await Socket.SendAsync(buffers.ToSegmentList(), SocketFlags.None).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
-                    }
-                }
-                else
-                {
-                    // Coalesce leading small buffers up to MaxSslDataSize. We assume buffers later on are large enough
-                    // and don't need coalescing.
-                    int index = 0;
-                    int writeBufferSize = 0;
-                    do
-                    {
-                        ReadOnlyMemory<byte> buffer = buffers.Span[index];
-                        if (writeBufferSize + buffer.Length < MaxSslDataSize)
-                        {
-                            index++;
-                            writeBufferSize += buffer.Length;
-                        }
-                        else
-                        {
-                            break; // while
-                        }
-                    } while (index < buffers.Length);
-
-                    if (index == 1)
-                    {
-                        // There is no point copying only the first buffer into another buffer.
-                        index = 0;
-                    }
-                    else if (writeBufferSize > 0)
-                    {
-                        using IMemoryOwner<byte> writeBufferOwner = MemoryPool<byte>.Shared.Rent(writeBufferSize);
-                        Memory<byte> writeBuffer = writeBufferOwner.Memory[0..writeBufferSize];
-                        int offset = 0;
-                        for (int i = 0; i < index; ++i)
-                        {
-                            ReadOnlyMemory<byte> buffer = buffers.Span[index];
-                            buffer.CopyTo(writeBuffer[offset..]);
-                            offset += buffer.Length;
-                        }
-                        // Send the "coalesced" initial buffers
-                        await SendAsync(writeBuffer, cancel).ConfigureAwait(false);
-                    }
-
-                    // Send the remaining buffers one by one
-                    for (int i = index; i < buffers.Length; ++i)
-                    {
-                        await SendAsync(buffers.Span[i], cancel).ConfigureAwait(false);
-                    }
-                }
-            }
-        }
-
         protected override void Dispose(bool disposing)
         {
-            Socket.Dispose();
+            base.Dispose(disposing);
             SslStream?.Dispose();
         }
 
@@ -173,10 +148,10 @@ namespace IceRpc.Transports.Internal
             return true;
         }
 
-        internal TcpSocket(Socket fd, ILogger logger)
-            : base(logger) =>
-            // The socket is not connected if a client socket, it's connected otherwise.
-            Socket = fd;
+        internal TcpSocket(Socket socket)
+            : base(socket)
+        {
+        }
     }
 
     internal class TcpClientSocket : TcpSocket
@@ -186,13 +161,9 @@ namespace IceRpc.Transports.Internal
 
         public override async ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
         {
-            // First verify all parameters:
             bool? tls = endpoint.ParseTcpParams().Tls;
-            if (endpoint.Protocol == Protocol.Ice1)
-            {
-                tls = endpoint.Transport == TransportNames.Ssl;
-            }
-            else if (tls == null)
+
+            if (tls == null)
             {
                 // TODO: add ability to override this default tls=true through some options
                 tls = true;
@@ -228,22 +199,19 @@ namespace IceRpc.Transports.Internal
                 if (tls == true)
                 {
                     // This can only be created with a connected socket.
-                    SslStream = new SslStream(new NetworkStream(Socket, false), false);
+                    SslStream = new SslStream(new System.Net.Sockets.NetworkStream(Socket, false), false);
                     try
                     {
                         await SslStream.AuthenticateAsClientAsync(authenticationOptions!, cancel).ConfigureAwait(false);
                     }
                     catch (AuthenticationException ex)
                     {
-                        Logger.LogTlsAuthenticationFailed(ex);
                         throw new TransportException(ex);
                     }
                     catch (Exception ex)
                     {
                         throw ExceptionUtil.Throw(ex.ToTransportException(default));
                     }
-
-                    Logger.LogTlsAuthenticationSucceeded(SslStream);
                 }
 
                 var ipEndPoint = (IPEndPoint)Socket.LocalEndPoint!;
@@ -277,11 +245,10 @@ namespace IceRpc.Transports.Internal
         }
 
         internal TcpClientSocket(
-            Socket fd,
-            ILogger logger,
+            Socket socket,
             SslClientAuthenticationOptions? authenticationOptions,
             EndPoint addr)
-           : base(fd, logger)
+           : base(socket)
         {
             _authenticationOptions = authenticationOptions;
             _addr = addr;
@@ -298,11 +265,6 @@ namespace IceRpc.Transports.Internal
         public override async ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
         {
             bool? tls = endpoint.ParseTcpParams().Tls;
-            if (endpoint.Protocol == Protocol.Ice1)
-            {
-                tls = endpoint.Transport == TransportNames.Ssl;
-            }
-
             try
             {
                 bool secure;
@@ -313,10 +275,9 @@ namespace IceRpc.Transports.Internal
                 }
                 else if (_authenticationOptions != null)
                 {
-                    // On the server side, when accepting a new connection for an Ice2 endpoint and the tls
-                    // parameter is not set, the TCP socket checks the first byte sent by the peer to figure
-                    // out if the peer tries to establish a TLS connection.
-                    if (tls == null && endpoint.Protocol == Protocol.Ice2)
+                    // On the server side, if the tls parameter is not set, the TCP socket checks the first
+                    // byte sent by the peer to figure out if the peer tries to establish a TLS connection.
+                    if (tls == null)
                     {
                         // Peek one byte into the tcp stream to see if it contains the TLS handshake record
                         Memory<byte> buffer = new byte[1];
@@ -346,26 +307,23 @@ namespace IceRpc.Transports.Internal
                     Debug.Assert(_authenticationOptions != null);
 
                     // This can only be created with a connected socket.
-                    SslStream = new SslStream(new NetworkStream(Socket, false), false);
+                    SslStream = new SslStream(new System.Net.Sockets.NetworkStream(Socket, false), false);
                     try
                     {
                         await SslStream.AuthenticateAsServerAsync(_authenticationOptions, cancel).ConfigureAwait(false);
                     }
                     catch (AuthenticationException ex)
                     {
-                        Logger.LogTlsAuthenticationFailed(ex);
                         throw new TransportException(ex);
                     }
                     catch (Exception ex)
                     {
                         throw ExceptionUtil.Throw(ex.ToTransportException(default));
                     }
-
-                    Logger.LogTlsAuthenticationSucceeded(SslStream);
                 }
 
                 ImmutableList<EndpointParam> endpointParams = endpoint.Params;
-                if (tls == null && endpoint.Protocol == Protocol.Ice2)
+                if (tls == null)
                 {
                     // the accepted endpoint gets a tls parameter
                     endpointParams = endpointParams.Add(new EndpointParam("tls", SslStream == null ? "false" : "true"));
@@ -389,9 +347,8 @@ namespace IceRpc.Transports.Internal
             throw new NotSupportedException($"{nameof(HasCompatibleParams)} is only supported by client sockets.");
 
         internal TcpServerSocket(
-            Socket fd,
-            ILogger logger,
+            Socket socket,
             SslServerAuthenticationOptions? authenticationOptions)
-           : base(fd, logger) => _authenticationOptions = authenticationOptions;
+           : base(socket) => _authenticationOptions = authenticationOptions;
     }
 }

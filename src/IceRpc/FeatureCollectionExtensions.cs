@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
+using IceRpc.Features.Internal;
 using System.Collections.Immutable;
 
 namespace IceRpc
@@ -21,6 +22,11 @@ namespace IceRpc
         /// <returns>The value of Context if found; otherwise, an empty dictionary.</returns>
         public static IDictionary<string, string> GetContext(this FeatureCollection features) =>
             features.Get<Context>()?.Value ?? ImmutableSortedDictionary<string, string>.Empty;
+
+        /// <summary>Returns the request ID value from this feature collection.</summary>
+        /// <param name="features">This feature collection.</param>
+        /// <returns>The value of the request ID if found, null otherwise.</returns>
+        public static int? GetRequestId(this FeatureCollection features) => features.Get<Ice1Request>()?.Id;
 
         /// <summary>Updates this feature collection (if read-write) or creates a new feature collection (if read-only)
         /// and sets its T to the provided value.</summary>

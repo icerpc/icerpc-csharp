@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
 using System.Net.Security;
+using System.Net.Sockets;
 using System.Text;
 
 namespace IceRpc.Transports
@@ -16,18 +16,15 @@ namespace IceRpc.Transports
         /// <summary><c>true</c> for a datagram socket; <c>false</c> otherwise.</summary>
         public abstract bool IsDatagram { get; }
 
+        /// <summary>The underlying <see cref="Socket"/>.</summary>
+        public Socket Socket { get; }
+
         /// <summary>The underlying <see cref="SslStream"/>, if the implementation uses a ssl stream and chooses to
         /// expose it.</summary>
         public SslStream? SslStream { get; protected set; }
 
-        /// <summary>The underlying socket, if the implementation uses a Socket and chooses to expose it to the test
-        /// suite.</summary>
-        protected internal virtual System.Net.Sockets.Socket? Socket => null;
-
-        internal ILogger Logger { get; }
-
-        /// <summary>Connects a new socket. This is called after the endpoint created a new socket to establish
-        /// the connection and perform socket level initialization (TLS handshake, etc).</summary>
+        /// <summary>Connects a new socket. This is called after the endpoint created a new socket to
+        /// establish the connection and perform socket level initialization (TLS handshake, etc).</summary>
         /// <param name="endpoint">The endpoint used to create the connection.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The endpoint.</returns>
@@ -54,12 +51,6 @@ namespace IceRpc.Transports
         public abstract ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel);
 
         /// <summary>Sends data over the connection.</summary>
-        /// <param name="buffer">The buffer containing the data to send.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A value task that completes once the buffer is sent.</returns>
-        public abstract ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel);
-
-        /// <summary>Sends data over the connection.</summary>
         /// <param name="buffers">The buffers containing the data to send.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A value task that completes once the buffers are sent.</returns>
@@ -82,13 +73,18 @@ namespace IceRpc.Transports
         /// <summary>Releases the resources used by the socket.</summary>
         /// <param name="disposing">True to release both managed and unmanaged resources; false to release only
         /// unmanaged resources.</param>
-        protected abstract void Dispose(bool disposing);
+        protected virtual void Dispose(bool disposing) => Socket.Dispose();
 
         /// <summary>Prints the fields/properties of this class using the Records format.</summary>
         /// <param name="builder">The string builder.</param>
         /// <returns><c>true</c>when members are appended to the builder; otherwise, <c>false</c>.</returns>
-        protected virtual bool PrintMembers(StringBuilder builder) => false;
+        protected virtual bool PrintMembers(StringBuilder builder)
+        {
+            builder.Append("LocalEndPoint = ").Append(Socket.LocalEndPoint).Append(", ");
+            builder.Append("RemoteEndPoint = ").Append(Socket.RemoteEndPoint);
+            return true;
+        }
 
-        internal NetworkSocket(ILogger logger) => Logger = logger;
+        internal NetworkSocket(Socket socket) => Socket = socket;
     }
 }

@@ -2,6 +2,7 @@
 
 using IceRpc.Transports;
 using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Tests
 {
@@ -16,6 +17,27 @@ namespace IceRpc.Tests
                 _ => address.Contains(':', StringComparison.InvariantCulture) ? $"[{address}]" : address
             };
 
+        public static IClientTransport GetSecureClientTransport(string caFile = "cacert.der") =>
+            new TcpClientTransport(authenticationOptions:
+                new()
+                {
+                    RemoteCertificateValidationCallback =
+                        CertificateValidaton.GetServerCertificateValidationCallback(
+                            certificateAuthorities: new X509Certificate2Collection
+                            {
+                                new X509Certificate2(Path.Combine(Environment.CurrentDirectory, "certs", caFile))
+                            })
+                });
+
+        public static IServerTransport GetSecureServerTransport(string certificateFile = "server.p12") =>
+            new TcpServerTransport(authenticationOptions:
+                new()
+                {
+                    ServerCertificate = new X509Certificate2(
+                        Path.Combine(Environment.CurrentDirectory, "certs", certificateFile),
+                        "password")
+                });
+
         public static Endpoint GetTestEndpoint(
              string host = "127.0.0.1",
              int port = 0,
@@ -23,6 +45,11 @@ namespace IceRpc.Tests
              bool tls = false,
              Protocol protocol = Protocol.Ice2)
         {
+            if (transport == "coloc" && host == "127.0.0.1" && port == 0)
+            {
+                return GetUniqueColocEndpoint(protocol);
+            }
+
             if (protocol == Protocol.Ice2)
             {
                 string endpoint = $"ice+{transport}://{EscapeIPv6Address(host, protocol)}:{port}";
@@ -68,41 +95,41 @@ namespace IceRpc.Tests
         public static IServerTransport CreateServerTransport(
             Endpoint endpoint,
             object? options = null,
-            MultiStreamOptions? multiStreamOptions = null,
+            object? multiStreamOptions = null,
             SslServerAuthenticationOptions? authenticationOptions = null) =>
-            endpoint.Transport switch
-            {
-                "tcp" => new TcpServerTransport(
-                    (TcpOptions?)options ?? new(),
-                    (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
-                    authenticationOptions),
-                "ssl" => new TcpServerTransport(
-                    (TcpOptions?)options ?? new(),
-                    (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
-                    authenticationOptions),
-                "udp" => new UdpServerTransport((UdpOptions?)options ?? new()),
-                "coloc" => new ColocServerTransport(multiStreamOptions ?? new()),
-                _ => throw new UnknownTransportException(endpoint.Transport, endpoint.Protocol)
-            };
+            new LogServerTransportDecorator(endpoint.Transport switch
+                {
+                    "tcp" => new TcpServerTransport(
+                        (TcpOptions?)options ?? new(),
+                        (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
+                        authenticationOptions),
+                    "ssl" => new TcpServerTransport(
+                        (TcpOptions?)options ?? new(),
+                        (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
+                        authenticationOptions),
+                    "udp" => new UdpServerTransport((UdpOptions?)options ?? new()),
+                    "coloc" => new ColocServerTransport((SlicOptions?)multiStreamOptions ?? new SlicOptions()),
+                    _ => throw new UnknownTransportException(endpoint.Transport, endpoint.Protocol)
+                });
 
         public static IClientTransport CreateClientTransport(
             Endpoint endpoint,
             object? options = null,
-            MultiStreamOptions? multiStreamOptions = null,
+            object? multiStreamOptions = null,
             SslClientAuthenticationOptions? authenticationOptions = null) =>
-            endpoint.Transport switch
-            {
-                "tcp" => new TcpClientTransport(
-                    (TcpOptions?)options ?? new(),
-                    (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
-                    authenticationOptions),
-                "ssl" => new TcpClientTransport(
-                    (TcpOptions?)options ?? new(),
-                    (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
-                    authenticationOptions),
-                "udp" => new UdpClientTransport((UdpOptions?)options ?? new()),
-                "coloc" => new ColocClientTransport(multiStreamOptions ?? new()),
-                _ => throw new UnknownTransportException(endpoint.Transport, endpoint.Protocol)
-            };
+            new LogClientTransportDecorator(endpoint.Transport switch
+                {
+                    "tcp" => new TcpClientTransport(
+                        (TcpOptions?)options ?? new(),
+                        (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
+                        authenticationOptions),
+                    "ssl" => new TcpClientTransport(
+                        (TcpOptions?)options ?? new(),
+                        (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
+                        authenticationOptions),
+                    "udp" => new UdpClientTransport((UdpOptions?)options ?? new()),
+                    "coloc" => new ColocClientTransport((SlicOptions?)multiStreamOptions ?? new SlicOptions()),
+                    _ => throw new UnknownTransportException(endpoint.Transport, endpoint.Protocol)
+                });
     }
 }

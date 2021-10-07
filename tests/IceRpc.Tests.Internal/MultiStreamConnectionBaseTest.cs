@@ -1,63 +1,81 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
-using NUnit.Framework;
 
 namespace IceRpc.Tests.Internal
 {
-    public enum MultiStreamConnectionType
+    public class MultiStreamConnectionBaseTest
     {
-        Ice1,
-        Coloc,
-        Slic
-    }
+        protected INetworkConnection ClientConnection => _clientConnection!;
+        protected IMultiStreamConnection ClientMultiStreamConnection => _clientMultiStreamConnection!;
+        protected INetworkConnection ServerConnection => _serverConnection!;
+        protected IMultiStreamConnection ServerMultiStreamConnection => _serverMultiStreamConnection!;
 
-    [Parallelizable(scope: ParallelScope.Fixtures)]
-    public class MultiStreamConnectionBaseTest : ConnectionBaseTest
-    {
-        protected static OutgoingRequest DummyRequest => new(Protocol.Ice2, path: "/dummy", operation: "foo")
+        private INetworkConnection? _clientConnection;
+        private readonly Endpoint _clientEndpoint;
+        private IMultiStreamConnection? _clientMultiStreamConnection;
+        private readonly object? _clientOptions;
+        private INetworkConnection? _serverConnection;
+        private readonly Endpoint _serverEndpoint;
+        private IMultiStreamConnection? _serverMultiStreamConnection;
+        private readonly object? _serverOptions;
+
+        public MultiStreamConnectionBaseTest(
+            string clientEndpoint = "ice+coloc://127.0.0.1",
+            object? clientOptions = null,
+            string serverEndpoint = "ice+coloc://127.0.0.1",
+            object? serverOptions = null)
         {
-            PayloadEncoding = Encoding.Ice20
-        };
+            _clientEndpoint = clientEndpoint;
+            _clientOptions = clientOptions;
+            _serverEndpoint = serverEndpoint;
+            _serverOptions = serverOptions;
+        }
 
-        protected static OutgoingResponse DummyResponse => new(Protocol.Ice2, ResultType.Success)
+        protected async Task SetUpConnectionsAsync()
         {
-            PayloadEncoding = Encoding.Ice20
-        };
-
-        protected MultiStreamConnection ClientConnection => _clientConnection!;
-        protected MultiStreamConnection ServerConnection => _serverConnection!;
-        protected MultiStreamConnectionType ConnectionType { get; }
-        private MultiStreamConnection? _clientConnection;
-        private MultiStreamConnection? _serverConnection;
-
-        public MultiStreamConnectionBaseTest(MultiStreamConnectionType connectionType)
-            : base(connectionType == MultiStreamConnectionType.Ice1 ? Protocol.Ice1 : Protocol.Ice2,
-                   connectionType == MultiStreamConnectionType.Coloc ? "coloc" : "tcp",
-                   tls: false) =>
-            ConnectionType = connectionType;
-
-        public async Task SetUpConnectionsAsync()
-        {
-            Task<MultiStreamConnection> acceptTask = AcceptAsync();
-            _clientConnection = await ConnectAsync();
+            Task<INetworkConnection> acceptTask = AcceptAsync();
+            _clientConnection = Connect();
             _serverConnection = await acceptTask;
 
-            ValueTask initializeTask = _serverConnection.InitializeAsync(default);
-            await _clientConnection.InitializeAsync(default);
-            await initializeTask;
-
-            _ = await ClientConnection.SendInitializeFrameAsync(default);
-            _ = await ServerConnection.SendInitializeFrameAsync(default);
-
-            _ = await ClientConnection.ReceiveInitializeFrameAsync(default);
-            _ = await ServerConnection.ReceiveInitializeFrameAsync(default);
+            ValueTask<IMultiStreamConnection> multiStreamTask = _serverConnection.GetMultiStreamConnectionAsync(default);
+            _clientMultiStreamConnection = await _clientConnection.GetMultiStreamConnectionAsync(default);
+            _serverMultiStreamConnection = await multiStreamTask;
         }
 
-        public void TearDownConnections()
+        protected void TearDownConnections()
         {
-            _clientConnection?.Dispose();
-            _serverConnection?.Dispose();
+            _clientConnection?.Close(new ConnectionClosedException());
+            _serverConnection?.Close(new ConnectionClosedException());
         }
+
+        private async Task<INetworkConnection> AcceptAsync()
+        {
+            using IListener listener = TestHelper.CreateServerTransport(
+                _serverEndpoint,
+                options: null,
+                multiStreamOptions: _serverOptions).Listen(
+                    _serverEndpoint,
+                    LogAttributeLoggerFactory.Instance).Listener!;
+
+            return await listener.AcceptAsync();
+        }
+
+        private INetworkConnection Connect()
+        {
+            IClientTransport clientTransport = TestHelper.CreateClientTransport(
+                _clientEndpoint,
+                multiStreamOptions: _clientOptions);
+            return clientTransport.CreateConnection(_clientEndpoint, LogAttributeLoggerFactory.Instance); ;
+        }
+
+        protected static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateSendPayload(INetworkStream stream, int length = 10)
+        {
+            byte[] buffer = new byte[stream.TransportHeader.Length + length];
+            stream.TransportHeader.CopyTo(buffer);
+            return new ReadOnlyMemory<byte>[] { buffer };
+        }
+
+        protected static Memory<byte> CreateReceivePayload(int length = 10) => new byte[length];
     }
 }

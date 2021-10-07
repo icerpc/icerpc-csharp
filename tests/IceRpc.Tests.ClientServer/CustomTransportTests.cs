@@ -10,7 +10,7 @@ namespace IceRpc.Tests.ClientServer
     {
         private readonly IClientTransport _transport = new TcpClientTransport();
 
-        public MultiStreamConnection CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
+        public INetworkConnection CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
         {
             if (remoteEndpoint.Transport == "custom")
             {
@@ -32,7 +32,7 @@ namespace IceRpc.Tests.ClientServer
     {
         private readonly IServerTransport _transport = new TcpServerTransport();
 
-        public (IListener? Listener, MultiStreamConnection? Connection) Listen(
+        public (IListener? Listener, INetworkConnection? Connection) Listen(
             Endpoint endpoint,
             ILoggerFactory loggerFactory)
         {

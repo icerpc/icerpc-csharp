@@ -26,20 +26,6 @@ namespace IceRpc
                 throw new ArgumentException($"0 is not a valid value for {nameof(ConnectTimeout)}", nameof(value));
         }
 
-        /// <summary>The features of the connection.</summary>
-        public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
-
-        /// <summary>The connection idle timeout. This timeout is used to monitor the connection. If the connection
-        /// is idle within this timeout period, the connection is gracefully closed. It can't be 0 and the default
-        /// value is 60s.</summary>
-        /// <value>The connection idle timeout value.</value>
-        public TimeSpan IdleTimeout
-        {
-            get => _idleTimeout;
-            set => _idleTimeout = value != TimeSpan.Zero ? value :
-                throw new ArgumentException($"0 is not a valid value for {nameof(IdleTimeout)}", nameof(value));
-        }
-
         /// <summary>The maximum size in bytes of an incoming Ice1 or Ice2 protocol frame. It's important to specify
         /// a reasonable value for this size since it limits the size of the buffer allocated by IceRPC to receive
         /// a request or response. It can't be less than 1KB and the default value is 1MB.</summary>
@@ -61,7 +47,6 @@ namespace IceRpc
 
         private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
         private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
-        private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
         private int _incomingFrameMaxSize = 1024 * 1024;
     }
 }

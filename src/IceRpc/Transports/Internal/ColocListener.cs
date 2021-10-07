@@ -4,8 +4,6 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Channels;
-using ColocChannelReader = System.Threading.Channels.ChannelReader<(long StreamId, object Frame, bool Fin)>;
-using ColocChannelWriter = System.Threading.Channels.ChannelWriter<(long StreamId, object Frame, bool Fin)>;
 
 namespace IceRpc.Transports.Internal
 {
@@ -18,18 +16,15 @@ namespace IceRpc.Transports.Internal
         private static readonly IDictionary<Endpoint, ColocListener> _colocListenerDictionary =
             new ConcurrentDictionary<Endpoint, ColocListener>();
 
-        private readonly Channel<(long, ColocChannelWriter, ColocChannelReader)> _channel;
+        private readonly Channel<(ChannelWriter<ReadOnlyMemory<byte>>, ChannelReader<ReadOnlyMemory<byte>>)> _channel;
         private readonly ILogger _logger;
-        // The next ID to assign to an accepted ColocatedSocket. This ID is used for tracing purpose only.
-        private long _nextId;
-        private readonly MultiStreamOptions _options;
+        private readonly SlicOptions _options;
 
-        public async ValueTask<MultiStreamConnection> AcceptAsync()
+        public async ValueTask<INetworkConnection> AcceptAsync()
         {
-            (long id, ColocChannelWriter writer, ColocChannelReader reader) =
+            (ChannelWriter<ReadOnlyMemory<byte>> writer, ChannelReader<ReadOnlyMemory<byte>> reader) =
                 await _channel.Reader.ReadAsync().ConfigureAwait(false);
-
-            return new ColocConnection(Endpoint, id, writer, reader, isServer: true, _options, _logger);
+            return new ColocConnection(Endpoint, isServer: true, _options, writer, reader, _logger);
         }
 
         public void Dispose()
@@ -45,7 +40,7 @@ namespace IceRpc.Transports.Internal
             [NotNullWhen(returnValue: true)] out ColocListener? listener) =>
             _colocListenerDictionary.TryGetValue(endpoint, out listener);
 
-        internal ColocListener(Endpoint endpoint, MultiStreamOptions options, ILogger logger)
+        internal ColocListener(Endpoint endpoint, SlicOptions options, ILogger logger)
         {
             if (endpoint.Params.Count > 0)
             {
@@ -60,7 +55,8 @@ namespace IceRpc.Transports.Internal
             // concurrently if there are connection establishment attempts from multiple threads. Not allowing
             // synchronous continuations is safer as otherwise disposal of the listener could end up running
             // the continuation of AcceptAsync.
-            _channel = Channel.CreateUnbounded<(long, ColocChannelWriter, ColocChannelReader)>(
+            _channel = Channel.CreateUnbounded<(ChannelWriter<ReadOnlyMemory<byte>>,
+                                                ChannelReader<ReadOnlyMemory<byte>>)>(
                 new UnboundedChannelOptions
                 {
                     SingleReader = true,
@@ -74,32 +70,37 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal (ColocChannelReader, ColocChannelWriter, long) NewClientConnection()
+        internal (ChannelReader<ReadOnlyMemory<byte>>, ChannelWriter<ReadOnlyMemory<byte>>) NewClientConnection()
         {
-            var reader = Channel.CreateUnbounded<(long, object, bool)>(
-                new UnboundedChannelOptions
+            // We use a capacity of 100 buffers for the channels. This is mostly useful for the Ice1 protocol
+            // which doesn't provide any flow control or limits the number of invocations on the client side.
+            // If the Ice1 server can't dispatch more invocations, the colloc transport will eventually
+            // prevent the client to send further requests once the channel is full.
+
+            var reader = Channel.CreateBounded<ReadOnlyMemory<byte>>(
+                new BoundedChannelOptions(capacity: 100)
                 {
+                    FullMode = BoundedChannelFullMode.Wait,
                     SingleReader = true,
-                    SingleWriter = false,
+                    SingleWriter = true,
                     AllowSynchronousContinuations = false
                 });
 
-            var writer = Channel.CreateUnbounded<(long, object, bool)>(
-                new UnboundedChannelOptions
+            var writer = Channel.CreateBounded<ReadOnlyMemory<byte>>(
+                new BoundedChannelOptions(capacity: 100)
                 {
+                    FullMode = BoundedChannelFullMode.Wait,
                     SingleReader = true,
-                    SingleWriter = false,
+                    SingleWriter = true,
                     AllowSynchronousContinuations = false
                 });
 
-            long id = Interlocked.Increment(ref _nextId);
-
-            if (!_channel.Writer.TryWrite((id, writer.Writer, reader.Reader)))
+            if (!_channel.Writer.TryWrite((writer.Writer, reader.Reader)))
             {
                 throw new ConnectionRefusedException();
             }
 
-            return (writer.Reader, reader.Writer, id);
+            return (writer.Reader, reader.Writer);
         }
     }
 }

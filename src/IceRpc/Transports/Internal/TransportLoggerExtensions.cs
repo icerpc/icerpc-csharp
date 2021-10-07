@@ -10,12 +10,9 @@ namespace IceRpc.Transports.Internal
         private static readonly Func<ILogger, string, IDisposable> _listenerScope =
             LoggerMessage.DefineScope<string>("server(Endpoint={Server})");
 
-        private static readonly Func<ILogger, string, IDisposable> _serverConnectionScope =
-            LoggerMessage.DefineScope<string>("connection(RemoteEndpoint={RemoteEndpoint})");
-
-        private static readonly Func<ILogger, string, string, IDisposable> _clientConnectionScope =
-            LoggerMessage.DefineScope<string, string>(
-                "connection(LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint})");
+        private static readonly Func<ILogger, bool, string, string, IDisposable> _connectionScope =
+            LoggerMessage.DefineScope<bool, string, string>(
+                "connection(IsServer={IsServer}, LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint})");
 
         private static readonly Func<ILogger, long, string, string, IDisposable> _streamScope =
             LoggerMessage.DefineScope<long, string, string>("stream(ID={ID}, InitiatedBy={InitiatedBy}, Kind={Kind})");
@@ -39,7 +36,7 @@ namespace IceRpc.Transports.Internal
             EventName = nameof(TransportEventIds.ConnectionAcceptFailed),
             Level = LogLevel.Debug,
             Message = "failed to accept connection")]
-        internal static partial void LogConnectionAcceptFailed(this ILogger logger, Exception exception);
+        internal static partial void LogConnectionAcceptFailed(this ILogger logger, Exception? exception);
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.ConnectionClosed,
@@ -48,15 +45,14 @@ namespace IceRpc.Transports.Internal
             Message = "closed connection (Reason={Reason})")]
         internal static partial void LogConnectionClosed(
             this ILogger logger,
-            string reason,
-            Exception? exception = null);
+            string reason);
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.ConnectionConnectFailed,
             EventName = nameof(TransportEventIds.ConnectionConnectFailed),
             Level = LogLevel.Debug,
             Message = "connection establishment failed")]
-        internal static partial void LogConnectionConnectFailed(this ILogger logger, Exception exception);
+        internal static partial void LogConnectionConnectFailed(this ILogger logger, Exception? exception);
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.ConnectionEstablished,
@@ -134,7 +130,7 @@ namespace IceRpc.Transports.Internal
             EventName = nameof(TransportEventIds.StartReceivingDatagramsFailed),
             Level = LogLevel.Information,
             Message = "starting receiving datagrams failed")]
-        internal static partial void LogStartReceivingDatagramsFailed(this ILogger logger, Exception exception);
+        internal static partial void LogStartReceivingDatagramsFailed(this ILogger logger, Exception? exception);
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.StartSendingDatagrams,
@@ -148,7 +144,7 @@ namespace IceRpc.Transports.Internal
             EventName = nameof(TransportEventIds.StartSendingDatagramsFailed),
             Level = LogLevel.Debug,
             Message = "starting sending datagrams failed")]
-        internal static partial void LogStartSendingDatagramsFailed(this ILogger logger, Exception exception);
+        internal static partial void LogStartSendingDatagramsFailed(this ILogger logger, Exception? exception);
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.StopAcceptingConnections,
@@ -167,45 +163,20 @@ namespace IceRpc.Transports.Internal
         internal static IDisposable? StartServerScope(this ILogger logger, IListener listener) =>
             logger.IsEnabled(LogLevel.Error) ? _listenerScope(logger, listener.Endpoint.ToString()) : null;
 
-        internal static IDisposable? StartConnectionScope(this ILogger logger, Connection connection)
-        {
-            if (logger.IsEnabled(LogLevel.Error))
-            {
-                if (connection.IsServer)
-                {
-                    return _serverConnectionScope(logger, connection.RemoteEndpoint?.ToString() ?? "undefined");
-                }
-                else
-                {
-                    return _clientConnectionScope(
-                        logger,
-                        connection.LocalEndpoint?.ToString() ?? "undefined",
-                        connection.RemoteEndpoint?.ToString() ?? "undefined");
-                }
-            }
-            else
-            {
-                return null;
-            }
-        }
+        internal static IDisposable? StartConnectionScope(this ILogger logger, INetworkConnection connection) =>
+            _connectionScope(
+                logger,
+                connection.IsServer,
+                connection.LocalEndpoint?.ToString() ?? "undefined",
+                connection.RemoteEndpoint?.ToString() ?? "undefined");
 
-        internal static IDisposable? StartStreamScope(this ILogger logger, long id)
-        {
-            if (logger.IsEnabled(LogLevel.Error))
+        internal static IDisposable? StartStreamScope(this ILogger logger, long id) =>
+            (id % 4) switch
             {
-                (string initiatedBy, string kind) = (id % 4) switch
-                {
-                    0 => ("Client", "Bidirectional"),
-                    1 => ("Server", "Bidirectional"),
-                    2 => ("Client", "Unidirectional"),
-                    _ => ("Server", "Unidirectional")
-                };
-                return _streamScope(logger, id, initiatedBy, kind);
-            }
-            else
-            {
-                return null;
-            }
-        }
+                0 => _streamScope(logger, id, "Client", "Bidirectional"),
+                1 => _streamScope(logger, id, "Server", "Bidirectional"),
+                2 => _streamScope(logger, id, "Client", "Unidirectional"),
+                _ => _streamScope(logger, id, "Server", "Unidirectional")
+            };
     }
 }

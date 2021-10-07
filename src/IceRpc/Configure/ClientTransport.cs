@@ -29,7 +29,7 @@ namespace IceRpc.Configure
             return this;
         }
 
-        MultiStreamConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
+        INetworkConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
         {
             _transports ??= _builder;
             if (_transports.TryGetValue(
@@ -60,7 +60,7 @@ namespace IceRpc.Configure
         /// <returns>The transport being configured.</returns>
         public static ClientTransport UseColoc(
             this ClientTransport clientTransport,
-            MultiStreamOptions options)
+            SlicOptions options)
         {
             var colocClientTransport = new ColocClientTransport(options);
             clientTransport.Add(TransportNames.Coloc, Protocol.Ice2, colocClientTransport);

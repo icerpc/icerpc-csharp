@@ -2,6 +2,8 @@
 
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
+using IceRpc.Transports;
+using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
 using System.Diagnostics;
 
@@ -57,6 +59,35 @@ namespace IceRpc.Internal
             }
         }
 
+        internal static async ValueTask<IProtocolConnection> CreateConnectionAsync(
+            this Protocol protocol,
+            INetworkConnection networkConnection,
+            int incomingFrameMaxSize,
+            ILoggerFactory loggerFactory,
+            CancellationToken cancel)
+        {
+            ILogger logger = loggerFactory.CreateLogger("IceRpc.Protocol");
+            IProtocolConnection protocolConnection;
+            if (protocol == Protocol.Ice1)
+            {
+                protocolConnection = new Ice1ProtocolConnection(
+                    await networkConnection.GetSingleStreamConnectionAsync(cancel).ConfigureAwait(false),
+                    incomingFrameMaxSize,
+                    networkConnection.IsServer,
+                    networkConnection.IsDatagram ? networkConnection.DatagramMaxReceiveSize : null,
+                    logger);
+            }
+            else
+            {
+                protocolConnection = new Ice2ProtocolConnection(
+                    await networkConnection.GetMultiStreamConnectionAsync(cancel).ConfigureAwait(false),
+                    incomingFrameMaxSize,
+                    logger);
+            }
+            await protocolConnection.InitializeAsync(cancel).ConfigureAwait(false);
+            return protocolConnection;
+        }
+
         /// <summary>Creates an outgoing response with the exception. With the ice1 protocol, this method sets the
         /// <see cref="ReplyStatus"/> feature. This method also sets the <see cref="FieldKey.RetryPolicy"/> if an
         /// exception retry policy is set.</summary>
@@ -91,7 +122,7 @@ namespace IceRpc.Internal
                 remoteException.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
             }
 
-            return protocol.CreateResponseFromRemoteException(remoteException, request.GetIceEncoding()!);
+            return protocol.CreateResponseFromRemoteException(remoteException, request.GetIceEncoding());
         }
 
         internal static OutgoingRequest ToOutgoingRequest(
@@ -246,7 +277,7 @@ namespace IceRpc.Internal
 
             if (protocol == Protocol.Ice2 && remoteException.RetryPolicy != RetryPolicy.NoRetry)
             {
-                var retryPolicy = remoteException.RetryPolicy;
+                RetryPolicy retryPolicy = remoteException.RetryPolicy;
                 response.Fields.Add((int)FieldKey.RetryPolicy, encoder => retryPolicy.Encode(encoder));
             }
 

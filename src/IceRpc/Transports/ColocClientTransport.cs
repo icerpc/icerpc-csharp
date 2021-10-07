@@ -2,17 +2,16 @@
 
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
-using ColocChannelReader = System.Threading.Channels.ChannelReader<(long StreamId, object Frame, bool Fin)>;
-using ColocChannelWriter = System.Threading.Channels.ChannelWriter<(long StreamId, object Frame, bool Fin)>;
+using System.Threading.Channels;
 
 namespace IceRpc.Transports
 {
     /// <summary>Implements <see cref="IClientTransport"/> for the coloc transport.</summary>
     public class ColocClientTransport : IClientTransport
     {
-        private readonly MultiStreamOptions _multiStreamOptions;
+        private readonly SlicOptions _slicOptions;
 
-        MultiStreamConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
+        INetworkConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
         {
             if (remoteEndpoint.Params.Count > 0)
             {
@@ -22,16 +21,11 @@ namespace IceRpc.Transports
 
             if (ColocListener.TryGetValue(remoteEndpoint, out ColocListener? listener))
             {
-                ILogger logger = loggerFactory.CreateLogger("IceRpc");
-                (ColocChannelReader reader, ColocChannelWriter writer, long id) = listener.NewClientConnection();
-                return new ColocConnection(
-                    remoteEndpoint,
-                    id,
-                    writer,
-                    reader,
-                    isServer: false,
-                    _multiStreamOptions,
-                    logger);
+                ChannelReader<ReadOnlyMemory<byte>> reader;
+                ChannelWriter<ReadOnlyMemory<byte>> writer;
+                (reader, writer) = listener.NewClientConnection();
+                ILogger logger = loggerFactory.CreateLogger("IceRpc.Transports");
+                return new ColocConnection(remoteEndpoint, isServer: false, _slicOptions, writer, reader, logger);
             }
             else
             {
@@ -40,7 +34,7 @@ namespace IceRpc.Transports
         }
 
         /// <summary>Construct a colocated server transport.</summary>
-        /// <param name="options">The transport options.</param>
-        public ColocClientTransport(MultiStreamOptions options) => _multiStreamOptions = options;
+        /// <param name="slicOptions">The Slic options.</param>
+        public ColocClientTransport(SlicOptions slicOptions) => _slicOptions = slicOptions;
     }
 }

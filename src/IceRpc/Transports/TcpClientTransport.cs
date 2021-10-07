@@ -42,10 +42,8 @@ namespace IceRpc.Transports
             _authenticationOptions = authenticationOptions;
         }
 
-        MultiStreamConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
+        INetworkConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
         {
-            ILogger logger = loggerFactory.CreateLogger("IceRpc");
-
             EndPoint netEndPoint = IPAddress.TryParse(remoteEndpoint.Host, out IPAddress? ipAddress) ?
                 new IPEndPoint(ipAddress, remoteEndpoint.Port) :
                 new DnsEndPoint(remoteEndpoint.Host, remoteEndpoint.Port);
@@ -56,6 +54,7 @@ namespace IceRpc.Transports
                 new Socket(SocketType.Stream, ProtocolType.Tcp) :
                 new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
+            ILogger logger = loggerFactory.CreateLogger("IceRpc.Transports");
             try
             {
                 if (ipAddress?.AddressFamily == AddressFamily.InterNetworkV6)
@@ -80,8 +79,13 @@ namespace IceRpc.Transports
                 throw new TransportException(ex);
             }
 
-            var tcpSocket = new TcpClientSocket(socket, logger, _authenticationOptions, netEndPoint);
-            return NetworkSocketConnection.FromNetworkSocket(tcpSocket, remoteEndpoint, isServer: false, _slicOptions);
+            return new NetworkSocketConnection(
+                new TcpClientSocket(socket, _authenticationOptions, netEndPoint),
+                remoteEndpoint,
+                isServer: false,
+                _tcpOptions.IdleTimeout,
+                _slicOptions,
+                logger);
         }
     }
 }

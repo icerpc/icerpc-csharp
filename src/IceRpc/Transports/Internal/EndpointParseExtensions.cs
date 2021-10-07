@@ -106,9 +106,9 @@ namespace IceRpc.Transports.Internal
             bool compress = false;
             int? timeout = null;
 
-            foreach ((string name, string value) in endpoint.Params)
+            if (endpoint.Protocol == Protocol.Ice1)
             {
-                if (endpoint.Protocol == Protocol.Ice1)
+                foreach ((string name, string value) in endpoint.Params)
                 {
                     switch (name)
                     {
@@ -149,24 +149,33 @@ namespace IceRpc.Transports.Internal
                             throw new FormatException($"unknown parameter '{name}' in endpoint '{endpoint}'");
                     }
                 }
-                else if (name == "tls")
+
+                // With Ice1, "tcp" is always non-secure and "ssl" is always secure so tls is never null.
+                tls = endpoint.Transport == TransportNames.Ssl;
+            }
+            else
+            {
+                foreach ((string name, string value) in endpoint.Params)
                 {
-                    if (tls != null)
+                    if (name == "tls")
                     {
-                        throw new FormatException($"multiple tls parameters in endpoint '{endpoint}'");
+                        if (tls != null)
+                        {
+                            throw new FormatException($"multiple tls parameters in endpoint '{endpoint}'");
+                        }
+                        try
+                        {
+                            tls = bool.Parse(value);
+                        }
+                        catch (FormatException ex)
+                        {
+                            throw new FormatException($"invalid value for tls parameter in endpoint '{endpoint}'", ex);
+                        }
                     }
-                    try
+                    else
                     {
-                        tls = bool.Parse(value);
+                        throw new FormatException($"unknown parameter '{name}' in endpoint '{endpoint}'");
                     }
-                    catch (FormatException ex)
-                    {
-                        throw new FormatException($"invalid value for tls parameter in endpoint '{endpoint}'", ex);
-                    }
-                }
-                else
-                {
-                    throw new FormatException($"unknown parameter '{name}' in endpoint '{endpoint}'");
                 }
             }
 

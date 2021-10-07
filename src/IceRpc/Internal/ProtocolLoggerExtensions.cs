@@ -1,11 +1,11 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Internal
 {
     /// <summary>This class contains the ILogger extension methods for logging protocol messages.</summary>
+    // TODO: split Ice1 and Ice2 protocol logger extensions.
     internal static partial class ProtocolLoggerExtensions
     {
         [LoggerMessage(
@@ -36,41 +36,12 @@ namespace IceRpc.Internal
             Message = "received go away canceled frame")]
         internal static partial void LogReceivedGoAwayCanceledFrame(this ILogger logger);
 
-        internal static void LogReceivedGoAwayFrame(
-            this ILogger logger,
-            MultiStreamConnection connection,
-            long lastBidirectionalId,
-            long lastUnidirectionalId,
-            string message)
-        {
-            if (connection.Protocol == Protocol.Ice1)
-            {
-                logger.LogReceivedIce1CloseConnectionFrame();
-            }
-            else
-            {
-                logger.LogReceivedGoAwayFrame(lastBidirectionalId, lastUnidirectionalId, message);
-            }
-        }
-
         [LoggerMessage(
             EventId = (int)ProtocolEventIds.ReceivedIce1RequestBatchFrame,
             EventName = nameof(ProtocolEventIds.ReceivedIce1RequestBatchFrame),
             Level = LogLevel.Debug,
             Message = "received batch request (RequestCount={RequestCount})")]
         internal static partial void LogReceivedIce1RequestBatchFrame(this ILogger logger, int requestCount);
-
-        internal static void LogReceivedInitializeFrame(this ILogger logger, MultiStreamConnection connection)
-        {
-            if (connection.Protocol == Protocol.Ice1)
-            {
-                logger.LogReceivedIce1ValidateConnectionFrame();
-            }
-            else
-            {
-                logger.LogReceivedInitializeFrame(connection.PeerIncomingFrameMaxSize!.Value);
-            }
-        }
 
         [LoggerMessage(
             EventId = (int)ProtocolEventIds.ReceivedRequestFrame,
@@ -106,38 +77,6 @@ namespace IceRpc.Internal
             Message = "sent go away canceled frame")]
         internal static partial void LogSentGoAwayCanceledFrame(this ILogger logger);
 
-        internal static void LogSentGoAwayFrame(
-            this ILogger logger,
-            MultiStreamConnection connection,
-            long lastBidirectionalId,
-            long lastUnidirectionalId,
-            string message)
-        {
-            if (connection.Protocol == Protocol.Ice1)
-            {
-                logger.LogSentIce1CloseConnectionFrame(message);
-            }
-            else
-            {
-                logger.LogSentGoAwayFrame(lastBidirectionalId, lastUnidirectionalId, message);
-            }
-        }
-
-        internal static void LogSentInitializeFrame(
-            this ILogger logger,
-            MultiStreamConnection connection,
-            int incomingFrameMaxSize)
-        {
-            if (connection.Protocol == Protocol.Ice1)
-            {
-                logger.LogSentIce1ValidateConnectionFrame();
-            }
-            else
-            {
-                logger.LogSentInitializeFrame(incomingFrameMaxSize);
-            }
-        }
-
         [LoggerMessage(
             EventId = (int)ProtocolEventIds.SentRequestFrame,
             EventName = nameof(ProtocolEventIds.SentRequestFrame),
@@ -171,7 +110,7 @@ namespace IceRpc.Internal
             Level = LogLevel.Debug,
             Message = "received go away frame (LastBidirectionalStreamId={LastBidirectionalStreamId}, " +
                       "LastUnidirectionalStreamId={LastUnidirectionalStreamId}, Reason={Reason})")]
-        private static partial void LogReceivedGoAwayFrame(
+        internal static partial void LogReceivedGoAwayFrame(
             this ILogger logger,
             long lastBidirectionalStreamId,
             long lastUnidirectionalStreamId,
@@ -182,21 +121,21 @@ namespace IceRpc.Internal
             EventName = nameof(ProtocolEventIds.ReceivedIce1CloseConnectionFrame),
             Level = LogLevel.Debug,
             Message = "received close connection frame")]
-        private static partial void LogReceivedIce1CloseConnectionFrame(this ILogger logger);
+        internal static partial void LogReceivedIce1CloseConnectionFrame(this ILogger logger);
 
         [LoggerMessage(
             EventId = (int)ProtocolEventIds.ReceivedIce1ValidateConnectionFrame,
             EventName = nameof(ProtocolEventIds.ReceivedIce1ValidateConnectionFrame),
             Level = LogLevel.Debug,
             Message = "received validate connection frame")]
-        private static partial void LogReceivedIce1ValidateConnectionFrame(this ILogger logger);
+        internal static partial void LogReceivedIce1ValidateConnectionFrame(this ILogger logger);
 
         [LoggerMessage(
             EventId = (int)ProtocolEventIds.ReceivedInitializeFrame,
             EventName = nameof(ProtocolEventIds.ReceivedInitializeFrame),
             Level = LogLevel.Debug,
             Message = "received initialize frame (IncomingFrameMaxSize={IncomingFrameMaxSize})")]
-        private static partial void LogReceivedInitializeFrame(this ILogger logger, int incomingFrameMaxSize);
+        internal static partial void LogReceivedInitializeFrame(this ILogger logger, int incomingFrameMaxSize);
 
         [LoggerMessage(
             EventId = (int)ProtocolEventIds.SentGoAwayFrame,
@@ -204,7 +143,7 @@ namespace IceRpc.Internal
             Level = LogLevel.Debug,
             Message = "sent go away frame (LastBidirectionalStreamId={LastBidirectionalStreamId}, " +
                       "LastUnidirectionalStreamId={LastUnidirectionalStreamId}, Reason={Reason})")]
-        private static partial void LogSentGoAwayFrame(
+        internal static partial void LogSentGoAwayFrame(
             this ILogger logger,
             long lastBidirectionalStreamId,
             long lastUnidirectionalStreamId,
@@ -215,20 +154,20 @@ namespace IceRpc.Internal
             EventName = nameof(ProtocolEventIds.SentIce1CloseConnectionFrame),
             Level = LogLevel.Debug,
             Message = "sent close connection frame (Reason={Reason})")]
-        private static partial void LogSentIce1CloseConnectionFrame(this ILogger logger, string reason);
+        internal static partial void LogSentIce1CloseConnectionFrame(this ILogger logger, string reason);
 
         [LoggerMessage(
             EventId = (int)ProtocolEventIds.SentIce1ValidateConnectionFrame,
             EventName = nameof(ProtocolEventIds.SentIce1ValidateConnectionFrame),
             Level = LogLevel.Debug,
             Message = "sent validate connection frame")]
-        private static partial void LogSentIce1ValidateConnectionFrame(this ILogger logger);
+        internal static partial void LogSentIce1ValidateConnectionFrame(this ILogger logger);
 
         [LoggerMessage(
             EventId = (int)ProtocolEventIds.SentInitializeFrame,
             EventName = nameof(ProtocolEventIds.SentInitializeFrame),
             Level = LogLevel.Debug,
             Message = "sent initialize frame (IncomingFrameMaxSize={IncomingFrameMaxSize})")]
-        private static partial void LogSentInitializeFrame(this ILogger logger, int incomingFrameMaxSize);
+        internal static partial void LogSentInitializeFrame(this ILogger logger, int incomingFrameMaxSize);
     }
 }

@@ -52,7 +52,8 @@ namespace IceRpc.Tests.ClientServer
                 {
                     Dispatcher = new RetryTest(),
                     Endpoint = GetTestEndpoint(port: port, protocol: protocol),
-                    ServerTransport = new ServerTransport().UseTcp()
+                    ServerTransport = new ServerTransport().UseTcp(),
+                    ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) }
                 };
                 server.Listen();
                 Assert.DoesNotThrowAsync(async () => await prx1.IcePingAsync());
@@ -77,7 +78,7 @@ namespace IceRpc.Tests.ClientServer
             retryBidir.Proxy.Endpoint = server.Endpoint;
             retryBidir.Proxy.Invoker = pipeline;
             await retryBidir.IcePingAsync();
-            retryBidir.Proxy.Connection!.Dispatcher = server.Dispatcher;
+
             var bidir = new RetryBidirTestPrx(retryBidir.Proxy.Clone()); // keeps Connection
             bidir.Proxy.Endpoint = null; // endpointless proxy with a connection
 
@@ -90,12 +91,16 @@ namespace IceRpc.Tests.ClientServer
             await bidir.AfterDelayAsync(2);
         }
 
-        [TestCase(2)]
-        [TestCase(10)]
-        [TestCase(20)]
-        public async Task Retry_GracefulClose(int maxQueue)
+        // TODO: XXX: investigate Ice1 failures
+        [TestCase(Protocol.Ice1, 2)]
+        [TestCase(Protocol.Ice1, 10)]
+        [TestCase(Protocol.Ice1, 20)]
+        [TestCase(Protocol.Ice2, 2)]
+        [TestCase(Protocol.Ice2, 10)]
+        [TestCase(Protocol.Ice2, 20)]
+        public async Task Retry_GracefulClose(Protocol protocol, int maxQueue)
         {
-            await WithRetryServiceAsync(async (service, retry) =>
+            await WithRetryServiceAsync(protocol, null, async (service, retry) =>
             {
                 // Remote case: send multiple OpWithData, followed by a close and followed by multiple OpWithData.
                 // The goal is to make sure that none of the OpWithData fail even if the server closes the
@@ -109,7 +114,7 @@ namespace IceRpc.Tests.ClientServer
                     results.Add(retry.OpWithDataAsync(-1, 0, seq));
                 }
 
-                _ = service.Connection!.ShutdownAsync();
+                Task shutdownTask = service.Connection!.ShutdownAsync();
 
                 for (int i = 0; i < maxQueue; i++)
                 {
@@ -308,7 +313,7 @@ namespace IceRpc.Tests.ClientServer
                     routers[2].Use(next => new InlineDispatcher(
                         async (request, cancel) =>
                         {
-                            await request.Connection.AbortAsync("forcefully close connection!");
+                            await request.Connection.CloseAsync("forcefully close connection!");
                             return await next.DispatchAsync(request, cancel);
                         }));
 
@@ -423,7 +428,9 @@ namespace IceRpc.Tests.ClientServer
         {
             var pool = new ConnectionPool()
             {
-                ClientTransport = new ClientTransport().UseTcp()
+                ClientTransport = new ClientTransport().UseTcp(),
+                ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) },
+                LoggerFactory = LogAttributeLoggerFactory.Instance
             };
             return pool;
         }
@@ -434,7 +441,9 @@ namespace IceRpc.Tests.ClientServer
                 i => new Server
                 {
                     Endpoint = GetTestEndpoint(port: i),
-                    ServerTransport = new ServerTransport().UseTcp()
+                    ServerTransport = new ServerTransport().UseTcp(),
+                    ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) },
+                    LoggerFactory = LogAttributeLoggerFactory.Instance
                 }).ToArray();
 
             Router[] routers = Enumerable.Range(0, replicas).Select(i => new Router()).ToArray();
@@ -476,7 +485,9 @@ namespace IceRpc.Tests.ClientServer
             {
                 Dispatcher = router,
                 Endpoint = GetTestEndpoint(protocol: protocol),
-                ServerTransport = new ServerTransport().UseTcp()
+                ServerTransport = new ServerTransport().UseTcp(),
+                ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) },
+                LoggerFactory = LogAttributeLoggerFactory.Instance
             };
             server.Listen();
 
@@ -507,7 +518,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     if (killConnection)
                     {
-                        await dispatch.Connection.AbortAsync();
+                        await dispatch.Connection.CloseAsync();
                     }
                     else
                     {
@@ -526,7 +537,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     if (killConnection)
                     {
-                        await dispatch.Connection.AbortAsync();
+                        await dispatch.Connection.CloseAsync();
                     }
                     else
                     {

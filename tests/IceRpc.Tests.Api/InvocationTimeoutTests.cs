@@ -5,7 +5,7 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests.Api
 {
-    [Timeout(30000)]
+    [Timeout(5000)]
     [Parallelizable(ParallelScope.All)]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class InvocationTimeoutTests : IAsyncDisposable
@@ -63,8 +63,11 @@ namespace IceRpc.Tests.Api
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync(invocation));
             Assert.That(dispatchDeadline, Is.Not.Null);
             Assert.That(invocationDeadline, Is.Not.Null);
-            Assert.AreEqual(dispatchDeadline, invocationDeadline);
-            Assert.That(dispatchDeadline, Is.GreaterThanOrEqualTo(expectedDeadline));
+            // Compare the deadlines as milliseconds because the deadline is transferred as a millisecond
+            // value and the conversion of the DateTime to the "long" type can result in a dispatch
+            // deadline which is different from the invocation deadline.
+            Assert.AreEqual(ToMilliSeconds(dispatchDeadline), ToMilliSeconds(invocationDeadline));
+            Assert.That(ToMilliSeconds(dispatchDeadline), Is.GreaterThanOrEqualTo(ToMilliSeconds(expectedDeadline)));
         }
 
         /// <summary>Ensure that a request fails with OperationCanceledException after the invocation timeout expires.
@@ -106,13 +109,16 @@ namespace IceRpc.Tests.Api
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync());
             Assert.That(dispatchDeadline, Is.Not.Null);
             Assert.That(invocationDeadline, Is.Not.Null);
-            Assert.AreEqual(dispatchDeadline, invocationDeadline);
-            Assert.That(dispatchDeadline, Is.GreaterThanOrEqualTo(expectedDeadline));
+            // Compare the deadlines as milliseconds because the deadline is transferred as a millisecond
+            // value and the conversion of the DateTime to the "long" type can result in a dispatch
+            // deadline which is different from the invocation deadline.
+            Assert.AreEqual(ToMilliSeconds(dispatchDeadline), ToMilliSeconds(invocationDeadline));
+            Assert.That(ToMilliSeconds(dispatchDeadline), Is.GreaterThanOrEqualTo(ToMilliSeconds(expectedDeadline)));
         }
 
         /// <summary>Ensure that a request fails with OperationCanceledException after the invocation timeout expires.
         /// </summary>
-        /// <param name="delay">The time in milliseconds to hold the dispatch to simulate an slow server.</param>
+        /// <param name="delay">The time in milliseconds to hold the dispatch to simulate a slow server.</param>
         /// <param name="timeout">The time in milliseconds used as the invocation timeout.</param>
         [TestCase(10000, 1000)]
         public async Task InvocationTimeout_InvocationPrevails(int delay, int timeout)
@@ -153,11 +159,17 @@ namespace IceRpc.Tests.Api
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync(invocation));
             Assert.That(dispatchDeadline, Is.Not.Null);
             Assert.That(invocationDeadline, Is.Not.Null);
-            Assert.AreEqual(dispatchDeadline, invocationDeadline);
-            Assert.That(dispatchDeadline, Is.GreaterThanOrEqualTo(expectedDeadline));
+            // Compare the deadlines as milliseconds because the deadline is transferred as a millisecond
+            // value and the conversion of the DateTime to the "long" type can result in a dispatch
+            // deadline which is different from the invocation deadline.
+            Assert.AreEqual(ToMilliSeconds(dispatchDeadline), ToMilliSeconds(invocationDeadline));
+            Assert.That(ToMilliSeconds(dispatchDeadline), Is.GreaterThanOrEqualTo(ToMilliSeconds(expectedDeadline)));
         }
 
-        public class Greeter : Service, IGreeter
+        private static long ToMilliSeconds(DateTime? deadline) =>
+            (long)(deadline!.Value - DateTime.UnixEpoch).TotalMilliseconds;
+
+        private class Greeter : Service, IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new NotImplementedException();

@@ -12,7 +12,7 @@ namespace IceRpc.Slice
         private readonly IAsyncEnumerable<T> _inputStream;
         private readonly Action<IceEncoder, T> _encodeAction;
         private readonly IceEncoding _encoding;
-        private readonly Func<RpcStream, Task> _encoder;
+        private readonly Func<INetworkStream, Task> _encoder;
 
         /// <summary>Constructs an async enumerable stream parameter sender from the given
         /// <see cref="IAsyncEnumerable{T}"/>.</summary>
@@ -32,12 +32,12 @@ namespace IceRpc.Slice
 
         // TODO support compression
         Task IStreamParamSender.SendAsync(
-            RpcStream stream,
+            INetworkStream stream,
             Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? streamCompressor) =>
             _encoder(stream);
 
         private static async Task SendAsync(
-            RpcStream rpcStream,
+            INetworkStream rpcStream,
             IAsyncEnumerable<T> asyncEnumerable,
             IceEncoding encoding,
             Action<IceEncoder, T> encodeAction)
@@ -96,20 +96,20 @@ namespace IceRpc.Slice
                 while (true);
 
                 // Write end of stream (TODO: this might not work with Quic)
-                await rpcStream.SendAsync(
+                await rpcStream.WriteAsync(
                     rpcStream.TransportHeader.Length == 0 ?
                         ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty :
-                        new ReadOnlyMemory<byte>[1] { rpcStream.TransportHeader },
+                        new ReadOnlyMemory<byte>[1] { rpcStream.TransportHeader.ToArray() },
                     true,
                     default).ConfigureAwait(false);
             }
-            catch (RpcStreamAbortedException)
+            catch (StreamAbortedException)
             {
                 cancelationSource.Cancel();
             }
             catch
             {
-                rpcStream.AbortWrite(RpcStreamError.StreamingCanceledByWriter);
+                rpcStream.AbortWrite(StreamError.StreamingCanceledByWriter);
                 throw;
             }
             finally
@@ -124,10 +124,7 @@ namespace IceRpc.Slice
             {
                 var bufferWriter = new BufferWriter();
                 IceEncoder encoder = encoding.CreateIceEncoder(bufferWriter);
-                if (rpcStream.TransportHeader.Length > 0)
-                {
-                    bufferWriter.WriteByteSpan(rpcStream.TransportHeader.Span);
-                }
+                bufferWriter.WriteByteSpan(rpcStream.TransportHeader.Span);
                 encoder.EncodeByte((byte)Ice2FrameType.BoundedData);
                 BufferWriter.Position sizeStart = encoder.StartFixedLengthSize();
                 return (encoder, sizeStart, encoder.BufferWriter.Tail);
@@ -137,7 +134,7 @@ namespace IceRpc.Slice
             {
                 encoder.EndFixedLengthSize(start);
                 ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = encoder.BufferWriter.Finish();
-                await rpcStream.SendAsync(buffers, false, default).ConfigureAwait(false);
+                await rpcStream.WriteAsync(buffers, false, default).ConfigureAwait(false);
             }
         }
     }

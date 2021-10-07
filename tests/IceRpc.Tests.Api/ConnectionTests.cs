@@ -12,7 +12,6 @@ namespace IceRpc.Tests.Api
         {
             var options = new ConnectionOptions();
             Assert.Throws<ArgumentException>(() => options.CloseTimeout = TimeSpan.Zero);
-            Assert.Throws<ArgumentException>(() => options.IdleTimeout = TimeSpan.Zero);
             Assert.Throws<ArgumentException>(() => options.IncomingFrameMaxSize = 512);
 
             Assert.Throws<ArgumentException>(() => options.ConnectTimeout = TimeSpan.Zero);
@@ -31,8 +30,8 @@ namespace IceRpc.Tests.Api
         public void Connection_SlicTransportOptions_ArgumentException()
         {
             var options = new Transports.SlicOptions();
-            Assert.Throws<ArgumentException>(() => options.SlicPacketMaxSize = 512);
-            Assert.Throws<ArgumentException>(() => options.SlicStreamBufferMaxSize = 512);
+            Assert.Throws<ArgumentException>(() => options.PacketMaxSize = 512);
+            Assert.Throws<ArgumentException>(() => options.StreamBufferMaxSize = 512);
         }
 
         [Test]

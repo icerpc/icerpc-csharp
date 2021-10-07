@@ -22,7 +22,7 @@ namespace IceRpc.Transports
         /// </summary>
         public UdpClientTransport(UdpOptions options) => _options = options;
 
-        MultiStreamConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
+        INetworkConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
         {
             // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
             // a udp endpoint regardless of its actual transport name.
@@ -39,7 +39,7 @@ namespace IceRpc.Transports
                     $"endpoint '{remoteEndpoint}' cannot use interface '*' to send datagrams");
             }
 
-            ILogger logger = loggerFactory.CreateLogger("IceRpc");
+            ILogger logger = loggerFactory.CreateLogger("IceRpc.Transports");
             Socket socket = ipAddress == null ?
                 new Socket(SocketType.Dgram, ProtocolType.Udp) :
                 new Socket(ipAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
@@ -95,10 +95,13 @@ namespace IceRpc.Transports
                 throw new TransportException(ex);
             }
 
-#pragma warning disable CA2000 // Dispose objects before losing scope
-            var udpSocket = new UdpSocket(socket, logger, isServer: false, netEndPoint, ttl, multicastInterface);
-#pragma warning restore CA2000 // Dispose objects before losing scope
-            return NetworkSocketConnection.FromNetworkSocket(udpSocket, remoteEndpoint, isServer: false, new());
+            return new NetworkSocketConnection(
+                new UdpSocket(socket, isServer: false, netEndPoint, ttl, multicastInterface),
+                remoteEndpoint,
+                isServer: false,
+                idleTimeout: _options.IdleTimeout,
+                new(),
+                logger);
         }
     }
 }

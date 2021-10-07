@@ -17,7 +17,7 @@ namespace IceRpc
     {
         /// <summary>The default value for <see cref="ServerTransport"/>.</summary>
         public static IServerTransport DefaultServerTransport { get; } =
-            new ServerTransport().UseColoc().UseTcp().UseUdp();
+            new LogServerTransportDecorator(new ServerTransport().UseColoc().UseTcp().UseUdp());
 
         /// <summary>Gets or sets the options of server connections created by this server.</summary>
         public ConnectionOptions ConnectionOptions { get; set; } = new();
@@ -112,14 +112,14 @@ namespace IceRpc
                     throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
 
-                MultiStreamConnection? multiStreamConnection;
-                (_listener, multiStreamConnection) = ServerTransport.Listen(
+                INetworkConnection? networkConnection;
+                (_listener, networkConnection) = ServerTransport.Listen(
                     _endpoint,
                     _loggerFactory ?? NullLoggerFactory.Instance);
 
                 if (_listener != null)
                 {
-                    Debug.Assert(multiStreamConnection == null);
+                    Debug.Assert(networkConnection == null);
                     _endpoint = _listener.Endpoint;
 
                     // Run task to start accepting new connections.
@@ -127,17 +127,17 @@ namespace IceRpc
                 }
                 else
                 {
-                    Debug.Assert(multiStreamConnection != null);
+                    Debug.Assert(networkConnection != null);
 
                     // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
                     var serverConnection = new Connection(
-                        multiStreamConnection,
+                        networkConnection,
                         Dispatcher,
                         ConnectionOptions,
                         LoggerFactory);
 #pragma warning restore CA2000
-                    _endpoint = multiStreamConnection.LocalEndpoint!;
+                    _endpoint = networkConnection.LocalEndpoint!;
 
                     // Connect the connection to start accepting new streams.
                     _ = serverConnection.ConnectAsync(default);
@@ -232,10 +232,10 @@ namespace IceRpc
 
             while (true)
             {
-                MultiStreamConnection multiStreamConnection;
+                INetworkConnection networkConnection;
                 try
                 {
-                    multiStreamConnection = await listener.AcceptAsync().ConfigureAwait(false);
+                    networkConnection = await listener.AcceptAsync().ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -258,7 +258,7 @@ namespace IceRpc
                 // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
                 var connection = new Connection(
-                        multiStreamConnection,
+                        networkConnection,
                         Dispatcher,
                         ConnectionOptions,
                         LoggerFactory);
@@ -268,7 +268,7 @@ namespace IceRpc
                 {
                     if (_shutdownTask != null)
                     {
-                        connection.AbortAsync("server shutdown");
+                        connection.CloseAsync("server shutdown");
                         return;
                     }
 

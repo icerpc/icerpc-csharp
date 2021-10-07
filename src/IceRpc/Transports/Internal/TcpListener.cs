@@ -13,30 +13,29 @@ namespace IceRpc.Transports.Internal
         public Endpoint Endpoint { get; }
 
         private readonly SslServerAuthenticationOptions? _authenticationOptions;
+        private readonly TimeSpan _idleTimeout;
         private readonly ILogger _logger;
         private readonly Socket _socket;
         private readonly SlicOptions _slicOptions;
 
-        public async ValueTask<MultiStreamConnection> AcceptAsync()
+        public async ValueTask<INetworkConnection> AcceptAsync()
         {
-            TcpSocket tcpSocket;
             try
             {
-                tcpSocket = new TcpServerSocket(
-                    await _socket.AcceptAsync().ConfigureAwait(false),
-                    _logger,
-                    _authenticationOptions);
+                return new NetworkSocketConnection(
+                    new TcpServerSocket(
+                        await _socket.AcceptAsync().ConfigureAwait(false),
+                        _authenticationOptions),
+                    Endpoint,
+                    isServer: true,
+                    _idleTimeout,
+                    _slicOptions,
+                    _logger);
             }
             catch (Exception ex)
             {
                 throw ExceptionUtil.Throw(ex.ToTransportException(default));
             }
-
-            return NetworkSocketConnection.FromNetworkSocket(
-                tcpSocket,
-                Endpoint,
-                isServer: true,
-                _slicOptions);
         }
 
         public void Dispose() => _socket.Dispose();
@@ -47,6 +46,7 @@ namespace IceRpc.Transports.Internal
             Socket socket,
             Endpoint endpoint,
             ILogger logger,
+            TimeSpan idleTimeout,
             SlicOptions slicOptions,
             SslServerAuthenticationOptions? authenticationOptions)
         {
@@ -55,6 +55,7 @@ namespace IceRpc.Transports.Internal
             _logger = logger;
             _slicOptions = slicOptions;
             _socket = socket;
+            _idleTimeout = idleTimeout;
 
             // We always call ParseTcpParams to make sure the params are ok, even when Protocol is ice1.
             _ = endpoint.ParseTcpParams();
