@@ -136,7 +136,7 @@ namespace IceRpc.Tests.Internal
 
             public ConnectionFactory(
                 string transport = "coloc",
-                Protocol protocol = Protocol.Ice2,
+                ProtocolCode protocol = ProtocolCode.Ice2,
                 bool secure = false,
                 ConnectionOptions? clientConnectionOptions = null,
                 ConnectionOptions? serverConnectionOptions = null,
@@ -175,7 +175,7 @@ namespace IceRpc.Tests.Internal
                                             port: 4062,
                                             ImmutableList<EndpointParam>.Empty);
                 }
-                else if (transport == "udp" || protocol == Protocol.Ice1)
+                else if (transport == "udp" || protocol == ProtocolCode.Ice1)
                 {
                     if (secure)
                     {
@@ -200,15 +200,15 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        [TestCase(Protocol.Ice2, "tcp", false)]
-        [TestCase(Protocol.Ice2, "tcp", true)]
-        [TestCase(Protocol.Ice1, "tcp", false)]
-        [TestCase(Protocol.Ice1, "tcp", true)]
-        [TestCase(Protocol.Ice2, "coloc", false)]
-        [TestCase(Protocol.Ice2, "coloc", true)]
-        [TestCase(Protocol.Ice1, "coloc", false)]
-        [TestCase(Protocol.Ice1, "coloc", true)]
-        public async Task Connection_CloseAsync(Protocol protocol, string transport, bool closeClientSide)
+        [TestCase(ProtocolCode.Ice2, "tcp", false)]
+        [TestCase(ProtocolCode.Ice2, "tcp", true)]
+        [TestCase(ProtocolCode.Ice1, "tcp", false)]
+        [TestCase(ProtocolCode.Ice1, "tcp", true)]
+        [TestCase(ProtocolCode.Ice2, "coloc", false)]
+        [TestCase(ProtocolCode.Ice2, "coloc", true)]
+        [TestCase(ProtocolCode.Ice1, "coloc", false)]
+        [TestCase(ProtocolCode.Ice1, "coloc", true)]
+        public async Task Connection_CloseAsync(ProtocolCode protocol, string transport, bool closeClientSide)
         {
             using var semaphore = new SemaphoreSlim(0);
             await using var factory = new ConnectionFactory(
@@ -235,11 +235,11 @@ namespace IceRpc.Tests.Internal
             semaphore.Release();
         }
 
-        [TestCase(Protocol.Ice1, false)]
-        [TestCase(Protocol.Ice1, true)]
-        [TestCase(Protocol.Ice2, false)]
-        [TestCase(Protocol.Ice2, true)]
-        public async Task Connection_ClosedEventAsync(Protocol protocol, bool closeClientSide)
+        [TestCase(ProtocolCode.Ice1, false)]
+        [TestCase(ProtocolCode.Ice1, true)]
+        [TestCase(ProtocolCode.Ice2, false)]
+        [TestCase(ProtocolCode.Ice2, true)]
+        public async Task Connection_ClosedEventAsync(ProtocolCode protocol, bool closeClientSide)
         {
             await using var factory = new ConnectionFactory("tcp", protocol);
 
@@ -259,11 +259,11 @@ namespace IceRpc.Tests.Internal
             await semaphore.WaitAsync();
         }
 
-        [TestCase(Protocol.Ice1, false)]
-        [TestCase(Protocol.Ice1, true)]
-        [TestCase(Protocol.Ice2, false)]
-        [TestCase(Protocol.Ice2, true)]
-        public async Task Connection_CloseOnIdleAsync(Protocol protocol, bool idleOnClient)
+        [TestCase(ProtocolCode.Ice1, false)]
+        [TestCase(ProtocolCode.Ice1, true)]
+        [TestCase(ProtocolCode.Ice2, false)]
+        [TestCase(ProtocolCode.Ice2, true)]
+        public async Task Connection_CloseOnIdleAsync(ProtocolCode protocol, bool idleOnClient)
         {
             await using var factory = new ConnectionFactory(
                 "tcp",
@@ -284,9 +284,9 @@ namespace IceRpc.Tests.Internal
             await semaphore.WaitAsync();
         }
 
-        [TestCase(Protocol.Ice1)]
-        [TestCase(Protocol.Ice2)]
-        public async Task Connection_ConnectTimeoutAsync(Protocol protocol)
+        [TestCase(ProtocolCode.Ice1)]
+        [TestCase(ProtocolCode.Ice2)]
+        public async Task Connection_ConnectTimeoutAsync(ProtocolCode protocol)
         {
             Endpoint endpoint = TestHelper.GetTestEndpoint(transport: "tcp", protocol: protocol);
 
@@ -386,9 +386,9 @@ namespace IceRpc.Tests.Internal
                 else
                 {
                     Assert.That(clientSslStream.NegotiatedApplicationProtocol.ToString(),
-                                Is.EqualTo(Protocol.Ice2.GetName()));
+                                Is.EqualTo(Protocol.Ice2.Name));
                     Assert.That(serverSslStream!.NegotiatedApplicationProtocol.ToString(),
-                                Is.EqualTo(Protocol.Ice2.GetName()));
+                                Is.EqualTo(Protocol.Ice2.Name));
                 }
 
                 Assert.That(clientSslStream.RemoteCertificate, Is.Not.Null);
@@ -399,9 +399,9 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        [TestCase(Protocol.Ice1)]
-        [TestCase(Protocol.Ice2)]
-        public async Task Connection_IdleTimeoutAsync(Protocol protocol)
+        [TestCase(ProtocolCode.Ice1)]
+        [TestCase(ProtocolCode.Ice2)]
+        public async Task Connection_IdleTimeoutAsync(ProtocolCode protocol)
         {
             await using var factory = new ConnectionFactory(
                 "tcp",
@@ -417,7 +417,7 @@ namespace IceRpc.Tests.Internal
 
             Assert.That(factory.ClientConnection.IdleTimeout, Is.EqualTo(TimeSpan.FromSeconds(2)));
 
-            if (protocol == Protocol.Ice1)
+            if (protocol == ProtocolCode.Ice1)
             {
                 Assert.That(factory.ServerConnection.IdleTimeout, Is.EqualTo(TimeSpan.FromSeconds(3)));
             }
@@ -427,9 +427,9 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        [TestCase(Protocol.Ice1)]
-        [TestCase(Protocol.Ice2)]
-        public async Task Connection_KeepAliveAsync(Protocol protocol)
+        [TestCase(ProtocolCode.Ice1)]
+        [TestCase(ProtocolCode.Ice2)]
+        public async Task Connection_KeepAliveAsync(ProtocolCode protocol)
         {
             await using var factory = new ConnectionFactory(
                 protocol: protocol,
@@ -445,11 +445,11 @@ namespace IceRpc.Tests.Internal
             Assert.That(factory.ServerConnection.KeepAlive, Is.True);
         }
 
-        [TestCase(Protocol.Ice1, false)]
-        [TestCase(Protocol.Ice1, true)]
-        [TestCase(Protocol.Ice2, false)]
-        [TestCase(Protocol.Ice2, true)]
-        public async Task Connection_KeepAliveOnIdleAsync(Protocol protocol, bool heartbeatOnClient)
+        [TestCase(ProtocolCode.Ice1, false)]
+        [TestCase(ProtocolCode.Ice1, true)]
+        [TestCase(ProtocolCode.Ice2, false)]
+        [TestCase(ProtocolCode.Ice2, true)]
+        public async Task Connection_KeepAliveOnIdleAsync(ProtocolCode protocol, bool heartbeatOnClient)
         {
             await using var factory = new ConnectionFactory(
                 "tcp",
@@ -477,9 +477,9 @@ namespace IceRpc.Tests.Internal
             Assert.That(factory.ServerConnection.State, Is.EqualTo(ConnectionState.Active));
         }
 
-        [TestCase(Protocol.Ice1)]
-        [TestCase(Protocol.Ice2)]
-        public async Task Connection_KeepAliveOnInvocationAsync(Protocol protocol)
+        [TestCase(ProtocolCode.Ice1)]
+        [TestCase(ProtocolCode.Ice2)]
+        public async Task Connection_KeepAliveOnInvocationAsync(ProtocolCode protocol)
         {
             using var dispatchSemaphore = new SemaphoreSlim(0);
             await using var factory = new ConnectionFactory(
@@ -501,13 +501,13 @@ namespace IceRpc.Tests.Internal
             await pingTask;
         }
 
-        [TestCase(Protocol.Ice2, "tcp", false)]
-        [TestCase(Protocol.Ice2, "tcp", true)]
-        [TestCase(Protocol.Ice1, "tcp", false)]
-        [TestCase(Protocol.Ice1, "tcp", true)]
-        [TestCase(Protocol.Ice2, "coloc", false)]
-        [TestCase(Protocol.Ice2, "coloc", true)]
-        public async Task Connection_ShutdownAsync(Protocol protocol, string transport, bool closeClientSide)
+        [TestCase(ProtocolCode.Ice2, "tcp", false)]
+        [TestCase(ProtocolCode.Ice2, "tcp", true)]
+        [TestCase(ProtocolCode.Ice1, "tcp", false)]
+        [TestCase(ProtocolCode.Ice1, "tcp", true)]
+        [TestCase(ProtocolCode.Ice2, "coloc", false)]
+        [TestCase(ProtocolCode.Ice2, "coloc", true)]
+        public async Task Connection_ShutdownAsync(ProtocolCode protocol, string transport, bool closeClientSide)
         {
             using var waitForDispatchSemaphore = new SemaphoreSlim(0);
             using var dispatchSemaphore = new SemaphoreSlim(0);
@@ -531,7 +531,7 @@ namespace IceRpc.Tests.Internal
             Assert.That(dispatchSemaphore.Release(), Is.EqualTo(0));
             await shutdownTask;
 
-            if (protocol == Protocol.Ice1 && closeClientSide)
+            if (protocol == ProtocolCode.Ice1 && closeClientSide)
             {
                 // With Ice1, when closing the connection with a pending invocation, invocations are aborted
                 // immediately. The Ice1 protocol doesn't support reliably waiting for the response.
@@ -549,11 +549,11 @@ namespace IceRpc.Tests.Internal
                 async () => await factory.ServicePrx.IcePingAsync());
         }
 
-        [TestCase(false, Protocol.Ice1)]
-        [TestCase(true, Protocol.Ice1)]
-        [TestCase(false, Protocol.Ice2)]
-        [TestCase(true, Protocol.Ice2)]
-        public async Task Connection_ShutdownCancellationAsync(bool closeClientSide, Protocol protocol)
+        [TestCase(false, ProtocolCode.Ice1)]
+        [TestCase(true, ProtocolCode.Ice1)]
+        [TestCase(false, ProtocolCode.Ice2)]
+        [TestCase(true, ProtocolCode.Ice2)]
+        public async Task Connection_ShutdownCancellationAsync(bool closeClientSide, ProtocolCode protocol)
         {
             using var waitForDispatchSemaphore = new SemaphoreSlim(0);
             using var dispatchSemaphore = new SemaphoreSlim(0);
@@ -596,7 +596,7 @@ namespace IceRpc.Tests.Internal
                 // The invocation on the connection has been canceled by the shutdown cancellation
                 Exception? ex = Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
 
-                if (protocol == Protocol.Ice1)
+                if (protocol == ProtocolCode.Ice1)
                 {
                     // Client-side Ice1 invocations are canceled immediately on shutdown.
                     Assert.That(ex!.Message, Is.EqualTo("client message"));
@@ -617,7 +617,7 @@ namespace IceRpc.Tests.Internal
                 dispatchSemaphore.Wait();
 
                 // The invocation on the connection should throw a DispatchException
-                if (protocol == Protocol.Ice1)
+                if (protocol == ProtocolCode.Ice1)
                 {
                     DispatchException? ex = Assert.ThrowsAsync<DispatchException>(async () => await pingTask);
                     Assert.That(ex!.RetryPolicy, Is.EqualTo(RetryPolicy.NoRetry));
@@ -630,14 +630,14 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        [TestCase(Protocol.Ice2, "tcp", false)]
-        [TestCase(Protocol.Ice2, "tcp", true)]
-        [TestCase(Protocol.Ice1, "tcp", false)]
-        [TestCase(Protocol.Ice1, "tcp", true)]
-        [TestCase(Protocol.Ice2, "coloc", false)]
-        [TestCase(Protocol.Ice2, "coloc", true)]
+        [TestCase(ProtocolCode.Ice2, "tcp", false)]
+        [TestCase(ProtocolCode.Ice2, "tcp", true)]
+        [TestCase(ProtocolCode.Ice1, "tcp", false)]
+        [TestCase(ProtocolCode.Ice1, "tcp", true)]
+        [TestCase(ProtocolCode.Ice2, "coloc", false)]
+        [TestCase(ProtocolCode.Ice2, "coloc", true)]
         public async Task Connection_ShutdownAsync_CloseTimeoutAsync(
-            Protocol protocol,
+            ProtocolCode protocol,
             string transport,
             bool closeClientSide)
         {
@@ -669,7 +669,7 @@ namespace IceRpc.Tests.Internal
             {
                 // Shutdown should trigger the abort of the connection after the close timeout
                 await factory.ClientConnection.ShutdownAsync();
-                if (protocol == Protocol.Ice1)
+                if (protocol == ProtocolCode.Ice1)
                 {
                     // Invocations are canceled immediately on shutdown with Ice1
                     Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);

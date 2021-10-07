@@ -40,7 +40,9 @@ namespace IceRpc
         /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of an endpoint.
         /// </exception>
         public static Endpoint FromString(string s) =>
-            IceUriParser.IsEndpointUri(s) ? IceUriParser.ParseEndpointUri(s) : Ice1Parser.ParseEndpointString(s);
+            IceUriParser.IsEndpointUri(s) ?
+                IceUriParser.ParseEndpointUri(s, Protocol.Ice2) :
+                Ice1Parser.ParseEndpointString(s);
 
         /// <summary>Constructs a new endpoint.</summary>
         /// <param name="protocol">The Ice protocol of this endpoint.</param>

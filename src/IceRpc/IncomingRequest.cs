@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using IceRpc.Transports;
+using System.Collections.Immutable;
 
 namespace IceRpc
 {
@@ -61,7 +61,7 @@ namespace IceRpc
         /// <param name="targetProxy">The proxy used to send to the outgoing request.</param>
         /// <returns>The outgoing request to be forwarded.</returns>
         public OutgoingRequest ToOutgoingRequest(Proxy targetProxy) =>
-            targetProxy.Protocol.ToOutgoingRequest(this, targetProxy: targetProxy);
+            ToOutgoingRequest(targetConnection: null, targetProxy: targetProxy);
 
         /// <summary>Create an outgoing request from this incoming request. The outgoing request is
         /// constructed to be forwarded with the given connection. The <see cref="OutgoingRequest.Path"/> is
@@ -69,6 +69,43 @@ namespace IceRpc
         /// <param name="targetConnection">The target connection.</param>
         /// <returns>The outgoing request to be forwarded.</returns>
         public OutgoingRequest ToOutgoingRequest(Connection targetConnection) =>
-            targetConnection.Protocol.ToOutgoingRequest(this, targetConnection: targetConnection);
+            ToOutgoingRequest(targetConnection: targetConnection, targetProxy: null);
+
+        private OutgoingRequest ToOutgoingRequest(
+            Connection? targetConnection,
+            Proxy? targetProxy)
+        {
+            Protocol targetProtocol = targetConnection?.Protocol ?? targetProxy!.Protocol;
+            IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields;
+            if (Protocol == Protocol.Ice2 && targetProtocol == Protocol.Ice2)
+            {
+                fields = Fields;
+            }
+            else
+            {
+                fields = ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
+            }
+
+            // TODO: forward stream parameters
+
+            return new OutgoingRequest(
+                targetProtocol,
+                path: targetProxy?.Path ?? Path,
+                operation: Operation)
+            {
+                AltEndpoints = targetProxy?.AltEndpoints ?? ImmutableList<Endpoint>.Empty,
+                Connection = targetConnection ?? targetProxy?.Connection,
+                Deadline = Deadline,
+                Endpoint = targetProxy?.Endpoint,
+                Features = Features,
+                FieldsDefaults = fields,
+                IsOneway = IsOneway,
+                IsIdempotent = IsIdempotent,
+                Proxy = targetProxy,
+                PayloadEncoding = PayloadEncoding,
+                Payload = new ReadOnlyMemory<byte>[] { Payload }
+            };
+        }
+
     }
 }

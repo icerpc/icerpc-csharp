@@ -46,7 +46,7 @@ namespace IceRpc
 
                     if (value.Any(e => e.Protocol != Protocol))
                     {
-                        throw new ArgumentException($"the protocol of all endpoints must be {Protocol.GetName()}",
+                        throw new ArgumentException($"the protocol of all endpoints must be {Protocol.Name}",
                                                     nameof(AltEndpoints));
                     }
 
@@ -180,7 +180,7 @@ namespace IceRpc
         /// <param name="path">The path.</param>
         /// <param name="protocol">The protocol.</param>
         /// <returns>The new proxy.</returns>
-        public static Proxy FromPath(string path, Protocol protocol = Protocol.Ice2) => new(path, protocol);
+        public static Proxy FromPath(string path, Protocol? protocol = null) => new(path, protocol ?? Protocol.Ice2);
 
         /// <summary>Creates a proxy from a string and an invoker.</summary>
         /// <param name="s">The string to parse.</param>
@@ -476,7 +476,7 @@ namespace IceRpc
         /// <summary>Constructs a new proxy.</summary>
         /// <param name="path">The proxy path.</param>
         /// <param name="protocol">The proxy protocol.</param>
-        internal Proxy(string path, Protocol protocol = Protocol.Ice2)
+        internal Proxy(string path, Protocol protocol)
         {
             Protocol = protocol;
             IceUriParser.CheckPath(path, nameof(path));

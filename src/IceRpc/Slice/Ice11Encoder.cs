@@ -124,7 +124,7 @@ namespace IceRpc.Slice
                     proxy.Protocol == Protocol.Ice1 && (proxy.Endpoint?.Transport == TransportNames.Udp) ?
                         InvocationMode.Datagram : InvocationMode.Twoway,
                     secure: false,
-                    proxy.Protocol,
+                    protocolMajor: (byte)proxy.Protocol.Code,
                     protocolMinor: 0,
                     encodingMajor,
                     encodingMinor);

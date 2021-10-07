@@ -82,9 +82,9 @@ namespace IceRpc.Tests.Slice
             Assert.Throws<InvalidDataException>(() => MyFixedLengthEnumHelper.AsMyFixedLengthEnum(22));
         }
 
-        [TestCase(Protocol.Ice1)]
-        [TestCase(Protocol.Ice2)]
-        public async Task Enum_OperationsAsync(Protocol protocol)
+        [TestCase(ProtocolCode.Ice1)]
+        [TestCase(ProtocolCode.Ice2)]
+        public async Task Enum_OperationsAsync(ProtocolCode protocol)
         {
             await WithEnumOperationsServerAsync(
                 protocol,
@@ -118,7 +118,7 @@ namespace IceRpc.Tests.Slice
         }
 
         private static async Task WithEnumOperationsServerAsync(
-            Protocol protocol,
+            ProtocolCode protocol,
             Func<IEnumOperationsPrx, Task> closure)
         {
             Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
@@ -133,7 +133,7 @@ namespace IceRpc.Tests.Slice
                 RemoteEndpoint = serverEndpoint
             };
             var prx = EnumOperationsPrx.FromConnection(connection);
-            Assert.AreEqual(protocol, prx.Proxy.Protocol);
+            Assert.AreEqual(protocol, prx.Proxy.Protocol.Code);
             await closure(prx);
         }
 

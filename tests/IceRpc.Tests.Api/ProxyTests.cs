@@ -10,9 +10,9 @@ namespace IceRpc.Tests.Api
     [Timeout(5000)]
     public class ProxyTests
     {
-        [TestCase(Protocol.Ice1)]
-        [TestCase(Protocol.Ice2)]
-        public async Task Proxy_ServiceAsync(Protocol protocol)
+        [TestCase(ProtocolCode.Ice1)]
+        [TestCase(ProtocolCode.Ice2)]
+        public async Task Proxy_ServiceAsync(ProtocolCode protocol)
         {
             // Tests the IceRpc::Service interface implemented by all typed proxies.
             Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);

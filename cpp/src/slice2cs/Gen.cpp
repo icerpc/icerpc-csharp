@@ -2166,9 +2166,9 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << nl << "/// <param name=\"protocol\">The proxy protocol.</param>";
     _out << nl << "/// <returns>The new proxy.</returns>";
     _out << nl << "public static " << prxImpl
-        << " FromPath(string path, IceRpc.Protocol protocol = IceRpc.Protocol.Ice2) =>";
+        << " FromPath(string path, IceRpc.Protocol? protocol = null) =>";
     _out.inc();
-    _out << nl << "new(IceRpc.Proxy.FromPath(path, protocol));";
+    _out << nl << "new(IceRpc.Proxy.FromPath(path, protocol ?? IceRpc.Protocol.Ice2));";
     _out.dec();
 
     _out << sp;

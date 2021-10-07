@@ -30,7 +30,7 @@ namespace IceRpc.Slice
 
                 var proxyData = new ProxyData20(
                     proxy.Path,
-                    protocol: proxy.Protocol != Protocol.Ice2 ? proxy.Protocol : null,
+                    protocol: proxy.Protocol != Protocol.Ice2 ? proxy.Protocol.Code : null,
                     encoding: proxy.Encoding == proxy.Protocol.GetIceEncoding() ? null : proxy.Encoding.ToString(),
                     endpoint: proxy.Endpoint is Endpoint endpoint && endpoint.Transport != TransportNames.Coloc ?
                         endpoint.ToEndpointData() : null,
@@ -106,7 +106,7 @@ namespace IceRpc.Slice
 
             v |= encodedSizeExponent;
             MemoryMarshal.Write(ulongBuf, ref v);
-            ulongBuf.Slice(0, sizeLength).CopyTo(into);
+            ulongBuf[0..sizeLength].CopyTo(into);
         }
 
         /// <summary>Computes the minimum number of bytes needed to encode a variable-length size with the 2.0 encoding.

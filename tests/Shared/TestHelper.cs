@@ -10,10 +10,10 @@ namespace IceRpc.Tests
     {
         private static ulong _counter;
 
-        public static string EscapeIPv6Address(string address, Protocol protocol) =>
+        public static string EscapeIPv6Address(string address, ProtocolCode protocol) =>
             protocol switch
             {
-                Protocol.Ice1 => address.Contains(':', StringComparison.InvariantCulture) ? $"\"{address}\"" : address,
+                ProtocolCode.Ice1 => address.Contains(':', StringComparison.InvariantCulture) ? $"\"{address}\"" : address,
                 _ => address.Contains(':', StringComparison.InvariantCulture) ? $"[{address}]" : address
             };
 
@@ -43,14 +43,14 @@ namespace IceRpc.Tests
              int port = 0,
              string transport = "tcp",
              bool tls = false,
-             Protocol protocol = Protocol.Ice2)
+             ProtocolCode protocol = ProtocolCode.Ice2)
         {
             if (transport == "coloc" && host == "127.0.0.1" && port == 0)
             {
                 return GetUniqueColocEndpoint(protocol);
             }
 
-            if (protocol == Protocol.Ice2)
+            if (protocol == ProtocolCode.Ice2)
             {
                 string endpoint = $"ice+{transport}://{EscapeIPv6Address(host, protocol)}:{port}";
                 if (transport == "tcp" && !tls)
@@ -71,9 +71,9 @@ namespace IceRpc.Tests
             int port = 0,
             string transport = "tcp",
             bool tls = false,
-            Protocol protocol = Protocol.Ice2)
+            ProtocolCode protocol = ProtocolCode.Ice2)
         {
-            if (protocol == Protocol.Ice2)
+            if (protocol == ProtocolCode.Ice2)
             {
                 string proxy = $"ice+{transport}://{EscapeIPv6Address(host, protocol)}:{port}{path}";
                 if (transport == "tcp" && !tls)
@@ -88,8 +88,8 @@ namespace IceRpc.Tests
             }
         }
 
-        public static Endpoint GetUniqueColocEndpoint(Protocol protocol = Protocol.Ice2) =>
-            protocol == Protocol.Ice2 ? $"ice+coloc://test.{Interlocked.Increment(ref _counter)}" :
+        public static Endpoint GetUniqueColocEndpoint(ProtocolCode protocol = ProtocolCode.Ice2) =>
+            protocol == ProtocolCode.Ice2 ? $"ice+coloc://test.{Interlocked.Increment(ref _counter)}" :
                 $"coloc -h test.{Interlocked.Increment(ref _counter)}";
 
         public static IServerTransport CreateServerTransport(

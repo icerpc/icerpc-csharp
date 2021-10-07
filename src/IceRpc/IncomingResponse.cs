@@ -1,12 +1,18 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Slice;
+using System.Collections.Immutable;
+using System.Diagnostics;
 
 namespace IceRpc
 {
     /// <summary>Represents a response protocol frame received by the application.</summary>
     public sealed class IncomingResponse : IncomingFrame
     {
+        private static readonly IActivator<Ice20Decoder> _activator20 =
+            Ice20Decoder.GetActivator(typeof(RemoteException).Assembly);
+
         /// <summary>The <see cref="IceRpc.ResultType"/> of this response.</summary>
         public ResultType ResultType { get; }
 
@@ -20,6 +26,67 @@ namespace IceRpc
         /// forwarded using the given target protocol.</summary>
         /// <param name="targetProtocol">The protocol used to send to the outgoing response.</param>
         /// <returns>The outgoing response to be forwarded.</returns>
-        public OutgoingResponse ToOutgoingResponse(Protocol targetProtocol) => targetProtocol.ToOutgoingResponse(this);
+        public OutgoingResponse ToOutgoingResponse(Protocol targetProtocol)
+        {
+            if (ResultType == ResultType.Failure && Protocol != targetProtocol)
+            {
+                if (Protocol == Protocol.Ice2 && PayloadEncoding == Encoding.Ice20)
+                {
+                    Debug.Assert(targetProtocol == Protocol.Ice1);
+
+                    // ice1 system exceptions must be encoded with 1.1 when forwarded from ice2 to ice1, so we check if
+                    // we have a system exception.
+
+                    var decoder = new Ice20Decoder(Payload);
+
+                    string typeId = decoder.DecodeString();
+                    if (typeId.IsIce1SystemExceptionTypeId())
+                    {
+                        // We use the activator directly because we can't rewind to call decoder.DecodeException
+                        var systemException = (RemoteException)_activator20.CreateInstance(typeId, decoder)!;
+
+                        // skipTaggedParams is true to skip the remaining exception tagged members (most likely none);
+                        // see Ice20Decoder.DecodeException.
+                        decoder.CheckEndOfBuffer(skipTaggedParams: true);
+                        return targetProtocol.CreateResponseFromRemoteException(systemException, Encoding.Ice11);
+                    }
+                }
+                else if (Protocol == Protocol.Ice1 && PayloadEncoding == Encoding.Ice11)
+                {
+                    Debug.Assert(targetProtocol == Protocol.Ice2);
+
+                    // ice1 system exceptions must be encoded with 2.0 when forwarded from ice1 to ice2, so we check if
+                    // we have a system exception.
+
+                    ReplyStatus replyStatus = Features.Get<ReplyStatus>();
+
+                    if (replyStatus > ReplyStatus.UserException)
+                    {
+                        RemoteException systemException =
+                            new Ice11Decoder(Payload).DecodeIce1SystemException(replyStatus);
+
+                        return targetProtocol.CreateResponseFromRemoteException(systemException, Encoding.Ice20);
+                    }
+                }
+            }
+
+            // Normal situation:
+
+            FeatureCollection features = FeatureCollection.Empty;
+            if (ResultType == ResultType.Failure && targetProtocol == Protocol.Ice1)
+            {
+                features = new FeatureCollection();
+                features.Set(Protocol == Protocol.Ice1 ? Features.Get<ReplyStatus>() : ReplyStatus.UserException);
+            }
+
+            return new OutgoingResponse(targetProtocol, ResultType)
+            {
+                Features = features,
+                // Don't forward RetryPolicy
+                FieldsDefaults = Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
+                Payload = new ReadOnlyMemory<byte>[] { Payload },
+                PayloadEncoding = PayloadEncoding,
+            };
+        }
     }
 }

@@ -62,7 +62,7 @@ namespace IceRpc.Internal
             {
                 AppendQueryOption();
                 sb.Append("protocol=");
-                sb.Append(endpoint.Protocol.GetName());
+                sb.Append(endpoint.Protocol.Name);
             }
             foreach ((string name, string value) in endpoint.Params)
             {

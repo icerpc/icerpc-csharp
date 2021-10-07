@@ -9,7 +9,7 @@ namespace IceRpc.Transports
         /// <param name="transport">The name of the transport.</param>
         /// <param name="protocol">The Ice protocol.</param>
         public UnknownTransportException(string transport, Protocol protocol)
-            : base($"cannot find transport '{transport}' for protocol {protocol.GetName()}")
+            : base($"cannot find transport '{transport}' for protocol {protocol}")
         {
         }
     }

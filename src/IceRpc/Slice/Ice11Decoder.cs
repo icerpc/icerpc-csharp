@@ -161,7 +161,7 @@ namespace IceRpc.Slice
 
             var proxyData = new ProxyData11(this);
 
-            if ((byte)proxyData.Protocol == 0)
+            if (proxyData.ProtocolMajor == 0)
             {
                 throw new InvalidDataException("received proxy with protocol set to 0");
             }
@@ -177,13 +177,13 @@ namespace IceRpc.Slice
 
             Endpoint? endpoint = null;
             IEnumerable<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
-
+            var protocol = Protocol.FromProtocolCode((ProtocolCode)proxyData.ProtocolMajor);
             if (size == 0)
             {
                 string adapterId = DecodeString();
                 if (adapterId.Length > 0)
                 {
-                    if (proxyData.Protocol == Protocol.Ice1)
+                    if (protocol == Protocol.Ice1)
                     {
                         endpoint = new Endpoint(Protocol.Ice1,
                                                 TransportNames.Loc,
@@ -193,26 +193,25 @@ namespace IceRpc.Slice
                     }
                     else
                     {
-                        throw new InvalidDataException(
-                            $"received {proxyData.Protocol.GetName()} proxy with an adapter ID");
+                        throw new InvalidDataException($"received {protocol} proxy with an adapter ID");
                     }
                 }
             }
             else
             {
-                endpoint = DecodeEndpoint(proxyData.Protocol);
+                endpoint = DecodeEndpoint(protocol);
                 if (size >= 2)
                 {
                     var endpointArray = new Endpoint[size - 1];
                     for (int i = 0; i < size - 1; ++i)
                     {
-                        endpointArray[i] = DecodeEndpoint(proxyData.Protocol);
+                        endpointArray[i] = DecodeEndpoint(protocol);
                     }
                     altEndpoints = endpointArray;
                 }
             }
 
-            if (proxyData.Protocol == Protocol.Ice1)
+            if (protocol == Protocol.Ice1)
             {
                 if (proxyData.OptionalFacet.Count > 1)
                 {
@@ -243,13 +242,12 @@ namespace IceRpc.Slice
             {
                 if (proxyData.OptionalFacet.Count > 0)
                 {
-                    throw new InvalidDataException(
-                        $"received proxy for protocol {proxyData.Protocol.GetName()} with a facet");
+                    throw new InvalidDataException($"received proxy for protocol {protocol} with a facet");
                 }
                 if (proxyData.InvocationMode != InvocationMode.Twoway)
                 {
                     throw new InvalidDataException(
-                        $"received proxy for protocol {proxyData.Protocol.GetName()} with invocation mode set");
+                        $"received proxy for protocol {protocol} with invocation mode set");
                 }
 
                 try
@@ -262,7 +260,7 @@ namespace IceRpc.Slice
                     }
                     else
                     {
-                        proxy = new Proxy(identity.ToPath(), proxyData.Protocol);
+                        proxy = new Proxy(identity.ToPath(), protocol);
                         proxy.Endpoint = endpoint;
                         proxy.AltEndpoints = altEndpoints.ToImmutableList();
                         proxy.Invoker = Invoker;
@@ -567,7 +565,7 @@ namespace IceRpc.Slice
 
             return endpoint ??
                 throw new InvalidDataException(
-                    @$"cannot decode endpoint for protocol '{protocol.GetName()}' and transport '{transportName
+                    @$"cannot decode endpoint for protocol '{protocol}' and transport '{transportName
                     }' with endpoint encapsulation encoded with encoding '{encoding}'");
         }
 

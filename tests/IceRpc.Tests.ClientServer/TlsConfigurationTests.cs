@@ -290,14 +290,14 @@ namespace IceRpc.Tests.ClientServer
                         })
                 }),
                 RemoteEndpoint =
-                    $"ice+tcp://{TestHelper.EscapeIPv6Address(targetHost, server.Protocol)}:{server.Endpoint.Port}"
+                    $"ice+tcp://{TestHelper.EscapeIPv6Address(targetHost, server.Protocol.Code)}:{server.Endpoint.Port}"
             };
             var prx = ServicePrx.FromConnection(connection);
 
             if ((GetOperatingSystem() & mustSucceed) != 0)
             {
                 Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-                Assert.IsTrue(connection.IsSecure);
+                Assert.That(connection.IsSecure, Is.True);
             }
             else
             {
@@ -430,7 +430,7 @@ namespace IceRpc.Tests.ClientServer
             All = Linux | Windows | MacOS | Other
         }
 
-        static internal OperatingSystem GetOperatingSystem()
+        private static OperatingSystem GetOperatingSystem()
         {
             if (System.OperatingSystem.IsMacOS())
             {

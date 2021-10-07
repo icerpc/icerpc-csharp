@@ -28,15 +28,15 @@ namespace IceRpc.Tests.ClientServer
             await _pool.DisposeAsync();
         }
 
-        [TestCase(Protocol.Ice2, Protocol.Ice2, true)]
-        [TestCase(Protocol.Ice1, Protocol.Ice1, true)]
-        [TestCase(Protocol.Ice2, Protocol.Ice2, false)]
-        [TestCase(Protocol.Ice1, Protocol.Ice1, false)]
-        [TestCase(Protocol.Ice2, Protocol.Ice1, true)]
-        [TestCase(Protocol.Ice1, Protocol.Ice2, true)]
-        [TestCase(Protocol.Ice2, Protocol.Ice1, false)]
-        [TestCase(Protocol.Ice1, Protocol.Ice2, false)]
-        public async Task ProtocolBridging_Forward(Protocol forwarderProtocol, Protocol targetProtocol, bool colocated)
+        [TestCase(ProtocolCode.Ice2, ProtocolCode.Ice2, true)]
+        [TestCase(ProtocolCode.Ice1, ProtocolCode.Ice1, true)]
+        [TestCase(ProtocolCode.Ice2, ProtocolCode.Ice2, false)]
+        [TestCase(ProtocolCode.Ice1, ProtocolCode.Ice1, false)]
+        [TestCase(ProtocolCode.Ice2, ProtocolCode.Ice1, true)]
+        [TestCase(ProtocolCode.Ice1, ProtocolCode.Ice2, true)]
+        [TestCase(ProtocolCode.Ice2, ProtocolCode.Ice1, false)]
+        [TestCase(ProtocolCode.Ice1, ProtocolCode.Ice2, false)]
+        public async Task ProtocolBridging_Forward(ProtocolCode forwarderProtocol, ProtocolCode targetProtocol, bool colocated)
         {
             // TODO: add context testing
 
@@ -65,7 +65,7 @@ namespace IceRpc.Tests.ClientServer
             }
             else
             {
-                Assert.AreEqual(targetProtocol, newPrx.Proxy.Protocol);
+                Assert.AreEqual(targetProtocol, newPrx.Proxy.Protocol.Code);
             }
 
             _ = await TestProxyAsync(newPrx, direct: true);
@@ -93,8 +93,8 @@ namespace IceRpc.Tests.ClientServer
         }
 
         private ProtocolBridgingTestPrx SetupForwarderServer(
-            Protocol forwarderProtocol,
-            Protocol targetProtocol,
+            ProtocolCode forwarderProtocol,
+            ProtocolCode targetProtocol,
             bool colocated,
             IInvoker invoker)
         {
@@ -102,7 +102,7 @@ namespace IceRpc.Tests.ClientServer
             _router.Map("/target", new ProtocolBridgingTest());
             _targetServer.Dispatcher = _router;
             _targetServer.Listen();
-            var targetService = ProtocolBridgingTestPrx.FromPath("/target", targetProtocol);
+            var targetService = ProtocolBridgingTestPrx.FromPath("/target", Protocol.FromProtocolCode(targetProtocol));
             targetService.Proxy.Endpoint = _targetServer.Endpoint;
             targetService.Proxy.Invoker = invoker;
 
@@ -110,12 +110,14 @@ namespace IceRpc.Tests.ClientServer
             _router.Map("/forward", new Forwarder(targetService.Proxy));
             _forwarderServer.Dispatcher = _router;
             _forwarderServer.Listen();
-            var forwardService = ProtocolBridgingTestPrx.FromPath("/forward", forwarderProtocol);
+            var forwardService = ProtocolBridgingTestPrx.FromPath(
+                "/forward",
+                Protocol.FromProtocolCode(forwarderProtocol));
             forwardService.Proxy.Endpoint = _forwarderServer.Endpoint;
             forwardService.Proxy.Invoker = invoker;
             return forwardService;
 
-            Server CreateServer(Protocol protocol, int port, bool colocated) => new()
+            Server CreateServer(ProtocolCode protocol, int port, bool colocated) => new()
             {
                 Endpoint = colocated ?
                         TestHelper.GetUniqueColocEndpoint(protocol) :
