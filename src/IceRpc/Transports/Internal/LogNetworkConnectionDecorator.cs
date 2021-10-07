@@ -152,17 +152,17 @@ namespace IceRpc.Transports.Internal
         private readonly ILogger _logger;
         private readonly ISingleStreamConnection? _decoratee;
 
-        public async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
+        public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
-            int received = await _decoratee!.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
+            int received = await _decoratee!.ReadAsync(buffer, cancel).ConfigureAwait(false);
             string data = LogNetworkConnectionDecorator.PrintReceivedData(buffer[0..received]);
             _logger.LogReceivedData(received, data);
             return received;
         }
 
-        public async ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
+        public async ValueTask WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
         {
-            await _decoratee!.SendAsync(buffers, cancel).ConfigureAwait(false);
+            await _decoratee!.WriteAsync(buffers, cancel).ConfigureAwait(false);
             (int sent, string data) = LogNetworkConnectionDecorator.PrintSentData(buffers);
             _logger.LogSentData(sent, data);
         }
@@ -218,20 +218,20 @@ namespace IceRpc.Transports.Internal
 
         public void EnableSendFlowControl() => _decoratee.EnableSendFlowControl();
 
-        public async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
+        public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
-            int received = await _decoratee.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
+            int received = await _decoratee.ReadAsync(buffer, cancel).ConfigureAwait(false);
             string data = LogNetworkConnectionDecorator.PrintReceivedData(buffer[0..received]);
             _logger.LogReceivedData(received, data);
             return received;
         }
 
-        public async ValueTask SendAsync(
+        public async ValueTask WriteAsync(
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             bool endStream,
             CancellationToken cancel)
         {
-            await _decoratee.SendAsync(buffers, endStream, cancel).ConfigureAwait(false);
+            await _decoratee.WriteAsync(buffers, endStream, cancel).ConfigureAwait(false);
             (int sent, string data) = LogNetworkConnectionDecorator.PrintSentData(buffers);
             _logger.LogSentData(sent, data);
         }

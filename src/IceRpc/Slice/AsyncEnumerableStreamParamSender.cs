@@ -96,7 +96,7 @@ namespace IceRpc.Slice
                 while (true);
 
                 // Write end of stream (TODO: this might not work with Quic)
-                await rpcStream.SendAsync(
+                await rpcStream.WriteAsync(
                     rpcStream.TransportHeader.Length == 0 ?
                         ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty :
                         new ReadOnlyMemory<byte>[1] { rpcStream.TransportHeader.ToArray() },
@@ -134,7 +134,7 @@ namespace IceRpc.Slice
             {
                 encoder.EndFixedLengthSize(start);
                 ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = encoder.BufferWriter.Finish();
-                await rpcStream.SendAsync(buffers, false, default).ConfigureAwait(false);
+                await rpcStream.WriteAsync(buffers, false, default).ConfigureAwait(false);
             }
         }
     }

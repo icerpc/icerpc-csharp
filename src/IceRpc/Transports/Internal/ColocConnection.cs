@@ -66,7 +66,7 @@ namespace IceRpc.Transports.Internal
             return !IsServer;
         }
 
-        public async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
+        public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             if (_receivedBuffer.Length == 0)
             {
@@ -103,7 +103,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public async ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
+        public async ValueTask WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
         {
             try
             {

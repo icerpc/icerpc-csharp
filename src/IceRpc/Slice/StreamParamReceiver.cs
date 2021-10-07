@@ -115,7 +115,7 @@ namespace IceRpc.Slice
                 {
                     // Receive the data frame header.
                     byte[] header = new byte[2];
-                    await _networkStream.ReceiveAsync(header, default).ConfigureAwait(false);
+                    await _networkStream.ReadAsync(header, default).ConfigureAwait(false);
                     if (header[0] != (byte)Ice2FrameType.UnboundedData)
                     {
                         throw new InvalidDataException("invalid stream data");
@@ -208,7 +208,7 @@ namespace IceRpc.Slice
                     try
                     {
                         // TODO: Use Ice2 protocol frame reader to read the frame
-                        int received = await _networkStream.ReceiveAsync(buffer[0..2], cancel).ConfigureAwait(false);
+                        int received = await _networkStream.ReadAsync(buffer[0..2], cancel).ConfigureAwait(false);
                         if (received == 0)
                         {
                             break; // EOF

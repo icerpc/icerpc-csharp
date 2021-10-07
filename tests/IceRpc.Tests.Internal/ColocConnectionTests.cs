@@ -54,11 +54,11 @@ namespace IceRpc.Tests.Internal
             // TODO: should they?
 
             await Task.Delay(2);
-            await stream.SendAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
+            await stream.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
             Assert.That(connection.LastActivity, Is.EqualTo(TimeSpan.Zero));
 
             await Task.Delay(2);
-            await stream.ReceiveAsync(new byte[1], default);
+            await stream.ReadAsync(new byte[1], default);
             Assert.That(connection.LastActivity, Is.EqualTo(TimeSpan.Zero));
 
             connection.Close();

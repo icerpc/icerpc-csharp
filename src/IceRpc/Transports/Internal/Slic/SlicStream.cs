@@ -85,7 +85,7 @@ namespace IceRpc.Transports.Internal.Slic
             _sendSemaphore = new AsyncSemaphore(1);
         }
 
-        public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             if (_receivedSize == _receivedOffset)
             {
@@ -157,7 +157,7 @@ namespace IceRpc.Transports.Internal.Slic
             return size;
         }
 
-        public override async ValueTask SendAsync(
+        public override async ValueTask WriteAsync(
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             bool endStream,
             CancellationToken cancel)

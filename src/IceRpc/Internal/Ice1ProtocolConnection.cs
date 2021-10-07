@@ -66,7 +66,7 @@ namespace IceRpc.Internal
             {
                 if (_isServer)
                 {
-                    await _singleStreamConnection.SendAsync(
+                    await _singleStreamConnection.WriteAsync(
                         Ice1Definitions.ValidateConnectionFrame,
                         cancel).ConfigureAwait(false);
                 }
@@ -131,7 +131,7 @@ namespace IceRpc.Internal
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
             try
             {
-                await _singleStreamConnection.SendAsync(
+                await _singleStreamConnection.WriteAsync(
                     Ice1Definitions.ValidateConnectionFrame,
                     cancel).ConfigureAwait(false);
             }
@@ -366,7 +366,7 @@ namespace IceRpc.Internal
                 // connection), we need to send the entire frame even when cancel gets canceled since the
                 // recipient cannot read a partial frame and then keep going.
                 ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
-                await _singleStreamConnection.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+                await _singleStreamConnection.WriteAsync(buffers, CancellationToken.None).ConfigureAwait(false);
 
                 // Mark the request as sent and, if it's a twoway request, keep track of it.
                 request.IsSent = true;
@@ -448,7 +448,7 @@ namespace IceRpc.Internal
 
                         // Send the response frame.
                         ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
-                        await _singleStreamConnection.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+                        await _singleStreamConnection.WriteAsync(buffers, CancellationToken.None).ConfigureAwait(false);
                     }
                     finally
                     {
@@ -536,7 +536,7 @@ namespace IceRpc.Internal
                     _sendSemaphore.Complete(exception);
 
                     // Send the CloseConnection frame once all the dispatch are done.
-                    await _singleStreamConnection.SendAsync(
+                    await _singleStreamConnection.WriteAsync(
                         Ice1Definitions.CloseConnectionFrame,
                         cancel).ConfigureAwait(false);
 
@@ -598,7 +598,7 @@ namespace IceRpc.Internal
                 if (_isDatagram)
                 {
                     buffer = new byte[_incomingFrameMaxSize];
-                    int received = await _singleStreamConnection.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
+                    int received = await _singleStreamConnection.ReadAsync(buffer, cancel).ConfigureAwait(false);
                     if (received < Ice1Definitions.HeaderSize)
                     {
                         _logger.LogReceivedInvalidDatagram(received);
@@ -735,7 +735,7 @@ namespace IceRpc.Internal
             int offset = 0;
             while (offset != buffer.Length)
             {
-                offset += await _singleStreamConnection.ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
+                offset += await _singleStreamConnection.ReadAsync(buffer[offset..], cancel).ConfigureAwait(false);
             }
         }
     }

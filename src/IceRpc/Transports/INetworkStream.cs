@@ -98,16 +98,16 @@ namespace IceRpc.Transports
         /// sending a request or response frame to send data from a stream parameter.</summary>
         void EnableSendFlowControl();
 
-        /// <summary>Receives data from the stream.</summary>
-        /// <param name="buffer">The buffer that holds the received data.</param>
+        /// <summary>Reads data from the stream.</summary>
+        /// <param name="buffer">The buffer that holds the read data.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The number of bytes received.</returns>
-        ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel);
+        /// <returns>The number of bytes read.</returns>
+        ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel);
 
-        /// <summary>Receives data from the stream until the given buffer is full.</summary>
-        /// <param name="buffer">The buffer that holds the received data.</param>
+        /// <summary>Reads data from the stream until the given buffer is full.</summary>
+        /// <param name="buffer">The buffer that holds the read data.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A value task that completes once the buffer is filled up with received data.</returns>
+        /// <returns>A value task that completes once the buffer is filled up with read data.</returns>
         /// TODO: XXX Remove this, this is used by the Ice2 protocol implementation to read the header. It should
         /// instead use something like BufferedReceiver to receive the type and frame size.
         async ValueTask ReceiveUntilFullAsync(Memory<byte> buffer, CancellationToken cancel)
@@ -116,7 +116,7 @@ namespace IceRpc.Transports
             int offset = 0;
             while (offset < buffer.Length)
             {
-                int received = await ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
+                int received = await ReadAsync(buffer[offset..], cancel).ConfigureAwait(false);
                 if (received == 0)
                 {
                     throw new InvalidDataException("unexpected end of stream");
@@ -125,12 +125,12 @@ namespace IceRpc.Transports
             }
         }
 
-        /// <summary>Sends data over the stream.</summary>
-        /// <param name="buffers">The buffers containing the data to send.</param>
+        /// <summary>Writes data over the stream.</summary>
+        /// <param name="buffers">The buffers containing the data to write.</param>
         /// <param name="endStream">True if no more data will be sent over this stream, False otherwise.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A value task that completes once the buffers are sent.</returns>
-        ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, bool endStream, CancellationToken cancel);
+        /// <returns>A value task that completes once the buffers are written.</returns>
+        ValueTask WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, bool endStream, CancellationToken cancel);
 
         /// <summary>Waits for the stream shutdown completion.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

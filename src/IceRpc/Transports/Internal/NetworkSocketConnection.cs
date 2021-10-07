@@ -79,7 +79,7 @@ namespace IceRpc.Transports.Internal
             NetworkSocket.HasCompatibleParams(remoteEndpoint);
 
         /// <inheritdoc/>
-        async ValueTask<int> ISingleStreamConnection.ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
+        async ValueTask<int> ISingleStreamConnection.ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             int received = await NetworkSocket.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
             Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
@@ -87,7 +87,7 @@ namespace IceRpc.Transports.Internal
         }
 
         /// <inheritdoc/>
-        async ValueTask ISingleStreamConnection.SendAsync(
+        async ValueTask ISingleStreamConnection.WriteAsync(
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             CancellationToken cancel)
         {

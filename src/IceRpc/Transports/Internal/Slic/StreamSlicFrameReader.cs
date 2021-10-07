@@ -42,7 +42,7 @@ namespace IceRpc.Transports.Internal.Slic
     internal sealed class StreamSlicFrameReader : BufferedReceiverSlicFrameReader
     {
         internal StreamSlicFrameReader(ISingleStreamConnection stream) :
-            base(new BufferedReceiver(stream.ReceiveAsync, 256))
+            base(new BufferedReceiver(stream.ReadAsync, 256))
         {
         }
     }

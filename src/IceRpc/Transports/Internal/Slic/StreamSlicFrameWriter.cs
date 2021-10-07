@@ -24,7 +24,7 @@ namespace IceRpc.Transports.Internal.Slic
             CancellationToken cancel)
         {
             // A Slic frame must always be sent entirely even if the sending is canceled.
-            ValueTask task = _stream.SendAsync(buffers, CancellationToken.None);
+            ValueTask task = _stream.WriteAsync(buffers, CancellationToken.None);
             if (task.IsCompleted || !cancel.CanBeCanceled)
             {
                 await task.ConfigureAwait(false);

@@ -403,7 +403,7 @@ namespace IceRpc.Internal
                 bufferWriter.Add(request.Payload);
 
                 // Send the request frame.
-                await request.Stream.SendAsync(bufferWriter.Finish(),
+                await request.Stream.WriteAsync(bufferWriter.Finish(),
                                                endStream: request.StreamParamSender == null,
                                                cancel).ConfigureAwait(false);
 
@@ -481,7 +481,7 @@ namespace IceRpc.Internal
             bufferWriter.Add(response.Payload);
 
             // Send the response frame.
-            await request.Stream.SendAsync(bufferWriter.Finish(),
+            await request.Stream.WriteAsync(bufferWriter.Finish(),
                                             endStream: response.StreamParamSender == null,
                                             cancel).ConfigureAwait(false);
 
@@ -718,7 +718,7 @@ namespace IceRpc.Internal
             BufferWriter.Position sizePos = encoder.StartFixedLengthSize();
             frameEncodeAction?.Invoke(encoder);
             encoder.EndFixedLengthSize(sizePos);
-            await _controlStream!.SendAsync(bufferWriter.Finish(), false, cancel).ConfigureAwait(false);
+            await _controlStream!.WriteAsync(bufferWriter.Finish(), false, cancel).ConfigureAwait(false);
         }
     }
 }

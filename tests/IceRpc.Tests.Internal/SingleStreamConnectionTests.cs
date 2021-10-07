@@ -32,8 +32,8 @@ namespace IceRpc.Tests.Internal
             source.Cancel();
             CancellationToken token = source.Token;
 
-            Assert.CatchAsync<OperationCanceledException>(async () => await ClientStream.SendAsync(buffers, token));
-            Assert.CatchAsync<OperationCanceledException>(async () => await ClientStream.ReceiveAsync(buffer, token));
+            Assert.CatchAsync<OperationCanceledException>(async () => await ClientStream.WriteAsync(buffers, token));
+            Assert.CatchAsync<OperationCanceledException>(async () => await ClientStream.ReadAsync(buffer, token));
         }
 
         [TestCase]
@@ -45,7 +45,7 @@ namespace IceRpc.Tests.Internal
             using var source = new CancellationTokenSource();
             CancellationToken token = source.Token;
 
-            Task<int> task = ClientStream.ReceiveAsync(buffer, token).AsTask();
+            Task<int> task = ClientStream.ReadAsync(buffer, token).AsTask();
             await Task.Delay(500);
 
             Assert.That(task.IsCompleted, Is.False);
@@ -60,12 +60,12 @@ namespace IceRpc.Tests.Internal
             var buffers = new ReadOnlyMemory<byte>[] { buffer };
 
             using var source = new CancellationTokenSource();
-            while (ClientStream.SendAsync(buffers, source.Token).AsTask().IsCompleted)
+            while (ClientStream.WriteAsync(buffers, source.Token).AsTask().IsCompleted)
             {
                 // Wait for send to block.
             }
 
-            Task task = ClientStream.SendAsync(buffers, source.Token).AsTask();
+            Task task = ClientStream.WriteAsync(buffers, source.Token).AsTask();
             await Task.Delay(500);
 
             Assert.That(task.IsCompleted, Is.False);
@@ -81,13 +81,13 @@ namespace IceRpc.Tests.Internal
             var sendBuffers = new ReadOnlyMemory<byte>[] { sendBuffer };
             Memory<byte> receiveBuffer = new byte[10];
 
-            ValueTask task = ClientStream.SendAsync(sendBuffers, default);
-            Assert.That(await ServerStream.ReceiveAsync(receiveBuffer, default), Is.EqualTo(sendBuffer.Length));
+            ValueTask task = ClientStream.WriteAsync(sendBuffers, default);
+            Assert.That(await ServerStream.ReadAsync(receiveBuffer, default), Is.EqualTo(sendBuffer.Length));
             await task;
             Assert.That(receiveBuffer.ToArray()[0..2], Is.EqualTo(sendBuffer.ToArray()));
 
-            ValueTask task2 = ClientStream.SendAsync(new ReadOnlyMemory<byte>[] { sendBuffer, sendBuffer }, default);
-            Assert.That(await ServerStream.ReceiveAsync(receiveBuffer, default), Is.EqualTo(sendBuffer.Length * 2));
+            ValueTask task2 = ClientStream.WriteAsync(new ReadOnlyMemory<byte>[] { sendBuffer, sendBuffer }, default);
+            Assert.That(await ServerStream.ReadAsync(receiveBuffer, default), Is.EqualTo(sendBuffer.Length * 2));
             await task2;
             Assert.That(receiveBuffer.ToArray()[0..2], Is.EqualTo(sendBuffer.ToArray()));
             Assert.That(receiveBuffer.ToArray()[2..4], Is.EqualTo(sendBuffer.ToArray()));
@@ -102,11 +102,11 @@ namespace IceRpc.Tests.Internal
             Memory<byte> buffer = new byte[1];
             var buffers = new ReadOnlyMemory<byte>[] { buffer };
 
-            Assert.CatchAsync<TransportException>(async () => await ClientStream.SendAsync(buffers, default));
-            Assert.CatchAsync <TransportException>(async () => await ClientStream.ReceiveAsync(buffer, default));
+            Assert.CatchAsync<TransportException>(async () => await ClientStream.WriteAsync(buffers, default));
+            Assert.CatchAsync <TransportException>(async () => await ClientStream.ReadAsync(buffer, default));
 
-            Assert.CatchAsync<TransportException>(async () => await ServerStream.SendAsync(buffers, default));
-            Assert.CatchAsync<TransportException>(async () => await ServerStream.ReceiveAsync(buffer, default));
+            Assert.CatchAsync<TransportException>(async () => await ServerStream.WriteAsync(buffers, default));
+            Assert.CatchAsync<TransportException>(async () => await ServerStream.ReadAsync(buffer, default));
         }
 
         [SetUp]

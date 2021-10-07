@@ -93,10 +93,10 @@ namespace IceRpc.Transports.Internal.Slic
         public abstract void EnableSendFlowControl();
 
         /// <inheritdoc/>
-        public abstract ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel);
+        public abstract ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel);
 
         /// <inheritdoc/>
-        public abstract ValueTask SendAsync(
+        public abstract ValueTask WriteAsync(
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             bool endStream,
             CancellationToken cancel);
@@ -256,7 +256,7 @@ namespace IceRpc.Transports.Internal.Slic
                     {
                         return 0;
                     }
-                    return await _stream.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
+                    return await _stream.ReadAsync(buffer, cancel).ConfigureAwait(false);
                 }
                 catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.StreamingCanceledByWriter)
                 {
@@ -290,7 +290,7 @@ namespace IceRpc.Transports.Internal.Slic
                 try
                 {
                     _buffers[^1] = buffer;
-                    await _stream.SendAsync(_buffers, buffer.Length == 0, cancel).ConfigureAwait(false);
+                    await _stream.WriteAsync(_buffers, buffer.Length == 0, cancel).ConfigureAwait(false);
                 }
                 catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.StreamingCanceledByWriter)
                 {
