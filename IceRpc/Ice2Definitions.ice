@@ -14,18 +14,31 @@ module IceRpc
     /// Each ice2 frame has a type identified by this enumeration.
     enum Ice2FrameType : byte
     {
+        /// The initialize frame is sent by each side the Ice2 connection on connection establishment
+        /// to exchange Ice2 parameters.
         Initialize = 0,
+        /// The request frame.
         Request = 1,
+        /// The response frame.
         Response = 2,
+        /// The data frames.
+        /// TODO: replace these 2 frames with a single data frame.
         BoundedData = 3,
         UnboundedData = 4,
-        GoAway = 5,
-        GoAwayCanceled = 6
+        /// The ping frame is sent to keep alive the Ice2 connection.
+        Ping = 5,
+        /// The go away frame is sent to notify the peer that the connection is being shutdown.
+        GoAway = 6,
+        /// The go away canceled frame is sent to notify the peer that the connection shutdown has
+        /// been canceled. The peer can cancel dispatch which are still in-progress when this
+        /// frame is received.
+        GoAwayCanceled = 7
     }
 
     /// Keys of reserved ice2 connection parameters.
     unchecked enum Ice2ParameterKey : int
     {
+        /// The incoming frame maximum size.
         IncomingFrameMaxSize = 0
     }
 
