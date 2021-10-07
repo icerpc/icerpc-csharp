@@ -13,8 +13,8 @@ module IceRpc::Slice
     [cs:readonly]
     struct EndpointData
     {
-        /// The protocol, null is equivalent to "ice2"
-        ProtocolCode? protocol;
+        /// The protocol.
+        ProtocolCode protocol;
 
         /// The name of the transport, for example tcp.
         string transport;
