@@ -207,8 +207,6 @@ namespace IceRpc.Transports.Internal
 
         public ReadOnlyMemory<byte> TransportHeader => _decoratee.TransportHeader;
 
-        public void Abort(StreamError errorCode) => _decoratee.Abort(errorCode);
-
         public void AbortRead(StreamError errorCode) => _decoratee.AbortRead(errorCode);
 
         public void AbortWrite(StreamError errorCode) => _decoratee.AbortWrite(errorCode);

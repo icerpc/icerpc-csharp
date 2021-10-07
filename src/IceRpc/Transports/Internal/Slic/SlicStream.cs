@@ -115,12 +115,6 @@ namespace IceRpc.Transports.Internal.Slic
         private CancellationTokenRegistration _tokenRegistration;
         private readonly ISlicFrameWriter _writer;
 
-        public void Abort(StreamError errorCode)
-        {
-            AbortRead(errorCode);
-            AbortWrite(errorCode);
-        }
-
         public void AbortRead(StreamError errorCode)
         {
             if (ReadsCompleted)
