@@ -238,7 +238,7 @@ namespace IceRpc.Transports.Internal.Slic
             _sendSemaphore = new AsyncSemaphore(1);
         }
 
-        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
+        public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             if (_receivedSize == _receivedOffset)
             {
@@ -310,7 +310,7 @@ namespace IceRpc.Transports.Internal.Slic
             return size;
         }
 
-        public override async ValueTask WriteAsync(
+        public async ValueTask WriteAsync(
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             bool endStream,
             CancellationToken cancel)
@@ -815,7 +815,7 @@ namespace IceRpc.Transports.Internal.Slic
                     {
                         return 0;
                     }
-                    return await _stream.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
+                    return await _stream.ReadAsync(buffer, cancel).ConfigureAwait(false);
                 }
                 catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.StreamingCanceledByWriter)
                 {
@@ -849,7 +849,7 @@ namespace IceRpc.Transports.Internal.Slic
                 try
                 {
                     _buffers[^1] = buffer;
-                    await _stream.SendAsync(_buffers, buffer.Length == 0, cancel).ConfigureAwait(false);
+                    await _stream.WriteAsync(_buffers, buffer.Length == 0, cancel).ConfigureAwait(false);
                 }
                 catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.StreamingCanceledByWriter)
                 {
