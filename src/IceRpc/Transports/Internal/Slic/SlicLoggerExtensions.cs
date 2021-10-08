@@ -148,7 +148,7 @@ namespace IceRpc.Transports.Internal.Slic
                     frameSize,
                     version,
                     body.ApplicationProtocolName,
-                    string.Join(", ", body.Parameters.DecodedParameters().Select(pair => $"{pair.Item1}={pair.Item2}")));
+                    string.Join(", ", body.Parameters.DecodedParameters().Select(pair => $"{pair.Key}={pair.Value}")));
             }
         }
 
