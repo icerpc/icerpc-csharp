@@ -1,11 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using System.Diagnostics;
 using System.Threading.Tasks.Sources;
 
 namespace IceRpc.Transports.Internal.Slic
 {
-    /// <summary>The AsyncQueueCore struct class provides result queing functionality to be used with the
+    /// <summary>The AsyncQueueCore struct provides result queuing functionality to be used with the
     /// IValueTaskSource interface. It's useful for the Slic stream implementation to avoid allocating on the
     /// heap objects to support a ValueTask based ReceiveAsync.
     /// </summary>
@@ -94,7 +95,7 @@ namespace IceRpc.Transports.Internal.Slic
                 // source.
                 if (_exception != null)
                 {
-                    throw _exception;
+                    throw ExceptionUtil.Throw(_exception);
                 }
                 exception = ex;
             }
@@ -119,7 +120,7 @@ namespace IceRpc.Transports.Internal.Slic
                     // If an exception is set, we set it on the source.
                     _source.SetException(_exception);
                 }
-                return exception != null ? throw exception : result!;
+                return exception != null ? throw ExceptionUtil.Throw(exception) : result!;
             }
             finally
             {
@@ -182,8 +183,6 @@ namespace IceRpc.Transports.Internal.Slic
 
         internal void SetException(Exception exception)
         {
-            // We don't use SetException here since the cancellation of WaitAsync isn't considered as
-            // an unrecoverable error.
             bool lockTaken = false;
             try
             {

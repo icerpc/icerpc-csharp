@@ -49,6 +49,7 @@ namespace IceRpc.Transports.Internal.Slic
                 bool lockTaken = false;
                 try
                 {
+                    _lock.Enter(ref lockTaken);
                     return _shutdownAction;
                 }
                 finally
@@ -62,13 +63,12 @@ namespace IceRpc.Transports.Internal.Slic
             set
             {
                 bool lockTaken = false;
+                bool alreadyShutdown = false;
                 try
                 {
+                    _lock.Enter(ref lockTaken);
                     _shutdownAction = value;
-                    if (IsShutdown)
-                    {
-                        _shutdownAction?.Invoke();
-                    }
+                    alreadyShutdown = IsShutdown;
                 }
                 finally
                 {
@@ -76,6 +76,11 @@ namespace IceRpc.Transports.Internal.Slic
                     {
                         _lock.Exit();
                     }
+                }
+
+                if (alreadyShutdown)
+                {
+                    _shutdownAction?.Invoke();
                 }
             }
         }
