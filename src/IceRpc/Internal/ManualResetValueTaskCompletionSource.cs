@@ -3,11 +3,12 @@
 using System.Diagnostics;
 using System.Threading.Tasks.Sources;
 
-namespace IceRpc.Transports.Internal
+namespace IceRpc.Internal
 {
-    /// <summary>A manual reset task completion source for ValueTask. It provides the same functionality as the
-    /// TaskCompletionSource class but with ValueTask support instead. It's useful for hot code paths that
-    /// require to minimize heap allocations required by the Task class. This class is NOT thread safe.</summary>
+    /// <summary>A manual reset task completion source for ValueTask. It provides the same functionality as
+    /// the TaskCompletionSource class but with ValueTask support instead. It's useful for hot code paths that
+    /// require to minimize heap allocations required by the Task class. This class is NOT thread
+    /// safe.</summary>
     internal class ManualResetValueTaskCompletionSource<T> : IValueTaskSource<T>
     {
         internal bool IsCompleted => _source.GetStatus(_source.Version) != ValueTaskSourceStatus.Pending;

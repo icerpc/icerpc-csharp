@@ -196,7 +196,6 @@ namespace IceRpc.Transports.Internal
     {
         public long Id => _decoratee.Id;
         public bool IsBidirectional => _decoratee.IsBidirectional;
-        public bool ReadsCompleted { get; }
         public Action? ShutdownAction
         {
             get => _decoratee.ShutdownAction;
