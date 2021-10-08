@@ -121,7 +121,7 @@ namespace IceRpc.Tests.Slice
             ProtocolCode protocol,
             Func<IEnumOperationsPrx, Task> closure)
         {
-            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
+            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
             await using var server = new Server
             {
                 Dispatcher = new EnumOperations(),

@@ -46,7 +46,7 @@ namespace IceRpc
 
                     if (value.Any(e => e.Protocol != Protocol))
                     {
-                        throw new ArgumentException($"the protocol of all endpoints must be {Protocol.Name}",
+                        throw new ArgumentException($"the protocol of all endpoints must be {Protocol}",
                                                     nameof(AltEndpoints));
                     }
 
@@ -481,7 +481,7 @@ namespace IceRpc
             Protocol = protocol;
             IceUriParser.CheckPath(path, nameof(path));
             Path = path;
-            Encoding = Protocol.GetIceEncoding() ?? Encoding.Unknown;
+            Encoding = Protocol.IceEncoding ?? Encoding.Unknown;
         }
     }
 }

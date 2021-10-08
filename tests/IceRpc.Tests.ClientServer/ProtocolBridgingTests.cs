@@ -43,8 +43,11 @@ namespace IceRpc.Tests.ClientServer
             var pipeline = new Pipeline();
             pipeline.UseBinder(_pool);
 
-            ProtocolBridgingTestPrx forwarderService =
-                SetupForwarderServer(forwarderProtocol, targetProtocol, colocated, pipeline);
+            ProtocolBridgingTestPrx forwarderService = SetupForwarderServer(
+                Protocol.FromProtocolCode(forwarderProtocol),
+                Protocol.FromProtocolCode(targetProtocol),
+                colocated,
+                pipeline);
 
             // TODO: test with the other encoding; currently, the encoding is always the encoding of
             // forwardService.Proxy.Protocol
@@ -93,8 +96,8 @@ namespace IceRpc.Tests.ClientServer
         }
 
         private ProtocolBridgingTestPrx SetupForwarderServer(
-            ProtocolCode forwarderProtocol,
-            ProtocolCode targetProtocol,
+            Protocol forwarderProtocol,
+            Protocol targetProtocol,
             bool colocated,
             IInvoker invoker)
         {
@@ -102,7 +105,7 @@ namespace IceRpc.Tests.ClientServer
             _router.Map("/target", new ProtocolBridgingTest());
             _targetServer.Dispatcher = _router;
             _targetServer.Listen();
-            var targetService = ProtocolBridgingTestPrx.FromPath("/target", Protocol.FromProtocolCode(targetProtocol));
+            var targetService = ProtocolBridgingTestPrx.FromPath("/target", targetProtocol);
             targetService.Proxy.Endpoint = _targetServer.Endpoint;
             targetService.Proxy.Invoker = invoker;
 
@@ -110,14 +113,12 @@ namespace IceRpc.Tests.ClientServer
             _router.Map("/forward", new Forwarder(targetService.Proxy));
             _forwarderServer.Dispatcher = _router;
             _forwarderServer.Listen();
-            var forwardService = ProtocolBridgingTestPrx.FromPath(
-                "/forward",
-                Protocol.FromProtocolCode(forwarderProtocol));
+            var forwardService = ProtocolBridgingTestPrx.FromPath("/forward", forwarderProtocol);
             forwardService.Proxy.Endpoint = _forwarderServer.Endpoint;
             forwardService.Proxy.Invoker = invoker;
             return forwardService;
 
-            Server CreateServer(ProtocolCode protocol, int port, bool colocated) => new()
+            Server CreateServer(Protocol protocol, int port, bool colocated) => new()
             {
                 Endpoint = colocated ?
                         TestHelper.GetUniqueColocEndpoint(protocol) :

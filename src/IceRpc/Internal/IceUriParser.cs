@@ -177,8 +177,7 @@ namespace IceRpc.Internal
             {
                 Endpoint = endpoint,
                 AltEndpoints = altEndpoints,
-                Encoding = encoding == null ? (protocol.GetIceEncoding() ?? Encoding.Unknown) :
-                    Encoding.FromString(encoding)
+                Encoding = encoding == null ? (protocol.IceEncoding ?? Encoding.Unknown) : Encoding.FromString(encoding)
             };
         }
 
@@ -224,7 +223,7 @@ namespace IceRpc.Internal
                 }
                 else if (name == "protocol")
                 {
-                    protocol = protocol == null ? Protocol.FromString(value) :
+                    protocol = protocol == null ? Protocol.Parse(value) :
                         throw new FormatException($"too many protocol query parameters in URI {uriString}");
 
                     if (protocol == Protocol.Ice1)

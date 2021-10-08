@@ -248,7 +248,7 @@ namespace IceRpc.Transports.Internal.Slic
                 // Check the application protocol and set the parameters.
                 try
                 {
-                    if (Protocol.FromString(initializeBody.Value.ApplicationProtocolName) != Protocol.Ice2)
+                    if (Protocol.Parse(initializeBody.Value.ApplicationProtocolName) != Protocol.Ice2)
                     {
                         throw new NotSupportedException(
                             $"application protocol '{initializeBody.Value.ApplicationProtocolName}' is not supported");

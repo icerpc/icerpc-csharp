@@ -39,9 +39,15 @@ namespace IceRpc.Tests.ClientServer
             await using ConnectionPool pool = CreateConnectionPool();
             Pipeline pipeline = CreatePipeline(pool);
 
-            var prx1 = RetryReplicatedTestPrx.Parse(GetTestProxy("/retry", port: 0, protocol: protocol), pipeline);
-            var prx2 = RetryReplicatedTestPrx.Parse(GetTestProxy("/retry", port: 1, protocol: protocol), pipeline);
-            var prx3 = RetryReplicatedTestPrx.Parse(GetTestProxy("/retry", port: 2, protocol: protocol), pipeline);
+            var prx1 = RetryReplicatedTestPrx.Parse(
+                GetTestProxy("/retry", port: 0, protocol: Protocol.FromProtocolCode(protocol)),
+                pipeline);
+            var prx2 = RetryReplicatedTestPrx.Parse(
+                GetTestProxy("/retry", port: 1, protocol: Protocol.FromProtocolCode(protocol)),
+                pipeline);
+            var prx3 = RetryReplicatedTestPrx.Parse(
+                GetTestProxy("/retry", port: 2, protocol: Protocol.FromProtocolCode(protocol)),
+                pipeline);
 
             // Check that we can still connect using a service proxy with 3 endpoints when only one
             // of the target servers is active.
@@ -51,7 +57,7 @@ namespace IceRpc.Tests.ClientServer
                 await using var server = new Server
                 {
                     Dispatcher = new RetryTest(),
-                    Endpoint = GetTestEndpoint(port: port, protocol: protocol),
+                    Endpoint = GetTestEndpoint(port: port, protocol: Protocol.FromProtocolCode(protocol)),
                     ServerTransport = new ServerTransport().UseTcp(),
                     ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) }
                 };
@@ -100,7 +106,7 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(ProtocolCode.Ice2, 20)]
         public async Task Retry_GracefulClose(ProtocolCode protocol, int maxQueue)
         {
-            await WithRetryServiceAsync(protocol, null, async (service, retry) =>
+            await WithRetryServiceAsync(Protocol.FromProtocolCode(protocol), null, async (service, retry) =>
             {
                 // Remote case: send multiple OpWithData, followed by a close and followed by multiple OpWithData.
                 // The goal is to make sure that none of the OpWithData fail even if the server closes the
@@ -142,11 +148,15 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(ProtocolCode.Ice1, 5, 5, true)]  // 5 failures, 5 max attempts, kill the connection
         [TestCase(ProtocolCode.Ice1, 4, 5, false)] // 4 failures, 5 max attempts, don't kill the connection
         [TestCase(ProtocolCode.Ice1, 1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
-        public async Task Retry_Idempotent(ProtocolCode protocol, int failedAttempts, int maxAttempts, bool killConnection)
+        public async Task Retry_Idempotent(
+            ProtocolCode protocol,
+            int failedAttempts,
+            int maxAttempts,
+            bool killConnection)
         {
             Assert.That(failedAttempts, Is.GreaterThan(0));
             await WithRetryServiceAsync(
-                protocol,
+                Protocol.FromProtocolCode(protocol),
                 (pipeline, pool) => pipeline.UseRetry(new RetryOptions { MaxAttempts = maxAttempts }).UseBinder(pool),
                 async (service, retry) =>
                 {
@@ -213,11 +223,15 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(ProtocolCode.Ice1, 5, 5, true)]  // 5 failures, 5 max attempts, kill the connection
         [TestCase(ProtocolCode.Ice1, 4, 5, false)] // 4 failures, 5 max attempts, don't kill the connection
         [TestCase(ProtocolCode.Ice1, 1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
-        public async Task Retry_NoIdempotent(ProtocolCode protocol, int failedAttempts, int maxAttempts, bool killConnection)
+        public async Task Retry_NoIdempotent(
+            ProtocolCode protocol,
+            int failedAttempts,
+            int maxAttempts,
+            bool killConnection)
         {
             Assert.That(failedAttempts, Is.GreaterThan(0));
             await WithRetryServiceAsync(
-                protocol,
+                Protocol.FromProtocolCode(protocol),
                 (pipeline, pool) => pipeline.UseRetry(new RetryOptions { MaxAttempts = maxAttempts }).UseBinder(pool),
                 async (service, retry) =>
                 {
@@ -453,7 +467,7 @@ namespace IceRpc.Tests.ClientServer
         }
 
         private async Task WithRetryServiceAsync(
-            ProtocolCode protocol,
+            Protocol protocol,
             Action<Pipeline, IConnectionProvider>? configure,
             Func<RetryTest, RetryTestPrx, Task> closure)
         {
@@ -496,12 +510,12 @@ namespace IceRpc.Tests.ClientServer
         }
 
         private Task WithRetryServiceAsync(Func<RetryTest, RetryTestPrx, Task> closure) =>
-            WithRetryServiceAsync(ProtocolCode.Ice2, null, closure);
+            WithRetryServiceAsync(Protocol.Ice2, null, closure);
 
         private Task WithRetryServiceAsync(
             Action<Pipeline, IConnectionProvider> configure,
             Func<RetryTest, RetryTestPrx, Task> closure) =>
-            WithRetryServiceAsync(ProtocolCode.Ice2, configure, closure);
+            WithRetryServiceAsync(Protocol.Ice2, configure, closure);
 
         internal class RetryTest : Service, IRetryTest
         {

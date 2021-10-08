@@ -288,7 +288,9 @@ namespace IceRpc.Tests.Internal
         [TestCase(ProtocolCode.Ice2)]
         public async Task Connection_ConnectTimeoutAsync(ProtocolCode protocol)
         {
-            Endpoint endpoint = TestHelper.GetTestEndpoint(transport: "tcp", protocol: protocol);
+            Endpoint endpoint = TestHelper.GetTestEndpoint(
+                transport: "tcp",
+                protocol: Protocol.FromProtocolCode(protocol));
 
             IServerTransport transport = new TcpServerTransport(new TcpOptions { ListenerBackLog = 1 }, new(), null);
             using IListener listener = transport.Listen(endpoint, LogAttributeLoggerFactory.Instance).Listener!;

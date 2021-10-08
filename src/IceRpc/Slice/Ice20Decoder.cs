@@ -120,7 +120,7 @@ namespace IceRpc.Slice
                 }
 
                 proxy.Encoding = proxyData.Encoding is string encoding ?
-                    Encoding.FromString(encoding) : (proxy.Protocol.GetIceEncoding() ?? Encoding.Unknown);
+                    Encoding.FromString(encoding) : (proxy.Protocol.IceEncoding ?? Encoding.Unknown);
 
                 return proxy;
             }

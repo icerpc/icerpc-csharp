@@ -13,17 +13,17 @@ namespace IceRpc.Tests.ClientServer
     {
         private Connection Connection { get; }
         private Server Server { get; }
-        private ProtocolCode Protocol { get; }
         private string Transport { get; }
         private IStressTestPrx Prx { get; }
         private StressTest Servant { get; }
 
         public StressTests(ProtocolCode protocol, string transport)
         {
-            Protocol = protocol;
             Transport = transport;
             Servant = new StressTest();
-            Endpoint serverEndpoint = GetTestEndpoint(protocol: Protocol, transport: Transport);
+            Endpoint serverEndpoint = GetTestEndpoint(
+                protocol: Protocol.FromProtocolCode(protocol),
+                transport: Transport);
             Server = new Server
             {
                 Dispatcher = Servant,

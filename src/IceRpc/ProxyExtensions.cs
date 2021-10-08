@@ -43,7 +43,7 @@ namespace IceRpc
             if (!proxy.Protocol.IsSupported)
             {
                 throw new NotSupportedException(
-                    @$"Ice protocol '{proxy.Protocol.Name
+                    @$"Ice protocol '{proxy.Protocol
                     }' is not supported by this IceRPC runtime ({typeof(Protocol).Assembly.GetName().Version})");
             }
 

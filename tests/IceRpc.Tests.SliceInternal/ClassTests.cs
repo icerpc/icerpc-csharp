@@ -28,7 +28,7 @@ namespace IceRpc.Tests.SliceInternal
             router.Map<ICompactFormatOperations>(new CompactFormatOperations());
             router.Map<IClassFormatOperations>(new ClassFormatOperations());
 
-            var serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
+            var serverEndpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
             _server = new Server()
             {
                 Dispatcher = router,

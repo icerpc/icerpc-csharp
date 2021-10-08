@@ -17,7 +17,7 @@ namespace IceRpc.Tests.Slice
 
         public MarshaledResultTests(ProtocolCode protocol)
         {
-            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
+            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
             _server = new Server
             {
                 Dispatcher = new MarshaledResultOperations(),

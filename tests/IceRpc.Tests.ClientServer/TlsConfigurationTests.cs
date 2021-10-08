@@ -290,7 +290,7 @@ namespace IceRpc.Tests.ClientServer
                         })
                 }),
                 RemoteEndpoint =
-                    $"ice+tcp://{TestHelper.EscapeIPv6Address(targetHost, server.Protocol.Code)}:{server.Endpoint.Port}"
+                    $"ice+tcp://{TestHelper.EscapeIPv6Address(targetHost, server.Protocol)}:{server.Endpoint.Port}"
             };
             var prx = ServicePrx.FromConnection(connection);
 

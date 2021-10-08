@@ -230,7 +230,7 @@ namespace IceRpc.Tests.Api
         public async Task Server_ShutdownCancelAsync(bool disposeInsteadOfShutdown, ProtocolCode protocol)
         {
             using var semaphore = new SemaphoreSlim(0);
-            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
+            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
             await using var server = new Server
             {
                 Dispatcher = new InlineDispatcher(async (request, cancel) =>

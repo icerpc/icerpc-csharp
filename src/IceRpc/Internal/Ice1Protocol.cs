@@ -10,10 +10,14 @@ namespace IceRpc.Internal
     /// <summary>The Ice1 protocol class.</summary>
     internal sealed class Ice1Protocol : Protocol
     {
-        /// <summary>The Ice1 encoding singleton.</summary>
+        /// <summary>The Ice1 protocol singleton.</summary>
         internal static Ice1Protocol Instance { get; } = new();
 
         public override bool IsSupported => true;
+
+        internal override IceEncoding? IceEncoding => Encoding.Ice11;
+
+        internal override bool HasFieldSupport => false;
 
         internal override async ValueTask<IProtocolConnection> CreateConnectionAsync(
             INetworkConnection networkConnection,
@@ -67,10 +71,6 @@ namespace IceRpc.Internal
                 PayloadEncoding = payloadEncoding
             };
         }
-
-        internal override IceEncoding? GetIceEncoding() => Encoding.Ice11;
-
-        internal override bool HasFieldSupport() => false;
 
         private Ice1Protocol()
             : base(ProtocolCode.Ice1, Ice1Name)

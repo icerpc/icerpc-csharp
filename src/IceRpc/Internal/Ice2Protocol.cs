@@ -7,13 +7,17 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Internal
 {
-    /// <summary>The Ice1 protocol class.</summary>
+    /// <summary>The Ice2 protocol class.</summary>
     internal sealed class Ice2Protocol : Protocol
     {
-        /// <summary>The Ice2 encoding singleton.</summary>
+        /// <summary>The Ice2 protocol singleton.</summary>
         internal static Ice2Protocol Instance { get; } = new();
 
         public override bool IsSupported => true;
+
+        internal override IceEncoding? IceEncoding => Encoding.Ice20;
+
+        internal override bool HasFieldSupport => true;
 
         internal override async ValueTask<IProtocolConnection> CreateConnectionAsync(
             INetworkConnection networkConnection,
@@ -66,10 +70,6 @@ namespace IceRpc.Internal
 
             return response;
         }
-
-        internal override IceEncoding? GetIceEncoding() => Encoding.Ice20;
-
-        internal override bool HasFieldSupport() => true;
 
         private Ice2Protocol()
             : base(ProtocolCode.Ice2, Ice2Name)
