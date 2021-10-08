@@ -181,7 +181,7 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+coloc://host:10000")]
         [TestCase("ice:tcp -p 10000")]
         // ice3 proxies
-        [TestCase("ice+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&protocol=3")]
+        [TestCase("ice+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&protocol=ice3")]
         [TestCase("ice+tcp://0.0.0.0/identity#facet")] // Any IPv4 in proxy endpoint (unusable but parses ok)
         [TestCase("ice+tcp://[::0]/identity#facet")] // Any IPv6 in proxy endpoint (unusable but parses ok)
         public void Proxy_Parse_ValidInputUriFormat(string str, string? path = null)
@@ -208,6 +208,7 @@ namespace IceRpc.Tests.Api
         [TestCase("ice://host:1000/identity")] // host not allowed
         [TestCase("ice+foo:/identity")] // missing host
         [TestCase("ice+tcp://host.zeroc.com//identity?protocol=ice1")] // invalid protocol
+        [TestCase("ice+tcp://host.zeroc.com//identity?protocol=5")] // invalid protocol
         [TestCase("ice+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&alt-endpoint=host2?transport=tcp$protocol=3")]
         [TestCase("")]
         [TestCase("\"\"")]
@@ -397,8 +398,8 @@ namespace IceRpc.Tests.Api
             await prx.IcePingAsync(); // works fine, we use the protocol's encoding in this case
         }
 
-        [TestCase("3")]
-        [TestCase("4")]
+        [TestCase("ice3")]
+        [TestCase("ice4")]
         public async Task Proxy_NotSupportedProtocol(string protocol)
         {
             await using var connection = new Connection

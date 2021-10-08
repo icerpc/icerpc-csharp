@@ -87,7 +87,7 @@ namespace IceRpc
             {
                 ProtocolCode.Ice1 => Ice1,
                 ProtocolCode.Ice2 => Ice2,
-                _ => new Protocol(code, $"{code}")
+                _ => new Protocol(code, $"ice{code}")
             };
 
         /// <summary>Returns a Protocol with the given name.</summary>
@@ -105,11 +105,7 @@ namespace IceRpc
 
             static Protocol Core(string name)
             {
-                if (name.EndsWith(".0", StringComparison.Ordinal))
-                {
-                    name = name[0..^2];
-                }
-                if (byte.TryParse(name, out byte value))
+                if (name.StartsWith("ice") && byte.TryParse(name[3..], out byte value))
                 {
                     return FromProtocolCode((ProtocolCode)value);
                 }
