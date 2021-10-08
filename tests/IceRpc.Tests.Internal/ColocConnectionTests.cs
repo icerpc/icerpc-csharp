@@ -36,7 +36,6 @@ namespace IceRpc.Tests.Internal
 
             Assert.That(connection.LocalEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
             Assert.That(connection.RemoteEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
-            Assert.That(connection.IsServer, Is.EqualTo(isServer));
             Assert.That(connection.IdleTimeout, Is.EqualTo(TimeSpan.MaxValue));
             Assert.That(connection.IsDatagram, Is.False);
 

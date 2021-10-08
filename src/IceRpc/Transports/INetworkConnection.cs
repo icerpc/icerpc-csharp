@@ -27,12 +27,6 @@ namespace IceRpc.Transports
         /// <c>false</c>.</value>
         bool IsSecure { get; }
 
-        /// <summary><c>true</c> for server network connections; otherwise, <c>false</c>. A server network
-        /// connection is created by a server-side listener while a client network connection is created from
-        /// the endpoint by the client-side.
-        /// </summary>
-        bool IsServer { get; }
-
         /// <summary>The time elapsed since the last activity of the connection.</summary>
         TimeSpan LastActivity { get; }
 

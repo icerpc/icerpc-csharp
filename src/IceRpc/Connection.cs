@@ -256,6 +256,7 @@ namespace IceRpc
                     _protocolConnection = await Protocol.CreateConnectionAsync(
                         NetworkConnection,
                         _options.IncomingFrameMaxSize,
+                        IsServer,
                         _loggerFactory ?? NullLoggerFactory.Instance,
                         connectCancellationSource.Token).ConfigureAwait(false);
 
@@ -345,7 +346,7 @@ namespace IceRpc
             try
             {
                 // TODO: remove once we add log protocol decorators.
-                using IDisposable? scope = NetworkConnection!.Logger.StartConnectionScope(NetworkConnection);
+                using IDisposable? scope = NetworkConnection!.Logger.StartConnectionScope(NetworkConnection, IsServer);
 
                 // Send the request.
                 await _protocolConnection!.SendRequestAsync(request, cancel).ConfigureAwait(false);
@@ -495,7 +496,7 @@ namespace IceRpc
         private async Task AcceptIncomingRequestAsync(IDispatcher dispatcher)
         {
             // TODO: remove once we add log protocol decorators.
-            using IDisposable? scope = NetworkConnection!.Logger.StartConnectionScope(NetworkConnection);
+            using IDisposable? scope = NetworkConnection!.Logger.StartConnectionScope(NetworkConnection, IsServer);
 
             IncomingRequest request;
             try
@@ -656,7 +657,7 @@ namespace IceRpc
                 try
                 {
                     // TODO: remove once we add log protocol decorators.
-                    using IDisposable? scope = NetworkConnection!.Logger.StartConnectionScope(NetworkConnection);
+                    using IDisposable? scope = NetworkConnection!.Logger.StartConnectionScope(NetworkConnection, IsServer);
 
                     // Shutdown the connection.
                     await _protocolConnection!.ShutdownAsync(

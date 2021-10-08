@@ -23,11 +23,11 @@ namespace IceRpc.Transports
             {
                 if (connection is NetworkSocketConnection networkSocketConnection)
                 {
-                    return new LogNetworkSocketConnectionDecorator(networkSocketConnection);
+                    return new LogNetworkSocketConnectionDecorator(networkSocketConnection, isServer: false);
                 }
                 else
                 {
-                    return new LogNetworkConnectionDecorator(connection);
+                    return new LogNetworkConnectionDecorator(connection, isServer: false);
                 }
             }
             else

@@ -14,7 +14,7 @@ namespace IceRpc.Transports.Internal
         {
             INetworkConnection connection = await _decoratee.AcceptAsync().ConfigureAwait(false);
             return connection.Logger.IsEnabled(LogLevel.Trace) ?
-                new LogNetworkConnectionDecorator(connection) :
+                new LogNetworkConnectionDecorator(connection, isServer: true) :
                 connection;
         }
 

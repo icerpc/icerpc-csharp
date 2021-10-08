@@ -13,7 +13,6 @@ namespace IceRpc.Transports.Internal
         public TimeSpan IdleTimeout => _decoratee.IdleTimeout;
         public bool IsDatagram => _decoratee.IsDatagram;
         public bool IsSecure => _decoratee.IsSecure;
-        public bool IsServer => _decoratee.IsServer;
         public TimeSpan LastActivity => _decoratee.LastActivity;
         public Endpoint? LocalEndpoint => _decoratee.LocalEndpoint;
         public ILogger Logger => _decoratee.Logger;
@@ -21,13 +20,14 @@ namespace IceRpc.Transports.Internal
 
         private bool _connected;
         private readonly INetworkConnection _decoratee;
+        private readonly bool _isServer;
 
         public void Close(Exception? exception)
         {
-            using IDisposable? scope = Logger.StartConnectionScope(this);
+            using IDisposable? scope = Logger.StartConnectionScope(this, _isServer);
             if (_connected || exception == null)
             {
-                if (_decoratee.IsDatagram && _decoratee.IsServer)
+                if (_decoratee.IsDatagram && _isServer)
                 {
                     Logger.LogStopReceivingDatagrams();
                 }
@@ -41,7 +41,7 @@ namespace IceRpc.Transports.Internal
                 // If the connection is connecting but not active yet, we print a trace to show that
                 // the connection got connected or accepted before printing out the connection closed
                 // trace.
-                Action<Exception?> logFailure = (_decoratee.IsServer, _decoratee.IsDatagram) switch
+                Action<Exception?> logFailure = (_isServer, _decoratee.IsDatagram) switch
                 {
                     (false, false) => Logger.LogConnectionConnectFailed,
                     (false, true) => Logger.LogStartSendingDatagramsFailed,
@@ -73,7 +73,11 @@ namespace IceRpc.Transports.Internal
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) => _decoratee.HasCompatibleParams(remoteEndpoint);
 
-        internal LogNetworkConnectionDecorator(INetworkConnection decoratee) => _decoratee = decoratee;
+        internal LogNetworkConnectionDecorator(INetworkConnection decoratee, bool isServer)
+        {
+            _decoratee = decoratee;
+            _isServer = isServer;
+        }
 
         internal static string PrintReceivedData(ReadOnlyMemory<byte> buffer)
         {
@@ -133,8 +137,8 @@ namespace IceRpc.Transports.Internal
         {
             if (!_connected)
             {
-                using IDisposable? scope = Logger.StartConnectionScope(this);
-                Action logSuccess = (_decoratee.IsServer, _decoratee.IsDatagram) switch
+                using IDisposable? scope = Logger.StartConnectionScope(this, _isServer);
+                Action logSuccess = (_isServer, _decoratee.IsDatagram) switch
                 {
                     (false, false) => Logger.LogConnectionEstablished,
                     (false, true) => Logger.LogStartSendingDatagrams,
@@ -250,8 +254,8 @@ namespace IceRpc.Transports.Internal
     {
         private readonly NetworkSocketConnection _decoratee;
 
-        internal LogNetworkSocketConnectionDecorator(NetworkSocketConnection decoratee) :
-            base(decoratee) => _decoratee = decoratee;
+        internal LogNetworkSocketConnectionDecorator(NetworkSocketConnection decoratee, bool isServer) :
+            base(decoratee, isServer) => _decoratee = decoratee;
 
         public override async ValueTask<ISingleStreamConnection> GetSingleStreamConnectionAsync(
                 CancellationToken cancel)

@@ -19,8 +19,6 @@ namespace IceRpc.Transports.Internal
 
         public bool IsSecure => true;
 
-        public bool IsServer { get; }
-
         public TimeSpan LastActivity => TimeSpan.Zero;
 
         public Endpoint? LocalEndpoint { get; }
@@ -29,6 +27,7 @@ namespace IceRpc.Transports.Internal
 
         public Endpoint? RemoteEndpoint { get; }
 
+        private readonly bool _isServer;
         private readonly SlicOptions _slicOptions;
         private readonly ChannelReader<ReadOnlyMemory<byte>> _reader;
         private ReadOnlyMemory<byte> _receivedBuffer;
@@ -46,7 +45,7 @@ namespace IceRpc.Transports.Internal
             // Multi-stream support for a colocated connection is provided by Slic.
             _slicConnection ??= await NetworkConnection.CreateSlicConnectionAsync(
                 await GetSingleStreamConnectionAsync(cancel).ConfigureAwait(false),
-                IsServer,
+                _isServer,
                 TimeSpan.MaxValue,
                 _slicOptions,
                 Logger,
@@ -63,7 +62,7 @@ namespace IceRpc.Transports.Internal
                 throw new FormatException(
                     $"unknown parameter '{remoteEndpoint.Params[0].Name}' in endpoint '{remoteEndpoint}'");
             }
-            return !IsServer;
+            return !_isServer;
         }
 
         public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
@@ -131,9 +130,9 @@ namespace IceRpc.Transports.Internal
             ChannelReader<ReadOnlyMemory<byte>> reader,
             ILogger logger)
         {
-            IsServer = isServer;
             LocalEndpoint = endpoint;
             RemoteEndpoint = endpoint;
+            _isServer = isServer;
             _slicOptions = slicOptions;
             _reader = reader;
             _writer = writer;

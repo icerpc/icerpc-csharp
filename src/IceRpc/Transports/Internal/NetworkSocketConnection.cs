@@ -20,7 +20,6 @@ namespace IceRpc.Transports.Internal
         /// <inheritdoc/>
         public bool IsSecure => NetworkSocket.SslStream != null;
         /// <inheritdoc/>
-        public bool IsServer { get; }
         /// <inheritdoc/>
         public TimeSpan LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
         /// <inheritdoc/>
@@ -33,6 +32,7 @@ namespace IceRpc.Transports.Internal
         internal NetworkSocket NetworkSocket { get; }
 
         private readonly TimeSpan _idleTimeout;
+        private readonly bool _isServer;
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
         private SlicConnection? _slicConnection;
         private readonly SlicOptions _slicOptions;
@@ -50,7 +50,7 @@ namespace IceRpc.Transports.Internal
             // Multi-stream support for a network socket connection is provided by Slic.
             _slicConnection ??= await NetworkConnection.CreateSlicConnectionAsync(
                 await GetSingleStreamConnectionAsync(cancel).ConfigureAwait(false),
-                IsServer,
+                _isServer,
                 _idleTimeout,
                 _slicOptions,
                 Logger,
@@ -61,7 +61,7 @@ namespace IceRpc.Transports.Internal
         /// <inheritdoc/>
         public async ValueTask<ISingleStreamConnection> GetSingleStreamConnectionAsync(CancellationToken cancel)
         {
-            if (!IsServer)
+            if (!_isServer)
             {
                 LocalEndpoint = await NetworkSocket.ConnectAsync(RemoteEndpoint!, cancel).ConfigureAwait(false);
             }
@@ -74,7 +74,7 @@ namespace IceRpc.Transports.Internal
 
         /// <inheritdoc/>
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
-            !IsServer &&
+            !_isServer &&
             EndpointComparer.ParameterLess.Equals(remoteEndpoint, RemoteEndpoint) &&
             NetworkSocket.HasCompatibleParams(remoteEndpoint);
 
@@ -106,7 +106,7 @@ namespace IceRpc.Transports.Internal
             SlicOptions slicOptions,
             ILogger logger)
         {
-            IsServer = isServer;
+            _isServer = isServer;
             LocalEndpoint = isServer ? endpoint : null;
             RemoteEndpoint = isServer ? null : endpoint;
             NetworkSocket = socket;

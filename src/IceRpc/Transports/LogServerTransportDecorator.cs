@@ -21,7 +21,7 @@ namespace IceRpc.Transports
             (IListener? listener, INetworkConnection? connection) = _decoratee.Listen(endpoint, loggerFactory);
             if (connection != null && connection.Logger.IsEnabled(LogLevel.Trace))
             {
-                connection = new LogNetworkConnectionDecorator(connection);
+                connection = new LogNetworkConnectionDecorator(connection, isServer: true);
             }
             return (listener != null ? new LogListenerDecorator(listener) : null, connection);
         }

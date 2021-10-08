@@ -45,7 +45,6 @@ namespace IceRpc.Internal
         private readonly HashSet<IncomingRequest> _dispatch = new();
         private readonly int _incomingFrameMaxSize;
         private readonly Dictionary<int, OutgoingRequest> _invocations = new();
-        private readonly bool _isServer;
         private readonly bool _isDatagram;
         private readonly ILogger _logger;
         private readonly object _mutex = new();
@@ -60,11 +59,11 @@ namespace IceRpc.Internal
         private bool _shutdown;
 
         /// <inheritdoc/>
-        public async Task InitializeAsync(CancellationToken cancel)
+        public async Task InitializeAsync(bool isServer, CancellationToken cancel)
         {
             if (!_isDatagram)
             {
-                if (_isServer)
+                if (isServer)
                 {
                     await _singleStreamConnection.WriteAsync(
                         Ice1Definitions.ValidateConnectionFrame,
@@ -566,13 +565,11 @@ namespace IceRpc.Internal
         internal Ice1ProtocolConnection(
             ISingleStreamConnection singleStreamConnection,
             int incomingFrameMaxSize,
-            bool isServer,
             int? datagramMaxReceiveSize,
             ILogger logger)
         {
             _singleStreamConnection = singleStreamConnection;
             _incomingFrameMaxSize = Math.Min(incomingFrameMaxSize, datagramMaxReceiveSize ?? int.MaxValue);
-            _isServer = isServer;
             _isDatagram = datagramMaxReceiveSize != null;
             _logger = logger;
         }
