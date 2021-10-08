@@ -71,7 +71,7 @@ namespace IceRpc.Transports.Internal.Slic
                                 await WaitForReceivedStreamDataCompletionAsync(cancel).ConfigureAwait(false);
                             }
                         }
-                        else if (isRemote && IsRemoteStreamUnknown(streamId, isBidirectional))
+                        else if (isRemote && !IsKnownRemoteStream(streamId, isBidirectional))
                         {
                             // Create a new stream if the incoming stream is unknown (the client could be
                             // sending frames for old canceled incoming streams, these are ignored).
@@ -176,6 +176,21 @@ namespace IceRpc.Transports.Internal.Slic
                     default:
                     {
                         throw new InvalidDataException($"unexpected Slic frame with frame type '{type}'");
+                    }
+                }
+            }
+
+            bool IsKnownRemoteStream(long streamId, bool bidirectional)
+            {
+                lock (_mutex)
+                {
+                    if (bidirectional)
+                    {
+                        return streamId <= _lastRemoteBidirectionalStreamId;
+                    }
+                    else
+                    {
+                        return streamId <= _lastRemoteUnidirectionalStreamId;
                     }
                 }
             }
@@ -405,21 +420,6 @@ namespace IceRpc.Transports.Internal.Slic
                 var encoder = new Ice20Encoder(bufferWriter);
                 encoder.EncodeVarULong(value);
                 return new((int)key, bufferWriter.Finish().ToSingleBuffer().ToArray());
-            }
-        }
-
-        private bool IsRemoteStreamUnknown(long streamId, bool bidirectional)
-        {
-            lock (_mutex)
-            {
-                if (bidirectional)
-                {
-                    return streamId > _lastRemoteBidirectionalStreamId;
-                }
-                else
-                {
-                    return streamId > _lastRemoteUnidirectionalStreamId;
-                }
             }
         }
 
