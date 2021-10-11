@@ -6,6 +6,7 @@ using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Diagnostics;
 
 namespace IceRpc.Internal
@@ -565,13 +566,13 @@ namespace IceRpc.Internal
         internal Ice1ProtocolConnection(
             ISingleStreamConnection singleStreamConnection,
             int incomingFrameMaxSize,
-            int? datagramMaxReceiveSize,
-            ILogger logger)
+            int? datagramMaxReceiveSize)
         {
             _singleStreamConnection = singleStreamConnection;
             _incomingFrameMaxSize = Math.Min(incomingFrameMaxSize, datagramMaxReceiveSize ?? int.MaxValue);
             _isDatagram = datagramMaxReceiveSize != null;
-            _logger = logger;
+            // TODO: temporary, this will be removed once we add a log protocol connection decorator
+            _logger = NullLogger.Instance;
         }
 
         private void CancelDispatch()

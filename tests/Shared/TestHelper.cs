@@ -97,8 +97,10 @@ namespace IceRpc.Tests
             Endpoint endpoint,
             object? options = null,
             object? multiStreamOptions = null,
-            SslServerAuthenticationOptions? authenticationOptions = null) =>
-            new LogServerTransportDecorator(endpoint.Transport switch
+            SslServerAuthenticationOptions? authenticationOptions = null,
+            bool logDecorator = true)
+        {
+            IServerTransport serverTransport = endpoint.Transport switch
                 {
                     "tcp" => new TcpServerTransport(
                         (TcpOptions?)options ?? new(),
@@ -111,14 +113,21 @@ namespace IceRpc.Tests
                     "udp" => new UdpServerTransport((UdpOptions?)options ?? new()),
                     "coloc" => new ColocServerTransport((SlicOptions?)multiStreamOptions ?? new SlicOptions()),
                     _ => throw new UnknownTransportException(endpoint.Transport, endpoint.Protocol)
-                });
+                };
+
+            return logDecorator ?
+                new LogServerTransportDecorator(serverTransport, LogAttributeLoggerFactory.Instance) :
+                serverTransport;
+        }
 
         public static IClientTransport CreateClientTransport(
             Endpoint endpoint,
             object? options = null,
             object? multiStreamOptions = null,
-            SslClientAuthenticationOptions? authenticationOptions = null) =>
-            new LogClientTransportDecorator(endpoint.Transport switch
+            SslClientAuthenticationOptions? authenticationOptions = null,
+            bool logDecorator = true)
+        {
+            IClientTransport clientTransport = endpoint.Transport switch
                 {
                     "tcp" => new TcpClientTransport(
                         (TcpOptions?)options ?? new(),
@@ -131,6 +140,11 @@ namespace IceRpc.Tests
                     "udp" => new UdpClientTransport((UdpOptions?)options ?? new()),
                     "coloc" => new ColocClientTransport((SlicOptions?)multiStreamOptions ?? new SlicOptions()),
                     _ => throw new UnknownTransportException(endpoint.Transport, endpoint.Protocol)
-                });
+                };
+
+            return logDecorator ?
+                new LogClientTransportDecorator(clientTransport, LogAttributeLoggerFactory.Instance) :
+                clientTransport;
+        }
     }
 }

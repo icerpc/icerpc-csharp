@@ -18,18 +18,18 @@ namespace IceRpc.Transports.Internal
             LoggerMessage.DefineScope<long, string, string>("stream(ID={ID}, InitiatedBy={InitiatedBy}, Kind={Kind})");
 
         [LoggerMessage(
-            EventId = (int)TransportEventIds.AcceptingConnectionFailed,
-            EventName = nameof(TransportEventIds.AcceptingConnectionFailed),
-            Level = LogLevel.Error,
-            Message = "unexpected failure to accept a new connection")]
-        internal static partial void LogAcceptingConnectionFailed(this ILogger logger, Exception ex);
-
-        [LoggerMessage(
             EventId = (int)TransportEventIds.ConnectionAccepted,
             EventName = nameof(TransportEventIds.ConnectionAccepted),
             Level = LogLevel.Debug,
             Message = "accepted connection")]
         internal static partial void LogConnectionAccepted(this ILogger logger);
+
+        [LoggerMessage(
+            EventId = (int)TransportEventIds.SocketConnectionAccepted,
+            EventName = nameof(TransportEventIds.SocketConnectionAccepted),
+            Level = LogLevel.Debug,
+            Message = "accepted connection (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize})")]
+        internal static partial void LogSocketConnectionAccepted(this ILogger logger, int rcvSize, int sndSize);
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.ConnectionAcceptFailed,
@@ -62,22 +62,42 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogConnectionEstablished(this ILogger logger);
 
         [LoggerMessage(
+            EventId = (int)TransportEventIds.ListenerAcceptConnectionFailed,
+            EventName = nameof(TransportEventIds.ListenerAcceptConnectionFailed),
+            Level = LogLevel.Error,
+            Message = "server `{endpoint}' failed to accept a new connection")]
+        internal static partial void LogListenerAcceptingConnectionFailed(
+            this ILogger logger,
+            Endpoint endpoint,
+            Exception ex);
+
+        [LoggerMessage(
+            EventId = (int)TransportEventIds.ListenerListening,
+            EventName = nameof(TransportEventIds.ListenerListening),
+            Level = LogLevel.Information,
+            Message = "server '{endpoint}' is listening")]
+        internal static partial void LogListenerListening(this ILogger logger, Endpoint endpoint);
+
+        [LoggerMessage(
+            EventId = (int)TransportEventIds.ListenerShutDown,
+            EventName = nameof(TransportEventIds.ListenerShutDown),
+            Level = LogLevel.Debug,
+            Message = "server '{endpoint}' is no longer accepting connections")]
+        internal static partial void LogListenerShutDown(this ILogger logger, Endpoint endpoint);
+
+        [LoggerMessage(
+            EventId = (int)TransportEventIds.SocketConnectionEstablished,
+            EventName = nameof(TransportEventIds.SocketConnectionEstablished),
+            Level = LogLevel.Debug,
+            Message = "established connection (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize})")]
+        internal static partial void LogSocketConnectionEstablished(this ILogger logger, int rcvSize, int sndSize);
+
+        [LoggerMessage(
             EventId = (int)TransportEventIds.ConnectionEventHandlerException,
             EventName = nameof(TransportEventIds.ConnectionEventHandlerException),
             Level = LogLevel.Warning,
             Message = "{Name} event handler raised exception")]
         internal static partial void LogConnectionEventHandlerException(this ILogger logger, string name, Exception ex);
-
-        [LoggerMessage(
-            EventId = (int)TransportEventIds.ReceiveBufferSizeAdjusted,
-            EventName = nameof(TransportEventIds.ReceiveBufferSizeAdjusted),
-            Level = LogLevel.Debug,
-            Message = "{Transport} receive buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}")]
-        internal static partial void LogReceiveBufferSizeAdjusted(
-            this ILogger logger,
-            string transport,
-            int requestedSize,
-            int adjustedSize);
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.ReceivedData,
@@ -94,17 +114,6 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogReceivedInvalidDatagram(this ILogger logger, int bytes);
 
         [LoggerMessage(
-            EventId = (int)TransportEventIds.SendBufferSizeAdjusted,
-            EventName = nameof(TransportEventIds.SendBufferSizeAdjusted),
-            Level = LogLevel.Debug,
-            Message = "{Transport} send buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}")]
-        internal static partial void LogSendBufferSizeAdjusted(
-            this ILogger logger,
-            string transport,
-            int requestedSize,
-            int adjustedSize);
-
-        [LoggerMessage(
             EventId = (int)TransportEventIds.SentData,
             EventName = nameof(TransportEventIds.SentData),
             Level = LogLevel.Trace,
@@ -112,18 +121,18 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogSentData(this ILogger logger, int size, string data);
 
         [LoggerMessage(
-           EventId = (int)TransportEventIds.StartAcceptingConnections,
-           EventName = nameof(TransportEventIds.StartAcceptingConnections),
-           Level = LogLevel.Information,
-           Message = "starting to accept connections")]
-        internal static partial void LogStartAcceptingConnections(this ILogger logger);
-
-        [LoggerMessage(
             EventId = (int)TransportEventIds.StartReceivingDatagrams,
             EventName = nameof(TransportEventIds.StartReceivingDatagrams),
             Level = LogLevel.Information,
             Message = "starting to receive datagrams")]
         internal static partial void LogStartReceivingDatagrams(this ILogger logger);
+
+        [LoggerMessage(
+            EventId = (int)TransportEventIds.SocketStartReceivingDatagrams,
+            EventName = nameof(TransportEventIds.SocketStartReceivingDatagrams),
+            Level = LogLevel.Information,
+            Message = "starting to receive datagrams (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize}")]
+        internal static partial void LogSocketStartReceivingDatagrams(this ILogger logger, int rcvSize, int sndSize);
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.StartReceivingDatagramsFailed,
@@ -140,18 +149,18 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogStartSendingDatagrams(this ILogger logger);
 
         [LoggerMessage(
+            EventId = (int)TransportEventIds.SocketStartSendingDatagrams,
+            EventName = nameof(TransportEventIds.SocketStartSendingDatagrams),
+            Level = LogLevel.Debug,
+            Message = "starting to send datagrams (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize}")]
+        internal static partial void LogSocketStartSendingDatagrams(this ILogger logger, int rcvSize, int sndSize);
+
+        [LoggerMessage(
             EventId = (int)TransportEventIds.StartSendingDatagramsFailed,
             EventName = nameof(TransportEventIds.StartSendingDatagramsFailed),
             Level = LogLevel.Debug,
             Message = "starting sending datagrams failed")]
         internal static partial void LogStartSendingDatagramsFailed(this ILogger logger, Exception? exception);
-
-        [LoggerMessage(
-            EventId = (int)TransportEventIds.StopAcceptingConnections,
-            EventName = nameof(TransportEventIds.StopAcceptingConnections),
-            Level = LogLevel.Information,
-            Message = "stopping to accept connections")]
-        internal static partial void LogStopAcceptingConnections(this ILogger logger);
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.StopReceivingDatagrams,
@@ -160,7 +169,7 @@ namespace IceRpc.Transports.Internal
             Message = "stopping to receive datagrams")]
         internal static partial void LogStopReceivingDatagrams(this ILogger logger);
 
-        internal static IDisposable? StartServerScope(this ILogger logger, IListener listener) =>
+        internal static IDisposable? StartListenerScope(this ILogger logger, IListener listener) =>
             logger.IsEnabled(LogLevel.Error) ? _listenerScope(logger, listener.Endpoint.ToString()) : null;
 
         internal static IDisposable? StartConnectionScope(

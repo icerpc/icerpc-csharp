@@ -79,18 +79,15 @@ namespace IceRpc.Tests.Internal
                 if (Endpoint.Transport == "udp")
                 {
                     serverConnection = new Connection(
-                        serverTransport.Listen(Endpoint, LogAttributeLoggerFactory.Instance).Connection!,
+                        serverTransport.Listen(Endpoint).Connection!,
                         _dispatcher,
-                        _serverConnectionOptions,
-                        LogAttributeLoggerFactory.Instance);
+                        _serverConnectionOptions);
                     await serverConnection.ConnectAsync(default);
                     clientConnection = await ConnectAsync(serverConnection.LocalEndpoint!);
                 }
                 else
                 {
-                    using IListener listener = serverTransport.Listen(
-                        Endpoint,
-                        LogAttributeLoggerFactory.Instance).Listener!;
+                    using IListener listener = serverTransport.Listen(Endpoint).Listener!;
                     Task<Connection> serverTask = AcceptAsync(listener);
                     Task<Connection> clientTask = ConnectAsync(listener.Endpoint);
                     serverConnection = await serverTask;
@@ -103,8 +100,7 @@ namespace IceRpc.Tests.Internal
                 {
                     var connection = new Connection(await listener.AcceptAsync(),
                                                     _dispatcher,
-                                                    _serverConnectionOptions,
-                                                    LogAttributeLoggerFactory.Instance);
+                                                    _serverConnectionOptions);
                     await connection.ConnectAsync(default);
                     return connection;
                 }
@@ -118,7 +114,6 @@ namespace IceRpc.Tests.Internal
                             endpoint,
                             options: _clientTransportOptions,
                             authenticationOptions: _clientAuthenticationOptions),
-                        LoggerFactory = LogAttributeLoggerFactory.Instance
                     };
                     await connection.ConnectAsync(default);
                     return connection;
@@ -293,7 +288,7 @@ namespace IceRpc.Tests.Internal
                 protocol: Protocol.FromProtocolCode(protocol));
 
             IServerTransport transport = new TcpServerTransport(new TcpOptions { ListenerBackLog = 1 }, new(), null);
-            using IListener listener = transport.Listen(endpoint, LogAttributeLoggerFactory.Instance).Listener!;
+            using IListener listener = transport.Listen(endpoint).Listener!;
 
             await using var connection = new Connection(new() { ConnectTimeout = TimeSpan.FromMilliseconds(100) })
             {
@@ -313,16 +308,16 @@ namespace IceRpc.Tests.Internal
             Assert.That(factory.ClientConnection.IsSecure, Is.EqualTo(secure));
             Assert.That(factory.ServerConnection.IsSecure, Is.EqualTo(secure));
 
-            var clientSocket = (NetworkSocket)factory.ClientConnection.NetworkSocket!;
+            NetworkSocket? clientSocket = factory.ClientConnection.NetworkSocket;
             Assert.That(clientSocket, Is.Not.Null);
 
-            var serverSocket = (NetworkSocket)factory.ServerConnection.NetworkSocket!;
+            NetworkSocket? serverSocket = factory.ServerConnection.NetworkSocket;
             Assert.That(serverSocket, Is.Not.Null);
 
-            Assert.That(clientSocket.Socket!.RemoteEndPoint, Is.Not.Null);
+            Assert.That(clientSocket!.Socket!.RemoteEndPoint, Is.Not.Null);
             Assert.That(clientSocket.Socket!.LocalEndPoint, Is.Not.Null);
 
-            Assert.That(serverSocket.Socket!.LocalEndPoint, Is.Not.Null);
+            Assert.That(serverSocket!.Socket!.LocalEndPoint, Is.Not.Null);
 
             Assert.AreEqual("127.0.0.1", factory.ClientConnection.LocalEndpoint!.Host);
             Assert.AreEqual("127.0.0.1", factory.ClientConnection.RemoteEndpoint!.Host);

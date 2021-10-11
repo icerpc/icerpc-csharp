@@ -5,10 +5,8 @@ namespace IceRpc.Transports
     /// <summary>This enum contains event ID constants used for transport logging.</summary>
     public enum TransportEventIds
     {
-        /// <summary>The transport failed to accept a connection.</summary>
-        AcceptingConnectionFailed = IceRpc.Internal.BaseEventIds.Transport,
         /// <summary>The transport accepted a new connection.</summary>
-        ConnectionAccepted,
+        ConnectionAccepted = IceRpc.Internal.BaseEventIds.Transport,
         /// <summary>The transport failed to accept a connection.</summary>
         ConnectionAcceptFailed,
         /// <summary>A <see cref="Connection"/> event handler thrown an exception.</summary>
@@ -19,21 +17,28 @@ namespace IceRpc.Transports
         /// <seealso cref="Connection.ConnectAsync(System.Threading.CancellationToken)"/>
         ConnectionConnectFailed,
         /// <summary>The connection connect operation succeed.</summary>
-        /// <seealso cref="Connection.ConnectAsync(System.Threading.CancellationToken)"/>
         ConnectionEstablished,
-        /// <summary>The transport received buffer size was adjusted.</summary>
-        /// <seealso cref="TcpOptions.ReceiveBufferSize"/>
-        ReceiveBufferSizeAdjusted,
+        /// <summary>The transport failed to accept a connection.</summary>
+        ListenerAcceptConnectionFailed,
+        /// <summary>The listener starts listening for new connections.</summary>
+        ListenerListening,
+        /// <summary>The listener is shutdown and no longer accepts connections.</summary>
+        ListenerShutDown,
         /// <summary>The transport received data.</summary>
         ReceivedData,
         /// <summary>The transport received an invalid datagram message.</summary>
         ReceivedInvalidDatagram,
-        /// <summary>The transport send buffer size was adjusted.</summary>
-        /// <seealso cref="TcpOptions.SendBufferSize"/>
-        SendBufferSizeAdjusted,
         /// <summary>The transport sent data.</summary>
         SentData,
-        /// <summary>The transport start accepting connections.</summary>
+        /// <summary>The transport accepted a new socket connection.</summary>
+        SocketConnectionAccepted,
+        /// <summary>The socket connection connect operation succeed.</summary>
+        SocketConnectionEstablished,
+        /// <summary>The transport starts receiving datagram messages.</summary>
+        SocketStartReceivingDatagrams,
+        /// <summary>The transport starts sending datagram messages.</summary>
+        SocketStartSendingDatagrams,
+        /// <summary>The transport starts accepting connections.</summary>
         StartAcceptingConnections,
         /// <summary>The transport starts receiving datagram messages.</summary>
         StartReceivingDatagrams,

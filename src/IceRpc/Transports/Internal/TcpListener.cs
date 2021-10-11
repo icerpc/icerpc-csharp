@@ -14,7 +14,6 @@ namespace IceRpc.Transports.Internal
 
         private readonly SslServerAuthenticationOptions? _authenticationOptions;
         private readonly TimeSpan _idleTimeout;
-        private readonly ILogger _logger;
         private readonly Socket _socket;
         private readonly SlicOptions _slicOptions;
 
@@ -29,8 +28,7 @@ namespace IceRpc.Transports.Internal
                     Endpoint,
                     isServer: true,
                     _idleTimeout,
-                    _slicOptions,
-                    _logger);
+                    _slicOptions);
             }
             catch (Exception ex)
             {
@@ -45,14 +43,12 @@ namespace IceRpc.Transports.Internal
         internal TcpListener(
             Socket socket,
             Endpoint endpoint,
-            ILogger logger,
             TimeSpan idleTimeout,
             SlicOptions slicOptions,
             SslServerAuthenticationOptions? authenticationOptions)
         {
             Endpoint = endpoint;
             _authenticationOptions = authenticationOptions;
-            _logger = logger;
             _slicOptions = slicOptions;
             _socket = socket;
             _idleTimeout = idleTimeout;

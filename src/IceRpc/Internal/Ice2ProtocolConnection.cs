@@ -44,7 +44,6 @@ namespace IceRpc.Internal
         private long _lastRemoteBidirectionalStreamId = -1;
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
         private long _lastRemoteUnidirectionalStreamId = -1;
-        private readonly ILogger _logger;
         private readonly object _mutex = new();
         private INetworkStream? _remoteControlStream;
         private int? _peerIncomingFrameMaxSize;
@@ -639,14 +638,10 @@ namespace IceRpc.Internal
             return goAwayFrame.Message;
         }
 
-        internal Ice2ProtocolConnection(
-            IMultiStreamConnection multiStreamConnection,
-            int incomingFrameMaxSize,
-            ILogger logger)
+        internal Ice2ProtocolConnection(IMultiStreamConnection multiStreamConnection, int incomingFrameMaxSize)
         {
             _multiStreamConnection = multiStreamConnection;
             _incomingFrameMaxSize = incomingFrameMaxSize;
-            _logger = logger;
         }
 
         private async ValueTask<ReadOnlyMemory<byte>> ReceiveFrameAsync(

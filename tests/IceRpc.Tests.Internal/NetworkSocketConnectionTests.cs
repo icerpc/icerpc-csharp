@@ -19,8 +19,7 @@ namespace IceRpc.Tests.Internal
                 Endpoint.FromString("ice+tcp://host"),
                 isServer: false,
                 TimeSpan.FromSeconds(10),
-                slicOptions: new(),
-                null!);
+                slicOptions: new());
             connection.Close();
             connection.Close();
             Assert.That(((NetworkSocketStub)connection.NetworkSocket).Disposed, Is.True);
@@ -34,10 +33,9 @@ namespace IceRpc.Tests.Internal
                 Endpoint.FromString("ice+tcp://host"),
                 isServer: false,
                 TimeSpan.FromSeconds(10),
-                slicOptions: new(),
-                NullLogger.Instance);
+                slicOptions: new());
 
-            _ = await connection.GetSingleStreamConnectionAsync(default);
+            _ = await connection.ConnectSingleStreamConnectionAsync(default);
 
             var stub = (NetworkSocketStub)connection.NetworkSocket;
             Assert.That(stub.Connected, Is.True);
@@ -62,10 +60,9 @@ namespace IceRpc.Tests.Internal
                 endpoint,
                 isServer: isServer,
                 TimeSpan.FromSeconds(10),
-                slicOptions: new(),
-                null!);
+                slicOptions: new());
 
-            _ = await connection.GetSingleStreamConnectionAsync(default);
+            _ = await connection.ConnectSingleStreamConnectionAsync(default);
 
             Assert.That(connection.HasCompatibleParams(otherEndpoint), Is.EqualTo(expectedResult));
             connection.Close();
@@ -81,8 +78,7 @@ namespace IceRpc.Tests.Internal
                 Endpoint.FromString("ice+tcp://host"),
                 isServer: isServer,
                 TimeSpan.FromSeconds(10),
-                slicOptions: new(),
-                null!);
+                slicOptions: new());
 
             Assert.That(connection.LocalEndpoint, Is.EqualTo(isServer ? Endpoint.FromString("ice+tcp://host") : null));
             Assert.That(connection.RemoteEndpoint, Is.EqualTo(isServer ? null : Endpoint.FromString("ice+tcp://host")));
@@ -99,10 +95,9 @@ namespace IceRpc.Tests.Internal
                 Endpoint.FromString("ice+tcp://host"),
                 isServer: false,
                 TimeSpan.FromSeconds(10),
-                slicOptions: new(),
-                NullLogger.Instance);
+                slicOptions: new());
 
-            ISingleStreamConnection stream = await connection.GetSingleStreamConnectionAsync(default);
+            ISingleStreamConnection stream = await connection.ConnectSingleStreamConnectionAsync(default);
 
             TimeSpan lastActivity = connection.LastActivity;
             await Task.Delay(2);

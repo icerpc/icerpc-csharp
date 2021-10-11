@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Transports.Internal
@@ -7,19 +8,41 @@ namespace IceRpc.Transports.Internal
     internal sealed class LogListenerDecorator : IListener
     {
         private readonly IListener _decoratee;
+        private readonly ILogger _logger;
 
         public Endpoint Endpoint => _decoratee.Endpoint;
 
         public async ValueTask<INetworkConnection> AcceptAsync()
         {
-            INetworkConnection connection = await _decoratee.AcceptAsync().ConfigureAwait(false);
-            return connection.Logger.IsEnabled(LogLevel.Trace) ?
-                new LogNetworkConnectionDecorator(connection, isServer: true) :
-                connection;
+            try
+            {
+                INetworkConnection connection = await _decoratee.AcceptAsync().ConfigureAwait(false);
+                return new LogNetworkConnectionDecorator(connection, isServer: true, _logger);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogListenerAcceptingConnectionFailed(_decoratee.Endpoint, ex);
+                throw;
+            }
         }
 
-        public void Dispose() => _decoratee.Dispose();
+        public void Dispose()
+        {
+            try
+            {
+                _decoratee.Dispose();
+            }
+            finally
+            {
+                _logger.LogListenerShutDown(_decoratee.Endpoint);
+            }
+        }
 
-        internal LogListenerDecorator(IListener decoratee) => _decoratee = decoratee;
+        internal LogListenerDecorator(IListener decoratee, ILogger logger)
+        {
+            _decoratee = decoratee;
+            _logger = logger;
+            _logger.LogListenerListening(_decoratee.Endpoint);
+        }
     }
 }

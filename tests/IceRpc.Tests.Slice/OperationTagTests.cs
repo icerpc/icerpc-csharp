@@ -24,7 +24,6 @@ namespace IceRpc.Tests.Slice
             {
                 Dispatcher = router,
                 Endpoint = TestHelper.GetUniqueColocEndpoint(),
-                LoggerFactory = LogAttributeLoggerFactory.Instance
             };
             _server.Listen();
             _connection = new Connection { RemoteEndpoint = _server.Endpoint };

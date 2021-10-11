@@ -3,7 +3,6 @@
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
-using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Internal
 {
@@ -22,13 +21,12 @@ namespace IceRpc.Internal
         internal override async ValueTask<IProtocolConnection> CreateConnectionAsync(
             INetworkConnection networkConnection,
             int incomingFrameMaxSize,
-            ILoggerFactory loggerFactory,
+            bool isServer,
             CancellationToken cancel)
         {
-            IProtocolConnection protocolConnection = new Ice2ProtocolConnection(
-                await networkConnection.GetMultiStreamConnectionAsync(cancel).ConfigureAwait(false),
-                incomingFrameMaxSize,
-                loggerFactory.CreateLogger("IceRpc.Protocol"));
+            var protocolConnection = new Ice2ProtocolConnection(
+                await networkConnection.ConnectMultiStreamConnectionAsync(cancel).ConfigureAwait(false),
+                incomingFrameMaxSize);
             await protocolConnection.InitializeAsync(cancel).ConfigureAwait(false);
             return protocolConnection;
         }

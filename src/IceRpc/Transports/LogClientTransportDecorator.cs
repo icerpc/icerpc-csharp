@@ -9,30 +9,31 @@ namespace IceRpc.Transports
     public class LogClientTransportDecorator : IClientTransport
     {
         private readonly IClientTransport _decoratee;
+        private readonly ILogger _logger;
 
-        /// <summary>Constructs a server transport decorator. The network connections created by this server
+        /// <summary>Constructs a client transport decorator. The network connections created by this client
         /// transport will log traces if <see cref="LogLevel.Trace"/> is enabled on the logger created with
-        /// the transport logger factory.</summary>
-        public LogClientTransportDecorator(IClientTransport decoratee) => _decoratee = decoratee;
+        /// the logger factory.</summary>
+        /// <param name="decoratee">The client transport to decorate.</param>
+        /// <param name="loggerFactory"> The logger factory, the transport can use this factory to create its
+        /// own logger.</param>
+        public LogClientTransportDecorator(IClientTransport decoratee, ILoggerFactory loggerFactory)
+        {
+            _decoratee = decoratee;
+            _logger = loggerFactory.CreateLogger("IceRpc.Transports");
+        }
 
         /// <inheritdoc/>
-        public INetworkConnection CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
+        public INetworkConnection CreateConnection(Endpoint remoteEndpoint)
         {
-            INetworkConnection connection = _decoratee.CreateConnection(remoteEndpoint, loggerFactory);
-            if (connection.Logger.IsEnabled(LogLevel.Trace))
+            INetworkConnection connection = _decoratee.CreateConnection(remoteEndpoint);
+            if (connection is NetworkSocketConnection networkSocketConnection)
             {
-                if (connection is NetworkSocketConnection networkSocketConnection)
-                {
-                    return new LogNetworkSocketConnectionDecorator(networkSocketConnection, isServer: false);
-                }
-                else
-                {
-                    return new LogNetworkConnectionDecorator(connection, isServer: false);
-                }
+                return new LogNetworkSocketConnectionDecorator(networkSocketConnection, isServer: false, _logger);
             }
             else
             {
-                return connection;
+                return new LogNetworkConnectionDecorator(connection, isServer: false, _logger);
             }
         }
     }

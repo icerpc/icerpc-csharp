@@ -1,11 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
-using IceRpc.Internal;
 using IceRpc.Transports;
-using IceRpc.Transports.Internal;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using System.Diagnostics;
 
 namespace IceRpc
@@ -17,7 +13,7 @@ namespace IceRpc
     {
         /// <summary>The default value for <see cref="ServerTransport"/>.</summary>
         public static IServerTransport DefaultServerTransport { get; } =
-            new LogServerTransportDecorator(new ServerTransport().UseColoc().UseTcp().UseUdp());
+            new ServerTransport().UseColoc().UseTcp().UseUdp();
 
         /// <summary>Gets or sets the options of server connections created by this server.</summary>
         public ConnectionOptions ConnectionOptions { get; set; } = new();
@@ -45,19 +41,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Gets or sets the logger factory of this server. When null, the server creates its logger using
-        /// <see cref="NullLoggerFactory.Instance"/>.</summary>
-        /// <value>The logger factory of this server.</value>
-        public ILoggerFactory? LoggerFactory
-        {
-            get => _loggerFactory;
-            set
-            {
-                _loggerFactory = value;
-                _logger = _loggerFactory?.CreateLogger("IceRpc") ?? NullLogger.Instance;
-            }
-        }
-
         /// <summary>Gets the Ice protocol used by this server.</summary>
         /// <value>The Ice protocol of this server.</value>
         public Protocol Protocol => _endpoint?.Protocol ?? Protocol.Ice2;
@@ -74,9 +57,6 @@ namespace IceRpc
         private Endpoint _endpoint = "ice+tcp://[::0]";
 
         private IListener? _listener;
-
-        private ILogger _logger = NullLogger.Instance;
-        private ILoggerFactory? _loggerFactory;
 
         private bool _listening;
 
@@ -113,9 +93,7 @@ namespace IceRpc
                 }
 
                 INetworkConnection? networkConnection;
-                (_listener, networkConnection) = ServerTransport.Listen(
-                    _endpoint,
-                    _loggerFactory ?? NullLoggerFactory.Instance);
+                (_listener, networkConnection) = ServerTransport.Listen(_endpoint);
 
                 if (_listener != null)
                 {
@@ -134,8 +112,7 @@ namespace IceRpc
                     var serverConnection = new Connection(
                         networkConnection,
                         Dispatcher,
-                        ConnectionOptions,
-                        LoggerFactory);
+                        ConnectionOptions);
 #pragma warning restore CA2000
                     _endpoint = networkConnection.LocalEndpoint!;
 
@@ -145,7 +122,6 @@ namespace IceRpc
                 }
 
                 _listening = true;
-                _logger.LogServerListening(this);
             }
         }
 
@@ -189,30 +165,24 @@ namespace IceRpc
                 CancellationToken cancel = _shutdownCancelSource!.Token;
                 try
                 {
-                    _logger.LogServerShuttingDown(this);
-
-                    // Stop accepting new connections by disposing of the listeners.
+                    // Stop accepting new connections by disposing of the listener.
                     _listener?.Dispose();
 
                     // Shuts down the connections to stop accepting new incoming requests. This ensures that
                     // once ShutdownAsync returns, no new requests will be dispatched. ShutdownAsync on each
-                    // connections waits for the connection dispatch to complete. If the cancellation token
-                    // is canceled, the dispatch will be cancelled. This can speed up the shutdown if the
+                    // connections waits for the connection dispatch to complete. If the cancellation token is
+                    // canceled, the dispatch will be cancelled. This can speed up the shutdown if the
                     // dispatch check the dispatch cancellation token.
                     await Task.WhenAll(_connections.Select(
                         connection => connection.ShutdownAsync("server shutdown", cancel))).ConfigureAwait(false);
                 }
                 finally
                 {
-                    // TODO: if _listening = false, this will log shutdown completed even though the server never
-                    // actually listened.
-                    _logger.LogServerShutdownComplete(this);
-
                     _shutdownCancelSource!.Dispose();
 
-                    // The continuation is executed asynchronously (see _shutdownCompleteSource's construction). This
-                    // way, even if the continuation blocks waiting on ShutdownAsync to complete (with incorrect code
-                    // using Result or Wait()), ShutdownAsync will complete.
+                    // The continuation is executed asynchronously (see _shutdownCompleteSource's
+                    // construction). This way, even if the continuation blocks waiting on ShutdownAsync to
+                    // complete (with incorrect code using Result or Wait()), ShutdownAsync will complete.
                     _shutdownCompleteSource.TrySetResult(null);
                 }
             }
@@ -227,9 +197,6 @@ namespace IceRpc
 
         private async Task AcceptAsync(IListener listener)
         {
-            using IDisposable? scope = _logger.StartServerScope(listener);
-            _logger.LogStartAcceptingConnections();
-
             while (true)
             {
                 INetworkConnection networkConnection;
@@ -237,7 +204,7 @@ namespace IceRpc
                 {
                     networkConnection = await listener.AcceptAsync().ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch
                 {
                     lock (_mutex)
                     {
@@ -247,8 +214,6 @@ namespace IceRpc
                         }
                     }
 
-                    _logger.LogAcceptingConnectionFailed(ex);
-
                     // We wait for one second to avoid running in a tight loop in case the failures occurs immediately
                     // again. Failures here are unexpected and could be considered fatal.
                     await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
@@ -257,11 +222,7 @@ namespace IceRpc
 
                 // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                var connection = new Connection(
-                        networkConnection,
-                        Dispatcher,
-                        ConnectionOptions,
-                        LoggerFactory);
+                var connection = new Connection(networkConnection, Dispatcher, ConnectionOptions);
 #pragma warning restore CA2000
 
                 lock (_mutex)

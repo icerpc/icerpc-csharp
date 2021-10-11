@@ -4,8 +4,6 @@ using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using System.Diagnostics;
 
 namespace IceRpc
@@ -41,13 +39,13 @@ namespace IceRpc
     {
         /// <summary>The default value for <see cref="IClientTransport"/>.</summary>
         public static IClientTransport DefaultClientTransport { get; } =
-            new LogClientTransportDecorator(new ClientTransport().UseColoc().UseTcp().UseUdp());
+            new ClientTransport().UseColoc().UseTcp().UseUdp();
 
         /// <summary>The <see cref="IClientTransport"/> used by this connection to create client connections.</summary>
         public IClientTransport ClientTransport { get; init; } = DefaultClientTransport;
 
         /// <summary>This event is raised when the connection is closed. The connection object is passed as the
-        /// event sender argument.</summary>
+        /// event sender argument. The event handler should not throw.</summary>
         /// <exception cref="InvalidOperationException">Thrown on event addition if the connection is closed.
         /// </exception>
         public event EventHandler<ClosedEventArgs>? Closed
@@ -95,22 +93,21 @@ namespace IceRpc
         /// <exception cref="InvalidOperationException">Thrown if the local endpoint is not available.</exception>
         public Endpoint? LocalEndpoint => _localEndpoint ?? NetworkConnection?.LocalEndpoint;
 
-        /// <summary>The logger factory to use for creating the connection logger.</summary>
-        /// <exception cref="InvalidOperationException">Thrown by the setter if the state of the connection is not
-        /// <see cref="ConnectionState.NotConnected"/>.</exception>
-        public ILoggerFactory? LoggerFactory
-        {
-            get => _loggerFactory;
-            init
-            {
-                _loggerFactory = value;
-                _logger = (_loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc");
-            }
-        }
-
         /// <summary>The <see cref="NetworkSocket"/> or null if the connection doesn't use a network
         /// socket.</summary>
-        public NetworkSocket? NetworkSocket => (NetworkConnection as NetworkSocketConnection)?.NetworkSocket;
+        // TODO: Remove this implementation specific property?
+        public NetworkSocket? NetworkSocket
+        {
+            get
+            {
+                INetworkConnection? networkConnection = NetworkConnection;
+                if (networkConnection is LogNetworkConnectionDecorator logNetworkConnectionDecorator)
+                {
+                    networkConnection = logNetworkConnectionDecorator.Decoratee;
+                }
+                return (networkConnection as NetworkSocketConnection)?.NetworkSocket;
+            }
+        }
 
         /// <summary>The protocol used by the connection.</summary>
         public Protocol Protocol => (_localEndpoint ?? _remoteEndpoint)?.Protocol ?? Protocol.Ice2;
@@ -169,8 +166,6 @@ namespace IceRpc
         // The close task is assigned when ShutdownAsync or CloseAsync are called, it's protected with _mutex.
         private Task? _closeTask;
         private readonly Endpoint? _localEndpoint;
-        private ILogger _logger;
-        private ILoggerFactory? _loggerFactory;
         // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
         private readonly object _mutex = new();
         private readonly ConnectionOptions _options;
@@ -188,11 +183,7 @@ namespace IceRpc
 
         /// <summary>Constructs a new client connection with specific options.</summary>
         /// <param name="options">The connection options</param>
-        public Connection(ConnectionOptions options)
-        {
-            _logger = NullLogger.Instance;
-            _options = options;
-        }
+        public Connection(ConnectionOptions options) => _options = options;
 
         /// <summary>Closes the connection. This methods switches the connection state to <see
         /// cref="ConnectionState.Closed"/>. If <see cref="Closed"/> event listeners are registered, it waits
@@ -229,9 +220,7 @@ namespace IceRpc
                         {
                             throw new InvalidOperationException("client connection has no remote endpoint set");
                         }
-                        NetworkConnection = ClientTransport.CreateConnection(
-                            _remoteEndpoint,
-                            _loggerFactory ?? NullLoggerFactory.Instance);
+                        NetworkConnection = ClientTransport.CreateConnection(_remoteEndpoint);
                     }
 
                     Debug.Assert(NetworkConnection != null);
@@ -257,7 +246,6 @@ namespace IceRpc
                         NetworkConnection,
                         _options.IncomingFrameMaxSize,
                         IsServer,
-                        _loggerFactory ?? NullLoggerFactory.Instance,
                         connectCancellationSource.Token).ConfigureAwait(false);
 
                     lock (_mutex)
@@ -345,9 +333,6 @@ namespace IceRpc
 
             try
             {
-                // TODO: remove once we add log protocol decorators.
-                using IDisposable? scope = NetworkConnection!.Logger.StartConnectionScope(NetworkConnection, IsServer);
-
                 // Send the request.
                 await _protocolConnection!.SendRequestAsync(request, cancel).ConfigureAwait(false);
 
@@ -439,14 +424,12 @@ namespace IceRpc
         internal Connection(
             INetworkConnection connection,
             IDispatcher? dispatcher,
-            ConnectionOptions options,
-            ILoggerFactory? loggerFactory)
+            ConnectionOptions options)
         {
             Dispatcher = dispatcher;
             NetworkConnection = connection;
             _localEndpoint = connection.LocalEndpoint!;
             _options = options;
-            _logger = loggerFactory?.CreateLogger("IceRpc") ?? NullLogger.Instance;
         }
 
         internal void Monitor()
@@ -495,9 +478,6 @@ namespace IceRpc
         /// dispatch by no longer accepting a new request when a limit is reached.</summary>
         private async Task AcceptIncomingRequestAsync(IDispatcher dispatcher)
         {
-            // TODO: remove once we add log protocol decorators.
-            using IDisposable? scope = NetworkConnection!.Logger.StartConnectionScope(NetworkConnection, IsServer);
-
             IncomingRequest request;
             try
             {
@@ -605,9 +585,9 @@ namespace IceRpc
                 {
                     _closed?.Invoke(this, new ClosedEventArgs(exception));
                 }
-                catch (Exception ex)
+                catch
                 {
-                    _logger.LogConnectionEventHandlerException("close", ex);
+                    // Ignore, application event handlers shouldn't raise exceptions.
                 }
 
                 // Remove the connection from its factory. This must be called without the connection's mutex
@@ -656,9 +636,6 @@ namespace IceRpc
                 using var closeCancellationSource = new CancellationTokenSource(_options.CloseTimeout);
                 try
                 {
-                    // TODO: remove once we add log protocol decorators.
-                    using IDisposable? scope = NetworkConnection!.Logger.StartConnectionScope(NetworkConnection, IsServer);
-
                     // Shutdown the connection.
                     await _protocolConnection!.ShutdownAsync(
                         shutdownByPeer,

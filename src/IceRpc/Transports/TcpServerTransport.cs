@@ -42,7 +42,7 @@ namespace IceRpc.Transports
             _authenticationOptions = authenticationOptions;
         }
 
-        (IListener?, INetworkConnection?) IServerTransport.Listen(Endpoint endpoint, ILoggerFactory loggerFactory)
+        (IListener?, INetworkConnection?) IServerTransport.Listen(Endpoint endpoint)
         {
             // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
             // a tcp or ssl endpoint regardless of its actual transport name.
@@ -52,8 +52,6 @@ namespace IceRpc.Transports
                 throw new NotSupportedException(
                     $"endpoint '{endpoint}' cannot accept connections because it has a DNS name");
             }
-
-            ILogger logger = loggerFactory.CreateLogger("IceRpc.Transports");
 
             var address = new IPEndPoint(ipAddress, endpoint.Port);
             var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
@@ -66,10 +64,14 @@ namespace IceRpc.Transports
 
                 socket.ExclusiveAddressUse = true;
 
-                socket.SetBufferSize(_tcpOptions.ReceiveBufferSize,
-                                     _tcpOptions.SendBufferSize,
-                                     endpoint.Transport,
-                                     logger);
+                if (_tcpOptions.ReceiveBufferSize is int receiveSize)
+                {
+                    socket.ReceiveBufferSize = receiveSize;
+                }
+                if (_tcpOptions.SendBufferSize is int sendSize)
+                {
+                    socket.SendBufferSize = sendSize;
+                }
 
                 socket.Bind(address);
                 address = (IPEndPoint)socket.LocalEndPoint!;
@@ -94,7 +96,6 @@ namespace IceRpc.Transports
 
             return (new Internal.TcpListener(socket,
                                              endpoint: endpoint with { Port = (ushort)address.Port },
-                                             logger,
                                              _tcpOptions.IdleTimeout,
                                              _slicOptions,
                                              authenticationOptions),

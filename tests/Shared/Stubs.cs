@@ -47,7 +47,6 @@ namespace IceRpc.Tests
         public bool IsSecure => false;
         public TimeSpan LastActivity => throw new NotImplementedException();
         public Endpoint? LocalEndpoint { get; }
-        public ILogger Logger => throw new NotImplementedException();
         public Endpoint? RemoteEndpoint { get; }
 
         public void Close(Exception? exception = null)
@@ -56,10 +55,10 @@ namespace IceRpc.Tests
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) => throw new NotImplementedException();
 
-        public ValueTask<IMultiStreamConnection> GetMultiStreamConnectionAsync(CancellationToken _) =>
+        public ValueTask<IMultiStreamConnection> ConnectMultiStreamConnectionAsync(CancellationToken _) =>
             throw new NotImplementedException();
 
-        public ValueTask<ISingleStreamConnection> GetSingleStreamConnectionAsync(CancellationToken _) =>
+        public ValueTask<ISingleStreamConnection> ConnectSingleStreamConnectionAsync(CancellationToken _) =>
             throw new NotImplementedException();
 
         public NetworkConnectionStub(Endpoint localEndpoint, Endpoint remoteEndpoint)
@@ -74,9 +73,6 @@ namespace IceRpc.Tests
         /// <summary>Creates a connection stub to provide the local and remote endpoint properties for a
         /// connection.</summary>
         public static Connection Create(Endpoint localEndpoint, Endpoint remoteEndpoint) =>
-            new(new NetworkConnectionStub(localEndpoint, remoteEndpoint),
-                dispatcher: null,
-                new(),
-                loggerFactory: null);
+            new(new NetworkConnectionStub(localEndpoint, remoteEndpoint), dispatcher: null, new());
     }
 }

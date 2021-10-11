@@ -9,21 +9,26 @@ namespace IceRpc.Transports
     public class LogServerTransportDecorator : IServerTransport
     {
         private readonly IServerTransport _decoratee;
+        private readonly ILogger _logger;
 
         /// <summary>Constructs a server transport decorator. The network connections created by this server
         /// transport will log traces if <see cref="LogLevel.Trace"/> is enabled on the logger created with
-        /// the transport logger factory.</summary>
-        public LogServerTransportDecorator(IServerTransport decoratee) => _decoratee = decoratee;
+        /// the logger factory.</summary>
+        /// <param name="decoratee">The client transport to decorate.</param>
+        /// <param name="loggerFactory"> The logger factory, the transport can use this factory to create its
+        /// own logger.</param>
+        public LogServerTransportDecorator(IServerTransport decoratee, ILoggerFactory loggerFactory)
+        {
+            _decoratee = decoratee;
+            _logger = loggerFactory.CreateLogger("IceRpc.Transports");
+        }
 
         /// <inheritdoc/>
-        public (IListener?, INetworkConnection?) Listen(Endpoint endpoint, ILoggerFactory loggerFactory)
+        public (IListener?, INetworkConnection?) Listen(Endpoint endpoint)
         {
-            (IListener? listener, INetworkConnection? connection) = _decoratee.Listen(endpoint, loggerFactory);
-            if (connection != null && connection.Logger.IsEnabled(LogLevel.Trace))
-            {
-                connection = new LogNetworkConnectionDecorator(connection, isServer: true);
-            }
-            return (listener != null ? new LogListenerDecorator(listener) : null, connection);
+            (IListener? listener, INetworkConnection? connection) = _decoratee.Listen(endpoint);
+            return (listener != null ? new LogListenerDecorator(listener, _logger) : null,
+                    connection != null ? new LogNetworkConnectionDecorator(connection, isServer: true, _logger) : null);
         }
     }
 }
