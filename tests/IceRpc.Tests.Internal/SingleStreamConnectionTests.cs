@@ -113,18 +113,16 @@ namespace IceRpc.Tests.Internal
         public async Task SetUp()
         {
             Endpoint endpoint = TestHelper.GetTestEndpoint(transport: _transport);
-            using IListener listener = TestHelper.CreateServerTransport(endpoint).Listen(
-                    endpoint,
-                    LogAttributeLoggerFactory.Instance).Listener!;
+            using IListener listener = TestHelper.CreateServerTransport(endpoint).Listen(endpoint).Listener!;
 
             IClientTransport clientTransport = TestHelper.CreateClientTransport(listener.Endpoint);
-            _clientConnection = clientTransport.CreateConnection(listener.Endpoint, LogAttributeLoggerFactory.Instance);
+            _clientConnection = clientTransport.CreateConnection(listener.Endpoint);
 
             ValueTask<INetworkConnection> acceptTask = listener.AcceptAsync();
-            ValueTask<ISingleStreamConnection> connectTask = _clientConnection.GetSingleStreamConnectionAsync(default);
+            ValueTask<ISingleStreamConnection> connectTask = _clientConnection.ConnectSingleStreamConnectionAsync(default);
             _serverConnection = await acceptTask;
             _clientSingleStreamConnection = await connectTask;
-            _serverSingleStreamConnection = await _serverConnection.GetSingleStreamConnectionAsync(default);
+            _serverSingleStreamConnection = await _serverConnection.ConnectSingleStreamConnectionAsync(default);
         }
 
         [TearDown]

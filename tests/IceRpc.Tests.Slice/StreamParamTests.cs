@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
 using NUnit.Framework;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
@@ -28,16 +29,20 @@ namespace IceRpc.Tests.Slice.Stream
 
             _server = new Server
             {
+                ServerTransport = new LogServerTransportDecorator(
+                    new ColocServerTransport(new()),
+                    LogAttributeLoggerFactory.Instance),
                 Dispatcher = _servant,
-                Endpoint = TestHelper.GetUniqueColocEndpoint(),
-                LoggerFactory = LogAttributeLoggerFactory.Instance
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
 
             _server.Listen();
             _connection = new Connection
             {
+                ClientTransport = new LogClientTransportDecorator(
+                    new ColocClientTransport(new()),
+                    LogAttributeLoggerFactory.Instance),
                 RemoteEndpoint = _server.Endpoint,
-                LoggerFactory = LogAttributeLoggerFactory.Instance
             };
             _prx = StreamParamOperationsPrx.FromConnection(_connection);
         }

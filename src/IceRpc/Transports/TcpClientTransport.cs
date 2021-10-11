@@ -42,7 +42,7 @@ namespace IceRpc.Transports
             _authenticationOptions = authenticationOptions;
         }
 
-        INetworkConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
+        INetworkConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint)
         {
             EndPoint netEndPoint = IPAddress.TryParse(remoteEndpoint.Host, out IPAddress? ipAddress) ?
                 new IPEndPoint(ipAddress, remoteEndpoint.Port) :
@@ -54,7 +54,6 @@ namespace IceRpc.Transports
                 new Socket(SocketType.Stream, ProtocolType.Tcp) :
                 new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
-            ILogger logger = loggerFactory.CreateLogger("IceRpc.Transports");
             try
             {
                 if (ipAddress?.AddressFamily == AddressFamily.InterNetworkV6)
@@ -67,10 +66,15 @@ namespace IceRpc.Transports
                     socket.Bind(localEndPoint);
                 }
 
-                socket.SetBufferSize(_tcpOptions.ReceiveBufferSize,
-                                     _tcpOptions.SendBufferSize,
-                                     remoteEndpoint.Transport,
-                                     logger);
+                if (_tcpOptions.ReceiveBufferSize is int receiveSize)
+                {
+                    socket.ReceiveBufferSize = receiveSize;
+                }
+                if (_tcpOptions.SendBufferSize is int sendSize)
+                {
+                    socket.SendBufferSize = sendSize;
+                }
+
                 socket.NoDelay = true;
             }
             catch (SocketException ex)
@@ -84,8 +88,7 @@ namespace IceRpc.Transports
                 remoteEndpoint,
                 isServer: false,
                 _tcpOptions.IdleTimeout,
-                _slicOptions,
-                logger);
+                _slicOptions);
         }
     }
 }

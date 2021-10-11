@@ -29,14 +29,14 @@ namespace IceRpc.Configure
             return this;
         }
 
-        INetworkConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
+        INetworkConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint)
         {
             _transports ??= _builder;
             if (_transports.TryGetValue(
                 (remoteEndpoint.Transport, remoteEndpoint.Protocol),
                 out IClientTransport? clientTransport))
             {
-                return clientTransport.CreateConnection(remoteEndpoint, loggerFactory);
+                return clientTransport.CreateConnection(remoteEndpoint);
             }
             else
             {

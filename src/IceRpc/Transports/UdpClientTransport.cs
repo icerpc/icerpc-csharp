@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
-using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
@@ -22,7 +21,7 @@ namespace IceRpc.Transports
         /// </summary>
         public UdpClientTransport(UdpOptions options) => _options = options;
 
-        INetworkConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
+        INetworkConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint)
         {
             // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
             // a udp endpoint regardless of its actual transport name.
@@ -39,7 +38,6 @@ namespace IceRpc.Transports
                     $"endpoint '{remoteEndpoint}' cannot use interface '*' to send datagrams");
             }
 
-            ILogger logger = loggerFactory.CreateLogger("IceRpc.Transports");
             Socket socket = ipAddress == null ?
                 new Socket(SocketType.Dgram, ProtocolType.Udp) :
                 new Socket(ipAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
@@ -84,10 +82,14 @@ namespace IceRpc.Transports
                     socket.Bind(localEndPoint);
                 }
 
-                socket.SetBufferSize(_options.ReceiveBufferSize,
-                                     _options.SendBufferSize,
-                                     remoteEndpoint.Transport,
-                                     logger);
+                if (_options.ReceiveBufferSize is int receiveSize)
+                {
+                    socket.ReceiveBufferSize = receiveSize;
+                }
+                if (_options.SendBufferSize is int sendSize)
+                {
+                    socket.SendBufferSize = sendSize;
+                }
             }
             catch (SocketException ex)
             {
@@ -100,8 +102,7 @@ namespace IceRpc.Transports
                 remoteEndpoint,
                 isServer: false,
                 idleTimeout: _options.IdleTimeout,
-                new(),
-                logger);
+                new());
         }
     }
 }

@@ -2,7 +2,6 @@
 
 using IceRpc.Internal;
 using IceRpc.Transports.Internal.Slic;
-using Microsoft.Extensions.Logging;
 using System.Threading.Channels;
 
 namespace IceRpc.Transports.Internal
@@ -19,16 +18,13 @@ namespace IceRpc.Transports.Internal
 
         public bool IsSecure => true;
 
-        public bool IsServer { get; }
-
         public TimeSpan LastActivity => TimeSpan.Zero;
 
         public Endpoint? LocalEndpoint { get; }
 
-        public ILogger Logger { get; }
-
         public Endpoint? RemoteEndpoint { get; }
 
+        private readonly bool _isServer;
         private readonly SlicOptions _slicOptions;
         private readonly ChannelReader<ReadOnlyMemory<byte>> _reader;
         private ReadOnlyMemory<byte> _receivedBuffer;
@@ -41,20 +37,19 @@ namespace IceRpc.Transports.Internal
             _writer.TryComplete(); // Dispose might be called multiple times
         }
 
-        public async ValueTask<IMultiStreamConnection> GetMultiStreamConnectionAsync(CancellationToken cancel)
+        public async ValueTask<IMultiStreamConnection> ConnectMultiStreamConnectionAsync(CancellationToken cancel)
         {
             // Multi-stream support for a colocated connection is provided by Slic.
             _slicConnection ??= await NetworkConnection.CreateSlicConnectionAsync(
-                await GetSingleStreamConnectionAsync(cancel).ConfigureAwait(false),
-                IsServer,
+                await ConnectSingleStreamConnectionAsync(cancel).ConfigureAwait(false),
+                _isServer,
                 TimeSpan.MaxValue,
                 _slicOptions,
-                Logger,
                 cancel).ConfigureAwait(false);
             return _slicConnection;
         }
 
-        public ValueTask<ISingleStreamConnection> GetSingleStreamConnectionAsync(CancellationToken cancel) => new(this);
+        public ValueTask<ISingleStreamConnection> ConnectSingleStreamConnectionAsync(CancellationToken cancel) => new(this);
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
@@ -63,7 +58,7 @@ namespace IceRpc.Transports.Internal
                 throw new FormatException(
                     $"unknown parameter '{remoteEndpoint.Params[0].Name}' in endpoint '{remoteEndpoint}'");
             }
-            return !IsServer;
+            return !_isServer;
         }
 
         public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
@@ -128,16 +123,14 @@ namespace IceRpc.Transports.Internal
             bool isServer,
             SlicOptions slicOptions,
             ChannelWriter<ReadOnlyMemory<byte>> writer,
-            ChannelReader<ReadOnlyMemory<byte>> reader,
-            ILogger logger)
+            ChannelReader<ReadOnlyMemory<byte>> reader)
         {
-            IsServer = isServer;
             LocalEndpoint = endpoint;
             RemoteEndpoint = endpoint;
+            _isServer = isServer;
             _slicOptions = slicOptions;
             _reader = reader;
             _writer = writer;
-            Logger = logger;
         }
     }
 }

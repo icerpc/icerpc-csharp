@@ -219,7 +219,7 @@ namespace IceRpc.Tests.Internal
         private static IncomingRequest CreateIncomingRequest(bool twoway) =>
             new(Protocol.Ice2, path: "/dummy", operation: "foo")
             {
-                Connection = ConnectionStub.Create("ice+tcp://local:4500", "ice+tcp://remote:4500", true),
+                Connection = ConnectionStub.Create("ice+tcp://local:4500", "ice+tcp://remote:4500"),
                 IsOneway = !twoway,
                 Payload = new byte[15],
                 PayloadEncoding = Encoding.Ice20
@@ -235,7 +235,7 @@ namespace IceRpc.Tests.Internal
         private static OutgoingRequest CreateOutgoingRequest(bool twoway) =>
             new(Protocol.Ice2, path: "/dummy", operation: "foo")
             {
-                Connection = ConnectionStub.Create("ice+tcp://local:4500", "ice+tcp://remote:4500", false),
+                Connection = ConnectionStub.Create("ice+tcp://local:4500", "ice+tcp://remote:4500"),
                 IsOneway = !twoway,
                 Payload = new ReadOnlyMemory<byte>[] { new byte[15] },
                 PayloadEncoding = Encoding.Ice20

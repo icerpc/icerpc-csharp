@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
-using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Sockets;
 
@@ -22,7 +21,7 @@ namespace IceRpc.Transports
         /// </summary>
         public UdpServerTransport(UdpOptions options) => _options = options;
 
-        (IListener?, INetworkConnection?) IServerTransport.Listen(Endpoint endpoint, ILoggerFactory loggerFactory)
+        (IListener?, INetworkConnection?) IServerTransport.Listen(Endpoint endpoint)
         {
             // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
             // a udp endpoint regardless of its actual transport name.
@@ -37,7 +36,6 @@ namespace IceRpc.Transports
 
             IPEndPoint? multicastAddress = null;
             ushort port;
-            ILogger logger = loggerFactory.CreateLogger("IceRpc.Transports");
             var socket = new Socket(ipAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
 
             try
@@ -50,10 +48,14 @@ namespace IceRpc.Transports
 
                 socket.ExclusiveAddressUse = true;
 
-                socket.SetBufferSize(_options.ReceiveBufferSize,
-                                     _options.SendBufferSize,
-                                     endpoint.Transport,
-                                     logger);
+                if (_options.ReceiveBufferSize is int receiveSize)
+                {
+                    socket.ReceiveBufferSize = receiveSize;
+                }
+                if (_options.SendBufferSize is int sendSize)
+                {
+                    socket.SendBufferSize = sendSize;
+                }
 
                 var addr = new IPEndPoint(ipAddress, endpoint.Port);
                 if (IsMulticast(ipAddress))
@@ -101,8 +103,7 @@ namespace IceRpc.Transports
                         endpoint with { Port = port },
                         isServer: true,
                         idleTimeout: TimeSpan.MaxValue,
-                        new(),
-                        logger));
+                        new()));
         }
     }
 }

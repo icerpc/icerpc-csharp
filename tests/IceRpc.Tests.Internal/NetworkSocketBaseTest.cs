@@ -144,23 +144,20 @@ namespace IceRpc.Tests.Internal
                 serverEndpoint ?? ServerEndpoint,
                 options: options,
                 multiStreamOptions: null,
-                _serverAuthenticationOptions).Listen(
-                    serverEndpoint ?? ServerEndpoint,
-                    LogAttributeLoggerFactory.Instance).Listener!;
+                _serverAuthenticationOptions,
+                logDecorator : false).Listen(serverEndpoint ?? ServerEndpoint).Listener!;
 
         protected NetworkSocket CreateServerNetworkSocket() =>
             ((NetworkSocketConnection)TestHelper.CreateServerTransport(
                 ServerEndpoint,
-                authenticationOptions: _serverAuthenticationOptions).Listen(
-                    ServerEndpoint,
-                    LogAttributeLoggerFactory.Instance).Connection!).NetworkSocket;
+                authenticationOptions: _serverAuthenticationOptions,
+                logDecorator: false).Listen(ServerEndpoint).Connection!).NetworkSocket;
 
         protected NetworkSocket CreateClientNetworkSocket() =>
             GetNetworkSocket(TestHelper.CreateClientTransport(
                 ClientEndpoint,
-                authenticationOptions: _clientAuthenticationOptions).CreateConnection(
-                    ClientEndpoint,
-                    LogAttributeLoggerFactory.Instance));
+                authenticationOptions: _clientAuthenticationOptions,
+                logDecorator: false).CreateConnection(ClientEndpoint));
 
         protected static NetworkSocket GetNetworkSocket(INetworkConnection connection) =>
             ((NetworkSocketConnection)connection).NetworkSocket;
