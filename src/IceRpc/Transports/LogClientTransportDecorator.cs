@@ -15,8 +15,7 @@ namespace IceRpc.Transports
         /// transport will log traces if <see cref="LogLevel.Trace"/> is enabled on the logger created with
         /// the logger factory.</summary>
         /// <param name="decoratee">The client transport to decorate.</param>
-        /// <param name="loggerFactory"> The logger factory, the transport can use this factory to create its
-        /// own logger.</param>
+        /// <param name="loggerFactory">The logger factory.</param>
         public LogClientTransportDecorator(IClientTransport decoratee, ILoggerFactory loggerFactory)
         {
             _decoratee = decoratee;

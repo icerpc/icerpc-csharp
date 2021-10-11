@@ -60,38 +60,6 @@ namespace IceRpc.Internal
         private bool _shutdown;
 
         /// <inheritdoc/>
-        public async Task InitializeAsync(bool isServer, CancellationToken cancel)
-        {
-            if (!_isDatagram)
-            {
-                if (isServer)
-                {
-                    await _singleStreamConnection.WriteAsync(
-                        Ice1Definitions.ValidateConnectionFrame,
-                        cancel).ConfigureAwait(false);
-                }
-                else
-                {
-                    Memory<byte> buffer = new byte[Ice1Definitions.HeaderSize];
-                    await ReceiveUntilFullAsync(buffer, cancel).ConfigureAwait(false);
-
-                    // Check the header
-                    Ice1Definitions.CheckHeader(buffer.Span[0..Ice1Definitions.HeaderSize]);
-                    int frameSize = IceDecoder.DecodeInt(buffer.AsReadOnlySpan().Slice(10, 4));
-                    if (frameSize != Ice1Definitions.HeaderSize)
-                    {
-                        throw new InvalidDataException($"received ice1 frame with only '{frameSize}' bytes");
-                    }
-                    if ((Ice1FrameType)buffer.Span[8] != Ice1FrameType.ValidateConnection)
-                    {
-                        throw new InvalidDataException(@$"expected '{nameof(Ice1FrameType.ValidateConnection)
-                            }' frame but received frame type '{(Ice1FrameType)buffer.Span[8]}'");
-                    }
-                }
-            }
-        }
-
-        /// <inheritdoc/>
         public void CancelShutdown() =>
             // Notify the task completion source that shutdown was canceled. PerformShutdownAsync will
             // cancel the dispatch. We can't cancel the dispatch until ShutdownAsync is called.
@@ -573,6 +541,37 @@ namespace IceRpc.Internal
             _isDatagram = datagramMaxReceiveSize != null;
             // TODO: temporary, this will be removed once we add a log protocol connection decorator
             _logger = NullLogger.Instance;
+        }
+
+        internal async Task InitializeAsync(bool isServer, CancellationToken cancel)
+        {
+            if (!_isDatagram)
+            {
+                if (isServer)
+                {
+                    await _singleStreamConnection.WriteAsync(
+                        Ice1Definitions.ValidateConnectionFrame,
+                        cancel).ConfigureAwait(false);
+                }
+                else
+                {
+                    Memory<byte> buffer = new byte[Ice1Definitions.HeaderSize];
+                    await ReceiveUntilFullAsync(buffer, cancel).ConfigureAwait(false);
+
+                    // Check the header
+                    Ice1Definitions.CheckHeader(buffer.Span[0..Ice1Definitions.HeaderSize]);
+                    int frameSize = IceDecoder.DecodeInt(buffer.AsReadOnlySpan().Slice(10, 4));
+                    if (frameSize != Ice1Definitions.HeaderSize)
+                    {
+                        throw new InvalidDataException($"received ice1 frame with only '{frameSize}' bytes");
+                    }
+                    if ((Ice1FrameType)buffer.Span[8] != Ice1FrameType.ValidateConnection)
+                    {
+                        throw new InvalidDataException(@$"expected '{nameof(Ice1FrameType.ValidateConnection)
+                            }' frame but received frame type '{(Ice1FrameType)buffer.Span[8]}'");
+                    }
+                }
+            }
         }
 
         private void CancelDispatch()
