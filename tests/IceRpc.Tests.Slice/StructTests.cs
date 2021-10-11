@@ -7,17 +7,17 @@ namespace IceRpc.Tests.Slice
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    [TestFixture(Protocol.Ice1)]
-    [TestFixture(Protocol.Ice2)]
+    [TestFixture(ProtocolCode.Ice1)]
+    [TestFixture(ProtocolCode.Ice2)]
     public sealed class StructTests : IAsyncDisposable
     {
         private readonly Connection _connection;
         private readonly Server _server;
         private readonly StructOperationsPrx _prx;
 
-        public StructTests(Protocol protocol)
+        public StructTests(ProtocolCode protocol)
         {
-            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
+            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
             _server = new Server
             {
                 Dispatcher = new StructOperations(),
@@ -29,7 +29,7 @@ namespace IceRpc.Tests.Slice
                 RemoteEndpoint = serverEndpoint
             };
             _prx = StructOperationsPrx.FromConnection(_connection);
-            Assert.AreEqual(protocol, _prx.Proxy.Protocol);
+            Assert.AreEqual(protocol, _prx.Proxy.Protocol.Code);
 
             Assert.AreEqual("12", new MyStruct(5, 7).ToString());
         }

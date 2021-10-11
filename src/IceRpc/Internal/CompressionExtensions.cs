@@ -115,7 +115,7 @@ namespace IceRpc.Internal
 
         internal static void CompressPayload(this OutgoingFrame frame, Configure.CompressOptions options)
         {
-            if (!frame.Protocol.HasFieldSupport())
+            if (!frame.Protocol.HasFieldSupport)
             {
                 // Don't compress the payload if the protocol doesn't support fields.
                 return;
@@ -139,7 +139,7 @@ namespace IceRpc.Internal
 
         internal static void DecompressPayload(this IncomingFrame frame)
         {
-            if (frame.Protocol.HasFieldSupport())
+            if (frame.Protocol.HasFieldSupport)
             {
                 // TODO: switch to class for CompressionField?
                 CompressionField compressionField = frame.Fields.Get((int)FieldKey.Compression,

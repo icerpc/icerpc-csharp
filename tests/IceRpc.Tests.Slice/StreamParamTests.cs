@@ -29,7 +29,7 @@ namespace IceRpc.Tests.Slice.Stream
             _server = new Server
             {
                 Dispatcher = _servant,
-                Endpoint = TestHelper.GetUniqueColocEndpoint(Protocol.Ice2),
+                Endpoint = TestHelper.GetUniqueColocEndpoint(),
                 LoggerFactory = LogAttributeLoggerFactory.Instance
             };
 

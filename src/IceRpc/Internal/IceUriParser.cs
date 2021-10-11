@@ -72,7 +72,7 @@ namespace IceRpc.Internal
         /// <param name="uriString">The URI string to parse.</param>
         /// <param name="defaultProtocol">The default Ice protocol.</param>
         /// <returns>The parsed endpoint.</returns>
-        internal static Endpoint ParseEndpointUri(string uriString, Protocol defaultProtocol = Protocol.Ice2)
+        internal static Endpoint ParseEndpointUri(string uriString, Protocol defaultProtocol)
         {
             Debug.Assert(uriString.StartsWith(IcePlus, StringComparison.Ordinal));
 
@@ -141,7 +141,7 @@ namespace IceRpc.Internal
             ImmutableList<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
             if (!iceScheme)
             {
-                endpoint = CreateEndpoint(uri, endpointParams, protocol.Value, uriString);
+                endpoint = CreateEndpoint(uri, endpointParams, protocol, uriString);
 
                 if (altEndpointValue != null)
                 {
@@ -173,12 +173,11 @@ namespace IceRpc.Internal
 
             Debug.Assert(uri.AbsolutePath.Length > 0 && uri.AbsolutePath[0] == '/' && IsValidPath(uri.AbsolutePath));
 
-            return new Proxy(uri.AbsolutePath, protocol.Value)
+            return new Proxy(uri.AbsolutePath, protocol)
             {
                 Endpoint = endpoint,
                 AltEndpoints = altEndpoints,
-                Encoding = encoding == null ? (protocol.Value.GetIceEncoding() ?? Encoding.Unknown) :
-                    Encoding.FromString(encoding)
+                Encoding = encoding == null ? (protocol.IceEncoding ?? Encoding.Unknown) : Encoding.FromString(encoding)
             };
         }
 
@@ -224,10 +223,10 @@ namespace IceRpc.Internal
                 }
                 else if (name == "protocol")
                 {
-                    protocol = protocol == null ? ProtocolParser.Parse(value) :
+                    protocol = protocol == null ? Protocol.Parse(value) :
                         throw new FormatException($"too many protocol query parameters in URI {uriString}");
 
-                    if (protocol.Value == Protocol.Ice1)
+                    if (protocol == Protocol.Ice1)
                     {
                         throw new FormatException($"invalid protocol value in URI {uriString}");
                     }

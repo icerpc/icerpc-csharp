@@ -7,17 +7,17 @@ namespace IceRpc.Tests.Slice
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    [TestFixture(Protocol.Ice1)]
-    [TestFixture(Protocol.Ice2)]
+    [TestFixture(ProtocolCode.Ice1)]
+    [TestFixture(ProtocolCode.Ice2)]
     public sealed class SequenceTests : IAsyncDisposable
     {
         private readonly Connection _connection;
         private readonly Server _server;
         private readonly SequenceOperationsPrx _prx;
 
-        public SequenceTests(Protocol protocol)
+        public SequenceTests(ProtocolCode protocol)
         {
-            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
+            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
             _server = new Server
             {
                 Dispatcher = new SequenceOperations(),
@@ -29,7 +29,7 @@ namespace IceRpc.Tests.Slice
                 RemoteEndpoint = serverEndpoint
             };
             _prx = SequenceOperationsPrx.FromConnection(_connection);
-            Assert.AreEqual(protocol, _prx.Proxy.Protocol);
+            Assert.AreEqual(protocol, _prx.Proxy.Protocol.Code);
         }
 
         [TearDown]

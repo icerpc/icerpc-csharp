@@ -27,7 +27,7 @@ namespace IceRpc.Tests.ClientServer
             int port = 0,
             string transport = "tcp",
             bool tls = false,
-            Protocol protocol = Protocol.Ice2) =>
+            Protocol? protocol = null) =>
             TestHelper.GetTestEndpoint(host, GetTestPort(port), transport, tls, protocol);
 
         public int GetTestPort(int num) => _basePort + num;
@@ -38,7 +38,7 @@ namespace IceRpc.Tests.ClientServer
             int port = 0,
             string transport = "tcp",
             bool tls = false,
-            Protocol protocol = Protocol.Ice2) =>
+            Protocol? protocol = null) =>
             TestHelper.GetTestProxy(path, host, GetTestPort(port), transport, tls, protocol);
     }
 }

@@ -26,7 +26,7 @@ namespace IceRpc.Tests.ClientServer
             var pipeline = new Pipeline();
 
             var indirect = GreeterPrx.Parse(proxy, pipeline);
-            GreeterPrx direct = SetupServer(indirect.Proxy.Protocol, indirect.Proxy.Path, pipeline);
+            GreeterPrx direct = SetupServer(indirect.Proxy.Protocol.Code, indirect.Proxy.Path, pipeline);
             Assert.That(direct.Proxy.Endpoint, Is.Not.Null);
 
             if (indirect.Proxy.Endpoint is Endpoint endpoint)
@@ -64,9 +64,9 @@ namespace IceRpc.Tests.ClientServer
             }
         }
 
-        private GreeterPrx SetupServer(Protocol protocol, string path, IInvoker invoker)
+        private GreeterPrx SetupServer(ProtocolCode protocol, string path, IInvoker invoker)
         {
-            string serverEndpoint = protocol == Protocol.Ice2 ? "ice+tcp://127.0.0.1:0?tls=false" : "tcp -h 127.0.0.1 -p 0";
+            string serverEndpoint = protocol == ProtocolCode.Ice2 ? "ice+tcp://127.0.0.1:0?tls=false" : "tcp -h 127.0.0.1 -p 0";
             _server = new Server
             {
                 Dispatcher = new Greeter(),
@@ -76,7 +76,7 @@ namespace IceRpc.Tests.ClientServer
             _server.Listen();
 
             // Need to create proxy after calling Listen; otherwise, the port number is still 0.
-            var greeter = GreeterPrx.FromPath(path, protocol);
+            var greeter = GreeterPrx.FromPath(path, Protocol.FromProtocolCode(protocol));
             greeter.Proxy.Endpoint = _server.Endpoint;
             greeter.Proxy.Invoker = invoker;
             Assert.AreNotEqual(0, greeter.Proxy.Endpoint!.Port);

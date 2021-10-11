@@ -144,8 +144,7 @@ namespace IceRpc.Tests.ClientServer
                 // Await the server shutdown to ensure the dispatch has finish
                 await server.ShutdownAsync();
                 Assert.That(dispatchActivity, Is.Not.Null);
-                Assert.AreEqual("/IceRpc.Tests.ClientServer.Greeter/ice_ping",
-                                dispatchActivity.DisplayName);
+                Assert.AreEqual("/IceRpc.Tests.ClientServer.Greeter/ice_ping", dispatchActivity.DisplayName);
                 // Wait to receive the dispatch activity stop event
                 Assert.That(await waitForStopSemaphore.WaitAsync(TimeSpan.FromSeconds(30)), Is.True);
                 CollectionAssert.AreEqual(dispatchStartedActivities, dispatchStoppedActivities);

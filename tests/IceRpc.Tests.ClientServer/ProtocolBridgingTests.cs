@@ -28,23 +28,26 @@ namespace IceRpc.Tests.ClientServer
             await _pool.DisposeAsync();
         }
 
-        [TestCase(Protocol.Ice2, Protocol.Ice2, true)]
-        [TestCase(Protocol.Ice1, Protocol.Ice1, true)]
-        [TestCase(Protocol.Ice2, Protocol.Ice2, false)]
-        [TestCase(Protocol.Ice1, Protocol.Ice1, false)]
-        [TestCase(Protocol.Ice2, Protocol.Ice1, true)]
-        [TestCase(Protocol.Ice1, Protocol.Ice2, true)]
-        [TestCase(Protocol.Ice2, Protocol.Ice1, false)]
-        [TestCase(Protocol.Ice1, Protocol.Ice2, false)]
-        public async Task ProtocolBridging_Forward(Protocol forwarderProtocol, Protocol targetProtocol, bool colocated)
+        [TestCase(ProtocolCode.Ice2, ProtocolCode.Ice2, true)]
+        [TestCase(ProtocolCode.Ice1, ProtocolCode.Ice1, true)]
+        [TestCase(ProtocolCode.Ice2, ProtocolCode.Ice2, false)]
+        [TestCase(ProtocolCode.Ice1, ProtocolCode.Ice1, false)]
+        [TestCase(ProtocolCode.Ice2, ProtocolCode.Ice1, true)]
+        [TestCase(ProtocolCode.Ice1, ProtocolCode.Ice2, true)]
+        [TestCase(ProtocolCode.Ice2, ProtocolCode.Ice1, false)]
+        [TestCase(ProtocolCode.Ice1, ProtocolCode.Ice2, false)]
+        public async Task ProtocolBridging_Forward(ProtocolCode forwarderProtocol, ProtocolCode targetProtocol, bool colocated)
         {
             // TODO: add context testing
 
             var pipeline = new Pipeline();
             pipeline.UseBinder(_pool);
 
-            ProtocolBridgingTestPrx forwarderService =
-                SetupForwarderServer(forwarderProtocol, targetProtocol, colocated, pipeline);
+            ProtocolBridgingTestPrx forwarderService = SetupForwarderServer(
+                Protocol.FromProtocolCode(forwarderProtocol),
+                Protocol.FromProtocolCode(targetProtocol),
+                colocated,
+                pipeline);
 
             // TODO: test with the other encoding; currently, the encoding is always the encoding of
             // forwardService.Proxy.Protocol
@@ -65,7 +68,7 @@ namespace IceRpc.Tests.ClientServer
             }
             else
             {
-                Assert.AreEqual(targetProtocol, newPrx.Proxy.Protocol);
+                Assert.AreEqual(targetProtocol, newPrx.Proxy.Protocol.Code);
             }
 
             _ = await TestProxyAsync(newPrx, direct: true);

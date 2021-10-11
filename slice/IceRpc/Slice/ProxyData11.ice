@@ -5,7 +5,6 @@
 [[suppress-warning(reserved-identifier)]]
 
 #include <IceRpc/BuiltinSequences.ice>
-#include <IceRpc/Protocol.ice>
 
 module IceRpc::Slice
 {
@@ -45,7 +44,7 @@ module IceRpc::Slice
         StringSeq optionalFacet;       // has 0 or 1 element
         InvocationMode invocationMode;
         bool secure = false;           // ignored
-        Protocol protocol;
+        byte protocolMajor;
         byte protocolMinor = 0;        // always 0
         byte encodingMajor;
         byte encodingMinor;

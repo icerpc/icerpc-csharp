@@ -220,17 +220,17 @@ namespace IceRpc.Tests.Api
             Assert.That(server.ShutdownComplete.IsCompleted, Is.True);
         }
 
-        [TestCase(false, Protocol.Ice1)]
-        [TestCase(true, Protocol.Ice1)]
-        [TestCase(false, Protocol.Ice2)]
-        [TestCase(true, Protocol.Ice2)]
+        [TestCase(false, ProtocolCode.Ice1)]
+        [TestCase(true, ProtocolCode.Ice1)]
+        [TestCase(false, ProtocolCode.Ice2)]
+        [TestCase(true, ProtocolCode.Ice2)]
         // Canceling the cancellation token (source) of ShutdownAsync results in a DispatchException when the operation
         // completes with an OperationCanceledException. It also test calling DisposeAsync is called instead of
         // shutdown, which call ShutdownAsync with a canceled token.
-        public async Task Server_ShutdownCancelAsync(bool disposeInsteadOfShutdown, Protocol protocol)
+        public async Task Server_ShutdownCancelAsync(bool disposeInsteadOfShutdown, ProtocolCode protocol)
         {
             using var semaphore = new SemaphoreSlim(0);
-            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
+            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
             await using var server = new Server
             {
                 Dispatcher = new InlineDispatcher(async (request, cancel) =>
@@ -274,7 +274,7 @@ namespace IceRpc.Tests.Api
             }
 
             // Ensure the client gets a DispatchException with Ice1 and OperationCanceledException with Ice2.
-            if (protocol == Protocol.Ice1)
+            if (protocol == ProtocolCode.Ice1)
             {
                 Assert.ThrowsAsync<DispatchException>(async () => await task);
             }

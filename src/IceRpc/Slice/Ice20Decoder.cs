@@ -90,7 +90,9 @@ namespace IceRpc.Slice
                 return null;
             }
 
-            Protocol protocol = proxyData.Protocol ?? Protocol.Ice2;
+            Protocol protocol = proxyData.Protocol != null ?
+                Protocol.FromProtocolCode(proxyData.Protocol.Value) :
+                Protocol.Ice2;
             Endpoint? endpoint = proxyData.Endpoint is EndpointData data ? data.ToEndpoint() : null;
             ImmutableList<Endpoint> altEndpoints =
                 proxyData.AltEndpoints?.Select(data => data.ToEndpoint()).ToImmutableList() ??
@@ -118,7 +120,7 @@ namespace IceRpc.Slice
                 }
 
                 proxy.Encoding = proxyData.Encoding is string encoding ?
-                    Encoding.FromString(encoding) : (proxy.Protocol.GetIceEncoding() ?? Encoding.Unknown);
+                    Encoding.FromString(encoding) : (proxy.Protocol.IceEncoding ?? Encoding.Unknown);
 
                 return proxy;
             }

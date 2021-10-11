@@ -10,8 +10,8 @@ using static IceRpc.Slice.Internal.Ice11Definitions;
 namespace IceRpc.Tests.SliceInternal
 {
     [Timeout(30000)]
-    [TestFixture(Protocol.Ice1)]
-    [TestFixture(Protocol.Ice2)]
+    [TestFixture(ProtocolCode.Ice1)]
+    [TestFixture(ProtocolCode.Ice2)]
     public sealed class ClassTests : IAsyncDisposable
     {
         private readonly Server _server;
@@ -21,14 +21,14 @@ namespace IceRpc.Tests.SliceInternal
 
         private readonly Connection _connection;
 
-        public ClassTests(Protocol protocol)
+        public ClassTests(ProtocolCode protocol)
         {
             var router = new Router();
             router.Map<ISlicedFormatOperations>(new SlicedFormatOperations());
             router.Map<ICompactFormatOperations>(new CompactFormatOperations());
             router.Map<IClassFormatOperations>(new ClassFormatOperations());
 
-            var serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
+            var serverEndpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
             _server = new Server()
             {
                 Dispatcher = router,

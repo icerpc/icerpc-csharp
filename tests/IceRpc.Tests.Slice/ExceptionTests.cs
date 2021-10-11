@@ -6,17 +6,17 @@ namespace IceRpc.Tests.Slice
 {
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    [TestFixture(Protocol.Ice1)]
-    [TestFixture(Protocol.Ice2)]
+    [TestFixture(ProtocolCode.Ice1)]
+    [TestFixture(ProtocolCode.Ice2)]
     public sealed class Exception : IAsyncDisposable
     {
         private readonly Connection _connection;
         private readonly Server _server;
         private readonly ExceptionOperationsPrx _prx;
 
-        public Exception(Protocol protocol)
+        public Exception(ProtocolCode protocol)
         {
-            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
+            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
             _server = new Server
             {
                 Dispatcher = new ExceptionOperations(),
@@ -28,7 +28,7 @@ namespace IceRpc.Tests.Slice
                 RemoteEndpoint = serverEndpoint
             };
             _prx = ExceptionOperationsPrx.FromConnection(_connection);
-            Assert.AreEqual(protocol, _prx.Proxy.Protocol);
+            Assert.AreEqual(protocol, _prx.Proxy.Protocol.Code);
         }
 
         [OneTimeTearDown]

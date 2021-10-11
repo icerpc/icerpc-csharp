@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using IceRpc.Slice;
 
 namespace IceRpc
@@ -41,7 +40,12 @@ namespace IceRpc
             bool returnStreamParamReceiver = false,
             CancellationToken cancel = default)
         {
-            proxy.Protocol.CheckSupported();
+            if (!proxy.Protocol.IsSupported)
+            {
+                throw new NotSupportedException(
+                    @$"Ice protocol '{proxy.Protocol
+                    }' is not supported by this IceRPC runtime ({typeof(Protocol).Assembly.GetName().Version})");
+            }
 
             CancellationTokenSource? timeoutSource = null;
             CancellationTokenSource? combinedSource = null;

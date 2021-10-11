@@ -5,25 +5,25 @@ using NUnit.Framework;
 namespace IceRpc.Tests.ClientServer
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    [TestFixture(Protocol.Ice1, "tcp")]
-    [TestFixture(Protocol.Ice2, "tcp")]
+    [TestFixture(ProtocolCode.Ice1, "tcp")]
+    [TestFixture(ProtocolCode.Ice2, "tcp")]
     [Parallelizable(ParallelScope.All)]
     [Timeout(30000)]
     public class StressTests : ClientServerBaseTest
     {
         private Connection Connection { get; }
         private Server Server { get; }
-        private Protocol Protocol { get; }
         private string Transport { get; }
         private IStressTestPrx Prx { get; }
         private StressTest Servant { get; }
 
-        public StressTests(Protocol protocol, string transport)
+        public StressTests(ProtocolCode protocol, string transport)
         {
-            Protocol = protocol;
             Transport = transport;
             Servant = new StressTest();
-            Endpoint serverEndpoint = GetTestEndpoint(protocol: Protocol, transport: Transport);
+            Endpoint serverEndpoint = GetTestEndpoint(
+                protocol: Protocol.FromProtocolCode(protocol),
+                transport: Transport);
             Server = new Server
             {
                 Dispatcher = Servant,

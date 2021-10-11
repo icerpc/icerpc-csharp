@@ -7,8 +7,8 @@ namespace IceRpc.Tests.Slice
 {
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    [TestFixture(Protocol.Ice1)]
-    [TestFixture(Protocol.Ice2)]
+    [TestFixture(ProtocolCode.Ice1)]
+    [TestFixture(ProtocolCode.Ice2)]
     public sealed class ClassTests : IAsyncDisposable
     {
         private readonly Connection _connection;
@@ -16,7 +16,7 @@ namespace IceRpc.Tests.Slice
         private readonly ClassOperationsPrx _prx;
         private readonly ClassOperationsUnexpectedClassPrx _prxUnexpectedClass;
 
-        public ClassTests(Protocol protocol)
+        public ClassTests(ProtocolCode protocol)
         {
             var router = new Router();
             router.Map<IClassOperations>(new ClassOperations());
@@ -32,7 +32,7 @@ namespace IceRpc.Tests.Slice
                         return new(response);
                     }));
 
-            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
+            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
             _server = new Server
             {
                 Dispatcher = router,

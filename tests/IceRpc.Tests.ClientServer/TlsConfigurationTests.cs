@@ -297,7 +297,7 @@ namespace IceRpc.Tests.ClientServer
             if ((GetOperatingSystem() & mustSucceed) != 0)
             {
                 Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-                Assert.IsTrue(connection.IsSecure);
+                Assert.That(connection.IsSecure, Is.True);
             }
             else
             {
@@ -430,7 +430,7 @@ namespace IceRpc.Tests.ClientServer
             All = Linux | Windows | MacOS | Other
         }
 
-        static internal OperatingSystem GetOperatingSystem()
+        private static OperatingSystem GetOperatingSystem()
         {
             if (System.OperatingSystem.IsMacOS())
             {
