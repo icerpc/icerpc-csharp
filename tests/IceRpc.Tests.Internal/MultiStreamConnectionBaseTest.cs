@@ -38,8 +38,8 @@ namespace IceRpc.Tests.Internal
             _clientConnection = Connect();
             _serverConnection = await acceptTask;
 
-            ValueTask<IMultiStreamConnection> multiStreamTask = _serverConnection.GetMultiStreamConnectionAsync(default);
-            _clientMultiStreamConnection = await _clientConnection.GetMultiStreamConnectionAsync(default);
+            ValueTask<IMultiStreamConnection> multiStreamTask = _serverConnection.ConnectMultiStreamConnectionAsync(default);
+            _clientMultiStreamConnection = await _clientConnection.ConnectMultiStreamConnectionAsync(default);
             _serverMultiStreamConnection = await multiStreamTask;
         }
 
@@ -54,9 +54,7 @@ namespace IceRpc.Tests.Internal
             using IListener listener = TestHelper.CreateServerTransport(
                 _serverEndpoint,
                 options: null,
-                multiStreamOptions: _serverOptions).Listen(
-                    _serverEndpoint,
-                    LogAttributeLoggerFactory.Instance).Listener!;
+                multiStreamOptions: _serverOptions).Listen(_serverEndpoint).Listener!;
 
             return await listener.AcceptAsync();
         }
@@ -66,7 +64,7 @@ namespace IceRpc.Tests.Internal
             IClientTransport clientTransport = TestHelper.CreateClientTransport(
                 _clientEndpoint,
                 multiStreamOptions: _clientOptions);
-            return clientTransport.CreateConnection(_clientEndpoint, LogAttributeLoggerFactory.Instance); ;
+            return clientTransport.CreateConnection(_clientEndpoint);
         }
 
         protected static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateSendPayload(INetworkStream stream, int length = 10)

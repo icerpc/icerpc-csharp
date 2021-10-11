@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
-using Microsoft.Extensions.Logging;
 using System.Threading.Channels;
 
 namespace IceRpc.Transports
@@ -11,7 +10,7 @@ namespace IceRpc.Transports
     {
         private readonly SlicOptions _slicOptions;
 
-        INetworkConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
+        INetworkConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint)
         {
             if (remoteEndpoint.Params.Count > 0)
             {
@@ -24,8 +23,7 @@ namespace IceRpc.Transports
                 ChannelReader<ReadOnlyMemory<byte>> reader;
                 ChannelWriter<ReadOnlyMemory<byte>> writer;
                 (reader, writer) = listener.NewClientConnection();
-                ILogger logger = loggerFactory.CreateLogger("IceRpc.Transports");
-                return new ColocConnection(remoteEndpoint, isServer: false, _slicOptions, writer, reader, logger);
+                return new ColocConnection(remoteEndpoint, isServer: false, _slicOptions, writer, reader);
             }
             else
             {

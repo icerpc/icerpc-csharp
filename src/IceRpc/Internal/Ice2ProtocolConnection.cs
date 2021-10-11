@@ -44,73 +44,12 @@ namespace IceRpc.Internal
         private long _lastRemoteBidirectionalStreamId = -1;
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
         private long _lastRemoteUnidirectionalStreamId = -1;
-        private readonly ILogger _logger;
         private readonly object _mutex = new();
         private INetworkStream? _remoteControlStream;
         private int? _peerIncomingFrameMaxSize;
         private bool _shutdown;
         private (long Bidirectional, long Unidirectional)? _lastRemoteStreamIds;
         private readonly IMultiStreamConnection _multiStreamConnection;
-
-        /// <inheritdoc/>
-        public async Task InitializeAsync(CancellationToken cancel)
-        {
-            // Create the control stream and send the protocol initialize frame
-            _controlStream = _multiStreamConnection.CreateStream(false);
-
-            await SendControlFrameAsync(
-                Ice2FrameType.Initialize,
-                encoder =>
-                {
-                    // Encode the transport parameters as Fields
-                    encoder.EncodeSize(1);
-
-                    // Transmit out local incoming frame maximum size
-                    encoder.EncodeField((int)Ice2ParameterKey.IncomingFrameMaxSize,
-                                        (ulong)_incomingFrameMaxSize,
-                                        (encoder, value) => encoder.EncodeVarULong(value));
-                },
-                cancel).ConfigureAwait(false);
-
-            // Wait for the remote control stream to be accepted and read the protocol initialize frame
-            _remoteControlStream = await _multiStreamConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
-
-            ReadOnlyMemory<byte> buffer = await ReceiveFrameAsync(
-                _remoteControlStream,
-                Ice2FrameType.Initialize,
-                cancel).ConfigureAwait(false);
-
-            // Read the protocol parameters which are encoded as IceRpc.Fields.
-
-            var decoder = new Ice20Decoder(buffer);
-            int dictionarySize = decoder.DecodeSize();
-            for (int i = 0; i < dictionarySize; ++i)
-            {
-                (int key, ReadOnlyMemory<byte> value) = decoder.DecodeField();
-                if (key == (int)Ice2ParameterKey.IncomingFrameMaxSize)
-                {
-                    checked
-                    {
-                        _peerIncomingFrameMaxSize = (int)IceDecoder.DecodeVarULong(value.Span).Value;
-                    }
-
-                    if (_peerIncomingFrameMaxSize < 1024)
-                    {
-                        throw new InvalidDataException($@"the peer's IncomingFrameMaxSize ({
-                            _peerIncomingFrameMaxSize} bytes) value is inferior to 1KB");
-                    }
-                }
-                else
-                {
-                    // Ignore unsupported parameters.
-                }
-            }
-
-            if (_peerIncomingFrameMaxSize == null)
-            {
-                throw new InvalidDataException("missing IncomingFrameMaxSize Ice2 connection parameter");
-            }
-        }
 
         /// <inheritdoc/>
         public void CancelShutdown() =>
@@ -639,14 +578,69 @@ namespace IceRpc.Internal
             return goAwayFrame.Message;
         }
 
-        internal Ice2ProtocolConnection(
-            IMultiStreamConnection multiStreamConnection,
-            int incomingFrameMaxSize,
-            ILogger logger)
+        internal Ice2ProtocolConnection(IMultiStreamConnection multiStreamConnection, int incomingFrameMaxSize)
         {
             _multiStreamConnection = multiStreamConnection;
             _incomingFrameMaxSize = incomingFrameMaxSize;
-            _logger = logger;
+        }
+
+        internal async Task InitializeAsync(CancellationToken cancel)
+        {
+            // Create the control stream and send the protocol initialize frame
+            _controlStream = _multiStreamConnection.CreateStream(false);
+
+            await SendControlFrameAsync(
+                Ice2FrameType.Initialize,
+                encoder =>
+                {
+                    // Encode the transport parameters as Fields
+                    encoder.EncodeSize(1);
+
+                    // Transmit out local incoming frame maximum size
+                    encoder.EncodeField((int)Ice2ParameterKey.IncomingFrameMaxSize,
+                                        (ulong)_incomingFrameMaxSize,
+                                        (encoder, value) => encoder.EncodeVarULong(value));
+                },
+                cancel).ConfigureAwait(false);
+
+            // Wait for the remote control stream to be accepted and read the protocol initialize frame
+            _remoteControlStream = await _multiStreamConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
+
+            ReadOnlyMemory<byte> buffer = await ReceiveFrameAsync(
+                _remoteControlStream,
+                Ice2FrameType.Initialize,
+                cancel).ConfigureAwait(false);
+
+            // Read the protocol parameters which are encoded as IceRpc.Fields.
+
+            var decoder = new Ice20Decoder(buffer);
+            int dictionarySize = decoder.DecodeSize();
+            for (int i = 0; i < dictionarySize; ++i)
+            {
+                (int key, ReadOnlyMemory<byte> value) = decoder.DecodeField();
+                if (key == (int)Ice2ParameterKey.IncomingFrameMaxSize)
+                {
+                    checked
+                    {
+                        _peerIncomingFrameMaxSize = (int)IceDecoder.DecodeVarULong(value.Span).Value;
+                    }
+
+                    if (_peerIncomingFrameMaxSize < 1024)
+                    {
+                        throw new InvalidDataException($@"the peer's IncomingFrameMaxSize ({
+                            _peerIncomingFrameMaxSize} bytes) value is inferior to 1KB");
+                    }
+                }
+                else
+                {
+                    // Ignore unsupported parameters.
+                }
+            }
+
+            if (_peerIncomingFrameMaxSize == null)
+            {
+                throw new InvalidDataException("missing IncomingFrameMaxSize Ice2 connection parameter");
+            }
         }
 
         private async ValueTask<ReadOnlyMemory<byte>> ReceiveFrameAsync(

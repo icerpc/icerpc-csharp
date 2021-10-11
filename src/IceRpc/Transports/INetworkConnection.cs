@@ -20,21 +20,12 @@ namespace IceRpc.Transports
         /// <c>false</c>.</value>
         bool IsSecure { get; }
 
-        /// <summary><c>true</c> for server network connections; otherwise, <c>false</c>. A server network
-        /// connection is created by a server-side listener while a client network connection is created from
-        /// the endpoint by the client-side.
-        /// </summary>
-        bool IsServer { get; }
-
         /// <summary>The time elapsed since the last activity of the connection.</summary>
         TimeSpan LastActivity { get; }
 
         /// <summary>The local endpoint. The endpoint may not be available until the connection is connected.
         /// </summary>
         Endpoint? LocalEndpoint { get; }
-
-        /// <summary>The logger used by the network connection.</summary>
-        ILogger Logger { get; }
 
         /// <summary>The remote endpoint. This endpoint may not be available until the connection is accepted.
         /// </summary>
@@ -44,17 +35,17 @@ namespace IceRpc.Transports
         /// <param name="exception">The reason of the connection closure.</param>
         void Close(Exception? exception = null);
 
-        /// <summary>Gets the single-stream connection to allow single-stream communications over this network
-        /// connection.</summary>
+        /// <summary>Connects this network connection and return a single-stream connection for single-stream
+        /// communications over this network connection.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The <see cref="ISingleStreamConnection"/>.</returns>
-        ValueTask<ISingleStreamConnection> GetSingleStreamConnectionAsync(CancellationToken cancel);
+        ValueTask<ISingleStreamConnection> ConnectSingleStreamConnectionAsync(CancellationToken cancel);
 
-        /// <summary>Gets the multi-stream connection to allow multi-stream communications over this network
-        /// connection.</summary>
+        /// <summary>Connects this network connection and return a multi-stream connection to allow
+        /// multi-stream communications over this network connection.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The <see cref="IMultiStreamConnection"/>.</returns>
-        ValueTask<IMultiStreamConnection> GetMultiStreamConnectionAsync(CancellationToken cancel);
+        ValueTask<IMultiStreamConnection> ConnectMultiStreamConnectionAsync(CancellationToken cancel);
 
         /// <summary>Checks if the parameters of the provided endpoint are compatible with this network
         /// connection. Compatible means a client could reuse this network connection instead of establishing

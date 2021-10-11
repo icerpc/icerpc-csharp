@@ -119,7 +119,7 @@ namespace IceRpc
         internal virtual ValueTask<IProtocolConnection> CreateConnectionAsync(
             INetworkConnection networkConnection,
             int incomingFrameMaxSize,
-            ILoggerFactory loggerFactory,
+            bool isServer,
             CancellationToken cancel) =>
                 throw new NotSupportedException(
                     @$"Ice protocol '{Name

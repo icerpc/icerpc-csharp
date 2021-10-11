@@ -6,6 +6,7 @@ using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Diagnostics;
 
 namespace IceRpc.Internal
@@ -45,7 +46,6 @@ namespace IceRpc.Internal
         private readonly HashSet<IncomingRequest> _dispatch = new();
         private readonly int _incomingFrameMaxSize;
         private readonly Dictionary<int, OutgoingRequest> _invocations = new();
-        private readonly bool _isServer;
         private readonly ILogger _logger;
         private readonly object _mutex = new();
         private readonly ISingleStreamConnection _singleStreamConnection;
@@ -57,38 +57,6 @@ namespace IceRpc.Internal
         // TODO: XXX, add back configuration to limit the number of concurrent dispatch.
         // private readonly AsyncSemaphore? _unidirectionalStreamSemaphore;
         private bool _shutdown;
-
-        /// <inheritdoc/>
-        public async Task InitializeAsync(CancellationToken cancel)
-        {
-            if (!_singleStreamConnection.IsDatagram)
-            {
-                if (_isServer)
-                {
-                    await _singleStreamConnection.WriteAsync(
-                        Ice1Definitions.ValidateConnectionFrame,
-                        cancel).ConfigureAwait(false);
-                }
-                else
-                {
-                    Memory<byte> buffer = new byte[Ice1Definitions.HeaderSize];
-                    await ReceiveUntilFullAsync(buffer, cancel).ConfigureAwait(false);
-
-                    // Check the header
-                    Ice1Definitions.CheckHeader(buffer.Span[0..Ice1Definitions.HeaderSize]);
-                    int frameSize = IceDecoder.DecodeInt(buffer.AsReadOnlySpan().Slice(10, 4));
-                    if (frameSize != Ice1Definitions.HeaderSize)
-                    {
-                        throw new InvalidDataException($"received ice1 frame with only '{frameSize}' bytes");
-                    }
-                    if ((Ice1FrameType)buffer.Span[8] != Ice1FrameType.ValidateConnection)
-                    {
-                        throw new InvalidDataException(@$"expected '{nameof(Ice1FrameType.ValidateConnection)
-                            }' frame but received frame type '{(Ice1FrameType)buffer.Span[8]}'");
-                    }
-                }
-            }
-        }
 
         /// <inheritdoc/>
         public void CancelShutdown() =>
@@ -562,11 +530,7 @@ namespace IceRpc.Internal
             return "connection graceful shutdown";
         }
 
-        internal Ice1ProtocolConnection(
-            ISingleStreamConnection singleStreamConnection,
-            int incomingFrameMaxSize,
-            bool isServer,
-            ILogger logger)
+        internal Ice1ProtocolConnection(ISingleStreamConnection singleStreamConnection, int incomingFrameMaxSize)
         {
             _singleStreamConnection = singleStreamConnection;
             if (_singleStreamConnection.IsDatagram)
@@ -579,8 +543,39 @@ namespace IceRpc.Internal
             {
                 _incomingFrameMaxSize = incomingFrameMaxSize;
             }
-            _isServer = isServer;
-            _logger = logger;
+            // TODO: temporary, this will be removed once we add a log protocol connection decorator
+            _logger = NullLogger.Instance;
+        }
+
+        internal async Task InitializeAsync(bool isServer, CancellationToken cancel)
+        {
+            if (!_singleStreamConnection.IsDatagram)
+            {
+                if (isServer)
+                {
+                    await _singleStreamConnection.WriteAsync(
+                        Ice1Definitions.ValidateConnectionFrame,
+                        cancel).ConfigureAwait(false);
+                }
+                else
+                {
+                    Memory<byte> buffer = new byte[Ice1Definitions.HeaderSize];
+                    await ReceiveUntilFullAsync(buffer, cancel).ConfigureAwait(false);
+
+                    // Check the header
+                    Ice1Definitions.CheckHeader(buffer.Span[0..Ice1Definitions.HeaderSize]);
+                    int frameSize = IceDecoder.DecodeInt(buffer.AsReadOnlySpan().Slice(10, 4));
+                    if (frameSize != Ice1Definitions.HeaderSize)
+                    {
+                        throw new InvalidDataException($"received ice1 frame with only '{frameSize}' bytes");
+                    }
+                    if ((Ice1FrameType)buffer.Span[8] != Ice1FrameType.ValidateConnection)
+                    {
+                        throw new InvalidDataException(@$"expected '{nameof(Ice1FrameType.ValidateConnection)
+                            }' frame but received frame type '{(Ice1FrameType)buffer.Span[8]}'");
+                    }
+                }
+            }
         }
 
         private void CancelDispatch()

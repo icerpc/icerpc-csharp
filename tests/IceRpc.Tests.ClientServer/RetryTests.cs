@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Transports;
 using NUnit.Framework;
 using System.Collections.Immutable;
 
@@ -442,9 +443,10 @@ namespace IceRpc.Tests.ClientServer
         {
             var pool = new ConnectionPool()
             {
-                ClientTransport = new ClientTransport().UseTcp(),
+                ClientTransport = new LogClientTransportDecorator(
+                    new ClientTransport().UseTcp(),
+                    LogAttributeLoggerFactory.Instance),
                 ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) },
-                LoggerFactory = LogAttributeLoggerFactory.Instance
             };
             return pool;
         }
@@ -455,9 +457,10 @@ namespace IceRpc.Tests.ClientServer
                 i => new Server
                 {
                     Endpoint = GetTestEndpoint(port: i),
-                    ServerTransport = new ServerTransport().UseTcp(),
+                    ServerTransport = new LogServerTransportDecorator(
+                        new ServerTransport().UseTcp(),
+                        LogAttributeLoggerFactory.Instance),
                     ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) },
-                    LoggerFactory = LogAttributeLoggerFactory.Instance
                 }).ToArray();
 
             Router[] routers = Enumerable.Range(0, replicas).Select(i => new Router()).ToArray();
@@ -499,9 +502,10 @@ namespace IceRpc.Tests.ClientServer
             {
                 Dispatcher = router,
                 Endpoint = GetTestEndpoint(protocol: protocol),
-                ServerTransport = new ServerTransport().UseTcp(),
+                ServerTransport = new LogServerTransportDecorator(
+                    new ServerTransport().UseTcp(),
+                    LogAttributeLoggerFactory.Instance),
                 ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) },
-                LoggerFactory = LogAttributeLoggerFactory.Instance
             };
             server.Listen();
 

@@ -6,23 +6,11 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests.Internal
 {
-    internal class SlicConnectionProvider : MultiStreamConnectionBaseTest, IDisposable
-    {
-        internal new SlicConnection ClientConnection => (SlicConnection)ClientMultiStreamConnection;
-        internal new SlicConnection ServerConnection => (SlicConnection)ServerMultiStreamConnection;
-
-        public void Dispose() => TearDownConnections();
-
-        internal SlicConnectionProvider(SlicOptions clientOptions, SlicOptions serverOptions) :
-            base(clientOptions: clientOptions, serverOptions: serverOptions) =>
-            SetUpConnectionsAsync().Wait();
-    }
-
     [Timeout(5000)]
     public class SlicConnectionTests
     {
         [TestCase]
-        public void SlicConnectionTests_Options()
+        public async Task SlicConnectionTests_Options()
         {
             var clientOptions = new SlicOptions
                 {
@@ -35,12 +23,36 @@ namespace IceRpc.Tests.Internal
                     PacketMaxSize = 2098
                 };
 
-            using var connections = new SlicConnectionProvider(clientOptions, serverOptions);
+            (SlicConnection clientConnection,  SlicConnection serverConnection) =
+                await CreateSlicClientServerConnectionsAsync(clientOptions, serverOptions);
+            try
+            {
+                Assert.That(serverConnection.PeerStreamBufferMaxSize, Is.EqualTo(2405));
+                Assert.That(clientConnection.PeerStreamBufferMaxSize, Is.EqualTo(6893));
+                Assert.That(serverConnection.PeerPacketMaxSize, Is.EqualTo(4567));
+                Assert.That(clientConnection.PeerPacketMaxSize, Is.EqualTo(2098));
+            }
+            finally
+            {
+                clientConnection.Dispose();
+                serverConnection.Dispose();
+            }
+        }
 
-            Assert.That(connections.ServerConnection.PeerStreamBufferMaxSize, Is.EqualTo(2405));
-            Assert.That(connections.ClientConnection.PeerStreamBufferMaxSize, Is.EqualTo(6893));
-            Assert.That(connections.ServerConnection.PeerPacketMaxSize, Is.EqualTo(4567));
-            Assert.That(connections.ClientConnection.PeerPacketMaxSize, Is.EqualTo(2098));
+        private static async Task<(SlicConnection, SlicConnection)> CreateSlicClientServerConnectionsAsync(
+            SlicOptions clientOptions,
+            SlicOptions serverOptions)
+        {
+            IServerTransport serverTransport = new ColocServerTransport(serverOptions);
+            using IListener listener = serverTransport.Listen("ice+coloc://127.0.0.1").Listener!;
+
+            IClientTransport clientTransport = new ColocClientTransport(clientOptions);
+            INetworkConnection clientConnection = clientTransport.CreateConnection("ice+coloc://127.0.0.1");
+
+            INetworkConnection serverConnection = await listener.AcceptAsync();
+            ValueTask<IMultiStreamConnection> clientTask = clientConnection.ConnectMultiStreamConnectionAsync(default);
+            ValueTask<IMultiStreamConnection> serverTask = serverConnection.ConnectMultiStreamConnectionAsync(default);
+            return ((SlicConnection)await clientTask, (SlicConnection)await serverTask);
         }
     }
 }

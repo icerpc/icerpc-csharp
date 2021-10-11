@@ -22,7 +22,6 @@ namespace IceRpc.Transports
             bool isServer,
             TimeSpan idleTimeout,
             SlicOptions slicOptions,
-            ILogger logger,
             CancellationToken cancel)
         {
             ISlicFrameReader? reader = null;
@@ -32,11 +31,12 @@ namespace IceRpc.Transports
             {
                 reader = new StreamSlicFrameReader(singleStreamConnection);
                 writer = new StreamSlicFrameWriter(singleStreamConnection);
-                if (logger.IsEnabled(LogLevel.Debug))
-                {
-                    reader = new LogSlicFrameReaderDecorator(reader, logger);
-                    writer = new LogSlicFrameWriterDecorator(writer, logger);
-                }
+                // TODO: Fix the slic connection creation to not compose the reader/writer here and add back logging.
+                // if (logger.IsEnabled(LogLevel.Debug))
+                // {
+                //     reader = new LogSlicFrameReaderDecorator(reader, logger);
+                //     writer = new LogSlicFrameWriterDecorator(writer, logger);
+                // }
                 slicConnection = new SlicConnection(
                     reader,
                     writer,

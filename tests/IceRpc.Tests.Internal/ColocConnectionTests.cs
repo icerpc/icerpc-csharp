@@ -2,7 +2,6 @@
 
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
-using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.Threading.Channels;
 
@@ -36,7 +35,6 @@ namespace IceRpc.Tests.Internal
 
             Assert.That(connection.LocalEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
             Assert.That(connection.RemoteEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
-            Assert.That(connection.IsServer, Is.EqualTo(isServer));
             Assert.That(connection.IdleTimeout, Is.EqualTo(TimeSpan.MaxValue));
             Assert.That(connection.IsDatagram, Is.False);
 
@@ -48,7 +46,7 @@ namespace IceRpc.Tests.Internal
         {
             ColocConnection connection = CreateConnection(false);
 
-            ISingleStreamConnection stream = await connection.GetSingleStreamConnectionAsync(default);
+            ISingleStreamConnection stream = await connection.ConnectSingleStreamConnectionAsync(default);
 
             // Coloc connections are not closed by ACM.
             // TODO: should they?
@@ -64,7 +62,7 @@ namespace IceRpc.Tests.Internal
             connection.Close();
         }
 
-        private ColocConnection CreateConnection(bool isServer)
+        static private ColocConnection CreateConnection(bool isServer)
         {
             var channel = Channel.CreateUnbounded<ReadOnlyMemory<byte>>(
                 new UnboundedChannelOptions
@@ -79,8 +77,7 @@ namespace IceRpc.Tests.Internal
                 isServer: isServer,
                 slicOptions: new(),
                 writer: channel.Writer,
-                reader: channel.Reader,
-                logger: NullLogger.Instance);
+                reader: channel.Reader);
         }
     }
 }

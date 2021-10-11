@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
-using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Transports
 {
@@ -10,10 +9,8 @@ namespace IceRpc.Transports
     {
         private readonly SlicOptions _slicOptions;
 
-        (IListener?, INetworkConnection?) IServerTransport.Listen(
-            Endpoint endpoint,
-            ILoggerFactory loggerFactory) =>
-            (new ColocListener(endpoint, _slicOptions, loggerFactory.CreateLogger("IceRpc.Transports")), null);
+        (IListener?, INetworkConnection?) IServerTransport.Listen(Endpoint endpoint) =>
+            (new ColocListener(endpoint, _slicOptions), null);
 
         /// <summary>Constructs a colocated server transport.</summary>
         /// <param name="slicOptions">The transport options.</param>

@@ -17,10 +17,6 @@ namespace IceRpc.Internal
         /// <summary>Cancel the shutdown which is in progress.</summary>
         void CancelShutdown();
 
-        /// <summary>Initializes the connection.</summary>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        Task InitializeAsync(CancellationToken cancel);
-
         /// <summary>Sends a ping frame to defer the idle timeout.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         Task PingAsync(CancellationToken cancel);
