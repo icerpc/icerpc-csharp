@@ -29,7 +29,6 @@ namespace IceRpc.Internal
                 await networkConnection.GetSingleStreamConnectionAsync(cancel).ConfigureAwait(false),
                 incomingFrameMaxSize,
                 networkConnection.IsServer,
-                networkConnection.IsDatagram ? networkConnection.DatagramMaxReceiveSize : null,
                 loggerFactory.CreateLogger("IceRpc.Protocol"));
             await protocolConnection.InitializeAsync(cancel).ConfigureAwait(false);
             return protocolConnection;
