@@ -42,9 +42,17 @@ namespace IceRpc.Transports.Internal
         /// <inheritdoc/>
         public async ValueTask<IMultiStreamConnection> ConnectMultiStreamConnectionAsync(CancellationToken cancel)
         {
+            ISingleStreamConnection singleStreamConnection = await ConnectSingleStreamConnectionAsync(
+                cancel).ConfigureAwait(false);
+
+            if (singleStreamConnection.IsDatagram)
+            {
+                throw new NotSupportedException("multi-stream connection is not supported with datagram connections");
+            }
+
             // Multi-stream support for a network socket connection is provided by Slic.
             _slicConnection ??= await NetworkConnection.CreateSlicConnectionAsync(
-                await ConnectSingleStreamConnectionAsync(cancel).ConfigureAwait(false),
+                singleStreamConnection,
                 _isServer,
                 _idleTimeout,
                 _slicOptions,

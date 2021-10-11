@@ -11,15 +11,8 @@ namespace IceRpc.Transports
     /// multi-stream support.</summary>
     public interface INetworkConnection
     {
-        /// <summary>The maximum size of a received datagram if this connection is a datagram
-        /// connection.</summary>
-        int DatagramMaxReceiveSize { get; }
-
         /// <summary>Gets the idle timeout.</summary>
         TimeSpan IdleTimeout { get; }
-
-        /// <summary><c>true</c> for a datagram network connection; <c>false</c> otherwise.</summary>
-        bool IsDatagram { get; }
 
         /// <summary>Indicates whether or not this network connection is secure.</summary>
         /// <value><c>true</c> means the network connection is secure. <c>false</c> means the network

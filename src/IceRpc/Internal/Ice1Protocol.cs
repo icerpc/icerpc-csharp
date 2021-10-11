@@ -26,8 +26,7 @@ namespace IceRpc.Internal
         {
             var protocolConnection = new Ice1ProtocolConnection(
                 await networkConnection.ConnectSingleStreamConnectionAsync(cancel).ConfigureAwait(false),
-                incomingFrameMaxSize,
-                networkConnection.IsDatagram ? networkConnection.DatagramMaxReceiveSize : null);
+                incomingFrameMaxSize);
             await protocolConnection.InitializeAsync(isServer, cancel).ConfigureAwait(false);
             return protocolConnection;
         }

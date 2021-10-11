@@ -9,9 +9,7 @@ namespace IceRpc.Transports.Internal
 {
     internal class LogNetworkConnectionDecorator : INetworkConnection
     {
-        public int DatagramMaxReceiveSize => Decoratee.DatagramMaxReceiveSize;
         public TimeSpan IdleTimeout => Decoratee.IdleTimeout;
-        public bool IsDatagram => Decoratee.IsDatagram;
          public bool IsSecure => Decoratee.IsSecure;
         public TimeSpan LastActivity => Decoratee.LastActivity;
         public Endpoint? LocalEndpoint => Decoratee.LocalEndpoint;
@@ -22,13 +20,14 @@ namespace IceRpc.Transports.Internal
         private protected ILogger Logger { get; }
         private protected bool Connected { get; set; }
         private protected bool IsServer { get; }
+        private bool _isDatagram;
 
         public void Close(Exception? exception)
         {
             using IDisposable? scope = Logger.StartConnectionScope(this, IsServer);
             if (Connected || exception == null)
             {
-                if (Decoratee.IsDatagram && IsServer)
+                if (_isDatagram && IsServer)
                 {
                     Logger.LogStopReceivingDatagrams();
                 }
@@ -42,7 +41,7 @@ namespace IceRpc.Transports.Internal
                 // If the connection is connecting but not active yet, we print a trace to show that
                 // the connection got connected or accepted before printing out the connection closed
                 // trace.
-                Action<Exception?> logFailure = (IsServer, Decoratee.IsDatagram) switch
+                Action<Exception?> logFailure = (IsServer, _isDatagram) switch
                 {
                     (false, false) => Logger.LogConnectionConnectFailed,
                     (false, true) => Logger.LogStartSendingDatagramsFailed,
@@ -59,6 +58,7 @@ namespace IceRpc.Transports.Internal
             ISingleStreamConnection singleStreamConnection = new LogSingleStreamConnectionDecorator(
                 this,
                 await Decoratee.ConnectSingleStreamConnectionAsync(cancel).ConfigureAwait(false));
+            _isDatagram = singleStreamConnection.IsDatagram;
             LogConnected();
             return singleStreamConnection;
         }
@@ -127,7 +127,7 @@ namespace IceRpc.Transports.Internal
             if (!Connected)
             {
                 using IDisposable? scope = Logger.StartConnectionScope(this, IsServer);
-                Action logSuccess = (IsServer, Decoratee.IsDatagram) switch
+                Action logSuccess = (IsServer, _isDatagram) switch
                 {
                     (false, false) => Logger.LogConnectionEstablished,
                     (false, true) => Logger.LogStartSendingDatagrams,
@@ -142,6 +142,9 @@ namespace IceRpc.Transports.Internal
 
     internal sealed class LogSingleStreamConnectionDecorator : ISingleStreamConnection
     {
+        public int DatagramMaxReceiveSize => _decoratee.DatagramMaxReceiveSize;
+        public bool IsDatagram => _decoratee.IsDatagram;
+
         private readonly ISingleStreamConnection _decoratee;
         private readonly LogNetworkConnectionDecorator _parent;
 
