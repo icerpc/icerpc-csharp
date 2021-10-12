@@ -32,7 +32,7 @@ namespace IceRpc.Transports.Internal
                 // socket accepts datagrams from "any" client since it's not connected to a specific client.
                 return endpoint with
                 {
-                    Host = "",
+                    Host = "::0",
                     Port = 0
                 };
             }
