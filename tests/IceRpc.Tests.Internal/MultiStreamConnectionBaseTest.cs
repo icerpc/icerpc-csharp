@@ -38,9 +38,10 @@ namespace IceRpc.Tests.Internal
             _clientConnection = Connect();
             _serverConnection = await acceptTask;
 
-            ValueTask<IMultiStreamConnection> multiStreamTask = _serverConnection.ConnectMultiStreamConnectionAsync(default);
-            _clientMultiStreamConnection = await _clientConnection.ConnectMultiStreamConnectionAsync(default);
-            _serverMultiStreamConnection = await multiStreamTask;
+            ValueTask<(IMultiStreamConnection, NetworkConnectionInformation)> multiStreamTask =
+                 _serverConnection.ConnectMultiStreamConnectionAsync(default);
+            (_clientMultiStreamConnection, _) = await _clientConnection.ConnectMultiStreamConnectionAsync(default);
+            (_serverMultiStreamConnection, _) = await multiStreamTask;
         }
 
         protected void TearDownConnections()

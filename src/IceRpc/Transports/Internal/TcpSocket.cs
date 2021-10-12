@@ -14,12 +14,12 @@ namespace IceRpc.Transports.Internal
 {
     internal abstract class TcpSocket : NetworkSocket
     {
-        public override bool IsDatagram => false;
+        internal override bool IsDatagram => false;
 
         // The MaxDataSize of the SSL implementation.
         private const int MaxSslDataSize = 16 * 1024;
 
-        public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
+        internal override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             if (buffer.Length == 0)
             {
@@ -50,7 +50,7 @@ namespace IceRpc.Transports.Internal
             return received;
         }
 
-        public override async ValueTask SendAsync(
+        internal override async ValueTask SendAsync(
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             CancellationToken cancel)
         {
@@ -159,7 +159,7 @@ namespace IceRpc.Transports.Internal
         private readonly EndPoint _addr;
         private readonly SslClientAuthenticationOptions? _authenticationOptions;
 
-        public override async ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
+        internal override async ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
         {
             bool? tls = endpoint.ParseTcpParams().Tls;
 
@@ -235,7 +235,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override bool HasCompatibleParams(Endpoint remoteEndpoint)
+        internal override bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
             bool? tls = remoteEndpoint.ParseTcpParams().Tls;
 
@@ -262,7 +262,7 @@ namespace IceRpc.Transports.Internal
 
         private readonly SslServerAuthenticationOptions? _authenticationOptions;
 
-        public override async ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
+        internal override async ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
         {
             bool? tls = endpoint.ParseTcpParams().Tls;
             try
@@ -343,7 +343,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
+        internal override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             throw new NotSupportedException($"{nameof(HasCompatibleParams)} is only supported by client sockets.");
 
         internal TcpServerSocket(

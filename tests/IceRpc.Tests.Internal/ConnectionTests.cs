@@ -80,10 +80,11 @@ namespace IceRpc.Tests.Internal
                 {
                     serverConnection = new Connection(
                         serverTransport.Listen(Endpoint).Connection!,
+                        Endpoint.Protocol,
                         _dispatcher,
                         _serverConnectionOptions);
                     await serverConnection.ConnectAsync(default);
-                    clientConnection = await ConnectAsync(serverConnection.LocalEndpoint!);
+                    clientConnection = await ConnectAsync(serverConnection.NetworkConnectionInformation?.LocalEndpoint!);
                 }
                 else
                 {
@@ -99,6 +100,7 @@ namespace IceRpc.Tests.Internal
                 async Task<Connection> AcceptAsync(IListener listener)
                 {
                     var connection = new Connection(await listener.AcceptAsync(),
+                                                    Endpoint.Protocol,
                                                     _dispatcher,
                                                     _serverConnectionOptions);
                     await connection.ConnectAsync(default);
@@ -308,91 +310,28 @@ namespace IceRpc.Tests.Internal
             Assert.That(factory.ClientConnection.IsSecure, Is.EqualTo(secure));
             Assert.That(factory.ServerConnection.IsSecure, Is.EqualTo(secure));
 
-            NetworkSocket? clientSocket = factory.ClientConnection.NetworkSocket;
-            Assert.That(clientSocket, Is.Not.Null);
+            NetworkConnectionInformation? clientInformation = factory.ClientConnection.NetworkConnectionInformation;
+            Assert.That(clientInformation, Is.Not.Null);
 
-            NetworkSocket? serverSocket = factory.ServerConnection.NetworkSocket;
-            Assert.That(serverSocket, Is.Not.Null);
+            NetworkConnectionInformation? serverInformation = factory.ServerConnection.NetworkConnectionInformation;
+            Assert.That(serverInformation, Is.Not.Null);
 
-            Assert.That(clientSocket!.Socket!.RemoteEndPoint, Is.Not.Null);
-            Assert.That(clientSocket.Socket!.LocalEndPoint, Is.Not.Null);
-
-            Assert.That(serverSocket!.Socket!.LocalEndPoint, Is.Not.Null);
-
-            Assert.AreEqual("127.0.0.1", factory.ClientConnection.LocalEndpoint!.Host);
-            Assert.AreEqual("127.0.0.1", factory.ClientConnection.RemoteEndpoint!.Host);
-            Assert.That(factory.ClientConnection.RemoteEndpoint!.Port,
-                        Is.EqualTo(factory.ServerConnection.LocalEndpoint!.Port));
-            if (transport == "udp")
+            Assert.AreEqual("127.0.0.1", clientInformation?.LocalEndpoint.Host);
+            Assert.AreEqual("127.0.0.1", clientInformation?.RemoteEndpoint.Host);
+            Assert.That(clientInformation?.RemoteEndpoint!.Port, Is.EqualTo(serverInformation?.LocalEndpoint!.Port));
+            if (transport != "udp")
             {
-                Assert.That(serverSocket.Socket!.RemoteEndPoint, Is.Null);
-                Assert.That(factory.ServerConnection.RemoteEndpoint, Is.Null);
-            }
-            else
-            {
-                Assert.That(serverSocket.Socket!.RemoteEndPoint, Is.Not.Null);
-                Assert.That(factory.ClientConnection.LocalEndpoint.Port,
-                            Is.EqualTo(factory.ServerConnection.RemoteEndpoint!.Port));
-                Assert.AreEqual("127.0.0.1", factory.ClientConnection.RemoteEndpoint.Host);
+                Assert.That(clientInformation?.LocalEndpoint!.Port, Is.EqualTo(serverInformation?.RemoteEndpoint!.Port));
+                Assert.AreEqual("127.0.0.1", clientInformation?.RemoteEndpoint!.Host);
             }
             Assert.That(factory.ClientConnection.IsServer, Is.False);
             Assert.That(factory.ServerConnection.IsServer, Is.True);
 
-            Assert.AreEqual(factory.ClientConnection.RemoteEndpoint.Port,
-                            ((IPEndPoint)clientSocket.Socket!.RemoteEndPoint!).Port);
-            Assert.AreEqual(factory.ClientConnection.LocalEndpoint.Port,
-                            ((IPEndPoint)clientSocket.Socket!.LocalEndPoint!).Port);
-
-            Assert.AreEqual("127.0.0.1", ((IPEndPoint)clientSocket.Socket!.LocalEndPoint).Address.ToString());
-            Assert.AreEqual("127.0.0.1", ((IPEndPoint)clientSocket.Socket!.RemoteEndPoint).Address.ToString());
-
-            Assert.That($"{factory.ClientConnection}", Does.StartWith(clientSocket.GetType().Name));
-            Assert.That($"{factory.ServerConnection}", Does.StartWith(serverSocket.GetType().Name));
-
-            if (transport == "udp")
-            {
-                Assert.AreEqual(SocketType.Dgram, clientSocket.Socket!.SocketType);
-            }
-            else if (transport == "tcp")
-            {
-                Assert.AreEqual(SocketType.Stream, clientSocket.Socket!.SocketType);
-            }
-
             if (secure)
             {
                 Assert.AreEqual("tcp", transport);
-
-                SslStream? clientSslStream = factory.ClientConnection!.NetworkSocket!.SslStream;
-                Assert.That(clientSslStream, Is.Not.Null);
-
-                SslStream? serverSslStream = factory.ServerConnection!.NetworkSocket!.SslStream;
-                Assert.That(serverSslStream, Is.Not.Null);
-
-                Assert.That(clientSslStream!.CheckCertRevocationStatus, Is.False);
-                Assert.That(clientSslStream.IsEncrypted, Is.True);
-                Assert.That(clientSslStream.IsMutuallyAuthenticated, Is.False);
-                Assert.That(clientSslStream.IsSigned, Is.True);
-                Assert.That(clientSslStream.LocalCertificate, Is.Null);
-
-                if (OperatingSystem.IsMacOS())
-                {
-                    // APLN doesn't work on macOS (we keep this check to figure out when it will be supported)
-                    Assert.That(clientSslStream.NegotiatedApplicationProtocol.ToString(), Is.Empty);
-                    Assert.That(serverSslStream!.NegotiatedApplicationProtocol.ToString(), Is.Empty);
-                }
-                else
-                {
-                    Assert.That(clientSslStream.NegotiatedApplicationProtocol.ToString(),
-                                Is.EqualTo(Protocol.Ice2.Name));
-                    Assert.That(serverSslStream!.NegotiatedApplicationProtocol.ToString(),
-                                Is.EqualTo(Protocol.Ice2.Name));
-                }
-
-                Assert.That(clientSslStream.RemoteCertificate, Is.Not.Null);
-                Assert.That(serverSslStream.NegotiatedApplicationProtocol,
-                            Is.EqualTo(clientSslStream.NegotiatedApplicationProtocol));
-                Assert.That(serverSslStream.LocalCertificate, Is.Not.Null);
-                Assert.That(serverSslStream.RemoteCertificate, Is.Null);
+                Assert.That(clientInformation?.RemoteCertificate, Is.Not.Null);
+                Assert.That(serverInformation?.RemoteCertificate, Is.Null);
             }
         }
 
@@ -412,15 +351,18 @@ namespace IceRpc.Tests.Internal
                     IdleTimeout = TimeSpan.FromSeconds(3)
                 });
 
-            Assert.That(factory.ClientConnection.IdleTimeout, Is.EqualTo(TimeSpan.FromSeconds(2)));
+            Assert.That(factory.ClientConnection.NetworkConnectionInformation?.IdleTimeout,
+                        Is.EqualTo(TimeSpan.FromSeconds(2)));
 
             if (protocol == ProtocolCode.Ice1)
             {
-                Assert.That(factory.ServerConnection.IdleTimeout, Is.EqualTo(TimeSpan.FromSeconds(3)));
+                Assert.That(factory.ServerConnection.NetworkConnectionInformation?.IdleTimeout,
+                            Is.EqualTo(TimeSpan.FromSeconds(3)));
             }
             else
             {
-                Assert.That(factory.ServerConnection.IdleTimeout, Is.EqualTo(TimeSpan.FromSeconds(2)));
+                Assert.That(factory.ServerConnection.NetworkConnectionInformation?.IdleTimeout,
+                            Is.EqualTo(TimeSpan.FromSeconds(2)));
             }
         }
 

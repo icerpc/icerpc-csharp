@@ -101,7 +101,7 @@ namespace IceRpc.Transports
                 new UdpSocket(socket, isServer: false, netEndPoint, ttl, multicastInterface),
                 remoteEndpoint,
                 isServer: false,
-                idleTimeout: _options.IdleTimeout,
+                defaultIdleTimeout: _options.IdleTimeout,
                 new());
         }
     }

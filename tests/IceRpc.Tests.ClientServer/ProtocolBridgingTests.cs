@@ -137,7 +137,7 @@ namespace IceRpc.Tests.ClientServer
             public ValueTask<ProtocolBridgingTestPrx> OpNewProxyAsync(Dispatch dispatch, CancellationToken cancel)
             {
                 var proxy = Proxy.FromPath(dispatch.Path, dispatch.Protocol);
-                proxy.Endpoint = dispatch.Connection.LocalEndpoint;
+                proxy.Endpoint = dispatch.Connection.NetworkConnectionInformation?.LocalEndpoint;
                 proxy.Encoding = dispatch.Encoding; // use the request's encoding instead of the server's encoding.
                 return new(new ProtocolBridgingTestPrx(proxy));
             }

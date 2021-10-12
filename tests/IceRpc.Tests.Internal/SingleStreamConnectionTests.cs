@@ -119,10 +119,11 @@ namespace IceRpc.Tests.Internal
             _clientConnection = clientTransport.CreateConnection(listener.Endpoint);
 
             ValueTask<INetworkConnection> acceptTask = listener.AcceptAsync();
-            ValueTask<ISingleStreamConnection> connectTask = _clientConnection.ConnectSingleStreamConnectionAsync(default);
+            ValueTask<(ISingleStreamConnection, NetworkConnectionInformation)> connectTask =
+                 _clientConnection.ConnectSingleStreamConnectionAsync(default);
             _serverConnection = await acceptTask;
-            _clientSingleStreamConnection = await connectTask;
-            _serverSingleStreamConnection = await _serverConnection.ConnectSingleStreamConnectionAsync(default);
+            (_clientSingleStreamConnection, _) = await connectTask;
+            (_serverSingleStreamConnection, _) = await _serverConnection.ConnectSingleStreamConnectionAsync(default);
         }
 
         [TearDown]

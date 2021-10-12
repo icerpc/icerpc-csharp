@@ -174,13 +174,23 @@ namespace IceRpc.Transports.Internal
 
         internal static IDisposable? StartConnectionScope(
             this ILogger logger,
-            INetworkConnection connection,
+            NetworkConnectionInformation information,
             bool isServer) =>
             _connectionScope(
                 logger,
                 isServer,
-                connection.LocalEndpoint?.ToString() ?? "undefined",
-                connection.RemoteEndpoint?.ToString() ?? "undefined");
+                information.LocalEndpoint.ToString(),
+                information.RemoteEndpoint.ToString());
+
+        internal static IDisposable? StartConnectionScope(
+            this ILogger logger,
+            Endpoint endpoint,
+            bool isServer) =>
+            _connectionScope(
+                logger,
+                isServer,
+                isServer ? endpoint.ToString() : "undefined",
+                isServer ? "undefined" : endpoint.ToString());
 
         internal static IDisposable? StartStreamScope(this ILogger logger, long id) =>
             (id % 4) switch
