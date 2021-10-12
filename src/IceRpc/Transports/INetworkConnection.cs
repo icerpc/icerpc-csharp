@@ -1,44 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Security.Cryptography.X509Certificates;
-
 namespace IceRpc.Transports
 {
-    /// <summary>The network connection information returned by <see
-    /// cref="INetworkConnection.ConnectSingleStreamConnectionAsync"/> or <see
-    /// cref="INetworkConnection.ConnectMultiStreamConnectionAsync"/></summary>
-    public record struct NetworkConnectionInformation
-    {
-        /// <summary>The idle timeout.</summary>
-        public TimeSpan IdleTimeout;
-
-        /// <summary>The local endpoint.</summary>
-        public readonly Endpoint LocalEndpoint;
-
-        /// <summary>The remote endpoint.</summary>
-        public readonly Endpoint RemoteEndpoint;
-
-        /// <summary>The peer remote certificate if TLS is used for the connection, <c>null</c> otherwise.</summary>
-        public readonly X509Certificate? RemoteCertificate;
-
-        /// <summary>Constructs a new instance of <see cref="NetworkConnectionInformation"/>.</summary>
-        /// <param name="localEndpoint">The local endpoint.</param>
-        /// <param name="remoteEndpoint">The remote endpoint.</param>
-        /// <param name="idleTimeout">The idle timeout.</param>
-        /// <param name="remoteCertificate">The optional remote certificate.</param>
-        public NetworkConnectionInformation(
-            Endpoint localEndpoint,
-            Endpoint remoteEndpoint,
-            TimeSpan idleTimeout,
-            X509Certificate? remoteCertificate)
-        {
-            LocalEndpoint = localEndpoint;
-            RemoteEndpoint = remoteEndpoint;
-            IdleTimeout = idleTimeout;
-            RemoteCertificate = remoteCertificate;
-        }
-    }
-
     /// <summary>A network connection represents the low-level transport to exchange data as bytes. A network
     /// connection supports both exchanging data with an <see cref="ISingleStreamConnection"/> (for the Ice1
     /// protocol) or an <see cref="IMultiStreamConnection"/> (for the Ice2 protocol). A single-stream
