@@ -26,12 +26,28 @@ namespace IceRpc.Transports.Internal
 
         internal override async ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
         {
-            if (!_isServer)
+            if (_isServer)
+            {
+                // The remote endpoint is set to an empty endpoint for a UDP server connection because the
+                // socket accepts datagrams from "any" client since it's not connected to a specific client.
+                return endpoint with
+                {
+                    Host = "",
+                    Port = 0
+                };
+            }
+            else
             {
                 Debug.Assert(_addr != null);
                 try
                 {
                     await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
+                    var ipEndPoint = (IPEndPoint)Socket.LocalEndPoint!;
+                    return endpoint with
+                    {
+                        Host = ipEndPoint.Address.ToString(),
+                        Port = checked((ushort)ipEndPoint.Port)
+                    };
                 }
                 catch (Exception ex)
                 {
@@ -39,15 +55,6 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            // TODO: returning the local socket endpoint for a server socket is not really correct, in theory it
-            // should return null since a server-side UDP socket is not connected. This would require however
-            // to make NetworkConnectionInformation.RemoteEndpoint nullable just for UDP. Is it worth the trouble?
-            var ipEndPoint = (IPEndPoint)Socket.LocalEndPoint!;
-            return endpoint with
-            {
-                Host = ipEndPoint.Address.ToString(),
-                Port = checked((ushort)ipEndPoint.Port)
-            };
         }
 
         internal override bool HasCompatibleParams(Endpoint remoteEndpoint)
