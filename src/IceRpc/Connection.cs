@@ -148,7 +148,6 @@ namespace IceRpc
         private readonly ConnectionOptions _options;
         private IProtocolConnection? _protocolConnection;
         private Endpoint? _remoteEndpoint;
-        private Action<Connection>? _remove;
         private ConnectionState _state = ConnectionState.NotConnected;
         private Timer? _timer;
 

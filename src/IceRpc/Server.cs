@@ -235,7 +235,7 @@ namespace IceRpc
 
                     // Add the connection to _connections and setup the callback to remove it when it's closed.
                     _connections.Add(connection);
-                    connection.Remove = connection =>
+                    connection.Closed += (sender, args) =>
                     {
                         lock (_mutex)
                         {
