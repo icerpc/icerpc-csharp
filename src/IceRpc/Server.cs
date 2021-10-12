@@ -111,13 +111,19 @@ namespace IceRpc
 #pragma warning disable CA2000
                     var serverConnection = new Connection(
                         networkConnection,
+                        _endpoint.Protocol,
                         Dispatcher,
                         ConnectionOptions);
 #pragma warning restore CA2000
-                    _endpoint = networkConnection.LocalEndpoint!;
 
-                    // Connect the connection to start accepting new streams.
-                    _ = serverConnection.ConnectAsync(default);
+                    // TODO: this shouldn't block because UDP connection doesn't block... However, it's really
+                    // a hack to handle UDP. Instead, I proposed that UdpServerTransport.Listen returns a
+                    // listener. UDP would implement a listener that just returns a single connection: the
+                    // unique server-side connection. It would be established immediately by AcceptAsync
+                    // below. The second AcceptAsync call would block until the listener is disposed. I think
+                    // this would lead to a cleaner API.
+                    serverConnection.ConnectAsync().Wait();
+                    _endpoint = serverConnection.NetworkConnectionInformation!.Value.LocalEndpoint;
                     _connections.Add(serverConnection);
                 }
 
@@ -222,7 +228,7 @@ namespace IceRpc
 
                 // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                var connection = new Connection(networkConnection, Dispatcher, ConnectionOptions);
+                var connection = new Connection(networkConnection, _endpoint.Protocol, Dispatcher, ConnectionOptions);
 #pragma warning restore CA2000
 
                 lock (_mutex)

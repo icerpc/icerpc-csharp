@@ -10,8 +10,8 @@ namespace IceRpc.Transports.Internal
 {
     internal sealed class UdpSocket : NetworkSocket
     {
-        public override int DatagramMaxReceiveSize { get; }
-        public override bool IsDatagram => true;
+        internal override int DatagramMaxReceiveSize { get; }
+        internal override bool IsDatagram => true;
 
         // The maximum IP datagram size is 65535. Subtract 20 bytes for the IP header and 8 bytes for the UDP header
         // to get the maximum payload.
@@ -24,11 +24,17 @@ namespace IceRpc.Transports.Internal
         private readonly string? _multicastInterface;
         private readonly int _ttl;
 
-        public override async ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
+        internal override async ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
         {
             if (_isServer)
             {
-                throw new NotSupportedException($"{nameof(UdpSocket)} doesn't support accepting server connections");
+                // The remote endpoint is set to an empty endpoint for a UDP server connection because the
+                // socket accepts datagrams from "any" client since it's not connected to a specific client.
+                return endpoint with
+                {
+                    Host = "::0",
+                    Port = 0
+                };
             }
             else
             {
@@ -48,15 +54,16 @@ namespace IceRpc.Transports.Internal
                     throw new ConnectFailedException(ex);
                 }
             }
+
         }
 
-        public override bool HasCompatibleParams(Endpoint remoteEndpoint)
+        internal override bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
             (_, int ttl, string? multicastInterface) = remoteEndpoint.ParseUdpParams();
             return ttl == _ttl && multicastInterface == _multicastInterface;
         }
 
-        public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
+        internal override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             try
             {
@@ -87,7 +94,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override async ValueTask SendAsync(
+        internal override async ValueTask SendAsync(
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             CancellationToken cancel)
         {

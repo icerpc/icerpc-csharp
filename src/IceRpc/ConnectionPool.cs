@@ -208,8 +208,8 @@ namespace IceRpc
                     connection = new Connection(ConnectionOptions)
                     {
                         Dispatcher = Dispatcher,
-                        RemoteEndpoint = endpoint,
                         ClientTransport = ClientTransport,
+                        RemoteEndpoint = endpoint,
                     };
                     if (!_connections.TryGetValue(endpoint, out connections))
                     {
@@ -221,25 +221,25 @@ namespace IceRpc
                     // Set the callback used to remove the connection from the pool. This can throw if the
                     // connection is closed but it's not possible here since we've just constructed the
                     // connection.
-                    connection.Closed += (sender, state) => Remove(connection);
+                    connection.Closed += (sender, state) => Remove(endpoint, connection);
                 }
             }
             await connection.ConnectAsync(cancel).ConfigureAwait(false);
             return connection;
         }
 
-        private void Remove(Connection connection)
+        private void Remove(Endpoint endpoint, Connection connection)
         {
             lock (_mutex)
             {
                 // _connections is immutable after shutdown
                 if (_shutdownTask == null)
                 {
-                    List<Connection> list = _connections[connection.RemoteEndpoint!];
+                    List<Connection> list = _connections[endpoint];
                     list.Remove(connection);
                     if (list.Count == 0)
                     {
-                        _connections.Remove(connection.RemoteEndpoint!);
+                        _connections.Remove(endpoint);
                     }
                 }
             }

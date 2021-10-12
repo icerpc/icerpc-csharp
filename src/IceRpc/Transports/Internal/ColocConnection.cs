@@ -12,18 +12,13 @@ namespace IceRpc.Transports.Internal
     {
         public int DatagramMaxReceiveSize => throw new InvalidOperationException();
 
-        public TimeSpan IdleTimeout => TimeSpan.MaxValue;
-
         public bool IsDatagram => false;
 
         public bool IsSecure => true;
 
         public TimeSpan LastActivity => TimeSpan.Zero;
 
-        public Endpoint? LocalEndpoint { get; }
-
-        public Endpoint? RemoteEndpoint { get; }
-
+        private readonly Endpoint _endpoint;
         private readonly bool _isServer;
         private readonly SlicOptions _slicOptions;
         private readonly ChannelReader<ReadOnlyMemory<byte>> _reader;
@@ -37,19 +32,26 @@ namespace IceRpc.Transports.Internal
             _writer.TryComplete(); // Dispose might be called multiple times
         }
 
-        public async ValueTask<IMultiStreamConnection> ConnectMultiStreamConnectionAsync(CancellationToken cancel)
+        public async ValueTask<(IMultiStreamConnection, NetworkConnectionInformation)> ConnectMultiStreamConnectionAsync(
+            CancellationToken cancel)
         {
+            (ISingleStreamConnection singleStreamConnection, NetworkConnectionInformation information) =
+                 await ConnectSingleStreamConnectionAsync(cancel).ConfigureAwait(false);
+
             // Multi-stream support for a colocated connection is provided by Slic.
             _slicConnection ??= await NetworkConnection.CreateSlicConnectionAsync(
-                await ConnectSingleStreamConnectionAsync(cancel).ConfigureAwait(false),
+                singleStreamConnection,
                 _isServer,
                 TimeSpan.MaxValue,
                 _slicOptions,
                 cancel).ConfigureAwait(false);
-            return _slicConnection;
+            return (_slicConnection, information);
         }
 
-        public ValueTask<ISingleStreamConnection> ConnectSingleStreamConnectionAsync(CancellationToken cancel) => new(this);
+        public ValueTask<(ISingleStreamConnection, NetworkConnectionInformation)> ConnectSingleStreamConnectionAsync(
+            CancellationToken cancel) =>
+                // TODO: support idle timeout for colocated connections?
+                new((this, new NetworkConnectionInformation(_endpoint, _endpoint, TimeSpan.MaxValue, null)));
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
@@ -125,8 +127,7 @@ namespace IceRpc.Transports.Internal
             ChannelWriter<ReadOnlyMemory<byte>> writer,
             ChannelReader<ReadOnlyMemory<byte>> reader)
         {
-            LocalEndpoint = endpoint;
-            RemoteEndpoint = endpoint;
+            _endpoint = endpoint;
             _isServer = isServer;
             _slicOptions = slicOptions;
             _reader = reader;

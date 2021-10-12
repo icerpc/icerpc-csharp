@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
-
 namespace IceRpc.Transports
 {
     /// <summary>A network connection represents the low-level transport to exchange data as bytes. A network
@@ -11,9 +9,6 @@ namespace IceRpc.Transports
     /// multi-stream support.</summary>
     public interface INetworkConnection
     {
-        /// <summary>Gets the idle timeout.</summary>
-        TimeSpan IdleTimeout { get; }
-
         /// <summary>Indicates whether or not this network connection is secure.</summary>
         /// <value><c>true</c> means the network connection is secure. <c>false</c> means the network
         /// connection transport is not secure. If the connection is not established, secure is always
@@ -23,14 +18,6 @@ namespace IceRpc.Transports
         /// <summary>The time elapsed since the last activity of the connection.</summary>
         TimeSpan LastActivity { get; }
 
-        /// <summary>The local endpoint. The endpoint may not be available until the connection is connected.
-        /// </summary>
-        Endpoint? LocalEndpoint { get; }
-
-        /// <summary>The remote endpoint. This endpoint may not be available until the connection is accepted.
-        /// </summary>
-        Endpoint? RemoteEndpoint { get; }
-
         /// <summary>Closes the network connection.</summary>
         /// <param name="exception">The reason of the connection closure.</param>
         void Close(Exception? exception = null);
@@ -38,14 +25,16 @@ namespace IceRpc.Transports
         /// <summary>Connects this network connection and return a single-stream connection for single-stream
         /// communications over this network connection.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The <see cref="ISingleStreamConnection"/>.</returns>
-        ValueTask<ISingleStreamConnection> ConnectSingleStreamConnectionAsync(CancellationToken cancel);
+        /// <returns>The <see cref="ISingleStreamConnection"/> and <see cref="NetworkConnectionInformation"/>.</returns>
+        ValueTask<(ISingleStreamConnection, NetworkConnectionInformation)> ConnectSingleStreamConnectionAsync(
+            CancellationToken cancel);
 
         /// <summary>Connects this network connection and return a multi-stream connection to allow
         /// multi-stream communications over this network connection.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The <see cref="IMultiStreamConnection"/>.</returns>
-        ValueTask<IMultiStreamConnection> ConnectMultiStreamConnectionAsync(CancellationToken cancel);
+        /// <returns>The <see cref="IMultiStreamConnection"/> and <see cref="NetworkConnectionInformation"/>.</returns>
+        ValueTask<(IMultiStreamConnection, NetworkConnectionInformation)> ConnectMultiStreamConnectionAsync(
+            CancellationToken cancel);
 
         /// <summary>Checks if the parameters of the provided endpoint are compatible with this network
         /// connection. Compatible means a client could reuse this network connection instead of establishing

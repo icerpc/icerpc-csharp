@@ -17,7 +17,18 @@ namespace IceRpc.Transports.Internal
             try
             {
                 INetworkConnection connection = await _decoratee.AcceptAsync().ConfigureAwait(false);
-                return new LogNetworkConnectionDecorator(connection, isServer: true, _logger);
+                if (connection is NetworkSocketConnection networkSocketConnection)
+                {
+                    return new LogNetworkSocketConnectionDecorator(
+                        networkSocketConnection,
+                        isServer: false,
+                        _decoratee.Endpoint,
+                        _logger);
+                }
+                else
+                {
+                    return new LogNetworkConnectionDecorator(connection, isServer: false, _decoratee.Endpoint, _logger);
+                }
             }
             catch (Exception ex)
             {
