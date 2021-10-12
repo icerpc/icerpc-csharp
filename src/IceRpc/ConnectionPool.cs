@@ -218,7 +218,9 @@ namespace IceRpc
                     }
                     connections.Add(connection);
 
-                    // Set the callback used to remove the connection from the pool.
+                    // Set the callback used to remove the connection from the pool. This can throw if the
+                    // connection is closed but it's not possible here since we've just constructed the
+                    // connection.
                     connection.Closed += (sender, state) => Remove(connection);
                 }
             }
