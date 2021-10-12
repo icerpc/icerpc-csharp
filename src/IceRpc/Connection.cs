@@ -136,27 +136,6 @@ namespace IceRpc
             }
         }
 
-        // Delegate used to remove the connection once it has been closed.
-        internal Action<Connection>? Remove
-        {
-            set
-            {
-                lock (_mutex)
-                {
-                    // If the connection was closed before the delegate was set execute it immediately otherwise
-                    // it will be called once the connection is closed.
-                    if (State == ConnectionState.Closed)
-                    {
-                        Task.Run(() => value?.Invoke(this));
-                    }
-                    else
-                    {
-                        _remove = value;
-                    }
-                }
-            }
-        }
-
         // The connect task is assigned when ConnectAsync is called, it's protected with _mutex.
         private Task? _connectTask;
         private EventHandler<ClosedEventArgs>? _closed;
@@ -587,11 +566,6 @@ namespace IceRpc
                 {
                     // Ignore, application event handlers shouldn't raise exceptions.
                 }
-
-                // Remove the connection from its factory. This must be called without the connection's mutex
-                // locked because the factory needs to acquire an internal mutex and the factory might call on
-                // the connection with its internal mutex locked.
-                _remove?.Invoke(this);
             }
         }
 

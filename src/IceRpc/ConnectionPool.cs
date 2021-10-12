@@ -217,8 +217,9 @@ namespace IceRpc
                         _connections[endpoint] = connections;
                     }
                     connections.Add(connection);
+
                     // Set the callback used to remove the connection from the pool.
-                    connection.Remove = connection => Remove(connection);
+                    connection.Closed += (sender, state) => Remove(connection);
                 }
             }
             await connection.ConnectAsync(cancel).ConfigureAwait(false);
