@@ -2,7 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Transports.Internal.Slic;
-using Microsoft.Extensions.Logging;
+using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Transports.Internal
 {
@@ -12,21 +12,18 @@ namespace IceRpc.Transports.Internal
         /// <inheritdoc/>
         public int DatagramMaxReceiveSize => NetworkSocket.DatagramMaxReceiveSize;
         /// <inheritdoc/>
-        public TimeSpan IdleTimeout => _slicConnection?.IdleTimeout ?? _idleTimeout;
-        /// <inheritdoc/>
         public bool IsDatagram => NetworkSocket.IsDatagram;
         /// <inheritdoc/>
         public bool IsSecure => NetworkSocket.SslStream != null;
         /// <inheritdoc/>
         public TimeSpan LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
-        /// <inheritdoc/>
-        public Endpoint? LocalEndpoint { get; private set; }
-        /// <inheritdoc/>
-        public Endpoint? RemoteEndpoint { get; private set; }
 
+        // NetworkSocket is internal to allow the LogNetworkSocketConnection to provide additional information
+        // provided by the socket (such as the send or receive buffer sizes).
         internal NetworkSocket NetworkSocket { get; }
 
-        private readonly TimeSpan _idleTimeout;
+        private readonly TimeSpan _defaultIdleTimeout;
+        private readonly Endpoint _endpoint;
         private readonly bool _isServer;
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
         private SlicConnection? _slicConnection;
@@ -40,10 +37,11 @@ namespace IceRpc.Transports.Internal
         }
 
         /// <inheritdoc/>
-        public async ValueTask<IMultiStreamConnection> ConnectMultiStreamConnectionAsync(CancellationToken cancel)
+        public async ValueTask<(IMultiStreamConnection, NetworkConnectionInformation)> ConnectMultiStreamConnectionAsync(
+            CancellationToken cancel)
         {
-            ISingleStreamConnection singleStreamConnection = await ConnectSingleStreamConnectionAsync(
-                cancel).ConfigureAwait(false);
+            (ISingleStreamConnection singleStreamConnection, NetworkConnectionInformation information) =
+                await ConnectSingleStreamConnectionAsync(cancel).ConfigureAwait(false);
 
             if (singleStreamConnection.IsDatagram)
             {
@@ -54,30 +52,42 @@ namespace IceRpc.Transports.Internal
             _slicConnection ??= await NetworkConnection.CreateSlicConnectionAsync(
                 singleStreamConnection,
                 _isServer,
-                _idleTimeout,
+                _defaultIdleTimeout,
                 _slicOptions,
                 cancel).ConfigureAwait(false);
-            return _slicConnection;
+
+            // Slic negotiates the idle timeout with the peer.
+            return (_slicConnection, information with { IdleTimeout = _slicConnection.IdleTimeout });
         }
 
         /// <inheritdoc/>
-        public async ValueTask<ISingleStreamConnection> ConnectSingleStreamConnectionAsync(CancellationToken cancel)
+        public async ValueTask<(ISingleStreamConnection, NetworkConnectionInformation)> ConnectSingleStreamConnectionAsync(
+            CancellationToken cancel)
         {
-            if (!_isServer)
+            Endpoint endpoint = await NetworkSocket.ConnectAsync(_endpoint, cancel).ConfigureAwait(false);
+            X509Certificate? remoteCertificate = NetworkSocket.SslStream?.RemoteCertificate;
+            if (_isServer)
             {
-                LocalEndpoint = await NetworkSocket.ConnectAsync(RemoteEndpoint!, cancel).ConfigureAwait(false);
+                // For a server connection, _endpoint is the local endpoint and the endpoint returned by
+                // ConnectAsync is the remote endpoint.
+                return (
+                    this,
+                    new NetworkConnectionInformation(_endpoint, endpoint, _defaultIdleTimeout, remoteCertificate));
             }
-            else if (!NetworkSocket.IsDatagram)
+            else
             {
-                RemoteEndpoint = await NetworkSocket.ConnectAsync(LocalEndpoint!, cancel).ConfigureAwait(false);
+                // For a client connection, _endpoint is the remote endpoint and the endpoint returned by
+                // ConnectAsync is the local endpoint.
+                return (
+                    this,
+                    new NetworkConnectionInformation(endpoint, _endpoint, _defaultIdleTimeout, remoteCertificate));
             }
-            return this;
         }
 
         /// <inheritdoc/>
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             !_isServer &&
-            EndpointComparer.ParameterLess.Equals(remoteEndpoint, RemoteEndpoint) &&
+            EndpointComparer.ParameterLess.Equals(_endpoint, remoteEndpoint) &&
             NetworkSocket.HasCompatibleParams(remoteEndpoint);
 
         /// <inheritdoc/>
@@ -104,15 +114,14 @@ namespace IceRpc.Transports.Internal
             NetworkSocket socket,
             Endpoint endpoint,
             bool isServer,
-            TimeSpan idleTimeout,
+            TimeSpan defaultIdleTimeout,
             SlicOptions slicOptions)
         {
-            LocalEndpoint = isServer ? endpoint : null;
-            RemoteEndpoint = isServer ? null : endpoint;
             NetworkSocket = socket;
 
+            _endpoint = endpoint;
             _isServer = isServer;
-            _idleTimeout = idleTimeout;
+            _defaultIdleTimeout = defaultIdleTimeout;
             _slicOptions = slicOptions;
         }
     }

@@ -11,24 +11,24 @@ namespace IceRpc.Transports
     {
         /// <summary>When this socket is a datagram socket, the maximum size of a datagram received by this socket.
         /// </summary>
-        public virtual int DatagramMaxReceiveSize => throw new InvalidOperationException();
+        internal virtual int DatagramMaxReceiveSize => throw new InvalidOperationException();
 
         /// <summary><c>true</c> for a datagram socket; <c>false</c> otherwise.</summary>
-        public abstract bool IsDatagram { get; }
+        internal abstract bool IsDatagram { get; }
 
         /// <summary>The underlying <see cref="Socket"/>.</summary>
-        public Socket Socket { get; }
+        internal Socket Socket { get; }
 
         /// <summary>The underlying <see cref="SslStream"/>, if the implementation uses a ssl stream and chooses to
         /// expose it.</summary>
-        public SslStream? SslStream { get; protected set; }
+        internal SslStream? SslStream { get; set; }
 
         /// <summary>Connects a new socket. This is called after the endpoint created a new socket to
         /// establish the connection and perform socket level initialization (TLS handshake, etc).</summary>
         /// <param name="endpoint">The endpoint used to create the connection.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The endpoint.</returns>
-        public abstract ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel);
+        internal abstract ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel);
 
         /// <summary>Releases the resources used by the socket.</summary>
         public void Dispose()
@@ -42,19 +42,19 @@ namespace IceRpc.Transports
         /// <param name="remoteEndpoint">The endpoint to check.</param>
         /// <returns><c>true</c> when this socket is compatible with the parameters of the provided endpoint;
         /// otherwise, <c>false</c>.</returns>
-        public abstract bool HasCompatibleParams(Endpoint remoteEndpoint);
+        internal abstract bool HasCompatibleParams(Endpoint remoteEndpoint);
 
         /// <summary>Receives data from the connection.</summary>
         /// <param name="buffer">The buffer that holds the received data.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The number of bytes received.</returns>
-        public abstract ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel);
+        internal abstract ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel);
 
         /// <summary>Sends data over the connection.</summary>
         /// <param name="buffers">The buffers containing the data to send.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A value task that completes once the buffers are sent.</returns>
-        public abstract ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel);
+        internal abstract ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel);
 
         /// <inheritdoc/>
         public override string ToString()

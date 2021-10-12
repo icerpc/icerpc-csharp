@@ -68,21 +68,17 @@ namespace IceRpc.Tests.Internal
             connection.Close();
         }
 
-        [TestCase(false, false)]
-        [TestCase(true, false)]
-        [TestCase(false, true)]
-        public void NetworkSocketConnection_Properties(bool isServer, bool isDatagram)
+        [TestCase(false)]
+        [TestCase(true)]
+        public void NetworkSocketConnection_Properties(bool isDatagram)
         {
             var connection = new NetworkSocketConnection(
                 new NetworkSocketStub(isDatagram),
                 Endpoint.FromString("ice+tcp://host"),
-                isServer: isServer,
+                isServer: false,
                 TimeSpan.FromSeconds(10),
                 slicOptions: new());
 
-            Assert.That(connection.LocalEndpoint, Is.EqualTo(isServer ? Endpoint.FromString("ice+tcp://host") : null));
-            Assert.That(connection.RemoteEndpoint, Is.EqualTo(isServer ? null : Endpoint.FromString("ice+tcp://host")));
-            Assert.That(connection.IdleTimeout, Is.EqualTo(TimeSpan.FromSeconds(10)));
             Assert.That(connection.IsDatagram, Is.EqualTo(isDatagram));
             connection.Close();
         }
@@ -97,7 +93,8 @@ namespace IceRpc.Tests.Internal
                 TimeSpan.FromSeconds(10),
                 slicOptions: new());
 
-            ISingleStreamConnection stream = await connection.ConnectSingleStreamConnectionAsync(default);
+            (ISingleStreamConnection stream, NetworkConnectionInformation _) =
+                await connection.ConnectSingleStreamConnectionAsync(default);
 
             TimeSpan lastActivity = connection.LastActivity;
             await Task.Delay(2);

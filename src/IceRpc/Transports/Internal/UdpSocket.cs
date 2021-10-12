@@ -10,8 +10,8 @@ namespace IceRpc.Transports.Internal
 {
     internal sealed class UdpSocket : NetworkSocket
     {
-        public override int DatagramMaxReceiveSize { get; }
-        public override bool IsDatagram => true;
+        internal override int DatagramMaxReceiveSize { get; }
+        internal override bool IsDatagram => true;
 
         // The maximum IP datagram size is 65535. Subtract 20 bytes for the IP header and 8 bytes for the UDP header
         // to get the maximum payload.
@@ -24,39 +24,39 @@ namespace IceRpc.Transports.Internal
         private readonly string? _multicastInterface;
         private readonly int _ttl;
 
-        public override async ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
+        internal override async ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
         {
-            if (_isServer)
-            {
-                throw new NotSupportedException($"{nameof(UdpSocket)} doesn't support accepting server connections");
-            }
-            else
+            if (!_isServer)
             {
                 Debug.Assert(_addr != null);
                 try
                 {
                     await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
-                    var ipEndPoint = (IPEndPoint)Socket.LocalEndPoint!;
-                    return endpoint with
-                    {
-                        Host = ipEndPoint.Address.ToString(),
-                        Port = checked((ushort)ipEndPoint.Port)
-                    };
                 }
                 catch (Exception ex)
                 {
                     throw new ConnectFailedException(ex);
                 }
             }
+
+            // TODO: returning the local socket endpoint for a server socket is not really correct, in theory it
+            // should return null since a server-side UDP socket is not connected. This would require however
+            // to make NetworkConnectionInformation.RemoteEndpoint nullable just for UDP. Is it worth the trouble?
+            var ipEndPoint = (IPEndPoint)Socket.LocalEndPoint!;
+            return endpoint with
+            {
+                Host = ipEndPoint.Address.ToString(),
+                Port = checked((ushort)ipEndPoint.Port)
+            };
         }
 
-        public override bool HasCompatibleParams(Endpoint remoteEndpoint)
+        internal override bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
             (_, int ttl, string? multicastInterface) = remoteEndpoint.ParseUdpParams();
             return ttl == _ttl && multicastInterface == _multicastInterface;
         }
 
-        public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
+        internal override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             try
             {
@@ -87,7 +87,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override async ValueTask SendAsync(
+        internal override async ValueTask SendAsync(
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             CancellationToken cancel)
         {

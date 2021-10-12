@@ -100,8 +100,8 @@ namespace IceRpc
                             !request.Connection.IsServer &&
                             retryPolicy == RetryPolicy.OtherReplica)
                         {
-                            request.ExcludedEndpoints =
-                                request.ExcludedEndpoints.Append(request.Connection.RemoteEndpoint!);
+                            request.ExcludedEndpoints = request.ExcludedEndpoints.Append(
+                                request.Connection.RemoteEndpoint!);
                         }
 
                         tryAgain = true;
@@ -192,8 +192,8 @@ namespace IceRpc
             if (logger.IsEnabled(LogLevel.Debug))
             {
                 logger.LogRetryRequest(
-                    connection?.LocalEndpoint?.ToString() ?? "undefined",
-                    connection?.RemoteEndpoint?.ToString() ?? "undefined",
+                    connection?.NetworkConnectionInformation?.LocalEndpoint.ToString() ?? "undefined",
+                    connection?.NetworkConnectionInformation?.RemoteEndpoint.ToString() ?? "undefined",
                     path,
                     operation,
                     retryPolicy,

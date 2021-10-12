@@ -28,11 +28,15 @@ namespace IceRpc.Transports
             INetworkConnection connection = _decoratee.CreateConnection(remoteEndpoint);
             if (connection is NetworkSocketConnection networkSocketConnection)
             {
-                return new LogNetworkSocketConnectionDecorator(networkSocketConnection, isServer: false, _logger);
+                return new LogNetworkSocketConnectionDecorator(
+                    networkSocketConnection,
+                    isServer: false,
+                    remoteEndpoint,
+                    _logger);
             }
             else
             {
-                return new LogNetworkConnectionDecorator(connection, isServer: false, _logger);
+                return new LogNetworkConnectionDecorator(connection, isServer: false, remoteEndpoint, _logger);
             }
         }
     }

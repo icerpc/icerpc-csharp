@@ -29,13 +29,16 @@ namespace IceRpc.Tests.Internal
 
         [TestCase(false)]
         [TestCase(true)]
-        public void ColocConnection_Properties(bool isServer)
+        public async Task ColocConnection_Properties(bool isServer)
         {
             ColocConnection connection = CreateConnection(isServer);
 
-            Assert.That(connection.LocalEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
-            Assert.That(connection.RemoteEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
-            Assert.That(connection.IdleTimeout, Is.EqualTo(TimeSpan.MaxValue));
+            (ISingleStreamConnection _, NetworkConnectionInformation information) =
+                await connection.ConnectSingleStreamConnectionAsync(default);
+
+            Assert.That(information.LocalEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
+            Assert.That(information.RemoteEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
+            Assert.That(information.IdleTimeout, Is.EqualTo(TimeSpan.MaxValue));
             Assert.That(connection.IsDatagram, Is.False);
 
             connection.Close();
@@ -46,7 +49,8 @@ namespace IceRpc.Tests.Internal
         {
             ColocConnection connection = CreateConnection(false);
 
-            ISingleStreamConnection stream = await connection.ConnectSingleStreamConnectionAsync(default);
+            (ISingleStreamConnection stream, NetworkConnectionInformation _) =
+                await connection.ConnectSingleStreamConnectionAsync(default);
 
             // Coloc connections are not closed by ACM.
             // TODO: should they?
@@ -62,7 +66,7 @@ namespace IceRpc.Tests.Internal
             connection.Close();
         }
 
-        static private ColocConnection CreateConnection(bool isServer)
+        private static ColocConnection CreateConnection(bool isServer)
         {
             var channel = Channel.CreateUnbounded<ReadOnlyMemory<byte>>(
                 new UnboundedChannelOptions
