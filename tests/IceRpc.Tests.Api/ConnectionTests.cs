@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Api
@@ -10,11 +11,9 @@ namespace IceRpc.Tests.Api
         [Test]
         public void Connection_Options_ArgumentException()
         {
-            var options = new ConnectionOptions();
-            Assert.Throws<ArgumentException>(() => options.CloseTimeout = TimeSpan.Zero);
-            Assert.Throws<ArgumentException>(() => options.IncomingFrameMaxSize = 512);
-
-            Assert.Throws<ArgumentException>(() => options.ConnectTimeout = TimeSpan.Zero);
+            Assert.Throws<ArgumentException>(() => new ConnectionOptions { CloseTimeout = TimeSpan.Zero });
+            Assert.Throws<ArgumentException>(() => new ConnectionOptions { IncomingFrameMaxSize = 512});
+            Assert.Throws<ArgumentException>(() => new ConnectionOptions {  ConnectTimeout = TimeSpan.Zero});
         }
 
         [Test]

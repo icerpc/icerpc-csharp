@@ -384,8 +384,8 @@ namespace IceRpc.Tests.ClientServer
                     byte[] data = Enumerable.Range(0, 1024).Select(i => (byte)i).ToArray();
                     // Use two connections to simulate two concurrent requests, the first should succeed
                     // and the second should fail because the buffer size max.
-                    await using var connection1 = new Connection { RemoteEndpoint = retry.Proxy.Endpoint };
-                    await using var connection2 = new Connection { RemoteEndpoint = retry.Proxy.Endpoint };
+                    await using var connection1 = new Connection { RemoteEndpoint = retry.Proxy.Endpoint! };
+                    await using var connection2 = new Connection { RemoteEndpoint = retry.Proxy.Endpoint! };
 
                     await connection1.ConnectAsync();
                     await connection2.ConnectAsync();

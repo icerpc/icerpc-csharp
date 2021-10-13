@@ -68,9 +68,6 @@ namespace IceRpc
         /// dispatcher is set.</value>
         public IDispatcher? Dispatcher { get; init; }
 
-        /// <summary>The maximum size in bytes of an incoming Ice1 or Ice2 protocol frame.</summary>
-        public int IncomingFrameMaxSize => _options.IncomingFrameMaxSize;
-
         /// <summary><c>true</c> if the connection uses a secure transport, <c>false</c> otherwise.</summary>
         /// <remarks><c>false</c> can mean the connection is not yet connected and its security will be determined
         /// during connection establishment.</remarks>
@@ -78,13 +75,7 @@ namespace IceRpc
 
         /// <summary><c>true</c> for a connection accepted by a server and <c>false</c> for a connection created by a
         /// client.</summary>
-        public bool IsServer => RemoteEndpoint == null;
-
-        /// <summary>Whether or not connections are kept alive. If a connection is kept alive, the connection
-        /// monitoring will send keep alive frames to ensure the peer doesn't close the connection in the
-        /// period defined by its idle timeout. How often keep alive frames are sent depends on the peer's
-        /// IdleTimeout configuration. The default value is false.</summary>
-        public bool KeepAlive => _options.KeepAlive;
+        public bool IsServer => _protocol != null;
 
         /// <summary>The network connection information or <c>null</c> if the connection is not connected.</summary>
         public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
@@ -94,10 +85,19 @@ namespace IceRpc
         public ILoggerFactory? LoggerFactory { get; init; }
 
         /// <summary>The protocol used by the connection.</summary>
-        public Protocol Protocol => RemoteEndpoint?.Protocol ?? _protocol!;
+        public Protocol Protocol => _protocol ?? RemoteEndpoint.Protocol;
 
-        /// <summary>The client connection's remote endpoint, <c>null</c> for a server connection.</summary>
-        public Endpoint? RemoteEndpoint { get; init; }
+        /// <summary>Gets or sets the options of the connection.</summary>
+        public ConnectionOptions Options { get; init; } = new();
+
+        /// <summary>The connection's remote endpoint.</summary>
+        public Endpoint RemoteEndpoint
+        {
+            get => NetworkConnectionInformation?.RemoteEndpoint ??
+                   _initialRemoteEndpoint ??
+                   throw new InvalidOperationException($"{nameof(RemoteEndpoint)} is not set on the connection");
+            init => _initialRemoteEndpoint = value;
+        }
 
         /// <summary>The state of the connection.</summary>
         public ConnectionState State
@@ -116,31 +116,29 @@ namespace IceRpc
         private EventHandler<ClosedEventArgs>? _closed;
         // The close task is assigned when ShutdownAsync or CloseAsync are called, it's protected with _mutex.
         private Task? _closeTask;
+        // The initial remote endpoint for client connections.
+        private readonly Endpoint? _initialRemoteEndpoint;
         // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
         private readonly object _mutex = new();
         private INetworkConnection? _networkConnection;
-        private readonly ConnectionOptions _options;
-        private readonly Protocol? _protocol; // null for client connections
+        // _protocol is non-null only for server connections. For client connections, it's null. The protocol
+        // is instead obtained with RemoteEndpoint.Protocol
+        private readonly Protocol? _protocol;
         private IProtocolConnection? _protocolConnection;
         private ConnectionState _state = ConnectionState.NotConnected;
         private Timer? _timer;
 
         /// <summary>Constructs a new client connection.</summary>
-        public Connection() :
-            this(new())
+        public Connection()
         {
         }
-
-        /// <summary>Constructs a new client connection with specific options.</summary>
-        /// <param name="options">The connection options</param>
-        public Connection(ConnectionOptions options) => _options = options;
 
         /// <summary>Closes the connection. This methods switches the connection state to <see
         /// cref="ConnectionState.Closed"/>. If <see cref="Closed"/> event listeners are registered, it waits
         /// for the events to be executed.</summary>
         /// <param name="message">A description of the connection close reason.</param>
         public Task CloseAsync(string? message = null) =>
-        CloseAsync(new ConnectionClosedException(message ?? "connection closed forcefully"));
+            CloseAsync(new ConnectionClosedException(message ?? "connection closed forcefully"));
 
         /// <summary>Establishes the connection.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
@@ -189,7 +187,7 @@ namespace IceRpc
 
             async Task PerformConnectAsync()
             {
-                using var connectCancellationSource = new CancellationTokenSource(_options.ConnectTimeout);
+                using var connectCancellationSource = new CancellationTokenSource(Options.ConnectTimeout);
                 try
                 {
                     await Task.Yield();
@@ -198,7 +196,7 @@ namespace IceRpc
                     // result of the network connection establishment.
                     (_protocolConnection, NetworkConnectionInformation) = await Protocol.CreateConnectionAsync(
                         _networkConnection,
-                        _options.IncomingFrameMaxSize,
+                        Options.IncomingFrameMaxSize,
                         IsServer,
                         connectCancellationSource.Token).ConfigureAwait(false);
 
@@ -374,17 +372,11 @@ namespace IceRpc
         /// <inheritdoc/>
         public override string ToString() => _networkConnection?.ToString() ?? "";
 
-        /// <summary>Constructs a server connection from an accepted connection.</summary>
-        internal Connection(
-            INetworkConnection connection,
-            Protocol protocol,
-            IDispatcher? dispatcher,
-            ConnectionOptions options)
+        /// <summary>Constructs a server connection from an accepted network connection.</summary>
+        internal Connection(INetworkConnection connection, Protocol protocol)
         {
-            Dispatcher = dispatcher;
-            _protocol = protocol;
             _networkConnection = connection;
-            _options = options;
+            _protocol = protocol;
         }
 
         internal void Monitor()
@@ -416,7 +408,7 @@ namespace IceRpc
                     }
                 }
                 else if (idleTime > NetworkConnectionInformation.Value.IdleTimeout / 4 &&
-                         (_options.KeepAlive || _protocolConnection.HasDispatchInProgress))
+                         (Options.KeepAlive || _protocolConnection.HasDispatchInProgress))
                 {
                     // We send a ping if there was no activity in the last (IdleTimeout / 4) period. Sending a
                     // ping sooner than really needed is safer to ensure that the receiver will receive the
@@ -587,7 +579,7 @@ namespace IceRpc
                 // that _closeTask is assigned before any synchronous continuations are ran.
                 await Task.Yield();
 
-                using var closeCancellationSource = new CancellationTokenSource(_options.CloseTimeout);
+                using var closeCancellationSource = new CancellationTokenSource(Options.CloseTimeout);
                 try
                 {
                     // Shutdown the connection.

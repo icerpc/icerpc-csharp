@@ -34,11 +34,13 @@ try
     router.UseLogger(loggerFactory);
     router.Map<IHello>(new Hello());
 
+    IConfigurationSection section = configuration.GetSection("AppSettings").GetSection("Hello");
     await using var server = new Server
     {
-        Endpoint = configuration.GetSection("AppSettings").GetValue<string>("Hello.Endpoints"),
-        LoggerFactory = loggerFactory,
-        Dispatcher = router
+        Endpoint = section.GetValue<string>("Endpoints"),
+        // LoggerFactory = loggerFactory,
+        Dispatcher = router,
+        ConnectionOptions = section.GetSection("ConnectionOptions").Get<ConnectionOptions>()
     };
 
     // Destroy the server on Ctrl+C or Ctrl+Break
