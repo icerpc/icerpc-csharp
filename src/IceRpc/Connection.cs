@@ -3,7 +3,7 @@
 using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Transports;
-using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
 namespace IceRpc
@@ -88,6 +88,10 @@ namespace IceRpc
         /// <summary>The network connection information or <c>null</c> if the connection is not connected.</summary>
         public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
 
+        /// <summary>Gets or sets the logger factory of this connection.</summary>
+        /// <value>The logger factory of this connection.</value>
+        public ILoggerFactory? LoggerFactory { get; init; }
+
         /// <summary>The protocol used by the connection.</summary>
         public Protocol Protocol => RemoteEndpoint?.Protocol ?? _protocol!;
 
@@ -159,7 +163,14 @@ namespace IceRpc
                     if (!IsServer)
                     {
                         Debug.Assert(_protocolConnection == null && RemoteEndpoint != null);
-                        _networkConnection = ClientTransport.CreateConnection(RemoteEndpoint);
+
+                        IClientTransport clientTransport = ClientTransport;
+                        if (LoggerFactory is ILoggerFactory loggerFactory)
+                        {
+                            clientTransport = new LogClientTransportDecorator(clientTransport, loggerFactory);
+                        }
+
+                        _networkConnection = clientTransport.CreateConnection(RemoteEndpoint);
                     }
 
                     Debug.Assert(_networkConnection != null);

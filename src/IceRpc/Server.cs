@@ -2,6 +2,7 @@
 
 using IceRpc.Configure;
 using IceRpc.Transports;
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
 namespace IceRpc
@@ -40,6 +41,10 @@ namespace IceRpc
                 _endpoint = value;
             }
         }
+
+        /// <summary>Gets or sets the logger factory of this server.</summary>
+        /// <value>The logger factory of this server.</value>
+        public ILoggerFactory? LoggerFactory { get; set; }
 
         /// <summary>Gets the Ice protocol used by this server.</summary>
         /// <value>The Ice protocol of this server.</value>
@@ -92,8 +97,14 @@ namespace IceRpc
                     throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
 
+                IServerTransport serverTransport = ServerTransport;
+                if (LoggerFactory is ILoggerFactory loggerFactory)
+                {
+                    serverTransport = new LogServerTransportDecorator(serverTransport, loggerFactory);
+                }
+
                 INetworkConnection? networkConnection;
-                (_listener, networkConnection) = ServerTransport.Listen(_endpoint);
+                (_listener, networkConnection) = serverTransport.Listen(_endpoint);
 
                 if (_listener != null)
                 {
