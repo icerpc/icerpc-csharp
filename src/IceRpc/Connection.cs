@@ -3,6 +3,7 @@
 using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Transports;
+using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
@@ -165,9 +166,10 @@ namespace IceRpc
                         Debug.Assert(_protocolConnection == null && RemoteEndpoint != null);
 
                         IClientTransport clientTransport = ClientTransport;
-                        if (LoggerFactory is ILoggerFactory loggerFactory)
+                        if (LoggerFactory?.CreateLogger("IceRpc.Transports") is ILogger logger &&
+                            logger.IsEnabled(LogLevel.Error))
                         {
-                            clientTransport = new LogClientTransportDecorator(clientTransport, loggerFactory);
+                            clientTransport = new LogClientTransportDecorator(clientTransport, logger);
                         }
 
                         _networkConnection = clientTransport.CreateConnection(RemoteEndpoint);

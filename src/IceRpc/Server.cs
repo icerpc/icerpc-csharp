@@ -2,6 +2,7 @@
 
 using IceRpc.Configure;
 using IceRpc.Transports;
+using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
@@ -98,9 +99,10 @@ namespace IceRpc
                 }
 
                 IServerTransport serverTransport = ServerTransport;
-                if (LoggerFactory is ILoggerFactory loggerFactory)
+                if (LoggerFactory?.CreateLogger("IceRpc.Transports") is ILogger logger &&
+                    logger.IsEnabled(LogLevel.Error))
                 {
-                    serverTransport = new LogServerTransportDecorator(serverTransport, loggerFactory);
+                    serverTransport = new LogServerTransportDecorator(serverTransport, logger);
                 }
 
                 INetworkConnection? networkConnection;
