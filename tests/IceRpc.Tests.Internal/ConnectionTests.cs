@@ -76,7 +76,7 @@ namespace IceRpc.Tests.Internal
                 Connection serverConnection;
                 if (Endpoint.Transport == "udp")
                 {
-                    serverConnection = new Connection(serverTransport.Listen(Endpoint).Connection!, Endpoint)
+                    serverConnection = new Connection(serverTransport.Listen(Endpoint).Connection!, Endpoint.Protocol)
                     {
                         Dispatcher = _dispatcher,
                         Options = _serverConnectionOptions
@@ -97,7 +97,7 @@ namespace IceRpc.Tests.Internal
 
                 async Task<Connection> AcceptAsync(IListener listener)
                 {
-                    var connection = new Connection(await listener.AcceptAsync(), Endpoint)
+                    var connection = new Connection(await listener.AcceptAsync(), Endpoint.Protocol)
                     {
                         Dispatcher = _dispatcher,
                         Options = _serverConnectionOptions
