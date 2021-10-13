@@ -97,6 +97,8 @@ namespace IceRpc.Transports
                 throw;
             }
 
+            // Disable the warning about Dispose not being called on UdpSocket. It is disposed by the
+            // UdpListener so there's no need to dispose it before loosing scope.
 #pragma warning disable CA2000
             return new UdpListener(
                 new UdpSocket(socket, isServer: true, multicastAddress),
