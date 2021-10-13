@@ -109,11 +109,11 @@ namespace IceRpc
 
                     // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                    var serverConnection = new Connection(
-                        networkConnection,
-                        _endpoint.Protocol,
-                        Dispatcher,
-                        ConnectionOptions);
+                    var serverConnection = new Connection(networkConnection, _endpoint)
+                    {
+                        Dispatcher = Dispatcher,
+                        Options = ConnectionOptions,
+                    };
 #pragma warning restore CA2000
 
                     // TODO: this shouldn't block because UDP connection doesn't block... However, it's really
@@ -228,7 +228,11 @@ namespace IceRpc
 
                 // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                var connection = new Connection(networkConnection, _endpoint.Protocol, Dispatcher, ConnectionOptions);
+                var connection = new Connection(networkConnection, _endpoint)
+                {
+                    Dispatcher = Dispatcher,
+                    Options = ConnectionOptions
+                };
 #pragma warning restore CA2000
 
                 lock (_mutex)

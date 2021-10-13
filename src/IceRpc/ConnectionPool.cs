@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Transports;
 
@@ -205,11 +206,12 @@ namespace IceRpc
                 }
                 else
                 {
-                    connection = new Connection(ConnectionOptions)
+                    connection = new Connection
                     {
                         Dispatcher = Dispatcher,
                         ClientTransport = ClientTransport,
-                        RemoteEndpoint = endpoint,
+                        Options = ConnectionOptions,
+                        RemoteEndpoint = endpoint
                     };
                     if (!_connections.TryGetValue(endpoint, out connections))
                     {

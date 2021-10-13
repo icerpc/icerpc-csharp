@@ -149,7 +149,7 @@ namespace IceRpc.Internal
                 {
                     frame.Payload = frame.Payload.Decompress(compressionField.Format,
                                                              (int)compressionField.UncompressedSize,
-                                                             frame.Connection.IncomingFrameMaxSize);
+                                                             frame.Connection.Options.IncomingFrameMaxSize);
                 }
             }
         }

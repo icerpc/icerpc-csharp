@@ -234,12 +234,12 @@ namespace IceRpc.Slice
                         }
 
                         int size = Ice20Decoder.DecodeSize(buffer[1..].AsReadOnlySpan()).Size;
-                        if (size > _connection.IncomingFrameMaxSize)
+                        if (size > _connection.Options.IncomingFrameMaxSize)
                         {
                             throw new InvalidDataException(
                                 @$"frame size of {size
                                 } bytes is greater than the configured IncomingFrameMaxSize value ({
-                                _connection.IncomingFrameMaxSize} bytes)");
+                                _connection.Options.IncomingFrameMaxSize} bytes)");
                         }
 
                         buffer = size > buffer.Length ? new byte[size] : buffer.Slice(0, size);
