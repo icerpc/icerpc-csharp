@@ -2,6 +2,8 @@
 
 using IceRpc.Configure;
 using IceRpc.Transports;
+using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
 namespace IceRpc
@@ -40,6 +42,10 @@ namespace IceRpc
                 _endpoint = value;
             }
         }
+
+        /// <summary>Gets or sets the logger factory of this server.</summary>
+        /// <value>The logger factory of this server.</value>
+        public ILoggerFactory? LoggerFactory { get; set; }
 
         /// <summary>Gets the Ice protocol used by this server.</summary>
         /// <value>The Ice protocol of this server.</value>
@@ -92,40 +98,18 @@ namespace IceRpc
                     throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
 
-                INetworkConnection? networkConnection;
-                (_listener, networkConnection) = ServerTransport.Listen(_endpoint);
-
-                if (_listener != null)
+                IServerTransport serverTransport = ServerTransport;
+                if (LoggerFactory?.CreateLogger("IceRpc.Transports") is ILogger logger &&
+                    logger.IsEnabled(LogLevel.Error))
                 {
-                    Debug.Assert(networkConnection == null);
-                    _endpoint = _listener.Endpoint;
-
-                    // Run task to start accepting new connections.
-                    Task.Run(() => AcceptAsync(_listener));
+                    serverTransport = new LogServerTransportDecorator(serverTransport, logger);
                 }
-                else
-                {
-                    Debug.Assert(networkConnection != null);
 
-                    // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
-#pragma warning disable CA2000
-                    var serverConnection = new Connection(networkConnection, _endpoint.Protocol)
-                    {
-                        Dispatcher = Dispatcher,
-                        Options = ConnectionOptions,
-                    };
-#pragma warning restore CA2000
+                _listener = serverTransport.Listen(_endpoint);
+                _endpoint = _listener.Endpoint;
 
-                    // TODO: this shouldn't block because UDP connection doesn't block... However, it's really
-                    // a hack to handle UDP. Instead, I proposed that UdpServerTransport.Listen returns a
-                    // listener. UDP would implement a listener that just returns a single connection: the
-                    // unique server-side connection. It would be established immediately by AcceptAsync
-                    // below. The second AcceptAsync call would block until the listener is disposed. I think
-                    // this would lead to a cleaner API.
-                    serverConnection.ConnectAsync().Wait();
-                    _endpoint = serverConnection.NetworkConnectionInformation!.Value.LocalEndpoint;
-                    _connections.Add(serverConnection);
-                }
+                // Run task to start accepting new connections.
+                Task.Run(() => AcceptAsync(_listener));
 
                 _listening = true;
             }

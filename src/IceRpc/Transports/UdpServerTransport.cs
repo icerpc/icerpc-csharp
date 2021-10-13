@@ -21,7 +21,7 @@ namespace IceRpc.Transports
         /// </summary>
         public UdpServerTransport(UdpOptions options) => _options = options;
 
-        (IListener?, INetworkConnection?) IServerTransport.Listen(Endpoint endpoint)
+        IListener IServerTransport.Listen(Endpoint endpoint)
         {
             // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
             // a udp endpoint regardless of its actual transport name.
@@ -97,13 +97,13 @@ namespace IceRpc.Transports
                 throw;
             }
 
-            return (null,
-                    new NetworkSocketConnection(
-                        new UdpSocket(socket, isServer: true, multicastAddress),
-                        endpoint with { Port = port },
-                        isServer: true,
-                        defaultIdleTimeout: TimeSpan.MaxValue,
-                        new()));
+            // Disable the warning about Dispose not being called on UdpSocket. It is disposed by the
+            // UdpListener so there's no need to dispose it before loosing scope.
+#pragma warning disable CA2000
+            return new UdpListener(
+                new UdpSocket(socket, isServer: true, multicastAddress),
+                endpoint with { Port = port });
+#pragma warning restore CA2000
         }
     }
 }

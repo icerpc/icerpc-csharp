@@ -9,10 +9,9 @@ namespace IceRpc.Transports
     {
         /// <summary>Starts listening on an endpoint.</summary>
         /// <param name="endpoint">The endpoint.</param>
-        /// <returns>Either a new listener or a server network connection, depending on the transport of
-        /// <paramref name="endpoint"/>.</returns>
+        /// <returns>The new listener.</returns>
         /// <exception name="UnknownTransportException">Thrown if this server transport does not support the
         /// endpoint's transport.</exception>
-        (IListener? Listener, INetworkConnection? Connection) Listen(Endpoint endpoint);
+        IListener Listen(Endpoint endpoint);
     }
 }

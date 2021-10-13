@@ -3,24 +3,13 @@
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 
-namespace IceRpc.Transports
+namespace IceRpc.Transports.Internal
 {
     /// <summary>Builds a log client transport decorator.</summary>
-    public class LogClientTransportDecorator : IClientTransport
+    internal class LogClientTransportDecorator : IClientTransport
     {
         private readonly IClientTransport _decoratee;
         private readonly ILogger _logger;
-
-        /// <summary>Constructs a client transport decorator. The network connections created by this client
-        /// transport will log traces if <see cref="LogLevel.Trace"/> is enabled on the logger created with
-        /// the logger factory.</summary>
-        /// <param name="decoratee">The client transport to decorate.</param>
-        /// <param name="loggerFactory">The logger factory.</param>
-        public LogClientTransportDecorator(IClientTransport decoratee, ILoggerFactory loggerFactory)
-        {
-            _decoratee = decoratee;
-            _logger = loggerFactory.CreateLogger("IceRpc.Transports");
-        }
 
         /// <inheritdoc/>
         public INetworkConnection CreateConnection(Endpoint remoteEndpoint)
@@ -38,6 +27,15 @@ namespace IceRpc.Transports
             {
                 return new LogNetworkConnectionDecorator(connection, isServer: false, remoteEndpoint, _logger);
             }
+        }
+
+        /// <summary>Constructs a client transport decorator to log traces.</summary>
+        /// <param name="decoratee">The client transport to decorate.</param>
+        /// <param name="logger">The logger.</param>
+        internal LogClientTransportDecorator(IClientTransport decoratee, ILogger logger)
+        {
+            _decoratee = decoratee;
+            _logger = logger;
         }
     }
 }

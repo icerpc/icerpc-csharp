@@ -3,6 +3,8 @@
 using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Transports;
+using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
 namespace IceRpc
@@ -78,11 +80,15 @@ namespace IceRpc
         /// <summary>The network connection information or <c>null</c> if the connection is not connected.</summary>
         public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
 
-        /// <summary>Gets or sets the options of the connection.</summary>
-        public ConnectionOptions Options { get; init; } = new();
+        /// <summary>Gets or sets the logger factory of this connection.</summary>
+        /// <value>The logger factory of this connection.</value>
+        public ILoggerFactory? LoggerFactory { get; init; }
 
         /// <summary>The protocol used by the connection.</summary>
         public Protocol Protocol => _protocol ?? RemoteEndpoint.Protocol;
+
+        /// <summary>Gets or sets the options of the connection.</summary>
+        public ConnectionOptions Options { get; init; } = new();
 
         /// <summary>The connection's remote endpoint.</summary>
         public Endpoint RemoteEndpoint
@@ -156,7 +162,15 @@ namespace IceRpc
                     if (!IsServer)
                     {
                         Debug.Assert(_protocolConnection == null && RemoteEndpoint != null);
-                        _networkConnection = ClientTransport.CreateConnection(RemoteEndpoint);
+
+                        IClientTransport clientTransport = ClientTransport;
+                        if (LoggerFactory?.CreateLogger("IceRpc.Transports") is ILogger logger &&
+                            logger.IsEnabled(LogLevel.Error))
+                        {
+                            clientTransport = new LogClientTransportDecorator(clientTransport, logger);
+                        }
+
+                        _networkConnection = clientTransport.CreateConnection(RemoteEndpoint);
                     }
 
                     Debug.Assert(_networkConnection != null);

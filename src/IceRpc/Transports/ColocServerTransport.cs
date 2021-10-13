@@ -9,8 +9,7 @@ namespace IceRpc.Transports
     {
         private readonly SlicOptions _slicOptions;
 
-        (IListener?, INetworkConnection?) IServerTransport.Listen(Endpoint endpoint) =>
-            (new ColocListener(endpoint, _slicOptions), null);
+        IListener IServerTransport.Listen(Endpoint endpoint) => new ColocListener(endpoint, _slicOptions);
 
         /// <summary>Constructs a colocated server transport.</summary>
         /// <param name="slicOptions">The transport options.</param>

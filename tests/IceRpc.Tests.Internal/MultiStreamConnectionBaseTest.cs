@@ -55,8 +55,7 @@ namespace IceRpc.Tests.Internal
             using IListener listener = TestHelper.CreateServerTransport(
                 _serverEndpoint,
                 options: null,
-                multiStreamOptions: _serverOptions).Listen(_serverEndpoint).Listener!;
-
+                multiStreamOptions: _serverOptions).Listen(_serverEndpoint);
             return await listener.AcceptAsync();
         }
 

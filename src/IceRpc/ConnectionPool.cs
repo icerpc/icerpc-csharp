@@ -3,6 +3,7 @@
 using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Transports;
+using Microsoft.Extensions.Logging;
 
 namespace IceRpc
 {
@@ -22,6 +23,10 @@ namespace IceRpc
         /// <value>The dispatcher of this connection pool.</value>
         /// <seealso cref="IDispatcher"/>
         public IDispatcher? Dispatcher { get; init; }
+
+        /// <summary>Gets or sets the logger factory of this connection pool.</summary>
+        /// <value>The logger factory of this connection pool.</value>
+        public ILoggerFactory? LoggerFactory { get; init; }
 
         /// <summary>Indicates whether or not <see cref="GetConnectionAsync"/> prefers returning an existing connection
         /// over creating a new one.</summary>
@@ -210,6 +215,7 @@ namespace IceRpc
                     {
                         Dispatcher = Dispatcher,
                         ClientTransport = ClientTransport,
+                        LoggerFactory = LoggerFactory,
                         Options = ConnectionOptions,
                         RemoteEndpoint = endpoint
                     };
