@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc
+namespace IceRpc.Configure
 {
     /// <summary>An options base class for configuring IceRPC connections.</summary>
     public class ConnectionOptions
@@ -13,7 +13,7 @@ namespace IceRpc
         public TimeSpan CloseTimeout
         {
             get => _closeTimeout;
-            set => _closeTimeout = value != TimeSpan.Zero ? value :
+            init => _closeTimeout = value != TimeSpan.Zero ? value :
                 throw new ArgumentException($"0 is not a valid value for {nameof(CloseTimeout)}", nameof(value));
         }
 
@@ -22,7 +22,7 @@ namespace IceRpc
         public TimeSpan ConnectTimeout
         {
             get => _connectTimeout;
-            set => _connectTimeout = value != TimeSpan.Zero ? value :
+            init => _connectTimeout = value != TimeSpan.Zero ? value :
                 throw new ArgumentException($"0 is not a valid value for {nameof(ConnectTimeout)}", nameof(value));
         }
 
@@ -33,7 +33,7 @@ namespace IceRpc
         public int IncomingFrameMaxSize
         {
             get => _incomingFrameMaxSize;
-            set => _incomingFrameMaxSize = value >= 1024 ? value :
+            init => _incomingFrameMaxSize = value >= 1024 ? value :
                 value <= 0 ? int.MaxValue :
                 throw new ArgumentException($"{nameof(IncomingFrameMaxSize)} cannot be less than 1KB ", nameof(value));
         }
@@ -43,7 +43,7 @@ namespace IceRpc
         /// in the period defined by its idle timeout. How often keep alive frames are sent depends on the
         /// peer's IdleTimeout configuration. The default value is false.</summary>
         /// <value>Enables connection keep alive.</value>
-        public bool KeepAlive { get; set; }
+        public bool KeepAlive { get; init; }
 
         private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
         private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);

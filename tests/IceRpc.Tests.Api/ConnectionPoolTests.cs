@@ -77,8 +77,8 @@ namespace IceRpc.Tests.Api
                 ImmutableList<Endpoint>.Empty,
                 default);
 
-            Assert.That(connection.KeepAlive, Is.True);
-            Assert.That(connection.IncomingFrameMaxSize, Is.EqualTo(2048));
+            Assert.That(connection.Options.KeepAlive, Is.True);
+            Assert.That(connection.Options.IncomingFrameMaxSize, Is.EqualTo(2048));
         }
 
         [Test]

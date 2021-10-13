@@ -4,9 +4,7 @@ using IceRpc.Configure;
 using IceRpc.Transports;
 using NUnit.Framework;
 using System.Collections.Immutable;
-using System.Net;
 using System.Net.Security;
-using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Tests.Internal
@@ -78,11 +76,11 @@ namespace IceRpc.Tests.Internal
                 Connection serverConnection;
                 if (Endpoint.Transport == "udp")
                 {
-                    serverConnection = new Connection(
-                        serverTransport.Listen(Endpoint).Connection!,
-                        Endpoint.Protocol,
-                        _dispatcher,
-                        _serverConnectionOptions);
+                    serverConnection = new Connection(serverTransport.Listen(Endpoint).Connection!, Endpoint.Protocol)
+                    {
+                        Dispatcher = _dispatcher,
+                        Options = _serverConnectionOptions
+                    };
                     await serverConnection.ConnectAsync(default);
                     clientConnection = await ConnectAsync(serverConnection.NetworkConnectionInformation?.LocalEndpoint!);
                 }
@@ -99,23 +97,25 @@ namespace IceRpc.Tests.Internal
 
                 async Task<Connection> AcceptAsync(IListener listener)
                 {
-                    var connection = new Connection(await listener.AcceptAsync(),
-                                                    Endpoint.Protocol,
-                                                    _dispatcher,
-                                                    _serverConnectionOptions);
+                    var connection = new Connection(await listener.AcceptAsync(), Endpoint.Protocol)
+                    {
+                        Dispatcher = _dispatcher,
+                        Options = _serverConnectionOptions
+                    };
                     await connection.ConnectAsync(default);
                     return connection;
                 }
 
                 async Task<Connection> ConnectAsync(Endpoint endpoint)
                 {
-                    var connection = new Connection(_clientConnectionOptions)
+                    var connection = new Connection
                     {
-                        RemoteEndpoint = endpoint,
                         ClientTransport = TestHelper.CreateClientTransport(
                             endpoint,
                             options: _clientTransportOptions,
                             authenticationOptions: _clientAuthenticationOptions),
+                        Options = _clientConnectionOptions,
+                        RemoteEndpoint = endpoint
                     };
                     await connection.ConnectAsync(default);
                     return connection;
@@ -292,8 +292,9 @@ namespace IceRpc.Tests.Internal
             IServerTransport transport = new TcpServerTransport(new TcpOptions { ListenerBackLog = 1 }, new(), null);
             using IListener listener = transport.Listen(endpoint).Listener!;
 
-            await using var connection = new Connection(new() { ConnectTimeout = TimeSpan.FromMilliseconds(100) })
+            await using var connection = new Connection
             {
+                Options = new() { ConnectTimeout = TimeSpan.FromMilliseconds(100) },
                 RemoteEndpoint = listener.Endpoint,
             };
 
@@ -380,8 +381,8 @@ namespace IceRpc.Tests.Internal
                 {
                     KeepAlive = true
                 });
-            Assert.That(factory.ClientConnection.KeepAlive, Is.True);
-            Assert.That(factory.ServerConnection.KeepAlive, Is.True);
+            Assert.That(factory.ClientConnection.Options.KeepAlive, Is.True);
+            Assert.That(factory.ServerConnection.Options.KeepAlive, Is.True);
         }
 
         [TestCase(ProtocolCode.Ice1, false)]

@@ -7,8 +7,8 @@ namespace IceRpc
     {
         /// <summary>A datagram connection received a close connection frame.</summary>
         DatagramConnectionReceiveCloseConnectionFrame = Internal.BaseEventIds.Protocol,
-        /// <summary>A datagram message that exceeded the <see cref="ConnectionOptions.IncomingFrameMaxSize"/> was
-        /// received.</summary>
+        /// <summary>A datagram message that exceeded the <see
+        /// cref="Configure.ConnectionOptions.IncomingFrameMaxSize"/> was received.</summary>
         DatagramSizeExceededIncomingFrameMaxSize,
         /// <summary>A datagram message that exceeded the maximum datagram size was received.</summary>
         DatagramMaximumSizeExceeded,

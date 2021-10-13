@@ -27,10 +27,12 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(
         });
     });
 
+IConfigurationSection section = configuration.GetSection("AppSettings").GetSection("Hello");
 await using var connection = new Connection
 {
-    LoggerFactory = loggerFactory,
-    RemoteEndpoint = configuration.GetSection("AppSettings").GetValue<string>("Hello.Endpoint")
+    //LoggerFactory = loggerFactory,
+    RemoteEndpoint = section.GetValue<string>("Endpoint"),
+    Options = section.GetSection("ConnectionOptions").Get<ConnectionOptions>()
 };
 
 var pipeline = new Pipeline();
