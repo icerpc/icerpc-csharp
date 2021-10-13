@@ -42,7 +42,7 @@ namespace IceRpc.Transports
             _authenticationOptions = authenticationOptions;
         }
 
-        (IListener?, INetworkConnection?) IServerTransport.Listen(Endpoint endpoint)
+        IListener IServerTransport.Listen(Endpoint endpoint)
         {
             // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
             // a tcp or ssl endpoint regardless of its actual transport name.
@@ -94,12 +94,11 @@ namespace IceRpc.Transports
                     };
             }
 
-            return (new Internal.TcpListener(socket,
-                                             endpoint: endpoint with { Port = (ushort)address.Port },
-                                             _tcpOptions.IdleTimeout,
-                                             _slicOptions,
-                                             authenticationOptions),
-                    null);
+            return new Internal.TcpListener(socket,
+                                            endpoint: endpoint with { Port = (ushort)address.Port },
+                                            _tcpOptions.IdleTimeout,
+                                            _slicOptions,
+                                            authenticationOptions);
         }
     }
 }

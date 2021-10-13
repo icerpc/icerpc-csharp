@@ -44,7 +44,7 @@ namespace IceRpc.Tests.Internal
             SlicOptions serverOptions)
         {
             IServerTransport serverTransport = new ColocServerTransport(serverOptions);
-            using IListener listener = serverTransport.Listen("ice+coloc://127.0.0.1").Listener!;
+            using IListener listener = serverTransport.Listen("ice+coloc://127.0.0.1");
 
             IClientTransport clientTransport = new ColocClientTransport(clientOptions);
             INetworkConnection clientConnection = clientTransport.CreateConnection("ice+coloc://127.0.0.1");

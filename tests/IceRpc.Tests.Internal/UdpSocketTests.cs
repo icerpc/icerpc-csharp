@@ -9,14 +9,14 @@ namespace IceRpc.Tests.Internal
     [TestFixture(AddressFamily.InterNetwork)]
     [TestFixture(AddressFamily.InterNetworkV6)]
     [Timeout(5000)]
-    public class UdpTests : NetworkSocketBaseTest
+    public class UdpSocketTests : NetworkSocketBaseTest
     {
         private NetworkSocket ClientSocket => _clientSocket!;
         private NetworkSocket ServerSocket => _serverSocket!;
         private NetworkSocket? _clientSocket;
         private NetworkSocket? _serverSocket;
 
-        public UdpTests(AddressFamily addressFamily)
+        public UdpSocketTests(AddressFamily addressFamily)
             : base("udp", tls: false, addressFamily)
         {
         }
@@ -24,7 +24,7 @@ namespace IceRpc.Tests.Internal
         [SetUp]
         public async Task SetupAsync()
         {
-            _serverSocket = CreateServerNetworkSocket();
+            _serverSocket = await CreateServerNetworkSocketAsync();
             _clientSocket = await ConnectAsync();
         }
 

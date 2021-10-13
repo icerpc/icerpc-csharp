@@ -12,14 +12,7 @@ namespace IceRpc.Transports.Internal
         private readonly ILogger _logger;
 
         /// <inheritdoc/>
-        public (IListener?, INetworkConnection?) Listen(Endpoint endpoint)
-        {
-            (IListener? listener, INetworkConnection? connection) = _decoratee.Listen(endpoint);
-            return (listener != null ? new LogListenerDecorator(listener, _logger) : null,
-                    connection != null ?
-                        new LogNetworkConnectionDecorator(connection, isServer: true, endpoint, _logger) :
-                        null);
-        }
+        public IListener Listen(Endpoint endpoint) => new LogListenerDecorator(_decoratee.Listen(endpoint), _logger);
 
         /// <summary>Constructs a server transport decorator to log traces.</summary>
         /// <param name="decoratee">The server transport to decorate.</param>

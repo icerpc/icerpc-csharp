@@ -144,12 +144,12 @@ namespace IceRpc.Tests.Internal
                 serverEndpoint ?? ServerEndpoint,
                 options: options,
                 multiStreamOptions: null,
-                _serverAuthenticationOptions).Listen(serverEndpoint ?? ServerEndpoint).Listener!;
+                _serverAuthenticationOptions).Listen(serverEndpoint ?? ServerEndpoint);
 
-        protected NetworkSocket CreateServerNetworkSocket() =>
-            ((NetworkSocketConnection)TestHelper.CreateServerTransport(
+        protected async ValueTask<NetworkSocket> CreateServerNetworkSocketAsync() =>
+            GetNetworkSocket(await TestHelper.CreateServerTransport(
                 ServerEndpoint,
-                authenticationOptions: _serverAuthenticationOptions).Listen(ServerEndpoint).Connection!).NetworkSocket;
+                authenticationOptions: _serverAuthenticationOptions).Listen(ServerEndpoint).AcceptAsync());
 
         protected NetworkSocket CreateClientNetworkSocket() =>
             GetNetworkSocket(TestHelper.CreateClientTransport(

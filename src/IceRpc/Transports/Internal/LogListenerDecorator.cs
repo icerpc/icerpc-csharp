@@ -21,13 +21,13 @@ namespace IceRpc.Transports.Internal
                 {
                     return new LogNetworkSocketConnectionDecorator(
                         networkSocketConnection,
-                        isServer: false,
+                        isServer: true,
                         _decoratee.Endpoint,
                         _logger);
                 }
                 else
                 {
-                    return new LogNetworkConnectionDecorator(connection, isServer: false, _decoratee.Endpoint, _logger);
+                    return new LogNetworkConnectionDecorator(connection, isServer: true, _decoratee.Endpoint, _logger);
                 }
             }
             catch (Exception ex)

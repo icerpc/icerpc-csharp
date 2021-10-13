@@ -74,28 +74,12 @@ namespace IceRpc.Tests.Internal
                     options: _serverTransportOptions,
                     authenticationOptions: _serverAuthenticationOptions);
 
-                Connection clientConnection;
-                Connection serverConnection;
-                if (Endpoint.Transport == "udp")
-                {
-                    serverConnection = new Connection(
-                        serverTransport.Listen(Endpoint).Connection!,
-                        Endpoint.Protocol,
-                        _dispatcher,
-                        _serverConnectionOptions);
-                    await serverConnection.ConnectAsync(default);
-                    clientConnection = await ConnectAsync(serverConnection.NetworkConnectionInformation?.LocalEndpoint!);
-                }
-                else
-                {
-                    using IListener listener = serverTransport.Listen(Endpoint).Listener!;
-                    Task<Connection> serverTask = AcceptAsync(listener);
-                    Task<Connection> clientTask = ConnectAsync(listener.Endpoint);
-                    serverConnection = await serverTask;
-                    clientConnection = await clientTask;
-                }
-
-                return (serverConnection, clientConnection);
+                using IListener listener = serverTransport.Listen(Endpoint);
+#pragma warning disable CA2000
+                Task<Connection> serverTask = AcceptAsync(listener);
+                Task<Connection> clientTask = ConnectAsync(listener.Endpoint);
+                return (await serverTask, await clientTask);
+#pragma warning restore CA2000
 
                 async Task<Connection> AcceptAsync(IListener listener)
                 {
@@ -290,7 +274,7 @@ namespace IceRpc.Tests.Internal
                 protocol: Protocol.FromProtocolCode(protocol));
 
             IServerTransport transport = new TcpServerTransport(new TcpOptions { ListenerBackLog = 1 }, new(), null);
-            using IListener listener = transport.Listen(endpoint).Listener!;
+            using IListener listener = transport.Listen(endpoint);
 
             await using var connection = new Connection(new() { ConnectTimeout = TimeSpan.FromMilliseconds(100) })
             {

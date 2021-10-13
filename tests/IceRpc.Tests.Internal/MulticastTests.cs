@@ -34,7 +34,7 @@ namespace IceRpc.Tests.Internal
             _serverSockets.Clear();
             for (int i = 0; i < _serverConnectionCount; ++i)
             {
-                _serverSockets.Add(CreateServerNetworkSocket());
+                _serverSockets.Add(await CreateServerNetworkSocketAsync());
             }
             _clientSocket = await ConnectAsync();
         }
