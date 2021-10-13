@@ -109,7 +109,7 @@ namespace IceRpc
 
                     // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                    var serverConnection = new Connection(networkConnection, _endpoint)
+                    var serverConnection = new Connection(networkConnection, _endpoint.Protocol)
                     {
                         Dispatcher = Dispatcher,
                         Options = ConnectionOptions,
@@ -228,7 +228,7 @@ namespace IceRpc
 
                 // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                var connection = new Connection(networkConnection, _endpoint)
+                var connection = new Connection(networkConnection, _endpoint.Protocol)
                 {
                     Dispatcher = Dispatcher,
                     Options = ConnectionOptions

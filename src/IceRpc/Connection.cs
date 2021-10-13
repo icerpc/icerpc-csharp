@@ -73,7 +73,7 @@ namespace IceRpc
 
         /// <summary><c>true</c> for a connection accepted by a server and <c>false</c> for a connection created by a
         /// client.</summary>
-        public bool IsServer { get; private init; } = false;
+        public bool IsServer => _protocol != null;
 
         /// <summary>The network connection information or <c>null</c> if the connection is not connected.</summary>
         public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
@@ -82,7 +82,7 @@ namespace IceRpc
         public ConnectionOptions Options { get; init; } = new();
 
         /// <summary>The protocol used by the connection.</summary>
-        public Protocol Protocol => RemoteEndpoint.Protocol;
+        public Protocol Protocol => _protocol ?? RemoteEndpoint.Protocol;
 
         /// <summary>The connection's remote endpoint.</summary>
         public Endpoint RemoteEndpoint
@@ -110,11 +110,14 @@ namespace IceRpc
         private EventHandler<ClosedEventArgs>? _closed;
         // The close task is assigned when ShutdownAsync or CloseAsync are called, it's protected with _mutex.
         private Task? _closeTask;
-        // The initial remote endpoint set on the construction of the connection.
+        // The initial remote endpoint for client connections.
         private readonly Endpoint? _initialRemoteEndpoint;
         // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
         private readonly object _mutex = new();
         private INetworkConnection? _networkConnection;
+        // _protocol is non-null only for server connections. For client connections, it's null. The protocol
+        // is instead obtained with RemoteEndpoint.Protocol
+        private readonly Protocol? _protocol;
         private IProtocolConnection? _protocolConnection;
         private ConnectionState _state = ConnectionState.NotConnected;
         private Timer? _timer;
@@ -356,11 +359,10 @@ namespace IceRpc
         public override string ToString() => _networkConnection?.ToString() ?? "";
 
         /// <summary>Constructs a server connection from an accepted network connection.</summary>
-        internal Connection(INetworkConnection connection, Endpoint localEndpoint)
+        internal Connection(INetworkConnection connection, Protocol protocol)
         {
             _networkConnection = connection;
-            IsServer = true;
-            // _initialRemoteEndpoint = localEndpoint with  { Host = "::0", Port = 0 };
+            _protocol = protocol;
         }
 
         internal void Monitor()
