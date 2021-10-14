@@ -28,13 +28,18 @@ namespace IceRpc
         /// <value>The logger factory of this connection pool.</value>
         public ILoggerFactory? LoggerFactory { get; init; }
 
-        /// <summary>Indicates whether or not <see cref="GetConnectionAsync"/> prefers returning an existing connection
-        /// over creating a new one.</summary>
-        /// <value>When <c>true</c>, GetConnectionAsync first iterates over all endpoints (in order) to look for an
-        /// existing compatible active connection; if it cannot find such a connection, it creates one by iterating again over
-        /// the endpoints. When <c>false</c>, GetConnectionAsync iterates over the endpoints only once to retrieve or
-        /// create an active connection. The default value is <c>true</c>.</value>
+        /// <summary>Indicates whether or not <see cref="GetConnectionAsync"/> prefers returning an existing
+        /// connection over creating a new one.</summary>
+        /// <value>When <c>true</c>, GetConnectionAsync first iterates over all endpoints (in order) to look
+        /// for an existing compatible active connection; if it cannot find such a connection, it creates one
+        /// by iterating again over the endpoints. When <c>false</c>, GetConnectionAsync iterates over the
+        /// endpoints only once to retrieve or create an active connection. The default value is
+        /// <c>true</c>.</value>
         public bool PreferExistingConnection { get; set; } = true;
+
+        /// <summary>The <see cref="SlicOptions"/> used for transports that don't support <see
+        /// cref="IMultiplexedNetworkStreamFactory"/>.</summary>
+        public SlicOptions SlicOptions { get; set; } = new();
 
         private readonly Dictionary<Endpoint, List<Connection>> _connections = new(EndpointComparer.ParameterLess);
         private readonly object _mutex = new();
@@ -217,7 +222,8 @@ namespace IceRpc
                         ClientTransport = ClientTransport,
                         LoggerFactory = LoggerFactory,
                         Options = ConnectionOptions,
-                        RemoteEndpoint = endpoint
+                        RemoteEndpoint = endpoint,
+                        SlicOptions = SlicOptions
                     };
                     if (!_connections.TryGetValue(endpoint, out connections))
                     {

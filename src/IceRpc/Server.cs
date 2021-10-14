@@ -237,7 +237,8 @@ namespace IceRpc
                 var connection = new Connection(networkConnection, _endpoint.Protocol)
                 {
                     Dispatcher = Dispatcher,
-                    Options = ConnectionOptions
+                    Options = ConnectionOptions,
+                    SlicOptions = SlicOptions
                 };
 #pragma warning restore CA2000
 
