@@ -6,8 +6,11 @@
 
 #include <IceRpc/BuiltinSequences.ice>
 #include <IceRpc/Fields.ice>
+#include <IceRpc/Priority.ice>
+#include <IceRpc/ResultType.ice>
 
-module IceRpc
+// TODO: use generated internal types once supported
+module IceRpc::Internal
 {
     // These definitions help with the encoding of ice2 frames.
 
@@ -42,12 +45,6 @@ module IceRpc
         IncomingFrameMaxSize = 0
     }
 
-    /// The priority of this request.
-    // TODO: describe semantics.
-    unchecked enum Priority : byte
-    {
-    }
-
     // See Ice2RequestHeader below.
     [cs:readonly]
     struct Ice2RequestHeaderBody
@@ -73,16 +70,6 @@ module IceRpc
         Ice2RequestHeaderBody body;
         Fields fields;
         varulong payloadSize;
-    }
-
-    /// The type of result carried by an ice2 response frame.
-    enum ResultType : byte
-    {
-        /// The request succeeded.
-        Success = 0,
-
-        /// The request failed.
-        Failure = 1
     }
 
     // See Ice2ResponseHeader below.

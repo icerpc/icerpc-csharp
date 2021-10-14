@@ -2,11 +2,10 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice.Internal;
-using IceRpc.Transports.Slic;
 using System.Diagnostics;
 using System.Threading.Tasks.Sources;
 
-namespace IceRpc.Transports.Internal.Slic
+namespace IceRpc.Transports.Internal
 {
     /// <summary>The stream implementation for Slic. The stream implementation implements flow control to
     /// ensure data isn't buffered indefinitely if the application doesn't consume it. Buffering and flow

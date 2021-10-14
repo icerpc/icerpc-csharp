@@ -4,7 +4,7 @@ using IceRpc.Internal;
 using System.Diagnostics;
 using System.Threading.Tasks.Sources;
 
-namespace IceRpc.Transports.Internal.Slic
+namespace IceRpc.Transports.Internal
 {
     /// <summary>The AsyncQueueCore struct provides result queuing functionality to be used with the
     /// IValueTaskSource interface. It's useful for the Slic stream implementation to avoid allocating on the

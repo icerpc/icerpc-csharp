@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Transports.Internal.Slic;
 using System.Threading.Channels;
 
 namespace IceRpc.Transports.Internal

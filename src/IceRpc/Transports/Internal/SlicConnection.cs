@@ -3,12 +3,11 @@
 using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
-using IceRpc.Transports.Slic;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
-namespace IceRpc.Transports.Internal.Slic
+namespace IceRpc.Transports.Internal
 {
     /// <summary>The Slic connection implements an <see cref="IMultiStreamConnection"/> on top of an <see
     /// cref="ISingleStreamConnection"/>.</summary>

@@ -3,11 +3,10 @@
 using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
-using IceRpc.Transports.Slic;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
-namespace IceRpc.Transports.Internal.Slic
+namespace IceRpc.Transports.Internal
 {
     /// <summary>The LogSlicFrameWriterDecorator is a decorator to log Slic frames written to the decorated
     /// Slic frame writer.</summary>
