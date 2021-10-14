@@ -17,7 +17,7 @@ namespace IceRpc.Transports.Internal
     /// to a stream a parameter. Enabling buffering only for stream parameters also ensure a lightweight Slic
     /// stream object where no additional heap objects (such as the circular buffer, send semaphore, etc) are
     /// necessary to receive a simple response/request frame.</summary>
-    internal class SlicStream : INetworkStream, IValueTaskSource<(int, bool)>
+    internal class SlicStream : IMultiplexedNetworkStream, IValueTaskSource<(int, bool)>
     {
         /// <inheritdoc/>
         public long Id
@@ -93,7 +93,7 @@ namespace IceRpc.Transports.Internal
         private bool IsShutdown => (Thread.VolatileRead(ref _state) & (int)State.Shutdown) > 0;
         private bool ReadsCompleted => (Thread.VolatileRead(ref _state) & (int)State.ReadCompleted) > 0;
 
-        private readonly SlicConnection _connection;
+        private readonly SlicStreamFactory _connection;
         private long _id = -1;
         private SpinLock _lock;
         private AsyncQueueCore<(int, bool)> _queue = new();
@@ -470,7 +470,7 @@ namespace IceRpc.Transports.Internal
         /// <inheritdoc/>
         public override string ToString() => $"{base.ToString()} (ID={Id})";
 
-        internal SlicStream(SlicConnection connection, long streamId, ISlicFrameReader reader, ISlicFrameWriter writer)
+        internal SlicStream(SlicStreamFactory connection, long streamId, ISlicFrameReader reader, ISlicFrameWriter writer)
         {
             _connection = connection;
             _reader = reader;
@@ -487,7 +487,7 @@ namespace IceRpc.Transports.Internal
         }
 
         internal SlicStream(
-            SlicConnection connection,
+            SlicStreamFactory connection,
             bool bidirectional,
             ISlicFrameReader reader,
             ISlicFrameWriter writer)

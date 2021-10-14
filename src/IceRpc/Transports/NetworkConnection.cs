@@ -16,8 +16,8 @@ namespace IceRpc.Transports
         // because IMultiStreamConnection is not disposable). However, it should be public to allow 3rd-party
         // transports to use use Slic. So ... perhaps return (IMultiStreamConnection, IDisposable) or make
         // IMultiStreamConnection inherit from IDisposable.
-        internal static async ValueTask<SlicConnection> CreateSlicConnectionAsync(
-            ISingleStreamConnection singleStreamConnection,
+        internal static async ValueTask<SlicStreamFactory> CreateSlicConnectionAsync(
+            INetworkStream singleStreamConnection,
             bool isServer,
             TimeSpan idleTimeout,
             SlicOptions slicOptions,
@@ -25,7 +25,7 @@ namespace IceRpc.Transports
         {
             ISlicFrameReader? reader = null;
             ISlicFrameWriter? writer = null;
-            SlicConnection? slicConnection = null;
+            SlicStreamFactory? slicConnection = null;
             try
             {
                 reader = new StreamSlicFrameReader(singleStreamConnection);
@@ -36,7 +36,7 @@ namespace IceRpc.Transports
                 //     reader = new LogSlicFrameReaderDecorator(reader, logger);
                 //     writer = new LogSlicFrameWriterDecorator(writer, logger);
                 // }
-                slicConnection = new SlicConnection(
+                slicConnection = new SlicStreamFactory(
                     reader,
                     writer,
                     isServer,
@@ -45,7 +45,7 @@ namespace IceRpc.Transports
                 reader = null;
                 writer = null;
                 await slicConnection.InitializeAsync(cancel).ConfigureAwait(false);
-                SlicConnection returnedSlicConnection = slicConnection;
+                SlicStreamFactory returnedSlicConnection = slicConnection;
                 slicConnection = null;
                 return returnedSlicConnection;
             }

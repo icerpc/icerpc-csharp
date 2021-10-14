@@ -8,10 +8,10 @@ using System.Runtime.InteropServices;
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The Slic frame writer class writes Slic frames and sends them over an <see
-    /// cref="ISingleStreamConnection"/>.</summary>
+    /// cref="INetworkStream"/>.</summary>
     internal sealed class StreamSlicFrameWriter : ISlicFrameWriter
     {
-        private readonly ISingleStreamConnection _stream;
+        private readonly INetworkStream _stream;
 
         public void Dispose()
         {
@@ -76,6 +76,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal StreamSlicFrameWriter(ISingleStreamConnection stream) => _stream = stream;
+        internal StreamSlicFrameWriter(INetworkStream stream) => _stream = stream;
     }
 }

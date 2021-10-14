@@ -9,9 +9,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The Slic connection implements an <see cref="IMultiStreamConnection"/> on top of an <see
-    /// cref="ISingleStreamConnection"/>.</summary>
-    internal class SlicConnection : IMultiStreamConnection, IDisposable
+    /// <summary>The Slic connection implements an <see cref="IMultiplexedNetworkStreamFactory"/> on top of an <see
+    /// cref="INetworkStream"/>.</summary>
+    internal class SlicStreamFactory : IMultiplexedNetworkStreamFactory, IDisposable
     {
         internal TimeSpan IdleTimeout { get; set; }
         internal bool IsServer { get; }
@@ -36,7 +36,7 @@ namespace IceRpc.Transports.Internal
         private AsyncSemaphore? _unidirectionalStreamSemaphore;
         private readonly ISlicFrameWriter _writer;
 
-        public async ValueTask<INetworkStream> AcceptStreamAsync(CancellationToken cancel)
+        public async ValueTask<IMultiplexedNetworkStream> AcceptStreamAsync(CancellationToken cancel)
         {
             // Eventually wait for the stream data receive to complete if stream data is being received.
             await WaitForReceivedStreamDataCompletionAsync(cancel).ConfigureAwait(false);
@@ -195,7 +195,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public INetworkStream CreateStream(bool bidirectional) => new SlicStream(this, bidirectional, _reader, _writer);
+        public IMultiplexedNetworkStream CreateStream(bool bidirectional) => new SlicStream(this, bidirectional, _reader, _writer);
 
         public void Dispose()
         {
@@ -204,7 +204,7 @@ namespace IceRpc.Transports.Internal
             {
                 try
                 {
-                    ((INetworkStream)stream).Abort(StreamError.ConnectionAborted);
+                    ((IMultiplexedNetworkStream)stream).Abort(StreamError.ConnectionAborted);
                 }
                 catch (Exception ex)
                 {
@@ -221,7 +221,7 @@ namespace IceRpc.Transports.Internal
             _writer.Dispose();
         }
 
-        internal SlicConnection(
+        internal SlicStreamFactory(
             ISlicFrameReader reader,
             ISlicFrameWriter writer,
             bool isServer,

@@ -11,13 +11,13 @@ namespace IceRpc.Tests.Internal
     [TestFixture("coloc")]
     public class SingleStreamConnectionTests
     {
-        private ISingleStreamConnection ClientStream => _clientSingleStreamConnection!;
-        private ISingleStreamConnection ServerStream => _serverSingleStreamConnection!;
+        private INetworkStream ClientStream => _clientSingleStreamConnection!;
+        private INetworkStream ServerStream => _serverSingleStreamConnection!;
 
         private INetworkConnection? _clientConnection;
-        private ISingleStreamConnection? _clientSingleStreamConnection;
+        private INetworkStream? _clientSingleStreamConnection;
         private INetworkConnection? _serverConnection;
-        private ISingleStreamConnection? _serverSingleStreamConnection;
+        private INetworkStream? _serverSingleStreamConnection;
         private readonly string _transport;
 
         public SingleStreamConnectionTests(string transport) => _transport = transport;
@@ -119,7 +119,7 @@ namespace IceRpc.Tests.Internal
             _clientConnection = clientTransport.CreateConnection(listener.Endpoint);
 
             ValueTask<INetworkConnection> acceptTask = listener.AcceptAsync();
-            ValueTask<(ISingleStreamConnection, NetworkConnectionInformation)> connectTask =
+            ValueTask<(INetworkStream, NetworkConnectionInformation)> connectTask =
                  _clientConnection.ConnectSingleStreamConnectionAsync(default);
             _serverConnection = await acceptTask;
             (_clientSingleStreamConnection, _) = await connectTask;

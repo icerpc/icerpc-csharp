@@ -55,7 +55,7 @@ namespace IceRpc
         public Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? StreamDecompressor { get; set; }
 
         /// <summary>The stream used to send the request.</summary>
-        internal INetworkStream? Stream { get; set; }
+        internal IMultiplexedNetworkStream? Stream { get; set; }
 
         /// <summary>Constructs an outgoing request.</summary>
         /// <param name="protocol">The <see cref="Protocol"/> used to send the request.</param>
