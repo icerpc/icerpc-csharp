@@ -3,12 +3,10 @@
 using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
-using IceRpc.Transports.Slic;
 using Microsoft.Extensions.Logging;
-using System.Buffers;
 using System.Diagnostics;
 
-namespace IceRpc.Transports.Internal.Slic
+namespace IceRpc.Transports.Internal
 {
     /// <summary>The LogSlicFrameReaderDecorator is a decorator to log Slic frames read from the
     /// decorated Slic frame reader.</summary>

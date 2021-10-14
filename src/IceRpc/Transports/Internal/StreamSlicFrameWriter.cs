@@ -2,11 +2,10 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
-using IceRpc.Transports.Slic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace IceRpc.Transports.Internal.Slic
+namespace IceRpc.Transports.Internal
 {
     /// <summary>The Slic frame writer class writes Slic frames and sends them over an <see
     /// cref="ISingleStreamConnection"/>.</summary>

@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports.Internal.Slic;
-using Microsoft.Extensions.Logging;
+using IceRpc.Transports.Internal;
 
 namespace IceRpc.Transports
 {

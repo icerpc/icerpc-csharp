@@ -2,7 +2,7 @@
 
 using IceRpc.Internal;
 
-namespace IceRpc.Transports.Internal.Slic
+namespace IceRpc.Transports.Internal
 {
     /// <summary>The synchronized Slic frame writer decorator synchronizes concurrent calls to write Slic
     /// frames. It also ensures that Slic streams which are not started are started when the first stream data

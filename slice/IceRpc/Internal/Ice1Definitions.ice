@@ -8,7 +8,8 @@
 #include <IceRpc/BuiltinSequences.ice>
 #include <IceRpc/Context.ice>
 
-module IceRpc
+// TODO: use generated internal types once supported
+module IceRpc::Internal
 {
     // These definitions help with the encoding of ice1 frames.
 

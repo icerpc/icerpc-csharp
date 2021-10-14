@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports.Slic;
-
-namespace IceRpc.Transports.Internal.Slic
+namespace IceRpc.Transports.Internal
 {
     /// <summary>A Slic frame reader is used by the Slic transport to read Slic frames. The reader is
     /// disposable to allow implementations to rely on disposable resources.</summary>

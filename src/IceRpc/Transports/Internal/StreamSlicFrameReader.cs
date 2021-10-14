@@ -1,9 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Transports.Slic;
 
-namespace IceRpc.Transports.Internal.Slic
+namespace IceRpc.Transports.Internal
 {
     /// <summary>The buffered receiver Slic frame reader class reads Slic frames from a buffered
     /// receiver.</summary>

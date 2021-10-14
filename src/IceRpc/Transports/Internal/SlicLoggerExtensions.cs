@@ -1,9 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports.Slic;
 using Microsoft.Extensions.Logging;
 
-namespace IceRpc.Transports.Internal.Slic
+namespace IceRpc.Transports.Internal
 {
     /// <summary>This class contains ILogger extension methods for logging Slic transport messages.</summary>
     internal static partial class SlicLoggerExtensions
