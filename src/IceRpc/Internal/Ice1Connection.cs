@@ -89,7 +89,6 @@ namespace IceRpc.Internal
                     _dispatch.Clear();
                     _dispatchAndInvocationsCompleted.SetResult();
                 }
-                _networkStream.Dispose();
             }
         }
 

@@ -11,7 +11,7 @@ namespace IceRpc.Transports.Internal
 {
     /// <summary>The Slic connection implements an <see cref="IMultiplexedNetworkStreamFactory"/> on top of an <see
     /// cref="INetworkStream"/>.</summary>
-    internal class SlicStreamFactory : IMultiplexedNetworkStreamFactory, IDisposable
+    internal class SlicStreamFactory : IMultiplexedNetworkStreamFactory
     {
         internal TimeSpan IdleTimeout { get; set; }
         internal bool IsServer { get; }

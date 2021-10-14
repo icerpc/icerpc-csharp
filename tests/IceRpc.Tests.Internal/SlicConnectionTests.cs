@@ -7,10 +7,10 @@ using NUnit.Framework;
 namespace IceRpc.Tests.Internal
 {
     [Timeout(5000)]
-    public class SlicConnectionTests
+    public class SlicStreamFactory
     {
         [TestCase]
-        public async Task SlicConnectionTests_Options()
+        public async Task SlicStreamFactory_Options()
         {
             var clientOptions = new SlicOptions
                 {
@@ -43,7 +43,10 @@ namespace IceRpc.Tests.Internal
             SlicOptions clientOptions,
             SlicOptions serverOptions)
         {
-            IServerTransport serverTransport = new ColocServerTransport(serverOptions);
+            IServerTransport serverTransport = new SlicServerTransportDecorator(
+                new ColocServerTransport(),
+                serverOptions,
+                stream => (new StreamSlicFrameReader(stream), new StreamSlicFrameWriter(stream)));
             using IListener listener = serverTransport.Listen("ice+coloc://127.0.0.1");
 
             IClientTransport clientTransport = new ColocClientTransport(clientOptions);

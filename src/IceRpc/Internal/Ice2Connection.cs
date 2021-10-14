@@ -57,13 +57,10 @@ namespace IceRpc.Internal
             // send the GoAwayCanceled frame once the GoAway frame has been sent.
             _cancelShutdown.TrySetResult();
 
-        public void Dispose()
-        {
+        public void Dispose() =>
             // Unlike Ice1, there's no need to abort invocations wait for a response. The invocations will
             // be aborted when the stream is aborted.
             _cancelShutdown.TrySetException(new ConnectionClosedException());
-            _multiplexedNetworkStreamFactory.Dispose();
-        }
 
         public Task PingAsync(CancellationToken cancel) => SendControlFrameAsync(Ice2FrameType.Ping, null, cancel);
 

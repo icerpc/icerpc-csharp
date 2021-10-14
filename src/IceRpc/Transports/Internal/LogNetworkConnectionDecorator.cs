@@ -155,8 +155,6 @@ namespace IceRpc.Transports.Internal
         private readonly INetworkStream _decoratee;
         private readonly LogNetworkConnectionDecorator _parent;
 
-        public void Dispose() => _decoratee.Dispose();
-
         public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             int received = await _decoratee.ReadAsync(buffer, cancel).ConfigureAwait(false);
@@ -188,8 +186,6 @@ namespace IceRpc.Transports.Internal
             new LogMultiplexNetworkStreamDecorator(
                 _parent,
                 await _decoratee.AcceptStreamAsync(cancel).ConfigureAwait(false));
-
-        public void Dispose() => _decoratee.Dispose();
 
         public IMultiplexedNetworkStream CreateStream(bool bidirectional) =>
             new LogMultiplexNetworkStreamDecorator(_parent, _decoratee.CreateStream(bidirectional));

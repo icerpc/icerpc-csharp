@@ -12,7 +12,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void ColocConnection_Close()
         {
-            ColocConnection connection = CreateConnection(false);
+            using ColocConnection connection = CreateConnection(false);
             connection.Close();
             connection.Close();
         }
@@ -21,7 +21,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(false, true)]
         public void ColocConnection_HasCompatibleParams(bool isServer, bool expectedResult)
         {
-            ColocConnection connection = CreateConnection(isServer);
+            using ColocConnection connection = CreateConnection(isServer);
             Assert.That(connection.HasCompatibleParams(Endpoint.FromString("ice+coloc://host")),
                         Is.EqualTo(expectedResult));
             connection.Close();
@@ -31,10 +31,9 @@ namespace IceRpc.Tests.Internal
         [TestCase(true)]
         public async Task ColocConnection_Properties(bool isServer)
         {
-            ColocConnection connection = CreateConnection(isServer);
+            using ColocConnection connection = CreateConnection(isServer);
 
-            (INetworkStream _, NetworkConnectionInformation information) =
-                await connection.ConnectSingleStreamConnectionAsync(default);
+            NetworkConnectionInformation information = await connection.ConnectAsync(default);
 
             Assert.That(information.LocalEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
             Assert.That(information.RemoteEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
@@ -47,10 +46,11 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task ColocConnection_LastActivity()
         {
-            ColocConnection connection = CreateConnection(false);
+            using ColocConnection connection = CreateConnection(false);
 
-            (INetworkStream stream, NetworkConnectionInformation _) =
-                await connection.ConnectSingleStreamConnectionAsync(default);
+            await connection.ConnectAsync(default);
+
+            INetworkStream stream = connection.GetNetworkStream();
 
             // Coloc connections are not closed by ACM.
             // TODO: should they?

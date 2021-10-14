@@ -96,40 +96,26 @@ namespace IceRpc.Tests
         public static IServerTransport CreateServerTransport(
             Endpoint endpoint,
             object? options = null,
-            object? multiStreamOptions = null,
             SslServerAuthenticationOptions? authenticationOptions = null) =>
             endpoint.Transport switch
                 {
-                    "tcp" => new TcpServerTransport(
-                        (TcpOptions?)options ?? new(),
-                        (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
-                        authenticationOptions),
-                    "ssl" => new TcpServerTransport(
-                        (TcpOptions?)options ?? new(),
-                        (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
-                        authenticationOptions),
+                    "tcp" =>  new TcpServerTransport((TcpOptions?)options ?? new(), authenticationOptions),
+                    "ssl" => new TcpServerTransport((TcpOptions?)options ?? new(), authenticationOptions),
                     "udp" => new UdpServerTransport((UdpOptions?)options ?? new()),
-                    "coloc" => new ColocServerTransport((SlicOptions?)multiStreamOptions ?? new SlicOptions()),
+                    "coloc" => new ColocServerTransport(),
                     _ => throw new UnknownTransportException(endpoint.Transport, endpoint.Protocol)
                 };
 
         public static IClientTransport CreateClientTransport(
             Endpoint endpoint,
             object? options = null,
-            object? multiStreamOptions = null,
             SslClientAuthenticationOptions? authenticationOptions = null) =>
                 endpoint.Transport switch
                 {
-                    "tcp" => new TcpClientTransport(
-                        (TcpOptions?)options ?? new(),
-                        (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
-                        authenticationOptions),
-                    "ssl" => new TcpClientTransport(
-                        (TcpOptions?)options ?? new(),
-                        (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
-                        authenticationOptions),
+                    "tcp" => new TcpClientTransport((TcpOptions?)options ?? new(), authenticationOptions),
+                    "ssl" => new TcpClientTransport((TcpOptions?)options ?? new(), authenticationOptions),
                     "udp" => new UdpClientTransport((UdpOptions?)options ?? new()),
-                    "coloc" => new ColocClientTransport((SlicOptions?)multiStreamOptions ?? new SlicOptions()),
+                    "coloc" => new ColocClientTransport(),
                     _ => throw new UnknownTransportException(endpoint.Transport, endpoint.Protocol)
                 };
     }

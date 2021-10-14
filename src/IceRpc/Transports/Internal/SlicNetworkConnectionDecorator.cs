@@ -9,12 +9,17 @@ namespace IceRpc.Transports.Internal
         private readonly bool _isServer;
         private readonly Func<INetworkStream, (ISlicFrameReader, ISlicFrameWriter)> _slicFrameReaderWriterFactory;
         private readonly SlicOptions _slicOptions;
+        private SlicStreamFactory? _slicStreamFactory = null;
 
         public bool IsSecure => _decoratee.IsSecure;
 
         public TimeSpan LastActivity => _decoratee.LastActivity;
 
-        public void Close(Exception? exception = null) => _decoratee.Close(exception);
+        public void Close(Exception? exception = null)
+        {
+            _slicStreamFactory?.Dispose();
+            _decoratee.Close(exception);
+        }
 
         public async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
         {
@@ -34,13 +39,12 @@ namespace IceRpc.Transports.Internal
             {
                 INetworkStream stream = _decoratee.GetNetworkStream();
 
-                SlicStreamFactory? slicConnection = null;
                 ISlicFrameReader? reader = null;
                 ISlicFrameWriter? writer = null;
                 try
                 {
                     (reader, writer) = _slicFrameReaderWriterFactory(stream);
-                    slicConnection = new SlicStreamFactory(
+                    _slicStreamFactory = new SlicStreamFactory(
                         reader,
                         writer,
                         _isServer,
@@ -48,16 +52,16 @@ namespace IceRpc.Transports.Internal
                         _slicOptions);
                     reader = null;
                     writer = null;
-                    await slicConnection.InitializeAsync(cancel).ConfigureAwait(false);
-                    SlicStreamFactory returnedSlicConnection = slicConnection;
-                    slicConnection = null;
+                    await _slicStreamFactory.InitializeAsync(cancel).ConfigureAwait(false);
+                    SlicStreamFactory returnedSlicConnection = _slicStreamFactory;
+                    _slicStreamFactory = null;
                     return returnedSlicConnection;
                 }
                 finally
                 {
                     writer?.Dispose();
                     reader?.Dispose();
-                    slicConnection?.Dispose();
+                    _slicStreamFactory?.Dispose();
                 }
             }
         }
