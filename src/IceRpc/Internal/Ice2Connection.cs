@@ -3,7 +3,7 @@
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
-using Microsoft.Extensions.Logging;
+using IceRpc.Transports.Internal;
 
 namespace IceRpc.Internal
 {

@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc.Transports
+namespace IceRpc.Transports.Internal
 {
     internal static class NetworkStreamExtensions
     {
