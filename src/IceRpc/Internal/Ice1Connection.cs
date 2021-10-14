@@ -531,14 +531,12 @@ namespace IceRpc.Internal
             return "connection graceful shutdown";
         }
 
-        internal Ice1Connection(INetworkStream singleStreamConnection, int incomingFrameMaxSize)
+        internal Ice1Connection(INetworkStream networkStream, int incomingFrameMaxSize)
         {
-            _networkStream = singleStreamConnection;
+            _networkStream = networkStream;
             if (_networkStream.IsDatagram)
             {
-                _incomingFrameMaxSize = Math.Min(
-                    incomingFrameMaxSize,
-                    _networkStream.DatagramMaxReceiveSize);
+                _incomingFrameMaxSize = Math.Min(incomingFrameMaxSize, _networkStream.DatagramMaxReceiveSize);
             }
             else
             {
