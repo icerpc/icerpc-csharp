@@ -53,10 +53,10 @@ namespace IceRpc.Transports.Internal
             _decoratee.Close(exception);
         }
 
-        public virtual async ValueTask<(ISingleStreamConnection, NetworkConnectionInformation)> ConnectSingleStreamConnectionAsync(
+        public virtual async ValueTask<(INetworkStream, NetworkConnectionInformation)> ConnectSingleStreamConnectionAsync(
             CancellationToken cancel)
         {
-            ISingleStreamConnection singleStreamConnection;
+            INetworkStream singleStreamConnection;
             (singleStreamConnection, Information) = await _decoratee.ConnectSingleStreamConnectionAsync(
                 cancel).ConfigureAwait(false);
 
@@ -66,10 +66,10 @@ namespace IceRpc.Transports.Internal
             return (singleStreamConnection, Information.Value);
         }
 
-        public async ValueTask<(IMultiStreamConnection, NetworkConnectionInformation)> ConnectMultiStreamConnectionAsync(
+        public async ValueTask<(IMultiplexedNetworkStreamFactory, NetworkConnectionInformation)> ConnectMultiStreamConnectionAsync(
             CancellationToken cancel)
         {
-            (IMultiStreamConnection multiStreamConnection, Information) =
+            (IMultiplexedNetworkStreamFactory multiStreamConnection, Information) =
                 await _decoratee.ConnectMultiStreamConnectionAsync(cancel).ConfigureAwait(false);
 
             multiStreamConnection = new LogMultiStreamConnectionDecorator(this, multiStreamConnection);
@@ -146,12 +146,12 @@ namespace IceRpc.Transports.Internal
         }
     }
 
-    internal sealed class LogSingleStreamConnectionDecorator : ISingleStreamConnection
+    internal sealed class LogSingleStreamConnectionDecorator : INetworkStream
     {
         public int DatagramMaxReceiveSize => _decoratee.DatagramMaxReceiveSize;
         public bool IsDatagram => _decoratee.IsDatagram;
 
-        private readonly ISingleStreamConnection _decoratee;
+        private readonly INetworkStream _decoratee;
         private readonly LogNetworkConnectionDecorator _parent;
 
         public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
@@ -171,36 +171,36 @@ namespace IceRpc.Transports.Internal
 
         internal LogSingleStreamConnectionDecorator(
             LogNetworkConnectionDecorator parent,
-            ISingleStreamConnection decoratee)
+            INetworkStream decoratee)
         {
             _parent = parent;
             _decoratee = decoratee;
         }
     }
 
-    internal sealed class LogMultiStreamConnectionDecorator : IMultiStreamConnection
+    internal sealed class LogMultiStreamConnectionDecorator : IMultiplexedNetworkStreamFactory
     {
-        private readonly IMultiStreamConnection _decoratee;
+        private readonly IMultiplexedNetworkStreamFactory _decoratee;
         private readonly LogNetworkConnectionDecorator _parent;
 
-        public async ValueTask<INetworkStream> AcceptStreamAsync(CancellationToken cancel) =>
+        public async ValueTask<IMultiplexedNetworkStream> AcceptStreamAsync(CancellationToken cancel) =>
             new LogNetworkStreamDecorator(_parent, await _decoratee.AcceptStreamAsync(cancel).ConfigureAwait(false));
 
-        public INetworkStream CreateStream(bool bidirectional) =>
+        public IMultiplexedNetworkStream CreateStream(bool bidirectional) =>
             new LogNetworkStreamDecorator(_parent, _decoratee.CreateStream(bidirectional));
 
         public override string? ToString() => _decoratee.ToString();
 
         internal LogMultiStreamConnectionDecorator(
             LogNetworkConnectionDecorator parent,
-            IMultiStreamConnection decoratee)
+            IMultiplexedNetworkStreamFactory decoratee)
         {
             _parent = parent;
             _decoratee = decoratee;
         }
     }
 
-    internal sealed class LogNetworkStreamDecorator : INetworkStream
+    internal sealed class LogNetworkStreamDecorator : IMultiplexedNetworkStream
     {
         public long Id => _decoratee.Id;
         public bool IsBidirectional => _decoratee.IsBidirectional;
@@ -210,7 +210,7 @@ namespace IceRpc.Transports.Internal
             set => _decoratee.ShutdownAction = value;
         }
 
-        private readonly INetworkStream _decoratee;
+        private readonly IMultiplexedNetworkStream _decoratee;
         private readonly LogNetworkConnectionDecorator _parent;
 
         public ReadOnlyMemory<byte> TransportHeader => _decoratee.TransportHeader;
@@ -245,7 +245,7 @@ namespace IceRpc.Transports.Internal
 
         public override string? ToString() => _decoratee.ToString();
 
-        internal LogNetworkStreamDecorator(LogNetworkConnectionDecorator parent, INetworkStream decoratee)
+        internal LogNetworkStreamDecorator(LogNetworkConnectionDecorator parent, IMultiplexedNetworkStream decoratee)
         {
             _parent = parent;
             _decoratee = decoratee;
@@ -265,12 +265,12 @@ namespace IceRpc.Transports.Internal
             ILogger logger) :
             base(decoratee, isServer, endpoint, logger) => _decoratee = decoratee;
 
-        public override async ValueTask<(ISingleStreamConnection, NetworkConnectionInformation)> ConnectSingleStreamConnectionAsync(
+        public override async ValueTask<(INetworkStream, NetworkConnectionInformation)> ConnectSingleStreamConnectionAsync(
             CancellationToken cancel)
         {
             try
             {
-                (ISingleStreamConnection singleStreamConnection, Information) =
+                (INetworkStream singleStreamConnection, Information) =
                     await _decoratee.ConnectSingleStreamConnectionAsync(cancel).ConfigureAwait(false);
                 singleStreamConnection = new LogSingleStreamConnectionDecorator(this, singleStreamConnection);
                 if (_decoratee.NetworkSocket.SslStream is SslStream sslStream)

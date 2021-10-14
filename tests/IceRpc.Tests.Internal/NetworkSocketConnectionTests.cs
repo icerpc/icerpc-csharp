@@ -93,7 +93,7 @@ namespace IceRpc.Tests.Internal
                 TimeSpan.FromSeconds(10),
                 slicOptions: new());
 
-            (ISingleStreamConnection stream, NetworkConnectionInformation _) =
+            (INetworkStream stream, NetworkConnectionInformation _) =
                 await connection.ConnectSingleStreamConnectionAsync(default);
 
             TimeSpan lastActivity = connection.LastActivity;

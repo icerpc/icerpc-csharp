@@ -6,7 +6,7 @@ using System.Security.Cryptography.X509Certificates;
 namespace IceRpc.Transports.Internal
 {
     /// <summary>A network socket connection based on a <see cref="NetworkSocket"/>.</summary>
-    internal sealed class NetworkSocketConnection : INetworkConnection, ISingleStreamConnection
+    internal sealed class NetworkSocketConnection : INetworkConnection, INetworkStream
     {
         /// <inheritdoc/>
         public int DatagramMaxReceiveSize => NetworkSocket.DatagramMaxReceiveSize;
@@ -25,7 +25,7 @@ namespace IceRpc.Transports.Internal
         private readonly Endpoint _endpoint;
         private readonly bool _isServer;
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
-        private SlicConnection? _slicConnection;
+        private SlicStreamFactory? _slicConnection;
         private readonly SlicOptions _slicOptions;
 
         /// <inheritdoc/>
@@ -36,10 +36,10 @@ namespace IceRpc.Transports.Internal
         }
 
         /// <inheritdoc/>
-        public async ValueTask<(IMultiStreamConnection, NetworkConnectionInformation)> ConnectMultiStreamConnectionAsync(
+        public async ValueTask<(IMultiplexedNetworkStreamFactory, NetworkConnectionInformation)> ConnectMultiStreamConnectionAsync(
             CancellationToken cancel)
         {
-            (ISingleStreamConnection singleStreamConnection, NetworkConnectionInformation information) =
+            (INetworkStream singleStreamConnection, NetworkConnectionInformation information) =
                 await ConnectSingleStreamConnectionAsync(cancel).ConfigureAwait(false);
 
             if (singleStreamConnection.IsDatagram)
@@ -60,7 +60,7 @@ namespace IceRpc.Transports.Internal
         }
 
         /// <inheritdoc/>
-        public async ValueTask<(ISingleStreamConnection, NetworkConnectionInformation)> ConnectSingleStreamConnectionAsync(
+        public async ValueTask<(INetworkStream, NetworkConnectionInformation)> ConnectSingleStreamConnectionAsync(
             CancellationToken cancel)
         {
             Endpoint endpoint = await NetworkSocket.ConnectAsync(_endpoint, cancel).ConfigureAwait(false);
@@ -90,7 +90,7 @@ namespace IceRpc.Transports.Internal
             NetworkSocket.HasCompatibleParams(remoteEndpoint);
 
         /// <inheritdoc/>
-        async ValueTask<int> ISingleStreamConnection.ReadAsync(Memory<byte> buffer, CancellationToken cancel)
+        async ValueTask<int> INetworkStream.ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             int received = await NetworkSocket.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
             Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
@@ -98,7 +98,7 @@ namespace IceRpc.Transports.Internal
         }
 
         /// <inheritdoc/>
-        async ValueTask ISingleStreamConnection.WriteAsync(
+        async ValueTask INetworkStream.WriteAsync(
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             CancellationToken cancel)
         {

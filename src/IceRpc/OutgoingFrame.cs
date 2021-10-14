@@ -71,7 +71,7 @@ namespace IceRpc
         /// <param name="protocol">The protocol used to send the frame.</param>
         protected OutgoingFrame(Protocol protocol) => Protocol = protocol;
 
-        internal void SendStreamParam(INetworkStream stream)
+        internal void SendStreamParam(IMultiplexedNetworkStream stream)
         {
             Debug.Assert(StreamParamSender != null);
             _ = Task.Run(() =>

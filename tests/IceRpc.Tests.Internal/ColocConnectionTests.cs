@@ -33,7 +33,7 @@ namespace IceRpc.Tests.Internal
         {
             ColocConnection connection = CreateConnection(isServer);
 
-            (ISingleStreamConnection _, NetworkConnectionInformation information) =
+            (INetworkStream _, NetworkConnectionInformation information) =
                 await connection.ConnectSingleStreamConnectionAsync(default);
 
             Assert.That(information.LocalEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
@@ -49,7 +49,7 @@ namespace IceRpc.Tests.Internal
         {
             ColocConnection connection = CreateConnection(false);
 
-            (ISingleStreamConnection stream, NetworkConnectionInformation _) =
+            (INetworkStream stream, NetworkConnectionInformation _) =
                 await connection.ConnectSingleStreamConnectionAsync(default);
 
             // Coloc connections are not closed by ACM.
