@@ -49,7 +49,7 @@ namespace IceRpc.Internal
         private int? _peerIncomingFrameMaxSize;
         private bool _shutdown;
         private (long Bidirectional, long Unidirectional)? _lastRemoteStreamIds;
-        private readonly IMultiplexedNetworkStreamFactory _multiStreamConnection;
+        private readonly IMultiplexedNetworkStreamFactory _multiplexedStreamConnection;
 
         /// <inheritdoc/>
         public void CancelShutdown() =>
@@ -57,10 +57,13 @@ namespace IceRpc.Internal
             // send the GoAwayCanceled frame once the GoAway frame has been sent.
             _cancelShutdown.TrySetResult();
 
-        public void Dispose() =>
+        public void Dispose()
+        {
             // Unlike Ice1, there's no need to abort invocations wait for a response. The invocations will
             // be aborted when the stream is aborted.
             _cancelShutdown.TrySetException(new ConnectionClosedException());
+            _multiplexedStreamConnection.Dispose();
+        }
 
         public Task PingAsync(CancellationToken cancel) => SendControlFrameAsync(Ice2FrameType.Ping, null, cancel);
 
@@ -70,7 +73,7 @@ namespace IceRpc.Internal
             while (true)
             {
                 // Accepts a new stream.
-                IMultiplexedNetworkStream stream = await _multiStreamConnection!.AcceptStreamAsync(cancel).ConfigureAwait(false);
+                IMultiplexedNetworkStream stream = await _multiplexedStreamConnection!.AcceptStreamAsync(cancel).ConfigureAwait(false);
 
                 // Receives the request frame from the stream. TODO: Only read the request header, the payload
                 // should be received by calling IProtocolStream.ReceivePayloadAsync from the incoming frame
@@ -251,7 +254,7 @@ namespace IceRpc.Internal
         public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
             // Create the stream.
-            request.Stream = _multiStreamConnection!.CreateStream(!request.IsOneway);
+            request.Stream = _multiplexedStreamConnection!.CreateStream(!request.IsOneway);
 
             if (!request.IsOneway || request.StreamParamSender != null)
             {
@@ -580,14 +583,14 @@ namespace IceRpc.Internal
 
         internal Ice2Connection(IMultiplexedNetworkStreamFactory multiStreamConnection, int incomingFrameMaxSize)
         {
-            _multiStreamConnection = multiStreamConnection;
+            _multiplexedStreamConnection = multiStreamConnection;
             _incomingFrameMaxSize = incomingFrameMaxSize;
         }
 
         internal async Task InitializeAsync(CancellationToken cancel)
         {
             // Create the control stream and send the protocol initialize frame
-            _controlStream = _multiStreamConnection.CreateStream(false);
+            _controlStream = _multiplexedStreamConnection.CreateStream(false);
 
             await SendControlFrameAsync(
                 Ice2FrameType.Initialize,
@@ -604,7 +607,7 @@ namespace IceRpc.Internal
                 cancel).ConfigureAwait(false);
 
             // Wait for the remote control stream to be accepted and read the protocol initialize frame
-            _remoteControlStream = await _multiStreamConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
+            _remoteControlStream = await _multiplexedStreamConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
 
             ReadOnlyMemory<byte> buffer = await ReceiveFrameAsync(
                 _remoteControlStream,

@@ -18,17 +18,17 @@ namespace IceRpc.Internal
 
         internal override bool HasFieldSupport => true;
 
-        internal override async ValueTask<(IProtocolConnection, NetworkConnectionInformation)> CreateConnectionAsync(
+        internal override async Task<IProtocolConnection> CreateConnectionAsync(
             INetworkConnection networkConnection,
             int incomingFrameMaxSize,
             bool isServer,
             CancellationToken cancel)
         {
-            (IMultiplexedNetworkStreamFactory multiStreamConnection, NetworkConnectionInformation information) =
-                await networkConnection.ConnectMultiStreamConnectionAsync(cancel).ConfigureAwait(false);
-            var protocolConnection = new Ice2Connection(multiStreamConnection, incomingFrameMaxSize);
-            await protocolConnection.InitializeAsync(cancel).ConfigureAwait(false);
-            return (protocolConnection, information);
+            IMultiplexedNetworkStreamFactory? streamFactory =
+                await networkConnection.GetMultiplexedNetworkStreamFactoryAsync(cancel).ConfigureAwait(false);
+            var connection = new Ice2Connection(streamFactory, incomingFrameMaxSize);
+            await connection.InitializeAsync(cancel).ConfigureAwait(false);
+            return connection;
         }
 
         internal override OutgoingResponse CreateResponseFromException(Exception exception, IncomingRequest request)

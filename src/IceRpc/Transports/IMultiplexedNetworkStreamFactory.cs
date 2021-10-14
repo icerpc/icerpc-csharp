@@ -4,7 +4,7 @@ namespace IceRpc.Transports
 {
     /// <summary>A multi-stream connection enables byte data exchange over multiple <see
     /// cref="IMultiplexedNetworkStream"/>.</summary>
-    public interface IMultiplexedNetworkStreamFactory
+    public interface IMultiplexedNetworkStreamFactory : IDisposable
     {
         /// <summary>Accepts a remote stream.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

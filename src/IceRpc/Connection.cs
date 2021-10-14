@@ -99,6 +99,10 @@ namespace IceRpc
             init => _initialRemoteEndpoint = value;
         }
 
+        /// <summary>The <see cref="SlicOptions"/> used for transports that don't support <see
+        /// cref="IMultiplexedNetworkStreamFactory"/>.</summary>
+        public SlicOptions SlicOptions { get; set; } = new();
+
         /// <summary>The state of the connection.</summary>
         public ConnectionState State
         {
@@ -163,12 +167,34 @@ namespace IceRpc
                     {
                         Debug.Assert(_protocolConnection == null && RemoteEndpoint != null);
 
+                        // TODO: when we add resumable connection support, we'll need to make sure the code
+                        // below is executed only once.
+
                         IClientTransport clientTransport = ClientTransport;
+                        Func<INetworkStream, (ISlicFrameReader, ISlicFrameWriter)> slicFrameReaderWriterFactory =
+                            stream => (new StreamSlicFrameReader(stream), new StreamSlicFrameWriter(stream));
+
+                        // Decorate the client transport and Slic frame reader/writer factory with log decorators.
                         if (LoggerFactory?.CreateLogger("IceRpc.Transports") is ILogger logger &&
                             logger.IsEnabled(LogLevel.Error))
                         {
                             clientTransport = new LogClientTransportDecorator(clientTransport, logger);
+                            slicFrameReaderWriterFactory = stream =>
+                            {
+                                (ISlicFrameReader reader, ISlicFrameWriter writer) =
+                                    slicFrameReaderWriterFactory(stream);
+                                return (new LogSlicFrameReaderDecorator(reader, logger),
+                                        new LogSlicFrameWriterDecorator(writer, logger));
+                            };
                         }
+
+                        // Decorate the client transport with the Slic client transport decorator to provide
+                        // support for multiplexed network stream factories for transports that only support
+                        // network streams.
+                        clientTransport = new SlicClientTransportDecorator(
+                            clientTransport,
+                            SlicOptions,
+                            slicFrameReaderWriterFactory);
 
                         _networkConnection = clientTransport.CreateConnection(RemoteEndpoint);
                     }
@@ -192,9 +218,12 @@ namespace IceRpc
                 {
                     await Task.Yield();
 
-                    // Creates the protocol connection and the network connection information that is the
-                    // result of the network connection establishment.
-                    (_protocolConnection, NetworkConnectionInformation) = await Protocol.CreateConnectionAsync(
+                    // Connect the network connection.
+                    NetworkConnectionInformation = await _networkConnection.ConnectAsync(
+                        connectCancellationSource.Token).ConfigureAwait(false);
+
+                    // Creates the protocol connection with the connection network connection.
+                    _protocolConnection = await Protocol.CreateConnectionAsync(
                         _networkConnection,
                         Options.IncomingFrameMaxSize,
                         IsServer,

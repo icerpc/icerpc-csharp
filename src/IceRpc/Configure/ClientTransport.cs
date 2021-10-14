@@ -51,18 +51,9 @@ namespace IceRpc.Configure
         /// <summary>Adds the coloc client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
         /// <returns>The transport being configured.</returns>
-        public static ClientTransport UseColoc(this ClientTransport clientTransport) =>
-            clientTransport.UseColoc(new());
-
-        /// <summary>Adds the coloc client transport to this composite client transport.</summary>
-        /// <param name="clientTransport">The transport being configured.</param>
-        /// <param name="options">The transport options.</param>
-        /// <returns>The transport being configured.</returns>
-        public static ClientTransport UseColoc(
-            this ClientTransport clientTransport,
-            SlicOptions options)
+        public static ClientTransport UseColoc(this ClientTransport clientTransport)
         {
-            var colocClientTransport = new ColocClientTransport(options);
+            var colocClientTransport = new ColocClientTransport();
             clientTransport.Add(TransportNames.Coloc, Protocol.Ice2, colocClientTransport);
             clientTransport.Add(TransportNames.Coloc, Protocol.Ice1, colocClientTransport);
             return clientTransport;
@@ -88,25 +79,21 @@ namespace IceRpc.Configure
             SslClientAuthenticationOptions authenticationOptions) =>
             clientTransport.Add(TransportNames.Ssl,
                                 Protocol.Ice1,
-                                new TcpClientTransport(tcpOptions, new SlicOptions(), authenticationOptions));
+                                new TcpClientTransport(tcpOptions, authenticationOptions));
 
         /// <summary>Adds the tcp client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
         /// <returns>The transport being configured.</returns>
         public static ClientTransport UseTcp(this ClientTransport clientTransport) =>
-            clientTransport.UseTcp(new TcpOptions(), new SlicOptions());
+            clientTransport.UseTcp(new TcpOptions());
 
         /// <summary>Adds the tcp client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
         /// <param name="tcpOptions">The TCP transport options.</param>
-        /// <param name="slicOptions">The Slic transport options.</param>
         /// <returns>The transport being configured.</returns>
-        public static ClientTransport UseTcp(
-            this ClientTransport clientTransport,
-            TcpOptions tcpOptions,
-            SlicOptions slicOptions)
+        public static ClientTransport UseTcp(this ClientTransport clientTransport, TcpOptions tcpOptions)
         {
-            var tcpClientTransport = new TcpClientTransport(tcpOptions, slicOptions, null);
+            var tcpClientTransport = new TcpClientTransport(tcpOptions, null);
             clientTransport.Add(TransportNames.Tcp, Protocol.Ice2, tcpClientTransport);
             clientTransport.Add(TransportNames.Tcp, Protocol.Ice1, tcpClientTransport);
             return clientTransport;
@@ -129,16 +116,14 @@ namespace IceRpc.Configure
         /// <summary>Adds the tcp client transport with ssl support to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
         /// <param name="tcpOptions">The TCP transport options.</param>
-        /// <param name="slicOptions">The Slic transport options.</param>
         /// <param name="authenticationOptions">The ssl authentication options.</param>
         /// <returns>The transport being configured.</returns>
         public static ClientTransport UseTcp(
             this ClientTransport clientTransport,
             TcpOptions tcpOptions,
-            SlicOptions slicOptions,
             SslClientAuthenticationOptions authenticationOptions)
         {
-            var tcpClientTransport = new TcpClientTransport(tcpOptions, slicOptions, authenticationOptions);
+            var tcpClientTransport = new TcpClientTransport(tcpOptions, authenticationOptions);
             clientTransport.Add(TransportNames.Tcp, Protocol.Ice2, tcpClientTransport);
             clientTransport.Add(TransportNames.Tcp, Protocol.Ice1, tcpClientTransport);
             return clientTransport;

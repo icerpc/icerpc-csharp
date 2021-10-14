@@ -12,33 +12,29 @@ namespace IceRpc.Transports
     public class TcpServerTransport : IServerTransport
     {
         private readonly TcpOptions _tcpOptions;
-        private readonly SlicOptions _slicOptions;
         private readonly SslServerAuthenticationOptions? _authenticationOptions;
 
         /// <summary>Constructs a <see cref="TcpServerTransport"/>.</summary>
         public TcpServerTransport() :
-            this(tcpOptions: new(), slicOptions: new(), null)
+            this(tcpOptions: new(), null)
         {
         }
 
         /// <summary>Constructs a <see cref="TcpServerTransport"/>.</summary>
         /// <param name="authenticationOptions">The ssl authentication options. If not set, ssl is disabled.</param>
         public TcpServerTransport(SslServerAuthenticationOptions authenticationOptions) :
-            this(tcpOptions: new(), slicOptions: new(), authenticationOptions)
+            this(tcpOptions: new(), authenticationOptions)
         {
         }
 
         /// <summary>Constructs a <see cref="TcpServerTransport"/>.</summary>
         /// <param name="tcpOptions">The TCP transport options.</param>
-        /// <param name="slicOptions">The Slic transport options.</param>
         /// <param name="authenticationOptions">The ssl authentication options. If not set, ssl is disabled.</param>
         public TcpServerTransport(
             TcpOptions tcpOptions,
-            SlicOptions slicOptions,
             SslServerAuthenticationOptions? authenticationOptions)
         {
             _tcpOptions = tcpOptions;
-            _slicOptions = slicOptions;
             _authenticationOptions = authenticationOptions;
         }
 
@@ -97,7 +93,6 @@ namespace IceRpc.Transports
             return new Internal.TcpListener(socket,
                                             endpoint: endpoint with { Port = (ushort)address.Port },
                                             _tcpOptions.IdleTimeout,
-                                            _slicOptions,
                                             authenticationOptions);
         }
     }

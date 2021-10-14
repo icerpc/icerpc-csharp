@@ -115,16 +115,14 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Creates a protocol connection using the given network connection. The creation of the
-        /// protocol peforms the network connection establishment.</summary>
+        /// <summary>Creates a protocol connection using the given network connection.</summary>
         /// <param name="networkConnection">The network connection.</param>
         /// <param name="incomingFrameMaxSize">The incoming frame maximum size.</param>
         /// <param name="isServer"><c>true</c> if the connection is a server connection, <c>false</c>
         /// otherwise.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The protocol connection and the network connection information returned by the transport
-        /// connection establishment.</returns>
-        internal virtual ValueTask<(IProtocolConnection, NetworkConnectionInformation)> CreateConnectionAsync(
+        /// <returns>The protocol connection.</returns>
+        internal virtual Task<IProtocolConnection> CreateConnectionAsync(
             INetworkConnection networkConnection,
             int incomingFrameMaxSize,
             bool isServer,

@@ -17,13 +17,12 @@ namespace IceRpc.Transports.Internal
             new ConcurrentDictionary<Endpoint, ColocListener>();
 
         private readonly Channel<(ChannelWriter<ReadOnlyMemory<byte>>, ChannelReader<ReadOnlyMemory<byte>>)> _channel;
-        private readonly SlicOptions _options;
 
         public async ValueTask<INetworkConnection> AcceptAsync()
         {
             (ChannelWriter<ReadOnlyMemory<byte>> writer, ChannelReader<ReadOnlyMemory<byte>> reader) =
                 await _channel.Reader.ReadAsync().ConfigureAwait(false);
-            return new ColocConnection(Endpoint, isServer: true, _options, writer, reader);
+            return new ColocConnection(Endpoint, isServer: true, writer, reader);
         }
 
         public void Dispose()
@@ -39,7 +38,7 @@ namespace IceRpc.Transports.Internal
             [NotNullWhen(returnValue: true)] out ColocListener? listener) =>
             _colocListenerDictionary.TryGetValue(endpoint, out listener);
 
-        internal ColocListener(Endpoint endpoint, SlicOptions options)
+        internal ColocListener(Endpoint endpoint)
         {
             if (endpoint.Params.Count > 0)
             {
@@ -47,7 +46,6 @@ namespace IceRpc.Transports.Internal
             }
 
             Endpoint = endpoint;
-            _options = options;
 
             // There's always a single reader (the listener) but there might be several writers calling Write
             // concurrently if there are connection establishment attempts from multiple threads. Not allowing

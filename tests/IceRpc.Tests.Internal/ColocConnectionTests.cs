@@ -79,7 +79,6 @@ namespace IceRpc.Tests.Internal
             return new ColocConnection(
                 Endpoint.FromString("ice+coloc://host"),
                 isServer: isServer,
-                slicOptions: new(),
                 writer: channel.Writer,
                 reader: channel.Reader);
         }

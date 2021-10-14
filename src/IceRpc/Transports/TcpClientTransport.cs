@@ -12,33 +12,29 @@ namespace IceRpc.Transports
     public class TcpClientTransport : IClientTransport
     {
         private readonly TcpOptions _tcpOptions;
-        private readonly SlicOptions _slicOptions;
         private readonly SslClientAuthenticationOptions? _authenticationOptions;
 
         /// <summary>Constructs a <see cref="TcpClientTransport"/>.</summary>
         public TcpClientTransport() :
-            this(tcpOptions: new(), slicOptions: new(), null)
+            this(tcpOptions: new(), null)
         {
         }
 
         /// <summary>Constructs a <see cref="TcpClientTransport"/>.</summary>
         /// <param name="authenticationOptions">The ssl authentication options.</param>
         public TcpClientTransport(SslClientAuthenticationOptions authenticationOptions) :
-            this(tcpOptions: new(), slicOptions: new(), authenticationOptions)
+            this(tcpOptions: new(), authenticationOptions)
         {
         }
 
         /// <summary>Constructs a <see cref="TcpClientTransport"/>.</summary>
         /// <param name="tcpOptions">The TCP transport options.</param>
-        /// <param name="slicOptions">The Slic transport options.</param>
         /// <param name="authenticationOptions">The ssl authentication options.</param>
         public TcpClientTransport(
             TcpOptions tcpOptions,
-            SlicOptions slicOptions,
             SslClientAuthenticationOptions? authenticationOptions)
         {
             _tcpOptions = tcpOptions;
-            _slicOptions = slicOptions;
             _authenticationOptions = authenticationOptions;
         }
 
@@ -87,8 +83,7 @@ namespace IceRpc.Transports
                 new TcpClientSocket(socket, _authenticationOptions, netEndPoint),
                 remoteEndpoint,
                 isServer: false,
-                _tcpOptions.IdleTimeout,
-                _slicOptions);
+                _tcpOptions.IdleTimeout);
         }
     }
 }

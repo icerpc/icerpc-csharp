@@ -54,6 +54,10 @@ namespace IceRpc
         /// <summary>The <see cref="IServerTransport"/> used by this server to accept connections.</summary>
         public IServerTransport ServerTransport { get; set; } = DefaultServerTransport;
 
+        /// <summary>The <see cref="SlicOptions"/> used for transports that don't support <see
+        /// cref="IMultiplexedNetworkStreamFactory"/>.</summary>
+        public SlicOptions SlicOptions { get; set; } = new();
+
         /// <summary>Returns a task that completes when the server's shutdown is complete: see
         /// <see cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
         public Task ShutdownComplete => _shutdownCompleteSource.Task;
@@ -99,11 +103,29 @@ namespace IceRpc
                 }
 
                 IServerTransport serverTransport = ServerTransport;
+                Func<INetworkStream, (ISlicFrameReader, ISlicFrameWriter)> slicFrameReaderWriterFactory =
+                    stream => (new StreamSlicFrameReader(stream), new StreamSlicFrameWriter(stream));
+
+                // Decorate the server transport and Slic frame reader/writer factory with log decorators.
                 if (LoggerFactory?.CreateLogger("IceRpc.Transports") is ILogger logger &&
                     logger.IsEnabled(LogLevel.Error))
                 {
                     serverTransport = new LogServerTransportDecorator(serverTransport, logger);
+                    slicFrameReaderWriterFactory = stream =>
+                    {
+                        (ISlicFrameReader reader, ISlicFrameWriter writer) = slicFrameReaderWriterFactory(stream);
+                        return (new LogSlicFrameReaderDecorator(reader, logger),
+                                new LogSlicFrameWriterDecorator(writer, logger));
+                    };
                 }
+
+                // Decorate the server transport with the Slic server transport decorator to provide
+                // support for multiplexed network stream factories for transports that only support
+                // network streams.
+                serverTransport = new SlicServerTransportDecorator(
+                    serverTransport,
+                    SlicOptions,
+                    slicFrameReaderWriterFactory);
 
                 _listener = serverTransport.Listen(_endpoint);
                 _endpoint = _listener.Endpoint;

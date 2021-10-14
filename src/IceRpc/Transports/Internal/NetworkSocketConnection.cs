@@ -25,63 +25,37 @@ namespace IceRpc.Transports.Internal
         private readonly Endpoint _endpoint;
         private readonly bool _isServer;
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
-        private SlicStreamFactory? _slicConnection;
-        private readonly SlicOptions _slicOptions;
 
         /// <inheritdoc/>
-        public void Close(Exception? exception = null)
+        public void Close(Exception? exception = null) => NetworkSocket.Dispose();
+
+        /// <inheritdoc/>
+        public void Dispose()
         {
-            _slicConnection?.Dispose();
-            NetworkSocket.Dispose();
         }
 
         /// <inheritdoc/>
-        public async ValueTask<(IMultiplexedNetworkStreamFactory, NetworkConnectionInformation)> ConnectMultiStreamConnectionAsync(
-            CancellationToken cancel)
-        {
-            (INetworkStream singleStreamConnection, NetworkConnectionInformation information) =
-                await ConnectSingleStreamConnectionAsync(cancel).ConfigureAwait(false);
-
-            if (singleStreamConnection.IsDatagram)
-            {
-                throw new NotSupportedException("multi-stream connection is not supported with datagram connections");
-            }
-
-            // Multi-stream support for a network socket connection is provided by Slic.
-            _slicConnection ??= await NetworkConnection.CreateSlicConnectionAsync(
-                singleStreamConnection,
-                _isServer,
-                _defaultIdleTimeout,
-                _slicOptions,
-                cancel).ConfigureAwait(false);
-
-            // Slic negotiates the idle timeout with the peer.
-            return (_slicConnection, information with { IdleTimeout = _slicConnection.IdleTimeout });
-        }
-
-        /// <inheritdoc/>
-        public async ValueTask<(INetworkStream, NetworkConnectionInformation)> ConnectSingleStreamConnectionAsync(
-            CancellationToken cancel)
+        public async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
         {
             Endpoint endpoint = await NetworkSocket.ConnectAsync(_endpoint, cancel).ConfigureAwait(false);
             X509Certificate? remoteCertificate = NetworkSocket.SslStream?.RemoteCertificate;
-            if (_isServer)
-            {
-                // For a server connection, _endpoint is the local endpoint and the endpoint returned by
-                // ConnectAsync is the remote endpoint.
-                return (
-                    this,
-                    new NetworkConnectionInformation(_endpoint, endpoint, _defaultIdleTimeout, remoteCertificate));
-            }
-            else
-            {
-                // For a client connection, _endpoint is the remote endpoint and the endpoint returned by
-                // ConnectAsync is the local endpoint.
-                return (
-                    this,
-                    new NetworkConnectionInformation(endpoint, _endpoint, _defaultIdleTimeout, remoteCertificate));
-            }
+
+            // For a server connection, _endpoint is the local endpoint and the endpoint returned by
+            // ConnectAsync is the remote endpoint, it's the contrary for a client connection.
+            return new NetworkConnectionInformation(
+                _isServer ? _endpoint : endpoint,
+                _isServer ? endpoint : _endpoint,
+                _defaultIdleTimeout,
+                remoteCertificate);
         }
+
+        /// <inheritdoc/>
+        public Task<IMultiplexedNetworkStreamFactory> GetMultiplexedNetworkStreamFactoryAsync(
+            CancellationToken cancel) =>
+            Task.FromException<IMultiplexedNetworkStreamFactory>(new NotSupportedException());
+
+        /// <inheritdoc/>
+        public INetworkStream GetNetworkStream() => this;
 
         /// <inheritdoc/>
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
@@ -113,15 +87,13 @@ namespace IceRpc.Transports.Internal
             NetworkSocket socket,
             Endpoint endpoint,
             bool isServer,
-            TimeSpan defaultIdleTimeout,
-            SlicOptions slicOptions)
+            TimeSpan defaultIdleTimeout)
         {
             NetworkSocket = socket;
 
             _endpoint = endpoint;
             _isServer = isServer;
             _defaultIdleTimeout = defaultIdleTimeout;
-            _slicOptions = slicOptions;
         }
     }
 }

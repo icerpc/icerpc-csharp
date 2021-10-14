@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
-
 namespace IceRpc.Transports
 {
     /// <summary>Gives Servers the ability to create incoming transport connections.</summary>

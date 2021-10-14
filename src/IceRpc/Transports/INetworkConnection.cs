@@ -22,19 +22,21 @@ namespace IceRpc.Transports
         /// <param name="exception">The reason of the connection closure.</param>
         void Close(Exception? exception = null);
 
-        /// <summary>Connects this network connection and return a single-stream connection for single-stream
-        /// communications over this network connection.</summary>
+        /// <summary>Connects this network connection.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The <see cref="INetworkStream"/> and <see cref="NetworkConnectionInformation"/>.</returns>
-        ValueTask<(INetworkStream, NetworkConnectionInformation)> ConnectSingleStreamConnectionAsync(
-            CancellationToken cancel);
+        /// <returns>The <see cref="NetworkConnectionInformation"/>.</returns>
+        Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel);
 
-        /// <summary>Connects this network connection and return a multi-stream connection to allow
-        /// multi-stream communications over this network connection.</summary>
+        /// <summary>Gets an <see cref="INetworkStream"/> an <see cref="IMultiplexedNetworkStreamFactory"/> to
+        /// communicate with the peer.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The <see cref="IMultiplexedNetworkStreamFactory"/> and <see cref="NetworkConnectionInformation"/>.</returns>
-        ValueTask<(IMultiplexedNetworkStreamFactory, NetworkConnectionInformation)> ConnectMultiStreamConnectionAsync(
-            CancellationToken cancel);
+        /// <returns>The <see cref="IMultiplexedNetworkStreamFactory"/>.</returns>
+        Task<IMultiplexedNetworkStreamFactory> GetMultiplexedNetworkStreamFactoryAsync(CancellationToken cancel);
+
+        /// <summary>Gets an <see cref="INetworkStream"/> an <see cref="INetworkStream"/> to communicate with
+        /// the peer.</summary>
+        /// <returns>The <see cref="INetworkStream"/>.</returns>
+        INetworkStream GetNetworkStream();
 
         /// <summary>Checks if the parameters of the provided endpoint are compatible with this network
         /// connection. Compatible means a client could reuse this network connection instead of establishing

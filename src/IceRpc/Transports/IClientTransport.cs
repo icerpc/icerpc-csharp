@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
-
 namespace IceRpc.Transports
 {
     /// <summary>Gives Connections the ability to create outgoing transport connections.</summary>
