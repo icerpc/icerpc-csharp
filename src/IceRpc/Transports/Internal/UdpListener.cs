@@ -15,7 +15,7 @@ namespace IceRpc.Transports.Internal
         {
             try
             {
-                return new NetworkSocketConnection(
+                return new SocketNetworkConnection(
                     await _acceptTask.ValueTask.ConfigureAwait(false),
                     Endpoint,
                     isServer: true,

@@ -17,7 +17,7 @@ namespace IceRpc.Transports.Internal
     /// to a stream a parameter. Enabling buffering only for stream parameters also ensure a lightweight Slic
     /// stream object where no additional heap objects (such as the circular buffer, send semaphore, etc) are
     /// necessary to receive a simple response/request frame.</summary>
-    internal class SlicStream : IMultiplexedNetworkStream, IValueTaskSource<(int, bool)>
+    internal class SlicMultiplexedNetworkStream : IMultiplexedNetworkStream, IValueTaskSource<(int, bool)>
     {
         /// <inheritdoc/>
         public long Id
@@ -93,7 +93,7 @@ namespace IceRpc.Transports.Internal
         private bool IsShutdown => (Thread.VolatileRead(ref _state) & (int)State.Shutdown) > 0;
         private bool ReadsCompleted => (Thread.VolatileRead(ref _state) & (int)State.ReadCompleted) > 0;
 
-        private readonly SlicStreamFactory _connection;
+        private readonly SlicMultiplexedNetworkStreamFactory _connection;
         private long _id = -1;
         private SpinLock _lock;
         private AsyncQueueCore<(int, bool)> _queue = new();
@@ -470,7 +470,7 @@ namespace IceRpc.Transports.Internal
         /// <inheritdoc/>
         public override string ToString() => $"{base.ToString()} (ID={Id})";
 
-        internal SlicStream(SlicStreamFactory connection, long streamId, ISlicFrameReader reader, ISlicFrameWriter writer)
+        internal SlicMultiplexedNetworkStream(SlicMultiplexedNetworkStreamFactory connection, long streamId, ISlicFrameReader reader, ISlicFrameWriter writer)
         {
             _connection = connection;
             _reader = reader;
@@ -486,8 +486,8 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal SlicStream(
-            SlicStreamFactory connection,
+        internal SlicMultiplexedNetworkStream(
+            SlicMultiplexedNetworkStreamFactory connection,
             bool bidirectional,
             ISlicFrameReader reader,
             ISlicFrameWriter writer)
@@ -794,7 +794,7 @@ namespace IceRpc.Transports.Internal
             }
 
             private readonly ReadOnlyMemory<byte>[] _buffers;
-            private readonly SlicStream _stream;
+            private readonly SlicMultiplexedNetworkStream _stream;
 
             public override void Flush()
             {
@@ -867,7 +867,7 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            internal ByteStream(SlicStream stream)
+            internal ByteStream(SlicMultiplexedNetworkStream stream)
             {
                 _stream = stream;
                 if (_stream.TransportHeader.Length > 0)

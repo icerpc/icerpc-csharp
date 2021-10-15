@@ -2,14 +2,18 @@
 
 namespace IceRpc.Transports.Internal
 {
+
+    // The _slicStreamFactory field is disposed by CloseAsync.
+#pragma warning disable CA1001
     internal sealed class SlicNetworkConnectionDecorator : INetworkConnection
+#pragma warning restore CA1001
     {
         private readonly INetworkConnection _decoratee;
         private TimeSpan _idleTimeout;
         private readonly bool _isServer;
         private readonly Func<INetworkStream, (ISlicFrameReader, ISlicFrameWriter)> _slicFrameReaderWriterFactory;
         private readonly SlicOptions _slicOptions;
-        private SlicStreamFactory? _slicStreamFactory = null;
+        private SlicMultiplexedNetworkStreamFactory? _slicStreamFactory = null;
 
         public bool IsSecure => _decoratee.IsSecure;
 
@@ -44,7 +48,7 @@ namespace IceRpc.Transports.Internal
                 try
                 {
                     (reader, writer) = _slicFrameReaderWriterFactory(stream);
-                    _slicStreamFactory = new SlicStreamFactory(
+                    _slicStreamFactory = new SlicMultiplexedNetworkStreamFactory(
                         reader,
                         writer,
                         _isServer,
@@ -53,7 +57,7 @@ namespace IceRpc.Transports.Internal
                     reader = null;
                     writer = null;
                     await _slicStreamFactory.InitializeAsync(cancel).ConfigureAwait(false);
-                    SlicStreamFactory returnedSlicConnection = _slicStreamFactory;
+                    SlicMultiplexedNetworkStreamFactory returnedSlicConnection = _slicStreamFactory;
                     _slicStreamFactory = null;
                     return returnedSlicConnection;
                 }

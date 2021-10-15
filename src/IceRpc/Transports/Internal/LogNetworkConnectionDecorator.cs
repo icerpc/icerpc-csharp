@@ -257,12 +257,12 @@ namespace IceRpc.Transports.Internal
 
     internal class LogNetworkSocketConnectionDecorator : LogNetworkConnectionDecorator
     {
-        private readonly NetworkSocketConnection _decoratee;
+        private readonly SocketNetworkConnection _decoratee;
 
         public override string? ToString() => _decoratee.ToString();
 
         internal LogNetworkSocketConnectionDecorator(
-            NetworkSocketConnection decoratee,
+            SocketNetworkConnection decoratee,
             bool isServer,
             Endpoint endpoint,
             ILogger logger) :

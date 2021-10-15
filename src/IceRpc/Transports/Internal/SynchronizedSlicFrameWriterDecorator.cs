@@ -21,7 +21,7 @@ namespace IceRpc.Transports.Internal
         }
 
         public async ValueTask WriteFrameAsync(
-            SlicStream? stream,
+            SlicMultiplexedNetworkStream? stream,
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             CancellationToken cancel)
         {
@@ -37,7 +37,7 @@ namespace IceRpc.Transports.Internal
         }
 
         public async ValueTask WriteStreamFrameAsync(
-            SlicStream stream,
+            SlicMultiplexedNetworkStream stream,
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             bool endStream,
             CancellationToken cancel)

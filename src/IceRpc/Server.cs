@@ -4,7 +4,6 @@ using IceRpc.Configure;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
-using System.Diagnostics;
 
 namespace IceRpc
 {

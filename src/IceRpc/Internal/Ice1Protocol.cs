@@ -25,7 +25,7 @@ namespace IceRpc.Internal
             CancellationToken cancel)
         {
             INetworkStream stream = networkConnection.GetNetworkStream();
-            var connection = new Ice1Connection(stream, incomingFrameMaxSize);
+            var connection = new Ice1ProtocolConnection(stream, incomingFrameMaxSize);
             await connection.InitializeAsync(isServer, cancel).ConfigureAwait(false);
             return connection;
         }

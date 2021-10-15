@@ -26,7 +26,7 @@ namespace IceRpc.Internal
         {
             IMultiplexedNetworkStreamFactory? streamFactory =
                 await networkConnection.GetMultiplexedNetworkStreamFactoryAsync(cancel).ConfigureAwait(false);
-            var connection = new Ice2Connection(streamFactory, incomingFrameMaxSize);
+            var connection = new Ice2ProtocolConnection(streamFactory, incomingFrameMaxSize);
             await connection.InitializeAsync(cancel).ConfigureAwait(false);
             return connection;
         }

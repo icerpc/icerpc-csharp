@@ -14,7 +14,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void NetworkSocketConnection_Dispose()
         {
-            var connection = new NetworkSocketConnection(
+            var connection = new SocketNetworkConnection(
                 new NetworkSocketStub(isDatagram: false),
                 Endpoint.FromString("ice+tcp://host"),
                 isServer: false,
@@ -27,7 +27,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task NetworkSocketConnection_GetSingleStreamConnectionAsync()
         {
-            var connection = new NetworkSocketConnection(
+            var connection = new SocketNetworkConnection(
                 new NetworkSocketStub(isDatagram: false),
                 Endpoint.FromString("ice+tcp://host"),
                 isServer: false,
@@ -53,7 +53,7 @@ namespace IceRpc.Tests.Internal
             string otherEndpoint,
             bool expectedResult)
         {
-            var connection = new NetworkSocketConnection(
+            var connection = new SocketNetworkConnection(
                 new NetworkSocketStub(isDatagram: false),
                 endpoint,
                 isServer: isServer,
@@ -69,7 +69,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(true)]
         public void NetworkSocketConnection_Properties(bool isDatagram)
         {
-            var connection = new NetworkSocketConnection(
+            var connection = new SocketNetworkConnection(
                 new NetworkSocketStub(isDatagram),
                 Endpoint.FromString("ice+tcp://host"),
                 isServer: false,
@@ -82,7 +82,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task NetworkSocketConnection_LastActivity()
         {
-            var connection = new NetworkSocketConnection(
+            var connection = new SocketNetworkConnection(
                 new NetworkSocketStub(false),
                 Endpoint.FromString("ice+tcp://host"),
                 isServer: false,

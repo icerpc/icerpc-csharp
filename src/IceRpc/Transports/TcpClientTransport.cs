@@ -79,7 +79,7 @@ namespace IceRpc.Transports
                 throw new TransportException(ex);
             }
 
-            return new NetworkSocketConnection(
+            return new SocketNetworkConnection(
                 new TcpClientSocket(socket, _authenticationOptions, netEndPoint),
                 remoteEndpoint,
                 isServer: false,

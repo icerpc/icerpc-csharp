@@ -7,7 +7,7 @@ using IceRpc.Transports.Internal;
 
 namespace IceRpc.Internal
 {
-    internal sealed class Ice2Connection : IProtocolConnection
+    internal sealed class Ice2ProtocolConnection : IProtocolConnection
     {
         /// <inheritdoc/>
         public bool HasDispatchInProgress
@@ -578,7 +578,7 @@ namespace IceRpc.Internal
             return goAwayFrame.Message;
         }
 
-        internal Ice2Connection(
+        internal Ice2ProtocolConnection(
             IMultiplexedNetworkStreamFactory multiplexedNetworkStreamFactory,
             int incomingFrameMaxSize)
         {
