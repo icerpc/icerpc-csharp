@@ -26,7 +26,7 @@ namespace IceRpc.Internal
         {
             (INetworkStream singleStreamConnection, NetworkConnectionInformation information) =
                  await networkConnection.ConnectSingleStreamConnectionAsync(cancel).ConfigureAwait(false);
-            var protocolConnection = new Ice1Connection(
+            var protocolConnection = new Ice1ProtocolConnection(
                 singleStreamConnection,
                 incomingFrameMaxSize);
             await protocolConnection.InitializeAsync(isServer, cancel).ConfigureAwait(false);

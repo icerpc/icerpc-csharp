@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Internal
 {
-    internal sealed class Ice2Connection : IProtocolConnection
+    internal sealed class Ice2ProtocolConnection : IProtocolConnection
     {
         /// <inheritdoc/>
         public bool HasDispatchInProgress
@@ -138,7 +138,6 @@ namespace IceRpc.Internal
                     IsIdempotent = requestHeaderBody.Idempotent ?? false,
                     IsOneway = !stream.IsBidirectional,
                     Features = features,
-                    Priority = requestHeaderBody.Priority ?? default,
                     // The infinite deadline is encoded as -1 and converted to DateTime.MaxValue
                     Deadline = requestHeaderBody.Deadline == -1 ?
                         DateTime.MaxValue : DateTime.UnixEpoch + TimeSpan.FromMilliseconds(requestHeaderBody.Deadline),
@@ -302,7 +301,6 @@ namespace IceRpc.Internal
                     request.Path,
                     request.Operation,
                     request.IsIdempotent ? true : null,
-                    priority: null,
                     deadline,
                     request.PayloadEncoding == Ice2Definitions.Encoding ? null : request.PayloadEncoding.ToString());
 
@@ -578,7 +576,7 @@ namespace IceRpc.Internal
             return goAwayFrame.Message;
         }
 
-        internal Ice2Connection(IMultiplexedNetworkStreamFactory multiStreamConnection, int incomingFrameMaxSize)
+        internal Ice2ProtocolConnection(IMultiplexedNetworkStreamFactory multiStreamConnection, int incomingFrameMaxSize)
         {
             _multiStreamConnection = multiStreamConnection;
             _incomingFrameMaxSize = incomingFrameMaxSize;

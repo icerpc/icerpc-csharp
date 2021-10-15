@@ -11,7 +11,7 @@ using System.Diagnostics;
 
 namespace IceRpc.Internal
 {
-    internal sealed class Ice1Connection : IProtocolConnection
+    internal sealed class Ice1ProtocolConnection : IProtocolConnection
     {
         /// <inheritdoc/>
         public bool HasDispatchInProgress
@@ -530,7 +530,7 @@ namespace IceRpc.Internal
             return "connection graceful shutdown";
         }
 
-        internal Ice1Connection(INetworkStream singleStreamConnection, int incomingFrameMaxSize)
+        internal Ice1ProtocolConnection(INetworkStream singleStreamConnection, int incomingFrameMaxSize)
         {
             _singleStreamConnection = singleStreamConnection;
             if (_singleStreamConnection.IsDatagram)

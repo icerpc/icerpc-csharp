@@ -7,7 +7,7 @@ namespace IceRpc.Transports.Internal
 {
     /// <summary>The colocated network connection class to exchange data within the same process. The
     /// implementation copies the send buffer into the receive buffer.</summary>
-    internal class ColocConnection : INetworkConnection, INetworkStream
+    internal class ColocNetworkConnection : INetworkConnection, INetworkStream
     {
         public int DatagramMaxReceiveSize => throw new InvalidOperationException();
 
@@ -22,7 +22,7 @@ namespace IceRpc.Transports.Internal
         private readonly SlicOptions _slicOptions;
         private readonly ChannelReader<ReadOnlyMemory<byte>> _reader;
         private ReadOnlyMemory<byte> _receivedBuffer;
-        private SlicStreamFactory? _slicConnection;
+        private SlicMultiplexedNetworkStreamFactory? _slicConnection;
         private readonly ChannelWriter<ReadOnlyMemory<byte>> _writer;
 
         public void Close(Exception? exception = null)
@@ -119,7 +119,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal ColocConnection(
+        internal ColocNetworkConnection(
             Endpoint endpoint,
             bool isServer,
             SlicOptions slicOptions,

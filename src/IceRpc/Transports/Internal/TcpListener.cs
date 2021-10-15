@@ -20,7 +20,7 @@ namespace IceRpc.Transports.Internal
         {
             try
             {
-                return new NetworkSocketConnection(
+                return new SocketNetworkConnection(
                     new TcpServerSocket(
                         await _socket.AcceptAsync().ConfigureAwait(false),
                         _authenticationOptions),

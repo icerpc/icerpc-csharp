@@ -6,7 +6,6 @@
 
 #include <IceRpc/BuiltinSequences.ice>
 #include <IceRpc/Fields.ice>
-#include <IceRpc/Priority.ice>
 #include <IceRpc/ResultType.ice>
 
 // TODO: use generated internal types once supported
@@ -52,7 +51,6 @@ module IceRpc::Internal
         string path;
         string operation;
         bool? \idempotent;       // null equivalent to false
-        Priority? priority;      // null equivalent to 0
         varlong deadline;
         string? payloadEncoding;
     }

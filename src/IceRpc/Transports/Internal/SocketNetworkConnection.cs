@@ -6,7 +6,7 @@ using System.Security.Cryptography.X509Certificates;
 namespace IceRpc.Transports.Internal
 {
     /// <summary>A network socket connection based on a <see cref="NetworkSocket"/>.</summary>
-    internal sealed class NetworkSocketConnection : INetworkConnection, INetworkStream
+    internal sealed class SocketNetworkConnection : INetworkConnection, INetworkStream
     {
         /// <inheritdoc/>
         public int DatagramMaxReceiveSize => NetworkSocket.DatagramMaxReceiveSize;
@@ -25,7 +25,7 @@ namespace IceRpc.Transports.Internal
         private readonly Endpoint _endpoint;
         private readonly bool _isServer;
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
-        private SlicStreamFactory? _slicConnection;
+        private SlicMultiplexedNetworkStreamFactory? _slicConnection;
         private readonly SlicOptions _slicOptions;
 
         /// <inheritdoc/>
@@ -109,7 +109,7 @@ namespace IceRpc.Transports.Internal
         /// <inheritdoc/>
         public override string? ToString() => NetworkSocket.ToString();
 
-        internal NetworkSocketConnection(
+        internal SocketNetworkConnection(
             NetworkSocket socket,
             Endpoint endpoint,
             bool isServer,

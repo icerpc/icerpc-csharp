@@ -23,7 +23,7 @@ namespace IceRpc.Tests.Internal
                     PacketMaxSize = 2098
                 };
 
-            (SlicStreamFactory clientConnection,  SlicStreamFactory serverConnection) =
+            (SlicMultiplexedNetworkStreamFactory clientConnection,  SlicMultiplexedNetworkStreamFactory serverConnection) =
                 await CreateSlicClientServerConnectionsAsync(clientOptions, serverOptions);
             try
             {
@@ -39,7 +39,7 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        private static async Task<(SlicStreamFactory, SlicStreamFactory)> CreateSlicClientServerConnectionsAsync(
+        private static async Task<(SlicMultiplexedNetworkStreamFactory, SlicMultiplexedNetworkStreamFactory)> CreateSlicClientServerConnectionsAsync(
             SlicOptions clientOptions,
             SlicOptions serverOptions)
         {
@@ -54,7 +54,7 @@ namespace IceRpc.Tests.Internal
                 clientConnection.ConnectMultiStreamConnectionAsync(default);
             ValueTask<(IMultiplexedNetworkStreamFactory Connection, NetworkConnectionInformation Information)> serverTask =
                 serverConnection.ConnectMultiStreamConnectionAsync(default);
-            return ((SlicStreamFactory)(await clientTask).Connection, (SlicStreamFactory)(await serverTask).Connection);
+            return ((SlicMultiplexedNetworkStreamFactory)(await clientTask).Connection, (SlicMultiplexedNetworkStreamFactory)(await serverTask).Connection);
         }
     }
 }
