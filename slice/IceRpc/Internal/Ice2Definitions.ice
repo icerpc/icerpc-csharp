@@ -6,7 +6,6 @@
 
 #include <IceRpc/BuiltinSequences.ice>
 #include <IceRpc/Fields.ice>
-#include <IceRpc/Priority.ice>
 #include <IceRpc/ResultType.ice>
 
 // TODO: use generated internal types once supported
