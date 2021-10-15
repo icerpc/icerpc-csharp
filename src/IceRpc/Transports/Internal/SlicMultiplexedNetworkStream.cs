@@ -761,14 +761,6 @@ namespace IceRpc.Transports.Internal
 
         private ValueTask<(int, bool)> WaitAsync(CancellationToken cancel = default)
         {
-            // TODO: XXX still needed?
-            // if (ReadsCompleted && _exception == null)
-            // {
-            //     // If reads are completed and no exception is set, it's probably because ReceiveAsync is called after
-            //     // receiving the end stream flag.
-            //     throw new InvalidOperationException("reads are completed");
-            // }
-
             if (cancel.CanBeCanceled)
             {
                 Debug.Assert(_tokenRegistration == default);

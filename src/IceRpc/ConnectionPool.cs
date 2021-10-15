@@ -18,8 +18,8 @@ namespace IceRpc
         /// <summary>The connection options.</summary>
         public ConnectionOptions ConnectionOptions { get; init; } = new();
 
-        /// <summary>The dispatcher that will be set on connections from the pool to enable connections to
-        /// receive requests over the client conneciton.</summary>
+        /// <summary>The dispatcher that will be set on connections from the pool to enable connections to receive
+        /// requests over the client conneciton.</summary>
         /// <value>The dispatcher of this connection pool.</value>
         /// <seealso cref="IDispatcher"/>
         public IDispatcher? Dispatcher { get; init; }
@@ -28,13 +28,12 @@ namespace IceRpc
         /// <value>The logger factory of this connection pool.</value>
         public ILoggerFactory? LoggerFactory { get; init; }
 
-        /// <summary>Indicates whether or not <see cref="GetConnectionAsync"/> prefers returning an existing
-        /// connection over creating a new one.</summary>
-        /// <value>When <c>true</c>, GetConnectionAsync first iterates over all endpoints (in order) to look
-        /// for an existing compatible active connection; if it cannot find such a connection, it creates one
-        /// by iterating again over the endpoints. When <c>false</c>, GetConnectionAsync iterates over the
-        /// endpoints only once to retrieve or create an active connection. The default value is
-        /// <c>true</c>.</value>
+        /// <summary>Indicates whether or not <see cref="GetConnectionAsync"/> prefers returning an existing connection
+        /// over creating a new one.</summary>
+        /// <value>When <c>true</c>, GetConnectionAsync first iterates over all endpoints (in order) to look for an
+        /// existing compatible active connection; if it cannot find such a connection, it creates one by iterating
+        /// again over the endpoints. When <c>false</c>, GetConnectionAsync iterates over the endpoints only once to
+        /// retrieve or create an active connection. The default value is <c>true</c>.</value>
         public bool PreferExistingConnection { get; set; } = true;
 
         /// <summary>The <see cref="SlicOptions"/> used for transports that don't support <see
