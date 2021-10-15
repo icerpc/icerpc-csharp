@@ -7,8 +7,8 @@
 #include <IceRpc/BuiltinSequences.ice>
 
 // These definitions help with the encoding of Slic frames.
-// TODO: Move to IceRpc::Transports::Internal::Slic once we support generated internal types.
-module IceRpc::Transports::Slic
+// TODO: use generated internal types once supported
+module IceRpc::Transports::Internal
 {
     /// The Slic frame types
     enum FrameType : byte

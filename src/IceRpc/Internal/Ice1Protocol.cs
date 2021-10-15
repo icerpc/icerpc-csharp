@@ -24,7 +24,7 @@ namespace IceRpc.Internal
             bool isServer,
             CancellationToken cancel)
         {
-            (ISingleStreamConnection singleStreamConnection, NetworkConnectionInformation information) =
+            (INetworkStream singleStreamConnection, NetworkConnectionInformation information) =
                  await networkConnection.ConnectSingleStreamConnectionAsync(cancel).ConfigureAwait(false);
             var protocolConnection = new Ice1ProtocolConnection(
                 singleStreamConnection,

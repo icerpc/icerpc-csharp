@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports.Internal.Slic;
+using IceRpc.Transports.Internal;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Internal

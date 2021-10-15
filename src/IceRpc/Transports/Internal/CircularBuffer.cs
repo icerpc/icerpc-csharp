@@ -2,7 +2,7 @@
 
 using System.Diagnostics;
 
-namespace IceRpc.Transports.Internal.Slic
+namespace IceRpc.Transports.Internal
 {
     /// <summary>A circular byte buffer class to buffer streamed data. The connection adds data to this buffer when
     /// receiving stream frames. The data is consumed from the buffer when the application reads the data from

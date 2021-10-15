@@ -48,7 +48,7 @@ namespace IceRpc.Internal
         private readonly Dictionary<int, OutgoingRequest> _invocations = new();
         private readonly ILogger _logger;
         private readonly object _mutex = new();
-        private readonly ISingleStreamConnection _singleStreamConnection;
+        private readonly INetworkStream _singleStreamConnection;
         private int _nextRequestId;
         private readonly TaskCompletionSource _pendingCloseConnection =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -530,7 +530,7 @@ namespace IceRpc.Internal
             return "connection graceful shutdown";
         }
 
-        internal Ice1ProtocolConnection(ISingleStreamConnection singleStreamConnection, int incomingFrameMaxSize)
+        internal Ice1ProtocolConnection(INetworkStream singleStreamConnection, int incomingFrameMaxSize)
         {
             _singleStreamConnection = singleStreamConnection;
             if (_singleStreamConnection.IsDatagram)

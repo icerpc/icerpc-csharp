@@ -37,7 +37,7 @@ namespace IceRpc.Internal
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly TaskCompletionSource _dispatchAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private INetworkStream? _controlStream;
+        private IMultiplexedNetworkStream? _controlStream;
         private readonly HashSet<IncomingRequest> _dispatch = new();
         private readonly int _incomingFrameMaxSize;
         private readonly HashSet<OutgoingRequest> _invocations = new();
@@ -45,11 +45,11 @@ namespace IceRpc.Internal
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
         private long _lastRemoteUnidirectionalStreamId = -1;
         private readonly object _mutex = new();
-        private INetworkStream? _remoteControlStream;
+        private IMultiplexedNetworkStream? _remoteControlStream;
         private int? _peerIncomingFrameMaxSize;
         private bool _shutdown;
         private (long Bidirectional, long Unidirectional)? _lastRemoteStreamIds;
-        private readonly IMultiStreamConnection _multiStreamConnection;
+        private readonly IMultiplexedNetworkStreamFactory _multiStreamConnection;
 
         /// <inheritdoc/>
         public void CancelShutdown() =>
@@ -70,7 +70,7 @@ namespace IceRpc.Internal
             while (true)
             {
                 // Accepts a new stream.
-                INetworkStream stream = await _multiStreamConnection!.AcceptStreamAsync(cancel).ConfigureAwait(false);
+                IMultiplexedNetworkStream stream = await _multiStreamConnection!.AcceptStreamAsync(cancel).ConfigureAwait(false);
 
                 // Receives the request frame from the stream. TODO: Only read the request header, the payload
                 // should be received by calling IProtocolStream.ReceivePayloadAsync from the incoming frame
@@ -138,7 +138,6 @@ namespace IceRpc.Internal
                     IsIdempotent = requestHeaderBody.Idempotent ?? false,
                     IsOneway = !stream.IsBidirectional,
                     Features = features,
-                    Priority = requestHeaderBody.Priority ?? default,
                     // The infinite deadline is encoded as -1 and converted to DateTime.MaxValue
                     Deadline = requestHeaderBody.Deadline == -1 ?
                         DateTime.MaxValue : DateTime.UnixEpoch + TimeSpan.FromMilliseconds(requestHeaderBody.Deadline),
@@ -302,7 +301,6 @@ namespace IceRpc.Internal
                     request.Path,
                     request.Operation,
                     request.IsIdempotent ? true : null,
-                    priority: null,
                     deadline,
                     request.PayloadEncoding == Ice2Definitions.Encoding ? null : request.PayloadEncoding.ToString());
 
@@ -458,7 +456,7 @@ namespace IceRpc.Internal
 
             if (shutdownByPeer && invocations != null)
             {
-                foreach (INetworkStream stream in invocations.Select(request => request.Stream!))
+                foreach (IMultiplexedNetworkStream stream in invocations.Select(request => request.Stream!))
                 {
                     if (stream.Id > (stream.IsBidirectional ?
                         _lastRemoteStreamIds!.Value.Bidirectional :
@@ -578,7 +576,7 @@ namespace IceRpc.Internal
             return goAwayFrame.Message;
         }
 
-        internal Ice2ProtocolConnection(IMultiStreamConnection multiStreamConnection, int incomingFrameMaxSize)
+        internal Ice2ProtocolConnection(IMultiplexedNetworkStreamFactory multiStreamConnection, int incomingFrameMaxSize)
         {
             _multiStreamConnection = multiStreamConnection;
             _incomingFrameMaxSize = incomingFrameMaxSize;
@@ -644,7 +642,7 @@ namespace IceRpc.Internal
         }
 
         private async ValueTask<ReadOnlyMemory<byte>> ReceiveFrameAsync(
-            INetworkStream stream,
+            IMultiplexedNetworkStream stream,
             Ice2FrameType expectedFrameType,
             CancellationToken cancel)
         {

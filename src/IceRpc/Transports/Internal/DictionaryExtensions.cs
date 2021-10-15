@@ -2,10 +2,9 @@
 
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
-using IceRpc.Transports.Slic;
 using System.Buffers;
 
-namespace IceRpc.Transports.Internal.Slic
+namespace IceRpc.Transports.Internal
 {
     internal static class DictionaryExtensions
     {

@@ -3,8 +3,8 @@
 namespace IceRpc.Transports
 {
     /// <summary>A network connection represents the low-level transport to exchange data as bytes. A network
-    /// connection supports both exchanging data with an <see cref="ISingleStreamConnection"/> (for the Ice1
-    /// protocol) or an <see cref="IMultiStreamConnection"/> (for the Ice2 protocol). A single-stream
+    /// connection supports both exchanging data with an <see cref="INetworkStream"/> (for the Ice1
+    /// protocol) or an <see cref="IMultiplexedNetworkStreamFactory"/> (for the Ice2 protocol). A single-stream
     /// transport such as TCP or Coloc uses the Slic multi-stream connection implementation to provide
     /// multi-stream support.</summary>
     public interface INetworkConnection
@@ -25,15 +25,15 @@ namespace IceRpc.Transports
         /// <summary>Connects this network connection and return a single-stream connection for single-stream
         /// communications over this network connection.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The <see cref="ISingleStreamConnection"/> and <see cref="NetworkConnectionInformation"/>.</returns>
-        ValueTask<(ISingleStreamConnection, NetworkConnectionInformation)> ConnectSingleStreamConnectionAsync(
+        /// <returns>The <see cref="INetworkStream"/> and <see cref="NetworkConnectionInformation"/>.</returns>
+        ValueTask<(INetworkStream, NetworkConnectionInformation)> ConnectSingleStreamConnectionAsync(
             CancellationToken cancel);
 
         /// <summary>Connects this network connection and return a multi-stream connection to allow
         /// multi-stream communications over this network connection.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The <see cref="IMultiStreamConnection"/> and <see cref="NetworkConnectionInformation"/>.</returns>
-        ValueTask<(IMultiStreamConnection, NetworkConnectionInformation)> ConnectMultiStreamConnectionAsync(
+        /// <returns>The <see cref="IMultiplexedNetworkStreamFactory"/> and <see cref="NetworkConnectionInformation"/>.</returns>
+        ValueTask<(IMultiplexedNetworkStreamFactory, NetworkConnectionInformation)> ConnectMultiStreamConnectionAsync(
             CancellationToken cancel);
 
         /// <summary>Checks if the parameters of the provided endpoint are compatible with this network

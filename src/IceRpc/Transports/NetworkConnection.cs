@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports.Internal.Slic;
-using Microsoft.Extensions.Logging;
+using IceRpc.Transports.Internal;
 
 namespace IceRpc.Transports
 {
@@ -17,8 +16,8 @@ namespace IceRpc.Transports
         // because IMultiStreamConnection is not disposable). However, it should be public to allow 3rd-party
         // transports to use use Slic. So ... perhaps return (IMultiStreamConnection, IDisposable) or make
         // IMultiStreamConnection inherit from IDisposable.
-        internal static async ValueTask<SlicConnection> CreateSlicConnectionAsync(
-            ISingleStreamConnection singleStreamConnection,
+        internal static async ValueTask<SlicMultiplexedNetworkStreamFactory> CreateSlicConnectionAsync(
+            INetworkStream singleStreamConnection,
             bool isServer,
             TimeSpan idleTimeout,
             SlicOptions slicOptions,
@@ -26,7 +25,7 @@ namespace IceRpc.Transports
         {
             ISlicFrameReader? reader = null;
             ISlicFrameWriter? writer = null;
-            SlicConnection? slicConnection = null;
+            SlicMultiplexedNetworkStreamFactory? slicConnection = null;
             try
             {
                 reader = new StreamSlicFrameReader(singleStreamConnection);
@@ -37,7 +36,7 @@ namespace IceRpc.Transports
                 //     reader = new LogSlicFrameReaderDecorator(reader, logger);
                 //     writer = new LogSlicFrameWriterDecorator(writer, logger);
                 // }
-                slicConnection = new SlicConnection(
+                slicConnection = new SlicMultiplexedNetworkStreamFactory(
                     reader,
                     writer,
                     isServer,
@@ -46,7 +45,7 @@ namespace IceRpc.Transports
                 reader = null;
                 writer = null;
                 await slicConnection.InitializeAsync(cancel).ConfigureAwait(false);
-                SlicConnection returnedSlicConnection = slicConnection;
+                SlicMultiplexedNetworkStreamFactory returnedSlicConnection = slicConnection;
                 slicConnection = null;
                 return returnedSlicConnection;
             }

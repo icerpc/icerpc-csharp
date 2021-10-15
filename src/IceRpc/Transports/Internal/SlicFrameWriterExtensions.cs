@@ -2,10 +2,8 @@
 
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
-using IceRpc.Transports.Slic;
-using System.Buffers;
 
-namespace IceRpc.Transports.Internal.Slic
+namespace IceRpc.Transports.Internal
 {
     internal static class SlicFrameWriterExtensions
     {
@@ -37,21 +35,21 @@ namespace IceRpc.Transports.Internal.Slic
 
         internal static ValueTask WriteStreamResetAsync(
             this ISlicFrameWriter writer,
-            SlicStream stream,
+            SlicMultiplexedNetworkStream stream,
             StreamResetBody frame,
             CancellationToken cancel) =>
             WriteFrameAsync(writer, FrameType.StreamReset, stream, frame.Encode, cancel);
 
         internal static ValueTask WriteStreamConsumedAsync(
             this ISlicFrameWriter writer,
-            SlicStream stream,
+            SlicMultiplexedNetworkStream stream,
             StreamConsumedBody frame,
             CancellationToken cancel) =>
             WriteFrameAsync(writer, FrameType.StreamConsumed, stream, frame.Encode, cancel);
 
         internal static ValueTask WriteStreamStopSendingAsync(
             this ISlicFrameWriter writer,
-            SlicStream stream,
+            SlicMultiplexedNetworkStream stream,
             StreamStopSendingBody frame,
             CancellationToken cancel) =>
             WriteFrameAsync(writer, FrameType.StreamStopSending, stream, frame.Encode, cancel);
@@ -59,7 +57,7 @@ namespace IceRpc.Transports.Internal.Slic
         private static ValueTask WriteFrameAsync(
             ISlicFrameWriter writer,
             FrameType type,
-            SlicStream? stream,
+            SlicMultiplexedNetworkStream? stream,
             Action<IceEncoder> encode,
             CancellationToken cancel)
         {

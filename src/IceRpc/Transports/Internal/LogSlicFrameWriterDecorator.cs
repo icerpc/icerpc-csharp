@@ -3,11 +3,10 @@
 using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
-using IceRpc.Transports.Slic;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
-namespace IceRpc.Transports.Internal.Slic
+namespace IceRpc.Transports.Internal
 {
     /// <summary>The LogSlicFrameWriterDecorator is a decorator to log Slic frames written to the decorated
     /// Slic frame writer.</summary>
@@ -19,7 +18,7 @@ namespace IceRpc.Transports.Internal.Slic
         public void Dispose() => _decoratee.Dispose();
 
         public async ValueTask WriteFrameAsync(
-            SlicStream? stream,
+            SlicMultiplexedNetworkStream? stream,
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             CancellationToken cancel)
         {
@@ -36,7 +35,7 @@ namespace IceRpc.Transports.Internal.Slic
         }
 
         public async ValueTask WriteStreamFrameAsync(
-            SlicStream stream,
+            SlicMultiplexedNetworkStream stream,
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             bool endStream,
             CancellationToken cancel)

@@ -28,9 +28,6 @@ namespace IceRpc
         /// <summary>The path of the target service.</summary>
         public string Path { get; init; }
 
-        /// <summary>The priority of this request.</summary>
-        public Priority Priority { get; init; }
-
         /// <summary>The invoker assigned to any proxy read from the payload of this request.</summary>
         public IInvoker? ProxyInvoker { get; set; }
 
@@ -42,7 +39,7 @@ namespace IceRpc
         internal CancellationTokenSource? CancelDispatchSource { get; set; }
 
         /// <summary>The stream used to receive the request.</summary>
-        internal INetworkStream? Stream { get; init; }
+        internal IMultiplexedNetworkStream? Stream { get; init; }
 
         /// <summary>Constructs an incoming request.</summary>
         /// <param name="protocol">The <see cref="Protocol"/> used to send the request.</param>

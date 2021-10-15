@@ -12,7 +12,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void ColocConnection_Close()
         {
-            ColocConnection connection = CreateConnection(false);
+            ColocNetworkConnection connection = CreateConnection(false);
             connection.Close();
             connection.Close();
         }
@@ -21,7 +21,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(false, true)]
         public void ColocConnection_HasCompatibleParams(bool isServer, bool expectedResult)
         {
-            ColocConnection connection = CreateConnection(isServer);
+            ColocNetworkConnection connection = CreateConnection(isServer);
             Assert.That(connection.HasCompatibleParams(Endpoint.FromString("ice+coloc://host")),
                         Is.EqualTo(expectedResult));
             connection.Close();
@@ -31,9 +31,9 @@ namespace IceRpc.Tests.Internal
         [TestCase(true)]
         public async Task ColocConnection_Properties(bool isServer)
         {
-            ColocConnection connection = CreateConnection(isServer);
+            ColocNetworkConnection connection = CreateConnection(isServer);
 
-            (ISingleStreamConnection _, NetworkConnectionInformation information) =
+            (INetworkStream _, NetworkConnectionInformation information) =
                 await connection.ConnectSingleStreamConnectionAsync(default);
 
             Assert.That(information.LocalEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
@@ -47,9 +47,9 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task ColocConnection_LastActivity()
         {
-            ColocConnection connection = CreateConnection(false);
+            ColocNetworkConnection connection = CreateConnection(false);
 
-            (ISingleStreamConnection stream, NetworkConnectionInformation _) =
+            (INetworkStream stream, NetworkConnectionInformation _) =
                 await connection.ConnectSingleStreamConnectionAsync(default);
 
             // Coloc connections are not closed by ACM.
@@ -66,7 +66,7 @@ namespace IceRpc.Tests.Internal
             connection.Close();
         }
 
-        private static ColocConnection CreateConnection(bool isServer)
+        private static ColocNetworkConnection CreateConnection(bool isServer)
         {
             var channel = Channel.CreateUnbounded<ReadOnlyMemory<byte>>(
                 new UnboundedChannelOptions
@@ -76,7 +76,7 @@ namespace IceRpc.Tests.Internal
                     AllowSynchronousContinuations = false
                 });
 
-            return new ColocConnection(
+            return new ColocNetworkConnection(
                 Endpoint.FromString("ice+coloc://host"),
                 isServer: isServer,
                 slicOptions: new(),

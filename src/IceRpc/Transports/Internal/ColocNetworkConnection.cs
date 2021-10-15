@@ -1,14 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Transports.Internal.Slic;
 using System.Threading.Channels;
 
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The colocated network connection class to exchange data within the same process. The
     /// implementation copies the send buffer into the receive buffer.</summary>
-    internal class ColocConnection : INetworkConnection, ISingleStreamConnection
+    internal class ColocNetworkConnection : INetworkConnection, INetworkStream
     {
         public int DatagramMaxReceiveSize => throw new InvalidOperationException();
 
@@ -23,7 +22,7 @@ namespace IceRpc.Transports.Internal
         private readonly SlicOptions _slicOptions;
         private readonly ChannelReader<ReadOnlyMemory<byte>> _reader;
         private ReadOnlyMemory<byte> _receivedBuffer;
-        private SlicConnection? _slicConnection;
+        private SlicMultiplexedNetworkStreamFactory? _slicConnection;
         private readonly ChannelWriter<ReadOnlyMemory<byte>> _writer;
 
         public void Close(Exception? exception = null)
@@ -32,10 +31,10 @@ namespace IceRpc.Transports.Internal
             _writer.TryComplete(); // Dispose might be called multiple times
         }
 
-        public async ValueTask<(IMultiStreamConnection, NetworkConnectionInformation)> ConnectMultiStreamConnectionAsync(
+        public async ValueTask<(IMultiplexedNetworkStreamFactory, NetworkConnectionInformation)> ConnectMultiStreamConnectionAsync(
             CancellationToken cancel)
         {
-            (ISingleStreamConnection singleStreamConnection, NetworkConnectionInformation information) =
+            (INetworkStream singleStreamConnection, NetworkConnectionInformation information) =
                  await ConnectSingleStreamConnectionAsync(cancel).ConfigureAwait(false);
 
             // Multi-stream support for a colocated connection is provided by Slic.
@@ -48,7 +47,7 @@ namespace IceRpc.Transports.Internal
             return (_slicConnection, information);
         }
 
-        public ValueTask<(ISingleStreamConnection, NetworkConnectionInformation)> ConnectSingleStreamConnectionAsync(
+        public ValueTask<(INetworkStream, NetworkConnectionInformation)> ConnectSingleStreamConnectionAsync(
             CancellationToken cancel) =>
                 // TODO: support idle timeout for colocated connections?
                 new((this, new NetworkConnectionInformation(_endpoint, _endpoint, TimeSpan.MaxValue, null)));
@@ -120,7 +119,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal ColocConnection(
+        internal ColocNetworkConnection(
             Endpoint endpoint,
             bool isServer,
             SlicOptions slicOptions,

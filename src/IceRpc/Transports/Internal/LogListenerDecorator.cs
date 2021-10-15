@@ -17,7 +17,7 @@ namespace IceRpc.Transports.Internal
             try
             {
                 INetworkConnection connection = await _decoratee.AcceptAsync().ConfigureAwait(false);
-                if (connection is NetworkSocketConnection networkSocketConnection)
+                if (connection is SocketNetworkConnection networkSocketConnection)
                 {
                     return new LogNetworkSocketConnectionDecorator(
                         networkSocketConnection,

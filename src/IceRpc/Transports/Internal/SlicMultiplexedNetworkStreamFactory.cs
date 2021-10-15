@@ -3,16 +3,15 @@
 using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
-using IceRpc.Transports.Slic;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
-namespace IceRpc.Transports.Internal.Slic
+namespace IceRpc.Transports.Internal
 {
-    /// <summary>The Slic connection implements an <see cref="IMultiStreamConnection"/> on top of an <see
-    /// cref="ISingleStreamConnection"/>.</summary>
-    internal class SlicConnection : IMultiStreamConnection, IDisposable
+    /// <summary>The Slic connection implements an <see cref="IMultiplexedNetworkStreamFactory"/> on top of an <see
+    /// cref="INetworkStream"/>.</summary>
+    internal class SlicMultiplexedNetworkStreamFactory : IMultiplexedNetworkStreamFactory, IDisposable
     {
         internal TimeSpan IdleTimeout { get; set; }
         internal bool IsServer { get; }
@@ -31,13 +30,13 @@ namespace IceRpc.Transports.Internal.Slic
         private readonly int _packetMaxSize;
         private readonly ManualResetValueTaskCompletionSource<int> _receiveStreamCompletionTaskSource = new();
         private readonly ISlicFrameReader _reader;
-        private readonly ConcurrentDictionary<long, SlicStream> _streams = new();
+        private readonly ConcurrentDictionary<long, SlicMultiplexedNetworkStream> _streams = new();
         private readonly int _unidirectionalMaxStreams;
         private int _unidirectionalStreamCount;
         private AsyncSemaphore? _unidirectionalStreamSemaphore;
         private readonly ISlicFrameWriter _writer;
 
-        public async ValueTask<INetworkStream> AcceptStreamAsync(CancellationToken cancel)
+        public async ValueTask<IMultiplexedNetworkStream> AcceptStreamAsync(CancellationToken cancel)
         {
             // Eventually wait for the stream data receive to complete if stream data is being received.
             await WaitForReceivedStreamDataCompletionAsync(cancel).ConfigureAwait(false);
@@ -60,7 +59,7 @@ namespace IceRpc.Transports.Internal.Slic
 
                         bool isRemote = streamId % 2 == (IsServer ? 0 : 1);
                         bool isBidirectional = streamId % 4 < 2;
-                        if (TryGetStream(streamId, out SlicStream? stream))
+                        if (TryGetStream(streamId, out SlicMultiplexedNetworkStream? stream))
                         {
                             // Notify the stream that data is available for read.
                             stream.ReceivedFrame(dataSize, endStream);
@@ -84,7 +83,7 @@ namespace IceRpc.Transports.Internal.Slic
                             // Accept the new incoming stream and notify the stream that data is available.
                             try
                             {
-                                stream = new SlicStream(this, streamId, _reader, _writer);
+                                stream = new SlicMultiplexedNetworkStream(this, streamId, _reader, _writer);
                             }
                             catch
                             {
@@ -137,7 +136,7 @@ namespace IceRpc.Transports.Internal.Slic
 
                         StreamConsumedBody streamConsumed =
                             await _reader.ReadStreamConsumedAsync(dataSize, cancel).ConfigureAwait(false);
-                        if (TryGetStream(streamId, out SlicStream? stream))
+                        if (TryGetStream(streamId, out SlicMultiplexedNetworkStream? stream))
                         {
                             stream.ReceivedConsumed((int)streamConsumed.Size);
                         }
@@ -152,7 +151,7 @@ namespace IceRpc.Transports.Internal.Slic
 
                         StreamResetBody streamReset =
                             await _reader.ReadStreamResetAsync(dataSize, cancel).ConfigureAwait(false);
-                        if (TryGetStream(streamId, out SlicStream? stream))
+                        if (TryGetStream(streamId, out SlicMultiplexedNetworkStream? stream))
                         {
                             stream.ReceivedReset((StreamError)streamReset.ApplicationProtocolErrorCode);
                         }
@@ -167,7 +166,7 @@ namespace IceRpc.Transports.Internal.Slic
 
                         StreamStopSendingBody _ =
                             await _reader.ReadStreamStopSendingAsync(dataSize, cancel).ConfigureAwait(false);
-                        if (TryGetStream(streamId, out SlicStream? stream))
+                        if (TryGetStream(streamId, out SlicMultiplexedNetworkStream? stream))
                         {
                             stream.TrySetWriteCompleted();
                         }
@@ -196,16 +195,16 @@ namespace IceRpc.Transports.Internal.Slic
             }
         }
 
-        public INetworkStream CreateStream(bool bidirectional) => new SlicStream(this, bidirectional, _reader, _writer);
+        public IMultiplexedNetworkStream CreateStream(bool bidirectional) => new SlicMultiplexedNetworkStream(this, bidirectional, _reader, _writer);
 
         public void Dispose()
         {
             // Abort streams.
-            foreach (SlicStream stream in _streams.Values)
+            foreach (SlicMultiplexedNetworkStream stream in _streams.Values)
             {
                 try
                 {
-                    ((INetworkStream)stream).Abort(StreamError.ConnectionAborted);
+                    ((IMultiplexedNetworkStream)stream).Abort(StreamError.ConnectionAborted);
                 }
                 catch (Exception ex)
                 {
@@ -222,7 +221,7 @@ namespace IceRpc.Transports.Internal.Slic
             _writer.Dispose();
         }
 
-        internal SlicConnection(
+        internal SlicMultiplexedNetworkStreamFactory(
             ISlicFrameReader reader,
             ISlicFrameWriter writer,
             bool isServer,
@@ -250,7 +249,7 @@ namespace IceRpc.Transports.Internal.Slic
             _unidirectionalMaxStreams = options.UnidirectionalStreamMaxCount;
         }
 
-        internal void AddStream(long id, SlicStream stream, ref long streamId)
+        internal void AddStream(long id, SlicMultiplexedNetworkStream stream, ref long streamId)
         {
             lock (_mutex)
             {
@@ -346,7 +345,7 @@ namespace IceRpc.Transports.Internal.Slic
             }
         }
 
-        internal void ReleaseStream(SlicStream stream)
+        internal void ReleaseStream(SlicMultiplexedNetworkStream stream)
         {
             if (stream.IsRemote)
             {
@@ -370,10 +369,10 @@ namespace IceRpc.Transports.Internal.Slic
             }
         }
 
-        internal void RemoveStream(long id) => _streams.TryRemove(id, out SlicStream? _);
+        internal void RemoveStream(long id) => _streams.TryRemove(id, out SlicMultiplexedNetworkStream? _);
 
         internal async ValueTask SendStreamFrameAsync(
-            SlicStream stream,
+            SlicMultiplexedNetworkStream stream,
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             bool endStream,
             CancellationToken cancel)
@@ -485,9 +484,9 @@ namespace IceRpc.Transports.Internal.Slic
             }
         }
 
-        private bool TryGetStream(long streamId, [NotNullWhen(returnValue: true)] out SlicStream? value)
+        private bool TryGetStream(long streamId, [NotNullWhen(returnValue: true)] out SlicMultiplexedNetworkStream? value)
         {
-            if (_streams.TryGetValue(streamId, out SlicStream? stream))
+            if (_streams.TryGetValue(streamId, out SlicMultiplexedNetworkStream? stream))
             {
                 value = stream;
                 return true;
