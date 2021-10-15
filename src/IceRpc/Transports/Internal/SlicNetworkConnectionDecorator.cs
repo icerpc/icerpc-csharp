@@ -2,14 +2,12 @@
 
 namespace IceRpc.Transports.Internal
 {
-
     // The _slicStreamFactory field is disposed by CloseAsync.
 #pragma warning disable CA1001
     internal sealed class SlicNetworkConnectionDecorator : INetworkConnection
 #pragma warning restore CA1001
     {
         private readonly INetworkConnection _decoratee;
-        private TimeSpan _idleTimeout;
         private readonly bool _isServer;
         private readonly Func<INetworkStream, (ISlicFrameReader, ISlicFrameWriter)> _slicFrameReaderWriterFactory;
         private readonly SlicOptions _slicOptions;
@@ -25,23 +23,17 @@ namespace IceRpc.Transports.Internal
             _decoratee.Close(exception);
         }
 
-        public async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
-        {
-            NetworkConnectionInformation information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
-            _idleTimeout = information.IdleTimeout;
-            return information;
-        }
-
-        public async Task<IMultiplexedNetworkStreamFactory> GetMultiplexedNetworkStreamFactoryAsync(
+        public async Task<(IMultiplexedNetworkStreamFactory, NetworkConnectionInformation)> ConnectAndGetMultiplexedNetworkStreamFactoryAsync(
             CancellationToken cancel)
         {
             try
             {
-                return await _decoratee.GetMultiplexedNetworkStreamFactoryAsync(cancel).ConfigureAwait(false);
+                return await _decoratee.ConnectAndGetMultiplexedNetworkStreamFactoryAsync(cancel).ConfigureAwait(false);
             }
             catch (NotSupportedException)
             {
-                INetworkStream stream = _decoratee.GetNetworkStream();
+                (INetworkStream stream, NetworkConnectionInformation information) =
+                    await _decoratee.ConnectAndGetNetworkStreamAsync(cancel).ConfigureAwait(false);
 
                 ISlicFrameReader? reader = null;
                 ISlicFrameWriter? writer = null;
@@ -52,27 +44,28 @@ namespace IceRpc.Transports.Internal
                         reader,
                         writer,
                         _isServer,
-                        _idleTimeout,
+                        information.IdleTimeout,
                         _slicOptions);
                     reader = null;
                     writer = null;
                     await _slicStreamFactory.InitializeAsync(cancel).ConfigureAwait(false);
-                    SlicMultiplexedNetworkStreamFactory returnedSlicConnection = _slicStreamFactory;
-                    _slicStreamFactory = null;
-                    return returnedSlicConnection;
+
+                    // Update the timeout with the timeout negotiated with the peer
+                    return (_slicStreamFactory,
+                            information with { IdleTimeout = _slicStreamFactory.IdleTimeout });
                 }
                 finally
                 {
                     writer?.Dispose();
                     reader?.Dispose();
-                    _slicStreamFactory?.Dispose();
                 }
             }
         }
 
-        public INetworkStream GetNetworkStream() => _decoratee.GetNetworkStream();
+        public Task<(INetworkStream, NetworkConnectionInformation)> ConnectAndGetNetworkStreamAsync(CancellationToken cancel) =>
+            _decoratee.ConnectAndGetNetworkStreamAsync(cancel);
 
-        public bool HasCompatibleParams(Endpoint remoteEndpoint) => throw new NotImplementedException();
+        public bool HasCompatibleParams(Endpoint remoteEndpoint) => _decoratee.HasCompatibleParams(remoteEndpoint);
 
         internal SlicNetworkConnectionDecorator(
             INetworkConnection decoratee,

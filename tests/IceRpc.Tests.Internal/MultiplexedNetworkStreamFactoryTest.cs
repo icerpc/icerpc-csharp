@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace IceRpc.Tests.Internal
 {
     [Timeout(5000)]
-    public class MultiplexedNetworkStreamFactoryTest : MultiplexedNetworkStreamFactoryBaseTest
+    public class MultiplexedNetworkStreamFactoryTests : MultiplexedNetworkStreamFactoryBaseTest
     {
         private static readonly SlicOptions _serverSlicOptions = new()
             {

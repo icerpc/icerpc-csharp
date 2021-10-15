@@ -37,7 +37,7 @@ namespace IceRpc.Tests.Slice.Stream
             _server.Listen();
             _connection = new Connection
             {
-                LoggerFactory = LogAttributeLoggerFactory.Instance,
+               LoggerFactory = LogAttributeLoggerFactory.Instance,
                 RemoteEndpoint = _server.Endpoint,
             };
             _prx = StreamParamOperationsPrx.FromConnection(_connection);

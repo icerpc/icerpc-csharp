@@ -70,7 +70,8 @@ namespace IceRpc.Internal
             while (true)
             {
                 // Accepts a new stream.
-                IMultiplexedNetworkStream stream = await _multiplexedNetworkStreamFactory!.AcceptStreamAsync(cancel).ConfigureAwait(false);
+                IMultiplexedNetworkStream stream = await _multiplexedNetworkStreamFactory!.AcceptStreamAsync(
+                    cancel).ConfigureAwait(false);
 
                 // Receives the request frame from the stream. TODO: Only read the request header, the payload
                 // should be received by calling IProtocolStream.ReceivePayloadAsync from the incoming frame
@@ -138,7 +139,6 @@ namespace IceRpc.Internal
                     IsIdempotent = requestHeaderBody.Idempotent ?? false,
                     IsOneway = !stream.IsBidirectional,
                     Features = features,
-                    Priority = requestHeaderBody.Priority ?? default,
                     // The infinite deadline is encoded as -1 and converted to DateTime.MaxValue
                     Deadline = requestHeaderBody.Deadline == -1 ?
                         DateTime.MaxValue : DateTime.UnixEpoch + TimeSpan.FromMilliseconds(requestHeaderBody.Deadline),
@@ -302,7 +302,6 @@ namespace IceRpc.Internal
                     request.Path,
                     request.Operation,
                     request.IsIdempotent ? true : null,
-                    priority: null,
                     deadline,
                     request.PayloadEncoding == Ice2Definitions.Encoding ? null : request.PayloadEncoding.ToString());
 

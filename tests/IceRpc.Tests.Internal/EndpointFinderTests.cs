@@ -15,13 +15,13 @@ namespace IceRpc.Tests.Internal
 
             Proxy? proxy = await endpointFinder.FindAsync(new Location("good"), cancel: default);
             Assert.That(proxy, Is.Not.Null);
-            Assert.That(proxy.Endpoint, Is.Not.Null);
+            Assert.That(proxy!.Endpoint, Is.Not.Null);
             proxy = await endpointFinder.FindAsync(new Location("bad"), cancel: default);
             Assert.That(proxy, Is.Null);
 
             proxy = await endpointFinder.FindAsync(new Location(new Identity("good", "category")), cancel: default);
             Assert.That(proxy, Is.Not.Null);
-            Assert.That(proxy.Endpoint, Is.Not.Null);
+            Assert.That(proxy!.Endpoint, Is.Not.Null);
             proxy = await endpointFinder.FindAsync(new Location(new Identity("bad", "category")), cancel: default);
             Assert.That(proxy, Is.Null);
         }

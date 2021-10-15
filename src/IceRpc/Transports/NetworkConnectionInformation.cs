@@ -4,7 +4,9 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Transports
 {
-    /// <summary>The network connection information returned by <see cref="INetworkConnection.ConnectAsync"/></summary>
+    /// <summary>The network connection information returned by <see
+    /// cref="INetworkConnection.ConnectAndGetNetworkStreamAsync"/> or <see
+    /// cref="INetworkConnection.ConnectAndGetMultiplexedNetworkStreamFactoryAsync"/></summary>
     public readonly record struct NetworkConnectionInformation
     {
         /// <summary>The idle timeout.</summary>

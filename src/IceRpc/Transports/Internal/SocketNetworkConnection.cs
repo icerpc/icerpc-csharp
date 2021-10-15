@@ -30,32 +30,26 @@ namespace IceRpc.Transports.Internal
         public void Close(Exception? exception = null) => NetworkSocket.Dispose();
 
         /// <inheritdoc/>
-        public void Dispose()
-        {
-        }
+        public Task<(IMultiplexedNetworkStreamFactory, NetworkConnectionInformation)> ConnectAndGetMultiplexedNetworkStreamFactoryAsync(
+            CancellationToken cancel) =>
+            throw new NotSupportedException();
 
         /// <inheritdoc/>
-        public async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
+        public async Task<(INetworkStream, NetworkConnectionInformation)> ConnectAndGetNetworkStreamAsync(
+            CancellationToken cancel)
         {
             Endpoint endpoint = await NetworkSocket.ConnectAsync(_endpoint, cancel).ConfigureAwait(false);
             X509Certificate? remoteCertificate = NetworkSocket.SslStream?.RemoteCertificate;
 
             // For a server connection, _endpoint is the local endpoint and the endpoint returned by
             // ConnectAsync is the remote endpoint, it's the contrary for a client connection.
-            return new NetworkConnectionInformation(
-                _isServer ? _endpoint : endpoint,
-                _isServer ? endpoint : _endpoint,
-                _defaultIdleTimeout,
-                remoteCertificate);
+            return (this,
+                    new NetworkConnectionInformation(
+                        _isServer ? _endpoint : endpoint,
+                        _isServer ? endpoint : _endpoint,
+                        _defaultIdleTimeout,
+                        remoteCertificate));
         }
-
-        /// <inheritdoc/>
-        public Task<IMultiplexedNetworkStreamFactory> GetMultiplexedNetworkStreamFactoryAsync(
-            CancellationToken cancel) =>
-            Task.FromException<IMultiplexedNetworkStreamFactory>(new NotSupportedException());
-
-        /// <inheritdoc/>
-        public INetworkStream GetNetworkStream() => this;
 
         /// <inheritdoc/>
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>

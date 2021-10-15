@@ -52,7 +52,6 @@ module IceRpc::Internal
         string path;
         string operation;
         bool? \idempotent;       // null equivalent to false
-        Priority? priority;      // null equivalent to 0
         varlong deadline;
         string? payloadEncoding;
     }

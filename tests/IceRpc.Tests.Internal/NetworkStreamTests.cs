@@ -23,7 +23,7 @@ namespace IceRpc.Tests.Internal
         public NetworkStreamTests(string transport) => _transport = transport;
 
         [TestCase]
-        public void SingleStreamConnection_Canceled()
+        public void NetworkStream_Canceled()
         {
             Memory<byte> buffer = new byte[1];
             var buffers = new ReadOnlyMemory<byte>[] { buffer };
@@ -37,7 +37,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [TestCase]
-        public async Task SingleStreamConnection_ReceiveCancellation()
+        public async Task NetworkStream_ReceiveCancellation()
         {
             Memory<byte> buffer = new byte[1];
             var buffers = new ReadOnlyMemory<byte>[] { buffer };
@@ -54,7 +54,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [TestCase]
-        public async Task SingleStreamConnection_SendCancellation()
+        public async Task NetworkStream_SendCancellation()
         {
             Memory<byte> buffer = new byte[1024 * 1024];
             var buffers = new ReadOnlyMemory<byte>[] { buffer };
@@ -75,7 +75,7 @@ namespace IceRpc.Tests.Internal
 
         [TestCase]
         [Log(LogAttributeLevel.Trace)]
-        public async Task SingleStreamConnection_SendReceive()
+        public async Task NetworkStream_SendReceive()
         {
             ReadOnlyMemory<byte> sendBuffer = new byte[] { 0x05, 0x06 };
             var sendBuffers = new ReadOnlyMemory<byte>[] { sendBuffer };
@@ -94,7 +94,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [TestCase]
-        public void SingleStreamConnection_Close()
+        public void NetworkStream_Close()
         {
             _clientConnection!.Close();
             _serverConnection!.Close();
@@ -119,13 +119,13 @@ namespace IceRpc.Tests.Internal
             _clientConnection = clientTransport.CreateConnection(listener.Endpoint);
 
             ValueTask<INetworkConnection> acceptTask = listener.AcceptAsync();
-            Task<NetworkConnectionInformation> connectTask = _clientConnection.ConnectAsync(default);
-            _serverConnection = await acceptTask;
-            await connectTask;
-            await _serverConnection.ConnectAsync(default);
 
-            _clientNetworkStream = _clientConnection.GetNetworkStream();
-            _serverNetworkStream = _serverConnection.GetNetworkStream();
+            Task<(INetworkStream, NetworkConnectionInformation)> connectTask =
+                _clientConnection.ConnectAndGetNetworkStreamAsync(default);
+            _serverConnection = await acceptTask;
+
+            (_serverNetworkStream, _) = await _serverConnection.ConnectAndGetNetworkStreamAsync(default);
+            (_clientNetworkStream, _) = await connectTask;
         }
 
         [TearDown]

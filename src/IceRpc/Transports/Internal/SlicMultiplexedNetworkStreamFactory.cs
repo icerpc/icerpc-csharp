@@ -404,14 +404,18 @@ namespace IceRpc.Transports.Internal
 
         private Dictionary<int, IList<byte>> GetParameters()
         {
-            return new Dictionary<int, IList<byte>>(new List<KeyValuePair<int, IList<byte>>>
+            var parameters = new List<KeyValuePair<int, IList<byte>>>
                 {
                     EncodeParameter(ParameterKey.MaxBidirectionalStreams, (ulong)_bidirectionalMaxStreams),
                     EncodeParameter(ParameterKey.MaxUnidirectionalStreams, (ulong)_unidirectionalMaxStreams),
-                    EncodeParameter(ParameterKey.IdleTimeout, (ulong)IdleTimeout.TotalMilliseconds),
                     EncodeParameter(ParameterKey.PacketMaxSize, (ulong)_packetMaxSize),
                     EncodeParameter(ParameterKey.StreamBufferMaxSize, (ulong)StreamBufferMaxSize)
-                });
+                };
+            if (IdleTimeout != TimeSpan.MaxValue)
+            {
+                parameters.Add(EncodeParameter(ParameterKey.IdleTimeout, (ulong)IdleTimeout.TotalMilliseconds));
+            }
+            return new Dictionary<int, IList<byte>>(parameters);
 
             static KeyValuePair<int, IList<byte>> EncodeParameter(ParameterKey key, ulong value)
             {
@@ -438,12 +442,7 @@ namespace IceRpc.Transports.Internal
                 }
                 else if (key == ParameterKey.IdleTimeout)
                 {
-                    // Use the smallest idle timeout.
                     peerIdleTimeout = TimeSpan.FromMilliseconds(value);
-                    if (peerIdleTimeout < IdleTimeout)
-                    {
-                        IdleTimeout = peerIdleTimeout.Value;
-                    }
                 }
                 else if (key == ParameterKey.PacketMaxSize)
                 {
@@ -471,11 +470,10 @@ namespace IceRpc.Transports.Internal
                 throw new InvalidDataException("missing MaxUnidirectionalStreams Slic connection parameter");
             }
 
-            if (IsServer && peerIdleTimeout == null)
+            peerIdleTimeout ??= TimeSpan.MaxValue;
+            if (peerIdleTimeout < IdleTimeout)
             {
-                // The client must send its idle timeout parameter. A server can however omit the idle timeout if its
-                // configured idle timeout is larger than the client's idle timeout.
-                throw new InvalidDataException("missing IdleTimeout Slic connection parameter");
+                IdleTimeout = peerIdleTimeout.Value;
             }
 
             if (PeerPacketMaxSize < 1024)

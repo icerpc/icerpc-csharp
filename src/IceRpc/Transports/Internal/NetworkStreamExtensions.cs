@@ -2,7 +2,7 @@
 
 namespace IceRpc.Transports.Internal
 {
-    internal static class NetworkStreamExtensions
+    internal static class MultiplexedNetworkStreamExtensions
     {
         /// <summary>Aborts the stream.</summary>
         /// <param name="stream">The stream to abort.</param>

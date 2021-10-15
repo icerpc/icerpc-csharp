@@ -110,9 +110,11 @@ namespace IceRpc
                     logger.IsEnabled(LogLevel.Error))
                 {
                     serverTransport = new LogServerTransportDecorator(serverTransport, logger);
+                    Func<INetworkStream, (ISlicFrameReader, ISlicFrameWriter)> originalFactory =
+                        slicFrameReaderWriterFactory;
                     slicFrameReaderWriterFactory = stream =>
                     {
-                        (ISlicFrameReader reader, ISlicFrameWriter writer) = slicFrameReaderWriterFactory(stream);
+                        (ISlicFrameReader reader, ISlicFrameWriter writer) = originalFactory(stream);
                         return (new LogSlicFrameReaderDecorator(reader, logger),
                                 new LogSlicFrameWriterDecorator(writer, logger));
                     };

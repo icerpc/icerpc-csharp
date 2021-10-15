@@ -53,29 +53,27 @@ namespace IceRpc.Transports.Internal
             _decoratee.Close(exception);
         }
 
-        public virtual async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
-        {
-            Information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
-            return Information.Value;
-        }
-
-        public async Task<IMultiplexedNetworkStreamFactory> GetMultiplexedNetworkStreamFactoryAsync(
+        public async Task<(IMultiplexedNetworkStreamFactory, NetworkConnectionInformation)> ConnectAndGetMultiplexedNetworkStreamFactoryAsync(
             CancellationToken cancel)
         {
-            IMultiplexedNetworkStreamFactory streamFactory = await _decoratee.GetMultiplexedNetworkStreamFactoryAsync(
+            IMultiplexedNetworkStreamFactory streamFactory;
+            (streamFactory, Information) = await _decoratee.ConnectAndGetMultiplexedNetworkStreamFactoryAsync(
                 cancel).ConfigureAwait(false);
             streamFactory = new LogMultiplexedStreamFactoryDecorator(this, streamFactory);
             LogConnected();
-            return streamFactory;
+            return (streamFactory, Information.Value);
         }
 
-        public INetworkStream GetNetworkStream()
+        public async Task<(INetworkStream, NetworkConnectionInformation)> ConnectAndGetNetworkStreamAsync(
+            CancellationToken cancel)
         {
-            INetworkStream networkStream = _decoratee.GetNetworkStream();
+            INetworkStream networkStream;
+            (networkStream, Information) = await _decoratee.ConnectAndGetNetworkStreamAsync(
+                cancel).ConfigureAwait(false);
             networkStream = new LogNetworkStreamDecorator(this, networkStream);
             _isDatagram = networkStream.IsDatagram;
             LogConnected();
-            return networkStream;
+            return (networkStream, Information.Value);
         }
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) => _decoratee.HasCompatibleParams(remoteEndpoint);
@@ -267,24 +265,6 @@ namespace IceRpc.Transports.Internal
             Endpoint endpoint,
             ILogger logger) :
             base(decoratee, isServer, endpoint, logger) => _decoratee = decoratee;
-
-        public override async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
-        {
-            try
-            {
-                Information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
-                if (_decoratee.NetworkSocket.SslStream is SslStream sslStream)
-                {
-                    Logger.LogTlsAuthenticationSucceeded(sslStream);
-                }
-                return Information.Value;
-            }
-            catch (TransportException exception) when (exception.InnerException is AuthenticationException ex)
-            {
-                Logger.LogTlsAuthenticationFailed(ex);
-                throw;
-            }
-        }
 
         private protected override void LogConnected()
         {

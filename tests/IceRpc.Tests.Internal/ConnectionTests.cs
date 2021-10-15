@@ -67,10 +67,11 @@ namespace IceRpc.Tests.Internal
 
             public async Task<(Connection, Connection)> AcceptAndConnectAsync()
             {
-                IServerTransport serverTransport = TestHelper.CreateServerTransport(
-                    Endpoint,
-                    options: _serverTransportOptions,
-                    authenticationOptions: _serverAuthenticationOptions);
+                IServerTransport serverTransport = InternalTestHelper.CreateSlicDecorator(
+                    TestHelper.CreateServerTransport(
+                        Endpoint,
+                        options: _serverTransportOptions,
+                        authenticationOptions: _serverAuthenticationOptions));
 
                 using IListener listener = serverTransport.Listen(Endpoint);
 #pragma warning disable CA2000
@@ -94,10 +95,10 @@ namespace IceRpc.Tests.Internal
                 {
                     var connection = new Connection
                     {
-                        ClientTransport = TestHelper.CreateClientTransport(
+                        ClientTransport = InternalTestHelper.CreateSlicDecorator(TestHelper.CreateClientTransport(
                             endpoint,
                             options: _clientTransportOptions,
-                            authenticationOptions: _clientAuthenticationOptions),
+                            authenticationOptions: _clientAuthenticationOptions)),
                         Options = _clientConnectionOptions,
                         RemoteEndpoint = endpoint
                     };
@@ -273,7 +274,7 @@ namespace IceRpc.Tests.Internal
                 transport: "tcp",
                 protocol: Protocol.FromProtocolCode(protocol));
 
-            IServerTransport transport = new TcpServerTransport(new TcpOptions { ListenerBackLog = 1 }, new(), null);
+            IServerTransport transport = new TcpServerTransport(new TcpOptions { ListenerBackLog = 1 }, null);
             using IListener listener = transport.Listen(endpoint);
 
             await using var connection = new Connection

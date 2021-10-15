@@ -143,7 +143,6 @@ namespace IceRpc.Tests.Internal
             TestHelper.CreateServerTransport(
                 serverEndpoint ?? ServerEndpoint,
                 options: options,
-                multiStreamOptions: null,
                 _serverAuthenticationOptions).Listen(serverEndpoint ?? ServerEndpoint);
 
         protected async ValueTask<NetworkSocket> CreateServerNetworkSocketAsync() =>

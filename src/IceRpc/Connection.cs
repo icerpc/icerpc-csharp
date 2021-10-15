@@ -179,10 +179,11 @@ namespace IceRpc
                             logger.IsEnabled(LogLevel.Error))
                         {
                             clientTransport = new LogClientTransportDecorator(clientTransport, logger);
+                            Func<INetworkStream, (ISlicFrameReader, ISlicFrameWriter)> originalFactory =
+                                slicFrameReaderWriterFactory;
                             slicFrameReaderWriterFactory = stream =>
                             {
-                                (ISlicFrameReader reader, ISlicFrameWriter writer) =
-                                    slicFrameReaderWriterFactory(stream);
+                                (ISlicFrameReader reader, ISlicFrameWriter writer) = originalFactory(stream);
                                 return (new LogSlicFrameReaderDecorator(reader, logger),
                                         new LogSlicFrameWriterDecorator(writer, logger));
                             };
@@ -218,12 +219,8 @@ namespace IceRpc
                 {
                     await Task.Yield();
 
-                    // Connect the network connection.
-                    NetworkConnectionInformation = await _networkConnection.ConnectAsync(
-                        connectCancellationSource.Token).ConfigureAwait(false);
-
                     // Creates the protocol connection with the connection network connection.
-                    _protocolConnection = await Protocol.CreateConnectionAsync(
+                    (_protocolConnection, NetworkConnectionInformation) = await Protocol.CreateConnectionAsync(
                         _networkConnection,
                         Options.IncomingFrameMaxSize,
                         IsServer,

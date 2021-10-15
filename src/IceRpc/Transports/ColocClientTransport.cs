@@ -21,7 +21,7 @@ namespace IceRpc.Transports
                 ChannelReader<ReadOnlyMemory<byte>> reader;
                 ChannelWriter<ReadOnlyMemory<byte>> writer;
                 (reader, writer) = listener.NewClientConnection();
-                return new ColocConnection(remoteEndpoint, isServer: false, writer, reader);
+                return new ColocNetworkConnection(remoteEndpoint, isServer: false, writer, reader);
             }
             else
             {

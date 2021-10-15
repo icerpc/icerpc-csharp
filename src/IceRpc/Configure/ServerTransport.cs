@@ -49,8 +49,13 @@ namespace IceRpc.Configure
         /// <summary>Adds the coloc server transport to this composite server transport.</summary>
         /// <param name="serverTransport">The transport being configured.</param>
         /// <returns>The transport being configured.</returns>
-        public static ServerTransport UseColoc(this ServerTransport serverTransport) =>
-            serverTransport.UseColoc();
+        public static ServerTransport UseColoc(this ServerTransport serverTransport)
+        {
+            var colocServerTransport = new ColocServerTransport();
+            serverTransport.Add(TransportNames.Coloc, Protocol.Ice2, colocServerTransport);
+            serverTransport.Add(TransportNames.Coloc, Protocol.Ice1, colocServerTransport);
+            return serverTransport;
+        }
 
         /// <summary>Adds the ssl server transport to this composite server transport.</summary>
         /// <param name="serverTransport">The transport being configured.</param>

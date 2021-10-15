@@ -122,7 +122,7 @@ namespace IceRpc
         /// otherwise.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The protocol connection.</returns>
-        internal virtual Task<IProtocolConnection> CreateConnectionAsync(
+        internal virtual Task<(IProtocolConnection, NetworkConnectionInformation)> CreateConnectionAsync(
             INetworkConnection networkConnection,
             int incomingFrameMaxSize,
             bool isServer,

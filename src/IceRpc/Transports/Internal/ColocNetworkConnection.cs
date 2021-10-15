@@ -7,7 +7,7 @@ namespace IceRpc.Transports.Internal
 {
     /// <summary>The colocated network connection class to exchange data within the same process. The
     /// implementation copies the send buffer into the receive buffer.</summary>
-    internal class ColocConnection : INetworkConnection, INetworkStream
+    internal class ColocNetworkConnection : INetworkConnection, INetworkStream
     {
         public int DatagramMaxReceiveSize => throw new InvalidOperationException();
 
@@ -25,19 +25,15 @@ namespace IceRpc.Transports.Internal
 
         public void Close(Exception? exception = null) => _writer.TryComplete();
 
-        /// <inheritdoc/>
-        public void Dispose()
-        {
-        }
+        public Task<(IMultiplexedNetworkStreamFactory, NetworkConnectionInformation)> ConnectAndGetMultiplexedNetworkStreamFactoryAsync(
+            CancellationToken cancel) =>
+            throw new NotSupportedException();
 
-        /// <inheritdoc/>
-        public Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel) =>
-            Task.FromResult(new NetworkConnectionInformation(_endpoint, _endpoint, TimeSpan.MaxValue, null));
-
-        public Task<IMultiplexedNetworkStreamFactory> GetMultiplexedNetworkStreamFactoryAsync(
-            CancellationToken cancel) => throw new NotSupportedException();
-
-        public INetworkStream GetNetworkStream() => this;
+        public Task<(INetworkStream, NetworkConnectionInformation)> ConnectAndGetNetworkStreamAsync(
+            CancellationToken cancel) =>
+            Task.FromResult<(INetworkStream, NetworkConnectionInformation)>(
+                (this,
+                 new NetworkConnectionInformation(_endpoint, _endpoint, TimeSpan.MaxValue, null)));
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
@@ -106,7 +102,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal ColocConnection(
+        internal ColocNetworkConnection(
             Endpoint endpoint,
             bool isServer,
             ChannelWriter<ReadOnlyMemory<byte>> writer,

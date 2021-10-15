@@ -35,13 +35,14 @@ namespace IceRpc.Tests.Internal
         protected async Task SetUpConnectionsAsync()
         {
             Task<INetworkConnection> acceptTask = AcceptAsync();
-            _clientConnection = await ConnectAsync();
+            _clientConnection = Connect();
             _serverConnection = await acceptTask;
 
-            Task<IMultiplexedNetworkStreamFactory> multiStreamTask =
-                 _serverConnection.GetMultiplexedNetworkStreamFactoryAsync(default);
-            _clientMultiplexedStreamFactory = await _clientConnection.GetMultiplexedNetworkStreamFactoryAsync(default);
-            _serverMultiplexedStreamFactory = await multiStreamTask;
+            Task<(IMultiplexedNetworkStreamFactory, NetworkConnectionInformation)> multiStreamTask =
+                 _serverConnection.ConnectAndGetMultiplexedNetworkStreamFactoryAsync(default);
+            (_clientMultiplexedStreamFactory, _) =
+                await _clientConnection.ConnectAndGetMultiplexedNetworkStreamFactoryAsync(default);
+            (_serverMultiplexedStreamFactory, _) = await multiStreamTask;
         }
 
         protected void TearDownConnections()
@@ -52,22 +53,20 @@ namespace IceRpc.Tests.Internal
 
         private async Task<INetworkConnection> AcceptAsync()
         {
-            using IListener listener = new SlicServerTransportDecorator(
-                TestHelper.CreateServerTransport(_serverEndpoint).Listen(_serverEndpoint),
-                _serverOptions);
+            IServerTransport serverTransport = InternalTestHelper.CreateSlicDecorator(
+                TestHelper.CreateServerTransport(_serverEndpoint),
+                (SlicOptions?)_serverOptions ?? new());
+            using IListener listener = serverTransport.Listen(_serverEndpoint);
             INetworkConnection networkConnection = await listener.AcceptAsync();
-            await networkConnection.ConnectAsync(default);
             return networkConnection;
         }
 
-        private async Task<INetworkConnection> ConnectAsync()
+        private INetworkConnection Connect()
         {
-            IClientTransport clientTransport = new SlicClientTransportDecorator(
+            IClientTransport clientTransport = InternalTestHelper.CreateSlicDecorator(
                 TestHelper.CreateClientTransport(_clientEndpoint),
-                _clientOptions);
-            INetworkConnection networkConnection = clientTransport.CreateConnection(_clientEndpoint);
-            await networkConnection.ConnectAsync(default);
-            return networkConnection;
+                (SlicOptions?)_clientOptions ?? new());
+            return clientTransport.CreateConnection(_clientEndpoint);
         }
 
         protected static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateSendPayload(
