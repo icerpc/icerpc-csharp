@@ -50,11 +50,12 @@ namespace IceRpc.Tests.Internal
             INetworkConnection clientConnection = clientTransport.CreateConnection("ice+coloc://127.0.0.1");
 
             INetworkConnection serverConnection = await listener.AcceptAsync();
-            ValueTask<(IMultiplexedNetworkStreamFactory Connection, NetworkConnectionInformation Information)> clientTask =
-                clientConnection.ConnectMultiStreamConnectionAsync(default);
-            ValueTask<(IMultiplexedNetworkStreamFactory Connection, NetworkConnectionInformation Information)> serverTask =
-                serverConnection.ConnectMultiStreamConnectionAsync(default);
-            return ((SlicMultiplexedNetworkStreamFactory)(await clientTask).Connection, (SlicMultiplexedNetworkStreamFactory)(await serverTask).Connection);
+            Task<(INetworkStream? NetworkStream, IMultiplexedNetworkStreamFactory? Factory, NetworkConnectionInformation Information)> clientTask =
+                clientConnection.ConnectAsync(true, default);
+            Task<(INetworkStream? NetworkStream, IMultiplexedNetworkStreamFactory? Factory, NetworkConnectionInformation Information)> serverTask =
+                serverConnection.ConnectAsync(true, default);
+            return ((SlicMultiplexedNetworkStreamFactory)(await clientTask).Factory!,
+                    (SlicMultiplexedNetworkStreamFactory)(await serverTask).Factory!);
         }
     }
 }

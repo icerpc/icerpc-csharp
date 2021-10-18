@@ -19,7 +19,7 @@ namespace IceRpc.Transports.Internal
         private readonly Channel<(ChannelWriter<ReadOnlyMemory<byte>>, ChannelReader<ReadOnlyMemory<byte>>)> _channel;
         private readonly SlicOptions _options;
 
-        public async ValueTask<INetworkConnection> AcceptAsync()
+        public async Task<INetworkConnection> AcceptAsync()
         {
             (ChannelWriter<ReadOnlyMemory<byte>> writer, ChannelReader<ReadOnlyMemory<byte>> reader) =
                 await _channel.Reader.ReadAsync().ConfigureAwait(false);

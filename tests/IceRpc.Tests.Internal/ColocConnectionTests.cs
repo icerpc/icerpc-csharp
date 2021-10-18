@@ -33,8 +33,8 @@ namespace IceRpc.Tests.Internal
         {
             ColocNetworkConnection connection = CreateConnection(isServer);
 
-            (INetworkStream _, NetworkConnectionInformation information) =
-                await connection.ConnectSingleStreamConnectionAsync(default);
+            (INetworkStream? _, IMultiplexedNetworkStreamFactory? _, NetworkConnectionInformation information) =
+                await connection.ConnectAsync(false, default);
 
             Assert.That(information.LocalEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
             Assert.That(information.RemoteEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
@@ -49,14 +49,14 @@ namespace IceRpc.Tests.Internal
         {
             ColocNetworkConnection connection = CreateConnection(false);
 
-            (INetworkStream stream, NetworkConnectionInformation _) =
-                await connection.ConnectSingleStreamConnectionAsync(default);
+            (INetworkStream? stream, IMultiplexedNetworkStreamFactory? _, NetworkConnectionInformation _) =
+                await connection.ConnectAsync(false, default);
 
             // Coloc connections are not closed by ACM.
             // TODO: should they?
 
             await Task.Delay(2);
-            await stream.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
+            await stream!.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
             Assert.That(connection.LastActivity, Is.EqualTo(TimeSpan.Zero));
 
             await Task.Delay(2);

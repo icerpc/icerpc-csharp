@@ -11,13 +11,13 @@ namespace IceRpc.Tests.Internal
     [TestFixture("coloc")]
     public class SingleStreamConnectionTests
     {
-        private INetworkStream ClientStream => _clientSingleStreamConnection!;
-        private INetworkStream ServerStream => _serverSingleStreamConnection!;
+        private INetworkStream ClientStream => _clientNetworkStreamConnection!;
+        private INetworkStream ServerStream => _serverNetworkStreamConnection!;
 
         private INetworkConnection? _clientConnection;
-        private INetworkStream? _clientSingleStreamConnection;
+        private INetworkStream? _clientNetworkStreamConnection;
         private INetworkConnection? _serverConnection;
-        private INetworkStream? _serverSingleStreamConnection;
+        private INetworkStream? _serverNetworkStreamConnection;
         private readonly string _transport;
 
         public SingleStreamConnectionTests(string transport) => _transport = transport;
@@ -118,12 +118,12 @@ namespace IceRpc.Tests.Internal
             IClientTransport clientTransport = TestHelper.CreateClientTransport(listener.Endpoint);
             _clientConnection = clientTransport.CreateConnection(listener.Endpoint);
 
-            ValueTask<INetworkConnection> acceptTask = listener.AcceptAsync();
-            ValueTask<(INetworkStream, NetworkConnectionInformation)> connectTask =
-                 _clientConnection.ConnectSingleStreamConnectionAsync(default);
+            Task<INetworkConnection> acceptTask = listener.AcceptAsync();
+            Task<(INetworkStream?, IMultiplexedNetworkStreamFactory?, NetworkConnectionInformation)> connectTask =
+                 _clientConnection.ConnectAsync(false, default);
             _serverConnection = await acceptTask;
-            (_clientSingleStreamConnection, _) = await connectTask;
-            (_serverSingleStreamConnection, _) = await _serverConnection.ConnectSingleStreamConnectionAsync(default);
+            (_clientNetworkStreamConnection, _, _) = await connectTask;
+            (_serverNetworkStreamConnection, _, _) = await _serverConnection.ConnectAsync(false, default);
         }
 
         [TearDown]

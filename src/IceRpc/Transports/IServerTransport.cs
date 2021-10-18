@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Transports
 {
-    /// <summary>Gives Servers the ability to create incoming transport connections.</summary>
+    /// <summary>Gives Servers the ability to create server network connections.</summary>
     public interface IServerTransport
     {
         /// <summary>Starts listening on an endpoint.</summary>

@@ -2,17 +2,16 @@
 
 namespace IceRpc.Transports
 {
-    /// <summary>A network connection represents the low-level transport to exchange data as bytes. A network
-    /// connection supports both exchanging data with an <see cref="INetworkStream"/> (for the Ice1
-    /// protocol) or an <see cref="IMultiplexedNetworkStreamFactory"/> (for the Ice2 protocol). A single-stream
-    /// transport such as TCP or Coloc uses the Slic multi-stream connection implementation to provide
-    /// multi-stream support.</summary>
+    /// <summary>A network connection represents the low-level connection to exchange data as bytes. A network
+    /// connection supports both exchanging data with an <see cref="INetworkStream"/> (for the Ice1 protocol) or an <see
+    /// cref="IMultiplexedNetworkStreamFactory"/> (for the Ice2 protocol). A network stream based transport such as TCP
+    /// or Coloc uses the Slic multiplexed network stream factory decorator to provide multiplexed network stream
+    /// support.</summary>
     public interface INetworkConnection
     {
         /// <summary>Indicates whether or not this network connection is secure.</summary>
-        /// <value><c>true</c> means the network connection is secure. <c>false</c> means the network
-        /// connection transport is not secure. If the connection is not established, secure is always
-        /// <c>false</c>.</value>
+        /// <value><c>true</c> means the network connection is secure. <c>false</c> means the network connection is not
+        /// secure. If the connection is not established, secure is always <c>false</c>.</value>
         bool IsSecure { get; }
 
         /// <summary>The time elapsed since the last activity of the connection.</summary>
@@ -22,26 +21,24 @@ namespace IceRpc.Transports
         /// <param name="exception">The reason of the connection closure.</param>
         void Close(Exception? exception = null);
 
-        /// <summary>Connects this network connection and return a single-stream connection for single-stream
-        /// communications over this network connection.</summary>
+        /// <summary>Connects this network connection and either return a network stream or a multiplexed stream
+        /// factory.</summary>
+        /// <param name="multiplexed">If <c>true</c> request the network connection to return a <see
+        /// cref="IMultiplexedNetworkStreamFactory"/>, otherwise request the network connection to return a <see
+        /// cref="INetworkStream"/></param>.
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The <see cref="INetworkStream"/> and <see cref="NetworkConnectionInformation"/>.</returns>
-        ValueTask<(INetworkStream, NetworkConnectionInformation)> ConnectSingleStreamConnectionAsync(
+        /// <returns>The <see cref="IMultiplexedNetworkStreamFactory"/> and <see
+        /// cref="NetworkConnectionInformation"/>.</returns>
+        Task<(INetworkStream?, IMultiplexedNetworkStreamFactory?, NetworkConnectionInformation)> ConnectAsync(
+            bool multiplexed,
             CancellationToken cancel);
 
-        /// <summary>Connects this network connection and return a multi-stream connection to allow
-        /// multi-stream communications over this network connection.</summary>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The <see cref="IMultiplexedNetworkStreamFactory"/> and <see cref="NetworkConnectionInformation"/>.</returns>
-        ValueTask<(IMultiplexedNetworkStreamFactory, NetworkConnectionInformation)> ConnectMultiStreamConnectionAsync(
-            CancellationToken cancel);
-
-        /// <summary>Checks if the parameters of the provided endpoint are compatible with this network
-        /// connection. Compatible means a client could reuse this network connection instead of establishing
-        /// a new network connection.</summary>
+        /// <summary>Checks if the parameters of the provided endpoint are compatible with this network connection.
+        /// Compatible means a client could reuse this network connection instead of establishing a new network
+        /// connection.</summary>
         /// <param name="remoteEndpoint">The endpoint to check.</param>
-        /// <returns><c>true</c> when this connection is a client connection whose parameters are compatible
-        /// with the parameters of the provided endpoint; otherwise, <c>false</c>.</returns>
+        /// <returns><c>true</c> when this connection is a network connection whose parameters are compatible with the
+        /// parameters of the provided endpoint; otherwise, <c>false</c>.</returns>
         bool HasCompatibleParams(Endpoint remoteEndpoint);
     }
 }

@@ -35,7 +35,7 @@ namespace IceRpc.Tests.Internal
                 TimeSpan.FromSeconds(10),
                 slicOptions: new());
 
-            _ = await connection.ConnectSingleStreamConnectionAsync(default);
+            await connection.ConnectAsync(false, default);
 
             var stub = (NetworkSocketStub)connection.NetworkSocket;
             Assert.That(stub.Connected, Is.True);
@@ -62,7 +62,7 @@ namespace IceRpc.Tests.Internal
                 TimeSpan.FromSeconds(10),
                 slicOptions: new());
 
-            _ = await connection.ConnectSingleStreamConnectionAsync(default);
+            await connection.ConnectAsync(false, default);
 
             Assert.That(connection.HasCompatibleParams(otherEndpoint), Is.EqualTo(expectedResult));
             connection.Close();
@@ -93,12 +93,12 @@ namespace IceRpc.Tests.Internal
                 TimeSpan.FromSeconds(10),
                 slicOptions: new());
 
-            (INetworkStream stream, NetworkConnectionInformation _) =
-                await connection.ConnectSingleStreamConnectionAsync(default);
+            (INetworkStream? stream, IMultiplexedNetworkStreamFactory? _, NetworkConnectionInformation _) =
+                await connection.ConnectAsync(false, default);
 
             TimeSpan lastActivity = connection.LastActivity;
             await Task.Delay(2);
-            await stream.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
+            await stream!.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
             Assert.That(connection.LastActivity, Is.GreaterThan(lastActivity));
 
             lastActivity = connection.LastActivity;

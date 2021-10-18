@@ -4,10 +4,10 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Transports
 {
-    /// <summary>Gives Connections the ability to create outgoing transport connections.</summary>
+    /// <summary>Gives Connections the ability to create client network connections.</summary>
     public interface IClientTransport
     {
-        /// <summary>Creates a new multi-stream connection to the remote endpoint.</summary>
+        /// <summary>Creates a new network connection to the remote endpoint.</summary>
         /// <param name="remoteEndpoint">The remote endpoint.</param>
         /// <returns>The new connection. This connection is not yet connected.</returns>
         /// <exception name="UnknownTransportException">Thrown if this client transport does not support the remote

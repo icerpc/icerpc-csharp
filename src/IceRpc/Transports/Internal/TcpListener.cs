@@ -16,7 +16,7 @@ namespace IceRpc.Transports.Internal
         private readonly Socket _socket;
         private readonly SlicOptions _slicOptions;
 
-        public async ValueTask<INetworkConnection> AcceptAsync()
+        public async Task<INetworkConnection> AcceptAsync()
         {
             try
             {

@@ -11,7 +11,7 @@ namespace IceRpc.Transports.Internal
 
         private readonly ManualResetValueTaskCompletionSource<UdpSocket> _acceptTask = new();
 
-        public async ValueTask<INetworkConnection> AcceptAsync()
+        public async Task<INetworkConnection> AcceptAsync()
         {
             try
             {

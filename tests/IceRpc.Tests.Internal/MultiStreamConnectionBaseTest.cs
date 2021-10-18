@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using IceRpc.Transports.Internal;
 
 namespace IceRpc.Tests.Internal
 {
@@ -38,10 +39,10 @@ namespace IceRpc.Tests.Internal
             _clientConnection = Connect();
             _serverConnection = await acceptTask;
 
-            ValueTask<(IMultiplexedNetworkStreamFactory, NetworkConnectionInformation)> multiStreamTask =
-                 _serverConnection.ConnectMultiStreamConnectionAsync(default);
-            (_clientMultiStreamConnection, _) = await _clientConnection.ConnectMultiStreamConnectionAsync(default);
-            (_serverMultiStreamConnection, _) = await multiStreamTask;
+            Task<(INetworkStream?, IMultiplexedNetworkStreamFactory?, NetworkConnectionInformation)> multiStreamTask =
+                 _clientConnection.ConnectAsync(true, default);
+            (_, _serverMultiStreamConnection, _) = await _serverConnection.ConnectAsync(true, default);
+            (_, _clientMultiStreamConnection, _) = await multiStreamTask;
         }
 
         protected void TearDownConnections()
@@ -52,18 +53,22 @@ namespace IceRpc.Tests.Internal
 
         private async Task<INetworkConnection> AcceptAsync()
         {
-            using IListener listener = TestHelper.CreateServerTransport(
-                _serverEndpoint,
-                options: null,
-                multiStreamOptions: _serverOptions).Listen(_serverEndpoint);
+            using IListener listener = new LogServerTransportDecorator(
+                TestHelper.CreateServerTransport(
+                    _serverEndpoint,
+                    options: null,
+                    multiStreamOptions: _serverOptions),
+                LogAttributeLoggerFactory.Instance.CreateLogger("IceRpc.Transports")).Listen(_serverEndpoint);
             return await listener.AcceptAsync();
         }
 
         private INetworkConnection Connect()
         {
-            IClientTransport clientTransport = TestHelper.CreateClientTransport(
-                _clientEndpoint,
-                multiStreamOptions: _clientOptions);
+            IClientTransport clientTransport = new LogClientTransportDecorator(
+                TestHelper.CreateClientTransport(
+                    _clientEndpoint,
+                    multiStreamOptions: _clientOptions),
+                LogAttributeLoggerFactory.Instance.CreateLogger("IceRpc.Transports"));
             return clientTransport.CreateConnection(_clientEndpoint);
         }
 

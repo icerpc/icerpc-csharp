@@ -31,26 +31,27 @@ namespace IceRpc.Transports.Internal
             _writer.TryComplete(); // Dispose might be called multiple times
         }
 
-        public async ValueTask<(IMultiplexedNetworkStreamFactory, NetworkConnectionInformation)> ConnectMultiStreamConnectionAsync(
+        public async Task<(INetworkStream?, IMultiplexedNetworkStreamFactory?, NetworkConnectionInformation)> ConnectAsync(
+            bool multiplexed,
             CancellationToken cancel)
         {
-            (INetworkStream singleStreamConnection, NetworkConnectionInformation information) =
-                 await ConnectSingleStreamConnectionAsync(cancel).ConfigureAwait(false);
-
-            // Multi-stream support for a colocated connection is provided by Slic.
-            _slicConnection ??= await NetworkConnection.CreateSlicConnectionAsync(
-                singleStreamConnection,
-                _isServer,
-                TimeSpan.MaxValue,
-                _slicOptions,
-                cancel).ConfigureAwait(false);
-            return (_slicConnection, information);
-        }
-
-        public ValueTask<(INetworkStream, NetworkConnectionInformation)> ConnectSingleStreamConnectionAsync(
-            CancellationToken cancel) =>
+            var information = new NetworkConnectionInformation(_endpoint, _endpoint, TimeSpan.MaxValue, null);
+            if (multiplexed)
+            {
+                _slicConnection ??= await NetworkConnection.CreateSlicConnectionAsync(
+                    this,
+                    _isServer,
+                    TimeSpan.MaxValue,
+                    _slicOptions,
+                    cancel).ConfigureAwait(false);
+                return (null, _slicConnection, information with { IdleTimeout = _slicConnection.IdleTimeout });
+            }
+            else
+            {
                 // TODO: support idle timeout for colocated connections?
-                new((this, new NetworkConnectionInformation(_endpoint, _endpoint, TimeSpan.MaxValue, null)));
+                return (this, null, information);
+            }
+        }
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
