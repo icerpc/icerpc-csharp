@@ -9,7 +9,7 @@ namespace IceRpc.Tests.Internal
     [Parallelizable(scope: ParallelScope.Fixtures)]
     [TestFixture("tcp")]
     [TestFixture("coloc")]
-    public class SingleStreamConnectionTests
+    public class NetworkStreamTests
     {
         private INetworkStream ClientStream => _clientNetworkStreamConnection!;
         private INetworkStream ServerStream => _serverNetworkStreamConnection!;
@@ -20,10 +20,10 @@ namespace IceRpc.Tests.Internal
         private INetworkStream? _serverNetworkStreamConnection;
         private readonly string _transport;
 
-        public SingleStreamConnectionTests(string transport) => _transport = transport;
+        public NetworkStreamTests(string transport) => _transport = transport;
 
         [TestCase]
-        public void SingleStreamConnection_Canceled()
+        public void NetworkStream_Canceled()
         {
             Memory<byte> buffer = new byte[1];
             var buffers = new ReadOnlyMemory<byte>[] { buffer };
@@ -37,7 +37,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [TestCase]
-        public async Task SingleStreamConnection_ReceiveCancellation()
+        public async Task NetworkStream_ReceiveCancellation()
         {
             Memory<byte> buffer = new byte[1];
             var buffers = new ReadOnlyMemory<byte>[] { buffer };
@@ -54,7 +54,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [TestCase]
-        public async Task SingleStreamConnection_SendCancellation()
+        public async Task NetworkStream_SendCancellation()
         {
             Memory<byte> buffer = new byte[1024 * 1024];
             var buffers = new ReadOnlyMemory<byte>[] { buffer };
@@ -75,7 +75,7 @@ namespace IceRpc.Tests.Internal
 
         [TestCase]
         [Log(LogAttributeLevel.Trace)]
-        public async Task SingleStreamConnection_SendReceive()
+        public async Task NetworkStream_SendReceive()
         {
             ReadOnlyMemory<byte> sendBuffer = new byte[] { 0x05, 0x06 };
             var sendBuffers = new ReadOnlyMemory<byte>[] { sendBuffer };
@@ -94,7 +94,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [TestCase]
-        public void SingleStreamConnection_Close()
+        public void NetworkStream_Close()
         {
             _clientConnection!.Close();
             _serverConnection!.Close();

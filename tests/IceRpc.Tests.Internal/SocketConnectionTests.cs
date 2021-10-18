@@ -5,14 +5,14 @@ using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
-#pragma warning disable CA2000 // NetworkSocketStub is Disposed by the NetworkSocketConnection
+#pragma warning disable CA2000 // NetworkSocketStub is Disposed by the SocketConnection
 
 namespace IceRpc.Tests.Internal
 {
-    public class NetworkSocketConnectionTests
+    public class SocketConnectionTests
     {
         [Test]
-        public void NetworkSocketConnection_Dispose()
+        public void SocketConnection_Dispose()
         {
             var connection = new SocketNetworkConnection(
                 new NetworkSocketStub(isDatagram: false),
@@ -26,7 +26,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task NetworkSocketConnection_GetSingleStreamConnectionAsync()
+        public async Task SocketConnection_GetNetworkStreamAsync()
         {
             var connection = new SocketNetworkConnection(
                 new NetworkSocketStub(isDatagram: false),
@@ -49,7 +49,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(false, "ice+tcp://host", "ice+tcp://host1", false)]
         [TestCase(false, "ice+tcp://host?tls=false", "ice+tcp://host?tls=false", true)]
         [TestCase(false, "ice+tcp://host?tls=false", "ice+tcp://host?tls=true", false)]
-        public async Task NetworkSocketConnection_HasCompatibleParams(
+        public async Task SocketConnection_HasCompatibleParams(
             bool isServer,
             string endpoint,
             string otherEndpoint,
@@ -70,7 +70,7 @@ namespace IceRpc.Tests.Internal
 
         [TestCase(false)]
         [TestCase(true)]
-        public void NetworkSocketConnection_Properties(bool isDatagram)
+        public void SocketConnection_Properties(bool isDatagram)
         {
             var connection = new SocketNetworkConnection(
                 new NetworkSocketStub(isDatagram),
@@ -84,7 +84,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task NetworkSocketConnection_LastActivity()
+        public async Task SocketConnection_LastActivity()
         {
             var connection = new SocketNetworkConnection(
                 new NetworkSocketStub(false),

@@ -5,23 +5,23 @@ using IceRpc.Transports.Internal;
 
 namespace IceRpc.Tests.Internal
 {
-    public class MultiStreamConnectionBaseTest
+    public class MultiplexedNetworkStreamFactoryBaseTest
     {
         protected INetworkConnection ClientConnection => _clientConnection!;
-        protected IMultiplexedNetworkStreamFactory ClientMultiStreamConnection => _clientMultiStreamConnection!;
+        protected IMultiplexedNetworkStreamFactory ClientMultiplexedNetworkStreamFactory => _clientMultiplexedNetworkStreamFactory!;
         protected INetworkConnection ServerConnection => _serverConnection!;
-        protected IMultiplexedNetworkStreamFactory ServerMultiStreamConnection => _serverMultiStreamConnection!;
+        protected IMultiplexedNetworkStreamFactory ServerMultiplexedNetworkStreamFactory => _serverMultiplexedNetworkStreamFactory!;
 
         private INetworkConnection? _clientConnection;
         private readonly Endpoint _clientEndpoint;
-        private IMultiplexedNetworkStreamFactory? _clientMultiStreamConnection;
+        private IMultiplexedNetworkStreamFactory? _clientMultiplexedNetworkStreamFactory;
         private readonly object? _clientOptions;
         private INetworkConnection? _serverConnection;
         private readonly Endpoint _serverEndpoint;
-        private IMultiplexedNetworkStreamFactory? _serverMultiStreamConnection;
+        private IMultiplexedNetworkStreamFactory? _serverMultiplexedNetworkStreamFactory;
         private readonly object? _serverOptions;
 
-        public MultiStreamConnectionBaseTest(
+        public MultiplexedNetworkStreamFactoryBaseTest(
             string clientEndpoint = "ice+coloc://127.0.0.1",
             object? clientOptions = null,
             string serverEndpoint = "ice+coloc://127.0.0.1",
@@ -41,8 +41,8 @@ namespace IceRpc.Tests.Internal
 
             Task<(INetworkStream?, IMultiplexedNetworkStreamFactory?, NetworkConnectionInformation)> multiStreamTask =
                  _clientConnection.ConnectAsync(true, default);
-            (_, _serverMultiStreamConnection, _) = await _serverConnection.ConnectAsync(true, default);
-            (_, _clientMultiStreamConnection, _) = await multiStreamTask;
+            (_, _serverMultiplexedNetworkStreamFactory, _) = await _serverConnection.ConnectAsync(true, default);
+            (_, _clientMultiplexedNetworkStreamFactory, _) = await multiStreamTask;
         }
 
         protected void TearDownConnections()

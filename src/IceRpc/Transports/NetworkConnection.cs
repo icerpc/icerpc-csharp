@@ -13,11 +13,11 @@ namespace IceRpc.Transports
         /// <summary>Creates a Slic multi-stream connection to provide multi-stream connection support for
         /// transports that only provide a single-stream connection implementation.</summary>
         // TODO: This is not public right now because it returns a non-public SlicConnection object (required
-        // because IMultiStreamConnection is not disposable). However, it should be public to allow 3rd-party
-        // transports to use use Slic. So ... perhaps return (IMultiStreamConnection, IDisposable) or make
-        // IMultiStreamConnection inherit from IDisposable.
+        // because IMultiplexedNetworkStreamFactory is not disposable). However, it should be public to allow 3rd-party
+        // transports to use use Slic. So ... perhaps return (IMultiplexedNetworkStreamFactory, IDisposable) or make
+        // IMultiplexedNetworkStreamFactory inherit from IDisposable.
         internal static async ValueTask<SlicMultiplexedNetworkStreamFactory> CreateSlicConnectionAsync(
-            INetworkStream singleStreamConnection,
+            INetworkStream networkStream,
             bool isServer,
             TimeSpan idleTimeout,
             SlicOptions slicOptions,
@@ -28,8 +28,8 @@ namespace IceRpc.Transports
             SlicMultiplexedNetworkStreamFactory? slicConnection = null;
             try
             {
-                reader = new StreamSlicFrameReader(singleStreamConnection);
-                writer = new StreamSlicFrameWriter(singleStreamConnection);
+                reader = new StreamSlicFrameReader(networkStream);
+                writer = new StreamSlicFrameWriter(networkStream);
                 // TODO: Fix the slic connection creation to not compose the reader/writer here and add back logging.
                 // if (logger.IsEnabled(LogLevel.Debug))
                 // {

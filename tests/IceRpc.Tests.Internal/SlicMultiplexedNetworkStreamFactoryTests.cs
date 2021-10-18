@@ -7,10 +7,10 @@ using NUnit.Framework;
 namespace IceRpc.Tests.Internal
 {
     [Timeout(5000)]
-    public class SlicConnectionTests
+    public class SlicMultiplexedNetworkStreamFactoryTests
     {
         [TestCase]
-        public async Task SlicConnectionTests_Options()
+        public async Task SlicMultiplexedNetworkStreamFactoryTests_Options()
         {
             var clientOptions = new SlicOptions
                 {

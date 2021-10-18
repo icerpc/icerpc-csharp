@@ -7,7 +7,7 @@ namespace IceRpc.Tests.Internal
 {
     // Test the multi-stream interface.
     [Timeout(5000)]
-    public class MultiStreamConnectionTests : MultiStreamConnectionBaseTest
+    public class MultiplexedNetworkStreamFactoryTests : MultiplexedNetworkStreamFactoryBaseTest
     {
         private static readonly SlicOptions _serverSlicOptions = new()
             {
@@ -15,23 +15,23 @@ namespace IceRpc.Tests.Internal
                 UnidirectionalStreamMaxCount = 10
             };
 
-        public MultiStreamConnectionTests()
+        public MultiplexedNetworkStreamFactoryTests()
             : base(serverOptions: _serverSlicOptions)
         {
         }
 
         [Test]
-        public void MultiStreamConnection_Dispose()
+        public void MultiplexedNetworkStreamFactory_Dispose()
         {
-            ValueTask<IMultiplexedNetworkStream> acceptStreamTask = ServerMultiStreamConnection.AcceptStreamAsync(default);
+            ValueTask<IMultiplexedNetworkStream> acceptStreamTask = ServerMultiplexedNetworkStreamFactory.AcceptStreamAsync(default);
             ClientConnection.Close(new ConnectionClosedException());
             Assert.ThrowsAsync<ConnectionLostException>(async () => await acceptStreamTask);
         }
 
         [Test]
-        public async Task MultiStreamConnection_Dispose_StreamAbortedAsync()
+        public async Task MultiplexedNetworkStreamFactory_Dispose_StreamAbortedAsync()
         {
-            IMultiplexedNetworkStream clientStream = ClientMultiStreamConnection.CreateStream(true);
+            IMultiplexedNetworkStream clientStream = ClientMultiplexedNetworkStreamFactory.CreateStream(true);
             await clientStream.WriteAsync(CreateSendPayload(clientStream), true, default);
 
             ClientConnection.Close(new ConnectionClosedException());
@@ -43,16 +43,16 @@ namespace IceRpc.Tests.Internal
             Assert.That(ex!.ErrorCode, Is.EqualTo(StreamError.ConnectionAborted));
 
             // Can't create new stream
-            clientStream = ClientMultiStreamConnection.CreateStream(true);
+            clientStream = ClientMultiplexedNetworkStreamFactory.CreateStream(true);
             Assert.ThrowsAsync<ConnectionClosedException>(
                 async () => await clientStream.WriteAsync(CreateSendPayload(clientStream), true, default));
         }
 
         [Test]
-        public async Task MultiStreamConnection_AcceptStreamAsync()
+        public async Task MultiplexedNetworkStreamFactory_AcceptStreamAsync()
         {
-            IMultiplexedNetworkStream clientStream = ClientMultiStreamConnection.CreateStream(bidirectional: true);
-            ValueTask<IMultiplexedNetworkStream> acceptTask = ServerMultiStreamConnection.AcceptStreamAsync(default);
+            IMultiplexedNetworkStream clientStream = ClientMultiplexedNetworkStreamFactory.CreateStream(bidirectional: true);
+            ValueTask<IMultiplexedNetworkStream> acceptTask = ServerMultiplexedNetworkStreamFactory.AcceptStreamAsync(default);
 
             // The server-side won't accept the stream until the first frame is sent.
             await clientStream.WriteAsync(CreateSendPayload(clientStream), true, default);
@@ -64,26 +64,26 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void MultiStreamConnection_AcceptStream_Cancellation()
+        public void MultiplexedNetworkStreamFactory_AcceptStream_Cancellation()
         {
             using var source = new CancellationTokenSource();
-            ValueTask<IMultiplexedNetworkStream> acceptTask = ServerMultiStreamConnection.AcceptStreamAsync(source.Token);
+            ValueTask<IMultiplexedNetworkStream> acceptTask = ServerMultiplexedNetworkStreamFactory.AcceptStreamAsync(source.Token);
             source.Cancel();
             Assert.ThrowsAsync<OperationCanceledException>(async () => await acceptTask);
         }
 
         [Test]
-        public void MultiStreamConnection_AcceptStream_Failure()
+        public void MultiplexedNetworkStreamFactory_AcceptStream_Failure()
         {
             ClientConnection.Close(new ConnectionClosedException());
-            Assert.CatchAsync<TransportException>(async () => await ServerMultiStreamConnection.AcceptStreamAsync(default));
+            Assert.CatchAsync<TransportException>(async () => await ServerMultiplexedNetworkStreamFactory.AcceptStreamAsync(default));
         }
 
         [TestCase(false)]
         [TestCase(true)]
-        public async Task MultiStreamConnection_CreateStream(bool bidirectional)
+        public async Task MultiplexedNetworkStreamFactory_CreateStream(bool bidirectional)
         {
-            IMultiplexedNetworkStream clientStream = ClientMultiStreamConnection.CreateStream(bidirectional);
+            IMultiplexedNetworkStream clientStream = ClientMultiplexedNetworkStreamFactory.CreateStream(bidirectional);
             Assert.Throws<InvalidOperationException>(() => _ = clientStream.Id); // stream is not started
             Assert.AreEqual(bidirectional, clientStream.IsBidirectional);
 
@@ -92,27 +92,27 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamConnection_StreamMaxCount_BidirectionalAsync()
+        public async Task MultiplexedNetworkStreamFactory_StreamMaxCount_BidirectionalAsync()
         {
             var clientStreams = new List<IMultiplexedNetworkStream>();
             var serverStreams = new List<IMultiplexedNetworkStream>();
             for (int i = 0; i < _serverSlicOptions!.BidirectionalStreamMaxCount; ++i)
             {
-                IMultiplexedNetworkStream stream = ClientMultiStreamConnection.CreateStream(true);
+                IMultiplexedNetworkStream stream = ClientMultiplexedNetworkStreamFactory.CreateStream(true);
                 clientStreams.Add(stream);
 
                 await stream.WriteAsync(CreateSendPayload(stream), true, default);
 
-                serverStreams.Add(await ServerMultiStreamConnection.AcceptStreamAsync(default));
+                serverStreams.Add(await ServerMultiplexedNetworkStreamFactory.AcceptStreamAsync(default));
                 await serverStreams.Last().ReadAsync(CreateReceivePayload(), default);
             }
 
             // Ensure the client side accepts streams to receive data.
-            ValueTask<IMultiplexedNetworkStream> acceptClientStream = ClientMultiStreamConnection.AcceptStreamAsync(default);
+            ValueTask<IMultiplexedNetworkStream> acceptClientStream = ClientMultiplexedNetworkStreamFactory.AcceptStreamAsync(default);
 
-            IMultiplexedNetworkStream clientStream = ClientMultiStreamConnection.CreateStream(true);
+            IMultiplexedNetworkStream clientStream = ClientMultiplexedNetworkStreamFactory.CreateStream(true);
             ValueTask sendTask = clientStream.WriteAsync(CreateSendPayload(clientStream), true, default);
-            ValueTask<IMultiplexedNetworkStream> acceptTask = ServerMultiStreamConnection.AcceptStreamAsync(default);
+            ValueTask<IMultiplexedNetworkStream> acceptTask = ServerMultiplexedNetworkStreamFactory.AcceptStreamAsync(default);
 
             await Task.Delay(200);
 
@@ -134,7 +134,7 @@ namespace IceRpc.Tests.Internal
 
         [TestCase(false)]
         [TestCase(true)]
-        public async Task MultiStreamConnection_StreamMaxCount_StressTestAsync(bool bidirectional)
+        public async Task MultiplexedNetworkStreamFactory_StreamMaxCount_StressTestAsync(bool bidirectional)
         {
             int maxCount = bidirectional ?
                 _serverSlicOptions!.BidirectionalStreamMaxCount :
@@ -142,18 +142,18 @@ namespace IceRpc.Tests.Internal
             int streamCount = 0;
 
             // Ensure the client side accepts streams to receive payloads.
-            _ = ClientMultiStreamConnection.AcceptStreamAsync(default).AsTask();
+            _ = ClientMultiplexedNetworkStreamFactory.AcceptStreamAsync(default).AsTask();
 
             // Send many payloads and receive the payloads.
             for (int i = 0; i < 10 * maxCount; ++i)
             {
-                _ = SendAndReceiveAsync(ClientMultiStreamConnection.CreateStream(bidirectional));
+                _ = SendAndReceiveAsync(ClientMultiplexedNetworkStreamFactory.CreateStream(bidirectional));
             }
 
             // Receive all the payloads and send the payloads.
             for (int i = 0; i < 10 * maxCount; ++i)
             {
-                _ = ReceiveAndSendAsync(await ServerMultiStreamConnection.AcceptStreamAsync(default));
+                _ = ReceiveAndSendAsync(await ServerMultiplexedNetworkStreamFactory.AcceptStreamAsync(default));
             }
 
             async Task SendAndReceiveAsync(IMultiplexedNetworkStream stream)
@@ -195,25 +195,25 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamConnection_StreamMaxCount_UnidirectionalAsync()
+        public async Task MultiplexedNetworkStreamFactory_StreamMaxCount_UnidirectionalAsync()
         {
             var clientStreams = new List<IMultiplexedNetworkStream>();
             for (int i = 0; i < _serverSlicOptions!.UnidirectionalStreamMaxCount; ++i)
             {
-                IMultiplexedNetworkStream stream = ClientMultiStreamConnection.CreateStream(false);
+                IMultiplexedNetworkStream stream = ClientMultiplexedNetworkStreamFactory.CreateStream(false);
                 clientStreams.Add(stream);
                 await stream.WriteAsync(CreateSendPayload(stream), true, default);
             }
 
             // Ensure the client side accepts streams to receive acknowledgement of stream completion.
-            ValueTask<IMultiplexedNetworkStream> acceptClientStream = ClientMultiStreamConnection.AcceptStreamAsync(default);
+            ValueTask<IMultiplexedNetworkStream> acceptClientStream = ClientMultiplexedNetworkStreamFactory.AcceptStreamAsync(default);
 
-            IMultiplexedNetworkStream clientStream = ClientMultiStreamConnection.CreateStream(false);
+            IMultiplexedNetworkStream clientStream = ClientMultiplexedNetworkStreamFactory.CreateStream(false);
             ValueTask sendTask = clientStream.WriteAsync(CreateSendPayload(clientStream), true, default);
 
             // Accept a new unidirectional stream. This shouldn't allow the new stream send to complete since
             // the payload wasn't read yet on the stream.
-            IMultiplexedNetworkStream serverStream = await ServerMultiStreamConnection.AcceptStreamAsync(default);
+            IMultiplexedNetworkStream serverStream = await ServerMultiplexedNetworkStreamFactory.AcceptStreamAsync(default);
 
             await Task.Delay(200);
 
@@ -232,21 +232,21 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void MultiStreamConnection_SendAsync_Failure()
+        public void MultiplexedNetworkStreamFactory_SendAsync_Failure()
         {
-            IMultiplexedNetworkStream stream = ClientMultiStreamConnection.CreateStream(false);
+            IMultiplexedNetworkStream stream = ClientMultiplexedNetworkStreamFactory.CreateStream(false);
             ClientConnection.Close(new ConnectionClosedException());
             Assert.CatchAsync<TransportException>(
                 async () => await stream.WriteAsync(CreateSendPayload(stream), true, default));
         }
 
         [Test]
-        public async Task MultiStreamConnection_SendAsync_FailureAsync()
+        public async Task MultiplexedNetworkStreamFactory_SendAsync_FailureAsync()
         {
-            IMultiplexedNetworkStream stream = ClientMultiStreamConnection.CreateStream(true);
+            IMultiplexedNetworkStream stream = ClientMultiplexedNetworkStreamFactory.CreateStream(true);
             await stream.WriteAsync(CreateSendPayload(stream), true, default);
 
-            IMultiplexedNetworkStream serverStream = await ServerMultiStreamConnection.AcceptStreamAsync(default);
+            IMultiplexedNetworkStream serverStream = await ServerMultiplexedNetworkStreamFactory.AcceptStreamAsync(default);
             await serverStream.ReadAsync(CreateReceivePayload(), default);
             ServerConnection.Close(new ConnectionClosedException());
             Assert.CatchAsync<StreamAbortedException>(
