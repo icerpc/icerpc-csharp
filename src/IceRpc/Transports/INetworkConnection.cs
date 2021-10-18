@@ -21,16 +21,12 @@ namespace IceRpc.Transports
         /// <param name="exception">The reason of the connection closure.</param>
         void Close(Exception? exception = null);
 
-        /// <summary>Connects this network connection and either return a network stream or a multiplexed stream
-        /// factory.</summary>
-        /// <param name="multiplexed">If <c>true</c> request the network connection to return a <see
-        /// cref="IMultiplexedNetworkStreamFactory"/>, otherwise request the network connection to return a <see
-        /// cref="INetworkStream"/></param>.
+        /// <summary>Connects this network connection and either return a <see cref="INetworkStream"/> or <see
+        /// cref="IMultiplexedNetworkStreamFactory"/> depend on the protocol requirements.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The <see cref="IMultiplexedNetworkStreamFactory"/> and <see
         /// cref="NetworkConnectionInformation"/>.</returns>
         Task<(INetworkStream?, IMultiplexedNetworkStreamFactory?, NetworkConnectionInformation)> ConnectAsync(
-            bool multiplexed,
             CancellationToken cancel);
 
         /// <summary>Checks if the parameters of the provided endpoint are compatible with this network connection.

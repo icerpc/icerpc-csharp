@@ -156,7 +156,13 @@ namespace IceRpc.Tests.Internal
                 ClientEndpoint,
                 authenticationOptions: _clientAuthenticationOptions).CreateConnection(ClientEndpoint));
 
-        protected static NetworkSocket GetNetworkSocket(INetworkConnection connection) =>
-            ((SocketNetworkConnection)connection).NetworkSocket;
+        protected static NetworkSocket GetNetworkSocket(INetworkConnection connection)
+        {
+            if (connection is SlicNetworkConnectionDecorator decorator)
+            {
+                connection = decorator.Decoratee;
+            }
+            return ((SocketNetworkConnection)connection).NetworkSocket;
+        }
     }
 }

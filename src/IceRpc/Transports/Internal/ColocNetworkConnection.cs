@@ -19,38 +19,19 @@ namespace IceRpc.Transports.Internal
 
         private readonly Endpoint _endpoint;
         private readonly bool _isServer;
-        private readonly SlicOptions _slicOptions;
         private readonly ChannelReader<ReadOnlyMemory<byte>> _reader;
         private ReadOnlyMemory<byte> _receivedBuffer;
-        private SlicMultiplexedNetworkStreamFactory? _slicConnection;
         private readonly ChannelWriter<ReadOnlyMemory<byte>> _writer;
 
-        public void Close(Exception? exception = null)
-        {
-            _slicConnection?.Dispose();
-            _writer.TryComplete(); // Dispose might be called multiple times
-        }
+        public void Close(Exception? exception = null) => _writer.TryComplete();
 
-        public async Task<(INetworkStream?, IMultiplexedNetworkStreamFactory?, NetworkConnectionInformation)> ConnectAsync(
-            bool multiplexed,
+        public Task<(INetworkStream?, IMultiplexedNetworkStreamFactory?, NetworkConnectionInformation)> ConnectAsync(
             CancellationToken cancel)
         {
-            var information = new NetworkConnectionInformation(_endpoint, _endpoint, TimeSpan.MaxValue, null);
-            if (multiplexed)
-            {
-                _slicConnection ??= await NetworkConnection.CreateSlicConnectionAsync(
-                    this,
-                    _isServer,
-                    TimeSpan.MaxValue,
-                    _slicOptions,
-                    cancel).ConfigureAwait(false);
-                return (null, _slicConnection, information with { IdleTimeout = _slicConnection.IdleTimeout });
-            }
-            else
-            {
-                // TODO: support idle timeout for colocated connections?
-                return (this, null, information);
-            }
+            return Task.FromResult<(INetworkStream?, IMultiplexedNetworkStreamFactory?, NetworkConnectionInformation)>(
+                (this,
+                 null,
+                 new NetworkConnectionInformation(_endpoint, _endpoint, TimeSpan.MaxValue, null)));
         }
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint)
@@ -123,13 +104,11 @@ namespace IceRpc.Transports.Internal
         internal ColocNetworkConnection(
             Endpoint endpoint,
             bool isServer,
-            SlicOptions slicOptions,
             ChannelWriter<ReadOnlyMemory<byte>> writer,
             ChannelReader<ReadOnlyMemory<byte>> reader)
         {
             _endpoint = endpoint;
             _isServer = isServer;
-            _slicOptions = slicOptions;
             _reader = reader;
             _writer = writer;
         }

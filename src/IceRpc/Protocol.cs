@@ -18,10 +18,6 @@ namespace IceRpc
         /// <summary>The protocol code of this protocol.</summary>
         public ProtocolCode Code { get; }
 
-        /// <summary>Returns <c>true</c> if this protocol is supported by this IceRpc runtime, <c>false</c>
-        /// otherwise.</summary>
-        public virtual bool IsSupported => false;
-
         /// <summary>The name of this protocol, for example "ice2" for the Ice2 protocol.</summary>
         public string Name { get; }
 
@@ -34,6 +30,11 @@ namespace IceRpc
         /// headers.</summary>
         /// <returns><c>true</c> if the protocol supports fields.</returns>
         internal virtual bool HasFieldSupport => false;
+
+        /// <summary>Specifies whether or not the protocol requires a multiplexed transport.</summary>
+        internal virtual bool RequiresMultiplexedTransport => throw new NotSupportedException(
+            @$"Ice protocol '{Name
+            }' is not supported by this IceRPC runtime ({typeof(Protocol).Assembly.GetName().Version})");
 
         private protected const string Ice1Name = "ice1";
         private protected const string Ice2Name = "ice2";

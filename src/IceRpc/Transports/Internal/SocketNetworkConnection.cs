@@ -17,21 +17,14 @@ namespace IceRpc.Transports.Internal
         // provided by the socket (such as the send or receive buffer sizes).
         internal NetworkSocket NetworkSocket { get; }
 
-        private readonly TimeSpan _defaultIdleTimeout;
+        private readonly TimeSpan _idleTimeout;
         private readonly Endpoint _endpoint;
         private readonly bool _isServer;
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
-        private SlicMultiplexedNetworkStreamFactory? _slicConnection;
-        private readonly SlicOptions _slicOptions;
 
-        public void Close(Exception? exception = null)
-        {
-            _slicConnection?.Dispose();
-            NetworkSocket.Dispose();
-        }
+        public void Close(Exception? exception = null) => NetworkSocket.Dispose();
 
         public async Task<(INetworkStream?, IMultiplexedNetworkStreamFactory?, NetworkConnectionInformation)> ConnectAsync(
-            bool multiplexed,
             CancellationToken cancel)
         {
             Endpoint endpoint = await NetworkSocket.ConnectAsync(_endpoint, cancel).ConfigureAwait(false);
@@ -39,27 +32,12 @@ namespace IceRpc.Transports.Internal
 
             // For a server connection, _endpoint is the local endpoint and the endpoint returned by
             // ConnectAsync is the remote endpoint. For a client connection it's the contrary.
-            var information = new NetworkConnectionInformation(
+            return (this, null, new NetworkConnectionInformation(
                     _isServer ? _endpoint : endpoint,
                     _isServer ? endpoint : _endpoint,
-                    _defaultIdleTimeout,
+                    _idleTimeout,
                      remoteCertificate
-                );
-
-            if (multiplexed)
-            {
-                _slicConnection ??= await NetworkConnection.CreateSlicConnectionAsync(
-                    this,
-                    _isServer,
-                    _defaultIdleTimeout,
-                    _slicOptions,
-                    cancel).ConfigureAwait(false);
-                return (null, _slicConnection, information with { IdleTimeout = _slicConnection.IdleTimeout });
-            }
-            else
-            {
-                return (this, null, information);
-            }
+                ));
         }
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
@@ -88,15 +66,13 @@ namespace IceRpc.Transports.Internal
             NetworkSocket socket,
             Endpoint endpoint,
             bool isServer,
-            TimeSpan defaultIdleTimeout,
-            SlicOptions slicOptions)
+            TimeSpan idleTimeout)
         {
             NetworkSocket = socket;
 
             _endpoint = endpoint;
             _isServer = isServer;
-            _defaultIdleTimeout = defaultIdleTimeout;
-            _slicOptions = slicOptions;
+            _idleTimeout = idleTimeout;
         }
     }
 }

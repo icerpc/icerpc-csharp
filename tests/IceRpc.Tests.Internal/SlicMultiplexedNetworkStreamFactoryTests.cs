@@ -51,9 +51,9 @@ namespace IceRpc.Tests.Internal
 
             INetworkConnection serverConnection = await listener.AcceptAsync();
             Task<(INetworkStream? NetworkStream, IMultiplexedNetworkStreamFactory? Factory, NetworkConnectionInformation Information)> clientTask =
-                clientConnection.ConnectAsync(true, default);
+                clientConnection.ConnectAsync(default);
             Task<(INetworkStream? NetworkStream, IMultiplexedNetworkStreamFactory? Factory, NetworkConnectionInformation Information)> serverTask =
-                serverConnection.ConnectAsync(true, default);
+                serverConnection.ConnectAsync(default);
             return ((SlicMultiplexedNetworkStreamFactory)(await clientTask).Factory!,
                     (SlicMultiplexedNetworkStreamFactory)(await serverTask).Factory!);
         }

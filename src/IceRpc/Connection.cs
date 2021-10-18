@@ -167,7 +167,14 @@ namespace IceRpc
                         if (LoggerFactory?.CreateLogger("IceRpc.Transports") is ILogger logger &&
                             logger.IsEnabled(LogLevel.Error))
                         {
-                            clientTransport = new LogClientTransportDecorator(clientTransport, logger);
+                            if (clientTransport is SlicClientTransport slicClientTransport)
+                            {
+                                clientTransport = new LogSlicClientTransportDecorator(slicClientTransport, logger);
+                            }
+                            else
+                            {
+                                clientTransport = new LogClientTransportDecorator(clientTransport, logger);
+                            }
                         }
 
                         _networkConnection = clientTransport.CreateConnection(RemoteEndpoint);

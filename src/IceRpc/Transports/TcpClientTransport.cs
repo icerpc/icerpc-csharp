@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
-using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -9,10 +8,9 @@ using System.Net.Sockets;
 namespace IceRpc.Transports
 {
     /// <summary>Implements <see cref="IClientTransport"/> for the tcp and ssl transports.</summary>
-    public class TcpClientTransport : IClientTransport
+    public class TcpClientTransport : SlicClientTransport
     {
         private readonly TcpOptions _tcpOptions;
-        private readonly SlicOptions _slicOptions;
         private readonly SslClientAuthenticationOptions? _authenticationOptions;
 
         /// <summary>Constructs a <see cref="TcpClientTransport"/>.</summary>
@@ -35,14 +33,15 @@ namespace IceRpc.Transports
         public TcpClientTransport(
             TcpOptions tcpOptions,
             SlicOptions slicOptions,
-            SslClientAuthenticationOptions? authenticationOptions)
+            SslClientAuthenticationOptions? authenticationOptions) :
+            base(slicOptions, tcpOptions.IdleTimeout)
         {
             _tcpOptions = tcpOptions;
-            _slicOptions = slicOptions;
             _authenticationOptions = authenticationOptions;
         }
 
-        INetworkConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint)
+        /// <inheritdoc/>
+        protected override INetworkConnection CreateConnection(Endpoint remoteEndpoint)
         {
             EndPoint netEndPoint = IPAddress.TryParse(remoteEndpoint.Host, out IPAddress? ipAddress) ?
                 new IPEndPoint(ipAddress, remoteEndpoint.Port) :
@@ -87,8 +86,7 @@ namespace IceRpc.Transports
                 new TcpClientSocket(socket, _authenticationOptions, netEndPoint),
                 remoteEndpoint,
                 isServer: false,
-                _tcpOptions.IdleTimeout,
-                _slicOptions);
+                _tcpOptions.IdleTimeout);
         }
     }
 }

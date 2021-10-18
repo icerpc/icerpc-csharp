@@ -18,8 +18,7 @@ namespace IceRpc.Tests.Internal
                 new NetworkSocketStub(isDatagram: false),
                 Endpoint.FromString("ice+tcp://host"),
                 isServer: false,
-                TimeSpan.FromSeconds(10),
-                slicOptions: new());
+                TimeSpan.FromSeconds(10));
             connection.Close();
             connection.Close();
             Assert.That(((NetworkSocketStub)connection.NetworkSocket).Disposed, Is.True);
@@ -32,10 +31,9 @@ namespace IceRpc.Tests.Internal
                 new NetworkSocketStub(isDatagram: false),
                 Endpoint.FromString("ice+tcp://host"),
                 isServer: false,
-                TimeSpan.FromSeconds(10),
-                slicOptions: new());
+                TimeSpan.FromSeconds(10));
 
-            await connection.ConnectAsync(false, default);
+            await connection.ConnectAsync(default);
 
             var stub = (NetworkSocketStub)connection.NetworkSocket;
             Assert.That(stub.Connected, Is.True);
@@ -59,10 +57,9 @@ namespace IceRpc.Tests.Internal
                 new NetworkSocketStub(isDatagram: false),
                 endpoint,
                 isServer: isServer,
-                TimeSpan.FromSeconds(10),
-                slicOptions: new());
+                TimeSpan.FromSeconds(10));
 
-            await connection.ConnectAsync(false, default);
+            await connection.ConnectAsync(default);
 
             Assert.That(connection.HasCompatibleParams(otherEndpoint), Is.EqualTo(expectedResult));
             connection.Close();
@@ -76,8 +73,7 @@ namespace IceRpc.Tests.Internal
                 new NetworkSocketStub(isDatagram),
                 Endpoint.FromString("ice+tcp://host"),
                 isServer: false,
-                TimeSpan.FromSeconds(10),
-                slicOptions: new());
+                TimeSpan.FromSeconds(10));
 
             Assert.That(connection.IsDatagram, Is.EqualTo(isDatagram));
             connection.Close();
@@ -90,11 +86,10 @@ namespace IceRpc.Tests.Internal
                 new NetworkSocketStub(false),
                 Endpoint.FromString("ice+tcp://host"),
                 isServer: false,
-                TimeSpan.FromSeconds(10),
-                slicOptions: new());
+                TimeSpan.FromSeconds(10));
 
             (INetworkStream? stream, IMultiplexedNetworkStreamFactory? _, NetworkConnectionInformation _) =
-                await connection.ConnectAsync(false, default);
+                await connection.ConnectAsync(default);
 
             TimeSpan lastActivity = connection.LastActivity;
             await Task.Delay(2);

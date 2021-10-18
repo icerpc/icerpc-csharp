@@ -54,21 +54,19 @@ namespace IceRpc.Transports.Internal
         }
 
         public virtual async Task<(INetworkStream?, IMultiplexedNetworkStreamFactory?, NetworkConnectionInformation)> ConnectAsync(
-            bool multiplexed,
             CancellationToken cancel)
         {
             INetworkStream? networkStream;
             IMultiplexedNetworkStreamFactory? multiplexedNetworkStreamFactory;
             (networkStream, multiplexedNetworkStreamFactory, Information) = await _decoratee.ConnectAsync(
-                multiplexed,
                 cancel).ConfigureAwait(false);
 
-            if (multiplexed)
+            if (_endpoint.Protocol.RequiresMultiplexedTransport)
             {
                 if (multiplexedNetworkStreamFactory == null)
                 {
                     throw new InvalidOperationException(
-                        @$"requested an {nameof(IMultiplexedNetworkStreamFactory)} from {nameof(ConnectAsync)
+                        @$"protocol requested an {nameof(IMultiplexedNetworkStreamFactory)} from {nameof(ConnectAsync)
                             } but go a null {nameof(IMultiplexedNetworkStreamFactory)}");
                 }
                 multiplexedNetworkStreamFactory = new LogMultiplexedNetworkStreamFactoryDecorator(
@@ -80,7 +78,7 @@ namespace IceRpc.Transports.Internal
                 if (networkStream == null)
                 {
                     throw new InvalidOperationException(
-                        @$"requested an {nameof(INetworkStream)} from {nameof(ConnectAsync)
+                        @$"protocol requested an {nameof(INetworkStream)} from {nameof(ConnectAsync)
                             } but go a null {nameof(INetworkStream)}");
                 }
                 networkStream = new LogNetworkStreamDecorator(this, networkStream);
@@ -284,13 +282,12 @@ namespace IceRpc.Transports.Internal
             base(decoratee, isServer, endpoint, logger) => _decoratee = decoratee;
 
         public override async Task<(INetworkStream?, IMultiplexedNetworkStreamFactory?, NetworkConnectionInformation)> ConnectAsync(
-            bool multiplexed,
             CancellationToken cancel)
         {
             try
             {
                 (INetworkStream? networkStream, IMultiplexedNetworkStreamFactory? multiplexedNetworkStreamFactory, Information) =
-                    await base.ConnectAsync(multiplexed, cancel).ConfigureAwait(false);
+                    await base.ConnectAsync(cancel).ConfigureAwait(false);
 
                 if (_decoratee.NetworkSocket.SslStream is SslStream sslStream)
                 {

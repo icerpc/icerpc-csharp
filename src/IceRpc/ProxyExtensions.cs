@@ -40,13 +40,6 @@ namespace IceRpc
             bool returnStreamParamReceiver = false,
             CancellationToken cancel = default)
         {
-            if (!proxy.Protocol.IsSupported)
-            {
-                throw new NotSupportedException(
-                    @$"Ice protocol '{proxy.Protocol
-                    }' is not supported by this IceRPC runtime ({typeof(Protocol).Assembly.GetName().Version})");
-            }
-
             CancellationTokenSource? timeoutSource = null;
             CancellationTokenSource? combinedSource = null;
 

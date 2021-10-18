@@ -40,8 +40,8 @@ namespace IceRpc.Tests.Internal
             _serverConnection = await acceptTask;
 
             Task<(INetworkStream?, IMultiplexedNetworkStreamFactory?, NetworkConnectionInformation)> multiStreamTask =
-                 _clientConnection.ConnectAsync(true, default);
-            (_, _serverMultiplexedNetworkStreamFactory, _) = await _serverConnection.ConnectAsync(true, default);
+                 _clientConnection.ConnectAsync(default);
+            (_, _serverMultiplexedNetworkStreamFactory, _) = await _serverConnection.ConnectAsync(default);
             (_, _clientMultiplexedNetworkStreamFactory, _) = await multiStreamTask;
         }
 

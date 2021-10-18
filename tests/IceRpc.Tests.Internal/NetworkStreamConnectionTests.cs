@@ -112,7 +112,7 @@ namespace IceRpc.Tests.Internal
         [SetUp]
         public async Task SetUp()
         {
-            Endpoint endpoint = TestHelper.GetTestEndpoint(transport: _transport);
+            Endpoint endpoint = TestHelper.GetTestEndpoint(transport: _transport, protocol: Protocol.Ice1);
             using IListener listener = TestHelper.CreateServerTransport(endpoint).Listen(endpoint);
 
             IClientTransport clientTransport = TestHelper.CreateClientTransport(listener.Endpoint);
@@ -120,10 +120,10 @@ namespace IceRpc.Tests.Internal
 
             Task<INetworkConnection> acceptTask = listener.AcceptAsync();
             Task<(INetworkStream?, IMultiplexedNetworkStreamFactory?, NetworkConnectionInformation)> connectTask =
-                 _clientConnection.ConnectAsync(false, default);
+                 _clientConnection.ConnectAsync(default);
             _serverConnection = await acceptTask;
+            (_serverNetworkStreamConnection, _, _) = await _serverConnection.ConnectAsync(default);
             (_clientNetworkStreamConnection, _, _) = await connectTask;
-            (_serverNetworkStreamConnection, _, _) = await _serverConnection.ConnectAsync(false, default);
         }
 
         [TearDown]

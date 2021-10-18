@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
-using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -9,10 +8,9 @@ using System.Net.Sockets;
 namespace IceRpc.Transports
 {
     /// <summary>Implements <see cref="IServerTransport"/> for the tcp and ssl transports.</summary>
-    public class TcpServerTransport : IServerTransport
+    public class TcpServerTransport : SlicServerTransport
     {
         private readonly TcpOptions _tcpOptions;
-        private readonly SlicOptions _slicOptions;
         private readonly SslServerAuthenticationOptions? _authenticationOptions;
 
         /// <summary>Constructs a <see cref="TcpServerTransport"/>.</summary>
@@ -35,14 +33,15 @@ namespace IceRpc.Transports
         public TcpServerTransport(
             TcpOptions tcpOptions,
             SlicOptions slicOptions,
-            SslServerAuthenticationOptions? authenticationOptions)
+            SslServerAuthenticationOptions? authenticationOptions) :
+            base(slicOptions, tcpOptions.IdleTimeout)
         {
             _tcpOptions = tcpOptions;
-            _slicOptions = slicOptions;
             _authenticationOptions = authenticationOptions;
         }
 
-        IListener IServerTransport.Listen(Endpoint endpoint)
+        /// <inheritdoc/>
+        protected override IListener Listen(Endpoint endpoint)
         {
             // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
             // a tcp or ssl endpoint regardless of its actual transport name.
@@ -97,7 +96,6 @@ namespace IceRpc.Transports
             return new Internal.TcpListener(socket,
                                             endpoint: endpoint with { Port = (ushort)address.Port },
                                             _tcpOptions.IdleTimeout,
-                                            _slicOptions,
                                             authenticationOptions);
         }
     }

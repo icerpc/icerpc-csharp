@@ -14,7 +14,6 @@ namespace IceRpc.Transports.Internal
         private readonly SslServerAuthenticationOptions? _authenticationOptions;
         private readonly TimeSpan _idleTimeout;
         private readonly Socket _socket;
-        private readonly SlicOptions _slicOptions;
 
         public async Task<INetworkConnection> AcceptAsync()
         {
@@ -26,8 +25,7 @@ namespace IceRpc.Transports.Internal
                         _authenticationOptions),
                     Endpoint,
                     isServer: true,
-                    _idleTimeout,
-                    _slicOptions);
+                    _idleTimeout);
             }
             catch (Exception ex)
             {
@@ -43,12 +41,10 @@ namespace IceRpc.Transports.Internal
             Socket socket,
             Endpoint endpoint,
             TimeSpan idleTimeout,
-            SlicOptions slicOptions,
             SslServerAuthenticationOptions? authenticationOptions)
         {
             Endpoint = endpoint;
             _authenticationOptions = authenticationOptions;
-            _slicOptions = slicOptions;
             _socket = socket;
             _idleTimeout = idleTimeout;
 

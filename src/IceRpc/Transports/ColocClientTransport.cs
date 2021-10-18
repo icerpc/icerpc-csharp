@@ -6,11 +6,17 @@ using System.Threading.Channels;
 namespace IceRpc.Transports
 {
     /// <summary>Implements <see cref="IClientTransport"/> for the coloc transport.</summary>
-    public class ColocClientTransport : IClientTransport
+    public class ColocClientTransport : SlicClientTransport
     {
-        private readonly SlicOptions _slicOptions;
+        /// <summary>Construct a colocated server transport.</summary>
+        /// <param name="slicOptions">The Slic options.</param>
+        public ColocClientTransport(SlicOptions slicOptions) :
+            base(slicOptions, TimeSpan.MaxValue)
+        {
+        }
 
-        INetworkConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint)
+        /// <inheritdoc/>
+        protected override INetworkConnection CreateConnection(Endpoint remoteEndpoint)
         {
             if (remoteEndpoint.Params.Count > 0)
             {
@@ -23,16 +29,16 @@ namespace IceRpc.Transports
                 ChannelReader<ReadOnlyMemory<byte>> reader;
                 ChannelWriter<ReadOnlyMemory<byte>> writer;
                 (reader, writer) = listener.NewClientConnection();
-                return new ColocNetworkConnection(remoteEndpoint, isServer: false, _slicOptions, writer, reader);
+                return new ColocNetworkConnection(
+                    remoteEndpoint,
+                    isServer: false,
+                    writer,
+                    reader);
             }
             else
             {
                 throw new ConnectionRefusedException();
             }
         }
-
-        /// <summary>Construct a colocated server transport.</summary>
-        /// <param name="slicOptions">The Slic options.</param>
-        public ColocClientTransport(SlicOptions slicOptions) => _slicOptions = slicOptions;
     }
 }

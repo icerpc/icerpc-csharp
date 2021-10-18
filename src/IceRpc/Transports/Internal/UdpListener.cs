@@ -19,8 +19,7 @@ namespace IceRpc.Transports.Internal
                     await _acceptTask.ValueTask.ConfigureAwait(false),
                     Endpoint,
                     isServer: true,
-                    defaultIdleTimeout: TimeSpan.MaxValue,
-                    new());
+                    idleTimeout: TimeSpan.MaxValue);
             }
             catch (Exception ex)
             {

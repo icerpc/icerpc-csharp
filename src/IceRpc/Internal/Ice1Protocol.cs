@@ -12,11 +12,11 @@ namespace IceRpc.Internal
         /// <summary>The Ice1 protocol singleton.</summary>
         internal static Ice1Protocol Instance { get; } = new();
 
-        public override bool IsSupported => true;
-
         internal override IceEncoding? IceEncoding => Encoding.Ice11;
 
         internal override bool HasFieldSupport => false;
+
+        internal override bool RequiresMultiplexedTransport => false;
 
         internal override async ValueTask<(IProtocolConnection, NetworkConnectionInformation)> CreateConnectionAsync(
             INetworkConnection networkConnection,
@@ -25,7 +25,7 @@ namespace IceRpc.Internal
             CancellationToken cancel)
         {
             (INetworkStream? networkStream, IMultiplexedNetworkStreamFactory? _,  NetworkConnectionInformation information) =
-                 await networkConnection.ConnectAsync(false, cancel).ConfigureAwait(false);
+                 await networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
             if (networkStream == null)
             {
                 throw new InvalidOperationException(

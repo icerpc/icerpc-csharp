@@ -102,7 +102,14 @@ namespace IceRpc
                 if (LoggerFactory?.CreateLogger("IceRpc.Transports") is ILogger logger &&
                     logger.IsEnabled(LogLevel.Error))
                 {
-                    serverTransport = new LogServerTransportDecorator(serverTransport, logger);
+                    if (serverTransport is SlicServerTransport slicServerTransport)
+                    {
+                        serverTransport = new LogSlicServerTransportDecorator(slicServerTransport, logger);
+                    }
+                    else
+                    {
+                        serverTransport = new LogServerTransportDecorator(serverTransport, logger);
+                    }
                 }
 
                 _listener = serverTransport.Listen(_endpoint);
