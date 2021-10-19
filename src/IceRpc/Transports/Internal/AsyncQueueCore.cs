@@ -42,11 +42,7 @@ namespace IceRpc.Transports.Internal
         // The result queue is only created when Queue() is called and if the result can't be set on the
         // source when a result is already set on the source.
         private Queue<T>? _queue;
-        private ManualResetValueTaskSourceCore<T> _source;
-
-        // TODO: the previous version of this code relied on a parameterless constructor which is supposed to work
-        // with C#10 but does not appear to work with .NET 6 RC2. This is a hopefully temporary work-around.
-        internal void Init() => _source.RunContinuationsAsynchronously = true;
+        private ManualResetValueTaskSourceCore<T> _source = new() { RunContinuationsAsynchronously = true };
 
         /// <summary>Signals the stream with a new exception.</summary>
         /// <param name="exception">The exception that will be raised by WaitAsync.</param>

@@ -96,7 +96,13 @@ namespace IceRpc.Transports.Internal
         private readonly SlicMultiplexedStreamFactory _streamFactory;
         private long _id = -1;
         private SpinLock _lock;
-        private AsyncQueueCore<(int, bool)> _queue;
+
+        // TODO: as of .NET 6 RC2, it's necessary to call new() explicitly to execute the parameterless ctor of
+        // AsyncQueueCore, which is synthesized from AsyncQueueCore fields defaults.
+        #pragma warning disable CA1805 // member is explicitly initialized to its default value
+        private AsyncQueueCore<(int, bool)> _queue = new();
+        #pragma warning restore CA1805
+
         private readonly ISlicFrameReader _reader;
         private volatile CircularBuffer? _receiveBuffer;
         // The receive credit. This is the amount of data received from the peer that we didn't acknowledge as
@@ -476,7 +482,6 @@ namespace IceRpc.Transports.Internal
             ISlicFrameReader reader,
             ISlicFrameWriter writer)
         {
-            _queue.Init();
             _streamFactory = streamFactory;
             _reader = reader;
             _writer = writer;
@@ -497,7 +502,6 @@ namespace IceRpc.Transports.Internal
             ISlicFrameReader reader,
             ISlicFrameWriter writer)
         {
-            _queue.Init();
             _streamFactory = connection;
             _reader = reader;
             _writer = writer;
