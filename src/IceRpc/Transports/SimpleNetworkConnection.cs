@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports.Internal;
-
 namespace IceRpc.Transports
 {
     /// <summary>The base class for simple network connections.</summary>

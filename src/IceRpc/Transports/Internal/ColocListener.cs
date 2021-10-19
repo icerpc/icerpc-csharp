@@ -7,7 +7,7 @@ using System.Threading.Channels;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The IListener implementation for the colocated transport.</summary>
+    /// <summary>The <see cref="SimpleListener"/> implementation for the colocated transport.</summary>
     internal class ColocListener : SimpleListener
     {
         public override Endpoint Endpoint { get; }

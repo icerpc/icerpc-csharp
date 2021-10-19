@@ -4,9 +4,8 @@ namespace IceRpc.Transports
 {
     /// <summary>A network connection represents the low-level connection to exchange data as bytes. A network
     /// connection supports both exchanging data with an <see cref="ISimpleStream"/> (for the Ice1 protocol) or an <see
-    /// cref="IMultiplexedStreamFactory"/> (for the Ice2 protocol). A network stream based transport such as TCP
-    /// or Coloc uses the Slic multiplexed network stream factory decorator to provide multiplexed network stream
-    /// support.</summary>
+    /// cref="IMultiplexedStreamFactory"/> (for the Ice2 protocol). A simple stream based transport such as TCP or Coloc
+    /// uses the Slic to provide multiplexed transport support.</summary>
     public interface INetworkConnection
     {
         /// <summary>Indicates whether or not this network connection is secure.</summary>

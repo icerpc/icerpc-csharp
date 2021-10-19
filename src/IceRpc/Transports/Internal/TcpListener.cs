@@ -6,7 +6,7 @@ using System.Net.Sockets;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The listener implementation for the TCP transport.</summary>
+    /// <summary>The <see cref="SimpleListener"/> implementation for the TCP transport.</summary>
     internal sealed class TcpListener : SimpleListener
     {
         public override Endpoint Endpoint { get; }

@@ -14,7 +14,7 @@ namespace IceRpc.Tests.Internal
     [Timeout(5000)]
     public class TcpOptionsTests : NetworkSocketBaseTest
     {
-        private bool _isIPv6;
+        private readonly bool _isIPv6;
 
         public TcpOptionsTests(AddressFamily addressFamily)
             : base("tcp", tls: false, addressFamily) =>

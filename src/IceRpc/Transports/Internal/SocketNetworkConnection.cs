@@ -5,7 +5,8 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>A network socket connection based on a <see cref="NetworkSocket"/>.</summary>
+    /// <summary>A socket network connection uses a <see cref="NetworkSocket"/> to exchange data using a <see
+    /// cref="System.Net.Sockets.Socket"/>.</summary>
     internal sealed class SocketNetworkConnection : SimpleNetworkConnection, ISimpleStream
     {
         public int DatagramMaxReceiveSize => NetworkSocket.DatagramMaxReceiveSize;
