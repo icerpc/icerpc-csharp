@@ -12,10 +12,10 @@ namespace IceRpc.Transports
 
         internal Func<ISimpleStream, (ISlicFrameReader, ISlicFrameWriter)> SlicFrameReaderWriterFactory { get; set; }
 
-        /// <summary>Creates a network connection that supports both <see cref="ISimpleStream"/> and <see
-        /// cref="IMultiplexedStreamFactory"/>. Multiplexed stream support is provided by Slic.</summary>
+        /// <summary>Creates a network connection that supports <see cref="ISimpleStream"/>. Multiplexed stream support
+        /// is provided by Slic.</summary>
         /// <param name="remoteEndpoint">The remote endpoint.</param>
-        /// <returns>The <see cref="INetworkConnection"/>.</returns>
+        /// <returns>The <see cref="SimpleNetworkConnection"/>.</returns>
         protected abstract SimpleNetworkConnection CreateConnection(Endpoint remoteEndpoint);
 
         /// <summary>Constructs a <see cref="SimpleClientTransport"/>.</summary>

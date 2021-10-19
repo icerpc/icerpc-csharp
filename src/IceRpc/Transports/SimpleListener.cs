@@ -8,7 +8,9 @@ namespace IceRpc.Transports
         /// <inheritdoc/>
         public abstract Endpoint Endpoint { get; }
 
-        /// <inheritdoc/>
+        /// <summary>Creates a network connection that supports <see cref="ISimpleStream"/>. Multiplexed stream support
+        /// is provided by Slic.</summary>
+        /// <returns>The <see cref="SimpleNetworkConnection"/>.</returns>
         public abstract Task<SimpleNetworkConnection> AcceptAsync();
 
         /// <inheritdoc/>

@@ -12,7 +12,7 @@ namespace IceRpc.Transports.Internal
 
         public Endpoint Endpoint => _decoratee.Endpoint;
 
-        public async  Task<INetworkConnection> AcceptAsync()
+        public async Task<INetworkConnection> AcceptAsync()
         {
             try
             {

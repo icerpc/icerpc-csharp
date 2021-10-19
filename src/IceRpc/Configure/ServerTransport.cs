@@ -55,12 +55,8 @@ namespace IceRpc.Configure
         /// <param name="serverTransport">The transport being configured.</param>
         /// <param name="options">The transport options.</param>
         /// <returns>The transport being configured.</returns>
-        public static ServerTransport UseColoc(this ServerTransport serverTransport, SlicOptions options)
-        {
-            var colocServerTransport = new ColocServerTransport(options);
-            serverTransport.Add(TransportNames.Coloc, colocServerTransport);
-            return serverTransport;
-        }
+        public static ServerTransport UseColoc(this ServerTransport serverTransport, SlicOptions options) =>
+            serverTransport.Add(TransportNames.Coloc, new ColocServerTransport(options));
 
         /// <summary>Adds the ssl server transport to this composite server transport.</summary>
         /// <param name="serverTransport">The transport being configured.</param>
@@ -96,12 +92,8 @@ namespace IceRpc.Configure
         public static ServerTransport UseTcp(
             this ServerTransport serverTransport,
             TcpOptions tcpOptions,
-            SlicOptions slicOptions)
-        {
-            var tcpServerTransport = new TcpServerTransport(tcpOptions, slicOptions, null);
-            serverTransport.Add(TransportNames.Tcp, tcpServerTransport);
-            return serverTransport;
-        }
+            SlicOptions slicOptions) =>
+            serverTransport.Add(TransportNames.Tcp, new TcpServerTransport(tcpOptions, slicOptions, null));
 
         /// <summary>Adds the tcp server transport with ssl support to this composite server transport.</summary>
         /// <param name="serverTransport">The transport being configured.</param>
@@ -109,12 +101,8 @@ namespace IceRpc.Configure
         /// <returns>The transport being configured.</returns>
         public static ServerTransport UseTcp(
             this ServerTransport serverTransport,
-            SslServerAuthenticationOptions authenticationOptions)
-        {
-            var tcpServerTransport = new TcpServerTransport(authenticationOptions);
-            serverTransport.Add(TransportNames.Tcp, tcpServerTransport);
-            return serverTransport;
-        }
+            SslServerAuthenticationOptions authenticationOptions) =>
+            serverTransport.Add(TransportNames.Tcp, new TcpServerTransport(authenticationOptions));
 
         /// <summary>Adds the tcp server transport to this composite server transport.</summary>
         /// <param name="serverTransport">The transport being configured.</param>
@@ -126,12 +114,10 @@ namespace IceRpc.Configure
             this ServerTransport serverTransport,
             TcpOptions tcpOptions,
             SlicOptions slicOptions,
-            SslServerAuthenticationOptions authenticationOptions)
-        {
-            var tcpServerTransport = new TcpServerTransport(tcpOptions, slicOptions, authenticationOptions);
-            serverTransport.Add(TransportNames.Tcp, tcpServerTransport);
-            return serverTransport;
-        }
+            SslServerAuthenticationOptions authenticationOptions) =>
+            serverTransport.Add(
+                TransportNames.Tcp,
+                new TcpServerTransport(tcpOptions, slicOptions, authenticationOptions));
 
         /// <summary>Adds the udp server transport to this composite server transport.</summary>
         /// <param name="serverTransport">The server transport being configured.</param>

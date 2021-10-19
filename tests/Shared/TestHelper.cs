@@ -101,21 +101,27 @@ namespace IceRpc.Tests
             SslServerAuthenticationOptions? authenticationOptions = null,
             ILoggerFactory? loggerFactory = null)
         {
-            IServerTransport serverTransport = transport switch
+            return transport switch
                 {
-                    "tcp" => new TcpServerTransport(
+                    "tcp" => LogSimpleTransportDecorator(new TcpServerTransport(
                         (TcpOptions?)options ?? new(),
                         (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
-                        authenticationOptions),
-                    "ssl" => new TcpServerTransport(
+                        authenticationOptions)),
+                    "ssl" => LogSimpleTransportDecorator(new TcpServerTransport(
                         (TcpOptions?)options ?? new(),
                         (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
-                        authenticationOptions),
-                    "udp" => new UdpServerTransport((UdpOptions?)options ?? new()),
-                    "coloc" => new ColocServerTransport((SlicOptions?)multiStreamOptions ?? new SlicOptions()),
+                        authenticationOptions)),
+                    "udp" => LogUdpTransportDecorator(new UdpServerTransport((UdpOptions?)options ?? new())),
+                    "coloc" => LogSimpleTransportDecorator(new ColocServerTransport(
+                        (SlicOptions?)multiStreamOptions ?? new SlicOptions())),
                     _ => throw new UnknownTransportException(transport)
                 };
-            return loggerFactory != null ? serverTransport.UseLoggerFactory(loggerFactory) : serverTransport;
+
+            IServerTransport LogUdpTransportDecorator(UdpServerTransport transport) =>
+                loggerFactory == null ? transport : transport.UseLoggerFactory(loggerFactory);
+
+            IServerTransport LogSimpleTransportDecorator(SimpleServerTransport transport) =>
+                loggerFactory == null ? transport : transport.UseLoggerFactory(loggerFactory);
         }
 
         public static IClientTransport CreateClientTransport(
@@ -125,21 +131,27 @@ namespace IceRpc.Tests
             SslClientAuthenticationOptions? authenticationOptions = null,
             ILoggerFactory? loggerFactory = null)
         {
-            IClientTransport clientTransport = transport switch
+            return transport switch
                 {
-                    "tcp" => new TcpClientTransport(
+                    "tcp" => LogSimpleTransportDecorator(new TcpClientTransport(
                         (TcpOptions?)options ?? new(),
                         (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
-                        authenticationOptions),
-                    "ssl" => new TcpClientTransport(
+                        authenticationOptions)),
+                    "ssl" => LogSimpleTransportDecorator(new TcpClientTransport(
                         (TcpOptions?)options ?? new(),
                         (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
-                        authenticationOptions),
-                    "udp" => new UdpClientTransport((UdpOptions?)options ?? new()),
-                    "coloc" => new ColocClientTransport((SlicOptions?)multiStreamOptions ?? new SlicOptions()),
+                        authenticationOptions)),
+                    "udp" => LogUdpTransportDecorator(new UdpClientTransport((UdpOptions?)options ?? new())),
+                    "coloc" => LogSimpleTransportDecorator(new ColocClientTransport(
+                        (SlicOptions?)multiStreamOptions ?? new SlicOptions())),
                     _ => throw new UnknownTransportException(transport)
                 };
-            return loggerFactory != null ? clientTransport.UseLoggerFactory(loggerFactory) : clientTransport;
+
+            IClientTransport LogUdpTransportDecorator(UdpClientTransport transport) =>
+                loggerFactory == null ? transport : transport.UseLoggerFactory(loggerFactory);
+
+            IClientTransport LogSimpleTransportDecorator(SimpleClientTransport transport) =>
+                loggerFactory == null ? transport : transport.UseLoggerFactory(loggerFactory);
         }
     }
 }

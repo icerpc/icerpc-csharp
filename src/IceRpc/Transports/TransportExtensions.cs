@@ -8,14 +8,13 @@ namespace IceRpc.Transports
     /// <summary>Extensions to enable logging for client and server transports.</summary>
     public static partial class TransportExtensions
     {
-        /// <summary>Returns a client transport that enables logging for the given <see
-        /// cref="IClientTransport"/></summary>.
+        /// <summary>Returns a client transport that enables logging for the <see cref="UdpClientTransport"/></summary>.
         /// <param name="transport">The client transport.</param>
-        /// <param name="loggerFactory">The logger factory used to create the <see cref="ILogger"/> used by the
-        /// transport to log traces</param>
+        /// <param name="loggerFactory">The logger factory used to create the <see cref="ILogger"/> to log transport
+        /// traces.</param>
         /// <returns>The client transport with logging enabled.</returns>
         public static IClientTransport UseLoggerFactory(
-            this IClientTransport transport,
+            this UdpClientTransport transport,
             ILoggerFactory loggerFactory)
         {
             if (loggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger &&
@@ -32,8 +31,8 @@ namespace IceRpc.Transports
         /// <summary>Returns a client transport that enables logging for the given <see
         /// cref="SimpleClientTransport"/></summary>.
         /// <param name="transport">The client transport.</param>
-        /// <param name="loggerFactory">The logger factory used to create the <see cref="ILogger"/> used by the
-        /// transport to log traces</param>
+        /// <param name="loggerFactory">The logger factory used to create the <see cref="ILogger"/> to log transport
+        /// traces.</param>
         /// <returns>The client transport with logging enabled.</returns>
         public static IClientTransport UseLoggerFactory(
             this SimpleClientTransport transport,
@@ -53,11 +52,11 @@ namespace IceRpc.Transports
         /// <summary>Returns a server transport that enables logging for the given <see
         /// cref="IServerTransport"/></summary>.
         /// <param name="transport">The server transport.</param>
-        /// <param name="loggerFactory">The logger factory used to create the <see cref="ILogger"/> used by the
-        /// transport to log traces</param>
+        /// <param name="loggerFactory">The logger factory used to create the <see cref="ILogger"/> to log transport
+        /// traces.</param>
         /// <returns>The server transport with logging enabled.</returns>
         public static IServerTransport UseLoggerFactory(
-            this IServerTransport transport,
+            this UdpServerTransport transport,
             ILoggerFactory loggerFactory)
         {
             if (loggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger &&
@@ -74,8 +73,8 @@ namespace IceRpc.Transports
         /// <summary>Returns a server transport that enables logging for the given <see
         /// cref="SimpleServerTransport"/></summary>.
         /// <param name="transport">The server transport.</param>
-        /// <param name="loggerFactory">The logger factory used to create the <see cref="ILogger"/> used by the
-        /// transport to log traces</param>
+        /// <param name="loggerFactory">The logger factory used to create the <see cref="ILogger"/> to log transport
+        /// traces.</param>
         /// <returns>The server transport with logging enabled.</returns>
         public static IServerTransport UseLoggerFactory(
             this SimpleServerTransport transport,
