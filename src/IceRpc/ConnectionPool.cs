@@ -24,10 +24,6 @@ namespace IceRpc
         /// <seealso cref="IDispatcher"/>
         public IDispatcher? Dispatcher { get; init; }
 
-        /// <summary>Gets or sets the logger factory of this connection pool.</summary>
-        /// <value>The logger factory of this connection pool.</value>
-        public ILoggerFactory? LoggerFactory { get; init; }
-
         /// <summary>Indicates whether or not <see cref="GetConnectionAsync"/> prefers returning an existing connection
         /// over creating a new one.</summary>
         /// <value>When <c>true</c>, GetConnectionAsync first iterates over all endpoints (in order) to look for an
@@ -215,7 +211,6 @@ namespace IceRpc
                     {
                         Dispatcher = Dispatcher,
                         ClientTransport = ClientTransport,
-                        LoggerFactory = LoggerFactory,
                         Options = ConnectionOptions,
                         RemoteEndpoint = endpoint
                     };

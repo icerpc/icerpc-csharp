@@ -8,7 +8,13 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IClientTransport"/> for the coloc transport.</summary>
     public class ColocClientTransport : SlicClientTransport
     {
-        /// <summary>Construct a colocated server transport.</summary>
+        /// <summary>Construct a colocated client transport.</summary>
+        public ColocClientTransport() :
+            base(new(), TimeSpan.MaxValue)
+        {
+        }
+
+        /// <summary>Construct a colocated client transport.</summary>
         /// <param name="slicOptions">The Slic options.</param>
         public ColocClientTransport(SlicOptions slicOptions) :
             base(slicOptions, TimeSpan.MaxValue)

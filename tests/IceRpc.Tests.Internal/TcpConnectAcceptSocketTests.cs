@@ -103,7 +103,7 @@ namespace IceRpc.Tests.Internal
             if (wildcard1)
             {
                 Endpoint serverEndpoint = ServerEndpoint with { Host = "::0" };
-                IServerTransport serverTransport = TestHelper.CreateServerTransport(serverEndpoint);
+                IServerTransport serverTransport = TestHelper.CreateServerTransport(serverEndpoint.Transport);
                 listener = serverTransport.Listen(serverEndpoint);
             }
             else
@@ -114,7 +114,7 @@ namespace IceRpc.Tests.Internal
             if (wildcard2)
             {
                 Endpoint serverEndpoint = ServerEndpoint with { Host = "::0" };
-                IServerTransport serverTransport = TestHelper.CreateServerTransport(serverEndpoint);
+                IServerTransport serverTransport = TestHelper.CreateServerTransport(serverEndpoint.Transport);
                 if (OperatingSystem.IsMacOS())
                 {
                     // On macOS, it's still possible to bind to a specific address even if a connection is bound

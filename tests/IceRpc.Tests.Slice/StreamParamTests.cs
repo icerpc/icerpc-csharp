@@ -29,7 +29,7 @@ namespace IceRpc.Tests.Slice.Stream
 
             _server = new Server
             {
-                LoggerFactory = LogAttributeLoggerFactory.Instance,
+                ServerTransport = new ColocServerTransport().UseLoggerFactory(LogAttributeLoggerFactory.Instance),
                 Dispatcher = _servant,
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
@@ -37,7 +37,7 @@ namespace IceRpc.Tests.Slice.Stream
             _server.Listen();
             _connection = new Connection
             {
-                LoggerFactory = LogAttributeLoggerFactory.Instance,
+                ClientTransport = new ColocClientTransport().UseLoggerFactory(LogAttributeLoggerFactory.Instance),
                 RemoteEndpoint = _server.Endpoint,
             };
             _prx = StreamParamOperationsPrx.FromConnection(_connection);

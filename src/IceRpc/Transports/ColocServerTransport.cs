@@ -8,11 +8,16 @@ namespace IceRpc.Transports
     public class ColocServerTransport : SlicServerTransport
     {
         /// <summary>Constructs a colocated server transport.</summary>
+        public ColocServerTransport() :
+            base(new(), TimeSpan.MaxValue)
+        {
+        }
+
+        /// <summary>Constructs a colocated server transport.</summary>
         /// <param name="slicOptions">The Slic options.</param>
         public ColocServerTransport(SlicOptions slicOptions) :
             base(slicOptions, TimeSpan.MaxValue)
         {
-
         }
 
         /// <inheritdoc/>

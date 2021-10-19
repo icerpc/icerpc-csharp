@@ -53,26 +53,28 @@ namespace IceRpc.Tests.Internal
 
         private async Task<INetworkConnection> AcceptAsync()
         {
-            using IListener listener = new LogServerTransportDecorator(
+            using IListener listener =
                 TestHelper.CreateServerTransport(
-                    _serverEndpoint,
+                    _serverEndpoint.Transport,
                     options: null,
-                    multiStreamOptions: _serverOptions),
-                LogAttributeLoggerFactory.Instance.CreateLogger("IceRpc.Transports")).Listen(_serverEndpoint);
+                    multiStreamOptions: _serverOptions,
+                    loggerFactory: LogAttributeLoggerFactory.Instance).Listen(_serverEndpoint);
             return await listener.AcceptAsync();
         }
 
         private INetworkConnection Connect()
         {
-            IClientTransport clientTransport = new LogClientTransportDecorator(
+            IClientTransport clientTransport =
                 TestHelper.CreateClientTransport(
-                    _clientEndpoint,
-                    multiStreamOptions: _clientOptions),
-                LogAttributeLoggerFactory.Instance.CreateLogger("IceRpc.Transports"));
+                    _clientEndpoint.Transport,
+                    multiStreamOptions: _clientOptions,
+                    loggerFactory: LogAttributeLoggerFactory.Instance);
             return clientTransport.CreateConnection(_clientEndpoint);
         }
 
-        protected static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateSendPayload(IMultiplexedNetworkStream stream, int length = 10)
+        protected static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateSendPayload(
+            IMultiplexedNetworkStream stream,
+            int length = 10)
         {
             byte[] buffer = new byte[stream.TransportHeader.Length + length];
             stream.TransportHeader.CopyTo(buffer);

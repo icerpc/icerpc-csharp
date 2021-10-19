@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using Microsoft.Extensions.Logging;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
@@ -94,11 +95,13 @@ namespace IceRpc.Tests
             $"ice+coloc://test.{Interlocked.Increment(ref _counter)}";
 
         public static IServerTransport CreateServerTransport(
-            Endpoint endpoint,
+            string transport = "tcp",
             object? options = null,
             object? multiStreamOptions = null,
-            SslServerAuthenticationOptions? authenticationOptions = null) =>
-            endpoint.Transport switch
+            SslServerAuthenticationOptions? authenticationOptions = null,
+            ILoggerFactory? loggerFactory = null)
+        {
+            IServerTransport serverTransport = transport switch
                 {
                     "tcp" => new TcpServerTransport(
                         (TcpOptions?)options ?? new(),
@@ -110,15 +113,19 @@ namespace IceRpc.Tests
                         authenticationOptions),
                     "udp" => new UdpServerTransport((UdpOptions?)options ?? new()),
                     "coloc" => new ColocServerTransport((SlicOptions?)multiStreamOptions ?? new SlicOptions()),
-                    _ => throw new UnknownTransportException(endpoint.Transport, endpoint.Protocol)
+                    _ => throw new UnknownTransportException(transport, Protocol.Ice2)
                 };
+            return loggerFactory != null ? serverTransport.UseLoggerFactory(loggerFactory) : serverTransport;
+        }
 
         public static IClientTransport CreateClientTransport(
-            Endpoint endpoint,
+            string transport = "tcp",
             object? options = null,
             object? multiStreamOptions = null,
-            SslClientAuthenticationOptions? authenticationOptions = null) =>
-                endpoint.Transport switch
+            SslClientAuthenticationOptions? authenticationOptions = null,
+            ILoggerFactory? loggerFactory = null)
+        {
+            IClientTransport clientTransport = transport switch
                 {
                     "tcp" => new TcpClientTransport(
                         (TcpOptions?)options ?? new(),
@@ -130,7 +137,9 @@ namespace IceRpc.Tests
                         authenticationOptions),
                     "udp" => new UdpClientTransport((UdpOptions?)options ?? new()),
                     "coloc" => new ColocClientTransport((SlicOptions?)multiStreamOptions ?? new SlicOptions()),
-                    _ => throw new UnknownTransportException(endpoint.Transport, endpoint.Protocol)
+                    _ => throw new UnknownTransportException(transport, Protocol.Ice2)
                 };
+            return loggerFactory != null ? clientTransport.UseLoggerFactory(loggerFactory) : clientTransport;
+        }
     }
 }

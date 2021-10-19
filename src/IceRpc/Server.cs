@@ -43,10 +43,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Gets or sets the logger factory of this server.</summary>
-        /// <value>The logger factory of this server.</value>
-        public ILoggerFactory? LoggerFactory { get; set; }
-
         /// <summary>Gets the Ice protocol used by this server.</summary>
         /// <value>The Ice protocol of this server.</value>
         public Protocol Protocol => _endpoint?.Protocol ?? Protocol.Ice2;
@@ -98,21 +94,7 @@ namespace IceRpc
                     throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
 
-                IServerTransport serverTransport = ServerTransport;
-                if (LoggerFactory?.CreateLogger("IceRpc.Transports") is ILogger logger &&
-                    logger.IsEnabled(LogLevel.Error))
-                {
-                    if (serverTransport is SlicServerTransport slicServerTransport)
-                    {
-                        serverTransport = new LogSlicServerTransportDecorator(slicServerTransport, logger);
-                    }
-                    else
-                    {
-                        serverTransport = new LogServerTransportDecorator(serverTransport, logger);
-                    }
-                }
-
-                _listener = serverTransport.Listen(_endpoint);
+                _listener = ServerTransport.Listen(_endpoint);
                 _endpoint = _listener.Endpoint;
 
                 // Run task to start accepting new connections.

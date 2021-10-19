@@ -68,7 +68,7 @@ namespace IceRpc.Tests.Internal
             public async Task<(Connection, Connection)> AcceptAndConnectAsync()
             {
                 IServerTransport serverTransport = TestHelper.CreateServerTransport(
-                    Endpoint,
+                    Endpoint.Transport,
                     options: _serverTransportOptions,
                     authenticationOptions: _serverAuthenticationOptions);
 
@@ -95,7 +95,7 @@ namespace IceRpc.Tests.Internal
                     var connection = new Connection
                     {
                         ClientTransport = TestHelper.CreateClientTransport(
-                            endpoint,
+                            endpoint.Transport,
                             options: _clientTransportOptions,
                             authenticationOptions: _clientAuthenticationOptions),
                         Options = _clientConnectionOptions,

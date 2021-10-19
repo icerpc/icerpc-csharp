@@ -113,9 +113,9 @@ namespace IceRpc.Tests.Internal
         public async Task SetUp()
         {
             Endpoint endpoint = TestHelper.GetTestEndpoint(transport: _transport, protocol: Protocol.Ice1);
-            using IListener listener = TestHelper.CreateServerTransport(endpoint).Listen(endpoint);
+            using IListener listener = TestHelper.CreateServerTransport(_transport).Listen(endpoint);
 
-            IClientTransport clientTransport = TestHelper.CreateClientTransport(listener.Endpoint);
+            IClientTransport clientTransport = TestHelper.CreateClientTransport(_transport);
             _clientConnection = clientTransport.CreateConnection(listener.Endpoint);
 
             Task<INetworkConnection> acceptTask = listener.AcceptAsync();

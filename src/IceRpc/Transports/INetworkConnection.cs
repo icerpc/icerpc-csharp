@@ -22,7 +22,7 @@ namespace IceRpc.Transports
         void Close(Exception? exception = null);
 
         /// <summary>Connects this network connection and either return a <see cref="INetworkStream"/> or <see
-        /// cref="IMultiplexedNetworkStreamFactory"/> depend on the protocol requirements.</summary>
+        /// cref="IMultiplexedNetworkStreamFactory"/> depending on the protocol requirements.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The <see cref="IMultiplexedNetworkStreamFactory"/> and <see
         /// cref="NetworkConnectionInformation"/>.</returns>

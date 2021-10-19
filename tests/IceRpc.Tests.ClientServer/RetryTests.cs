@@ -445,7 +445,7 @@ namespace IceRpc.Tests.ClientServer
         {
             var pool = new ConnectionPool()
             {
-                LoggerFactory = LogAttributeLoggerFactory.Instance,
+                ClientTransport = TestHelper.CreateClientTransport(loggerFactory: LogAttributeLoggerFactory.Instance),
                 ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) },
             };
             return pool;
@@ -457,7 +457,7 @@ namespace IceRpc.Tests.ClientServer
                 i => new Server
                 {
                     Endpoint = GetTestEndpoint(port: i),
-                    LoggerFactory = LogAttributeLoggerFactory.Instance,
+                    ServerTransport = TestHelper.CreateServerTransport(loggerFactory: LogAttributeLoggerFactory.Instance),
                     ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) },
                 }).ToArray();
 
@@ -500,7 +500,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 Dispatcher = router,
                 Endpoint = GetTestEndpoint(protocol: protocol),
-                LoggerFactory = LogAttributeLoggerFactory.Instance,
+                ServerTransport = TestHelper.CreateServerTransport(loggerFactory: LogAttributeLoggerFactory.Instance),
                 ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) },
             };
             server.Listen();
