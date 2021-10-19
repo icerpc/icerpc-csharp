@@ -113,7 +113,7 @@ namespace IceRpc.Tests
                         authenticationOptions),
                     "udp" => new UdpServerTransport((UdpOptions?)options ?? new()),
                     "coloc" => new ColocServerTransport((SlicOptions?)multiStreamOptions ?? new SlicOptions()),
-                    _ => throw new UnknownTransportException(transport, Protocol.Ice2)
+                    _ => throw new UnknownTransportException(transport)
                 };
             return loggerFactory != null ? serverTransport.UseLoggerFactory(loggerFactory) : serverTransport;
         }
@@ -137,7 +137,7 @@ namespace IceRpc.Tests
                         authenticationOptions),
                     "udp" => new UdpClientTransport((UdpOptions?)options ?? new()),
                     "coloc" => new ColocClientTransport((SlicOptions?)multiStreamOptions ?? new SlicOptions()),
-                    _ => throw new UnknownTransportException(transport, Protocol.Ice2)
+                    _ => throw new UnknownTransportException(transport)
                 };
             return loggerFactory != null ? clientTransport.UseLoggerFactory(loggerFactory) : clientTransport;
         }

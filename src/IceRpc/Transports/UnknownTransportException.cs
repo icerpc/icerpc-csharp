@@ -7,9 +7,8 @@ namespace IceRpc.Transports
     {
         /// <summary>Constructs a new instance of the <see cref="UnknownTransportException"/> class.</summary>
         /// <param name="transport">The name of the transport.</param>
-        /// <param name="protocol">The Ice protocol.</param>
-        public UnknownTransportException(string transport, Protocol protocol)
-            : base($"cannot find transport '{transport}' for protocol {protocol}")
+        public UnknownTransportException(string transport)
+            : base($"cannot find transport '{transport}'")
         {
         }
     }

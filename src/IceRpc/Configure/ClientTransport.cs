@@ -10,37 +10,34 @@ namespace IceRpc.Configure
     /// <summary>A composite client transport.</summary>
     public class ClientTransport : IClientTransport
     {
-        private IReadOnlyDictionary<(string, Protocol), IClientTransport>? _transports;
-        private readonly Dictionary<(string, Protocol), IClientTransport> _builder = new();
+        private IReadOnlyDictionary<string, IClientTransport>? _transports;
+        private readonly Dictionary<string, IClientTransport> _builder = new();
 
         /// <summary>Adds a new client transport to this composite client transport.</summary>
         /// <param name="name">The transport name.</param>
-        /// <param name="protocol">The Ice protocol supported by this transport.</param>
         /// <param name="transport">The transport instance.</param>
         /// <returns>This transport.</returns>
-        public ClientTransport Add(string name, Protocol protocol, IClientTransport transport)
+        public ClientTransport Add(string name, IClientTransport transport)
         {
             if (_transports != null)
             {
                 throw new InvalidOperationException(
                     $"cannot call {nameof(Add)} after calling {nameof(IClientTransport.CreateConnection)}");
             }
-            _builder.Add((name, protocol), transport);
+            _builder.Add(name, transport);
             return this;
         }
 
         INetworkConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint)
         {
             _transports ??= _builder;
-            if (_transports.TryGetValue(
-                (remoteEndpoint.Transport, remoteEndpoint.Protocol),
-                out IClientTransport? clientTransport))
+            if (_transports.TryGetValue(remoteEndpoint.Transport, out IClientTransport? clientTransport))
             {
                 return clientTransport.CreateConnection(remoteEndpoint);
             }
             else
             {
-                throw new UnknownTransportException(remoteEndpoint.Transport, remoteEndpoint.Protocol);
+                throw new UnknownTransportException(remoteEndpoint.Transport);
             }
         }
     }
@@ -58,13 +55,10 @@ namespace IceRpc.Configure
         /// <param name="clientTransport">The transport being configured.</param>
         /// <param name="options">The transport options.</param>
         /// <returns>The transport being configured.</returns>
-        public static ClientTransport UseColoc(
-            this ClientTransport clientTransport,
-            SlicOptions options)
+        public static ClientTransport UseColoc(this ClientTransport clientTransport, SlicOptions options)
         {
             var colocClientTransport = new ColocClientTransport(options);
-            clientTransport.Add(TransportNames.Coloc, Protocol.Ice2, colocClientTransport);
-            clientTransport.Add(TransportNames.Coloc, Protocol.Ice1, colocClientTransport);
+            clientTransport.Add(TransportNames.Coloc, colocClientTransport);
             return clientTransport;
         }
 
@@ -75,7 +69,7 @@ namespace IceRpc.Configure
         public static ClientTransport UseSsl(
             this ClientTransport clientTransport,
             SslClientAuthenticationOptions authenticationOptions) =>
-            clientTransport.Add(TransportNames.Ssl, Protocol.Ice1, new TcpClientTransport(authenticationOptions));
+            clientTransport.Add(TransportNames.Ssl, new TcpClientTransport(authenticationOptions));
 
         /// <summary>Adds the ssl client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
@@ -87,7 +81,6 @@ namespace IceRpc.Configure
             TcpOptions tcpOptions,
             SslClientAuthenticationOptions authenticationOptions) =>
             clientTransport.Add(TransportNames.Ssl,
-                                Protocol.Ice1,
                                 new TcpClientTransport(tcpOptions, new SlicOptions(), authenticationOptions));
 
         /// <summary>Adds the tcp client transport to this composite client transport.</summary>
@@ -107,8 +100,7 @@ namespace IceRpc.Configure
             SlicOptions slicOptions)
         {
             var tcpClientTransport = new TcpClientTransport(tcpOptions, slicOptions, null);
-            clientTransport.Add(TransportNames.Tcp, Protocol.Ice2, tcpClientTransport);
-            clientTransport.Add(TransportNames.Tcp, Protocol.Ice1, tcpClientTransport);
+            clientTransport.Add(TransportNames.Tcp, tcpClientTransport);
             return clientTransport;
         }
 
@@ -121,8 +113,7 @@ namespace IceRpc.Configure
             SslClientAuthenticationOptions authenticationOptions)
         {
             var tcpClientTransport = new TcpClientTransport(authenticationOptions);
-            clientTransport.Add(TransportNames.Tcp, Protocol.Ice2, tcpClientTransport);
-            clientTransport.Add(TransportNames.Tcp, Protocol.Ice1, tcpClientTransport);
+            clientTransport.Add(TransportNames.Tcp, tcpClientTransport);
             return clientTransport;
         }
 
@@ -139,8 +130,7 @@ namespace IceRpc.Configure
             SslClientAuthenticationOptions authenticationOptions)
         {
             var tcpClientTransport = new TcpClientTransport(tcpOptions, slicOptions, authenticationOptions);
-            clientTransport.Add(TransportNames.Tcp, Protocol.Ice2, tcpClientTransport);
-            clientTransport.Add(TransportNames.Tcp, Protocol.Ice1, tcpClientTransport);
+            clientTransport.Add(TransportNames.Tcp, tcpClientTransport);
             return clientTransport;
         }
 
@@ -155,6 +145,6 @@ namespace IceRpc.Configure
         /// <param name="udpOptions">The UDP transport options.</param>
         /// <returns>The client transport being configured.</returns>
         public static ClientTransport UseUdp(this ClientTransport clientTransport, UdpOptions udpOptions) =>
-            clientTransport.Add(TransportNames.Udp, Protocol.Ice1, new UdpClientTransport(udpOptions));
+            clientTransport.Add(TransportNames.Udp, new UdpClientTransport(udpOptions));
     }
 }
