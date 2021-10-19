@@ -18,10 +18,6 @@ namespace IceRpc
         /// <summary>The protocol code of this protocol.</summary>
         public ProtocolCode Code { get; }
 
-        /// <summary>Returns <c>true</c> if this protocol is supported by this IceRpc runtime, <c>false</c>
-        /// otherwise.</summary>
-        public virtual bool IsSupported => false;
-
         /// <summary>The name of this protocol, for example "ice2" for the Ice2 protocol.</summary>
         public string Name { get; }
 

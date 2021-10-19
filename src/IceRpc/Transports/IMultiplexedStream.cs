@@ -45,9 +45,8 @@ namespace IceRpc.Transports
         StreamAborted
     }
 
-    /// <summary>A network stream enables byte data exchange over a network stream managed by a <see
-    /// cref="IMultiplexedNetworkStreamFactory"/>.</summary>
-    public interface IMultiplexedNetworkStream
+    /// <summary>A multiplexed stream enables byte data exchange over a multiplexed transport.</summary>
+    public interface IMultiplexedStream
     {
         /// <summary>The stream ID. If the stream ID hasn't been assigned yet, an exception is thrown. Assigning the
         /// stream ID registers the stream with the multi-stream connection.</summary>

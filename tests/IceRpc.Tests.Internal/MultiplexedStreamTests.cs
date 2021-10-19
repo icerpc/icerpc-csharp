@@ -8,7 +8,7 @@ using System.IO.Compression;
 namespace IceRpc.Tests.Internal
 {
     [Timeout(5000)]
-    public class NetworkStreamTests : MultiStreamConnectionBaseTest
+    public class MultiplexedStreamTests : MultiplexedStreamFactoryBaseTest
     {
         [SetUp]
         public Task SetUp() => SetUpConnectionsAsync();
@@ -19,15 +19,15 @@ namespace IceRpc.Tests.Internal
         [TestCase(StreamError.DispatchCanceled)]
         [TestCase(StreamError.InvocationCanceled)]
         [TestCase((StreamError)10)]
-        public async Task Stream_Abort(StreamError errorCode)
+        public async Task MultiplexedStream_Abort(StreamError errorCode)
         {
-            Task<(int, IMultiplexedNetworkStream)> serverTask = ReceiveAsync();
+            Task<(int, IMultiplexedStream)> serverTask = ReceiveAsync();
 
             // Create client stream and send one byte.
-            IMultiplexedNetworkStream clientStream = ClientMultiStreamConnection.CreateStream(true);
+            IMultiplexedStream clientStream = ClientMultiplexedStreamFactory.CreateStream(true);
             await clientStream.WriteAsync(CreateSendPayload(clientStream, 1), false, default);
 
-            (int received, IMultiplexedNetworkStream serverStream) = await serverTask;
+            (int received, IMultiplexedStream serverStream) = await serverTask;
 
             Assert.That(received, Is.EqualTo(1));
             var dispatchCanceled = new TaskCompletionSource();
@@ -44,15 +44,15 @@ namespace IceRpc.Tests.Internal
             await dispatchCanceled.Task;
 
             // Ensure we can still create a new stream after the cancellation
-            IMultiplexedNetworkStream clientStream2 = ClientMultiStreamConnection.CreateStream(true);
+            IMultiplexedStream clientStream2 = ClientMultiplexedStreamFactory.CreateStream(true);
             await clientStream2.WriteAsync(CreateSendPayload(clientStream2, 1), true, default);
 
-            async Task<(int, IMultiplexedNetworkStream)> ReceiveAsync()
+            async Task<(int, IMultiplexedStream)> ReceiveAsync()
             {
-                IMultiplexedNetworkStream serverStream = await ServerMultiStreamConnection.AcceptStreamAsync(default);
+                IMultiplexedStream serverStream = await ServerMultiplexedStreamFactory.AcceptStreamAsync(default);
 
                 // Continue reading from the server connection and receive the byte sent over the client stream.
-                _ = ServerMultiStreamConnection.AcceptStreamAsync(default).AsTask();
+                _ = ServerMultiplexedStreamFactory.AcceptStreamAsync(default).AsTask();
 
                 return (await serverStream.ReadAsync(new byte[256], default), serverStream);
             }
@@ -67,9 +67,9 @@ namespace IceRpc.Tests.Internal
         [TestCase(false, 2, 1024, 1024 * 1024)]
         [TestCase(false, 3, 1024 * 1024, 1024)]
         [TestCase(false, 3, 1024, 1024 * 1024)]
-        public async Task Stream_StreamSendReceiveAsync(bool flowControl, int bufferCount, int sendSize, int recvSize)
+        public async Task MultiplexedStream_StreamSendReceiveAsync(bool flowControl, int bufferCount, int sendSize, int recvSize)
         {
-            IMultiplexedNetworkStream clientStream = ClientMultiStreamConnection.CreateStream(true);
+            IMultiplexedStream clientStream = ClientMultiplexedStreamFactory.CreateStream(true);
             Memory<ReadOnlyMemory<byte>> sendBuffers = new ReadOnlyMemory<byte>[bufferCount];
             byte[] buffer;
             if (bufferCount == 1)
@@ -89,11 +89,11 @@ namespace IceRpc.Tests.Internal
                     sendBuffers.Span[i] = buffer;
                 }
             }
-            _ = ClientMultiStreamConnection.AcceptStreamAsync(default).AsTask();
+            _ = ClientMultiplexedStreamFactory.AcceptStreamAsync(default).AsTask();
             _ = clientStream.WriteAsync(sendBuffers, false, default).AsTask();
 
-            IMultiplexedNetworkStream serverStream = await ServerMultiStreamConnection.AcceptStreamAsync(default);
-            _ = ServerMultiStreamConnection.AcceptStreamAsync(default).AsTask();
+            IMultiplexedStream serverStream = await ServerMultiplexedStreamFactory.AcceptStreamAsync(default);
+            _ = ServerMultiplexedStreamFactory.AcceptStreamAsync(default).AsTask();
 
             int segment = 0;
             int offset = 0;
@@ -147,9 +147,9 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void Stream_SendAsync_Cancellation()
+        public void MultiplexedStream_SendAsync_Cancellation()
         {
-            IMultiplexedNetworkStream stream = ClientMultiStreamConnection.CreateStream(true);
+            IMultiplexedStream stream = ClientMultiplexedStreamFactory.CreateStream(true);
             using var source = new CancellationTokenSource();
             source.Cancel();
 
@@ -158,9 +158,9 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void Stream_ReceiveAsync_Cancellation()
+        public void MultiplexedStream_ReceiveAsync_Cancellation()
         {
-            IMultiplexedNetworkStream stream = ClientMultiStreamConnection.CreateStream(true);
+            IMultiplexedStream stream = ClientMultiplexedStreamFactory.CreateStream(true);
             using var source = new CancellationTokenSource();
             source.Cancel();
             Assert.CatchAsync<OperationCanceledException>(
@@ -168,15 +168,15 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task Stream_ReceiveAsync_Cancellation2Async()
+        public async Task MultiplexedStream_ReceiveAsync_Cancellation2Async()
         {
-            IMultiplexedNetworkStream stream = ClientMultiStreamConnection.CreateStream(true);
-            _ = ClientMultiStreamConnection.AcceptStreamAsync(default).AsTask();
+            IMultiplexedStream stream = ClientMultiplexedStreamFactory.CreateStream(true);
+            _ = ClientMultiplexedStreamFactory.AcceptStreamAsync(default).AsTask();
             await stream.WriteAsync(CreateSendPayload(stream), true, default);
 
-            IMultiplexedNetworkStream serverStream = await ServerMultiStreamConnection.AcceptStreamAsync(default);
+            IMultiplexedStream serverStream = await ServerMultiplexedStreamFactory.AcceptStreamAsync(default);
             await serverStream.ReadAsync(CreateReceivePayload(), default);
-            _ = ServerMultiStreamConnection.AcceptStreamAsync(default).AsTask();
+            _ = ServerMultiplexedStreamFactory.AcceptStreamAsync(default).AsTask();
 
             var dispatchCanceled = new TaskCompletionSource();
             serverStream.ShutdownAction = () => dispatchCanceled.SetResult();
@@ -195,15 +195,15 @@ namespace IceRpc.Tests.Internal
         [TestCase(384, 64 * 1024)]
         [TestCase(1024 * 1024, 1024)]
         [TestCase(1024, 1024 * 1024)]
-        public async Task Stream_StreamReaderWriterAsync(int sendSize, int recvSize)
+        public async Task MultiplexedStream_StreamReaderWriterAsync(int sendSize, int recvSize)
         {
-            Task<IMultiplexedNetworkStream> serverAcceptStream = AcceptServerStreamAsync();
+            Task<IMultiplexedStream> serverAcceptStream = AcceptServerStreamAsync();
 
-            IMultiplexedNetworkStream stream = ClientMultiStreamConnection.CreateStream(true);
-            _ = ClientMultiStreamConnection.AcceptStreamAsync(default).AsTask();
+            IMultiplexedStream stream = ClientMultiplexedStreamFactory.CreateStream(true);
+            _ = ClientMultiplexedStreamFactory.AcceptStreamAsync(default).AsTask();
             _ = stream.WriteAsync(CreateSendPayload(stream, 1), false, default).AsTask();
 
-            IMultiplexedNetworkStream serverStream = await serverAcceptStream;
+            IMultiplexedStream serverStream = await serverAcceptStream;
 
             byte[] sendBuffer = new byte[sendSize];
             new Random().NextBytes(sendBuffer);
@@ -222,12 +222,12 @@ namespace IceRpc.Tests.Internal
                 offset += received;
             }
 
-            async Task<IMultiplexedNetworkStream> AcceptServerStreamAsync()
+            async Task<IMultiplexedStream> AcceptServerStreamAsync()
             {
-                IMultiplexedNetworkStream serverStream = await ServerMultiStreamConnection.AcceptStreamAsync(default);
+                IMultiplexedStream serverStream = await ServerMultiplexedStreamFactory.AcceptStreamAsync(default);
 
                 // Continue reading from the server connection and receive the byte sent over the client stream.
-                _ = ServerMultiStreamConnection.AcceptStreamAsync(default).AsTask();
+                _ = ServerMultiplexedStreamFactory.AcceptStreamAsync(default).AsTask();
 
                 int received = await serverStream.ReadAsync(new byte[256], default);
                 Assert.That(received, Is.EqualTo(1));
@@ -237,15 +237,15 @@ namespace IceRpc.Tests.Internal
 
         [TestCase(false)]
         [TestCase(true)]
-        public async Task Stream_StreamReaderWriterCancelationAsync(bool cancelClientSide)
+        public async Task MultiplexedStream_StreamReaderWriterCancelationAsync(bool cancelClientSide)
         {
-            Task<IMultiplexedNetworkStream> serverAcceptStream = AcceptServerStreamAsync();
+            Task<IMultiplexedStream> serverAcceptStream = AcceptServerStreamAsync();
 
-            IMultiplexedNetworkStream stream = ClientMultiStreamConnection.CreateStream(true);
-            _ = ClientMultiStreamConnection.AcceptStreamAsync(default).AsTask();
+            IMultiplexedStream stream = ClientMultiplexedStreamFactory.CreateStream(true);
+            _ = ClientMultiplexedStreamFactory.AcceptStreamAsync(default).AsTask();
             _ = stream.WriteAsync(CreateSendPayload(stream, 1), false, default).AsTask();
 
-            IMultiplexedNetworkStream serverStream = await serverAcceptStream;
+            IMultiplexedStream serverStream = await serverAcceptStream;
 
             var sendStream = new TestMemoryStream(new byte[100]);
 
@@ -295,12 +295,12 @@ namespace IceRpc.Tests.Internal
             await serverStream.WriteAsync(CreateSendPayload(serverStream, 1), false, default);
             await stream.ReadAsync(new byte[1], default);
 
-            async Task<IMultiplexedNetworkStream> AcceptServerStreamAsync()
+            async Task<IMultiplexedStream> AcceptServerStreamAsync()
             {
-                IMultiplexedNetworkStream serverStream = await ServerMultiStreamConnection.AcceptStreamAsync(default);
+                IMultiplexedStream serverStream = await ServerMultiplexedStreamFactory.AcceptStreamAsync(default);
 
                 // Continue reading from the server connection and receive the byte sent over the client stream.
-                _ = ServerMultiStreamConnection.AcceptStreamAsync(default).AsTask();
+                _ = ServerMultiplexedStreamFactory.AcceptStreamAsync(default).AsTask();
 
                 int received = await serverStream.ReadAsync(new byte[256], default);
                 Assert.That(received, Is.EqualTo(1));
@@ -309,14 +309,14 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task Stream_StreamReaderWriterCompressorAsync()
+        public async Task MultiplexedStream_StreamReaderWriterCompressorAsync()
         {
-            IMultiplexedNetworkStream clientStream = ClientMultiStreamConnection.CreateStream(true);
-            _ = ClientMultiStreamConnection.AcceptStreamAsync(default).AsTask();
+            IMultiplexedStream clientStream = ClientMultiplexedStreamFactory.CreateStream(true);
+            _ = ClientMultiplexedStreamFactory.AcceptStreamAsync(default).AsTask();
             _ = clientStream.WriteAsync(CreateSendPayload(clientStream, 1), false, default).AsTask();
 
-            IMultiplexedNetworkStream serverStream = await ServerMultiStreamConnection.AcceptStreamAsync(default);
-            _ = ServerMultiStreamConnection.AcceptStreamAsync(default).AsTask();
+            IMultiplexedStream serverStream = await ServerMultiplexedStreamFactory.AcceptStreamAsync(default);
+            _ = ServerMultiplexedStreamFactory.AcceptStreamAsync(default).AsTask();
             await serverStream.ReadAsync(new byte[1], default);
 
             byte[] buffer = new byte[10000];

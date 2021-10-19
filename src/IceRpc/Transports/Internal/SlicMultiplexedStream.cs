@@ -17,7 +17,7 @@ namespace IceRpc.Transports.Internal
     /// to a stream a parameter. Enabling buffering only for stream parameters also ensure a lightweight Slic
     /// stream object where no additional heap objects (such as the circular buffer, send semaphore, etc) are
     /// necessary to receive a simple response/request frame.</summary>
-    internal class SlicMultiplexedNetworkStream : IMultiplexedNetworkStream, IValueTaskSource<(int, bool)>
+    internal class SlicMultiplexedStream : IMultiplexedStream, IValueTaskSource<(int, bool)>
     {
         /// <inheritdoc/>
         public long Id
@@ -33,7 +33,7 @@ namespace IceRpc.Transports.Internal
             set
             {
                 Debug.Assert(_id == -1);
-                _connection.AddStream(value, this, ref _id);
+                _streamFactory.AddStream(value, this, ref _id);
             }
         }
 
@@ -86,14 +86,14 @@ namespace IceRpc.Transports.Internal
 
         public ReadOnlyMemory<byte> TransportHeader => SlicDefinitions.FrameHeader;
 
-        internal bool IsRemote => _id != -1 && _id % 2 == (_connection.IsServer ? 0 : 1);
+        internal bool IsRemote => _id != -1 && _id % 2 == (_streamFactory.IsServer ? 0 : 1);
         internal bool IsStarted => _id != -1;
         internal bool WritesCompleted => (Thread.VolatileRead(ref _state) & (int)State.WriteCompleted) > 0;
 
         private bool IsShutdown => (Thread.VolatileRead(ref _state) & (int)State.Shutdown) > 0;
         private bool ReadsCompleted => (Thread.VolatileRead(ref _state) & (int)State.ReadCompleted) > 0;
 
-        private readonly SlicMultiplexedNetworkStreamFactory _connection;
+        private readonly SlicMultiplexedStreamFactory _streamFactory;
         private long _id = -1;
         private SpinLock _lock;
         private AsyncQueueCore<(int, bool)> _queue = new();
@@ -202,7 +202,7 @@ namespace IceRpc.Transports.Internal
 
                 // Create a receive buffer to buffer the received stream data. The sender must ensure it doesn't
                 // send more data than this receiver allows.
-                _receiveBuffer = new CircularBuffer(_connection.StreamBufferMaxSize);
+                _receiveBuffer = new CircularBuffer(_streamFactory.StreamBufferMaxSize);
 
                 // If the stream is in the signaled state, the connection is waiting for the frame to be received. In
                 // this case we get the frame information and notify again the stream that the frame was received.
@@ -229,7 +229,7 @@ namespace IceRpc.Transports.Internal
         public void EnableSendFlowControl()
         {
             // Assign the initial send credit based on the peer's stream buffer max size.
-            _sendCredit = _connection.PeerStreamBufferMaxSize;
+            _sendCredit = _streamFactory.PeerStreamBufferMaxSize;
 
             // Create send semaphore for flow control. The send semaphore ensures that the stream doesn't send
             // more data than it is allowed to the peer.
@@ -295,7 +295,7 @@ namespace IceRpc.Transports.Internal
                 // buffered and already received.
                 if (_receiveBuffer == null)
                 {
-                    _connection.FinishedReceivedStreamData(0);
+                    _streamFactory.FinishedReceivedStreamData(0);
                 }
 
                 // It's the end of the stream, we can complete reads.
@@ -319,7 +319,7 @@ namespace IceRpc.Transports.Internal
                 // Send an empty last stream frame if there's no data to send. There's no need to check send
                 // flow control credit if there's no data to send.
                 Debug.Assert(endStream);
-                await _connection.SendStreamFrameAsync(this, buffers, true, cancel).ConfigureAwait(false);
+                await _streamFactory.SendStreamFrameAsync(this, buffers, true, cancel).ConfigureAwait(false);
                 return;
             }
 
@@ -352,7 +352,7 @@ namespace IceRpc.Transports.Internal
 
                 // The maximum packet size to send, it can't be larger than the flow control credit left or
                 // the peer's packet max size.
-                int maxPacketSize = Math.Min(_sendCredit, _connection.PeerPacketMaxSize);
+                int maxPacketSize = Math.Min(_sendCredit, _streamFactory.PeerPacketMaxSize);
 
                 int sendSize = 0;
                 bool lastBuffer;
@@ -406,7 +406,7 @@ namespace IceRpc.Transports.Internal
                 offset += sendSize;
                 if (_sendSemaphore == null)
                 {
-                    await _connection.SendStreamFrameAsync(
+                    await _streamFactory.SendStreamFrameAsync(
                         this,
                         sendBuffer.ToArray(),
                         lastBuffer && endStream,
@@ -424,7 +424,7 @@ namespace IceRpc.Transports.Internal
                         // received before we decreased it.
                         int value = Interlocked.Add(ref _sendCredit, -sendSize);
 
-                        await _connection.SendStreamFrameAsync(
+                        await _streamFactory.SendStreamFrameAsync(
                             this,
                             sendBuffer.ToArray(),
                             lastBuffer && endStream,
@@ -470,14 +470,18 @@ namespace IceRpc.Transports.Internal
         /// <inheritdoc/>
         public override string ToString() => $"{base.ToString()} (ID={Id})";
 
-        internal SlicMultiplexedNetworkStream(SlicMultiplexedNetworkStreamFactory connection, long streamId, ISlicFrameReader reader, ISlicFrameWriter writer)
+        internal SlicMultiplexedStream(
+            SlicMultiplexedStreamFactory streamFactory,
+            long streamId,
+            ISlicFrameReader reader,
+            ISlicFrameWriter writer)
         {
-            _connection = connection;
+            _streamFactory = streamFactory;
             _reader = reader;
             _writer = writer;
 
             IsBidirectional = streamId % 4 < 2;
-            _connection.AddStream(streamId, this, ref _id);
+            _streamFactory.AddStream(streamId, this, ref _id);
 
             if (!IsBidirectional)
             {
@@ -486,13 +490,13 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal SlicMultiplexedNetworkStream(
-            SlicMultiplexedNetworkStreamFactory connection,
+        internal SlicMultiplexedStream(
+            SlicMultiplexedStreamFactory connection,
             bool bidirectional,
             ISlicFrameReader reader,
             ISlicFrameWriter writer)
         {
-            _connection = connection;
+            _streamFactory = connection;
             _reader = reader;
             _writer = writer;
 
@@ -517,7 +521,7 @@ namespace IceRpc.Transports.Internal
                 Debug.Assert(_sendSemaphore.Count == 0);
                 _sendSemaphore.Release();
             }
-            else if (newValue > 2 * _connection.PeerPacketMaxSize)
+            else if (newValue > 2 * _streamFactory.PeerPacketMaxSize)
             {
                 // The peer is trying to increase the credit to a value which is larger than what it is allowed to.
                 throw new InvalidDataException("invalid flow control credit increase");
@@ -550,7 +554,7 @@ namespace IceRpc.Transports.Internal
                     {
                         // Ignore, the stream has been aborted. Notify the connection that we're not interested
                         // with the data to allow it to receive data for other streams.
-                        _connection.FinishedReceivedStreamData(size);
+                        _streamFactory.FinishedReceivedStreamData(size);
                     }
                 }
                 else
@@ -610,7 +614,7 @@ namespace IceRpc.Transports.Internal
 
                 if (size > 0)
                 {
-                    _connection.FinishedReceivedStreamData(0);
+                    _streamFactory.FinishedReceivedStreamData(0);
                 }
             }
         }
@@ -678,7 +682,7 @@ namespace IceRpc.Transports.Internal
                     _lock.Exit();
                 }
             }
-            _connection.RemoveStream(Id);
+            _streamFactory.RemoveStream(Id);
 
             // The stream might not be signaled if it's shutdown gracefully after receiving endStream. We make
             // sure to set the exception in this case to prevent WaitAsync calls to block.
@@ -704,12 +708,12 @@ namespace IceRpc.Transports.Internal
 
                 if (_receivedSize - _receivedOffset > 0)
                 {
-                    _connection.FinishedReceivedStreamData(_receivedSize - _receivedOffset);
+                    _streamFactory.FinishedReceivedStreamData(_receivedSize - _receivedOffset);
                 }
             }
 
             // Release connection stream count or semaphore for this stream.
-            _connection.ReleaseStream(this);
+            _streamFactory.ReleaseStream(this);
 
             // Local streams are released from the connection when the StreamLast or StreamReset frame is
             // received. Since a remote un-directional stream doesn't send stream frames, we have to send a
@@ -794,7 +798,7 @@ namespace IceRpc.Transports.Internal
             }
 
             private readonly ReadOnlyMemory<byte>[] _buffers;
-            private readonly SlicMultiplexedNetworkStream _stream;
+            private readonly SlicMultiplexedStream _stream;
 
             public override void Flush()
             {
@@ -867,7 +871,7 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            internal ByteStream(SlicMultiplexedNetworkStream stream)
+            internal ByteStream(SlicMultiplexedStream stream)
             {
                 _stream = stream;
                 if (_stream.TransportHeader.Length > 0)

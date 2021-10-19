@@ -5,13 +5,13 @@ using IceRpc.Internal;
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The listener implementation for the UDP transport.</summary>
-    internal sealed class UdpListener : IListener
+    internal sealed class UdpListener : SimpleListener
     {
-        public Endpoint Endpoint { get; }
+        public override Endpoint Endpoint { get; }
 
         private readonly ManualResetValueTaskCompletionSource<UdpSocket> _acceptTask = new();
 
-        public async ValueTask<INetworkConnection> AcceptAsync()
+        public override async Task<SimpleNetworkConnection> AcceptAsync()
         {
             try
             {
@@ -19,8 +19,7 @@ namespace IceRpc.Transports.Internal
                     await _acceptTask.ValueTask.ConfigureAwait(false),
                     Endpoint,
                     isServer: true,
-                    defaultIdleTimeout: TimeSpan.MaxValue,
-                    new());
+                    idleTimeout: TimeSpan.MaxValue);
             }
             catch (Exception ex)
             {
@@ -28,7 +27,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
             if (_acceptTask.ValueTask.IsCompletedSuccessfully)
             {

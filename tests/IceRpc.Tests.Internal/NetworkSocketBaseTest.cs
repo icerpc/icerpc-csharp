@@ -141,22 +141,28 @@ namespace IceRpc.Tests.Internal
 
         protected IListener CreateListener(TcpOptions? options = null, Endpoint? serverEndpoint = null) =>
             TestHelper.CreateServerTransport(
-                serverEndpoint ?? ServerEndpoint,
+                (serverEndpoint ?? ServerEndpoint).Transport,
                 options: options,
                 multiStreamOptions: null,
                 _serverAuthenticationOptions).Listen(serverEndpoint ?? ServerEndpoint);
 
         protected async ValueTask<NetworkSocket> CreateServerNetworkSocketAsync() =>
             GetNetworkSocket(await TestHelper.CreateServerTransport(
-                ServerEndpoint,
+                ServerEndpoint.Transport,
                 authenticationOptions: _serverAuthenticationOptions).Listen(ServerEndpoint).AcceptAsync());
 
         protected NetworkSocket CreateClientNetworkSocket() =>
             GetNetworkSocket(TestHelper.CreateClientTransport(
-                ClientEndpoint,
+                ClientEndpoint.Transport,
                 authenticationOptions: _clientAuthenticationOptions).CreateConnection(ClientEndpoint));
 
-        protected static NetworkSocket GetNetworkSocket(INetworkConnection connection) =>
-            ((SocketNetworkConnection)connection).NetworkSocket;
+        protected static NetworkSocket GetNetworkSocket(INetworkConnection connection)
+        {
+            if (connection is SlicNetworkConnectionDecorator decorator)
+            {
+                connection = decorator.Decoratee;
+            }
+            return ((SocketNetworkConnection)connection).NetworkSocket;
+        }
     }
 }

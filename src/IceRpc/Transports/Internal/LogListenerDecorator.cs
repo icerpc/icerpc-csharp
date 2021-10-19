@@ -12,15 +12,15 @@ namespace IceRpc.Transports.Internal
 
         public Endpoint Endpoint => _decoratee.Endpoint;
 
-        public async ValueTask<INetworkConnection> AcceptAsync()
+        public async Task<INetworkConnection> AcceptAsync()
         {
             try
             {
                 INetworkConnection connection = await _decoratee.AcceptAsync().ConfigureAwait(false);
-                if (connection is SocketNetworkConnection networkSocketConnection)
+                if (connection is SocketNetworkConnection socketNetworkConnection)
                 {
-                    return new LogNetworkSocketConnectionDecorator(
-                        networkSocketConnection,
+                    return new LogSocketNetworkConnectionDecorator(
+                        socketNetworkConnection,
                         isServer: true,
                         _decoratee.Endpoint,
                         _logger);

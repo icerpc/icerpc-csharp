@@ -14,7 +14,7 @@ namespace IceRpc.Tests.Internal
     [Timeout(5000)]
     public class TcpOptionsTests : NetworkSocketBaseTest
     {
-        private bool _isIPv6;
+        private readonly bool _isIPv6;
 
         public TcpOptionsTests(AddressFamily addressFamily)
             : base("tcp", tls: false, addressFamily) =>
@@ -201,7 +201,7 @@ namespace IceRpc.Tests.Internal
         private NetworkSocket CreateClientSocket(TcpOptions? options = null, Endpoint? endpoint = null) =>
 
             GetNetworkSocket(TestHelper.CreateClientTransport(
-                endpoint ?? ClientEndpoint,
+                (endpoint ?? ClientEndpoint).Transport,
                 options).CreateConnection(endpoint ?? ClientEndpoint));
 
         private static async ValueTask<NetworkSocket> CreateServerSocketAsync(IListener listener) =>

@@ -15,10 +15,10 @@ namespace IceRpc.Transports.Internal
         public INetworkConnection CreateConnection(Endpoint remoteEndpoint)
         {
             INetworkConnection connection = _decoratee.CreateConnection(remoteEndpoint);
-            if (connection is SocketNetworkConnection networkSocketConnection)
+            if (connection is SocketNetworkConnection socketNetworkConnection)
             {
-                return new LogNetworkSocketConnectionDecorator(
-                    networkSocketConnection,
+                return new LogSocketNetworkConnectionDecorator(
+                    socketNetworkConnection,
                     isServer: false,
                     remoteEndpoint,
                     _logger);

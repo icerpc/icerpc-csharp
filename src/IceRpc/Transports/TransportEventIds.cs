@@ -31,9 +31,9 @@ namespace IceRpc.Transports
         /// <summary>The transport sent data.</summary>
         SentData,
         /// <summary>The transport accepted a new socket connection.</summary>
-        SocketConnectionAccepted,
+        SocketNetworkConnectionAccepted,
         /// <summary>The socket connection connect operation succeed.</summary>
-        SocketConnectionEstablished,
+        SocketNetworkConnectionEstablished,
         /// <summary>The transport starts receiving datagram messages.</summary>
         SocketStartReceivingDatagrams,
         /// <summary>The transport starts sending datagram messages.</summary>

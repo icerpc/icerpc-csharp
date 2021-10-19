@@ -2,19 +2,19 @@
 
 namespace IceRpc.Transports
 {
-    /// <summary>A multi-stream connection enables byte data exchange over multiple <see
-    /// cref="IMultiplexedNetworkStream"/>.</summary>
-    public interface IMultiplexedNetworkStreamFactory
+    /// <summary>A multiplexed factory enables creating multiplexed streams to exchange binary data over multiple <see
+    /// cref="IMultiplexedStream"/>.</summary>
+    public interface IMultiplexedStreamFactory
     {
         /// <summary>Accepts a remote stream.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <return>The remote stream.</return>
-        ValueTask<IMultiplexedNetworkStream> AcceptStreamAsync(CancellationToken cancel);
+        ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel);
 
         /// <summary>Creates a local stream.</summary>
         /// <param name="bidirectional"><c>True</c> to create a bidirectional stream, <c>false</c>
         /// otherwise.</param>
         /// <return>The local stream.</return>
-        IMultiplexedNetworkStream CreateStream(bool bidirectional);
+        IMultiplexedStream CreateStream(bool bidirectional);
     }
 }

@@ -23,7 +23,7 @@ namespace IceRpc.Tests.ClientServer
             }
             else
             {
-                throw new UnknownTransportException(remoteEndpoint.Transport, remoteEndpoint.Protocol);
+                throw new UnknownTransportException(remoteEndpoint.Transport);
             }
         }
     }
@@ -44,7 +44,7 @@ namespace IceRpc.Tests.ClientServer
             }
             else
             {
-                throw new UnknownTransportException(endpoint.Transport, endpoint.Protocol);
+                throw new UnknownTransportException(endpoint.Transport);
             }
         }
     }

@@ -80,10 +80,6 @@ namespace IceRpc
         /// <summary>The network connection information or <c>null</c> if the connection is not connected.</summary>
         public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
 
-        /// <summary>Gets or sets the logger factory of this connection.</summary>
-        /// <value>The logger factory of this connection.</value>
-        public ILoggerFactory? LoggerFactory { get; init; }
-
         /// <summary>The protocol used by the connection.</summary>
         public Protocol Protocol => _protocol ?? RemoteEndpoint.Protocol;
 
@@ -162,15 +158,7 @@ namespace IceRpc
                     if (!IsServer)
                     {
                         Debug.Assert(_protocolConnection == null && RemoteEndpoint != null);
-
-                        IClientTransport clientTransport = ClientTransport;
-                        if (LoggerFactory?.CreateLogger("IceRpc.Transports") is ILogger logger &&
-                            logger.IsEnabled(LogLevel.Error))
-                        {
-                            clientTransport = new LogClientTransportDecorator(clientTransport, logger);
-                        }
-
-                        _networkConnection = clientTransport.CreateConnection(RemoteEndpoint);
+                        _networkConnection = ClientTransport.CreateConnection(RemoteEndpoint);
                     }
 
                     Debug.Assert(_networkConnection != null);

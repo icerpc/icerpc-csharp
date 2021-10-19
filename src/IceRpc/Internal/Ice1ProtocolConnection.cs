@@ -48,7 +48,7 @@ namespace IceRpc.Internal
         private readonly Dictionary<int, OutgoingRequest> _invocations = new();
         private readonly ILogger _logger;
         private readonly object _mutex = new();
-        private readonly INetworkStream _singleStreamConnection;
+        private readonly ISimpleStream _simpleStream;
         private int _nextRequestId;
         private readonly TaskCompletionSource _pendingCloseConnection =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -98,7 +98,7 @@ namespace IceRpc.Internal
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
             try
             {
-                await _singleStreamConnection.WriteAsync(
+                await _simpleStream.WriteAsync(
                     Ice1Definitions.ValidateConnectionFrame,
                     cancel).ConfigureAwait(false);
             }
@@ -265,7 +265,7 @@ namespace IceRpc.Internal
             {
                 throw new NotSupportedException($"{nameof(Protocol.Ice1)} doesn't support fields");
             }
-            else if (_singleStreamConnection.IsDatagram && !request.IsOneway)
+            else if (_simpleStream.IsDatagram && !request.IsOneway)
             {
                 throw new InvalidOperationException("cannot send twoway request over datagram connection");
             }
@@ -333,7 +333,7 @@ namespace IceRpc.Internal
                 // connection), we need to send the entire frame even when cancel gets canceled since the
                 // recipient cannot read a partial frame and then keep going.
                 ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
-                await _singleStreamConnection.WriteAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+                await _simpleStream.WriteAsync(buffers, CancellationToken.None).ConfigureAwait(false);
 
                 // Mark the request as sent and, if it's a twoway request, keep track of it.
                 request.IsSent = true;
@@ -415,7 +415,7 @@ namespace IceRpc.Internal
 
                         // Send the response frame.
                         ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
-                        await _singleStreamConnection.WriteAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+                        await _simpleStream.WriteAsync(buffers, CancellationToken.None).ConfigureAwait(false);
                     }
                     finally
                     {
@@ -446,7 +446,7 @@ namespace IceRpc.Internal
         public async Task ShutdownAsync(bool shutdownByPeer, string message, CancellationToken cancel)
         {
             var exception = new ConnectionClosedException(message);
-            if (_singleStreamConnection.IsDatagram)
+            if (_simpleStream.IsDatagram)
             {
                 lock (_mutex)
                 {
@@ -503,7 +503,7 @@ namespace IceRpc.Internal
                     _sendSemaphore.Complete(exception);
 
                     // Send the CloseConnection frame once all the dispatch are done.
-                    await _singleStreamConnection.WriteAsync(
+                    await _simpleStream.WriteAsync(
                         Ice1Definitions.CloseConnectionFrame,
                         cancel).ConfigureAwait(false);
 
@@ -530,14 +530,14 @@ namespace IceRpc.Internal
             return "connection graceful shutdown";
         }
 
-        internal Ice1ProtocolConnection(INetworkStream singleStreamConnection, int incomingFrameMaxSize)
+        internal Ice1ProtocolConnection(ISimpleStream simpleStream, int incomingFrameMaxSize)
         {
-            _singleStreamConnection = singleStreamConnection;
-            if (_singleStreamConnection.IsDatagram)
+            _simpleStream = simpleStream;
+            if (_simpleStream.IsDatagram)
             {
                 _incomingFrameMaxSize = Math.Min(
                     incomingFrameMaxSize,
-                    _singleStreamConnection.DatagramMaxReceiveSize);
+                    _simpleStream.DatagramMaxReceiveSize);
             }
             else
             {
@@ -549,11 +549,11 @@ namespace IceRpc.Internal
 
         internal async Task InitializeAsync(bool isServer, CancellationToken cancel)
         {
-            if (!_singleStreamConnection.IsDatagram)
+            if (!_simpleStream.IsDatagram)
             {
                 if (isServer)
                 {
-                    await _singleStreamConnection.WriteAsync(
+                    await _simpleStream.WriteAsync(
                         Ice1Definitions.ValidateConnectionFrame,
                         cancel).ConfigureAwait(false);
                 }
@@ -596,10 +596,10 @@ namespace IceRpc.Internal
             {
                 // Receive the Ice1 frame header.
                 Memory<byte> buffer;
-                if (_singleStreamConnection.IsDatagram)
+                if (_simpleStream.IsDatagram)
                 {
                     buffer = new byte[_incomingFrameMaxSize];
-                    int received = await _singleStreamConnection.ReadAsync(buffer, cancel).ConfigureAwait(false);
+                    int received = await _simpleStream.ReadAsync(buffer, cancel).ConfigureAwait(false);
                     if (received < Ice1Definitions.HeaderSize)
                     {
                         _logger.LogReceivedInvalidDatagram(received);
@@ -617,14 +617,14 @@ namespace IceRpc.Internal
                 // Check the header
                 Ice1Definitions.CheckHeader(buffer.Span[0..Ice1Definitions.HeaderSize]);
                 int frameSize = IceDecoder.DecodeInt(buffer.AsReadOnlySpan().Slice(10, 4));
-                if (_singleStreamConnection.IsDatagram && frameSize != buffer.Length)
+                if (_simpleStream.IsDatagram && frameSize != buffer.Length)
                 {
                     _logger.LogReceivedInvalidDatagram(frameSize);
                     continue; // while
                 }
                 else if (frameSize > _incomingFrameMaxSize)
                 {
-                    if (_singleStreamConnection.IsDatagram)
+                    if (_simpleStream.IsDatagram)
                     {
                         _logger.LogDatagramSizeExceededIncomingFrameMaxSize(frameSize);
                         continue;
@@ -645,7 +645,7 @@ namespace IceRpc.Internal
                 }
 
                 // Read the remainder of the frame if needed.
-                if (_singleStreamConnection.IsDatagram)
+                if (_simpleStream.IsDatagram)
                 {
                     Debug.Assert(frameSize == buffer.Length);
                     buffer = buffer[Ice1Definitions.HeaderSize..];
@@ -736,7 +736,7 @@ namespace IceRpc.Internal
             int offset = 0;
             while (offset != buffer.Length)
             {
-                offset += await _singleStreamConnection.ReadAsync(buffer[offset..], cancel).ConfigureAwait(false);
+                offset += await _simpleStream.ReadAsync(buffer[offset..], cancel).ConfigureAwait(false);
             }
         }
     }

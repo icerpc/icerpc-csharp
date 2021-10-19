@@ -12,8 +12,6 @@ namespace IceRpc.Internal
         /// <summary>The Ice1 protocol singleton.</summary>
         internal static Ice1Protocol Instance { get; } = new();
 
-        public override bool IsSupported => true;
-
         internal override IceEncoding? IceEncoding => Encoding.Ice11;
 
         internal override bool HasFieldSupport => false;
@@ -24,11 +22,9 @@ namespace IceRpc.Internal
             bool isServer,
             CancellationToken cancel)
         {
-            (INetworkStream singleStreamConnection, NetworkConnectionInformation information) =
-                 await networkConnection.ConnectSingleStreamConnectionAsync(cancel).ConfigureAwait(false);
-            var protocolConnection = new Ice1ProtocolConnection(
-                singleStreamConnection,
-                incomingFrameMaxSize);
+            (ISimpleStream simpleStream,  NetworkConnectionInformation information) =
+                 await networkConnection.ConnectSimpleAsync(cancel).ConfigureAwait(false);
+            var protocolConnection = new Ice1ProtocolConnection(simpleStream, incomingFrameMaxSize);
             await protocolConnection.InitializeAsync(isServer, cancel).ConfigureAwait(false);
             return (protocolConnection, information);
         }

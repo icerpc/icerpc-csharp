@@ -6,17 +6,16 @@ using System.Net.Sockets;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The listener implementation for the TCP transport.</summary>
-    internal sealed class TcpListener : IListener
+    /// <summary>The <see cref="SimpleListener"/> implementation for the TCP transport.</summary>
+    internal sealed class TcpListener : SimpleListener
     {
-        public Endpoint Endpoint { get; }
+        public override Endpoint Endpoint { get; }
 
         private readonly SslServerAuthenticationOptions? _authenticationOptions;
         private readonly TimeSpan _idleTimeout;
         private readonly Socket _socket;
-        private readonly SlicOptions _slicOptions;
 
-        public async ValueTask<INetworkConnection> AcceptAsync()
+        public override async Task<SimpleNetworkConnection> AcceptAsync()
         {
             try
             {
@@ -26,8 +25,7 @@ namespace IceRpc.Transports.Internal
                         _authenticationOptions),
                     Endpoint,
                     isServer: true,
-                    _idleTimeout,
-                    _slicOptions);
+                    _idleTimeout);
             }
             catch (Exception ex)
             {
@@ -35,7 +33,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public void Dispose() => _socket.Dispose();
+        public override void Dispose() => _socket.Dispose();
 
         public override string ToString() => Endpoint.ToString();
 
@@ -43,12 +41,10 @@ namespace IceRpc.Transports.Internal
             Socket socket,
             Endpoint endpoint,
             TimeSpan idleTimeout,
-            SlicOptions slicOptions,
             SslServerAuthenticationOptions? authenticationOptions)
         {
             Endpoint = endpoint;
             _authenticationOptions = authenticationOptions;
-            _slicOptions = slicOptions;
             _socket = socket;
             _idleTimeout = idleTimeout;
 

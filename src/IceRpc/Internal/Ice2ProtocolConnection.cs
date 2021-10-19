@@ -37,7 +37,7 @@ namespace IceRpc.Internal
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly TaskCompletionSource _dispatchAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private IMultiplexedNetworkStream? _controlStream;
+        private IMultiplexedStream? _controlStream;
         private readonly HashSet<IncomingRequest> _dispatch = new();
         private readonly int _incomingFrameMaxSize;
         private readonly HashSet<OutgoingRequest> _invocations = new();
@@ -45,11 +45,11 @@ namespace IceRpc.Internal
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
         private long _lastRemoteUnidirectionalStreamId = -1;
         private readonly object _mutex = new();
-        private IMultiplexedNetworkStream? _remoteControlStream;
+        private IMultiplexedStream? _remoteControlStream;
         private int? _peerIncomingFrameMaxSize;
         private bool _shutdown;
         private (long Bidirectional, long Unidirectional)? _lastRemoteStreamIds;
-        private readonly IMultiplexedNetworkStreamFactory _multiStreamConnection;
+        private readonly IMultiplexedStreamFactory _streamFactory;
 
         /// <inheritdoc/>
         public void CancelShutdown() =>
@@ -70,7 +70,7 @@ namespace IceRpc.Internal
             while (true)
             {
                 // Accepts a new stream.
-                IMultiplexedNetworkStream stream = await _multiStreamConnection!.AcceptStreamAsync(cancel).ConfigureAwait(false);
+                IMultiplexedStream stream = await _streamFactory!.AcceptStreamAsync(cancel).ConfigureAwait(false);
 
                 // Receives the request frame from the stream. TODO: Only read the request header, the payload
                 // should be received by calling IProtocolStream.ReceivePayloadAsync from the incoming frame
@@ -250,7 +250,7 @@ namespace IceRpc.Internal
         public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
             // Create the stream.
-            request.Stream = _multiStreamConnection!.CreateStream(!request.IsOneway);
+            request.Stream = _streamFactory!.CreateStream(!request.IsOneway);
 
             if (!request.IsOneway || request.StreamParamSender != null)
             {
@@ -456,7 +456,7 @@ namespace IceRpc.Internal
 
             if (shutdownByPeer && invocations != null)
             {
-                foreach (IMultiplexedNetworkStream stream in invocations.Select(request => request.Stream!))
+                foreach (IMultiplexedStream stream in invocations.Select(request => request.Stream!))
                 {
                     if (stream.Id > (stream.IsBidirectional ?
                         _lastRemoteStreamIds!.Value.Bidirectional :
@@ -576,16 +576,16 @@ namespace IceRpc.Internal
             return goAwayFrame.Message;
         }
 
-        internal Ice2ProtocolConnection(IMultiplexedNetworkStreamFactory multiStreamConnection, int incomingFrameMaxSize)
+        internal Ice2ProtocolConnection(IMultiplexedStreamFactory streamFactory, int incomingFrameMaxSize)
         {
-            _multiStreamConnection = multiStreamConnection;
+            _streamFactory = streamFactory;
             _incomingFrameMaxSize = incomingFrameMaxSize;
         }
 
         internal async Task InitializeAsync(CancellationToken cancel)
         {
             // Create the control stream and send the protocol initialize frame
-            _controlStream = _multiStreamConnection.CreateStream(false);
+            _controlStream = _streamFactory.CreateStream(false);
 
             await SendControlFrameAsync(
                 Ice2FrameType.Initialize,
@@ -602,7 +602,7 @@ namespace IceRpc.Internal
                 cancel).ConfigureAwait(false);
 
             // Wait for the remote control stream to be accepted and read the protocol initialize frame
-            _remoteControlStream = await _multiStreamConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
+            _remoteControlStream = await _streamFactory.AcceptStreamAsync(cancel).ConfigureAwait(false);
 
             ReadOnlyMemory<byte> buffer = await ReceiveFrameAsync(
                 _remoteControlStream,
@@ -642,7 +642,7 @@ namespace IceRpc.Internal
         }
 
         private async ValueTask<ReadOnlyMemory<byte>> ReceiveFrameAsync(
-            IMultiplexedNetworkStream stream,
+            IMultiplexedStream stream,
             Ice2FrameType expectedFrameType,
             CancellationToken cancel)
         {

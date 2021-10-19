@@ -82,17 +82,21 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Udp_Ice2NotSupported()
         {
+            // The parsing of the parameters from the transport implementation fails because UDP parameters can
+            // only be specified with an Ice1 endpoint string.
+
             await using var server = new Server
             {
                 Endpoint = GetTestEndpoint(protocol: Protocol.Ice2, transport: "udp")
             };
-            Assert.Throws<Transports.UnknownTransportException>(() => server.Listen());
+
+            Assert.Throws<FormatException>(() => server.Listen());
 
             await using var connection = new Connection
             {
                 RemoteEndpoint = server.Endpoint
             };
-            Assert.ThrowsAsync<Transports.UnknownTransportException>(async () => await connection.ConnectAsync());
+            Assert.ThrowsAsync<FormatException>(async () => await connection.ConnectAsync());
         }
     }
 }

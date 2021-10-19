@@ -7,26 +7,25 @@ using System.Threading.Channels;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The IListener implementation for the colocated transport.</summary>
-    internal class ColocListener : IListener
+    /// <summary>The <see cref="SimpleListener"/> implementation for the colocated transport.</summary>
+    internal class ColocListener : SimpleListener
     {
-        public Endpoint Endpoint { get; }
+        public override Endpoint Endpoint { get; }
 
         /// <summary>A dictionary that keeps track of all coloc listeners.</summary>
         private static readonly IDictionary<Endpoint, ColocListener> _colocListenerDictionary =
             new ConcurrentDictionary<Endpoint, ColocListener>();
 
         private readonly Channel<(ChannelWriter<ReadOnlyMemory<byte>>, ChannelReader<ReadOnlyMemory<byte>>)> _channel;
-        private readonly SlicOptions _options;
 
-        public async ValueTask<INetworkConnection> AcceptAsync()
+        public override async Task<SimpleNetworkConnection> AcceptAsync()
         {
             (ChannelWriter<ReadOnlyMemory<byte>> writer, ChannelReader<ReadOnlyMemory<byte>> reader) =
                 await _channel.Reader.ReadAsync().ConfigureAwait(false);
-            return new ColocNetworkConnection(Endpoint, isServer: true, _options, writer, reader);
+            return new ColocNetworkConnection(Endpoint, isServer: true, writer, reader);
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
             _channel.Writer.Complete();
             _colocListenerDictionary.Remove(Endpoint);
@@ -39,7 +38,7 @@ namespace IceRpc.Transports.Internal
             [NotNullWhen(returnValue: true)] out ColocListener? listener) =>
             _colocListenerDictionary.TryGetValue(endpoint, out listener);
 
-        internal ColocListener(Endpoint endpoint, SlicOptions options)
+        internal ColocListener(Endpoint endpoint)
         {
             if (endpoint.Params.Count > 0)
             {
@@ -47,7 +46,6 @@ namespace IceRpc.Transports.Internal
             }
 
             Endpoint = endpoint;
-            _options = options;
 
             // There's always a single reader (the listener) but there might be several writers calling Write
             // concurrently if there are connection establishment attempts from multiple threads. Not allowing

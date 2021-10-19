@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using Microsoft.Extensions.Logging;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
@@ -94,43 +95,63 @@ namespace IceRpc.Tests
             $"ice+coloc://test.{Interlocked.Increment(ref _counter)}";
 
         public static IServerTransport CreateServerTransport(
-            Endpoint endpoint,
+            string transport = "tcp",
             object? options = null,
             object? multiStreamOptions = null,
-            SslServerAuthenticationOptions? authenticationOptions = null) =>
-            endpoint.Transport switch
+            SslServerAuthenticationOptions? authenticationOptions = null,
+            ILoggerFactory? loggerFactory = null)
+        {
+            return transport switch
                 {
-                    "tcp" => new TcpServerTransport(
+                    "tcp" => LogSimpleTransportDecorator(new TcpServerTransport(
                         (TcpOptions?)options ?? new(),
                         (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
-                        authenticationOptions),
-                    "ssl" => new TcpServerTransport(
+                        authenticationOptions)),
+                    "ssl" => LogSimpleTransportDecorator(new TcpServerTransport(
                         (TcpOptions?)options ?? new(),
                         (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
-                        authenticationOptions),
-                    "udp" => new UdpServerTransport((UdpOptions?)options ?? new()),
-                    "coloc" => new ColocServerTransport((SlicOptions?)multiStreamOptions ?? new SlicOptions()),
-                    _ => throw new UnknownTransportException(endpoint.Transport, endpoint.Protocol)
+                        authenticationOptions)),
+                    "udp" => LogUdpTransportDecorator(new UdpServerTransport((UdpOptions?)options ?? new())),
+                    "coloc" => LogSimpleTransportDecorator(new ColocServerTransport(
+                        (SlicOptions?)multiStreamOptions ?? new SlicOptions())),
+                    _ => throw new UnknownTransportException(transport)
                 };
 
+            IServerTransport LogUdpTransportDecorator(UdpServerTransport transport) =>
+                loggerFactory == null ? transport : transport.UseLoggerFactory(loggerFactory);
+
+            IServerTransport LogSimpleTransportDecorator(SimpleServerTransport transport) =>
+                loggerFactory == null ? transport : transport.UseLoggerFactory(loggerFactory);
+        }
+
         public static IClientTransport CreateClientTransport(
-            Endpoint endpoint,
+            string transport = "tcp",
             object? options = null,
             object? multiStreamOptions = null,
-            SslClientAuthenticationOptions? authenticationOptions = null) =>
-                endpoint.Transport switch
+            SslClientAuthenticationOptions? authenticationOptions = null,
+            ILoggerFactory? loggerFactory = null)
+        {
+            return transport switch
                 {
-                    "tcp" => new TcpClientTransport(
+                    "tcp" => LogSimpleTransportDecorator(new TcpClientTransport(
                         (TcpOptions?)options ?? new(),
                         (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
-                        authenticationOptions),
-                    "ssl" => new TcpClientTransport(
+                        authenticationOptions)),
+                    "ssl" => LogSimpleTransportDecorator(new TcpClientTransport(
                         (TcpOptions?)options ?? new(),
                         (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
-                        authenticationOptions),
-                    "udp" => new UdpClientTransport((UdpOptions?)options ?? new()),
-                    "coloc" => new ColocClientTransport((SlicOptions?)multiStreamOptions ?? new SlicOptions()),
-                    _ => throw new UnknownTransportException(endpoint.Transport, endpoint.Protocol)
+                        authenticationOptions)),
+                    "udp" => LogUdpTransportDecorator(new UdpClientTransport((UdpOptions?)options ?? new())),
+                    "coloc" => LogSimpleTransportDecorator(new ColocClientTransport(
+                        (SlicOptions?)multiStreamOptions ?? new SlicOptions())),
+                    _ => throw new UnknownTransportException(transport)
                 };
+
+            IClientTransport LogUdpTransportDecorator(UdpClientTransport transport) =>
+                loggerFactory == null ? transport : transport.UseLoggerFactory(loggerFactory);
+
+            IClientTransport LogSimpleTransportDecorator(SimpleClientTransport transport) =>
+                loggerFactory == null ? transport : transport.UseLoggerFactory(loggerFactory);
+        }
     }
 }

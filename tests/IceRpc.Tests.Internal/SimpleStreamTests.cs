@@ -9,21 +9,21 @@ namespace IceRpc.Tests.Internal
     [Parallelizable(scope: ParallelScope.Fixtures)]
     [TestFixture("tcp")]
     [TestFixture("coloc")]
-    public class SingleStreamConnectionTests
+    public class SimpleStreamTests
     {
-        private INetworkStream ClientStream => _clientSingleStreamConnection!;
-        private INetworkStream ServerStream => _serverSingleStreamConnection!;
+        private ISimpleStream ClientStream => _clientSimpleStreamConnection!;
+        private ISimpleStream ServerStream => _serverSimpleStreamConnection!;
 
         private INetworkConnection? _clientConnection;
-        private INetworkStream? _clientSingleStreamConnection;
+        private ISimpleStream? _clientSimpleStreamConnection;
         private INetworkConnection? _serverConnection;
-        private INetworkStream? _serverSingleStreamConnection;
+        private ISimpleStream? _serverSimpleStreamConnection;
         private readonly string _transport;
 
-        public SingleStreamConnectionTests(string transport) => _transport = transport;
+        public SimpleStreamTests(string transport) => _transport = transport;
 
         [TestCase]
-        public void SingleStreamConnection_Canceled()
+        public void SimpleStream_Canceled()
         {
             Memory<byte> buffer = new byte[1];
             var buffers = new ReadOnlyMemory<byte>[] { buffer };
@@ -37,7 +37,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [TestCase]
-        public async Task SingleStreamConnection_ReceiveCancellation()
+        public async Task SimpleStream_ReceiveCancellation()
         {
             Memory<byte> buffer = new byte[1];
             var buffers = new ReadOnlyMemory<byte>[] { buffer };
@@ -54,7 +54,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [TestCase]
-        public async Task SingleStreamConnection_SendCancellation()
+        public async Task SimpleStream_SendCancellation()
         {
             Memory<byte> buffer = new byte[1024 * 1024];
             var buffers = new ReadOnlyMemory<byte>[] { buffer };
@@ -75,7 +75,7 @@ namespace IceRpc.Tests.Internal
 
         [TestCase]
         [Log(LogAttributeLevel.Trace)]
-        public async Task SingleStreamConnection_SendReceive()
+        public async Task SimpleStream_SendReceive()
         {
             ReadOnlyMemory<byte> sendBuffer = new byte[] { 0x05, 0x06 };
             var sendBuffers = new ReadOnlyMemory<byte>[] { sendBuffer };
@@ -94,7 +94,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [TestCase]
-        public void SingleStreamConnection_Close()
+        public void SimpleStream_Close()
         {
             _clientConnection!.Close();
             _serverConnection!.Close();
@@ -112,18 +112,18 @@ namespace IceRpc.Tests.Internal
         [SetUp]
         public async Task SetUp()
         {
-            Endpoint endpoint = TestHelper.GetTestEndpoint(transport: _transport);
-            using IListener listener = TestHelper.CreateServerTransport(endpoint).Listen(endpoint);
+            Endpoint endpoint = TestHelper.GetTestEndpoint(transport: _transport, protocol: Protocol.Ice1);
+            using IListener listener = TestHelper.CreateServerTransport(_transport).Listen(endpoint);
 
-            IClientTransport clientTransport = TestHelper.CreateClientTransport(listener.Endpoint);
+            IClientTransport clientTransport = TestHelper.CreateClientTransport(_transport);
             _clientConnection = clientTransport.CreateConnection(listener.Endpoint);
 
-            ValueTask<INetworkConnection> acceptTask = listener.AcceptAsync();
-            ValueTask<(INetworkStream, NetworkConnectionInformation)> connectTask =
-                 _clientConnection.ConnectSingleStreamConnectionAsync(default);
+            Task<INetworkConnection> acceptTask = listener.AcceptAsync();
+            Task<(ISimpleStream, NetworkConnectionInformation)> connectTask =
+                _clientConnection.ConnectSimpleAsync(default);
             _serverConnection = await acceptTask;
-            (_clientSingleStreamConnection, _) = await connectTask;
-            (_serverSingleStreamConnection, _) = await _serverConnection.ConnectSingleStreamConnectionAsync(default);
+            (_serverSimpleStreamConnection, _) = await _serverConnection.ConnectSimpleAsync(default);
+            (_clientSimpleStreamConnection, _) = await connectTask;
         }
 
         [TearDown]

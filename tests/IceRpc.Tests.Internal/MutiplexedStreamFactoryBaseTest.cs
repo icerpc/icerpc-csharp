@@ -1,26 +1,27 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using IceRpc.Transports.Internal;
 
 namespace IceRpc.Tests.Internal
 {
-    public class MultiStreamConnectionBaseTest
+    public class MultiplexedStreamFactoryBaseTest
     {
         protected INetworkConnection ClientConnection => _clientConnection!;
-        protected IMultiplexedNetworkStreamFactory ClientMultiStreamConnection => _clientMultiStreamConnection!;
+        protected IMultiplexedStreamFactory ClientMultiplexedStreamFactory => _clientMultiplexedStreamFactory!;
         protected INetworkConnection ServerConnection => _serverConnection!;
-        protected IMultiplexedNetworkStreamFactory ServerMultiStreamConnection => _serverMultiStreamConnection!;
+        protected IMultiplexedStreamFactory ServerMultiplexedStreamFactory => _serverMultiplexedStreamFactory!;
 
         private INetworkConnection? _clientConnection;
         private readonly Endpoint _clientEndpoint;
-        private IMultiplexedNetworkStreamFactory? _clientMultiStreamConnection;
+        private IMultiplexedStreamFactory? _clientMultiplexedStreamFactory;
         private readonly object? _clientOptions;
         private INetworkConnection? _serverConnection;
         private readonly Endpoint _serverEndpoint;
-        private IMultiplexedNetworkStreamFactory? _serverMultiStreamConnection;
+        private IMultiplexedStreamFactory? _serverMultiplexedStreamFactory;
         private readonly object? _serverOptions;
 
-        public MultiStreamConnectionBaseTest(
+        public MultiplexedStreamFactoryBaseTest(
             string clientEndpoint = "ice+coloc://127.0.0.1",
             object? clientOptions = null,
             string serverEndpoint = "ice+coloc://127.0.0.1",
@@ -38,10 +39,10 @@ namespace IceRpc.Tests.Internal
             _clientConnection = Connect();
             _serverConnection = await acceptTask;
 
-            ValueTask<(IMultiplexedNetworkStreamFactory, NetworkConnectionInformation)> multiStreamTask =
-                 _serverConnection.ConnectMultiStreamConnectionAsync(default);
-            (_clientMultiStreamConnection, _) = await _clientConnection.ConnectMultiStreamConnectionAsync(default);
-            (_serverMultiStreamConnection, _) = await multiStreamTask;
+            Task<(IMultiplexedStreamFactory, NetworkConnectionInformation)> multiStreamTask =
+                 _clientConnection.ConnectMultiplexedAsync(default);
+            (_serverMultiplexedStreamFactory, _) = await _serverConnection.ConnectMultiplexedAsync(default);
+            (_clientMultiplexedStreamFactory, _) = await multiStreamTask;
         }
 
         protected void TearDownConnections()
@@ -52,22 +53,28 @@ namespace IceRpc.Tests.Internal
 
         private async Task<INetworkConnection> AcceptAsync()
         {
-            using IListener listener = TestHelper.CreateServerTransport(
-                _serverEndpoint,
-                options: null,
-                multiStreamOptions: _serverOptions).Listen(_serverEndpoint);
+            using IListener listener =
+                TestHelper.CreateServerTransport(
+                    _serverEndpoint.Transport,
+                    options: null,
+                    multiStreamOptions: _serverOptions,
+                    loggerFactory: LogAttributeLoggerFactory.Instance).Listen(_serverEndpoint);
             return await listener.AcceptAsync();
         }
 
         private INetworkConnection Connect()
         {
-            IClientTransport clientTransport = TestHelper.CreateClientTransport(
-                _clientEndpoint,
-                multiStreamOptions: _clientOptions);
+            IClientTransport clientTransport =
+                TestHelper.CreateClientTransport(
+                    _clientEndpoint.Transport,
+                    multiStreamOptions: _clientOptions,
+                    loggerFactory: LogAttributeLoggerFactory.Instance);
             return clientTransport.CreateConnection(_clientEndpoint);
         }
 
-        protected static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateSendPayload(IMultiplexedNetworkStream stream, int length = 10)
+        protected static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateSendPayload(
+            IMultiplexedStream stream,
+            int length = 10)
         {
             byte[] buffer = new byte[stream.TransportHeader.Length + length];
             stream.TransportHeader.CopyTo(buffer);

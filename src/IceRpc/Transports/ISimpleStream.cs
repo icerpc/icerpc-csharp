@@ -2,8 +2,8 @@
 
 namespace IceRpc.Transports
 {
-    /// <summary>A single-stream connection enables byte data exchange over a single stream.</summary>
-    public interface INetworkStream
+    /// <summary>A simple stream enables byte data exchange over a simple network connection.</summary>
+    public interface ISimpleStream
     {
         /// <summary>The maximum size of a received datagram if this connection is a datagram
         /// connection.</summary>

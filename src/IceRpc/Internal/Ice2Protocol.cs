@@ -12,8 +12,6 @@ namespace IceRpc.Internal
         /// <summary>The Ice2 protocol singleton.</summary>
         internal static Ice2Protocol Instance { get; } = new();
 
-        public override bool IsSupported => true;
-
         internal override IceEncoding? IceEncoding => Encoding.Ice20;
 
         internal override bool HasFieldSupport => true;
@@ -24,9 +22,9 @@ namespace IceRpc.Internal
             bool isServer,
             CancellationToken cancel)
         {
-            (IMultiplexedNetworkStreamFactory multiStreamConnection, NetworkConnectionInformation information) =
-                await networkConnection.ConnectMultiStreamConnectionAsync(cancel).ConfigureAwait(false);
-            var protocolConnection = new Ice2ProtocolConnection(multiStreamConnection, incomingFrameMaxSize);
+            (IMultiplexedStreamFactory multiplexedStreamFactory, NetworkConnectionInformation information) =
+                 await networkConnection.ConnectMultiplexedAsync(cancel).ConfigureAwait(false);
+            var protocolConnection = new Ice2ProtocolConnection(multiplexedStreamFactory, incomingFrameMaxSize);
             await protocolConnection.InitializeAsync(cancel).ConfigureAwait(false);
             return (protocolConnection, information);
         }

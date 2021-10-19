@@ -5,54 +5,31 @@ using System.Threading.Channels;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The colocated network connection class to exchange data within the same process. The
-    /// implementation copies the send buffer into the receive buffer.</summary>
-    internal class ColocNetworkConnection : INetworkConnection, INetworkStream
+    /// <summary>The colocated network connection class to exchange data within the same process. The implementation
+    /// copies the send buffer into the receive buffer.</summary>
+    internal class ColocNetworkConnection : SimpleNetworkConnection, ISimpleStream
     {
         public int DatagramMaxReceiveSize => throw new InvalidOperationException();
 
         public bool IsDatagram => false;
 
-        public bool IsSecure => true;
+        public override bool IsSecure => true;
 
-        public TimeSpan LastActivity => TimeSpan.Zero;
+        public override TimeSpan LastActivity => TimeSpan.Zero;
 
         private readonly Endpoint _endpoint;
         private readonly bool _isServer;
-        private readonly SlicOptions _slicOptions;
         private readonly ChannelReader<ReadOnlyMemory<byte>> _reader;
         private ReadOnlyMemory<byte> _receivedBuffer;
-        private SlicMultiplexedNetworkStreamFactory? _slicConnection;
         private readonly ChannelWriter<ReadOnlyMemory<byte>> _writer;
 
-        public void Close(Exception? exception = null)
-        {
-            _slicConnection?.Dispose();
-            _writer.TryComplete(); // Dispose might be called multiple times
-        }
+        public override Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel) =>
+            Task.FromResult<(ISimpleStream, NetworkConnectionInformation)>(
+                (this, new NetworkConnectionInformation(_endpoint, _endpoint, TimeSpan.MaxValue, null)));
 
-        public async ValueTask<(IMultiplexedNetworkStreamFactory, NetworkConnectionInformation)> ConnectMultiStreamConnectionAsync(
-            CancellationToken cancel)
-        {
-            (INetworkStream singleStreamConnection, NetworkConnectionInformation information) =
-                 await ConnectSingleStreamConnectionAsync(cancel).ConfigureAwait(false);
+        public override void Close(Exception? exception = null) => _writer.TryComplete();
 
-            // Multi-stream support for a colocated connection is provided by Slic.
-            _slicConnection ??= await NetworkConnection.CreateSlicConnectionAsync(
-                singleStreamConnection,
-                _isServer,
-                TimeSpan.MaxValue,
-                _slicOptions,
-                cancel).ConfigureAwait(false);
-            return (_slicConnection, information);
-        }
-
-        public ValueTask<(INetworkStream, NetworkConnectionInformation)> ConnectSingleStreamConnectionAsync(
-            CancellationToken cancel) =>
-                // TODO: support idle timeout for colocated connections?
-                new((this, new NetworkConnectionInformation(_endpoint, _endpoint, TimeSpan.MaxValue, null)));
-
-        public bool HasCompatibleParams(Endpoint remoteEndpoint)
+        public override bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
             if (remoteEndpoint.Params.Count > 0)
             {
@@ -122,13 +99,11 @@ namespace IceRpc.Transports.Internal
         internal ColocNetworkConnection(
             Endpoint endpoint,
             bool isServer,
-            SlicOptions slicOptions,
             ChannelWriter<ReadOnlyMemory<byte>> writer,
             ChannelReader<ReadOnlyMemory<byte>> reader)
         {
             _endpoint = endpoint;
             _isServer = isServer;
-            _slicOptions = slicOptions;
             _reader = reader;
             _writer = writer;
         }
