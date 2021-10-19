@@ -59,49 +59,49 @@ namespace IceRpc.Tests.Slice.Stream
             byte[] buffer = new byte[512];
 
             stream = await _prx.OpStreamByteReceive0Async();
-            Assert.That(stream.Read(buffer, 0, 512), Is.EqualTo(256));
+            Assert.That(await stream.ReadAsync(buffer.AsMemory(0, 512)), Is.EqualTo(256));
             Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
-            Assert.That(stream.Read(buffer, 0, 512), Is.EqualTo(0));
-            stream.Dispose();
+            Assert.That(await stream.ReadAsync(buffer.AsMemory(0, 512)), Is.EqualTo(0));
+            await stream.DisposeAsync();
 
             (r1, stream) = await _prx.OpStreamByteReceive1Async();
-            Assert.That(stream.Read(buffer, 0, 512), Is.EqualTo(256));
+            Assert.That(await stream.ReadAsync(buffer.AsMemory(0, 512)), Is.EqualTo(256));
             Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
             Assert.That(r1, Is.EqualTo(0x05));
-            stream.Dispose();
+            await stream.DisposeAsync();
 
             (r1, r2, stream) = await _prx.OpStreamByteReceive2Async();
-            Assert.That(stream.Read(buffer, 0, 512), Is.EqualTo(256));
+            Assert.That(await stream.ReadAsync(buffer.AsMemory(0, 512)), Is.EqualTo(256));
             Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
             Assert.That(r1, Is.EqualTo(0x05));
             Assert.That(r2, Is.EqualTo(6));
-            stream.Dispose();
+            await stream.DisposeAsync();
 
             await _prx.OpStreamByteSend0Async(new MemoryStream(_sendBuffer));
             await _prx.OpStreamByteSend1Async(0x08, new MemoryStream(_sendBuffer));
             await _prx.OpStreamByteSend2Async(0x08, 10, new MemoryStream(_sendBuffer));
 
             stream = await _prx.OpStreamByteSendReceive0Async(new MemoryStream(_sendBuffer));
-            Assert.That(stream.Read(buffer, 0, 512), Is.EqualTo(256));
+            Assert.That(await stream.ReadAsync(buffer.AsMemory(0, 512)), Is.EqualTo(256));
             Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
-            Assert.That(stream.Read(buffer, 0, 512), Is.EqualTo(0));
-            stream.Dispose();
+            Assert.That(await stream.ReadAsync(buffer.AsMemory(0, 512)), Is.EqualTo(0));
+            await stream.DisposeAsync();
 
             (r1, stream) = await _prx.OpStreamByteSendReceive1Async(0x08, new MemoryStream(_sendBuffer));
-            Assert.That(stream.Read(buffer, 0, 512), Is.EqualTo(256));
+            Assert.That(await stream.ReadAsync(buffer.AsMemory(0, 512)), Is.EqualTo(256));
             Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
             Assert.That(r1, Is.EqualTo(0x08));
-            stream.Dispose();
+            await stream.DisposeAsync();
 
             (r1, r2, stream) = await _prx.OpStreamByteSendReceive2Async(
                 0x08,
                 10,
                 new MemoryStream(_sendBuffer));
-            Assert.That(stream.Read(buffer, 0, 512), Is.EqualTo(256));
+            Assert.That(await stream.ReadAsync(buffer.AsMemory(0, 512)), Is.EqualTo(256));
             Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
             Assert.That(r1, Is.EqualTo(0x08));
             Assert.That(r2, Is.EqualTo(10));
-            stream.Dispose();
+            await stream.DisposeAsync();
         }
 
         [Test]
@@ -409,34 +409,32 @@ namespace IceRpc.Tests.Slice.Stream
                 CancellationToken cancel) =>
                 new((0x05, 6, new MemoryStream(_sendBuffer)));
 
-            public ValueTask OpStreamByteSend0Async(
+            public async ValueTask OpStreamByteSend0Async(
                 System.IO.Stream p1,
                 Dispatch dispatch,
                 CancellationToken cancel)
             {
                 byte[] buffer = new byte[512];
-                Assert.That(p1.Read(buffer, 0, 512), Is.EqualTo(256));
+                Assert.That(await p1.ReadAsync(buffer.AsMemory(0, 512), cancellationToken: cancel), Is.EqualTo(256));
                 Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
                 Assert.That(p1.ReadByte(), Is.EqualTo(-1));
-                p1.Dispose();
-                return default;
+                await p1.DisposeAsync();
             }
 
-            public ValueTask OpStreamByteSend1Async(
+            public async ValueTask OpStreamByteSend1Async(
                 byte p1,
                 System.IO.Stream p2,
                 Dispatch dispatch,
                 CancellationToken cancel)
             {
                 byte[] buffer = new byte[512];
-                Assert.That(p2.Read(buffer, 0, 512), Is.EqualTo(256));
+                Assert.That(await p2.ReadAsync(buffer.AsMemory(0, 512), cancellationToken: cancel), Is.EqualTo(256));
                 Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
                 Assert.That(p2.ReadByte(), Is.EqualTo(-1));
-                p2.Dispose();
-                return default;
+                await p2.DisposeAsync();
             }
 
-            public ValueTask OpStreamByteSend2Async(
+            public async ValueTask OpStreamByteSend2Async(
                 byte p1,
                 int p2,
                 System.IO.Stream p3,
@@ -444,11 +442,10 @@ namespace IceRpc.Tests.Slice.Stream
                 CancellationToken cancel)
             {
                 byte[] buffer = new byte[512];
-                Assert.That(p3.Read(buffer, 0, 512), Is.EqualTo(256));
+                Assert.That(await p3.ReadAsync(buffer.AsMemory(0, 512), cancellationToken: cancel), Is.EqualTo(256));
                 Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
                 Assert.That(p3.ReadByte(), Is.EqualTo(-1));
-                p3.Dispose();
-                return default;
+                await p3.DisposeAsync();
             }
 
             public ValueTask<System.IO.Stream> OpStreamByteSendReceive0Async(

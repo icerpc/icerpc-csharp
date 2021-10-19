@@ -1991,7 +1991,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 }
 
                 bool sendsClasses = operation->sendsClasses(true);
-                string encoding = sendsClasses ? "IceRpc.Encoding.Ice11" : "encoding";
+                string encoding = sendsClasses ? "Ice11Encoding" : "encoding";
 
                 _out << sp;
                 _out << nl << "/// <summary>Creates the request payload for operation " << operation->name() <<
@@ -2336,13 +2336,16 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
 
     bool sendsClasses = operation->sendsClasses(true);
     string payloadEncoding;
+    string payloadFactory;
     if (sendsClasses)
     {
         payloadEncoding = "IceRpc.Encoding.Ice11";
+        payloadFactory = "Ice11Encoding";
     }
     else
     {
         payloadEncoding = "payloadEncoding";
+        payloadFactory = payloadEncoding;
         _out << nl << "var " << payloadEncoding << " = Proxy.GetIceEncoding();";
     }
 
@@ -2352,7 +2355,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     _out << nl << payloadEncoding << ",";
     if (params.size() == 0)
     {
-        _out << nl << payloadEncoding << ".CreateEmptyPayload(),";
+        _out << nl << payloadFactory << ".CreateEmptyPayload(),";
     }
     else
     {
@@ -2661,7 +2664,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
                 if (returnsClasses)
                 {
-                    _out << nl << "IceRpc.Encoding.Ice11";
+                    _out << nl << "Ice11Encoding";
                 }
                 else
                 {
@@ -2723,7 +2726,7 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
         if (operation->returnsClasses(true))
         {
             dispatchParam = false;
-            encoding = "IceRpc.Encoding.Ice11";
+            encoding = "Ice11Encoding";
         }
 
         _out << sp;
@@ -2931,13 +2934,17 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
         }
         _out << "dispatch" << "cancel" << epar << ".ConfigureAwait(false);";
 
+        string payloadFactory;
+
         if (returnsClasses)
         {
             encoding = "IceRpc.Encoding.Ice11";
+            payloadFactory = "Ice11Encoding";
         }
         else
         {
             encoding = "payloadEncoding";
+            payloadFactory = encoding;
             _out << nl << "var " << encoding << " = request.GetIceEncoding();";
         }
 
@@ -2948,7 +2955,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
                 _out << nl << "return (";
                 _out.inc();
                 _out << nl << encoding << ",";
-                _out << nl << encoding << ".CreateEmptyPayload(),";
+                _out << nl << payloadFactory << ".CreateEmptyPayload(),";
 
                 if (auto builtin = BuiltinPtr::dynamicCast(streamReturnParam->type());
                     builtin && builtin->kind() == Builtin::KindByte)
@@ -2970,7 +2977,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             }
             else
             {
-                _out << nl << "return (" << encoding << ", " << encoding
+                _out << nl << "return (" << encoding << ", " << payloadFactory
                     << ".CreateEmptyPayload(), null);";
             }
         }

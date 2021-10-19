@@ -97,7 +97,7 @@ namespace IceRpc.Transports.Internal
             var sb = new StringBuilder();
             for (int i = 0; i < Math.Min(buffer.Length, 32); ++i)
             {
-                _ = sb.Append($"0x{buffer.Span[i]:X2} ");
+                _ = sb.Append("0x").Append(Convert.ToHexString(buffer.Span[i..(i + 1)])).Append(' ');
             }
             if (buffer.Length > 32)
             {
@@ -118,7 +118,7 @@ namespace IceRpc.Transports.Internal
                 {
                     for (int j = 0; j < Math.Min(buffer.Length, 32 - size); ++j)
                     {
-                        _ = sb.Append($"0x{buffer.Span[j]:X2} ");
+                        _ = sb.Append("0x").Append(Convert.ToHexString(buffer.Span[j..(j + 1)])).Append(' ');
                     }
                 }
                 size += buffer.Length;

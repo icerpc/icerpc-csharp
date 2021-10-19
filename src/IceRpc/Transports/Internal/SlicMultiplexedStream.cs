@@ -96,7 +96,7 @@ namespace IceRpc.Transports.Internal
         private readonly SlicMultiplexedStreamFactory _streamFactory;
         private long _id = -1;
         private SpinLock _lock;
-        private AsyncQueueCore<(int, bool)> _queue = new();
+        private AsyncQueueCore<(int, bool)> _queue;
         private readonly ISlicFrameReader _reader;
         private volatile CircularBuffer? _receiveBuffer;
         // The receive credit. This is the amount of data received from the peer that we didn't acknowledge as

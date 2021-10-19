@@ -45,7 +45,7 @@ namespace IceRpc.Tests.ClientServer
                 invocation.RequestFeatures = invocation.RequestFeatures.With(Features.CompressPayload.No);
             }
 
-            await prx.OpCompressArgsAsync(0, new byte[0], invocation);
+            await prx.OpCompressArgsAsync(0, default, invocation);
             Assert.That(executed, Is.True);
         }
 
@@ -230,7 +230,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.That(incomingRequest!.StreamDecompressor, Is.Not.Null);
 
             using var receiveStream = await prx.OpCompressReturnStreamAsync(size);
-            Assert.That(ReadStream(receiveStream), Is.EqualTo(size));
+            Assert.That(await ReadStreamAsync(receiveStream), Is.EqualTo(size));
             Assert.That(outgoingRequest!.StreamCompressor, Is.Null);
             Assert.That(outgoingResponse!.StreamCompressor, Is.Not.Null);
             Assert.That(outgoingRequest!.StreamDecompressor, Is.Not.Null);
@@ -241,7 +241,7 @@ namespace IceRpc.Tests.ClientServer
             random.NextBytes(data);
             using var sendStream2 = new MemoryStream(data);
             using var receiveStream2 = await prx.OpCompressStreamArgAndReturnStreamAsync(sendStream2);
-            Assert.That(ReadStream(receiveStream2, data), Is.EqualTo(size));
+            Assert.That(await ReadStreamAsync(receiveStream2, data), Is.EqualTo(size));
             Assert.That(outgoingRequest!.StreamCompressor, Is.Not.Null);
             Assert.That(outgoingResponse!.StreamCompressor, Is.Not.Null);
             Assert.That(outgoingRequest!.StreamDecompressor, Is.Not.Null);

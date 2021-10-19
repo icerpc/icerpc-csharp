@@ -33,7 +33,13 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override void Dispose() => _socket.Dispose();
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _socket.Dispose();
+            }
+        }
 
         public override string ToString() => Endpoint.ToString();
 

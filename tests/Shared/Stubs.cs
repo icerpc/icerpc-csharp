@@ -31,7 +31,11 @@ namespace IceRpc.Tests
         internal override ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
              default;
 
-        protected override void Dispose(bool disposing) => Disposed = true;
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            Disposed = true;
+        }
 
         internal NetworkSocketStub(bool isDatagram) :
             base(null!) => _isDatagram = isDatagram;
