@@ -476,6 +476,7 @@ namespace IceRpc.Transports.Internal
             ISlicFrameReader reader,
             ISlicFrameWriter writer)
         {
+            _queue.Init();
             _streamFactory = streamFactory;
             _reader = reader;
             _writer = writer;
@@ -496,6 +497,7 @@ namespace IceRpc.Transports.Internal
             ISlicFrameReader reader,
             ISlicFrameWriter writer)
         {
+            _queue.Init();
             _streamFactory = connection;
             _reader = reader;
             _writer = writer;
