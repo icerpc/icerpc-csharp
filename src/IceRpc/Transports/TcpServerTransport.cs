@@ -41,7 +41,7 @@ namespace IceRpc.Transports
         }
 
         /// <inheritdoc/>
-        protected override IListener Listen(Endpoint endpoint)
+        protected override SimpleListener Listen(Endpoint endpoint)
         {
             // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
             // a tcp or ssl endpoint regardless of its actual transport name.

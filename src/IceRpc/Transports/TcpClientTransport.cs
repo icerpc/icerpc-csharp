@@ -41,7 +41,7 @@ namespace IceRpc.Transports
         }
 
         /// <inheritdoc/>
-        protected override INetworkConnection CreateConnection(Endpoint remoteEndpoint)
+        protected override SimpleNetworkConnection CreateConnection(Endpoint remoteEndpoint)
         {
             EndPoint netEndPoint = IPAddress.TryParse(remoteEndpoint.Host, out IPAddress? ipAddress) ?
                 new IPEndPoint(ipAddress, remoteEndpoint.Port) :

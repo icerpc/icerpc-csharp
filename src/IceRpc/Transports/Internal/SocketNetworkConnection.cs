@@ -6,12 +6,12 @@ using System.Security.Cryptography.X509Certificates;
 namespace IceRpc.Transports.Internal
 {
     /// <summary>A network socket connection based on a <see cref="NetworkSocket"/>.</summary>
-    internal sealed class SocketNetworkConnection : INetworkConnection, ISimpleStream
+    internal sealed class SocketNetworkConnection : SimpleNetworkConnection, ISimpleStream
     {
         public int DatagramMaxReceiveSize => NetworkSocket.DatagramMaxReceiveSize;
         public bool IsDatagram => NetworkSocket.IsDatagram;
-        public bool IsSecure => NetworkSocket.SslStream != null;
-        public TimeSpan LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
+        public override bool IsSecure => NetworkSocket.SslStream != null;
+        public override TimeSpan LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
 
         // NetworkSocket is internal to allow the LogSocketNetworkConnection to provide additional information
         // provided by the socket (such as the send or receive buffer sizes).
@@ -22,9 +22,7 @@ namespace IceRpc.Transports.Internal
         private readonly bool _isServer;
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
 
-        public void Close(Exception? exception = null) => NetworkSocket.Dispose();
-
-        public async Task<(ISimpleStream?, IMultiplexedStreamFactory?, NetworkConnectionInformation)> ConnectAsync(
+        public override async Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(
             CancellationToken cancel)
         {
             Endpoint endpoint = await NetworkSocket.ConnectAsync(_endpoint, cancel).ConfigureAwait(false);
@@ -32,7 +30,7 @@ namespace IceRpc.Transports.Internal
 
             // For a server connection, _endpoint is the local endpoint and the endpoint returned by
             // ConnectAsync is the remote endpoint. For a client connection it's the contrary.
-            return (this, null, new NetworkConnectionInformation(
+            return (this, new NetworkConnectionInformation(
                     _isServer ? _endpoint : endpoint,
                     _isServer ? endpoint : _endpoint,
                     _idleTimeout,
@@ -40,7 +38,9 @@ namespace IceRpc.Transports.Internal
                 ));
         }
 
-        public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
+        public override void Close(Exception? exception = null) => NetworkSocket.Dispose();
+
+        public override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             !_isServer &&
             EndpointComparer.ParameterLess.Equals(_endpoint, remoteEndpoint) &&
             NetworkSocket.HasCompatibleParams(remoteEndpoint);

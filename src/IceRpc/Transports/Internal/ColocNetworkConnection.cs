@@ -7,15 +7,15 @@ namespace IceRpc.Transports.Internal
 {
     /// <summary>The colocated network connection class to exchange data within the same process. The
     /// implementation copies the send buffer into the receive buffer.</summary>
-    internal class ColocNetworkConnection : INetworkConnection, ISimpleStream
+    internal class ColocNetworkConnection : SimpleNetworkConnection, ISimpleStream
     {
         public int DatagramMaxReceiveSize => throw new InvalidOperationException();
 
         public bool IsDatagram => false;
 
-        public bool IsSecure => true;
+        public override bool IsSecure => true;
 
-        public TimeSpan LastActivity => TimeSpan.Zero;
+        public override TimeSpan LastActivity => TimeSpan.Zero;
 
         private readonly Endpoint _endpoint;
         private readonly bool _isServer;
@@ -23,18 +23,13 @@ namespace IceRpc.Transports.Internal
         private ReadOnlyMemory<byte> _receivedBuffer;
         private readonly ChannelWriter<ReadOnlyMemory<byte>> _writer;
 
-        public void Close(Exception? exception = null) => _writer.TryComplete();
+        public override Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel) =>
+            Task.FromResult<(ISimpleStream, NetworkConnectionInformation)>(
+                (this, new NetworkConnectionInformation(_endpoint, _endpoint, TimeSpan.MaxValue, null)));
 
-        public Task<(ISimpleStream?, IMultiplexedStreamFactory?, NetworkConnectionInformation)> ConnectAsync(
-            CancellationToken cancel)
-        {
-            return Task.FromResult<(ISimpleStream?, IMultiplexedStreamFactory?, NetworkConnectionInformation)>(
-                (this,
-                 null,
-                 new NetworkConnectionInformation(_endpoint, _endpoint, TimeSpan.MaxValue, null)));
-        }
+        public override void Close(Exception? exception = null) => _writer.TryComplete();
 
-        public bool HasCompatibleParams(Endpoint remoteEndpoint)
+        public override bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
             if (remoteEndpoint.Params.Count > 0)
             {

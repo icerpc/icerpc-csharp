@@ -31,11 +31,6 @@ namespace IceRpc
         /// <returns><c>true</c> if the protocol supports fields.</returns>
         internal virtual bool HasFieldSupport => false;
 
-        /// <summary>Specifies whether or not the protocol requires a multiplexed transport.</summary>
-        internal virtual bool RequiresMultiplexedTransport => throw new NotSupportedException(
-            @$"Ice protocol '{Name
-            }' is not supported by this IceRPC runtime ({typeof(Protocol).Assembly.GetName().Version})");
-
         private protected const string Ice1Name = "ice1";
         private protected const string Ice2Name = "ice2";
 

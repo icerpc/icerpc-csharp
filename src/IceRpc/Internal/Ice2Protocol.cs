@@ -16,25 +16,14 @@ namespace IceRpc.Internal
 
         internal override bool HasFieldSupport => true;
 
-        internal override bool RequiresMultiplexedTransport => true;
-
         internal override async ValueTask<(IProtocolConnection, NetworkConnectionInformation)> CreateConnectionAsync(
             INetworkConnection networkConnection,
             int incomingFrameMaxSize,
             bool isServer,
             CancellationToken cancel)
         {
-            (ISimpleStream? _,
-                IMultiplexedStreamFactory? multiplexedStreamFactory,
-                NetworkConnectionInformation information) =
-                 await networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
-            if (multiplexedStreamFactory == null)
-            {
-                throw new InvalidOperationException(
-                    @$"requested an {nameof(IMultiplexedStreamFactory)} from {
-                        nameof(INetworkConnection.ConnectAsync)} but go a null {
-                        nameof(IMultiplexedStreamFactory)}");
-            }
+            (IMultiplexedStreamFactory multiplexedStreamFactory, NetworkConnectionInformation information) =
+                 await networkConnection.ConnectMultiplexedAsync(cancel).ConfigureAwait(false);
             var protocolConnection = new Ice2ProtocolConnection(multiplexedStreamFactory, incomingFrameMaxSize);
             await protocolConnection.InitializeAsync(cancel).ConfigureAwait(false);
             return (protocolConnection, information);

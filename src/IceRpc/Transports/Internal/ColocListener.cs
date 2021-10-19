@@ -8,9 +8,9 @@ using System.Threading.Channels;
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The IListener implementation for the colocated transport.</summary>
-    internal class ColocListener : IListener
+    internal class ColocListener : SimpleListener
     {
-        public Endpoint Endpoint { get; }
+        public override Endpoint Endpoint { get; }
 
         /// <summary>A dictionary that keeps track of all coloc listeners.</summary>
         private static readonly IDictionary<Endpoint, ColocListener> _colocListenerDictionary =
@@ -18,14 +18,14 @@ namespace IceRpc.Transports.Internal
 
         private readonly Channel<(ChannelWriter<ReadOnlyMemory<byte>>, ChannelReader<ReadOnlyMemory<byte>>)> _channel;
 
-        public async Task<INetworkConnection> AcceptAsync()
+        public override async Task<SimpleNetworkConnection> AcceptAsync()
         {
             (ChannelWriter<ReadOnlyMemory<byte>> writer, ChannelReader<ReadOnlyMemory<byte>> reader) =
                 await _channel.Reader.ReadAsync().ConfigureAwait(false);
             return new ColocNetworkConnection(Endpoint, isServer: true, writer, reader);
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
             _channel.Writer.Complete();
             _colocListenerDictionary.Remove(Endpoint);

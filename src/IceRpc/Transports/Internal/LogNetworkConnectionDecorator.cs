@@ -53,40 +53,27 @@ namespace IceRpc.Transports.Internal
             _decoratee.Close(exception);
         }
 
-        public virtual async Task<(ISimpleStream?, IMultiplexedStreamFactory?, NetworkConnectionInformation)> ConnectAsync(
+        public virtual async Task<(ISimpleStream, NetworkConnectionInformation)> ConnectSimpleAsync(
             CancellationToken cancel)
         {
-            ISimpleStream? simpleStream;
-            IMultiplexedStreamFactory? multiplexedStreamFactory;
-            (simpleStream, multiplexedStreamFactory, Information) = await _decoratee.ConnectAsync(
-                cancel).ConfigureAwait(false);
-
-            if (_endpoint.Protocol.RequiresMultiplexedTransport)
-            {
-                if (multiplexedStreamFactory == null)
-                {
-                    throw new InvalidOperationException(
-                        @$"protocol requested an {nameof(IMultiplexedStreamFactory)} from {nameof(ConnectAsync)
-                            } but go a null {nameof(IMultiplexedStreamFactory)}");
-                }
-                multiplexedStreamFactory = new LogMultiplexedStreamFactoryDecorator(
-                    this,
-                    multiplexedStreamFactory);
-            }
-            else
-            {
-                if (simpleStream == null)
-                {
-                    throw new InvalidOperationException(
-                        @$"protocol requested an {nameof(ISimpleStream)} from {nameof(ConnectAsync)
-                            } but go a null {nameof(ISimpleStream)}");
-                }
-                simpleStream = new LogSimpleStreamDecorator(this, simpleStream);
-                _isDatagram = simpleStream.IsDatagram;
-            }
+            ISimpleStream simpleStream;
+            (simpleStream, Information) = await _decoratee.ConnectSimpleAsync(cancel).ConfigureAwait(false);
+            simpleStream = new LogSimpleStreamDecorator(this, simpleStream);
+            _isDatagram = simpleStream.IsDatagram;
 
             LogConnected();
-            return (simpleStream, multiplexedStreamFactory, Information.Value);
+            return (simpleStream, Information.Value);
+        }
+
+        public async Task<(IMultiplexedStreamFactory, NetworkConnectionInformation)> ConnectMultiplexedAsync(
+            CancellationToken cancel)
+        {
+            IMultiplexedStreamFactory multiplexedStreamFactory;
+            (multiplexedStreamFactory, Information) = await _decoratee.ConnectMultiplexedAsync(
+                cancel).ConfigureAwait(false);
+            multiplexedStreamFactory = new LogMultiplexedStreamFactoryDecorator(this, multiplexedStreamFactory);
+            LogConnected();
+            return (multiplexedStreamFactory, Information.Value);
         }
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) => _decoratee.HasCompatibleParams(remoteEndpoint);
@@ -281,19 +268,18 @@ namespace IceRpc.Transports.Internal
             ILogger logger) :
             base(decoratee, isServer, endpoint, logger) => _decoratee = decoratee;
 
-        public override async Task<(ISimpleStream?, IMultiplexedStreamFactory?, NetworkConnectionInformation)> ConnectAsync(
+        public override async Task<(ISimpleStream, NetworkConnectionInformation)> ConnectSimpleAsync(
             CancellationToken cancel)
         {
             try
             {
-                (ISimpleStream? simpleStream, IMultiplexedStreamFactory? multiplexedStreamFactory, Information) =
-                    await base.ConnectAsync(cancel).ConfigureAwait(false);
+                (ISimpleStream simpleStream, Information) = await base.ConnectSimpleAsync(cancel).ConfigureAwait(false);
 
                 if (_decoratee.NetworkSocket.SslStream is SslStream sslStream)
                 {
                     Logger.LogTlsAuthenticationSucceeded(sslStream);
                 }
-                return (simpleStream, multiplexedStreamFactory, Information.Value);
+                return (simpleStream, Information.Value);
             }
             catch (TransportException exception) when (exception.InnerException is AuthenticationException ex)
             {

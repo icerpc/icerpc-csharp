@@ -22,7 +22,7 @@ namespace IceRpc.Transports
         }
 
         /// <inheritdoc/>
-        protected override INetworkConnection CreateConnection(Endpoint remoteEndpoint)
+        protected override SimpleNetworkConnection CreateConnection(Endpoint remoteEndpoint)
         {
             if (remoteEndpoint.Params.Count > 0)
             {

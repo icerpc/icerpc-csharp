@@ -21,13 +21,17 @@ namespace IceRpc.Transports
         /// <param name="exception">The reason of the connection closure.</param>
         void Close(Exception? exception = null);
 
-        /// <summary>Connects this network connection and either return a <see cref="ISimpleStream"/> or <see
-        /// cref="IMultiplexedStreamFactory"/> depending on the protocol requirements.</summary>
+        /// <summary>Connects this network connection and obtain an <see cref="IMultiplexedStreamFactory"/>.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The <see cref="IMultiplexedStreamFactory"/> and <see
         /// cref="NetworkConnectionInformation"/>.</returns>
-        Task<(ISimpleStream?, IMultiplexedStreamFactory?, NetworkConnectionInformation)> ConnectAsync(
+        Task<(IMultiplexedStreamFactory, NetworkConnectionInformation)> ConnectMultiplexedAsync(
             CancellationToken cancel);
+
+        /// <summary>Connects this network connection and obtain an <see cref="ISimpleStream"/>.</summary>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        /// <returns>The <see cref="ISimpleStream"/> and <see cref="NetworkConnectionInformation"/>.</returns>
+        Task<(ISimpleStream, NetworkConnectionInformation)> ConnectSimpleAsync(CancellationToken cancel);
 
         /// <summary>Checks if the parameters of the provided endpoint are compatible with this network connection.
         /// Compatible means a client could reuse this network connection instead of establishing a new network

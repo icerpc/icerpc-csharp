@@ -21,6 +21,6 @@ namespace IceRpc.Transports
         }
 
         /// <inheritdoc/>
-        protected override IListener Listen(Endpoint endpoint) => new ColocListener(endpoint);
+        protected override SimpleListener Listen(Endpoint endpoint) => new ColocListener(endpoint);
     }
 }

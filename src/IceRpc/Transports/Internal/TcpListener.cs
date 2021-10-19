@@ -7,15 +7,15 @@ using System.Net.Sockets;
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The listener implementation for the TCP transport.</summary>
-    internal sealed class TcpListener : IListener
+    internal sealed class TcpListener : SimpleListener
     {
-        public Endpoint Endpoint { get; }
+        public override Endpoint Endpoint { get; }
 
         private readonly SslServerAuthenticationOptions? _authenticationOptions;
         private readonly TimeSpan _idleTimeout;
         private readonly Socket _socket;
 
-        public async Task<INetworkConnection> AcceptAsync()
+        public override async Task<SimpleNetworkConnection> AcceptAsync()
         {
             try
             {
@@ -33,7 +33,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public void Dispose() => _socket.Dispose();
+        public override void Dispose() => _socket.Dispose();
 
         public override string ToString() => Endpoint.ToString();
 
