@@ -8,17 +8,17 @@ using System.Runtime.InteropServices;
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The Slic frame writer class writes Slic frames and sends them over an <see
-    /// cref="INetworkStream"/>.</summary>
+    /// cref="ISimpleStream"/>.</summary>
     internal sealed class StreamSlicFrameWriter : ISlicFrameWriter
     {
-        private readonly INetworkStream _stream;
+        private readonly ISimpleStream _stream;
 
         public void Dispose()
         {
         }
 
         public async ValueTask WriteFrameAsync(
-            SlicMultiplexedNetworkStream? stream,
+            SlicMultiplexedStream? stream,
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             CancellationToken cancel)
         {
@@ -35,7 +35,7 @@ namespace IceRpc.Transports.Internal
         }
 
         public async ValueTask WriteStreamFrameAsync(
-            SlicMultiplexedNetworkStream stream,
+            SlicMultiplexedStream stream,
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             bool endStream,
             CancellationToken cancel)
@@ -76,6 +76,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal StreamSlicFrameWriter(INetworkStream stream) => _stream = stream;
+        internal StreamSlicFrameWriter(ISimpleStream stream) => _stream = stream;
     }
 }

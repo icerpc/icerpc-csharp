@@ -18,7 +18,7 @@ namespace IceRpc.Transports.Internal
         public void Dispose() => _decoratee.Dispose();
 
         public async ValueTask WriteFrameAsync(
-            SlicMultiplexedNetworkStream? stream,
+            SlicMultiplexedStream? stream,
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             CancellationToken cancel)
         {
@@ -35,7 +35,7 @@ namespace IceRpc.Transports.Internal
         }
 
         public async ValueTask WriteStreamFrameAsync(
-            SlicMultiplexedNetworkStream stream,
+            SlicMultiplexedStream stream,
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             bool endStream,
             CancellationToken cancel)

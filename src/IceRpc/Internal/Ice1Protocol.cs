@@ -24,15 +24,15 @@ namespace IceRpc.Internal
             bool isServer,
             CancellationToken cancel)
         {
-            (INetworkStream? networkStream, IMultiplexedNetworkStreamFactory? _,  NetworkConnectionInformation information) =
+            (ISimpleStream? simpleStream, IMultiplexedStreamFactory? _,  NetworkConnectionInformation information) =
                  await networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
-            if (networkStream == null)
+            if (simpleStream == null)
             {
                 throw new InvalidOperationException(
-                    @$"requested an {nameof(INetworkStream)} from {nameof(INetworkConnection.ConnectAsync)
-                        } but go a null {nameof(INetworkStream)}");
+                    @$"requested an {nameof(ISimpleStream)} from {nameof(INetworkConnection.ConnectAsync)
+                        } but go a null {nameof(ISimpleStream)}");
             }
-            var protocolConnection = new Ice1ProtocolConnection(networkStream, incomingFrameMaxSize);
+            var protocolConnection = new Ice1ProtocolConnection(simpleStream, incomingFrameMaxSize);
             await protocolConnection.InitializeAsync(isServer, cancel).ConfigureAwait(false);
             return (protocolConnection, information);
         }

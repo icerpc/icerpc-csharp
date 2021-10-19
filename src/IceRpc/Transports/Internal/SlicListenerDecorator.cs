@@ -6,7 +6,7 @@ namespace IceRpc.Transports.Internal
     {
         private readonly IListener _decoratee;
         private readonly TimeSpan _idleTimeout;
-        private readonly Func<INetworkStream, (ISlicFrameReader, ISlicFrameWriter)> _slicFrameReaderWriterFactory;
+        private readonly Func<ISimpleStream, (ISlicFrameReader, ISlicFrameWriter)> _slicFrameReaderWriterFactory;
         private readonly SlicOptions _slicOptions;
 
         public Endpoint Endpoint => _decoratee.Endpoint;
@@ -24,7 +24,7 @@ namespace IceRpc.Transports.Internal
         internal SlicListenerDecorator(
             IListener decoratee,
             TimeSpan idleTimeout,
-            Func<INetworkStream, (ISlicFrameReader, ISlicFrameWriter)> slicFrameReaderWriterFactory,
+            Func<ISimpleStream, (ISlicFrameReader, ISlicFrameWriter)> slicFrameReaderWriterFactory,
             SlicOptions slicOptions)
         {
             _decoratee = decoratee;

@@ -7,7 +7,7 @@ namespace IceRpc.Transports.Internal
 {
     /// <summary>The colocated network connection class to exchange data within the same process. The
     /// implementation copies the send buffer into the receive buffer.</summary>
-    internal class ColocNetworkConnection : INetworkConnection, INetworkStream
+    internal class ColocNetworkConnection : INetworkConnection, ISimpleStream
     {
         public int DatagramMaxReceiveSize => throw new InvalidOperationException();
 
@@ -25,10 +25,10 @@ namespace IceRpc.Transports.Internal
 
         public void Close(Exception? exception = null) => _writer.TryComplete();
 
-        public Task<(INetworkStream?, IMultiplexedNetworkStreamFactory?, NetworkConnectionInformation)> ConnectAsync(
+        public Task<(ISimpleStream?, IMultiplexedStreamFactory?, NetworkConnectionInformation)> ConnectAsync(
             CancellationToken cancel)
         {
-            return Task.FromResult<(INetworkStream?, IMultiplexedNetworkStreamFactory?, NetworkConnectionInformation)>(
+            return Task.FromResult<(ISimpleStream?, IMultiplexedStreamFactory?, NetworkConnectionInformation)>(
                 (this,
                  null,
                  new NetworkConnectionInformation(_endpoint, _endpoint, TimeSpan.MaxValue, null)));

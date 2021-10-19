@@ -5,7 +5,7 @@ using IceRpc.Transports.Internal;
 namespace IceRpc.Transports
 {
     /// <summary>Implements <see cref="IServerTransport"/> for the coloc transport.</summary>
-    public class ColocServerTransport : SlicServerTransport
+    public class ColocServerTransport : SimpleServerTransport
     {
         /// <summary>Constructs a colocated server transport.</summary>
         public ColocServerTransport() :

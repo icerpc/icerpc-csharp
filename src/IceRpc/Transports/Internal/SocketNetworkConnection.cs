@@ -6,14 +6,14 @@ using System.Security.Cryptography.X509Certificates;
 namespace IceRpc.Transports.Internal
 {
     /// <summary>A network socket connection based on a <see cref="NetworkSocket"/>.</summary>
-    internal sealed class SocketNetworkConnection : INetworkConnection, INetworkStream
+    internal sealed class SocketNetworkConnection : INetworkConnection, ISimpleStream
     {
         public int DatagramMaxReceiveSize => NetworkSocket.DatagramMaxReceiveSize;
         public bool IsDatagram => NetworkSocket.IsDatagram;
         public bool IsSecure => NetworkSocket.SslStream != null;
         public TimeSpan LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
 
-        // NetworkSocket is internal to allow the LogNetworkSocketConnection to provide additional information
+        // NetworkSocket is internal to allow the LogSocketNetworkConnection to provide additional information
         // provided by the socket (such as the send or receive buffer sizes).
         internal NetworkSocket NetworkSocket { get; }
 
@@ -24,7 +24,7 @@ namespace IceRpc.Transports.Internal
 
         public void Close(Exception? exception = null) => NetworkSocket.Dispose();
 
-        public async Task<(INetworkStream?, IMultiplexedNetworkStreamFactory?, NetworkConnectionInformation)> ConnectAsync(
+        public async Task<(ISimpleStream?, IMultiplexedStreamFactory?, NetworkConnectionInformation)> ConnectAsync(
             CancellationToken cancel)
         {
             Endpoint endpoint = await NetworkSocket.ConnectAsync(_endpoint, cancel).ConfigureAwait(false);
@@ -45,14 +45,14 @@ namespace IceRpc.Transports.Internal
             EndpointComparer.ParameterLess.Equals(_endpoint, remoteEndpoint) &&
             NetworkSocket.HasCompatibleParams(remoteEndpoint);
 
-        async ValueTask<int> INetworkStream.ReadAsync(Memory<byte> buffer, CancellationToken cancel)
+        async ValueTask<int> ISimpleStream.ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             int received = await NetworkSocket.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
             Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
             return received;
         }
 
-        async ValueTask INetworkStream.WriteAsync(
+        async ValueTask ISimpleStream.WriteAsync(
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             CancellationToken cancel)
         {

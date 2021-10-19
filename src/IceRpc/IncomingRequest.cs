@@ -39,7 +39,7 @@ namespace IceRpc
         internal CancellationTokenSource? CancelDispatchSource { get; set; }
 
         /// <summary>The stream used to receive the request.</summary>
-        internal IMultiplexedNetworkStream? Stream { get; init; }
+        internal IMultiplexedStream? Stream { get; init; }
 
         /// <summary>Constructs an incoming request.</summary>
         /// <param name="protocol">The <see cref="Protocol"/> used to send the request.</param>

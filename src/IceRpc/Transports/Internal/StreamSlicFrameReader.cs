@@ -37,10 +37,10 @@ namespace IceRpc.Transports.Internal
     }
 
     /// <summary>The stream Slic frame reader class reads Slic frames received over an <see
-    /// cref="INetworkStream"/>.</summary>
+    /// cref="ISimpleStream"/>.</summary>
     internal sealed class StreamSlicFrameReader : BufferedReceiverSlicFrameReader
     {
-        internal StreamSlicFrameReader(INetworkStream stream) :
+        internal StreamSlicFrameReader(ISimpleStream stream) :
             base(new BufferedReceiver(stream.ReadAsync, 256))
         {
         }

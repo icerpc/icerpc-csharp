@@ -6,7 +6,7 @@ using System.Threading.Channels;
 namespace IceRpc.Transports
 {
     /// <summary>Implements <see cref="IClientTransport"/> for the coloc transport.</summary>
-    public class ColocClientTransport : SlicClientTransport
+    public class ColocClientTransport : SimpleClientTransport
     {
         /// <summary>Construct a colocated client transport.</summary>
         public ColocClientTransport() :

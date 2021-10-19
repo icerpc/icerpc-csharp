@@ -10,10 +10,10 @@ namespace IceRpc.Slice
     /// <c>stream byte</c> params using a <see cref="Ice2FrameType.UnboundedData"/> frame.</summary>
     public sealed class ByteStreamParamSender : IStreamParamSender
     {
-        private readonly Func<IMultiplexedNetworkStream, Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>?, Task> _encoder;
+        private readonly Func<IMultiplexedStream, Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>?, Task> _encoder;
 
         Task IStreamParamSender.SendAsync(
-            IMultiplexedNetworkStream stream,
+            IMultiplexedStream stream,
             Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? streamCompressor) =>
             _encoder(stream, streamCompressor);
 
@@ -23,7 +23,7 @@ namespace IceRpc.Slice
             _encoder = (stream, streamCompressor) => SendAsync(stream, streamCompressor, byteStream);
 
         private static async Task SendAsync(
-            IMultiplexedNetworkStream rpcStream,
+            IMultiplexedStream rpcStream,
             Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? streamCompressor,
             System.IO.Stream inputStream)
         {

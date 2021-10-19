@@ -6,13 +6,13 @@ namespace IceRpc.Transports.Internal
 {
     internal class LogSlicServerTransportDecorator : LogServerTransportDecorator
     {
-        internal LogSlicServerTransportDecorator(SlicServerTransport decoratee, ILogger logger)
+        internal LogSlicServerTransportDecorator(SimpleServerTransport decoratee, ILogger logger)
             : base(decoratee, logger)
         {
-            Func<INetworkStream, (ISlicFrameReader, ISlicFrameWriter)> factory = decoratee.SlicFrameReaderWriterFactory;
-            decoratee.SlicFrameReaderWriterFactory = networkStream =>
+            Func<ISimpleStream, (ISlicFrameReader, ISlicFrameWriter)> factory = decoratee.SlicFrameReaderWriterFactory;
+            decoratee.SlicFrameReaderWriterFactory = simpleStream =>
                 {
-                    (ISlicFrameReader reader, ISlicFrameWriter writer) = factory(networkStream);
+                    (ISlicFrameReader reader, ISlicFrameWriter writer) = factory(simpleStream);
                     return (new LogSlicFrameReaderDecorator(reader, logger),
                             new LogSlicFrameWriterDecorator(writer, logger));
                 };

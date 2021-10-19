@@ -25,11 +25,11 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogConnectionAccepted(this ILogger logger);
 
         [LoggerMessage(
-            EventId = (int)TransportEventIds.SocketConnectionAccepted,
-            EventName = nameof(TransportEventIds.SocketConnectionAccepted),
+            EventId = (int)TransportEventIds.SocketNetworkConnectionAccepted,
+            EventName = nameof(TransportEventIds.SocketNetworkConnectionAccepted),
             Level = LogLevel.Debug,
             Message = "accepted connection (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize})")]
-        internal static partial void LogSocketConnectionAccepted(this ILogger logger, int rcvSize, int sndSize);
+        internal static partial void LogSocketNetworkConnectionAccepted(this ILogger logger, int rcvSize, int sndSize);
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.ConnectionAcceptFailed,
@@ -86,11 +86,11 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogListenerShutDown(this ILogger logger, Endpoint endpoint);
 
         [LoggerMessage(
-            EventId = (int)TransportEventIds.SocketConnectionEstablished,
-            EventName = nameof(TransportEventIds.SocketConnectionEstablished),
+            EventId = (int)TransportEventIds.SocketNetworkConnectionEstablished,
+            EventName = nameof(TransportEventIds.SocketNetworkConnectionEstablished),
             Level = LogLevel.Debug,
             Message = "established connection (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize})")]
-        internal static partial void LogSocketConnectionEstablished(this ILogger logger, int rcvSize, int sndSize);
+        internal static partial void LogSocketNetworkConnectionEstablished(this ILogger logger, int rcvSize, int sndSize);
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.ConnectionEventHandlerException,

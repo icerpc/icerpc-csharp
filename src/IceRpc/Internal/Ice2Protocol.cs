@@ -24,18 +24,18 @@ namespace IceRpc.Internal
             bool isServer,
             CancellationToken cancel)
         {
-            (INetworkStream? _,
-                IMultiplexedNetworkStreamFactory? multiplexedNetworkStreamFactory,
+            (ISimpleStream? _,
+                IMultiplexedStreamFactory? multiplexedStreamFactory,
                 NetworkConnectionInformation information) =
                  await networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
-            if (multiplexedNetworkStreamFactory == null)
+            if (multiplexedStreamFactory == null)
             {
                 throw new InvalidOperationException(
-                    @$"requested an {nameof(IMultiplexedNetworkStreamFactory)} from {
+                    @$"requested an {nameof(IMultiplexedStreamFactory)} from {
                         nameof(INetworkConnection.ConnectAsync)} but go a null {
-                        nameof(IMultiplexedNetworkStreamFactory)}");
+                        nameof(IMultiplexedStreamFactory)}");
             }
-            var protocolConnection = new Ice2ProtocolConnection(multiplexedNetworkStreamFactory, incomingFrameMaxSize);
+            var protocolConnection = new Ice2ProtocolConnection(multiplexedStreamFactory, incomingFrameMaxSize);
             await protocolConnection.InitializeAsync(cancel).ConfigureAwait(false);
             return (protocolConnection, information);
         }
