@@ -53,9 +53,12 @@ namespace IceRpc.Tests.ClientServer
             var proxy = ServicePrx.FromConnection(connection);
             Assert.CatchAsync<TransportException>(async () =>
             {
-                // It can take few invocations before failing
+                // Depending on the system, the first send on the UDP socket will often succeed and the second will
+                // fail because the error that results from the absence of a listening UDP server socket is received
+                // asynchronously after the first send. We insert a small delay to ensure the error is received by
+                // the UDP socket before the second send.
                 await proxy.IcePingAsync(new Invocation { IsOneway = true });
-                await proxy.IcePingAsync(new Invocation { IsOneway = true });
+                await Task.Delay(500);
                 await proxy.IcePingAsync(new Invocation { IsOneway = true });
             });
         }
