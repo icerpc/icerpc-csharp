@@ -125,7 +125,7 @@ namespace IceRpc.Tests
                 }
                 catch
                 {
-                    throw new ConnectionLostException(ex);
+                    throw new ConnectionLostException();
                 }
             }
 
