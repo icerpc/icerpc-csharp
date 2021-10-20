@@ -90,7 +90,7 @@ namespace IceRpc.Slice
             }
             finally
             {
-                inputStream.Dispose();
+                await inputStream.DisposeAsync().ConfigureAwait(false);
             }
         }
     }

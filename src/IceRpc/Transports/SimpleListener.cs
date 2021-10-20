@@ -14,8 +14,17 @@ namespace IceRpc.Transports
         public abstract Task<SimpleNetworkConnection> AcceptAsync();
 
         /// <inheritdoc/>
-        public abstract void Dispose();
+        public void Dispose()
+        {
+            // Dispose of unmanaged resources.
+            Dispose(true);
+            // Suppress finalization.
+            GC.SuppressFinalize(this);
+        }
 
         async Task<INetworkConnection> IListener.AcceptAsync() => await AcceptAsync().ConfigureAwait(false);
+
+        /// <summary>Dispose of this listener.</summary>
+        protected abstract void Dispose(bool disposing);
     }
 }

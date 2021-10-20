@@ -170,14 +170,14 @@ namespace IceRpc.Tests.Api
 
             using var cancellationSource = new CancellationTokenSource();
             Task task = proxy.IcePingAsync(cancel: cancellationSource.Token);
-            semaphore.Wait(); // Wait for the dispatch
+            await semaphore.WaitAsync(); // Wait for the dispatch
 
             Assert.That(task.IsCompleted, Is.False);
             cancellationSource.Cancel();
             Assert.CatchAsync<OperationCanceledException>(async () => await task);
 
             // Now wait for the dispatch cancellation
-            semaphore.Wait();
+            await semaphore.WaitAsync();
 
             // Verify the service still works.
             waitForCancellation = false;
@@ -209,7 +209,7 @@ namespace IceRpc.Tests.Api
 
             Task task = proxy.IcePingAsync();
             Assert.That(server.ShutdownComplete.IsCompleted, Is.False);
-            dispatchStartSemaphore.Wait(); // Wait for the dispatch
+            await dispatchStartSemaphore.WaitAsync(); // Wait for the dispatch
 
             var shutdownTask = server.ShutdownAsync();
             Assert.That(server.ShutdownComplete.IsCompleted, Is.False);
@@ -254,7 +254,7 @@ namespace IceRpc.Tests.Api
 
             Task task = proxy.IcePingAsync();
             Assert.That(server.ShutdownComplete.IsCompleted, Is.False);
-            semaphore.Wait(); // Wait for the dispatch
+            await semaphore.WaitAsync(); // Wait for the dispatch
 
             Task shutdownTask;
             if (disposeInsteadOfShutdown)

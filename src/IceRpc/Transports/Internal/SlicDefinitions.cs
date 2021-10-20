@@ -9,6 +9,6 @@ namespace IceRpc.Transports.Internal
         // bytes) and a stream ID varulong value (8 bytes).
         internal static readonly ReadOnlyMemory<byte> FrameHeader = new byte[13];
 
-        internal static readonly uint V1 = 1;
+        internal const uint V1 = 1;
     }
 }

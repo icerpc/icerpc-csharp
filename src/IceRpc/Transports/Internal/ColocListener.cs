@@ -25,18 +25,21 @@ namespace IceRpc.Transports.Internal
             return new ColocNetworkConnection(Endpoint, isServer: true, writer, reader);
         }
 
-        public override void Dispose()
-        {
-            _channel.Writer.Complete();
-            _colocListenerDictionary.Remove(Endpoint);
-        }
-
         public override string ToString() => $"{base.ToString()} {Endpoint}";
 
         internal static bool TryGetValue(
             Endpoint endpoint,
             [NotNullWhen(returnValue: true)] out ColocListener? listener) =>
             _colocListenerDictionary.TryGetValue(endpoint, out listener);
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _channel.Writer.Complete();
+                _colocListenerDictionary.Remove(Endpoint);
+            }
+        }
 
         internal ColocListener(Endpoint endpoint)
         {

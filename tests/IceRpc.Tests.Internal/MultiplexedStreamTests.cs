@@ -272,7 +272,7 @@ namespace IceRpc.Tests.Internal
             }
             else
             {
-                receiveStream.Dispose();
+                await receiveStream.DisposeAsync();
             }
 
             // Make sure that the read fails with an IOException, the send stream should be disposed as well.

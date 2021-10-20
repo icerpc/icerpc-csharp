@@ -49,14 +49,14 @@ namespace IceRpc
         private Connection? _connection;
         private ReadOnlyMemory<byte>? _payload;
 
-        /// <summary>Constructs an incoming frame.</summary>
-        /// <param name="protocol">The protocol used to receive the frame.</param>
-        public IncomingFrame(Protocol protocol) => Protocol = protocol;
-
         /// <summary>Retrieves the payload of this frame.</summary>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The payload.</returns>
         public virtual ValueTask<ReadOnlyMemory<byte>> GetPayloadAsync(CancellationToken cancel = default) =>
             IsPayloadSet ? new(Payload) : throw new NotImplementedException();
+
+        /// <summary>Constructs an incoming frame.</summary>
+        /// <param name="protocol">The protocol used to receive the frame.</param>
+        protected IncomingFrame(Protocol protocol) => Protocol = protocol;
     }
 }

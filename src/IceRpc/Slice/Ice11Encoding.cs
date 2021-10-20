@@ -10,9 +10,6 @@ namespace IceRpc.Slice
         /// <summary>The Ice 1.1 encoding singleton.</summary>
         internal static Ice11Encoding Instance { get; } = new();
 
-        /// <inheritdoc/>
-        public override ReadOnlyMemory<ReadOnlyMemory<byte>> CreateEmptyPayload() => default;
-
         /// <summary>Creates the payload of a request from the request's arguments. Use this method is for operations
         /// with multiple parameters.</summary>
         /// <typeparam name="T">The type of the operation's parameters.</typeparam>
@@ -21,7 +18,7 @@ namespace IceRpc.Slice
         /// the payload.</param>
         /// <param name="classFormat">The class format.</param>
         /// <returns>A new payload encoded with encoding Ice 1.1.</returns>
-        public ReadOnlyMemory<ReadOnlyMemory<byte>> CreatePayloadFromArgs<T>(
+        public static ReadOnlyMemory<ReadOnlyMemory<byte>> CreatePayloadFromArgs<T>(
             in T args,
             TupleEncodeAction<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default) where T : struct
@@ -39,7 +36,7 @@ namespace IceRpc.Slice
         /// <param name="encodeAction">A delegate that encodes the argument into the payload.</param>
         /// <param name="classFormat">The class format.</param>
         /// <returns>A new payload encoded with encoding Ice 1.1.</returns>
-        public ReadOnlyMemory<ReadOnlyMemory<byte>> CreatePayloadFromSingleArg<T>(
+        public static ReadOnlyMemory<ReadOnlyMemory<byte>> CreatePayloadFromSingleArg<T>(
             T arg,
             Action<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default)
@@ -58,7 +55,7 @@ namespace IceRpc.Slice
         /// the payload.</param>
         /// <param name="classFormat">The class format.</param>
         /// <returns>A new payload encoded with the Ice 1.1 encoding.</returns>
-        public ReadOnlyMemory<ReadOnlyMemory<byte>> CreatePayloadFromReturnValueTuple<T>(
+        public static ReadOnlyMemory<ReadOnlyMemory<byte>> CreatePayloadFromReturnValueTuple<T>(
             in T returnValueTuple,
             TupleEncodeAction<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default) where T : struct
@@ -77,7 +74,7 @@ namespace IceRpc.Slice
         /// payload.</param>
         /// <param name="classFormat">The class format.</param>
         /// <returns>A new payload with the Ice 1.1 encoding.</returns>
-        public ReadOnlyMemory<ReadOnlyMemory<byte>> CreatePayloadFromSingleReturnValue<T>(
+        public static ReadOnlyMemory<ReadOnlyMemory<byte>> CreatePayloadFromSingleReturnValue<T>(
             T returnValue,
             EncodeAction<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default)
@@ -87,6 +84,9 @@ namespace IceRpc.Slice
             encodeAction(encoder, returnValue);
             return bufferWriter.Finish();
         }
+
+        /// <inheritdoc/>
+        public override ReadOnlyMemory<ReadOnlyMemory<byte>> CreateEmptyPayload() => default;
 
         internal override IceEncoder CreateIceEncoder(BufferWriter bufferWriter) => new Ice11Encoder(bufferWriter);
 

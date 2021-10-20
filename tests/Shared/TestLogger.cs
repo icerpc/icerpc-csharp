@@ -18,29 +18,29 @@ namespace IceRpc.Tests
 
         public TestLogger(string category) => Category = category;
 
-        public void Log<State>(
-            LogLevel level,
+        public void Log<TState>(
+            LogLevel logLevel,
             EventId eventId,
-            State state,
-            Exception? ex,
-            Func<State, Exception?, string> formatter)
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
         {
             Entries.Add(new(
-                level,
+                logLevel,
                 eventId,
                 new Dictionary<string, object?>(
                     state as IEnumerable<KeyValuePair<string, object?>> ??
                     Enumerable.Empty<KeyValuePair<string, object?>>()),
-                formatter(state, ex),
-                ex));
+                formatter(state, exception),
+                exception));
         }
 
-        public bool IsEnabled(LogLevel level) => true;
+        public bool IsEnabled(LogLevel logLevel) => true;
 
-        public IDisposable BeginScope<State>(State state) => null!;
+        public IDisposable BeginScope<TState>(TState state) => null!;
     };
 
-    public class TestLoggerFactory : ILoggerFactory
+    public sealed class TestLoggerFactory : ILoggerFactory
     {
         public TestLogger? Logger;
 
@@ -48,7 +48,7 @@ namespace IceRpc.Tests
         {
         }
 
-        public ILogger CreateLogger(string category) => Logger ??= new TestLogger(category);
+        public ILogger CreateLogger(string categoryName) => Logger ??= new TestLogger(categoryName);
 
         public void Dispose() => GC.SuppressFinalize(this);
     }

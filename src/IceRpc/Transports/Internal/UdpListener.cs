@@ -27,19 +27,22 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override void Dispose()
+        public override string ToString() => Endpoint.ToString();
+
+        protected override void Dispose(bool disposing)
         {
-            if (_acceptTask.ValueTask.IsCompletedSuccessfully)
+            if (disposing)
             {
-                _acceptTask.ValueTask.Result.Dispose();
-            }
-            else
-            {
-                _acceptTask.SetException(new ObjectDisposedException(nameof(UdpListener)));
+                if (_acceptTask.ValueTask.IsCompletedSuccessfully)
+                {
+                    _acceptTask.ValueTask.Result.Dispose();
+                }
+                else
+                {
+                    _acceptTask.SetException(new ObjectDisposedException(nameof(UdpListener)));
+                }
             }
         }
-
-        public override string ToString() => Endpoint.ToString();
 
         internal UdpListener(UdpSocket socket, Endpoint endpoint)
         {
