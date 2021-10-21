@@ -2,6 +2,7 @@
 
 using IceRpc.Configure;
 using IceRpc.Transports;
+using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -109,18 +110,27 @@ namespace IceRpc
 
                 if (Protocol == Protocol.Ice1)
                 {
-                    PerformListen(SimpleServerTransport);
+                    PerformListen(SimpleServerTransport, LogSimpleNetworkConnectionDecorator.Decorate);
                 }
                 else
                 {
-                    PerformListen(MultiplexedServerTransport);
+                    PerformListen(MultiplexedServerTransport, LogMultiplexedNetworkConnectionDecorator.Decorate);
                 }
                 _listening = true;
             }
 
-            void PerformListen<T>(IServerTransport<T> serverTransport) where T : INetworkConnection
+            void PerformListen<T>(
+                IServerTransport<T> serverTransport,
+                LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory) where T : INetworkConnection
             {
                 IListener<T> listener = serverTransport.Listen(_endpoint, LoggerFactory);
+
+                if (LoggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger &&
+                    logger.IsEnabled(LogLevel.Error))
+                {
+                    listener = new LogListenerDecorator<T>(listener, logger, logDecoratorFactory);
+                }
+
                 _endpoint = listener.Endpoint;
                 _listener = listener;
 

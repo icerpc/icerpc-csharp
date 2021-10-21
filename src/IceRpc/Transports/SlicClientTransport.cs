@@ -31,11 +31,35 @@ namespace IceRpc.Transports
 
         IMultiplexedNetworkConnection IClientTransport<IMultiplexedNetworkConnection>.CreateConnection(
             Endpoint remoteEndpoint,
-            ILoggerFactory loggerFactory) =>
-            new SlicNetworkConnection(
-                _simpleClientTransport.CreateConnection(remoteEndpoint, loggerFactory),
-                isServer: false,
-                _slicFrameReaderWriterFactory,
-                _slicOptions);
+            ILoggerFactory loggerFactory)
+        {
+            ISimpleNetworkConnection simpleNetworkConnection =
+                _simpleClientTransport.CreateConnection(remoteEndpoint, loggerFactory);
+            Func<ISimpleStream, (ISlicFrameReader, ISlicFrameWriter)> slicFrameReaderWriterFactory =
+                _slicFrameReaderWriterFactory;
+
+            if (loggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger && logger.IsEnabled(LogLevel.Error))
+            {
+                // We add log decorators to all Slic *internal* interfaces.
+
+                simpleNetworkConnection = new LogSimpleNetworkConnectionDecorator(simpleNetworkConnection,
+                                                                                  isServer: false,
+                                                                                  remoteEndpoint,
+                                                                                  logger);
+
+                slicFrameReaderWriterFactory = simpleStream =>
+                {
+                    (ISlicFrameReader reader, ISlicFrameWriter writer) = slicFrameReaderWriterFactory(simpleStream);
+
+                    return (new LogSlicFrameReaderDecorator(reader, logger),
+                            new LogSlicFrameWriterDecorator(writer, logger));
+                };
+            }
+
+            return new SlicNetworkConnection(simpleNetworkConnection,
+                                             isServer: false,
+                                             slicFrameReaderWriterFactory,
+                                             _slicOptions);
+        }
     }
 }

@@ -23,6 +23,25 @@ namespace IceRpc.Transports.Internal
             return (simpleStream, Information.Value);
         }
 
+        internal static ISimpleNetworkConnection Decorate(
+            ISimpleNetworkConnection decoratee,
+            bool isServer,
+            Endpoint endpoint,
+            ILogger logger)
+        {
+            if (decoratee is SocketNetworkConnection socketNetworkConnection)
+            {
+                return new LogSocketNetworkConnectionDecorator(socketNetworkConnection,
+                                                               isServer,
+                                                               endpoint,
+                                                               logger);
+            }
+            else
+            {
+                return new LogSimpleNetworkConnectionDecorator(decoratee, isServer, endpoint, logger);
+            }
+        }
+
         internal LogSimpleNetworkConnectionDecorator(
             ISimpleNetworkConnection decoratee,
             bool isServer,

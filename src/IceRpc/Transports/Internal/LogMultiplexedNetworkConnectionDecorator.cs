@@ -24,6 +24,13 @@ namespace IceRpc.Transports.Internal
             return (multiplexedStreamFactory, Information.Value);
         }
 
+        internal static IMultiplexedNetworkConnection Decorate(
+            IMultiplexedNetworkConnection decoratee,
+            bool isServer,
+            Endpoint endpoint,
+            ILogger logger) =>
+            new LogMultiplexedNetworkConnectionDecorator(decoratee, isServer, endpoint, logger);
+
         internal LogMultiplexedNetworkConnectionDecorator(
             IMultiplexedNetworkConnection decoratee,
             bool isServer,

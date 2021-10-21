@@ -7,6 +7,12 @@ using System.Text;
 
 namespace IceRpc.Transports.Internal
 {
+    internal delegate T LogNetworkConnectionDecoratorFactory<T>(
+        T decoratee,
+        bool isServer,
+        Endpoint endpoint,
+        ILogger logger) where T : INetworkConnection;
+
     internal abstract class LogNetworkConnectionDecorator : INetworkConnection
     {
         public bool IsSecure => Decoratee.IsSecure;
