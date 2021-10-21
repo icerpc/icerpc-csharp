@@ -14,9 +14,9 @@ namespace IceRpc.Tests.Internal
         private ISimpleStream ClientStream => _clientSimpleStreamConnection!;
         private ISimpleStream ServerStream => _serverSimpleStreamConnection!;
 
-        private INetworkConnection? _clientConnection;
+        private ISimpleNetworkConnection? _clientConnection;
         private ISimpleStream? _clientSimpleStreamConnection;
-        private INetworkConnection? _serverConnection;
+        private ISimpleNetworkConnection? _serverConnection;
         private ISimpleStream? _serverSimpleStreamConnection;
         private readonly string _transport;
 
@@ -113,16 +113,17 @@ namespace IceRpc.Tests.Internal
         public async Task SetUp()
         {
             Endpoint endpoint = TestHelper.GetTestEndpoint(transport: _transport, protocol: Protocol.Ice1);
-            using IListener listener = TestHelper.CreateServerTransport(_transport).Listen(endpoint);
+            using IListener<ISimpleNetworkConnection> listener =
+                TestHelper.CreateSimpleServerTransport(_transport).Listen(endpoint);
 
-            IClientTransport clientTransport = TestHelper.CreateClientTransport(_transport);
+            IClientTransport<ISimpleNetworkConnection> clientTransport =
+                TestHelper.CreateSimpleClientTransport(_transport);
             _clientConnection = clientTransport.CreateConnection(listener.Endpoint);
 
-            Task<INetworkConnection> acceptTask = listener.AcceptAsync();
-            Task<(ISimpleStream, NetworkConnectionInformation)> connectTask =
-                _clientConnection.ConnectSimpleAsync(default);
-            _serverConnection = await acceptTask;
-            (_serverSimpleStreamConnection, _) = await _serverConnection.ConnectSimpleAsync(default);
+            _serverConnection = await listener.AcceptAsync();
+            Task<(ISimpleStream, NetworkConnectionInformation)> connectTask = _clientConnection.ConnectAsync(default);
+
+            (_serverSimpleStreamConnection, _) = await _serverConnection.ConnectAsync(default);
             (_clientSimpleStreamConnection, _) = await connectTask;
         }
 

@@ -38,12 +38,23 @@ namespace IceRpc
     /// <summary>Represents a connection used to send and receive Ice frames.</summary>
     public sealed class Connection : IAsyncDisposable
     {
-        /// <summary>The default value for <see cref="IClientTransport"/>.</summary>
-        public static IClientTransport DefaultClientTransport { get; } =
-            new ClientTransport().UseColoc().UseTcp().UseUdp();
+        /// <summary>The default value for <see cref="MultiplexedClientTransport"/>.</summary>
+        public static IClientTransport<IMultiplexedNetworkConnection> DefaultMultiplexedClientTransport { get; } =
+            new MultiplexedClientTransport().UseColoc().UseTcp();
 
-        /// <summary>The <see cref="IClientTransport"/> used by this connection to create client connections.</summary>
-        public IClientTransport ClientTransport { get; init; } = DefaultClientTransport;
+        /// <summary>The default value for <see cref="SimpleClientTransport"/>.</summary>
+        public static IClientTransport<ISimpleNetworkConnection> DefaultSimpleClientTransport { get; } =
+            new SimpleClientTransport().UseColoc().UseTcp().UseUdp();
+
+        /// <summary>The <see cref="IClientTransport{IMultiplexedNetworkConnection}"/> used by this connection to
+        /// create multiplexed client connections.</summary>
+        public IClientTransport<IMultiplexedNetworkConnection> MultiplexedClientTransport { get; init; } =
+            DefaultMultiplexedClientTransport;
+
+        /// <summary>The <see cref="IClientTransport{ISimpleNetworkConnection}"/> used by this connection to
+        /// create simple client connections.</summary>
+        public IClientTransport<ISimpleNetworkConnection> SimpleClientTransport { get; init; } =
+            DefaultSimpleClientTransport;
 
         /// <summary>This event is raised when the connection is closed. The connection object is passed as the
         /// event sender argument. The event handler should not throw.</summary>
@@ -158,7 +169,10 @@ namespace IceRpc
                     if (!IsServer)
                     {
                         Debug.Assert(_protocolConnection == null && RemoteEndpoint != null);
-                        _networkConnection = ClientTransport.CreateConnection(RemoteEndpoint);
+
+                        _networkConnection = Protocol == Protocol.Ice1 ?
+                            SimpleClientTransport.CreateConnection(RemoteEndpoint) :
+                            MultiplexedClientTransport.CreateConnection(RemoteEndpoint);
                     }
 
                     Debug.Assert(_networkConnection != null);
@@ -180,13 +194,35 @@ namespace IceRpc
                 {
                     await Task.Yield();
 
-                    // Creates the protocol connection and the network connection information that is the
-                    // result of the network connection establishment.
-                    (_protocolConnection, NetworkConnectionInformation) = await Protocol.CreateConnectionAsync(
-                        _networkConnection,
-                        Options.IncomingFrameMaxSize,
-                        IsServer,
-                        connectCancellationSource.Token).ConfigureAwait(false);
+                    // TODO: the casts are temporary, pending more refactoring
+                    if (_networkConnection is ISimpleNetworkConnection simpleNetworkConnection)
+                    {
+                        (ISimpleStream simpleStream, NetworkConnectionInformation) =
+                            await simpleNetworkConnection.ConnectAsync(connectCancellationSource.Token).
+                                ConfigureAwait(false);
+
+                        var protocolConnection =
+                            new Ice1ProtocolConnection(simpleStream, Options.IncomingFrameMaxSize);
+                        await protocolConnection.InitializeAsync(IsServer, connectCancellationSource.Token).
+                            ConfigureAwait(false);
+                        _protocolConnection = protocolConnection;
+                    }
+                    else if (_networkConnection is IMultiplexedNetworkConnection multiplexedNetworkConnection)
+                    {
+                        (IMultiplexedStreamFactory streamFactory, NetworkConnectionInformation) =
+                            await multiplexedNetworkConnection.ConnectAsync(connectCancellationSource.Token).
+                                ConfigureAwait(false);
+
+                        var protocolConnection =
+                            new Ice2ProtocolConnection(streamFactory, Options.IncomingFrameMaxSize);
+                        await protocolConnection.InitializeAsync(connectCancellationSource.Token).
+                            ConfigureAwait(false);
+                        _protocolConnection = protocolConnection;
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException();
+                    }
 
                     lock (_mutex)
                     {

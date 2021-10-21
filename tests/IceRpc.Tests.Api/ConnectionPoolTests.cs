@@ -119,29 +119,31 @@ namespace IceRpc.Tests.Api
             Endpoint endpoint1 = endpoint1Str;
             Endpoint endpoint2 = endpoint2Str;
 
-            IServerTransport serverTransport = Server.DefaultServerTransport;
-            IClientTransport clientTransport = Connection.DefaultClientTransport;
+            IServerTransport<IMultiplexedNetworkConnection> serverTransport = Server.DefaultMultiplexedServerTransport;
+            IClientTransport<IMultiplexedNetworkConnection> clientTransport =
+                Connection.DefaultMultiplexedClientTransport;
+
             if (endpoint1.Transport == "tcp")
             {
-                serverTransport = TestHelper.GetSecureServerTransport();
-                clientTransport = TestHelper.GetSecureClientTransport();
+                serverTransport = TestHelper.GetSecureMultiplexedServerTransport();
+                clientTransport = TestHelper.GetSecureMultiplexedClientTransport();
             }
 
             await using var server1 = new Server()
             {
-                ServerTransport = serverTransport,
+                MultiplexedServerTransport = serverTransport,
                 Endpoint = endpoint1
             };
             server1.Listen();
 
             await using var server2 = new Server()
             {
-                ServerTransport = serverTransport,
+                MultiplexedServerTransport = serverTransport,
                 Endpoint = endpoint2
             };
             server2.Listen();
 
-            await using var connectionPool = new ConnectionPool { ClientTransport = clientTransport };
+            await using var connectionPool = new ConnectionPool { MultiplexedClientTransport = clientTransport };
 
             Connection connection1 = await connectionPool.GetConnectionAsync(
                 server1.Endpoint,

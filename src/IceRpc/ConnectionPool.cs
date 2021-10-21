@@ -11,10 +11,6 @@ namespace IceRpc
     /// <see cref="BinderInterceptor"/> interceptor.</summary>
     public sealed partial class ConnectionPool : IConnectionProvider, IAsyncDisposable
     {
-        /// <summary>The <see cref="IClientTransport"/> used by the connections created by this pool.
-        /// </summary>
-        public IClientTransport ClientTransport { get; init; } = Connection.DefaultClientTransport;
-
         /// <summary>The connection options.</summary>
         public ConnectionOptions ConnectionOptions { get; init; } = new();
 
@@ -24,6 +20,11 @@ namespace IceRpc
         /// <seealso cref="IDispatcher"/>
         public IDispatcher? Dispatcher { get; init; }
 
+        /// <summary>The <see cref="IClientTransport{IMultiplexedNetworkConnection}"/> used by this pool to
+        /// create multiplexed client connections.</summary>
+        public IClientTransport<IMultiplexedNetworkConnection> MultiplexedClientTransport { get; init; } =
+            Connection.DefaultMultiplexedClientTransport;
+
         /// <summary>Indicates whether or not <see cref="GetConnectionAsync"/> prefers returning an existing connection
         /// over creating a new one.</summary>
         /// <value>When <c>true</c>, GetConnectionAsync first iterates over all endpoints (in order) to look for an
@@ -31,6 +32,11 @@ namespace IceRpc
         /// the endpoints. When <c>false</c>, GetConnectionAsync iterates over the endpoints only once to retrieve or
         /// create an active connection. The default value is <c>true</c>.</value>
         public bool PreferExistingConnection { get; set; } = true;
+
+        /// <summary>The <see cref="IClientTransport{ISimpleNetworkConnection}"/> used by this pool to
+        /// create simple client connections.</summary>
+        public IClientTransport<ISimpleNetworkConnection> SimpleClientTransport { get; init; } =
+            Connection.DefaultSimpleClientTransport;
 
         private readonly Dictionary<Endpoint, List<Connection>> _connections = new(EndpointComparer.ParameterLess);
         private readonly object _mutex = new();
@@ -210,9 +216,10 @@ namespace IceRpc
                     connection = new Connection
                     {
                         Dispatcher = Dispatcher,
-                        ClientTransport = ClientTransport,
+                        MultiplexedClientTransport = MultiplexedClientTransport,
                         Options = ConnectionOptions,
-                        RemoteEndpoint = endpoint
+                        RemoteEndpoint = endpoint,
+                        SimpleClientTransport = SimpleClientTransport,
                     };
                     if (!_connections.TryGetValue(endpoint, out connections))
                     {

@@ -7,41 +7,38 @@ using System.Net.Sockets;
 
 namespace IceRpc.Transports
 {
-    /// <summary>Implements <see cref="IServerTransport"/> for the tcp and ssl transports.</summary>
-    public class TcpServerTransport : SimpleServerTransport
+    /// <summary>Implements <see cref="IServerTransport{T}"/> for the tcp and ssl transports.</summary>
+    public class TcpServerTransport : IServerTransport<ISimpleNetworkConnection>
     {
-        private readonly TcpOptions _tcpOptions;
         private readonly SslServerAuthenticationOptions? _authenticationOptions;
+        private readonly TcpOptions _tcpOptions;
 
         /// <summary>Constructs a <see cref="TcpServerTransport"/>.</summary>
         public TcpServerTransport() :
-            this(tcpOptions: new(), slicOptions: new(), null)
+            this(tcpOptions: new(), null)
         {
         }
 
         /// <summary>Constructs a <see cref="TcpServerTransport"/>.</summary>
         /// <param name="authenticationOptions">The ssl authentication options. If not set, ssl is disabled.</param>
         public TcpServerTransport(SslServerAuthenticationOptions authenticationOptions) :
-            this(tcpOptions: new(), slicOptions: new(), authenticationOptions)
+            this(tcpOptions: new(), authenticationOptions)
         {
         }
 
         /// <summary>Constructs a <see cref="TcpServerTransport"/>.</summary>
         /// <param name="tcpOptions">The TCP transport options.</param>
-        /// <param name="slicOptions">The Slic transport options.</param>
         /// <param name="authenticationOptions">The ssl authentication options. If not set, ssl is disabled.</param>
         public TcpServerTransport(
             TcpOptions tcpOptions,
-            SlicOptions slicOptions,
-            SslServerAuthenticationOptions? authenticationOptions) :
-            base(slicOptions, tcpOptions.IdleTimeout)
+            SslServerAuthenticationOptions? authenticationOptions)
         {
             _tcpOptions = tcpOptions;
             _authenticationOptions = authenticationOptions;
         }
 
         /// <inheritdoc/>
-        protected override SimpleListener Listen(Endpoint endpoint)
+        IListener<ISimpleNetworkConnection> IServerTransport<ISimpleNetworkConnection>.Listen(Endpoint endpoint)
         {
             // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
             // a tcp or ssl endpoint regardless of its actual transport name.

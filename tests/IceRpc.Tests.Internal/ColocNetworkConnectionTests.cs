@@ -12,7 +12,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void ColocNetworkConnection_Close()
         {
-            ColocNetworkConnection connection = CreateConnection(false);
+            ISimpleNetworkConnection connection = CreateConnection(false);
             connection.Close();
             connection.Close();
         }
@@ -21,7 +21,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(false, true)]
         public void ColocNetworkConnection_HasCompatibleParams(bool isServer, bool expectedResult)
         {
-            ColocNetworkConnection connection = CreateConnection(isServer);
+            ISimpleNetworkConnection connection = CreateConnection(isServer);
             Assert.That(connection.HasCompatibleParams(Endpoint.FromString("ice+coloc://host")),
                         Is.EqualTo(expectedResult));
             connection.Close();
@@ -31,14 +31,13 @@ namespace IceRpc.Tests.Internal
         [TestCase(true)]
         public async Task ColocNetworkConnection_Properties(bool isServer)
         {
-            ColocNetworkConnection connection = CreateConnection(isServer);
+            ISimpleNetworkConnection connection = CreateConnection(isServer);
 
             (ISimpleStream? _, NetworkConnectionInformation information) = await connection.ConnectAsync(default);
 
             Assert.That(information.LocalEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
             Assert.That(information.RemoteEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
             Assert.That(information.IdleTimeout, Is.EqualTo(TimeSpan.MaxValue));
-            Assert.That(connection.IsDatagram, Is.False);
 
             connection.Close();
         }
@@ -46,7 +45,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task ColocNetworkConnection_LastActivity()
         {
-            ColocNetworkConnection connection = CreateConnection(false);
+            ISimpleNetworkConnection connection = CreateConnection(false);
 
             (ISimpleStream stream, NetworkConnectionInformation _) = await connection.ConnectAsync(default);
 
@@ -64,7 +63,7 @@ namespace IceRpc.Tests.Internal
             connection.Close();
         }
 
-        private static ColocNetworkConnection CreateConnection(bool isServer)
+        private static ISimpleNetworkConnection CreateConnection(bool isServer)
         {
             var channel = Channel.CreateUnbounded<ReadOnlyMemory<byte>>(
                 new UnboundedChannelOptions

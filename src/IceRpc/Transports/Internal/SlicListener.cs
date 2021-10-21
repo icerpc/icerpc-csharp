@@ -2,33 +2,29 @@
 
 namespace IceRpc.Transports.Internal
 {
-    internal class SlicListenerDecorator : IListener
+    internal class SlicListener : IListener<IMultiplexedNetworkConnection>
     {
-        private readonly IListener _decoratee;
-        private readonly TimeSpan _idleTimeout;
+        private readonly IListener<ISimpleNetworkConnection> _simpleListener;
         private readonly Func<ISimpleStream, (ISlicFrameReader, ISlicFrameWriter)> _slicFrameReaderWriterFactory;
         private readonly SlicOptions _slicOptions;
 
-        public Endpoint Endpoint => _decoratee.Endpoint;
+        public Endpoint Endpoint => _simpleListener.Endpoint;
 
-        public async Task<INetworkConnection> AcceptAsync() =>
-            new SlicNetworkConnectionDecorator(
-                await _decoratee.AcceptAsync().ConfigureAwait(false),
-                _idleTimeout,
+        public async ValueTask<IMultiplexedNetworkConnection> AcceptAsync() =>
+            new SlicNetworkConnection(
+                await _simpleListener.AcceptAsync().ConfigureAwait(false),
                 isServer: true,
                 _slicFrameReaderWriterFactory,
                 _slicOptions);
 
-        public void Dispose() => _decoratee.Dispose();
+        public void Dispose() => _simpleListener.Dispose();
 
-        internal SlicListenerDecorator(
-            IListener decoratee,
-            TimeSpan idleTimeout,
+        internal SlicListener(
+            IListener<ISimpleNetworkConnection> simpleListener,
             Func<ISimpleStream, (ISlicFrameReader, ISlicFrameWriter)> slicFrameReaderWriterFactory,
             SlicOptions slicOptions)
         {
-            _decoratee = decoratee;
-            _idleTimeout = idleTimeout;
+            _simpleListener = simpleListener;
             _slicFrameReaderWriterFactory = slicFrameReaderWriterFactory;
             _slicOptions = slicOptions;
         }

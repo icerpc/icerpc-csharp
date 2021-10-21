@@ -24,7 +24,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task TcpConnectAcceptSocket_Listener_AcceptAsync()
         {
-            using IListener listener = CreateListener();
+            using IListener<ISimpleNetworkConnection> listener = CreateSimpleListener();
             ValueTask<NetworkSocket> acceptTask = CreateServerNetworkSocketAsync(listener);
 
             using NetworkSocket clientSocket = CreateClientNetworkSocket();
@@ -35,14 +35,14 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void TcpConnectAcceptSocket_Listener_Constructor_TransportException()
         {
-            using IListener listener = CreateListener();
-            Assert.Throws<TransportException>(() => CreateListener());
+            using IListener<ISimpleNetworkConnection> listener = CreateSimpleListener();
+            Assert.Throws<TransportException>(() => CreateSimpleListener());
         }
 
         [Test]
         public async Task TcpConnectAcceptSocket_AcceptAsync()
         {
-            using IListener listener = CreateListener();
+            using IListener<ISimpleNetworkConnection> listener = CreateSimpleListener();
             ValueTask<NetworkSocket> acceptTask = CreateServerNetworkSocketAsync(listener);
 
             using NetworkSocket clientSocket = CreateClientNetworkSocket();
@@ -66,7 +66,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task TcpConnectAcceptSocket_AcceptAsync_ConnectionLostExceptionAsync()
         {
-            using IListener listener = CreateListener();
+            using IListener<ISimpleNetworkConnection> listener = CreateSimpleListener();
             ValueTask<NetworkSocket> acceptTask = CreateServerNetworkSocketAsync(listener);
 
             NetworkSocket clientSocket = CreateClientNetworkSocket();
@@ -99,22 +99,24 @@ namespace IceRpc.Tests.Internal
         [TestCase(false, true)]
         public void TcpConnectAcceptSocket_Listener_AddressReuse(bool wildcard1, bool wildcard2)
         {
-            IListener listener;
+            IListener<ISimpleNetworkConnection> listener;
             if (wildcard1)
             {
                 Endpoint serverEndpoint = ServerEndpoint with { Host = "::0" };
-                IServerTransport serverTransport = TestHelper.CreateServerTransport(serverEndpoint.Transport);
+                IServerTransport<ISimpleNetworkConnection> serverTransport =
+                    TestHelper.CreateSimpleServerTransport(serverEndpoint.Transport);
                 listener = serverTransport.Listen(serverEndpoint);
             }
             else
             {
-                listener = CreateListener();
+                listener = CreateSimpleListener();
             }
 
             if (wildcard2)
             {
                 Endpoint serverEndpoint = ServerEndpoint with { Host = "::0" };
-                IServerTransport serverTransport = TestHelper.CreateServerTransport(serverEndpoint.Transport);
+                IServerTransport<ISimpleNetworkConnection> serverTransport =
+                    TestHelper.CreateSimpleServerTransport(serverEndpoint.Transport);
                 if (OperatingSystem.IsMacOS())
                 {
                     // On macOS, it's still possible to bind to a specific address even if a connection is bound
@@ -132,11 +134,11 @@ namespace IceRpc.Tests.Internal
                 {
                     // On macOS, it's still possible to bind to a specific address even if a connection is bound
                     // to the wildcard address.
-                    Assert.DoesNotThrow(() => CreateListener().Dispose());
+                    Assert.DoesNotThrow(() => CreateSimpleListener().Dispose());
                 }
                 else
                 {
-                    Assert.Catch<TransportException>(() => CreateListener());
+                    Assert.Catch<TransportException>(() => CreateSimpleListener());
                 }
             }
 
@@ -146,7 +148,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task TcpConnectAcceptSocket_AcceptAsync_OperationCanceledExceptionAsync()
         {
-            using IListener listener = CreateListener();
+            using IListener<ISimpleNetworkConnection> listener = CreateSimpleListener();
 
             using NetworkSocket clientSocket = CreateClientNetworkSocket();
             ValueTask<Endpoint> connectTask = clientSocket.ConnectAsync(ClientEndpoint, default);
@@ -179,7 +181,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void TcpConnectAcceptSocket_ConnectAsync_OperationCanceledException()
         {
-            using IListener listener = CreateListener();
+            using IListener<ISimpleNetworkConnection> listener = CreateSimpleListener();
 
             using var source = new CancellationTokenSource();
             if (_tls == false)
@@ -201,7 +203,8 @@ namespace IceRpc.Tests.Internal
                 async () => await clientSocket2.ConnectAsync(ClientEndpoint, source2.Token));
         }
 
-        private static async ValueTask<NetworkSocket> CreateServerNetworkSocketAsync(IListener listener) =>
+        private static async ValueTask<NetworkSocket> CreateServerNetworkSocketAsync(
+            IListener<ISimpleNetworkConnection> listener) =>
             GetNetworkSocket(await listener.AcceptAsync());
     }
 }

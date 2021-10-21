@@ -7,12 +7,16 @@ namespace IceRpc.Transports
     public interface IListener : IDisposable
     {
         /// <summary>The endpoint this listener is listening on. This endpoint can be different from the endpoint used
-        /// to create the listener. For example, the binding a TCP server socket can assign a port.</summary>
+        /// to create the listener if for example the binding of the server socket assigned a port.</summary>
         /// <return>The bound endpoint.</return>
         Endpoint Endpoint { get; }
+    }
 
+    /// <summary>A listener associated that accepts a specific type of network connection.</summary>
+    public interface IListener<T> : IListener where T : INetworkConnection
+    {
         /// <summary>Accepts a new connection.</summary>
         /// <return>The accepted connection.</return>
-        Task<INetworkConnection> AcceptAsync();
+        ValueTask<T> AcceptAsync();
     }
 }

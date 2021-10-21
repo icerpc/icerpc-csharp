@@ -21,7 +21,8 @@ namespace IceRpc.Tests.ClientServer
         {
             _pool = new ConnectionPool()
             {
-                ClientTransport = new ClientTransport().UseTcp()
+                MultiplexedClientTransport = new MultiplexedClientTransport().UseTcp(),
+                SimpleClientTransport = new SimpleClientTransport().UseTcp()
             };
             var pipeline = new Pipeline();
 

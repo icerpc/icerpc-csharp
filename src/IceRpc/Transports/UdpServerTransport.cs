@@ -8,8 +8,8 @@ using static IceRpc.Transports.Internal.UdpUtils;
 
 namespace IceRpc.Transports
 {
-    /// <summary>Implements <see cref="IServerTransport"/> for the udp transport.</summary>
-    public class UdpServerTransport : IServerTransport
+    /// <summary>Implements <see cref="IServerTransport{T}"/> for the udp transport.</summary>
+    public class UdpServerTransport : IServerTransport<ISimpleNetworkConnection>
     {
         private readonly UdpOptions _options;
 
@@ -21,7 +21,7 @@ namespace IceRpc.Transports
         /// </summary>
         public UdpServerTransport(UdpOptions options) => _options = options;
 
-        IListener IServerTransport.Listen(Endpoint endpoint)
+        IListener<ISimpleNetworkConnection> IServerTransport<ISimpleNetworkConnection>.Listen(Endpoint endpoint)
         {
             // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
             // a udp endpoint regardless of its actual transport name.

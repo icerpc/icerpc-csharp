@@ -7,10 +7,10 @@ using System.Threading.Channels;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The <see cref="SimpleListener"/> implementation for the colocated transport.</summary>
-    internal class ColocListener : SimpleListener
+    /// <summary>The listener implementation for the colocated transport.</summary>
+    internal class ColocListener : IListener<ISimpleNetworkConnection>
     {
-        public override Endpoint Endpoint { get; }
+        public Endpoint Endpoint { get; }
 
         /// <summary>A dictionary that keeps track of all coloc listeners.</summary>
         private static readonly IDictionary<Endpoint, ColocListener> _colocListenerDictionary =
@@ -18,7 +18,7 @@ namespace IceRpc.Transports.Internal
 
         private readonly Channel<(ChannelWriter<ReadOnlyMemory<byte>>, ChannelReader<ReadOnlyMemory<byte>>)> _channel;
 
-        public override async Task<SimpleNetworkConnection> AcceptAsync()
+        public async ValueTask<ISimpleNetworkConnection> AcceptAsync()
         {
             (ChannelWriter<ReadOnlyMemory<byte>> writer, ChannelReader<ReadOnlyMemory<byte>> reader) =
                 await _channel.Reader.ReadAsync().ConfigureAwait(false);
@@ -32,13 +32,10 @@ namespace IceRpc.Transports.Internal
             [NotNullWhen(returnValue: true)] out ColocListener? listener) =>
             _colocListenerDictionary.TryGetValue(endpoint, out listener);
 
-        protected override void Dispose(bool disposing)
+        public void Dispose()
         {
-            if (disposing)
-            {
-                _channel.Writer.Complete();
-                _colocListenerDictionary.Remove(Endpoint);
-            }
+            _channel.Writer.Complete();
+            _colocListenerDictionary.Remove(Endpoint);
         }
 
         internal ColocListener(Endpoint endpoint)

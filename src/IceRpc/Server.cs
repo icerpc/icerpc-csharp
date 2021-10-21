@@ -13,9 +13,13 @@ namespace IceRpc
     /// <see cref="Listen"/> and finally shut down with <see cref="ShutdownAsync"/>.</summary>
     public sealed class Server : IAsyncDisposable
     {
-        /// <summary>The default value for <see cref="ServerTransport"/>.</summary>
-        public static IServerTransport DefaultServerTransport { get; } =
-            new ServerTransport().UseColoc().UseTcp().UseUdp();
+        /// <summary>The default value for <see cref="MultiplexedServerTransport"/>.</summary>
+        public static IServerTransport<IMultiplexedNetworkConnection> DefaultMultiplexedServerTransport { get; } =
+            new MultiplexedServerTransport().UseColoc().UseTcp();
+
+        /// <summary>The default value for <see cref="SimpleServerTransport"/>.</summary>
+        public static IServerTransport<ISimpleNetworkConnection> DefaultSimpleServerTransport { get; } =
+            new SimpleServerTransport().UseColoc().UseTcp().UseUdp();
 
         /// <summary>Gets or sets the options of server connections created by this server.</summary>
         public ConnectionOptions ConnectionOptions { get; set; } = new();
@@ -43,12 +47,19 @@ namespace IceRpc
             }
         }
 
+        /// <summary>The <see cref="IServerTransport{IMultiplexedNetworkConnection}"/> used by this server to accept
+        /// multiplexed connections.</summary>
+        public IServerTransport<IMultiplexedNetworkConnection> MultiplexedServerTransport { get; set; } =
+            DefaultMultiplexedServerTransport;
+
         /// <summary>Gets the Ice protocol used by this server.</summary>
         /// <value>The Ice protocol of this server.</value>
         public Protocol Protocol => _endpoint?.Protocol ?? Protocol.Ice2;
 
-        /// <summary>The <see cref="IServerTransport"/> used by this server to accept connections.</summary>
-        public IServerTransport ServerTransport { get; set; } = DefaultServerTransport;
+        /// <summary>The <see cref="IServerTransport{ISimpleNetworkConnection}"/> used by this server to accept
+        /// simple connections.</summary>
+        public IServerTransport<ISimpleNetworkConnection> SimpleServerTransport { get; set; } =
+            DefaultSimpleServerTransport;
 
         /// <summary>Returns a task that completes when the server's shutdown is complete: see
         /// <see cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
@@ -58,7 +69,7 @@ namespace IceRpc
 
         private Endpoint _endpoint = "ice+tcp://[::0]";
 
-        private IListener? _listener;
+        private IDisposable? _listener;
 
         private bool _listening;
 
@@ -94,13 +105,25 @@ namespace IceRpc
                     throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
 
-                _listener = ServerTransport.Listen(_endpoint);
-                _endpoint = _listener.Endpoint;
+                if (Protocol == Protocol.Ice1)
+                {
+                    PerformListen(SimpleServerTransport);
+                }
+                else
+                {
+                    PerformListen(MultiplexedServerTransport);
+                }
+                _listening = true;
+            }
+
+            void PerformListen<T>(IServerTransport<T> serverTransport) where T : INetworkConnection
+            {
+                IListener<ISimpleNetworkConnection> listener = SimpleServerTransport.Listen(_endpoint);
+                _endpoint = listener.Endpoint;
+                _listener = listener;
 
                 // Run task to start accepting new connections.
-                Task.Run(() => AcceptAsync(_listener));
-
-                _listening = true;
+                Task.Run(() => AcceptAsync(listener));
             }
         }
 
@@ -174,11 +197,11 @@ namespace IceRpc
         public async ValueTask DisposeAsync() =>
             await ShutdownAsync(new CancellationToken(canceled: true)).ConfigureAwait(false);
 
-        private async Task AcceptAsync(IListener listener)
+        private async Task AcceptAsync<T>(IListener<T> listener) where T : INetworkConnection
         {
             while (true)
             {
-                INetworkConnection networkConnection;
+                T networkConnection;
                 try
                 {
                     networkConnection = await listener.AcceptAsync().ConfigureAwait(false);

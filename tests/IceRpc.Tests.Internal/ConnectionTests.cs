@@ -67,19 +67,37 @@ namespace IceRpc.Tests.Internal
 
             public async Task<(Connection, Connection)> AcceptAndConnectAsync()
             {
-                IServerTransport serverTransport = TestHelper.CreateServerTransport(
-                    Endpoint.Transport,
-                    options: _serverTransportOptions,
-                    authenticationOptions: _serverAuthenticationOptions);
+                if (Endpoint.Protocol == Protocol.Ice1)
+                {
+                    IServerTransport<ISimpleNetworkConnection> serverTransport = TestHelper.CreateSimpleServerTransport(
+                        Endpoint.Transport,
+                        options: _serverTransportOptions,
+                        authenticationOptions: _serverAuthenticationOptions);
 
-                using IListener listener = serverTransport.Listen(Endpoint);
-#pragma warning disable CA2000
-                Task<Connection> serverTask = AcceptAsync(listener);
-                Task<Connection> clientTask = ConnectAsync(listener.Endpoint);
-                return (await serverTask, await clientTask);
-#pragma warning restore CA2000
+                    using IListener<ISimpleNetworkConnection> listener = serverTransport.Listen(Endpoint);
+                    #pragma warning disable CA2000
+                    Task<Connection> serverTask = AcceptAsync(listener);
+                    Task<Connection> clientTask = ConnectAsync(listener.Endpoint);
+                    return (await serverTask, await clientTask);
+                    #pragma warning restore CA2000
+                }
+                else
+                {
+                    IServerTransport<IMultiplexedNetworkConnection> serverTransport =
+                        TestHelper.CreateMultiplexedServerTransport(
+                            Endpoint.Transport,
+                            options: _serverTransportOptions as TcpOptions,
+                            authenticationOptions: _serverAuthenticationOptions);
 
-                async Task<Connection> AcceptAsync(IListener listener)
+                    using IListener<IMultiplexedNetworkConnection> listener = serverTransport.Listen(Endpoint);
+                    #pragma warning disable CA2000
+                    Task<Connection> serverTask = AcceptAsync(listener);
+                    Task<Connection> clientTask = ConnectAsync(listener.Endpoint);
+                    return (await serverTask, await clientTask);
+                    #pragma warning restore CA2000
+                }
+
+                async Task<Connection> AcceptAsync<T>(IListener<T> listener) where T : INetworkConnection
                 {
                     var connection = new Connection(await listener.AcceptAsync(), Endpoint.Protocol)
                     {
@@ -94,7 +112,11 @@ namespace IceRpc.Tests.Internal
                 {
                     var connection = new Connection
                     {
-                        ClientTransport = TestHelper.CreateClientTransport(
+                        MultiplexedClientTransport = TestHelper.CreateMultiplexedClientTransport(
+                            endpoint.Transport,
+                            options: _clientTransportOptions as TcpOptions,
+                            authenticationOptions: _clientAuthenticationOptions),
+                        SimpleClientTransport = TestHelper.CreateSimpleClientTransport(
                             endpoint.Transport,
                             options: _clientTransportOptions,
                             authenticationOptions: _clientAuthenticationOptions),
@@ -273,8 +295,13 @@ namespace IceRpc.Tests.Internal
                 transport: "tcp",
                 protocol: Protocol.FromProtocolCode(protocol));
 
-            IServerTransport transport = new TcpServerTransport(new TcpOptions { ListenerBackLog = 1 }, new(), null);
-            using IListener listener = transport.Listen(endpoint);
+            IServerTransport<ISimpleNetworkConnection> tcpServerTransport =
+                new TcpServerTransport(new TcpOptions { ListenerBackLog = 1 }, null);
+
+            using IListener listener = protocol == ProtocolCode.Ice1 ?
+                tcpServerTransport.Listen(endpoint) :
+                (new SlicServerTransport(tcpServerTransport) as IServerTransport<IMultiplexedNetworkConnection>).
+                    Listen(endpoint);
 
             await using var connection = new Connection
             {

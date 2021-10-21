@@ -7,15 +7,15 @@ namespace IceRpc.Transports.Internal
 {
     /// <summary>The colocated network connection class to exchange data within the same process. The implementation
     /// copies the send buffer into the receive buffer.</summary>
-    internal class ColocNetworkConnection : SimpleNetworkConnection, ISimpleStream
+    internal class ColocNetworkConnection : ISimpleNetworkConnection, ISimpleStream
     {
-        public int DatagramMaxReceiveSize => throw new InvalidOperationException();
+        int ISimpleStream.DatagramMaxReceiveSize => throw new InvalidOperationException();
 
-        public bool IsDatagram => false;
+        bool ISimpleStream.IsDatagram => false;
 
-        public override bool IsSecure => true;
+        bool INetworkConnection.IsSecure => true;
 
-        public override TimeSpan LastActivity => TimeSpan.Zero;
+        TimeSpan INetworkConnection.LastActivity => TimeSpan.Zero;
 
         private readonly Endpoint _endpoint;
         private readonly bool _isServer;
@@ -23,13 +23,14 @@ namespace IceRpc.Transports.Internal
         private ReadOnlyMemory<byte> _receivedBuffer;
         private readonly ChannelWriter<ReadOnlyMemory<byte>> _writer;
 
-        public override Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel) =>
+        Task<(ISimpleStream, NetworkConnectionInformation)> ISimpleNetworkConnection.ConnectAsync(
+            CancellationToken cancel) =>
             Task.FromResult<(ISimpleStream, NetworkConnectionInformation)>(
                 (this, new NetworkConnectionInformation(_endpoint, _endpoint, TimeSpan.MaxValue, null)));
 
-        public override void Close(Exception? exception = null) => _writer.TryComplete();
+        void INetworkConnection.Close(Exception? exception) => _writer.TryComplete();
 
-        public override bool HasCompatibleParams(Endpoint remoteEndpoint)
+        bool INetworkConnection.HasCompatibleParams(Endpoint remoteEndpoint)
         {
             if (remoteEndpoint.Params.Count > 0)
             {
@@ -39,7 +40,7 @@ namespace IceRpc.Transports.Internal
             return !_isServer;
         }
 
-        public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
+        async ValueTask<int> ISimpleStream.ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             if (_receivedBuffer.Length == 0)
             {
@@ -76,7 +77,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public async ValueTask WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
+        async ValueTask ISimpleStream.WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
         {
             try
             {
