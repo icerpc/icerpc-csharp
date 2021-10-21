@@ -118,7 +118,7 @@ namespace IceRpc
 
             void PerformListen<T>(IServerTransport<T> serverTransport) where T : INetworkConnection
             {
-                IListener<ISimpleNetworkConnection> listener = SimpleServerTransport.Listen(_endpoint);
+                IListener<T> listener = serverTransport.Listen(_endpoint);
                 _endpoint = listener.Endpoint;
                 _listener = listener;
 

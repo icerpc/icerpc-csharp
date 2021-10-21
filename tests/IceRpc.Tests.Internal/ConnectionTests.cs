@@ -110,19 +110,26 @@ namespace IceRpc.Tests.Internal
 
                 async Task<Connection> ConnectAsync(Endpoint endpoint)
                 {
-                    var connection = new Connection
-                    {
-                        MultiplexedClientTransport = TestHelper.CreateMultiplexedClientTransport(
-                            endpoint.Transport,
-                            options: _clientTransportOptions as TcpOptions,
-                            authenticationOptions: _clientAuthenticationOptions),
-                        SimpleClientTransport = TestHelper.CreateSimpleClientTransport(
-                            endpoint.Transport,
-                            options: _clientTransportOptions,
-                            authenticationOptions: _clientAuthenticationOptions),
-                        Options = _clientConnectionOptions,
-                        RemoteEndpoint = endpoint
-                    };
+                    var connection = endpoint.Protocol == Protocol.Ice1 ?
+                        new Connection
+                        {
+                            SimpleClientTransport = TestHelper.CreateSimpleClientTransport(
+                                endpoint.Transport,
+                                options: _clientTransportOptions,
+                                authenticationOptions: _clientAuthenticationOptions),
+                            Options = _clientConnectionOptions,
+                            RemoteEndpoint = endpoint
+                        } :
+                        new Connection
+                        {
+                            MultiplexedClientTransport = TestHelper.CreateMultiplexedClientTransport(
+                                endpoint.Transport,
+                                options: _clientTransportOptions as TcpOptions,
+                                authenticationOptions: _clientAuthenticationOptions),
+                            Options = _clientConnectionOptions,
+                            RemoteEndpoint = endpoint
+                        };
+
                     await connection.ConnectAsync(default);
                     return connection;
                 }
@@ -172,7 +179,7 @@ namespace IceRpc.Tests.Internal
 
                 if (transport == "coloc")
                 {
-                    Endpoint = new Endpoint(Protocol.Ice2,
+                    Endpoint = new Endpoint(Protocol.FromProtocolCode(protocol),
                                             transport,
                                             host: Guid.NewGuid().ToString(),
                                             port: 4062,
@@ -317,7 +324,7 @@ namespace IceRpc.Tests.Internal
         [TestCase("udp", false)]
         public async Task Connection_InformationAsync(string transport, bool secure)
         {
-            await using var factory = new ConnectionFactory(transport, secure: secure);
+            await using var factory = new ConnectionFactory(transport, protocol: ProtocolCode.Ice1, secure: secure);
 
             Assert.That(factory.ClientConnection.IsSecure, Is.EqualTo(secure));
             Assert.That(factory.ServerConnection.IsSecure, Is.EqualTo(secure));
