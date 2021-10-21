@@ -175,8 +175,10 @@ namespace IceRpc
                         Debug.Assert(_protocolConnection == null && RemoteEndpoint != null);
 
                         _networkConnection = Protocol == Protocol.Ice1 ?
-                            SimpleClientTransport.CreateConnection(RemoteEndpoint, LoggerFactory) :
-                            MultiplexedClientTransport.CreateConnection(RemoteEndpoint, LoggerFactory);
+                            CreateClientNetworkConnection(SimpleClientTransport,
+                                                          LogSimpleNetworkConnectionDecorator.Decorate) :
+                            CreateClientNetworkConnection(MultiplexedClientTransport,
+                                                          LogMultiplexedNetworkConnectionDecorator.Decorate);
                     }
 
                     Debug.Assert(_networkConnection != null);
@@ -190,6 +192,20 @@ namespace IceRpc
             }
 
             return _connectTask.WaitAsync(cancel);
+
+            T CreateClientNetworkConnection<T>(
+                IClientTransport<T> clientTransport,
+                LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory) where T : INetworkConnection
+            {
+                T connection = clientTransport.CreateConnection(RemoteEndpoint, LoggerFactory);
+
+                if (LoggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger &&
+                    logger.IsEnabled(LogLevel.Error))
+                {
+                    connection = logDecoratorFactory(connection, isServer: false, RemoteEndpoint, logger);
+                }
+                return connection;
+            }
 
             async Task PerformConnectAsync()
             {
