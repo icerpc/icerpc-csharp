@@ -105,7 +105,7 @@ namespace IceRpc.Tests.Internal
                 Endpoint serverEndpoint = ServerEndpoint with { Host = "::0" };
                 IServerTransport<ISimpleNetworkConnection> serverTransport =
                     TestHelper.CreateSimpleServerTransport(serverEndpoint.Transport);
-                listener = serverTransport.Listen(serverEndpoint);
+                listener = serverTransport.Listen(serverEndpoint, LogAttributeLoggerFactory.Instance);
             }
             else
             {
@@ -121,11 +121,13 @@ namespace IceRpc.Tests.Internal
                 {
                     // On macOS, it's still possible to bind to a specific address even if a connection is bound
                     // to the wildcard address.
-                    Assert.DoesNotThrow(() => serverTransport.Listen(serverEndpoint).Dispose());
+                    Assert.DoesNotThrow(() =>
+                        serverTransport.Listen(serverEndpoint, LogAttributeLoggerFactory.Instance).Dispose());
                 }
                 else
                 {
-                    Assert.Catch<TransportException>(() => serverTransport.Listen(serverEndpoint).Dispose());
+                    Assert.Catch<TransportException>(() =>
+                        serverTransport.Listen(serverEndpoint, LogAttributeLoggerFactory.Instance).Dispose());
                 }
             }
             else

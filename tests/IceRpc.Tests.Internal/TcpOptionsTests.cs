@@ -203,7 +203,7 @@ namespace IceRpc.Tests.Internal
 
             GetNetworkSocket(TestHelper.CreateSimpleClientTransport(
                 (endpoint ?? ClientEndpoint).Transport,
-                options).CreateConnection(endpoint ?? ClientEndpoint));
+                options).CreateConnection(endpoint ?? ClientEndpoint, LogAttributeLoggerFactory.Instance));
 
         private static async ValueTask<NetworkSocket> CreateServerSocketAsync(
             IListener<ISimpleNetworkConnection> listener) =>

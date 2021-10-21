@@ -74,7 +74,8 @@ namespace IceRpc.Tests.Internal
                         options: _serverTransportOptions,
                         authenticationOptions: _serverAuthenticationOptions);
 
-                    using IListener<ISimpleNetworkConnection> listener = serverTransport.Listen(Endpoint);
+                    using IListener<ISimpleNetworkConnection> listener =
+                        serverTransport.Listen(Endpoint, LogAttributeLoggerFactory.Instance);
                     #pragma warning disable CA2000
                     Task<Connection> serverTask = AcceptAsync(listener);
                     Task<Connection> clientTask = ConnectAsync(listener.Endpoint);
@@ -89,7 +90,8 @@ namespace IceRpc.Tests.Internal
                             options: _serverTransportOptions as TcpOptions,
                             authenticationOptions: _serverAuthenticationOptions);
 
-                    using IListener<IMultiplexedNetworkConnection> listener = serverTransport.Listen(Endpoint);
+                    using IListener<IMultiplexedNetworkConnection> listener =
+                        serverTransport.Listen(Endpoint, LogAttributeLoggerFactory.Instance);
                     #pragma warning disable CA2000
                     Task<Connection> serverTask = AcceptAsync(listener);
                     Task<Connection> clientTask = ConnectAsync(listener.Endpoint);
@@ -306,9 +308,9 @@ namespace IceRpc.Tests.Internal
                 new TcpServerTransport(new TcpOptions { ListenerBackLog = 1 }, null);
 
             using IListener listener = protocol == ProtocolCode.Ice1 ?
-                tcpServerTransport.Listen(endpoint) :
+                tcpServerTransport.Listen(endpoint, LogAttributeLoggerFactory.Instance) :
                 (new SlicServerTransport(tcpServerTransport) as IServerTransport<IMultiplexedNetworkConnection>).
-                    Listen(endpoint);
+                    Listen(endpoint, LogAttributeLoggerFactory.Instance);
 
             await using var connection = new Connection
             {

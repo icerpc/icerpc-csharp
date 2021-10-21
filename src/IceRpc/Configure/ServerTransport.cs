@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using Microsoft.Extensions.Logging;
+
 namespace IceRpc.Configure
 {
     /// <summary>A composite server transport.</summary>
@@ -24,12 +26,12 @@ namespace IceRpc.Configure
             return this;
         }
 
-        IListener<T> IServerTransport<T>.Listen(Endpoint endpoint)
+        IListener<T> IServerTransport<T>.Listen(Endpoint endpoint, ILoggerFactory loggerFactory)
         {
             _transports ??= _builder;
             if (_transports.TryGetValue(endpoint.Transport, out IServerTransport<T>? serverTransport))
             {
-                return serverTransport.Listen(endpoint);
+                return serverTransport.Listen(endpoint, loggerFactory);
             }
             else
             {

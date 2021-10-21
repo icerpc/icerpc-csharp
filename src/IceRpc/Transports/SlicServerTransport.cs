@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Transports
 {
@@ -30,8 +31,9 @@ namespace IceRpc.Transports
         }
 
         IListener<IMultiplexedNetworkConnection> IServerTransport<IMultiplexedNetworkConnection>.Listen(
-            Endpoint endpoint) =>
-            new SlicListener(_simpleServerTransport.Listen(endpoint),
+            Endpoint endpoint,
+            ILoggerFactory loggerFactory) =>
+            new SlicListener(_simpleServerTransport.Listen(endpoint, loggerFactory),
                              _slicFrameReaderWriterFactory,
                              _slicOptions);
     }

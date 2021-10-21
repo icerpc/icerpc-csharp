@@ -114,11 +114,11 @@ namespace IceRpc.Tests.Internal
         {
             Endpoint endpoint = TestHelper.GetTestEndpoint(transport: _transport, protocol: Protocol.Ice1);
             using IListener<ISimpleNetworkConnection> listener =
-                TestHelper.CreateSimpleServerTransport(_transport).Listen(endpoint);
+                TestHelper.CreateSimpleServerTransport(_transport).Listen(endpoint, LogAttributeLoggerFactory.Instance);
 
             IClientTransport<ISimpleNetworkConnection> clientTransport =
                 TestHelper.CreateSimpleClientTransport(_transport);
-            _clientConnection = clientTransport.CreateConnection(listener.Endpoint);
+            _clientConnection = clientTransport.CreateConnection(listener.Endpoint, LogAttributeLoggerFactory.Instance);
 
             Task<ISimpleNetworkConnection> listenTask = listener.AcceptAsync().AsTask();
             Task<(ISimpleStream, NetworkConnectionInformation)> connectTask = _clientConnection.ConnectAsync(default);

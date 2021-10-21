@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -36,7 +37,9 @@ namespace IceRpc.Transports
         }
 
         /// <inheritdoc/>
-        ISimpleNetworkConnection IClientTransport<ISimpleNetworkConnection>.CreateConnection(Endpoint remoteEndpoint)
+        ISimpleNetworkConnection IClientTransport<ISimpleNetworkConnection>.CreateConnection(
+            Endpoint remoteEndpoint,
+            ILoggerFactory loggerFactory)
         {
             EndPoint netEndPoint = IPAddress.TryParse(remoteEndpoint.Host, out IPAddress? ipAddress) ?
                 new IPEndPoint(ipAddress, remoteEndpoint.Port) :

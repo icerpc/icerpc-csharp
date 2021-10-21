@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Transports
 {
@@ -29,9 +30,10 @@ namespace IceRpc.Transports
         }
 
         IMultiplexedNetworkConnection IClientTransport<IMultiplexedNetworkConnection>.CreateConnection(
-            Endpoint remoteEndpoint) =>
+            Endpoint remoteEndpoint,
+            ILoggerFactory loggerFactory) =>
             new SlicNetworkConnection(
-                _simpleClientTransport.CreateConnection(remoteEndpoint),
+                _simpleClientTransport.CreateConnection(remoteEndpoint, loggerFactory),
                 isServer: false,
                 _slicFrameReaderWriterFactory,
                 _slicOptions);

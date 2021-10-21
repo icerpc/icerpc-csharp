@@ -45,11 +45,14 @@ namespace IceRpc.Tests.Internal
         {
             IServerTransport<IMultiplexedNetworkConnection> serverTransport =
                 new SlicServerTransport(new ColocServerTransport(), serverOptions);
-            using IListener<IMultiplexedNetworkConnection> listener = serverTransport.Listen("ice+coloc://127.0.0.1");
+            using IListener<IMultiplexedNetworkConnection> listener =
+                serverTransport.Listen("ice+coloc://127.0.0.1", LogAttributeLoggerFactory.Instance);
 
             IClientTransport<IMultiplexedNetworkConnection> clientTransport =
                 new SlicClientTransport(new ColocClientTransport(), clientOptions);
-            IMultiplexedNetworkConnection clientConnection = clientTransport.CreateConnection("ice+coloc://127.0.0.1");
+            IMultiplexedNetworkConnection clientConnection = clientTransport.CreateConnection(
+                "ice+coloc://127.0.0.1",
+                LogAttributeLoggerFactory.Instance);
 
             IMultiplexedNetworkConnection serverConnection = await listener.AcceptAsync();
             Task<(IMultiplexedStreamFactory Factory, NetworkConnectionInformation Information)> clientTask =

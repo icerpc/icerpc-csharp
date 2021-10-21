@@ -4,6 +4,7 @@ using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IceRpc
 {
@@ -20,21 +21,24 @@ namespace IceRpc
         /// <seealso cref="IDispatcher"/>
         public IDispatcher? Dispatcher { get; init; }
 
-        /// <summary>The <see cref="IClientTransport{IMultiplexedNetworkConnection}"/> used by this pool to
-        /// create multiplexed client connections.</summary>
+        /// <summary>The <see cref="IClientTransport{IMultiplexedNetworkConnection}"/> of connections created by
+        /// this pool.</summary>
         public IClientTransport<IMultiplexedNetworkConnection> MultiplexedClientTransport { get; init; } =
             Connection.DefaultMultiplexedClientTransport;
+
+        /// <summary>The logger factory of connections created by this pool.</summary>
+        public ILoggerFactory LoggerFactory { get; init; } = NullLoggerFactory.Instance;
 
         /// <summary>Indicates whether or not <see cref="GetConnectionAsync"/> prefers returning an existing connection
         /// over creating a new one.</summary>
         /// <value>When <c>true</c>, GetConnectionAsync first iterates over all endpoints (in order) to look for an
-        /// existing compatible active connection; if it cannot find such a connection, it creates one by iterating again over
-        /// the endpoints. When <c>false</c>, GetConnectionAsync iterates over the endpoints only once to retrieve or
-        /// create an active connection. The default value is <c>true</c>.</value>
+        /// existing compatible active connection; if it cannot find such a connection, it creates one by iterating
+        /// again over the endpoints. When <c>false</c>, GetConnectionAsync iterates over the endpoints only once to
+        /// retrieve or create an active connection. The default value is <c>true</c>.</value>
         public bool PreferExistingConnection { get; set; } = true;
 
-        /// <summary>The <see cref="IClientTransport{ISimpleNetworkConnection}"/> used by this pool to
-        /// create simple client connections.</summary>
+        /// <summary>The <see cref="IClientTransport{ISimpleNetworkConnection}"/> of connections created by this pool.
+        /// </summary>
         public IClientTransport<ISimpleNetworkConnection> SimpleClientTransport { get; init; } =
             Connection.DefaultSimpleClientTransport;
 
@@ -216,6 +220,7 @@ namespace IceRpc
                     connection = new Connection
                     {
                         Dispatcher = Dispatcher,
+                        LoggerFactory = LoggerFactory,
                         MultiplexedClientTransport = MultiplexedClientTransport,
                         Options = ConnectionOptions,
                         RemoteEndpoint = endpoint,

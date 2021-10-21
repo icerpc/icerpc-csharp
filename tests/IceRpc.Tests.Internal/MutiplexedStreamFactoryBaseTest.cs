@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
-using IceRpc.Transports.Internal;
 
 namespace IceRpc.Tests.Internal
 {
@@ -57,7 +56,8 @@ namespace IceRpc.Tests.Internal
                 TestHelper.CreateMultiplexedServerTransport(
                     _serverEndpoint.Transport,
                     options: null,
-                    slicOptions: _serverOptions as SlicOptions).Listen(_serverEndpoint);
+                    slicOptions: _serverOptions as SlicOptions).Listen(_serverEndpoint,
+                                                                       LogAttributeLoggerFactory.Instance);
             return await listener.AcceptAsync();
         }
 
@@ -67,7 +67,7 @@ namespace IceRpc.Tests.Internal
                 TestHelper.CreateMultiplexedClientTransport(
                     _clientEndpoint.Transport,
                     slicOptions: _clientOptions as SlicOptions);
-            return clientTransport.CreateConnection(_clientEndpoint);
+            return clientTransport.CreateConnection(_clientEndpoint, LogAttributeLoggerFactory.Instance);
         }
 
         protected static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateSendPayload(

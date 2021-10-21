@@ -5,6 +5,7 @@ using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Diagnostics;
 
 namespace IceRpc
@@ -46,16 +47,6 @@ namespace IceRpc
         public static IClientTransport<ISimpleNetworkConnection> DefaultSimpleClientTransport { get; } =
             new SimpleClientTransport().UseColoc().UseTcp().UseUdp();
 
-        /// <summary>The <see cref="IClientTransport{IMultiplexedNetworkConnection}"/> used by this connection to
-        /// create multiplexed client connections.</summary>
-        public IClientTransport<IMultiplexedNetworkConnection> MultiplexedClientTransport { get; init; } =
-            DefaultMultiplexedClientTransport;
-
-        /// <summary>The <see cref="IClientTransport{ISimpleNetworkConnection}"/> used by this connection to
-        /// create simple client connections.</summary>
-        public IClientTransport<ISimpleNetworkConnection> SimpleClientTransport { get; init; } =
-            DefaultSimpleClientTransport;
-
         /// <summary>This event is raised when the connection is closed. The connection object is passed as the
         /// event sender argument. The event handler should not throw.</summary>
         /// <exception cref="InvalidOperationException">Thrown on event addition if the connection is closed.
@@ -78,6 +69,19 @@ namespace IceRpc
         /// <value>The dispatcher that dispatches requests received by this connection, or null if no
         /// dispatcher is set.</value>
         public IDispatcher? Dispatcher { get; init; }
+
+        /// <summary>The logger factory used to create loggers to log connection-related activities.</summary>
+        public ILoggerFactory LoggerFactory { get; init; } = NullLoggerFactory.Instance;
+
+        /// <summary>The <see cref="IClientTransport{IMultiplexedNetworkConnection}"/> used by this connection to
+        /// create multiplexed network connections.</summary>
+        public IClientTransport<IMultiplexedNetworkConnection> MultiplexedClientTransport { get; init; } =
+            DefaultMultiplexedClientTransport;
+
+        /// <summary>The <see cref="IClientTransport{ISimpleNetworkConnection}"/> used by this connection to create
+        /// simple network connections.</summary>
+        public IClientTransport<ISimpleNetworkConnection> SimpleClientTransport { get; init; } =
+            DefaultSimpleClientTransport;
 
         /// <summary><c>true</c> if the connection uses a secure transport, <c>false</c> otherwise.</summary>
         /// <remarks><c>false</c> can mean the connection is not yet connected and its security will be determined
@@ -171,8 +175,8 @@ namespace IceRpc
                         Debug.Assert(_protocolConnection == null && RemoteEndpoint != null);
 
                         _networkConnection = Protocol == Protocol.Ice1 ?
-                            SimpleClientTransport.CreateConnection(RemoteEndpoint) :
-                            MultiplexedClientTransport.CreateConnection(RemoteEndpoint);
+                            SimpleClientTransport.CreateConnection(RemoteEndpoint, LoggerFactory) :
+                            MultiplexedClientTransport.CreateConnection(RemoteEndpoint, LoggerFactory);
                     }
 
                     Debug.Assert(_networkConnection != null);

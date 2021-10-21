@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging;
 using System.Threading.Channels;
 
 namespace IceRpc.Transports
@@ -9,7 +10,9 @@ namespace IceRpc.Transports
     public class ColocClientTransport : IClientTransport<ISimpleNetworkConnection>
     {
         /// <inheritdoc/>
-        ISimpleNetworkConnection IClientTransport<ISimpleNetworkConnection>.CreateConnection(Endpoint remoteEndpoint)
+        ISimpleNetworkConnection IClientTransport<ISimpleNetworkConnection>.CreateConnection(
+            Endpoint remoteEndpoint,
+            ILoggerFactory loggerFactory)
         {
             if (remoteEndpoint.Params.Count > 0)
             {

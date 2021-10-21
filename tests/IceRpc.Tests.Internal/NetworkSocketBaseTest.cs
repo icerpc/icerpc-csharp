@@ -145,17 +145,22 @@ namespace IceRpc.Tests.Internal
             TestHelper.CreateSimpleServerTransport(
                 (serverEndpoint ?? ServerEndpoint).Transport,
                 options: options,
-                _serverAuthenticationOptions).Listen(serverEndpoint ?? ServerEndpoint);
+                _serverAuthenticationOptions).Listen(serverEndpoint ?? ServerEndpoint,
+                                                     LogAttributeLoggerFactory.Instance);
 
         protected async ValueTask<NetworkSocket> CreateServerNetworkSocketAsync() =>
             GetNetworkSocket(await TestHelper.CreateSimpleServerTransport(
                 ServerEndpoint.Transport,
-                authenticationOptions: _serverAuthenticationOptions).Listen(ServerEndpoint).AcceptAsync());
+                authenticationOptions: _serverAuthenticationOptions).Listen(
+                    ServerEndpoint,
+                    LogAttributeLoggerFactory.Instance).AcceptAsync());
 
         protected NetworkSocket CreateClientNetworkSocket() =>
             GetNetworkSocket(TestHelper.CreateSimpleClientTransport(
                 ClientEndpoint.Transport,
-                authenticationOptions: _clientAuthenticationOptions).CreateConnection(ClientEndpoint));
+                authenticationOptions: _clientAuthenticationOptions).CreateConnection(
+                    ClientEndpoint,
+                    LogAttributeLoggerFactory.Instance));
 
         protected static NetworkSocket GetNetworkSocket(INetworkConnection connection) =>
             ((SocketNetworkConnection)connection).NetworkSocket;

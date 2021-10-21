@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Configure
 {
@@ -25,13 +26,13 @@ namespace IceRpc.Configure
             return this;
         }
 
-        T IClientTransport<T>.CreateConnection(Endpoint remoteEndpoint)
+        T IClientTransport<T>.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
         {
             _transports ??= _builder;
             if (_transports.TryGetValue(remoteEndpoint.Transport,
                                         out IClientTransport<T>? clientTransport))
             {
-                return clientTransport.CreateConnection(remoteEndpoint);
+                return clientTransport.CreateConnection(remoteEndpoint, loggerFactory);
             }
             else
             {

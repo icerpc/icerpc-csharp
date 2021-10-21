@@ -11,7 +11,7 @@ namespace IceRpc.Tests.ClientServer
         private readonly IClientTransport<IMultiplexedNetworkConnection> _transport =
             new SlicClientTransport(new TcpClientTransport());
 
-        public IMultiplexedNetworkConnection CreateConnection(Endpoint remoteEndpoint)
+        public IMultiplexedNetworkConnection CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
         {
             if (remoteEndpoint.Transport == "custom")
             {
@@ -20,7 +20,7 @@ namespace IceRpc.Tests.ClientServer
                     Params = remoteEndpoint.Params.RemoveAll(
                         p => p.Name.StartsWith("custom-", StringComparison.Ordinal))
                 };
-                return _transport.CreateConnection(newEndpoint);
+                return _transport.CreateConnection(newEndpoint, loggerFactory);
             }
             else
             {
@@ -34,7 +34,7 @@ namespace IceRpc.Tests.ClientServer
         private readonly IServerTransport<IMultiplexedNetworkConnection> _transport =
             new SlicServerTransport(new TcpServerTransport());
 
-        public IListener<IMultiplexedNetworkConnection> Listen(Endpoint endpoint)
+        public IListener<IMultiplexedNetworkConnection> Listen(Endpoint endpoint, ILoggerFactory loggerFactory)
         {
             if (endpoint.Transport == "custom")
             {
@@ -42,7 +42,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     Params = endpoint.Params.RemoveAll(p => p.Name.StartsWith("custom-", StringComparison.Ordinal))
                 };
-                return _transport.Listen(newEndpoint);
+                return _transport.Listen(newEndpoint, loggerFactory);
             }
             else
             {

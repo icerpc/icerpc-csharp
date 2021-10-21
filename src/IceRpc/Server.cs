@@ -2,9 +2,8 @@
 
 using IceRpc.Configure;
 using IceRpc.Transports;
-using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
-using System.Diagnostics;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IceRpc
 {
@@ -46,6 +45,9 @@ namespace IceRpc
                 _endpoint = value;
             }
         }
+
+        /// <summary>The logger factory used to create loggers to log connection-related activities.</summary>
+        public ILoggerFactory LoggerFactory { get; init; } = NullLoggerFactory.Instance;
 
         /// <summary>The <see cref="IServerTransport{IMultiplexedNetworkConnection}"/> used by this server to accept
         /// multiplexed connections.</summary>
@@ -118,7 +120,7 @@ namespace IceRpc
 
             void PerformListen<T>(IServerTransport<T> serverTransport) where T : INetworkConnection
             {
-                IListener<T> listener = serverTransport.Listen(_endpoint);
+                IListener<T> listener = serverTransport.Listen(_endpoint, LoggerFactory);
                 _endpoint = listener.Endpoint;
                 _listener = listener;
 

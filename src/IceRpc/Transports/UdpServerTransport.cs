@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Sockets;
 
@@ -21,7 +22,9 @@ namespace IceRpc.Transports
         /// </summary>
         public UdpServerTransport(UdpOptions options) => _options = options;
 
-        IListener<ISimpleNetworkConnection> IServerTransport<ISimpleNetworkConnection>.Listen(Endpoint endpoint)
+        IListener<ISimpleNetworkConnection> IServerTransport<ISimpleNetworkConnection>.Listen(
+            Endpoint endpoint,
+            ILoggerFactory loggerFactory)
         {
             // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
             // a udp endpoint regardless of its actual transport name.
