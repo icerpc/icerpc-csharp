@@ -120,8 +120,9 @@ namespace IceRpc.Tests.Internal
                 TestHelper.CreateSimpleClientTransport(_transport);
             _clientConnection = clientTransport.CreateConnection(listener.Endpoint);
 
-            _serverConnection = await listener.AcceptAsync();
+            Task<ISimpleNetworkConnection> listenTask = listener.AcceptAsync().AsTask();
             Task<(ISimpleStream, NetworkConnectionInformation)> connectTask = _clientConnection.ConnectAsync(default);
+            _serverConnection = await listenTask;
 
             (_serverSimpleStreamConnection, _) = await _serverConnection.ConnectAsync(default);
             (_clientSimpleStreamConnection, _) = await connectTask;
