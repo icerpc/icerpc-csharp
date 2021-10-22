@@ -57,6 +57,7 @@ namespace IceRpc.Internal
         Task<string> WaitForShutdownAsync(CancellationToken cancel);
     }
 
+    /// <summary>Creates a protocol connection from a network connection.</summary>
     internal delegate Task<(IProtocolConnection, NetworkConnectionInformation)> ProtocolConnectionFactory<T>(
             T networkConnection,
             int incomingFrameMaxSize,

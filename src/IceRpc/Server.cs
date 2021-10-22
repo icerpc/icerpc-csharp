@@ -73,7 +73,7 @@ namespace IceRpc
 
         private Endpoint _endpoint = "ice+tcp://[::0]";
 
-        private IDisposable? _listener;
+        private IListener? _listener;
 
         private bool _listening;
 
@@ -220,8 +220,8 @@ namespace IceRpc
             await ShutdownAsync(new CancellationToken(canceled: true)).ConfigureAwait(false);
 
         private async Task AcceptAsync<T>(
-                IListener<T> listener,
-                ProtocolConnectionFactory<T> protocolConnectionFactory) where T : INetworkConnection
+            IListener<T> listener,
+            ProtocolConnectionFactory<T> protocolConnectionFactory) where T : INetworkConnection
         {
             while (true)
             {
@@ -259,11 +259,11 @@ namespace IceRpc
                 {
                     if (_shutdownTask != null)
                     {
-                        connection.CloseAsync("server shutdown");
+                        _ = connection.CloseAsync("server shutdown");
                         return;
                     }
 
-                    _connections.Add(connection);
+                    _ = _connections.Add(connection);
 
                     // Set the callback used to remove the connection from _connections. This can throw if the
                     // connection is closed but it's not possible here since we've just constructed the

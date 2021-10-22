@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using IceRpc.Transports.Internal;
 using NUnit.Framework;
 using System.Net.Sockets;
 
@@ -13,8 +14,8 @@ namespace IceRpc.Tests.Internal
     [Timeout(5000)]
     public class MulticastTests : NetworkSocketBaseTest
     {
-        protected NetworkSocket ClientConnection => _clientSocket!;
-        protected IList<NetworkSocket> ServerConnections => _serverSockets;
+        private protected NetworkSocket ClientConnection => _clientSocket!;
+        private protected IList<NetworkSocket> ServerConnections => _serverSockets;
         private NetworkSocket? _clientSocket;
         private readonly int _serverConnectionCount;
         private readonly List<NetworkSocket> _serverSockets = new();

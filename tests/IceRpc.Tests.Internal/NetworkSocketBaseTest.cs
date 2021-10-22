@@ -85,7 +85,7 @@ namespace IceRpc.Tests.Internal
         [OneTimeTearDown]
         public void Shutdown() => _listener?.Dispose();
 
-        protected async Task<NetworkSocket> AcceptAsync()
+        private protected async Task<NetworkSocket> AcceptAsync()
         {
             lock (_mutex)
             {
@@ -115,7 +115,7 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        protected async Task<NetworkSocket> ConnectAsync()
+        private protected async Task<NetworkSocket> ConnectAsync()
         {
             if (ClientEndpoint.Transport != "udp")
             {
@@ -148,21 +148,21 @@ namespace IceRpc.Tests.Internal
                 _serverAuthenticationOptions).Listen(serverEndpoint ?? ServerEndpoint,
                                                      LogAttributeLoggerFactory.Instance);
 
-        protected async ValueTask<NetworkSocket> CreateServerNetworkSocketAsync() =>
+        private protected async ValueTask<NetworkSocket> CreateServerNetworkSocketAsync() =>
             GetNetworkSocket(await TestHelper.CreateSimpleServerTransport(
                 ServerEndpoint.Transport,
                 authenticationOptions: _serverAuthenticationOptions).Listen(
                     ServerEndpoint,
                     LogAttributeLoggerFactory.Instance).AcceptAsync());
 
-        protected NetworkSocket CreateClientNetworkSocket() =>
+        private protected NetworkSocket CreateClientNetworkSocket() =>
             GetNetworkSocket(TestHelper.CreateSimpleClientTransport(
                 ClientEndpoint.Transport,
                 authenticationOptions: _clientAuthenticationOptions).CreateConnection(
                     ClientEndpoint,
                     LogAttributeLoggerFactory.Instance));
 
-        protected static NetworkSocket GetNetworkSocket(INetworkConnection connection) =>
+        private protected static NetworkSocket GetNetworkSocket(INetworkConnection connection) =>
             ((SocketNetworkConnection)connection).NetworkSocket;
     }
 }
