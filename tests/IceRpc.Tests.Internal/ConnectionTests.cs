@@ -111,7 +111,7 @@ namespace IceRpc.Tests.Internal
                         Dispatcher = _dispatcher,
                         Options = _serverConnectionOptions
                     };
-                    await connection.PerformConnectAsync<T>(networkConnection, protocolConnectionFactory);
+                    await connection.ConnectAsync<T>(networkConnection, protocolConnectionFactory);
                     return connection;
                 }
 

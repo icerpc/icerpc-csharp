@@ -172,108 +172,55 @@ namespace IceRpc
                     // TODO: resume the connection if it's resumable
                     throw new ConnectionClosedException();
                 }
-                else if (_state == ConnectionState.NotConnected)
+
+                // Only the application can call ConnectAsync on a server connection (which is ok but not particularly
+                // useful), and in this case, the connection state can only be active or >= closing.
+                Debug.Assert(!IsServer);
+
+                if (_state == ConnectionState.NotConnected)
                 {
                     Debug.Assert(!IsServer);
                     Debug.Assert(_protocolConnection == null && RemoteEndpoint != null);
 
-                    if (Protocol == Protocol.Ice1)
-                    {
-                        ISimpleNetworkConnection networkConnection =
-                            CreateClientNetworkConnection(SimpleClientTransport,
-                                                          LogSimpleNetworkConnectionDecorator.Decorate);
-                        _networkConnection = networkConnection;
-                        _state = ConnectionState.Connecting;
-                        _connectTask = PerformConnectAsync(networkConnection, CreateProtocolConnectionAsync);
-                    }
-                    else
-                    {
-                        IMultiplexedNetworkConnection networkConnection =
-                            CreateClientNetworkConnection(MultiplexedClientTransport,
-                                                          LogMultiplexedNetworkConnectionDecorator.Decorate);
-                        _networkConnection = networkConnection;
-                        _state = ConnectionState.Connecting;
-                        _connectTask = PerformConnectAsync(networkConnection, CreateProtocolConnectionAsync);
-                    }
+                    _connectTask = Protocol == Protocol.Ice1 ?
+                        PerformConnectAsync(SimpleClientTransport,
+                                            CreateProtocolConnectionAsync,
+                                            LogSimpleNetworkConnectionDecorator.Decorate) :
+                        PerformConnectAsync(MultiplexedClientTransport,
+                                            CreateProtocolConnectionAsync,
+                                            LogMultiplexedNetworkConnectionDecorator.Decorate);
                 }
                 Debug.Assert(_state == ConnectionState.Connecting && _connectTask != null);
             }
 
-            Debug.Assert(!IsServer); // a server is either activate or >= Closing
             return _connectTask.WaitAsync(cancel);
 
-            T CreateClientNetworkConnection<T>(
+            Task PerformConnectAsync<T>(
                 IClientTransport<T> clientTransport,
+                ProtocolConnectionFactory<T> protocolConnectionFactory,
                 LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory) where T : INetworkConnection
             {
                 // This is the composition root of client Connections, where we install log decorators when logging is
                 // enabled.
 
-                T connection = clientTransport.CreateConnection(RemoteEndpoint, LoggerFactory);
+                T networkConnection = clientTransport.CreateConnection(RemoteEndpoint, LoggerFactory);
+
+                // This local function is called with _mutex locked
+                _networkConnection = networkConnection;
+                _state = ConnectionState.Connecting;
 
                 if (LoggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger &&
                     logger.IsEnabled(LogLevel.Error))
                 {
-                    connection = logDecoratorFactory(connection, isServer: false, RemoteEndpoint, logger);
+                    networkConnection = logDecoratorFactory(networkConnection,
+                                                            isServer: false,
+                                                            RemoteEndpoint,
+                                                            logger);
+
+                    // TODO: decorate protocol connections created by protocol connection factory
                 }
-                return connection;
-            }
-        }
 
-        internal async Task PerformConnectAsync<T>(
-            T networkConnection,
-            ProtocolConnectionFactory<T> protocolConnectionFactory) where T : INetworkConnection
-        {
-            using var connectCancellationSource = new CancellationTokenSource(Options.ConnectTimeout);
-            try
-            {
-                await Task.Yield();
-
-                (_protocolConnection, NetworkConnectionInformation) =
-                    await protocolConnectionFactory(networkConnection,
-                                                    Options.IncomingFrameMaxSize,
-                                                    IsServer,
-                                                    connectCancellationSource.Token).ConfigureAwait(false);
-                lock (_mutex)
-                {
-                    if (_state == ConnectionState.Closed)
-                    {
-                        // This can occur if the connection is disposed while the connection is being
-                        // initialized.
-                        throw new ConnectionClosedException();
-                    }
-
-                    _state = ConnectionState.Active;
-
-                    // Setup a timer to check for the connection idle time every IdleTimeout / 2 period. If the
-                    // transport doesn't support idle timeout (e.g.: the colocated transport), IdleTimeout will
-                    // be infinite.
-                    if (NetworkConnectionInformation!.Value.IdleTimeout != TimeSpan.MaxValue)
-                    {
-                        TimeSpan period = NetworkConnectionInformation.Value.IdleTimeout / 2;
-                        _timer = new Timer(value => Monitor(), null, period, period);
-                    }
-
-                    // Start a task to wait for graceful shutdown.
-                    _ = Task.Run(() => WaitForShutdownAsync(), CancellationToken.None);
-
-                    // Start the receive request task. The task accepts new incoming requests and
-                    // processes them. It only completes once the connection is closed.
-                    _ = Task.Run(
-                        () => AcceptIncomingRequestAsync(Dispatcher ?? NullDispatcher.Instance),
-                        CancellationToken.None);
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                var exception = new ConnectTimeoutException();
-                await CloseAsync(exception).ConfigureAwait(false);
-                throw exception;
-            }
-            catch (Exception exception)
-            {
-                await CloseAsync(exception).ConfigureAwait(false);
-                throw;
+                return ConnectAsync(networkConnection, protocolConnectionFactory);
             }
         }
 
@@ -405,12 +352,121 @@ namespace IceRpc
         /// <inheritdoc/>
         public override string ToString() => _networkConnection?.ToString() ?? "";
 
+        /// <summary>The main implementation of <see cref="ProtocolConnectionFactory{IMultiplexedNetworkConnection}"/>.
+        /// </summary>
+        internal static async Task<(IProtocolConnection, NetworkConnectionInformation)> CreateProtocolConnectionAsync(
+            IMultiplexedNetworkConnection networkConnection,
+            int incomingFrameMaxSize,
+            bool _,
+            CancellationToken cancel)
+        {
+            (IMultiplexedStreamFactory streamFactory, NetworkConnectionInformation connectionInfo) =
+                await networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+
+            var protocolConnection = new Ice2ProtocolConnection(streamFactory, incomingFrameMaxSize);
+            try
+            {
+                await protocolConnection.InitializeAsync(cancel).ConfigureAwait(false);
+            }
+            catch
+            {
+                protocolConnection.Dispose();
+                throw;
+            }
+            return (protocolConnection, connectionInfo);
+        }
+
+        /// <summary>The main implementation of <see cref="ProtocolConnectionFactory{ISimpleNetworkConnection}"/>.
+        /// </summary>
+        internal static async Task<(IProtocolConnection, NetworkConnectionInformation)> CreateProtocolConnectionAsync(
+            ISimpleNetworkConnection networkConnection,
+            int incomingFrameMaxSize,
+            bool isServer,
+            CancellationToken cancel)
+        {
+            (ISimpleStream simpleStream, NetworkConnectionInformation connectionInfo) =
+                await networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+
+            var protocolConnection = new Ice1ProtocolConnection(simpleStream, incomingFrameMaxSize);
+            try
+            {
+                await protocolConnection.InitializeAsync(isServer, cancel).ConfigureAwait(false);
+            }
+            catch
+            {
+                protocolConnection.Dispose();
+                throw;
+            }
+            return (protocolConnection, connectionInfo);
+        }
+
         /// <summary>Constructs a server connection from an accepted network connection.</summary>
         internal Connection(INetworkConnection connection, Protocol protocol)
         {
             _networkConnection = connection;
             _protocol = protocol;
             _state = ConnectionState.Connecting;
+        }
+
+        /// <summary>Establishes a connection. This method is used for both client and server connections.</summary>
+        internal async Task ConnectAsync<T>(
+            T networkConnection,
+            ProtocolConnectionFactory<T> protocolConnectionFactory) where T : INetworkConnection
+        {
+            Debug.Assert(networkConnection.Equals(_networkConnection));
+
+            using var connectCancellationSource = new CancellationTokenSource(Options.ConnectTimeout);
+            try
+            {
+                // Make sure we establish the connection asynchronously without holding any mutex lock from the caller.
+                await Task.Yield();
+
+                (_protocolConnection, NetworkConnectionInformation) =
+                    await protocolConnectionFactory(networkConnection,
+                                                    Options.IncomingFrameMaxSize,
+                                                    IsServer,
+                                                    connectCancellationSource.Token).ConfigureAwait(false);
+                lock (_mutex)
+                {
+                    if (_state == ConnectionState.Closed)
+                    {
+                        // This can occur if the connection is disposed while the connection is being
+                        // initialized.
+                        throw new ConnectionClosedException();
+                    }
+
+                    _state = ConnectionState.Active;
+
+                    // Setup a timer to check for the connection idle time every IdleTimeout / 2 period. If the
+                    // transport doesn't support idle timeout (e.g.: the colocated transport), IdleTimeout will
+                    // be infinite.
+                    if (NetworkConnectionInformation!.Value.IdleTimeout != TimeSpan.MaxValue)
+                    {
+                        TimeSpan period = NetworkConnectionInformation.Value.IdleTimeout / 2;
+                        _timer = new Timer(value => Monitor(), null, period, period);
+                    }
+
+                    // Start a task to wait for graceful shutdown.
+                    _ = Task.Run(() => WaitForShutdownAsync(), CancellationToken.None);
+
+                    // Start the receive request task. The task accepts new incoming requests and
+                    // processes them. It only completes once the connection is closed.
+                    _ = Task.Run(
+                        () => AcceptIncomingRequestAsync(Dispatcher ?? NullDispatcher.Instance),
+                        CancellationToken.None);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                var exception = new ConnectTimeoutException();
+                await CloseAsync(exception).ConfigureAwait(false);
+                throw exception;
+            }
+            catch (Exception exception)
+            {
+                await CloseAsync(exception).ConfigureAwait(false);
+                throw;
+            }
         }
 
         internal void Monitor()
@@ -578,50 +634,6 @@ namespace IceRpc
                     // Ignore, application event handlers shouldn't raise exceptions.
                 }
             }
-        }
-
-        internal static async Task<(IProtocolConnection, NetworkConnectionInformation)> CreateProtocolConnectionAsync(
-            ISimpleNetworkConnection networkConnection,
-            int incomingFrameMaxSize,
-            bool isServer,
-            CancellationToken cancel)
-        {
-            (ISimpleStream simpleStream, NetworkConnectionInformation connectionInfo) =
-                await networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
-
-            var protocolConnection = new Ice1ProtocolConnection(simpleStream, incomingFrameMaxSize);
-            try
-            {
-                await protocolConnection.InitializeAsync(isServer, cancel).ConfigureAwait(false);
-            }
-            catch
-            {
-                protocolConnection.Dispose();
-                throw;
-            }
-            return (protocolConnection, connectionInfo);
-        }
-
-        internal static async Task<(IProtocolConnection, NetworkConnectionInformation)> CreateProtocolConnectionAsync(
-            IMultiplexedNetworkConnection networkConnection,
-            int incomingFrameMaxSize,
-            bool _,
-            CancellationToken cancel)
-        {
-            (IMultiplexedStreamFactory streamFactory, NetworkConnectionInformation connectionInfo) =
-                await networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
-
-            var protocolConnection = new Ice2ProtocolConnection(streamFactory, incomingFrameMaxSize);
-            try
-            {
-                await protocolConnection.InitializeAsync(cancel).ConfigureAwait(false);
-            }
-            catch
-            {
-                protocolConnection.Dispose();
-                throw;
-            }
-            return (protocolConnection, connectionInfo);
         }
 
         /// <summary>Shutdown the connection.</summary>

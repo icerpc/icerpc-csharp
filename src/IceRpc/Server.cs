@@ -121,7 +121,6 @@ namespace IceRpc
                                   Connection.CreateProtocolConnectionAsync,
                                   LogMultiplexedNetworkConnectionDecorator.Decorate);
                 }
-                _listening = true;
             }
 
             void PerformListen<T>(
@@ -140,11 +139,13 @@ namespace IceRpc
                 {
                     listener = new LogListenerDecorator<T>(listener, logger, logDecoratorFactory);
 
-                    // TODO: install log decorator for protocol connections
+                    // TODO: install log decorator for protocol connections created by protocol connection factory
                 }
 
                 // Run task to start accepting new connections.
                 Task.Run(() => AcceptAsync(listener, protocolConnectionFactory));
+
+                _listening = true;
             }
         }
 
@@ -283,7 +284,7 @@ namespace IceRpc
                 // such as TLS based transports where the handshake requires few round trips between the client
                 // and server. Waiting could also cause a security issue if the client doesn't respond to the
                 // connection initialization as we wouldn't be able to accept new connections in the meantime.
-                _ = connection.PerformConnectAsync(networkConnection, protocolConnectionFactory);
+                _ = connection.ConnectAsync(networkConnection, protocolConnectionFactory);
             }
         }
     }
