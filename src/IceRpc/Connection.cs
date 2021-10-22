@@ -416,7 +416,7 @@ namespace IceRpc
             T networkConnection,
             ProtocolConnectionFactory<T> protocolConnectionFactory) where T : INetworkConnection
         {
-            // networkConnection can be more decorated than _networkConnection
+            // Note: networkConnection may be more decorated than _networkConnection
 
             using var connectCancellationSource = new CancellationTokenSource(Options.ConnectTimeout);
             try
