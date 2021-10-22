@@ -80,20 +80,6 @@ namespace IceRpc.Transports
         /// <returns>The <see cref="System.IO.Stream"/> object.</returns>
         System.IO.Stream AsByteStream();
 
-        /// <summary>Enables flow control for receiving data from the peer over the stream. This is called
-        /// after receiving a request or response frame to receive data for a stream parameter. Flow control
-        /// isn't enabled for receiving the request or response frame whose size is limited with
-        /// IncomingFrameSizeMax. The stream relies on the underlying transport flow control instead (TCP,
-        /// Quic, ...). For stream parameters, whose size is not limited, it's important that the transport
-        /// doesn't send an unlimited amount of data if the receiver doesn't process it. For TCP based
-        /// transports, this would cause the send buffer to fill up and this would prevent other streams to be
-        /// processed.</summary>
-        void EnableReceiveFlowControl();
-
-        /// <summary>Enables flow control for sending data to the peer over the stream. This is called after
-        /// sending a request or response frame to send data from a stream parameter.</summary>
-        void EnableSendFlowControl();
-
         /// <summary>Reads data from the stream.</summary>
         /// <param name="buffer">The buffer that holds the read data.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

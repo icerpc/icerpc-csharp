@@ -44,7 +44,6 @@ namespace IceRpc.Slice
             Action<IceEncoder, T> encodeAction)
         {
             using var cancelationSource = new CancellationTokenSource();
-            rpcStream.EnableSendFlowControl();
             IAsyncEnumerator<T>? asyncEnumerator = null;
             try
             {

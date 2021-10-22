@@ -6,6 +6,11 @@ using System.Threading.Tasks.Sources;
 
 namespace IceRpc.Transports.Internal
 {
+    internal interface IAsyncQueueValueTaskSource<T> : IValueTaskSource<T>
+    {
+        void SetException(Exception exception);
+    }
+
     /// <summary>The AsyncQueueCore struct provides result queuing functionality to be used with the
     /// IValueTaskSource interface. It's useful for the Slic stream implementation to avoid allocating on the
     /// heap objects to support a ValueTask based ReceiveAsync.
@@ -32,8 +37,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal short Version => _source.Version;
-
         private volatile Exception? _exception = null;
         // Provide thread safety using a spin lock to avoid having to create another object on the heap. The
         // lock is used to protect the setting of the signal value or exception with the manual reset value
@@ -43,6 +46,7 @@ namespace IceRpc.Transports.Internal
         // source when a result is already set on the source.
         private Queue<T>? _queue = null;
         private ManualResetValueTaskSourceCore<T> _source = new();
+        private CancellationTokenRegistration _tokenRegistration = default;
 
         public AsyncQueueCore() => _source.RunContinuationsAsynchronously = true;
 
@@ -54,6 +58,7 @@ namespace IceRpc.Transports.Internal
             try
             {
                 _lock.Enter(ref lockTaken);
+
                 if (_exception == null)
                 {
                     _exception = exception;
@@ -81,6 +86,9 @@ namespace IceRpc.Transports.Internal
         internal T GetResult(short token)
         {
             Debug.Assert(token == _source.Version);
+
+            _tokenRegistration.Dispose();
+            _tokenRegistration = default;
 
             // Get the result.
             var result = default(T);
@@ -228,6 +236,18 @@ namespace IceRpc.Transports.Internal
                     _lock.Exit();
                 }
             }
+        }
+
+        internal ValueTask<T> WaitAsync(IAsyncQueueValueTaskSource<T> valueTaskSource, CancellationToken cancel)
+        {
+            if (cancel.CanBeCanceled)
+            {
+                Debug.Assert(_tokenRegistration == default);
+                cancel.ThrowIfCancellationRequested();
+                _tokenRegistration = cancel.Register(
+                    () => valueTaskSource.SetException(new OperationCanceledException()));
+            }
+            return new ValueTask<T>(valueTaskSource, _source.Version);
         }
     }
 }
