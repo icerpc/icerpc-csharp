@@ -5,7 +5,8 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Transports
 {
-    /// <summary>Implements <see cref="IClientTransport{T}"/> using Slic.</summary>
+    /// <summary>Implements <see cref="IClientTransport{IMultiplexedNetworkConnection}"/> using Slic over a simple
+    /// client transport.</summary>
     public class SlicClientTransport : IClientTransport<IMultiplexedNetworkConnection>
     {
         private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;

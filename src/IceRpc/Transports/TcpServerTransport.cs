@@ -8,7 +8,8 @@ using System.Net.Sockets;
 
 namespace IceRpc.Transports
 {
-    /// <summary>Implements <see cref="IServerTransport{T}"/> for the tcp and ssl transports.</summary>
+    /// <summary>Implements <see cref="IServerTransport{ISimpleNetworkConnection}"/> for the tcp and ssl transports.
+    /// </summary>
     public class TcpServerTransport : IServerTransport<ISimpleNetworkConnection>
     {
         private readonly SslServerAuthenticationOptions? _authenticationOptions;

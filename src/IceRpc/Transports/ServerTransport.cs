@@ -1,9 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 
-namespace IceRpc.Configure
+namespace IceRpc.Transports
 {
     /// <summary>A composite server transport.</summary>
     public class ServerTransport<T> : IServerTransport<T> where T : INetworkConnection

@@ -11,7 +11,7 @@ namespace IceRpc.Configure
     {
     }
 
-    /// <summary>Extension methods for class <see cref="SimpleServerTransport"/>.</summary>
+    /// <summary>Extension methods for class <see cref="ServerTransport{ISimpleNetworkConnection}"/>.</summary>
     public static class SimpleServerTransportExtensions
     {
         /// <summary>Adds the coloc server transport to this composite server transport.</summary>

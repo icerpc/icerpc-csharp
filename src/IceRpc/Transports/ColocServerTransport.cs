@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Transports
 {
-    /// <summary>Implements <see cref="IServerTransport{T}"/> for the coloc transport.</summary>
+    /// <summary>Implements <see cref="IServerTransport{ISimpleNetworkConnection}"/> for the coloc transport.</summary>
     public class ColocServerTransport : IServerTransport<ISimpleNetworkConnection>
     {
         /// <inheritdoc/>

@@ -9,7 +9,7 @@ using static IceRpc.Transports.Internal.UdpUtils;
 
 namespace IceRpc.Transports
 {
-    /// <summary>Implements <see cref="IClientTransport{T}"/> for the UDP transport.</summary>
+    /// <summary>Implements <see cref="IClientTransport{ISimpleNetworkConnection}"/> for the UDP transport.</summary>
     public class UdpClientTransport : IClientTransport<ISimpleNetworkConnection>
     {
         private readonly UdpOptions _options;

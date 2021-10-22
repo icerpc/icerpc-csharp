@@ -11,7 +11,7 @@ namespace IceRpc.Configure
     {
     }
 
-    /// <summary>Extension methods for class <see cref="MultiplexedClientTransport"/>.</summary>
+    /// <summary>Extension methods for class <see cref="ClientTransport{IMultiplexedNetworkConnection}"/>.</summary>
     public static class MultiplexedClientTransportExtensions
     {
         /// <summary>Adds the coloc client transport to this composite client transport.</summary>
