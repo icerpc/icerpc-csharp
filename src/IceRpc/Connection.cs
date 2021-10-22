@@ -136,12 +136,13 @@ namespace IceRpc
         // is instead obtained with RemoteEndpoint.Protocol
         private readonly Protocol? _protocol;
 
-        #pragma warning disable CA2213
         private IProtocolConnection? _protocolConnection;
-        #pragma warning restore CS2213
 
         private ConnectionState _state = ConnectionState.NotConnected;
+
+        #pragma warning disable CA2213 // _timer is disposed in CloseAsync
         private Timer? _timer;
+        #pragma warning restore CA2213
 
         /// <summary>Constructs a new client connection.</summary>
         public Connection()
@@ -190,6 +191,7 @@ namespace IceRpc
                                             CreateProtocolConnectionAsync,
                                             LogMultiplexedNetworkConnectionDecorator.Decorate);
                 }
+
                 Debug.Assert(_state == ConnectionState.Connecting && _connectTask != null);
             }
 
@@ -205,7 +207,8 @@ namespace IceRpc
 
                 T networkConnection = clientTransport.CreateConnection(RemoteEndpoint, LoggerFactory);
 
-                // This local function is called with _mutex locked
+                // This local function is called with _mutex locked and executes synchronously until the call to
+                // ConnectAsync.
                 _networkConnection = networkConnection;
                 _state = ConnectionState.Connecting;
 
@@ -413,7 +416,7 @@ namespace IceRpc
             T networkConnection,
             ProtocolConnectionFactory<T> protocolConnectionFactory) where T : INetworkConnection
         {
-            Debug.Assert(networkConnection.Equals(_networkConnection));
+            // networkConnection can be more decorated than _networkConnection
 
             using var connectCancellationSource = new CancellationTokenSource(Options.ConnectTimeout);
             try
