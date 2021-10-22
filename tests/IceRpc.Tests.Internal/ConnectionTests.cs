@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Internal;
 using IceRpc.Transports;
 using NUnit.Framework;
 using System.Collections.Immutable;
@@ -77,7 +78,7 @@ namespace IceRpc.Tests.Internal
                     using IListener<ISimpleNetworkConnection> listener =
                         serverTransport.Listen(Endpoint, LogAttributeLoggerFactory.Instance);
                     #pragma warning disable CA2000
-                    Task<Connection> serverTask = AcceptAsync(listener);
+                    Task<Connection> serverTask = AcceptAsync(listener, Connection.CreateProtocolConnectionAsync);
                     Task<Connection> clientTask = ConnectAsync(listener.Endpoint);
                     return (await serverTask, await clientTask);
                     #pragma warning restore CA2000
@@ -93,20 +94,24 @@ namespace IceRpc.Tests.Internal
                     using IListener<IMultiplexedNetworkConnection> listener =
                         serverTransport.Listen(Endpoint, LogAttributeLoggerFactory.Instance);
                     #pragma warning disable CA2000
-                    Task<Connection> serverTask = AcceptAsync(listener);
+                    Task<Connection> serverTask = AcceptAsync(listener, Connection.CreateProtocolConnectionAsync);
                     Task<Connection> clientTask = ConnectAsync(listener.Endpoint);
                     return (await serverTask, await clientTask);
                     #pragma warning restore CA2000
                 }
 
-                async Task<Connection> AcceptAsync<T>(IListener<T> listener) where T : INetworkConnection
+                async Task<Connection> AcceptAsync<T>(
+                    IListener<T> listener,
+                    ProtocolConnectionFactory<T> protocolConnectionFactory) where T : INetworkConnection
                 {
-                    var connection = new Connection(await listener.AcceptAsync(), Endpoint.Protocol)
+                    T networkConnection = await listener.AcceptAsync();
+
+                    var connection = new Connection(networkConnection, Endpoint.Protocol)
                     {
                         Dispatcher = _dispatcher,
                         Options = _serverConnectionOptions
                     };
-                    await connection.ConnectAsync(default);
+                    await connection.PerformConnectAsync<T>(networkConnection, protocolConnectionFactory);
                     return connection;
                 }
 

@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
@@ -110,31 +111,40 @@ namespace IceRpc
 
                 if (Protocol == Protocol.Ice1)
                 {
-                    PerformListen(SimpleServerTransport, LogSimpleNetworkConnectionDecorator.Decorate);
+                    PerformListen(SimpleServerTransport,
+                                  Connection.CreateProtocolConnectionAsync,
+                                  LogSimpleNetworkConnectionDecorator.Decorate);
                 }
                 else
                 {
-                    PerformListen(MultiplexedServerTransport, LogMultiplexedNetworkConnectionDecorator.Decorate);
+                    PerformListen(MultiplexedServerTransport,
+                                  Connection.CreateProtocolConnectionAsync,
+                                  LogMultiplexedNetworkConnectionDecorator.Decorate);
                 }
                 _listening = true;
             }
 
             void PerformListen<T>(
                 IServerTransport<T> serverTransport,
+                ProtocolConnectionFactory<T> protocolConnectionFactory,
                 LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory) where T : INetworkConnection
             {
                 IListener<T> listener = serverTransport.Listen(_endpoint, LoggerFactory);
                 _listener = listener;
                 _endpoint = listener.Endpoint;
 
+                // This is the composition root of Server, where we install log decorators when logging is enabled.
+
                 if (LoggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger &&
                     logger.IsEnabled(LogLevel.Error))
                 {
                     listener = new LogListenerDecorator<T>(listener, logger, logDecoratorFactory);
+
+                    // TODO: install log decorator for protocol connections
                 }
 
                 // Run task to start accepting new connections.
-                Task.Run(() => AcceptAsync(listener));
+                Task.Run(() => AcceptAsync(listener, protocolConnectionFactory));
             }
         }
 
@@ -208,7 +218,9 @@ namespace IceRpc
         public async ValueTask DisposeAsync() =>
             await ShutdownAsync(new CancellationToken(canceled: true)).ConfigureAwait(false);
 
-        private async Task AcceptAsync<T>(IListener<T> listener) where T : INetworkConnection
+        private async Task AcceptAsync<T>(
+                IListener<T> listener,
+                ProtocolConnectionFactory<T> protocolConnectionFactory) where T : INetworkConnection
         {
             while (true)
             {
@@ -271,7 +283,7 @@ namespace IceRpc
                 // such as TLS based transports where the handshake requires few round trips between the client
                 // and server. Waiting could also cause a security issue if the client doesn't respond to the
                 // connection initialization as we wouldn't be able to accept new connections in the meantime.
-                _ = connection.ConnectAsync(default);
+                _ = connection.PerformConnectAsync(networkConnection, protocolConnectionFactory);
             }
         }
     }

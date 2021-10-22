@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
+
 namespace IceRpc.Internal
 {
     /// <summary>A protocol connection enables communication over a network connection using either the Ice1
@@ -54,4 +56,11 @@ namespace IceRpc.Internal
         /// <returns>The reason of the peer shutdown.</returns>
         Task<string> WaitForShutdownAsync(CancellationToken cancel);
     }
+
+    internal delegate Task<(IProtocolConnection, NetworkConnectionInformation)> ProtocolConnectionFactory<T>(
+            T networkConnection,
+            int incomingFrameMaxSize,
+            bool isServer,
+            CancellationToken cancel
+        );
 }
