@@ -124,15 +124,14 @@ namespace IceRpc
                 LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory) where T : INetworkConnection
             {
                 IListener<T> listener = serverTransport.Listen(_endpoint, LoggerFactory);
+                _listener = listener;
+                _endpoint = listener.Endpoint;
 
                 if (LoggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger &&
                     logger.IsEnabled(LogLevel.Error))
                 {
                     listener = new LogListenerDecorator<T>(listener, logger, logDecoratorFactory);
                 }
-
-                _endpoint = listener.Endpoint;
-                _listener = listener;
 
                 // Run task to start accepting new connections.
                 Task.Run(() => AcceptAsync(listener));

@@ -34,6 +34,9 @@ namespace IceRpc.Transports
             Endpoint endpoint,
             ILoggerFactory loggerFactory)
         {
+            // This is the composition root of the Slic server transport, where we install log decorators when logging
+            // is enabled.
+
             IListener<ISimpleNetworkConnection> simpleListener = _simpleServerTransport.Listen(endpoint, loggerFactory);
 
             Func<ISimpleStream, (ISlicFrameReader, ISlicFrameWriter)> slicFrameReaderWriterFactory =
@@ -41,8 +44,8 @@ namespace IceRpc.Transports
 
             if (loggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger && logger.IsEnabled(LogLevel.Error))
             {
-                // We add log decorators to all Slic *internal* interfaces.
-
+                // TODO: reusing the main LogListenerDecorator results in redundant log messages. Slic should provide
+                // its own log decorator to avoid this issue.
                 simpleListener = new LogListenerDecorator<ISimpleNetworkConnection>(
                     simpleListener,
                     logger,

@@ -135,7 +135,11 @@ namespace IceRpc
         // _protocol is non-null only for server connections. For client connections, it's null. The protocol
         // is instead obtained with RemoteEndpoint.Protocol
         private readonly Protocol? _protocol;
+
+        #pragma warning disable CA2213
         private IProtocolConnection? _protocolConnection;
+        #pragma warning restore CS2213
+
         private ConnectionState _state = ConnectionState.NotConnected;
         private Timer? _timer;
 
@@ -217,27 +221,19 @@ namespace IceRpc
                     // TODO: the casts are temporary, pending more refactoring
                     if (_networkConnection is ISimpleNetworkConnection simpleNetworkConnection)
                     {
-                        (ISimpleStream simpleStream, NetworkConnectionInformation) =
-                            await simpleNetworkConnection.ConnectAsync(connectCancellationSource.Token).
-                                ConfigureAwait(false);
-
-                        var protocolConnection =
-                            new Ice1ProtocolConnection(simpleStream, Options.IncomingFrameMaxSize);
-                        await protocolConnection.InitializeAsync(IsServer, connectCancellationSource.Token).
-                            ConfigureAwait(false);
-                        _protocolConnection = protocolConnection;
+                        (_protocolConnection, NetworkConnectionInformation) =
+                            await CreateProtocolConnectionAsync(simpleNetworkConnection,
+                                                                Options.IncomingFrameMaxSize,
+                                                                IsServer,
+                                                                connectCancellationSource.Token).ConfigureAwait(false);
                     }
                     else if (_networkConnection is IMultiplexedNetworkConnection multiplexedNetworkConnection)
                     {
-                        (IMultiplexedStreamFactory streamFactory, NetworkConnectionInformation) =
-                            await multiplexedNetworkConnection.ConnectAsync(connectCancellationSource.Token).
-                                ConfigureAwait(false);
-
-                        var protocolConnection =
-                            new Ice2ProtocolConnection(streamFactory, Options.IncomingFrameMaxSize);
-                        await protocolConnection.InitializeAsync(connectCancellationSource.Token).
-                            ConfigureAwait(false);
-                        _protocolConnection = protocolConnection;
+                        (_protocolConnection, NetworkConnectionInformation) =
+                            await CreateProtocolConnectionAsync(multiplexedNetworkConnection,
+                                                                Options.IncomingFrameMaxSize,
+                                                                IsServer,
+                                                                connectCancellationSource.Token).ConfigureAwait(false);
                     }
                     else
                     {
@@ -258,7 +254,7 @@ namespace IceRpc
                         // Setup a timer to check for the connection idle time every IdleTimeout / 2 period. If the
                         // transport doesn't support idle timeout (e.g.: the colocated transport), IdleTimeout will
                         // be infinite.
-                        if (NetworkConnectionInformation.Value.IdleTimeout != TimeSpan.MaxValue)
+                        if (NetworkConnectionInformation!.Value.IdleTimeout != TimeSpan.MaxValue)
                         {
                             TimeSpan period = NetworkConnectionInformation.Value.IdleTimeout / 2;
                             _timer = new Timer(value => Monitor(), null, period, period);
@@ -588,6 +584,50 @@ namespace IceRpc
                     // Ignore, application event handlers shouldn't raise exceptions.
                 }
             }
+        }
+
+        private static async Task<(IProtocolConnection, NetworkConnectionInformation)> CreateProtocolConnectionAsync(
+            ISimpleNetworkConnection networkConnection,
+            int incomingFrameMaxSize,
+            bool isServer,
+            CancellationToken cancel)
+        {
+            (ISimpleStream simpleStream, NetworkConnectionInformation connectionInfo) =
+                await networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+
+            var protocolConnection = new Ice1ProtocolConnection(simpleStream, incomingFrameMaxSize);
+            try
+            {
+                await protocolConnection.InitializeAsync(isServer, cancel).ConfigureAwait(false);
+            }
+            catch
+            {
+                protocolConnection.Dispose();
+                throw;
+            }
+            return (protocolConnection, connectionInfo);
+        }
+
+        private static async Task<(IProtocolConnection, NetworkConnectionInformation)> CreateProtocolConnectionAsync(
+            IMultiplexedNetworkConnection networkConnection,
+            int incomingFrameMaxSize,
+            bool _,
+            CancellationToken cancel)
+        {
+            (IMultiplexedStreamFactory streamFactory, NetworkConnectionInformation connectionInfo) =
+                await networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
+
+            var protocolConnection = new Ice2ProtocolConnection(streamFactory, incomingFrameMaxSize);
+            try
+            {
+                await protocolConnection.InitializeAsync(cancel).ConfigureAwait(false);
+            }
+            catch
+            {
+                protocolConnection.Dispose();
+                throw;
+            }
+            return (protocolConnection, connectionInfo);
         }
 
         /// <summary>Shutdown the connection.</summary>
