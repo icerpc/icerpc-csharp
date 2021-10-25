@@ -82,11 +82,11 @@ namespace IceRpc.Transports
             }
 
             return new TcpClientNetworkConnection(
-                remoteEndpoint,
                 socket,
+                remoteEndpoint,
+                _tcpOptions.IdleTimeout,
                 _authenticationOptions,
-                netEndPoint,
-                _tcpOptions.IdleTimeout);
+                netEndPoint);
         }
     }
 }

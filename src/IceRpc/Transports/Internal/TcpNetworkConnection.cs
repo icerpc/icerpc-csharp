@@ -260,11 +260,11 @@ namespace IceRpc.Transports.Internal
         }
 
         internal TcpClientNetworkConnection(
-            Endpoint remoteEndpoint,
             Socket socket,
+            Endpoint remoteEndpoint,
+            TimeSpan idleTimeout,
             SslClientAuthenticationOptions? authenticationOptions,
-            EndPoint addr,
-            TimeSpan idleTimeout)
+            EndPoint addr)
            : base(socket)
         {
             _addr = addr;
@@ -286,6 +286,7 @@ namespace IceRpc.Transports.Internal
         async Task<(ISimpleStream, NetworkConnectionInformation)> ISimpleNetworkConnection.ConnectAsync(
             CancellationToken cancel)
         {
+            // TODO: why are we doing this parsing for every single accepted connection?
             bool? tls = _localEndpoint.ParseTcpParams().Tls;
             try
             {
@@ -375,10 +376,10 @@ namespace IceRpc.Transports.Internal
             throw new NotSupportedException($"{nameof(HasCompatibleParams)} is only supported by client connections.");
 
         internal TcpServerNetworkConnection(
-            Endpoint localEndpoint,
             Socket socket,
-            SslServerAuthenticationOptions? authenticationOptions,
-            TimeSpan idleTimeout)
+            Endpoint localEndpoint,
+            TimeSpan idleTimeout,
+            SslServerAuthenticationOptions? authenticationOptions)
            : base(socket)
         {
            _authenticationOptions = authenticationOptions;

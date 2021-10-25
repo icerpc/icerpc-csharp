@@ -64,8 +64,7 @@ namespace IceRpc.Tests.Internal
 
             string host = _isIPv6 ? "[::1]" : "127.0.0.1";
 
-            _listener = serverTransport.Listen($"ice+tcp://{host}:0?tls={_tls}",
-                                               LogAttributeLoggerFactory.Instance);
+            _listener = serverTransport.Listen($"ice+tcp://{host}:0?tls={_tls}", LogAttributeLoggerFactory.Instance);
         }
 
         [SetUp]
