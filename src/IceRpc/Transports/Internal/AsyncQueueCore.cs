@@ -46,7 +46,7 @@ namespace IceRpc.Transports.Internal
         // source when a result is already set on the source.
         private Queue<T>? _queue;
         private ManualResetValueTaskSourceCore<T> _source = new() { RunContinuationsAsynchronously = true };
-        private CancellationTokenRegistration _tokenRegistration = default;
+        private CancellationTokenRegistration _tokenRegistration;
 
         /// <summary>Signals the stream with a new exception.</summary>
         /// <param name="exception">The exception that will be raised by WaitAsync.</param>

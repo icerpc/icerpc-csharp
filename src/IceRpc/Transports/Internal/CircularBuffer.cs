@@ -29,11 +29,11 @@ namespace IceRpc.Transports.Internal
         private readonly Memory<byte> _buffer;
         private readonly IMemoryOwner<byte> _bufferOwner;
         // _full is required to figure out whether or not the buffer is full or empty when _tail == _head.
-        private bool _full = false;
-        private int _head = 0;
+        private bool _full;
+        private int _head;
         // The lock provides thread-safety for the _head, _full and _tail data members.
-        private SpinLock _lock = new();
-        private int _tail = 0;
+        private SpinLock _lock;
+        private int _tail;
 
         public void Dispose() => _bufferOwner.Dispose();
 
@@ -41,6 +41,7 @@ namespace IceRpc.Transports.Internal
         /// <param name="capacity">The capacity of the buffer.</param>
         /// <exception cref="ArgumentOutOfRangeException">Raised if capacity is inferior to 1</exception>
         internal CircularBuffer(int capacity)
+            : this()
         {
             if (capacity < 1)
             {
