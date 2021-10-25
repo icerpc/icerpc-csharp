@@ -4,10 +4,10 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Text;
 
-namespace IceRpc.Transports
+namespace IceRpc.Transports.Internal
 {
     /// <summary>Represents a socket or socket-like object that can send and receive bytes.</summary>
-    public abstract class NetworkSocket : IDisposable
+    internal abstract class NetworkSocket : IDisposable
     {
         /// <summary>When this socket is a datagram socket, the maximum size of a datagram received by this socket.
         /// </summary>

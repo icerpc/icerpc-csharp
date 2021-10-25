@@ -1,22 +1,21 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
-using IceRpc.Transports.Internal;
 
 namespace IceRpc.Tests.Internal
 {
     public class MultiplexedStreamFactoryBaseTest
     {
-        protected INetworkConnection ClientConnection => _clientConnection!;
+        protected IMultiplexedNetworkConnection ClientConnection => _clientConnection!;
         protected IMultiplexedStreamFactory ClientMultiplexedStreamFactory => _clientMultiplexedStreamFactory!;
-        protected INetworkConnection ServerConnection => _serverConnection!;
+        protected IMultiplexedNetworkConnection ServerConnection => _serverConnection!;
         protected IMultiplexedStreamFactory ServerMultiplexedStreamFactory => _serverMultiplexedStreamFactory!;
 
-        private INetworkConnection? _clientConnection;
+        private IMultiplexedNetworkConnection? _clientConnection;
         private readonly Endpoint _clientEndpoint;
         private IMultiplexedStreamFactory? _clientMultiplexedStreamFactory;
         private readonly object? _clientOptions;
-        private INetworkConnection? _serverConnection;
+        private IMultiplexedNetworkConnection? _serverConnection;
         private readonly Endpoint _serverEndpoint;
         private IMultiplexedStreamFactory? _serverMultiplexedStreamFactory;
         private readonly object? _serverOptions;
@@ -35,13 +34,13 @@ namespace IceRpc.Tests.Internal
 
         protected async Task SetUpConnectionsAsync()
         {
-            Task<INetworkConnection> acceptTask = AcceptAsync();
+            Task<IMultiplexedNetworkConnection> acceptTask = AcceptAsync();
             _clientConnection = Connect();
             _serverConnection = await acceptTask;
 
             Task<(IMultiplexedStreamFactory, NetworkConnectionInformation)> multiStreamTask =
-                 _clientConnection.ConnectMultiplexedAsync(default);
-            (_serverMultiplexedStreamFactory, _) = await _serverConnection.ConnectMultiplexedAsync(default);
+                 _clientConnection.ConnectAsync(default);
+            (_serverMultiplexedStreamFactory, _) = await _serverConnection.ConnectAsync(default);
             (_clientMultiplexedStreamFactory, _) = await multiStreamTask;
         }
 
@@ -51,25 +50,24 @@ namespace IceRpc.Tests.Internal
             _serverConnection?.Close(new ConnectionClosedException());
         }
 
-        private async Task<INetworkConnection> AcceptAsync()
+        private async Task<IMultiplexedNetworkConnection> AcceptAsync()
         {
-            using IListener listener =
-                TestHelper.CreateServerTransport(
+            using IListener<IMultiplexedNetworkConnection> listener =
+                TestHelper.CreateMultiplexedServerTransport(
                     _serverEndpoint.Transport,
                     options: null,
-                    multiStreamOptions: _serverOptions,
-                    loggerFactory: LogAttributeLoggerFactory.Instance).Listen(_serverEndpoint);
+                    slicOptions: _serverOptions as SlicOptions).Listen(_serverEndpoint,
+                                                                       LogAttributeLoggerFactory.Instance);
             return await listener.AcceptAsync();
         }
 
-        private INetworkConnection Connect()
+        private IMultiplexedNetworkConnection Connect()
         {
-            IClientTransport clientTransport =
-                TestHelper.CreateClientTransport(
+            IClientTransport<IMultiplexedNetworkConnection> clientTransport =
+                TestHelper.CreateMultiplexedClientTransport(
                     _clientEndpoint.Transport,
-                    multiStreamOptions: _clientOptions,
-                    loggerFactory: LogAttributeLoggerFactory.Instance);
-            return clientTransport.CreateConnection(_clientEndpoint);
+                    slicOptions: _clientOptions as SlicOptions);
+            return clientTransport.CreateConnection(_clientEndpoint, LogAttributeLoggerFactory.Instance);
         }
 
         protected static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateSendPayload(

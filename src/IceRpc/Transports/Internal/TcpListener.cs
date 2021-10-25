@@ -6,16 +6,16 @@ using System.Net.Sockets;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The <see cref="SimpleListener"/> implementation for the TCP transport.</summary>
-    internal sealed class TcpListener : SimpleListener
+    /// <summary>The listener implementation for the TCP transport.</summary>
+    internal sealed class TcpListener : IListener<ISimpleNetworkConnection>
     {
-        public override Endpoint Endpoint { get; }
+        public Endpoint Endpoint { get; }
 
         private readonly SslServerAuthenticationOptions? _authenticationOptions;
         private readonly TimeSpan _idleTimeout;
         private readonly Socket _socket;
 
-        public override async Task<SimpleNetworkConnection> AcceptAsync()
+        public async ValueTask<ISimpleNetworkConnection> AcceptAsync()
         {
             try
             {
@@ -33,13 +33,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                _socket.Dispose();
-            }
-        }
+        public void Dispose() => _socket.Dispose();
 
         public override string ToString() => Endpoint.ToString();
 

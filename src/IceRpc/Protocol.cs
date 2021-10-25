@@ -111,24 +111,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Creates a protocol connection using the given network connection. The creation of the
-        /// protocol peforms the network connection establishment.</summary>
-        /// <param name="networkConnection">The network connection.</param>
-        /// <param name="incomingFrameMaxSize">The incoming frame maximum size.</param>
-        /// <param name="isServer"><c>true</c> if the connection is a server connection, <c>false</c>
-        /// otherwise.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The protocol connection and the network connection information returned by the transport
-        /// connection establishment.</returns>
-        internal virtual ValueTask<(IProtocolConnection, NetworkConnectionInformation)> CreateConnectionAsync(
-            INetworkConnection networkConnection,
-            int incomingFrameMaxSize,
-            bool isServer,
-            CancellationToken cancel) =>
-                throw new NotSupportedException(
-                    @$"Ice protocol '{Name
-                    }' is not supported by this IceRPC runtime ({typeof(Protocol).Assembly.GetName().Version})");
-
         /// <summary>Creates an outgoing response with the exception. With the ice1 protocol, this method sets
         /// the <see cref="ReplyStatus"/> feature. This method also sets the <see
         /// cref="FieldKey.RetryPolicy"/> if an exception retry policy is set.</summary>

@@ -5,14 +5,14 @@ using IceRpc.Internal;
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The listener implementation for the UDP transport.</summary>
-    internal sealed class UdpListener : SimpleListener
+    internal sealed class UdpListener : IListener<ISimpleNetworkConnection>
     {
-        public override Endpoint Endpoint { get; }
+        public Endpoint Endpoint { get; }
 
-        private readonly TaskCompletionSource<SimpleNetworkConnection> _acceptTask = new();
+        private readonly TaskCompletionSource<ISimpleNetworkConnection> _acceptTask = new();
         private UdpSocket? _socket;
 
-        public override async Task<SimpleNetworkConnection> AcceptAsync()
+        public async ValueTask<ISimpleNetworkConnection> AcceptAsync()
         {
             try
             {
@@ -39,14 +39,11 @@ namespace IceRpc.Transports.Internal
 
         public override string ToString() => Endpoint.ToString();
 
-        protected override void Dispose(bool disposing)
+        public void Dispose()
         {
-            if (disposing)
-            {
-                // Dispose the UdpSocket if AcceptAsync didn't already consume it.
-                Interlocked.Exchange(ref _socket, null)?.Dispose();
-                _acceptTask.SetException(new ObjectDisposedException(nameof(UdpListener)));
-            }
+           // Dispose the UdpSocket if AcceptAsync didn't already consume it.
+           Interlocked.Exchange(ref _socket, null)?.Dispose();
+           _acceptTask.SetException(new ObjectDisposedException(nameof(UdpListener)));
         }
 
         internal UdpListener(UdpSocket socket, Endpoint endpoint)

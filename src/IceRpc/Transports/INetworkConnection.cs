@@ -2,10 +2,7 @@
 
 namespace IceRpc.Transports
 {
-    /// <summary>A network connection represents the low-level connection to exchange data as bytes. A network
-    /// connection supports both exchanging data with an <see cref="ISimpleStream"/> (for the Ice1 protocol) or an <see
-    /// cref="IMultiplexedStreamFactory"/> (for the Ice2 protocol). A simple stream based transport such as TCP or Coloc
-    /// uses the Slic to provide multiplexed transport support.</summary>
+    /// <summary>A network connection represents a transport-level connection used to exchange data as bytes.</summary>
     public interface INetworkConnection
     {
         /// <summary>Indicates whether or not this network connection is secure.</summary>
@@ -19,18 +16,6 @@ namespace IceRpc.Transports
         /// <summary>Closes the network connection.</summary>
         /// <param name="exception">The reason of the connection closure.</param>
         void Close(Exception? exception = null);
-
-        /// <summary>Connects this network connection and obtain an <see cref="IMultiplexedStreamFactory"/>.</summary>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The <see cref="IMultiplexedStreamFactory"/> and <see
-        /// cref="NetworkConnectionInformation"/>.</returns>
-        Task<(IMultiplexedStreamFactory, NetworkConnectionInformation)> ConnectMultiplexedAsync(
-            CancellationToken cancel);
-
-        /// <summary>Connects this network connection and obtain an <see cref="ISimpleStream"/>.</summary>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The <see cref="ISimpleStream"/> and <see cref="NetworkConnectionInformation"/>.</returns>
-        Task<(ISimpleStream, NetworkConnectionInformation)> ConnectSimpleAsync(CancellationToken cancel);
 
         /// <summary>Checks if the parameters of the provided endpoint are compatible with this network connection.
         /// Compatible means a client could reuse this network connection instead of establishing a new network

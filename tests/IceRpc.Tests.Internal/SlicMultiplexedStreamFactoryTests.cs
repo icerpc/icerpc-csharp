@@ -43,19 +43,24 @@ namespace IceRpc.Tests.Internal
             SlicOptions clientOptions,
             SlicOptions serverOptions)
         {
-            IServerTransport serverTransport = new ColocServerTransport(serverOptions);
-            using IListener listener = serverTransport.Listen("ice+coloc://127.0.0.1");
+            IServerTransport<IMultiplexedNetworkConnection> serverTransport =
+                new SlicServerTransport(new ColocServerTransport(), serverOptions);
+            using IListener<IMultiplexedNetworkConnection> listener =
+                serverTransport.Listen("ice+coloc://127.0.0.1", LogAttributeLoggerFactory.Instance);
 
-            IClientTransport clientTransport = new ColocClientTransport(clientOptions);
-            INetworkConnection clientConnection = clientTransport.CreateConnection("ice+coloc://127.0.0.1");
+            IClientTransport<IMultiplexedNetworkConnection> clientTransport =
+                new SlicClientTransport(new ColocClientTransport(), clientOptions);
+            IMultiplexedNetworkConnection clientConnection = clientTransport.CreateConnection(
+                "ice+coloc://127.0.0.1",
+                LogAttributeLoggerFactory.Instance);
 
-            INetworkConnection serverConnection = await listener.AcceptAsync();
+            IMultiplexedNetworkConnection serverConnection = await listener.AcceptAsync();
             Task<(IMultiplexedStreamFactory Factory, NetworkConnectionInformation Information)> clientTask =
-                clientConnection.ConnectMultiplexedAsync(default);
+                clientConnection.ConnectAsync(default);
             Task<(IMultiplexedStreamFactory Factory, NetworkConnectionInformation Information)> serverTask =
-                serverConnection.ConnectMultiplexedAsync(default);
-            return ((SlicMultiplexedStreamFactory)(await clientTask).Factory!,
-                    (SlicMultiplexedStreamFactory)(await serverTask).Factory!);
+                serverConnection.ConnectAsync(default);
+            return ((SlicMultiplexedStreamFactory)(await clientTask).Factory,
+                    (SlicMultiplexedStreamFactory)(await serverTask).Factory);
         }
     }
 }

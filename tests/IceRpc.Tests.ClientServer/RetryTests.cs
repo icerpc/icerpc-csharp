@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
-using IceRpc.Transports;
 using NUnit.Framework;
 using System.Collections.Immutable;
 
@@ -59,7 +58,6 @@ namespace IceRpc.Tests.ClientServer
                 {
                     Dispatcher = new RetryTest(),
                     Endpoint = GetTestEndpoint(port: port, protocol: Protocol.FromProtocolCode(protocol)),
-                    ServerTransport = new ServerTransport().UseTcp(),
                     ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) }
                 };
                 server.Listen();
@@ -76,8 +74,7 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Dispatcher = new Bidir(),
-                Endpoint = GetTestEndpoint(),
-                ServerTransport = new ServerTransport().UseTcp()
+                Endpoint = GetTestEndpoint()
             };
             server.Listen();
 
@@ -445,7 +442,6 @@ namespace IceRpc.Tests.ClientServer
         {
             var pool = new ConnectionPool()
             {
-                ClientTransport = TestHelper.CreateClientTransport(loggerFactory: LogAttributeLoggerFactory.Instance),
                 ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) },
             };
             return pool;
@@ -457,7 +453,6 @@ namespace IceRpc.Tests.ClientServer
                 i => new Server
                 {
                     Endpoint = GetTestEndpoint(port: i),
-                    ServerTransport = TestHelper.CreateServerTransport(loggerFactory: LogAttributeLoggerFactory.Instance),
                     ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) },
                 }).ToArray();
 
@@ -500,7 +495,6 @@ namespace IceRpc.Tests.ClientServer
             {
                 Dispatcher = router,
                 Endpoint = GetTestEndpoint(protocol: protocol),
-                ServerTransport = TestHelper.CreateServerTransport(loggerFactory: LogAttributeLoggerFactory.Instance),
                 ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) },
             };
             server.Listen();

@@ -19,26 +19,30 @@ namespace IceRpc.Tests
                 _ => address.Contains(':', StringComparison.InvariantCulture) ? $"[{address}]" : address
             };
 
-        public static IClientTransport GetSecureClientTransport(string caFile = "cacert.der") =>
-            new TcpClientTransport(authenticationOptions:
-                new()
-                {
-                    RemoteCertificateValidationCallback =
-                        CertificateValidaton.GetServerCertificateValidationCallback(
-                            certificateAuthorities: new X509Certificate2Collection
-                            {
-                                new X509Certificate2(Path.Combine(Environment.CurrentDirectory, "certs", caFile))
-                            })
-                });
+        public static IClientTransport<IMultiplexedNetworkConnection> GetSecureMultiplexedClientTransport(
+            string caFile = "cacert.der") =>
+            new SlicClientTransport(
+                    new TcpClientTransport(authenticationOptions:
+                    new()
+                    {
+                        RemoteCertificateValidationCallback =
+                            CertificateValidaton.GetServerCertificateValidationCallback(
+                                certificateAuthorities: new X509Certificate2Collection
+                                {
+                                    new X509Certificate2(Path.Combine(Environment.CurrentDirectory, "certs", caFile))
+                                })
+                    }));
 
-        public static IServerTransport GetSecureServerTransport(string certificateFile = "server.p12") =>
-            new TcpServerTransport(authenticationOptions:
-                new()
-                {
-                    ServerCertificate = new X509Certificate2(
-                        Path.Combine(Environment.CurrentDirectory, "certs", certificateFile),
-                        "password")
-                });
+        public static IServerTransport<IMultiplexedNetworkConnection> GetSecureMultiplexedServerTransport(
+            string certificateFile = "server.p12") =>
+             new SlicServerTransport(
+                new TcpServerTransport(authenticationOptions:
+                    new()
+                    {
+                        ServerCertificate = new X509Certificate2(
+                            Path.Combine(Environment.CurrentDirectory, "certs", certificateFile),
+                            "password")
+                    }));
 
         public static Endpoint GetTestEndpoint(
              string host = "127.0.0.1",
@@ -94,64 +98,68 @@ namespace IceRpc.Tests
             protocol == Protocol.Ice1 ? $"coloc -h test.{Interlocked.Increment(ref _counter)}" :
             $"ice+coloc://test.{Interlocked.Increment(ref _counter)}";
 
-        public static IServerTransport CreateServerTransport(
+        public static IClientTransport<IMultiplexedNetworkConnection> CreateMultiplexedClientTransport(
             string transport = "tcp",
-            object? options = null,
-            object? multiStreamOptions = null,
-            SslServerAuthenticationOptions? authenticationOptions = null,
-            ILoggerFactory? loggerFactory = null)
+            TcpOptions? options = null,
+            SslClientAuthenticationOptions? authenticationOptions = null,
+            SlicOptions? slicOptions = null,
+            ILoggerFactory? _ = null)
         {
+            // TODO: give loggerFactory to SlicClientTransport
             return transport switch
                 {
-                    "tcp" => LogSimpleTransportDecorator(new TcpServerTransport(
-                        (TcpOptions?)options ?? new(),
-                        (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
-                        authenticationOptions)),
-                    "ssl" => LogSimpleTransportDecorator(new TcpServerTransport(
-                        (TcpOptions?)options ?? new(),
-                        (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
-                        authenticationOptions)),
-                    "udp" => LogUdpTransportDecorator(new UdpServerTransport((UdpOptions?)options ?? new())),
-                    "coloc" => LogSimpleTransportDecorator(new ColocServerTransport(
-                        (SlicOptions?)multiStreamOptions ?? new SlicOptions())),
+                    "tcp" => new SlicClientTransport(new TcpClientTransport(options ?? new(), authenticationOptions),
+                                                     slicOptions ?? new SlicOptions()),
+                    "coloc" => new SlicClientTransport(new ColocClientTransport(), slicOptions ?? new SlicOptions()),
                     _ => throw new UnknownTransportException(transport)
                 };
-
-            IServerTransport LogUdpTransportDecorator(UdpServerTransport transport) =>
-                loggerFactory == null ? transport : transport.UseLoggerFactory(loggerFactory);
-
-            IServerTransport LogSimpleTransportDecorator(SimpleServerTransport transport) =>
-                loggerFactory == null ? transport : transport.UseLoggerFactory(loggerFactory);
         }
 
-        public static IClientTransport CreateClientTransport(
+        public static IServerTransport<IMultiplexedNetworkConnection> CreateMultiplexedServerTransport(
+            string transport = "tcp",
+            TcpOptions? options = null,
+            SslServerAuthenticationOptions? authenticationOptions = null,
+            SlicOptions? slicOptions = null,
+            ILoggerFactory? _ = null)
+        {
+            // TODO: give loggerFactory to SlicServerTransport
+            return transport switch
+                {
+                    "tcp" => new SlicServerTransport(new TcpServerTransport(options ?? new(), authenticationOptions),
+                                                     slicOptions ?? new SlicOptions()),
+                    "coloc" => new SlicServerTransport(new ColocServerTransport(), slicOptions ?? new SlicOptions()),
+                    _ => throw new UnknownTransportException(transport)
+                };
+        }
+
+        public static IClientTransport<ISimpleNetworkConnection> CreateSimpleClientTransport(
             string transport = "tcp",
             object? options = null,
-            object? multiStreamOptions = null,
-            SslClientAuthenticationOptions? authenticationOptions = null,
-            ILoggerFactory? loggerFactory = null)
+            SslClientAuthenticationOptions? authenticationOptions = null)
         {
             return transport switch
                 {
-                    "tcp" => LogSimpleTransportDecorator(new TcpClientTransport(
-                        (TcpOptions?)options ?? new(),
-                        (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
-                        authenticationOptions)),
-                    "ssl" => LogSimpleTransportDecorator(new TcpClientTransport(
-                        (TcpOptions?)options ?? new(),
-                        (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
-                        authenticationOptions)),
-                    "udp" => LogUdpTransportDecorator(new UdpClientTransport((UdpOptions?)options ?? new())),
-                    "coloc" => LogSimpleTransportDecorator(new ColocClientTransport(
-                        (SlicOptions?)multiStreamOptions ?? new SlicOptions())),
+                    "tcp" => new TcpClientTransport((TcpOptions?)options ?? new(), authenticationOptions),
+                    "ssl" => new TcpClientTransport((TcpOptions?)options ?? new(), authenticationOptions),
+                    "udp" => new UdpClientTransport((UdpOptions?)options ?? new()),
+                    "coloc" => new ColocClientTransport(),
                     _ => throw new UnknownTransportException(transport)
                 };
+        }
 
-            IClientTransport LogUdpTransportDecorator(UdpClientTransport transport) =>
-                loggerFactory == null ? transport : transport.UseLoggerFactory(loggerFactory);
-
-            IClientTransport LogSimpleTransportDecorator(SimpleClientTransport transport) =>
-                loggerFactory == null ? transport : transport.UseLoggerFactory(loggerFactory);
+        public static IServerTransport<ISimpleNetworkConnection> CreateSimpleServerTransport(
+            string transport = "tcp",
+            object? options = null,
+            SslServerAuthenticationOptions? authenticationOptions = null)
+        {
+            return transport switch
+                {
+                    "tcp" => new TcpServerTransport((TcpOptions?)options ?? new(), authenticationOptions),
+                    "ssl" => new TcpServerTransport((TcpOptions?)options ?? new(), authenticationOptions),
+                    "udp" => new UdpServerTransport((UdpOptions?)options ?? new()),
+                    "coloc" => new ColocServerTransport(),
+                    _ => throw new UnknownTransportException(transport)
+                };
         }
     }
 }

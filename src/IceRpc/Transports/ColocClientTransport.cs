@@ -1,28 +1,18 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging;
 using System.Threading.Channels;
 
 namespace IceRpc.Transports
 {
-    /// <summary>Implements <see cref="IClientTransport"/> for the coloc transport.</summary>
-    public class ColocClientTransport : SimpleClientTransport
+    /// <summary>Implements <see cref="IClientTransport{ISimpleNetworkConnection}"/> for the coloc transport.</summary>
+    public class ColocClientTransport : IClientTransport<ISimpleNetworkConnection>
     {
-        /// <summary>Construct a colocated client transport.</summary>
-        public ColocClientTransport() :
-            base(new(), TimeSpan.MaxValue)
-        {
-        }
-
-        /// <summary>Construct a colocated client transport.</summary>
-        /// <param name="slicOptions">The Slic options.</param>
-        public ColocClientTransport(SlicOptions slicOptions) :
-            base(slicOptions, TimeSpan.MaxValue)
-        {
-        }
-
         /// <inheritdoc/>
-        protected override SimpleNetworkConnection CreateConnection(Endpoint remoteEndpoint)
+        ISimpleNetworkConnection IClientTransport<ISimpleNetworkConnection>.CreateConnection(
+            Endpoint remoteEndpoint,
+            ILoggerFactory loggerFactory)
         {
             if (remoteEndpoint.Params.Count > 0)
             {

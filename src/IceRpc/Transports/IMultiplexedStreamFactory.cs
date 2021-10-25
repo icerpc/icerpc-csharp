@@ -2,8 +2,7 @@
 
 namespace IceRpc.Transports
 {
-    /// <summary>A multiplexed factory enables creating multiplexed streams to exchange binary data over multiple <see
-    /// cref="IMultiplexedStream"/>.</summary>
+    /// <summary>A multiplexed stream factory creates multiplexed streams.</summary>
     public interface IMultiplexedStreamFactory
     {
         /// <summary>Accepts a remote stream.</summary>

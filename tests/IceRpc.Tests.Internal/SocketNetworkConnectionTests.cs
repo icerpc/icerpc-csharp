@@ -2,7 +2,6 @@
 
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
-using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 
 #pragma warning disable CA2000 // NetworkSocketStub is Disposed by the SocketNetworkConnection

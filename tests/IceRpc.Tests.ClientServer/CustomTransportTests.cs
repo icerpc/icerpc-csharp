@@ -6,11 +6,12 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests.ClientServer
 {
-    public class CustomClientTransport : IClientTransport
+    public class CustomClientTransport : IClientTransport<IMultiplexedNetworkConnection>
     {
-        private readonly IClientTransport _transport = new TcpClientTransport();
+        private readonly IClientTransport<IMultiplexedNetworkConnection> _transport =
+            new SlicClientTransport(new TcpClientTransport());
 
-        public INetworkConnection CreateConnection(Endpoint remoteEndpoint)
+        public IMultiplexedNetworkConnection CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
         {
             if (remoteEndpoint.Transport == "custom")
             {
@@ -19,7 +20,7 @@ namespace IceRpc.Tests.ClientServer
                     Params = remoteEndpoint.Params.RemoveAll(
                         p => p.Name.StartsWith("custom-", StringComparison.Ordinal))
                 };
-                return _transport.CreateConnection(newEndpoint);
+                return _transport.CreateConnection(newEndpoint, loggerFactory);
             }
             else
             {
@@ -28,11 +29,12 @@ namespace IceRpc.Tests.ClientServer
         }
     }
 
-    public class CustomServerTransport : IServerTransport
+    public class CustomServerTransport : IServerTransport<IMultiplexedNetworkConnection>
     {
-        private readonly IServerTransport _transport = new TcpServerTransport();
+        private readonly IServerTransport<IMultiplexedNetworkConnection> _transport =
+            new SlicServerTransport(new TcpServerTransport());
 
-        public IListener Listen(Endpoint endpoint)
+        public IListener<IMultiplexedNetworkConnection> Listen(Endpoint endpoint, ILoggerFactory loggerFactory)
         {
             if (endpoint.Transport == "custom")
             {
@@ -40,7 +42,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     Params = endpoint.Params.RemoveAll(p => p.Name.StartsWith("custom-", StringComparison.Ordinal))
                 };
-                return _transport.Listen(newEndpoint);
+                return _transport.Listen(newEndpoint, loggerFactory);
             }
             else
             {
@@ -56,7 +58,7 @@ namespace IceRpc.Tests.ClientServer
         {
             await using var server = new Server
             {
-                ServerTransport = new CustomServerTransport(),
+                MultiplexedServerTransport = new CustomServerTransport(),
                 Endpoint = "ice+custom://127.0.0.1:0?tls=false",
                 Dispatcher = new MyService()
             };
@@ -65,7 +67,7 @@ namespace IceRpc.Tests.ClientServer
 
             await using var connection = new Connection
             {
-                ClientTransport = new CustomClientTransport(),
+                MultiplexedClientTransport = new CustomClientTransport(),
                 RemoteEndpoint = server.Endpoint
             };
 
@@ -80,7 +82,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 await using var server = new Server
                 {
-                    ServerTransport = new TcpServerTransport(),
+                    MultiplexedServerTransport = new SlicServerTransport(new TcpServerTransport()),
                     Endpoint = "ice+tcp://127.0.0.1:0?tls=false&custom-p=bar",
                     Dispatcher = new MyService()
                 };
@@ -91,7 +93,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 await using var server = new Server
                 {
-                    ServerTransport = new CustomServerTransport(),
+                    MultiplexedServerTransport = new CustomServerTransport(),
                     Endpoint = "ice+custom://127.0.0.1:0?tls=false&custom-p=bar",
                     Dispatcher = new MyService()
                 };
@@ -99,7 +101,7 @@ namespace IceRpc.Tests.ClientServer
 
                 await using var connection1 = new Connection
                 {
-                    ClientTransport = new CustomClientTransport(),
+                    MultiplexedClientTransport = new CustomClientTransport(),
                     // We add the custom endpoint here because listen updates the endpoint and the custom transport
                     // removes the parameter
                     RemoteEndpoint = server.Endpoint with
@@ -113,7 +115,7 @@ namespace IceRpc.Tests.ClientServer
 
                 await using var connection2 = new Connection
                 {
-                    ClientTransport = new TcpClientTransport(),
+                    MultiplexedClientTransport = new SlicClientTransport(new TcpClientTransport()),
                     // We add the custom endpoint here because listen updates the endpoint and the custom transport
                     // removes the parameter
                     RemoteEndpoint = server.Endpoint with

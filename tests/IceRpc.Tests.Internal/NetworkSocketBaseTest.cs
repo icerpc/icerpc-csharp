@@ -24,7 +24,7 @@ namespace IceRpc.Tests.Internal
         private readonly AsyncSemaphore _acceptSemaphore = new(1);
         private readonly SslClientAuthenticationOptions _clientAuthenticationOptions;
         // Protects the _listener data member
-        private IListener? _listener;
+        private IListener<ISimpleNetworkConnection>? _listener;
         private readonly object _mutex = new();
         private static int _nextBasePort;
         private readonly SslServerAuthenticationOptions _serverAuthenticationOptions;
@@ -85,11 +85,11 @@ namespace IceRpc.Tests.Internal
         [OneTimeTearDown]
         public void Shutdown() => _listener?.Dispose();
 
-        protected async Task<NetworkSocket> AcceptAsync()
+        private protected async Task<NetworkSocket> AcceptAsync()
         {
             lock (_mutex)
             {
-                _listener ??= CreateListener();
+                _listener ??= CreateSimpleListener();
             }
 
             await _acceptSemaphore.EnterAsync();
@@ -115,13 +115,13 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        protected async Task<NetworkSocket> ConnectAsync()
+        private protected async Task<NetworkSocket> ConnectAsync()
         {
             if (ClientEndpoint.Transport != "udp")
             {
                 lock (_mutex)
                 {
-                    _listener ??= CreateListener();
+                    _listener ??= CreateSimpleListener();
                 }
             }
 
@@ -139,30 +139,30 @@ namespace IceRpc.Tests.Internal
             return networkSocket;
         }
 
-        protected IListener CreateListener(TcpOptions? options = null, Endpoint? serverEndpoint = null) =>
-            TestHelper.CreateServerTransport(
+        protected IListener<ISimpleNetworkConnection> CreateSimpleListener(
+                TcpOptions? options = null,
+                Endpoint? serverEndpoint = null) =>
+            TestHelper.CreateSimpleServerTransport(
                 (serverEndpoint ?? ServerEndpoint).Transport,
                 options: options,
-                multiStreamOptions: null,
-                _serverAuthenticationOptions).Listen(serverEndpoint ?? ServerEndpoint);
+                _serverAuthenticationOptions).Listen(serverEndpoint ?? ServerEndpoint,
+                                                     LogAttributeLoggerFactory.Instance);
 
-        protected async ValueTask<NetworkSocket> CreateServerNetworkSocketAsync() =>
-            GetNetworkSocket(await TestHelper.CreateServerTransport(
+        private protected async ValueTask<NetworkSocket> CreateServerNetworkSocketAsync() =>
+            GetNetworkSocket(await TestHelper.CreateSimpleServerTransport(
                 ServerEndpoint.Transport,
-                authenticationOptions: _serverAuthenticationOptions).Listen(ServerEndpoint).AcceptAsync());
+                authenticationOptions: _serverAuthenticationOptions).Listen(
+                    ServerEndpoint,
+                    LogAttributeLoggerFactory.Instance).AcceptAsync());
 
-        protected NetworkSocket CreateClientNetworkSocket() =>
-            GetNetworkSocket(TestHelper.CreateClientTransport(
+        private protected NetworkSocket CreateClientNetworkSocket() =>
+            GetNetworkSocket(TestHelper.CreateSimpleClientTransport(
                 ClientEndpoint.Transport,
-                authenticationOptions: _clientAuthenticationOptions).CreateConnection(ClientEndpoint));
+                authenticationOptions: _clientAuthenticationOptions).CreateConnection(
+                    ClientEndpoint,
+                    LogAttributeLoggerFactory.Instance));
 
-        protected static NetworkSocket GetNetworkSocket(INetworkConnection connection)
-        {
-            if (connection is SlicNetworkConnectionDecorator decorator)
-            {
-                connection = decorator.Decoratee;
-            }
-            return ((SocketNetworkConnection)connection).NetworkSocket;
-        }
+        private protected static NetworkSocket GetNetworkSocket(INetworkConnection connection) =>
+            ((SocketNetworkConnection)connection).NetworkSocket;
     }
 }

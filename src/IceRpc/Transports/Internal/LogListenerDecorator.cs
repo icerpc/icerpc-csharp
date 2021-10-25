@@ -1,34 +1,23 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Transports.Internal
 {
-    internal sealed class LogListenerDecorator : IListener
+    internal sealed class LogListenerDecorator<T> : IListener<T> where T : INetworkConnection
     {
-        private readonly IListener _decoratee;
+        private readonly IListener<T> _decoratee;
+        private readonly LogNetworkConnectionDecoratorFactory<T> _logDecoratorFactory;
         private readonly ILogger _logger;
 
-        public Endpoint Endpoint => _decoratee.Endpoint;
+        Endpoint IListener.Endpoint => _decoratee.Endpoint;
 
-        public async Task<INetworkConnection> AcceptAsync()
+        async ValueTask<T> IListener<T>.AcceptAsync()
         {
             try
             {
-                INetworkConnection connection = await _decoratee.AcceptAsync().ConfigureAwait(false);
-                if (connection is SocketNetworkConnection socketNetworkConnection)
-                {
-                    return new LogSocketNetworkConnectionDecorator(
-                        socketNetworkConnection,
-                        isServer: true,
-                        _decoratee.Endpoint,
-                        _logger);
-                }
-                else
-                {
-                    return new LogNetworkConnectionDecorator(connection, isServer: true, _decoratee.Endpoint, _logger);
-                }
+                T connection = await _decoratee.AcceptAsync().ConfigureAwait(false);
+                return _logDecoratorFactory(connection, isServer: true, _decoratee.Endpoint, _logger);
             }
             catch (Exception ex)
             {
@@ -49,9 +38,13 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal LogListenerDecorator(IListener decoratee, ILogger logger)
+        internal LogListenerDecorator(
+            IListener<T> decoratee,
+            ILogger logger,
+            LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory)
         {
             _decoratee = decoratee;
+            _logDecoratorFactory = logDecoratorFactory;
             _logger = logger;
             _logger.LogListenerListening(_decoratee.Endpoint);
         }
