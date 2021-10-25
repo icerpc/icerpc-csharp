@@ -131,7 +131,10 @@ namespace IceRpc.Internal
             }
             finally
             {
-                tokenRegistration?.Dispose();
+                if (tokenRegistration != null)
+                {
+                    await tokenRegistration.Value.DisposeAsync().ConfigureAwait(false);
+                }
             }
         }
 

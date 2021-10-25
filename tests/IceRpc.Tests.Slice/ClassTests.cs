@@ -26,7 +26,7 @@ namespace IceRpc.Tests.Slice
                     {
                         var response = OutgoingResponse.ForPayload(
                             request,
-                            Encoding.Ice11.CreatePayloadFromSingleReturnValue(
+                            IceRpc.Slice.Ice11Encoding.CreatePayloadFromSingleReturnValue(
                                 new MyClassAlsoEmpty(),
                                 (encoder, ae) => encoder.EncodeClass(ae)));
                         return new(response);

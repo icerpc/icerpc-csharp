@@ -515,7 +515,7 @@ namespace IceRpc.Tests.Internal
 
                 // Ensure that dispatch is canceled (with Ice1 it's canceled on receive of the CloseConnection
                 // frame and the GoAwayCanceled frame for Ice2).
-                dispatchSemaphore.Wait();
+                await dispatchSemaphore.WaitAsync();
 
                 // The invocation on the connection has been canceled by the shutdown cancellation
                 Exception? ex = Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
@@ -538,7 +538,7 @@ namespace IceRpc.Tests.Internal
                 cancelSource.Cancel();
 
                 // Ensure the dispatch is canceled.
-                dispatchSemaphore.Wait();
+                await dispatchSemaphore.WaitAsync();
 
                 // The invocation on the connection should throw a DispatchException
                 if (protocol == ProtocolCode.Ice1)

@@ -100,7 +100,7 @@ namespace IceRpc
 
             static Protocol Core(string name)
             {
-                if (name.StartsWith("ice") && byte.TryParse(name[3..], out byte value))
+                if (name.StartsWith("ice", StringComparison.Ordinal) && byte.TryParse(name[3..], out byte value))
                 {
                     return FromProtocolCode((ProtocolCode)value);
                 }

@@ -31,7 +31,9 @@ namespace IceRpc.Tests
         internal override ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
              default;
 
+#pragma warning disable CA2215 // can't call base.Dispose(disposing) because Socket is null
         protected override void Dispose(bool disposing) => Disposed = true;
+#pragma warning restore CA2215
 
         internal NetworkSocketStub(bool isDatagram) :
             base(null!) => _isDatagram = isDatagram;

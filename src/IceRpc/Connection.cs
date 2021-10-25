@@ -517,7 +517,10 @@ namespace IceRpc
                     Debug.Assert(false, $"unexpected transport close exception\n{exception}");
                 }
 
-                _timer?.Dispose();
+                if (_timer != null)
+                {
+                    await _timer.DisposeAsync().ConfigureAwait(false);
+                }
 
                 // Raise the Closed event, this will call user code so we shouldn't hold the mutex.
                 try

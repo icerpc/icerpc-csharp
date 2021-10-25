@@ -37,18 +37,16 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private volatile Exception? _exception = null;
+        private volatile Exception? _exception;
         // Provide thread safety using a spin lock to avoid having to create another object on the heap. The
         // lock is used to protect the setting of the signal value or exception with the manual reset value
         // task source.
-        private SpinLock _lock = new();
+        private SpinLock _lock;
         // The result queue is only created when Queue() is called and if the result can't be set on the
         // source when a result is already set on the source.
-        private Queue<T>? _queue = null;
-        private ManualResetValueTaskSourceCore<T> _source = new();
+        private Queue<T>? _queue;
+        private ManualResetValueTaskSourceCore<T> _source = new() { RunContinuationsAsynchronously = true };
         private CancellationTokenRegistration _tokenRegistration = default;
-
-        public AsyncQueueCore() => _source.RunContinuationsAsynchronously = true;
 
         /// <summary>Signals the stream with a new exception.</summary>
         /// <param name="exception">The exception that will be raised by WaitAsync.</param>

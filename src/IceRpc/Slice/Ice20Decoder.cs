@@ -134,7 +134,7 @@ namespace IceRpc.Slice
         public override int DecodeSize() => checked((int)DecodeVarULong());
 
         /// <inheritdoc/>
-        public override T DecodeTagged<T>(int tag, TagFormat _, DecodeFunc<IceDecoder, T> decodeFunc) =>
+        public override T DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<IceDecoder, T> decodeFunc) =>
             DecodeTaggedParamHeader(tag) ? decodeFunc(this) : default!; // default! == null
 
         /// <summary>Decodes a buffer.</summary>

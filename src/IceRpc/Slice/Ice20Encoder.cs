@@ -46,7 +46,11 @@ namespace IceRpc.Slice
         public override void EncodeSize(int v) => EncodeVarULong((ulong)v);
 
         /// <inheritdoc/>
-        public override void EncodeTagged<T>(int tag, TagFormat _, T v, EncodeAction<IceEncoder, T> encodeAction)
+        public override void EncodeTagged<T>(
+            int tag,
+            TagFormat tagFormat,
+            T v,
+            EncodeAction<IceEncoder, T> encodeAction)
         {
             EncodeVarInt(tag); // the key
             BufferWriter.Position pos = StartFixedLengthSize(); // use the default (4 bytes)
@@ -57,7 +61,7 @@ namespace IceRpc.Slice
         /// <inheritdoc/>
         public override void EncodeTagged<T>(
             int tag,
-            TagFormat _,
+            TagFormat tagFormat,
             int size,
             T v,
             EncodeAction<IceEncoder, T> encodeAction)
