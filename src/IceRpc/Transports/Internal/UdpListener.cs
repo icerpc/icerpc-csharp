@@ -9,17 +9,27 @@ namespace IceRpc.Transports.Internal
     {
         public Endpoint Endpoint { get; }
 
-        private readonly ManualResetValueTaskCompletionSource<UdpSocket> _acceptTask = new();
+        private readonly TaskCompletionSource<ISimpleNetworkConnection> _acceptTask = new();
+        private UdpSocket? _socket;
 
         public async ValueTask<ISimpleNetworkConnection> AcceptAsync()
         {
             try
             {
-                return new SocketNetworkConnection(
-                    await _acceptTask.ValueTask.ConfigureAwait(false),
-                    Endpoint,
-                    isServer: true,
-                    idleTimeout: TimeSpan.MaxValue);
+                if (Interlocked.Exchange(ref _socket, null) is UdpSocket socket)
+                {
+                    // Return the server-side network connection if the socket wasn't already consumed.
+                    return new SocketNetworkConnection(
+                        socket,
+                        Endpoint,
+                        isServer: true,
+                        idleTimeout: TimeSpan.MaxValue);
+                }
+                else
+                {
+                    // Wait indefinitely until Dispose is called if the socket was already consumed.
+                    return await _acceptTask.Task.ConfigureAwait(false);
+                }
             }
             catch (Exception ex)
             {
@@ -31,23 +41,15 @@ namespace IceRpc.Transports.Internal
 
         public void Dispose()
         {
-            if (_acceptTask.ValueTask.IsCompletedSuccessfully)
-            {
-                _acceptTask.ValueTask.Result.Dispose();
-            }
-            else
-            {
-                _acceptTask.SetException(new ObjectDisposedException(nameof(UdpListener)));
-            }
+           // Dispose the UdpSocket if AcceptAsync didn't already consume it.
+           Interlocked.Exchange(ref _socket, null)?.Dispose();
+           _acceptTask.SetException(new ObjectDisposedException(nameof(UdpListener)));
         }
 
         internal UdpListener(UdpSocket socket, Endpoint endpoint)
         {
             Endpoint = endpoint;
-
-            // Set the socket that will be returned the first time AcceptAsync is called. Once returned,
-            // the next AcceptAsync call will block indefinitely since we won't provide a new socket.
-            _acceptTask.SetResult(socket);
+            _socket = socket;
         }
     }
 }

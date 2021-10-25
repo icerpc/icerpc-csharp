@@ -84,10 +84,6 @@ namespace IceRpc.Transports.Internal
 
         public Stream AsByteStream() => Decoratee.AsByteStream();
 
-        public void EnableReceiveFlowControl() => Decoratee.EnableReceiveFlowControl();
-
-        public void EnableSendFlowControl() => Decoratee.EnableSendFlowControl();
-
         public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             int received = await Decoratee.ReadAsync(buffer, cancel).ConfigureAwait(false);

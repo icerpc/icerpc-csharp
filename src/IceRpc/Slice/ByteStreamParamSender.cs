@@ -29,8 +29,6 @@ namespace IceRpc.Slice
         {
             try
             {
-                rpcStream.EnableSendFlowControl();
-
                 // TODO: use a buffered stream to ensure the header isn't sent immediately?
                 using System.IO.Stream ioStream = rpcStream.AsByteStream();
 

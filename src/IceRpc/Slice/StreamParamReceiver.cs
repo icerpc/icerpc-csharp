@@ -161,7 +161,6 @@ namespace IceRpc.Slice
                 Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? streamDecompressor)
             {
                 _simpleStream = stream;
-                _simpleStream?.EnableReceiveFlowControl();
                 _streamDecompressor = streamDecompressor;
             }
         }
@@ -185,7 +184,6 @@ namespace IceRpc.Slice
                 Func<IceDecoder, T> decodeAction)
             {
                 _simpleStream = simpleStream;
-                _simpleStream?.EnableReceiveFlowControl();
                 _connection = connection;
                 _invoker = invoker;
                 _decoderFactory = decoderFactory;
