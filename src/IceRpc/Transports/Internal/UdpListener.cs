@@ -16,20 +16,19 @@ namespace IceRpc.Transports.Internal
         {
             try
             {
-                UdpSocket? socket = Interlocked.Exchange(ref _socket, null);
-                if (socket == null)
+                if (Interlocked.Exchange(ref _socket, null) is UdpSocket socket)
                 {
-                    // Wait indefinitely until disposed if the socket was already return.
-                    return await _acceptTask.Task.ConfigureAwait(false);
-                }
-                else
-                {
-                    // Return the server-side network connection.
+                    // Return the server-side network connection if the socket wasn't already consumed.
                     return new SocketNetworkConnection(
                         socket,
                         Endpoint,
                         isServer: true,
                         idleTimeout: TimeSpan.MaxValue);
+                }
+                else
+                {
+                    // Wait indefinitely until Dispose is called if the socket was already consumed.
+                    return await _acceptTask.Task.ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
