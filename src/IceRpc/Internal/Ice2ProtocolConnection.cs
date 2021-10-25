@@ -355,8 +355,8 @@ namespace IceRpc.Internal
             }
             catch
             {
-                // Abort the stream if write fails. The shutdown action will be exected and will remove the request from
-                // _invocations.
+                // Abort the stream if write fails. The shutdown action will be executed and will remove the request
+                // from _invocations.
                 request.Stream.Abort(StreamError.StreamAborted);
                 throw;
             }
