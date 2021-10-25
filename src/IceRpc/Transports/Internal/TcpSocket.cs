@@ -12,14 +12,31 @@ using System.Text;
 
 namespace IceRpc.Transports.Internal
 {
-    internal abstract class TcpSocket : NetworkSocket
+    internal abstract class TcpNetworkConnection : INetworkConnection, ISimpleStream
     {
-        internal override bool IsDatagram => false;
+        int ISimpleStream.DatagramMaxReceiveSize => throw new InvalidOperationException();
+        bool ISimpleStream.IsDatagram => false;
+        bool INetworkConnection.IsSecure => SslStream != null;
+
+        TimeSpan INetworkConnection.LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
+
+        internal Socket Socket { get; }
+        private protected SslStream? SslStream { get; set; }
 
         // The MaxDataSize of the SSL implementation.
         private const int MaxSslDataSize = 16 * 1024;
 
-        internal override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
+        private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
+
+        void INetworkConnection.Close(Exception? exception)
+        {
+            SslStream?.Dispose();
+            Socket.Dispose();
+        }
+
+        public abstract bool HasCompatibleParams(Endpoint remoteEndpoint);
+
+        async ValueTask<int> ISimpleStream.ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             if (buffer.Length == 0)
             {
@@ -47,12 +64,12 @@ namespace IceRpc.Transports.Internal
             {
                 throw new ConnectionLostException();
             }
+
+            Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
             return received;
         }
 
-        internal override async ValueTask SendAsync(
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
-            CancellationToken cancel)
+        async ValueTask ISimpleStream.WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
         {
             Debug.Assert(buffers.Length > 0);
 
@@ -124,6 +141,9 @@ namespace IceRpc.Transports.Internal
                             SocketFlags.None).WaitAsync(cancel).ConfigureAwait(false);
                     }
                 }
+
+                // TODO: should we update _lastActivity when an exception is thrown?
+                Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
             }
             catch (Exception ex)
             {
@@ -131,45 +151,30 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-            SslStream?.Dispose();
-        }
-
-        protected override bool PrintMembers(StringBuilder builder)
-        {
-            if (base.PrintMembers(builder))
-            {
-                builder.Append(", ");
-            }
-            builder.Append("LocalEndPoint = ").Append(Socket.LocalEndPoint).Append(", ");
-            builder.Append("RemoteEndPoint = ").Append(Socket.RemoteEndPoint);
-            return true;
-        }
-
-        internal TcpSocket(Socket socket)
-            : base(socket)
-        {
-        }
+        private protected TcpNetworkConnection(Socket socket) => Socket = socket;
     }
 
-    internal class TcpClientSocket : TcpSocket
+    internal class TcpClientNetworkConnection : TcpNetworkConnection, ISimpleNetworkConnection
     {
         private readonly EndPoint _addr;
         private readonly SslClientAuthenticationOptions? _authenticationOptions;
+        private readonly Endpoint _remoteEndpoint;
+        private readonly TimeSpan _idleTimeout;
 
-        internal override async ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
+        async Task<(ISimpleStream, NetworkConnectionInformation)> ISimpleNetworkConnection.ConnectAsync(
+            CancellationToken cancel)
         {
-            bool? tls = endpoint.ParseTcpParams().Tls;
+            bool? tls = _remoteEndpoint.ParseTcpParams().Tls;
+
+            Endpoint remoteEndpoint = _remoteEndpoint;
 
             if (tls == null)
             {
                 // TODO: add ability to override this default tls=true through some options
                 tls = true;
-                endpoint = endpoint with
+                remoteEndpoint = remoteEndpoint with
                 {
-                    Params = endpoint.Params.Add(new EndpointParam("tls", "true"))
+                    Params = remoteEndpoint.Params.Add(new EndpointParam("tls", "true"))
                 };
             }
 
@@ -182,10 +187,10 @@ namespace IceRpc.Transports.Internal
                 // specific specific certificate validation so it's fine for _authenticationOptions to be
                 // null.
                 authenticationOptions = _authenticationOptions?.Clone() ?? new();
-                authenticationOptions.TargetHost ??= endpoint.Host;
+                authenticationOptions.TargetHost ??= remoteEndpoint.Host;
                 authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
                     {
-                        new SslApplicationProtocol(endpoint.Protocol.Name)
+                        new SslApplicationProtocol(remoteEndpoint.Protocol.Name)
                     };
             }
 
@@ -215,7 +220,17 @@ namespace IceRpc.Transports.Internal
                 }
 
                 var ipEndPoint = (IPEndPoint)Socket.LocalEndPoint!;
-                return endpoint with { Host = ipEndPoint.Address.ToString(), Port = checked((ushort)ipEndPoint.Port) };
+
+                return (this,
+                        new NetworkConnectionInformation(
+                            localEndpoint: remoteEndpoint with
+                                {
+                                    Host = ipEndPoint.Address.ToString(),
+                                    Port = checked((ushort)ipEndPoint.Port)
+                                },
+                            remoteEndpoint: remoteEndpoint,
+                            _idleTimeout,
+                            SslStream?.RemoteCertificate));
             }
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
             {
@@ -235,7 +250,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal override bool HasCompatibleParams(Endpoint remoteEndpoint)
+        public override bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
             bool? tls = remoteEndpoint.ParseTcpParams().Tls;
 
@@ -244,27 +259,34 @@ namespace IceRpc.Transports.Internal
             return tls == null || tls == (SslStream != null);
         }
 
-        internal TcpClientSocket(
+        internal TcpClientNetworkConnection(
+            Endpoint remoteEndpoint,
             Socket socket,
             SslClientAuthenticationOptions? authenticationOptions,
-            EndPoint addr)
+            EndPoint addr,
+            TimeSpan idleTimeout)
            : base(socket)
         {
-            _authenticationOptions = authenticationOptions;
             _addr = addr;
+            _authenticationOptions = authenticationOptions;
+            _idleTimeout = idleTimeout;
+            _remoteEndpoint = remoteEndpoint;
         }
     }
 
-    internal class TcpServerSocket : TcpSocket
+    internal class TcpServerNetworkConnection : TcpNetworkConnection, ISimpleNetworkConnection
     {
         // See https://tools.ietf.org/html/rfc5246#appendix-A.4
         private const byte TlsHandshakeRecord = 0x16;
-
         private readonly SslServerAuthenticationOptions? _authenticationOptions;
 
-        internal override async ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
+        private readonly TimeSpan _idleTimeout;
+        private readonly Endpoint _localEndpoint;
+
+        async Task<(ISimpleStream, NetworkConnectionInformation)> ISimpleNetworkConnection.ConnectAsync(
+            CancellationToken cancel)
         {
-            bool? tls = endpoint.ParseTcpParams().Tls;
+            bool? tls = _localEndpoint.ParseTcpParams().Tls;
             try
             {
                 bool secure;
@@ -322,7 +344,7 @@ namespace IceRpc.Transports.Internal
                     }
                 }
 
-                ImmutableList<EndpointParam> endpointParams = endpoint.Params;
+                ImmutableList<EndpointParam> endpointParams = _localEndpoint.Params;
                 if (tls == null)
                 {
                     // the accepted endpoint gets a tls parameter
@@ -330,12 +352,18 @@ namespace IceRpc.Transports.Internal
                 }
 
                 var ipEndPoint = (IPEndPoint)Socket.RemoteEndPoint!;
-                return endpoint with
-                {
-                    Host = ipEndPoint.Address.ToString(),
-                    Port = checked((ushort)ipEndPoint.Port),
-                    Params = endpointParams
-                };
+
+                return (this,
+                        new NetworkConnectionInformation(
+                            localEndpoint: _localEndpoint,
+                            remoteEndpoint: _localEndpoint with
+                                {
+                                    Host = ipEndPoint.Address.ToString(),
+                                    Port = checked((ushort)ipEndPoint.Port),
+                                    Params = endpointParams
+                                },
+                            _idleTimeout,
+                            SslStream?.RemoteCertificate));
             }
             catch (Exception ex)
             {
@@ -343,12 +371,19 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
-            throw new NotSupportedException($"{nameof(HasCompatibleParams)} is only supported by client sockets.");
+        public override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
+            throw new NotSupportedException($"{nameof(HasCompatibleParams)} is only supported by client connections.");
 
-        internal TcpServerSocket(
+        internal TcpServerNetworkConnection(
+            Endpoint localEndpoint,
             Socket socket,
-            SslServerAuthenticationOptions? authenticationOptions)
-           : base(socket) => _authenticationOptions = authenticationOptions;
+            SslServerAuthenticationOptions? authenticationOptions,
+            TimeSpan idleTimeout)
+           : base(socket)
+        {
+           _authenticationOptions = authenticationOptions;
+           _idleTimeout = idleTimeout;
+           _localEndpoint = localEndpoint;
+        }
     }
 }

@@ -19,12 +19,10 @@ namespace IceRpc.Transports.Internal
         {
             try
             {
-                return new SocketNetworkConnection(
-                    new TcpServerSocket(
-                        await _socket.AcceptAsync().ConfigureAwait(false),
-                        _authenticationOptions),
+                return new TcpServerNetworkConnection(
                     Endpoint,
-                    isServer: true,
+                    await _socket.AcceptAsync().ConfigureAwait(false),
+                    _authenticationOptions,
                     _idleTimeout);
             }
             catch (Exception ex)

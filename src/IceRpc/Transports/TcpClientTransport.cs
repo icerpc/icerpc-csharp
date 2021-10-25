@@ -81,10 +81,11 @@ namespace IceRpc.Transports
                 throw new TransportException(ex);
             }
 
-            return new SocketNetworkConnection(
-                new TcpClientSocket(socket, _authenticationOptions, netEndPoint),
+            return new TcpClientNetworkConnection(
                 remoteEndpoint,
-                isServer: false,
+                socket,
+                _authenticationOptions,
+                netEndPoint,
                 _tcpOptions.IdleTimeout);
         }
     }
