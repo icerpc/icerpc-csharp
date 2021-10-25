@@ -24,7 +24,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(384 * 1024)]
         public void TcpOptions_Client_BufferSize(int size)
         {
-            using IListener<ISimpleNetworkConnection> listener = CreateSimpleListener();
+            using IListener<ISimpleNetworkConnection> listener = CreateListener();
 
             TcpClientNetworkConnection clientConnection = CreateTcpClientNetworkConnection(
                 listener.Endpoint,
@@ -61,7 +61,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void TcpOptions_Client_IsIPv6Only()
         {
-            using IListener<ISimpleNetworkConnection> listener = CreateSimpleListener();
+            using IListener<ISimpleNetworkConnection> listener = CreateListener();
 
             TcpClientNetworkConnection clientConnection = CreateTcpClientNetworkConnection(
                 listener.Endpoint,
@@ -84,7 +84,7 @@ namespace IceRpc.Tests.Internal
             {
                 try
                 {
-                    using IListener<ISimpleNetworkConnection> listener = CreateSimpleListener();
+                    using IListener<ISimpleNetworkConnection> listener = CreateListener();
                     var localEndPoint = new IPEndPoint(_isIPv6 ? IPAddress.IPv6Loopback : IPAddress.Loopback, port++);
 
                     TcpClientNetworkConnection clientConnection = CreateTcpClientNetworkConnection(
@@ -113,7 +113,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(384 * 1024)]
         public async Task TcpOptions_Server_BufferSizeAsync(int size)
         {
-            IListener<ISimpleNetworkConnection> listener = CreateSimpleListener(tcpOptions: new TcpOptions
+            IListener<ISimpleNetworkConnection> listener = CreateListener(tcpOptions: new TcpOptions
             {
                 SendBufferSize = size,
                 ReceiveBufferSize = size
@@ -167,7 +167,7 @@ namespace IceRpc.Tests.Internal
                 // Create a server endpoint for ::0 instead of loopback
 
                 using IListener<ISimpleNetworkConnection> listener =
-                    CreateSimpleListener(host: "[::0]",
+                    CreateListener(host: "[::0]",
                                          new TcpOptions() { IsIPv6Only = ipv6Only });
 
                 Task<TcpServerNetworkConnection> acceptTask = CreateTcpServerNetworkConnectionAsync(listener);
@@ -198,7 +198,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task TcpOptions_Server_ListenerBackLog()
         {
-            IListener<ISimpleNetworkConnection> listener = CreateSimpleListener(tcpOptions: new TcpOptions
+            IListener<ISimpleNetworkConnection> listener = CreateListener(tcpOptions: new TcpOptions
             {
                 ListenerBackLog = 18
             });
@@ -251,7 +251,7 @@ namespace IceRpc.Tests.Internal
             IListener<ISimpleNetworkConnection> listener) =>
                 (TcpServerNetworkConnection)await listener.AcceptAsync();
 
-        private IListener<ISimpleNetworkConnection> CreateSimpleListener(
+        private IListener<ISimpleNetworkConnection> CreateListener(
             string? host = null,
             TcpOptions? tcpOptions = null)
         {

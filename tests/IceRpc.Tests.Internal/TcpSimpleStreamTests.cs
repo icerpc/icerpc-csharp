@@ -10,11 +10,11 @@ using System.Security.Cryptography.X509Certificates;
 namespace IceRpc.Tests.Internal
 {
     [Parallelizable(scope: ParallelScope.Fixtures)]
-    [TestFixture("tcp", false, AddressFamily.InterNetwork)]
-    [TestFixture("tcp", true, AddressFamily.InterNetwork)]
-    [TestFixture("tcp", false, AddressFamily.InterNetworkV6)]
+    [TestFixture(false, AddressFamily.InterNetwork)]
+    [TestFixture(true, AddressFamily.InterNetwork)]
+    [TestFixture(false, AddressFamily.InterNetworkV6)]
     [Timeout(5000)]
-    public class TcpTests
+    public class TcpSimpleStreamTests
     {
         private static readonly ReadOnlyMemory<ReadOnlyMemory<byte>> _oneBSendBuffer =
             new ReadOnlyMemory<byte>[] { new byte[1] };
@@ -37,7 +37,7 @@ namespace IceRpc.Tests.Internal
 
         private readonly bool _tls;
 
-        public TcpTests(string transport, bool tls, AddressFamily addressFamily)
+        public TcpSimpleStreamTests(bool tls, AddressFamily addressFamily)
         {
             _isIPv6 = addressFamily == AddressFamily.InterNetworkV6;
             _tls = tls;
@@ -61,10 +61,11 @@ namespace IceRpc.Tests.Internal
 
             IServerTransport<ISimpleNetworkConnection> serverTransport =
                 new TcpServerTransport(new TcpOptions(), _serverAuthenticationOptions);
-            string host = _isIPv6 ? "[::1]" : "127.0.0.1";
-            Endpoint endpoint = $"ice+tcp://{host}:0?tls={_tls}";
 
-            _listener = serverTransport.Listen(endpoint, LogAttributeLoggerFactory.Instance);
+            string host = _isIPv6 ? "[::1]" : "127.0.0.1";
+
+            _listener = serverTransport.Listen($"ice+tcp://{host}:0?tls={_tls}",
+                                               LogAttributeLoggerFactory.Instance);
         }
 
         [SetUp]
