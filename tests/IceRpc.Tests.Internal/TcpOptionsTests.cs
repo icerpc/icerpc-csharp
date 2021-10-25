@@ -26,7 +26,7 @@ namespace IceRpc.Tests.Internal
         {
             using IListener<ISimpleNetworkConnection> listener = CreateListener();
 
-            TcpClientNetworkConnection clientConnection = CreateTcpClientNetworkConnection(
+            TcpClientNetworkConnection clientConnection = CreateClientConnection(
                 listener.Endpoint,
                 new TcpOptions
                 {
@@ -63,7 +63,7 @@ namespace IceRpc.Tests.Internal
         {
             using IListener<ISimpleNetworkConnection> listener = CreateListener();
 
-            TcpClientNetworkConnection clientConnection = CreateTcpClientNetworkConnection(
+            TcpClientNetworkConnection clientConnection = CreateClientConnection(
                 listener.Endpoint,
                 new TcpOptions
                 {
@@ -87,7 +87,7 @@ namespace IceRpc.Tests.Internal
                     using IListener<ISimpleNetworkConnection> listener = CreateListener();
                     var localEndPoint = new IPEndPoint(_isIPv6 ? IPAddress.IPv6Loopback : IPAddress.Loopback, port++);
 
-                    TcpClientNetworkConnection clientConnection = CreateTcpClientNetworkConnection(
+                    TcpClientNetworkConnection clientConnection = CreateClientConnection(
                         listener.Endpoint,
                         new TcpOptions
                         {
@@ -119,8 +119,8 @@ namespace IceRpc.Tests.Internal
                 ReceiveBufferSize = size
             });
 
-            Task<TcpServerNetworkConnection> acceptTask = CreateTcpServerNetworkConnectionAsync(listener);
-            TcpClientNetworkConnection clientConnection = CreateTcpClientNetworkConnection(listener.Endpoint);
+            Task<TcpServerNetworkConnection> acceptTask = CreateServerConnection(listener);
+            TcpClientNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
 
             _ = (clientConnection as ISimpleNetworkConnection).ConnectAsync(default);
             TcpServerNetworkConnection serverConnection = await acceptTask;
@@ -170,12 +170,12 @@ namespace IceRpc.Tests.Internal
                     CreateListener(host: "[::0]",
                                          new TcpOptions() { IsIPv6Only = ipv6Only });
 
-                Task<TcpServerNetworkConnection> acceptTask = CreateTcpServerNetworkConnectionAsync(listener);
+                Task<TcpServerNetworkConnection> acceptTask = CreateServerConnection(listener);
 
                 // Create a client endpoints that uses the 127.0.0.1 IPv4-mapped address
                 Endpoint clientEndpoint = listener.Endpoint with { Host = "::FFFF:127.0.0.1" };
 
-                TcpClientNetworkConnection clientConnection = CreateTcpClientNetworkConnection(clientEndpoint);
+                TcpClientNetworkConnection clientConnection = CreateClientConnection(clientEndpoint);
 
                 var connectTask = (clientConnection as ISimpleNetworkConnection).ConnectAsync(default);
 
@@ -203,14 +203,14 @@ namespace IceRpc.Tests.Internal
                 ListenerBackLog = 18
             });
 
-            Task<TcpServerNetworkConnection> acceptTask = CreateTcpServerNetworkConnectionAsync(listener);
+            Task<TcpServerNetworkConnection> acceptTask = CreateServerConnection(listener);
 
             var connections = new List<TcpClientNetworkConnection>();
             while (true)
             {
                 using var source = new CancellationTokenSource(500);
 
-                TcpClientNetworkConnection clientConnection = CreateTcpClientNetworkConnection(listener.Endpoint);
+                TcpClientNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
 
                 try
                 {
@@ -233,7 +233,7 @@ namespace IceRpc.Tests.Internal
             listener.Dispose();
         }
 
-        private static TcpClientNetworkConnection CreateTcpClientNetworkConnection(
+        private static TcpClientNetworkConnection CreateClientConnection(
             Endpoint endpoint,
             TcpOptions? tcpOptions = null)
         {
@@ -247,7 +247,7 @@ namespace IceRpc.Tests.Internal
             return (TcpClientNetworkConnection)clientConnection;
         }
 
-        private static async Task<TcpServerNetworkConnection> CreateTcpServerNetworkConnectionAsync(
+        private static async Task<TcpServerNetworkConnection> CreateServerConnection(
             IListener<ISimpleNetworkConnection> listener) =>
                 (TcpServerNetworkConnection)await listener.AcceptAsync();
 
