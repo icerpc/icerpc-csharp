@@ -28,7 +28,6 @@ namespace IceRpc.Transports.Internal
         // an atomic operation.
         private readonly object _mutex = new();
         private readonly int _packetMaxSize;
-        private readonly ManualResetValueTaskCompletionSource<int> _receiveStreamCompletionTaskSource = new();
         private readonly ISlicFrameReader _reader;
         private readonly ConcurrentDictionary<long, SlicMultiplexedStream> _streams = new();
         private readonly int _unidirectionalMaxStreams;
@@ -38,9 +37,6 @@ namespace IceRpc.Transports.Internal
 
         public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel)
         {
-            // Eventually wait for the stream data receive to complete if stream data is being received.
-            await WaitForReceivedStreamDataCompletionAsync(cancel).ConfigureAwait(false);
-
             while (true)
             {
                 (FrameType type, int dataSize, long streamId) =
@@ -61,14 +57,8 @@ namespace IceRpc.Transports.Internal
                         bool isBidirectional = streamId % 4 < 2;
                         if (TryGetStream(streamId, out SlicMultiplexedStream? stream))
                         {
-                            // Notify the stream that data is available for read.
-                            stream.ReceivedFrame(dataSize, endStream);
-
-                            // Wait for the stream to receive the data before reading a new Slic frame.
-                            if (dataSize > 0)
-                            {
-                                await WaitForReceivedStreamDataCompletionAsync(cancel).ConfigureAwait(false);
-                            }
+                            // Let the stream receive the data.
+                            await stream.ReceivedFrameAsync(dataSize, endStream).ConfigureAwait(false);
                         }
                         else if (isRemote && !IsKnownRemoteStream(streamId, isBidirectional))
                         {
@@ -113,7 +103,9 @@ namespace IceRpc.Transports.Internal
                                 }
                                 Interlocked.Increment(ref _unidirectionalStreamCount);
                             }
-                            stream.ReceivedFrame(dataSize, endStream);
+
+                            // Let the stream receive the data.
+                            await stream.ReceivedFrameAsync(dataSize, endStream).ConfigureAwait(false);
                             return stream;
                         }
                         else if (!isBidirectional && endStream)
@@ -234,8 +226,6 @@ namespace IceRpc.Transports.Internal
             _reader = reader;
             _writer = new SynchronizedSlicFrameWriterDecorator(writer, isServer);
 
-            _receiveStreamCompletionTaskSource.SetResult(0);
-
             _packetMaxSize = options.PacketMaxSize;
             StreamBufferMaxSize = options.StreamBufferMaxSize;
 
@@ -273,12 +263,6 @@ namespace IceRpc.Transports.Internal
                     }
                 }
             }
-        }
-
-        internal void FinishedReceivedStreamData(int remainingSize)
-        {
-            Debug.Assert(!_receiveStreamCompletionTaskSource.IsCompleted);
-            _receiveStreamCompletionTaskSource.SetResult(remainingSize);
         }
 
         internal async ValueTask InitializeAsync(CancellationToken cancel)
@@ -492,28 +476,6 @@ namespace IceRpc.Transports.Internal
             }
             value = null;
             return false;
-        }
-
-        private async ValueTask WaitForReceivedStreamDataCompletionAsync(CancellationToken cancel)
-        {
-            // If the stream didn't fully read the stream data, finish reading it here before returning. The stream
-            // might not have fully received the data if it was aborted or canceled.
-            int size;
-            ValueTask<int> receiveStreamCompletionTask = _receiveStreamCompletionTaskSource.ValueTask;
-            if (receiveStreamCompletionTask.IsCompletedSuccessfully)
-            {
-                size = receiveStreamCompletionTask.Result;
-            }
-            else
-            {
-                size = await receiveStreamCompletionTask.AsTask().WaitAsync(cancel).ConfigureAwait(false);
-            }
-
-            if (size > 0)
-            {
-                // Skip the next size bytes from the stream.
-                await _reader.SkipStreamDataAsync(size, cancel).ConfigureAwait(false);
-            }
         }
     }
 }
