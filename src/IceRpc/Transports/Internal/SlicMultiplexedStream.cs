@@ -574,26 +574,29 @@ namespace IceRpc.Transports.Internal
             }
             _streamFactory.RemoveStream(Id);
 
-            // The stream might not be signaled if it's shutdown gracefully after receiving endStream. We make
-            // sure to set the exception in this case to prevent WaitAsync calls to block.
+            // The stream might not be signaled if it's shutdown gracefully after receiving endStream. We make sure to
+            // set the exception in this case to prevent WaitAsync calls to block.
             _queue.Complete(new StreamAbortedException(StreamError.StreamAborted));
 
             // Release connection stream count or semaphore for this stream.
             _streamFactory.ReleaseStream(this);
 
-            // Local streams are released from the connection when the StreamLast or StreamReset frame is
-            // received. Since a remote un-directional stream doesn't send stream frames, we have to send a
-            // stream last frame here to ensure the local stream is released from the connection.
+            // Local streams are released from the connection when the StreamLast or StreamReset frame is received.
+            // Since a remote un-directional stream doesn't send stream frames, we have to send a stream last frame here
+            // to ensure the local stream is released from the connection.
             if (IsRemote && !IsBidirectional)
             {
-                // It's important to decrement the stream count before sending the StreamLast frame to prevent
-                // a race where the peer could start a new stream before the counter is decremented.
+                // It's important to decrement the stream count before sending the StreamLast frame to prevent a race
+                // where the peer could start a new stream before the counter is decremented.
                 _writer.WriteStreamFrameAsync(
                     this,
                     new ReadOnlyMemory<byte>[] { SlicDefinitions.FrameHeader.ToArray() },
                     true,
                     default).AsTask();
             }
+
+            // We're done with the receive buffer.
+            _receiveBuffer.Dispose();
         }
 
         private void TryShutdown()
