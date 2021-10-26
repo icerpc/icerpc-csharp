@@ -7,16 +7,9 @@ using System.Threading.Tasks.Sources;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The stream implementation for Slic. The stream implementation implements flow control to
-    /// ensure data isn't buffered indefinitely if the application doesn't consume it. Buffering and flow
-    /// control are only enable when EnableReceiveFlowControl is called. Until this is called, the data is not
-    /// buffered, instead, the data is not received from the Slic connection until the application protocol
-    /// provides a buffer (by calling ReceiveAsync), to receive the data. With Ice2, this means that the
-    /// request or response frame is received directly from the Slic connection with intermediate buffering
-    /// and data copying and Ice2 enables receive buffering and flow control for receiving the data associated
-    /// to a stream a parameter. Enabling buffering only for stream parameters also ensure a lightweight Slic
-    /// stream object where no additional heap objects (such as the circular buffer, send semaphore, etc) are
-    /// necessary to receive a simple response/request frame.</summary>
+    /// <summary>The stream implementation for Slic. The stream implementation implements flow control to ensure data
+    /// isn't buffered indefinitely if the application doesn't consume it. Buffering and flow control are only enable
+    /// when sending multiple Slic packet or if the Slic packet size exceeds the peer packet maximum size.</summary>
     internal class SlicMultiplexedStream : IMultiplexedStream, IAsyncQueueValueTaskSource<(int, bool)>
     {
         /// <inheritdoc/>
@@ -33,7 +26,7 @@ namespace IceRpc.Transports.Internal
             set
             {
                 Debug.Assert(_id == -1);
-                _streamFactory.AddStream(value, this, ref _id);
+                _id = value;
             }
         }
 
@@ -434,32 +427,12 @@ namespace IceRpc.Transports.Internal
 
         internal SlicMultiplexedStream(
             SlicMultiplexedStreamFactory streamFactory,
-            long streamId,
+            bool bidirectional,
+            bool remote,
             ISlicFrameReader reader,
             ISlicFrameWriter writer)
         {
             _streamFactory = streamFactory;
-            _reader = reader;
-            _writer = writer;
-
-            IsBidirectional = streamId % 4 < 2;
-            _streamFactory.AddStream(streamId, this, ref _id);
-            _receiveBuffer = new CircularBuffer(_streamFactory.StreamBufferMaxSize);
-
-            if (!IsBidirectional)
-            {
-                // Write-side of remote unidirectional stream is marked as completed.
-                TrySetWriteCompleted();
-            }
-        }
-
-        internal SlicMultiplexedStream(
-            SlicMultiplexedStreamFactory connection,
-            bool bidirectional,
-            ISlicFrameReader reader,
-            ISlicFrameWriter writer)
-        {
-            _streamFactory = connection;
             _reader = reader;
             _writer = writer;
             _receiveBuffer = new CircularBuffer(_streamFactory.StreamBufferMaxSize);
@@ -467,8 +440,16 @@ namespace IceRpc.Transports.Internal
             IsBidirectional = bidirectional;
             if (!IsBidirectional)
             {
-                // Read-side of local unidirectional stream is marked as completed.
-                TrySetReadCompleted();
+                if (remote)
+                {
+                    // Write-side of remote unidirectional stream is marked as completed.
+                    TrySetWriteCompleted();
+                }
+                else
+                {
+                    // Read-side of local unidirectional stream is marked as completed.
+                    TrySetReadCompleted();
+                }
             }
         }
 

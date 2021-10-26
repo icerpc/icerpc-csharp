@@ -9,7 +9,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The Slic connection implements an <see cref="IMultiplexedStreamFactory"/> on top of an <see
+    /// <summary>The Slic stream factory implements an <see cref="IMultiplexedStreamFactory"/> on top of an <see
     /// cref="ISimpleStream"/>.</summary>
     internal class SlicMultiplexedStreamFactory : IMultiplexedStreamFactory, IDisposable
     {
@@ -73,14 +73,20 @@ namespace IceRpc.Transports.Internal
                             // Accept the new incoming stream and notify the stream that data is available.
                             try
                             {
-                                stream = new SlicMultiplexedStream(this, streamId, _reader, _writer);
+                                stream = new SlicMultiplexedStream(
+                                    this,
+                                    isBidirectional,
+                                    remote: true,
+                                    _reader,
+                                    _writer);
+                                AddStream(streamId, stream);
                             }
                             catch
                             {
-                                // The connection is being closed, we make sure to receive the frame data.
-                                // When the connection is being closed gracefully, the connection waits for
-                                // the connection to receive the RST from the peer so it's important to
-                                // receive and skip all the data until the RST is received.
+                                // The stream factory is being closed, we make sure to receive the frame data. When the
+                                // factory is being closed gracefully, the factory waits from the single stream to be
+                                // closed by the peer so it's important to receive and skip all the data until the
+                                // single stream is closed.
                                 await _reader.SkipStreamDataAsync(dataSize, cancel).ConfigureAwait(false);
                                 continue;
                             }
@@ -187,7 +193,8 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public IMultiplexedStream CreateStream(bool bidirectional) => new SlicMultiplexedStream(this, bidirectional, _reader, _writer);
+        public IMultiplexedStream CreateStream(bool bidirectional) =>
+            new SlicMultiplexedStream(this, bidirectional, remote: false, _reader, _writer);
 
         public void Dispose()
         {
@@ -224,7 +231,7 @@ namespace IceRpc.Transports.Internal
             IsServer = isServer;
 
             _reader = reader;
-            _writer = new SynchronizedSlicFrameWriterDecorator(writer, isServer);
+            _writer = new SynchronizedSlicFrameWriterDecorator(writer, this);
 
             _packetMaxSize = options.PacketMaxSize;
             StreamBufferMaxSize = options.StreamBufferMaxSize;
@@ -239,7 +246,7 @@ namespace IceRpc.Transports.Internal
             _unidirectionalMaxStreams = options.UnidirectionalStreamMaxCount;
         }
 
-        internal void AddStream(long id, SlicMultiplexedStream stream, ref long streamId)
+        internal void AddStream(long id, SlicMultiplexedStream stream)
         {
             lock (_mutex)
             {
@@ -247,7 +254,7 @@ namespace IceRpc.Transports.Internal
 
                 // Assign the stream ID within the mutex to ensure that the addition of the stream to the
                 // connection and the stream ID assignment are atomic.
-                streamId = id;
+                stream.Id = id;
 
                 // Keep track of the last assigned stream ID. This is used to figure out if the stream is
                 // known or unknown.
