@@ -54,6 +54,11 @@ namespace IceRpc.Transports.Internal
 
         bool INetworkConnection.HasCompatibleParams(Endpoint remoteEndpoint)
         {
+            if (!EndpointComparer.ParameterLess.Equals(_remoteEndpoint, remoteEndpoint))
+            {
+                return false;
+            }
+
             (_, int ttl, string? multicastInterface) = remoteEndpoint.ParseUdpParams();
             return ttl == _ttl && multicastInterface == _multicastInterface;
         }
@@ -142,7 +147,7 @@ namespace IceRpc.Transports.Internal
                                                                  Host = "::0",
                                                                  Port = 0
                                                               },
-                                                              Timeout.InfiniteTimeSpan,
+                                                              TimeSpan.MaxValue, // TODO: returning Infinite doesn't work
                                                               remoteCertificate: null)));
 
         bool INetworkConnection.HasCompatibleParams(Endpoint remoteEndpoint) =>

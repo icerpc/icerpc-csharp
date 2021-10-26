@@ -251,6 +251,11 @@ namespace IceRpc.Transports.Internal
 
         public override bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
+            if (!EndpointComparer.ParameterLess.Equals(_remoteEndpoint, remoteEndpoint))
+            {
+                return false;
+            }
+
             bool? tls = remoteEndpoint.ParseTcpParams().Tls;
 
             // A remote endpoint with no tls parameter is compatible with an established connection no matter
