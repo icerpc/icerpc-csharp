@@ -7,6 +7,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
+using static IceRpc.Transports.Internal.UdpUtils;
+
 namespace IceRpc.Transports.Internal
 {
     internal abstract class UdpNetworkConnection : INetworkConnection
@@ -37,7 +39,6 @@ namespace IceRpc.Transports.Internal
         /// <returns><c>true</c>when members are appended to the builder; otherwise, <c>false</c>.</returns>
         private protected abstract bool PrintMembers(StringBuilder builder);
     }
-
 
     internal class UdpClientNetworkConnection : UdpNetworkConnection, ISimpleNetworkConnection, ISimpleStream
     {
@@ -133,24 +134,87 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal UdpClientNetworkConnection(
-            Socket socket,
-            Endpoint remoteEndpoint,
-            TimeSpan idleTimeout,
-            EndPoint addr,
-            int ttl,
-            string? multicastInterface = null)
+        internal UdpClientNetworkConnection(Endpoint remoteEndpoint, UdpOptions options)
         {
-            DatagramMaxReceiveSize = Math.Min(UdpUtils.MaxPacketSize, socket.ReceiveBufferSize - UdpUtils.UdpOverhead);
-            Socket = socket;
+            // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
+            // a udp endpoint regardless of its actual transport name.
 
-            _addr = addr;
-            _idleTimeout = idleTimeout;
-            _multicastInterface = multicastInterface;
+            (bool _, _ttl, _multicastInterface) = remoteEndpoint.ParseUdpParams();
+
+            _idleTimeout = options.IdleTimeout;
             _remoteEndpoint = remoteEndpoint;
-            _ttl = ttl;
-        }
 
+            _addr = IPAddress.TryParse(remoteEndpoint.Host, out IPAddress? ipAddress) ?
+                new IPEndPoint(ipAddress, remoteEndpoint.Port) :
+                new DnsEndPoint(remoteEndpoint.Host, remoteEndpoint.Port);
+
+            if (_multicastInterface == "*")
+            {
+                throw new NotSupportedException(
+                    $"endpoint '{remoteEndpoint}' cannot use interface '*' to send datagrams");
+            }
+
+            Socket = ipAddress == null ?
+                new Socket(SocketType.Dgram, ProtocolType.Udp) :
+                new Socket(ipAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+
+            try
+            {
+                if (_addr is IPEndPoint ipEndpoint && IsMulticast(ipEndpoint.Address))
+                {
+                    if (ipAddress?.AddressFamily == AddressFamily.InterNetworkV6)
+                    {
+                        Socket.DualMode = !options.IsIPv6Only;
+                    }
+
+                    // IP multicast socket options require a socket created with the correct address family.
+                    if (_multicastInterface != null)
+                    {
+                        Debug.Assert(_multicastInterface.Length > 0);
+                        if (ipAddress?.AddressFamily == AddressFamily.InterNetwork)
+                        {
+                            Socket.SetSocketOption(
+                                SocketOptionLevel.IP,
+                                SocketOptionName.MulticastInterface,
+                                GetIPv4InterfaceAddress(_multicastInterface).GetAddressBytes());
+                        }
+                        else
+                        {
+                            Socket.SetSocketOption(
+                                SocketOptionLevel.IPv6,
+                                SocketOptionName.MulticastInterface,
+                                GetIPv6InterfaceIndex(_multicastInterface));
+                        }
+                    }
+
+                    if (_ttl != -1)
+                    {
+                        Socket.Ttl = (short)_ttl;
+                    }
+                }
+
+                if (options.LocalEndPoint is IPEndPoint localEndPoint)
+                {
+                    Socket.Bind(localEndPoint);
+                }
+
+                if (options.ReceiveBufferSize is int receiveSize)
+                {
+                    Socket.ReceiveBufferSize = receiveSize;
+                }
+                if (options.SendBufferSize is int sendSize)
+                {
+                    Socket.SendBufferSize = sendSize;
+                }
+            }
+            catch (SocketException ex)
+            {
+                Socket.Dispose();
+                throw new TransportException(ex);
+            }
+
+            DatagramMaxReceiveSize = Math.Min(MaxPacketSize, Socket.ReceiveBufferSize - UdpOverhead);
+        }
 
         private protected override bool PrintMembers(StringBuilder builder)
         {

@@ -10,8 +10,8 @@ namespace IceRpc.Transports
     /// </summary>
     public class TcpClientTransport : IClientTransport<ISimpleNetworkConnection>
     {
-        private readonly TcpOptions _tcpOptions;
         private readonly SslClientAuthenticationOptions? _authenticationOptions;
+        private readonly TcpOptions _tcpOptions;
 
         /// <summary>Constructs a <see cref="TcpClientTransport"/>.</summary>
         public TcpClientTransport() :
