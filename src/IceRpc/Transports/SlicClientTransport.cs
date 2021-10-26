@@ -10,7 +10,9 @@ namespace IceRpc.Transports
     public class SlicClientTransport : IClientTransport<IMultiplexedNetworkConnection>
     {
         private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
-        private readonly Func<ISimpleStream, (ISlicFrameReader, ISlicFrameWriter)> _slicFrameReaderWriterFactory;
+        private readonly Func<ISlicFrameReader, ISlicFrameReader> _slicFrameReaderDecorator;
+        private readonly Func<ISlicFrameWriter, ISlicFrameWriter> _slicFrameWriterDecorator;
+
         private readonly SlicOptions _slicOptions;
 
         /// <summary>Constructs a Slic client transport.</summary>
@@ -25,8 +27,8 @@ namespace IceRpc.Transports
             SlicOptions slicOptions)
         {
             _simpleClientTransport = simpleClientTransport;
-            _slicFrameReaderWriterFactory =
-                simpleStream => (new StreamSlicFrameReader(simpleStream), new StreamSlicFrameWriter(simpleStream));
+            _slicFrameReaderDecorator = reader => reader;
+            _slicFrameWriterDecorator = writer => writer;
             _slicOptions = slicOptions;
         }
 
@@ -39,8 +41,9 @@ namespace IceRpc.Transports
 
             ISimpleNetworkConnection simpleNetworkConnection =
                 _simpleClientTransport.CreateConnection(remoteEndpoint, loggerFactory);
-            Func<ISimpleStream, (ISlicFrameReader, ISlicFrameWriter)> slicFrameReaderWriterFactory =
-                _slicFrameReaderWriterFactory;
+
+            Func<ISlicFrameReader, ISlicFrameReader> slicFrameReaderDecorator = _slicFrameReaderDecorator;
+            Func<ISlicFrameWriter, ISlicFrameWriter> slicFrameWriterDecorator = _slicFrameWriterDecorator;
 
             if (loggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger && logger.IsEnabled(LogLevel.Error))
             {
@@ -51,18 +54,14 @@ namespace IceRpc.Transports
                                                                                   remoteEndpoint,
                                                                                   logger);
 
-                slicFrameReaderWriterFactory = simpleStream =>
-                {
-                    (ISlicFrameReader reader, ISlicFrameWriter writer) = slicFrameReaderWriterFactory(simpleStream);
-
-                    return (new LogSlicFrameReaderDecorator(reader, logger),
-                            new LogSlicFrameWriterDecorator(writer, logger));
-                };
+                slicFrameReaderDecorator = reader => new LogSlicFrameReaderDecorator(reader, logger);
+                slicFrameWriterDecorator = writer => new LogSlicFrameWriterDecorator(writer, logger);
             }
 
             return new SlicNetworkConnection(simpleNetworkConnection,
                                              isServer: false,
-                                             slicFrameReaderWriterFactory,
+                                             slicFrameReaderDecorator,
+                                             slicFrameWriterDecorator,
                                              _slicOptions);
         }
     }

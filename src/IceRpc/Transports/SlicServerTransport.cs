@@ -11,7 +11,8 @@ namespace IceRpc.Transports
     {
         private readonly IServerTransport<ISimpleNetworkConnection> _simpleServerTransport;
 
-        private readonly Func<ISimpleStream, (ISlicFrameReader, ISlicFrameWriter)> _slicFrameReaderWriterFactory;
+        private readonly Func<ISlicFrameReader, ISlicFrameReader> _slicFrameReaderDecorator;
+        private readonly Func<ISlicFrameWriter, ISlicFrameWriter> _slicFrameWriterDecorator;
         private readonly SlicOptions _slicOptions;
 
         /// <summary>Constructs a Slic server transport.</summary>
@@ -26,8 +27,8 @@ namespace IceRpc.Transports
             SlicOptions slicOptions)
         {
             _simpleServerTransport = simpleServerTransport;
-            _slicFrameReaderWriterFactory =
-                simpleStream => (new StreamSlicFrameReader(simpleStream), new StreamSlicFrameWriter(simpleStream));
+            _slicFrameReaderDecorator = reader => reader;
+            _slicFrameWriterDecorator = writer => writer;
             _slicOptions = slicOptions;
         }
 
@@ -40,8 +41,8 @@ namespace IceRpc.Transports
 
             IListener<ISimpleNetworkConnection> simpleListener = _simpleServerTransport.Listen(endpoint, loggerFactory);
 
-            Func<ISimpleStream, (ISlicFrameReader, ISlicFrameWriter)> slicFrameReaderWriterFactory =
-                _slicFrameReaderWriterFactory;
+            Func<ISlicFrameReader, ISlicFrameReader> slicFrameReaderDecorator = _slicFrameReaderDecorator;
+            Func<ISlicFrameWriter, ISlicFrameWriter> slicFrameWriterDecorator = _slicFrameWriterDecorator;
 
             if (loggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger && logger.IsEnabled(LogLevel.Error))
             {
@@ -52,16 +53,11 @@ namespace IceRpc.Transports
                     logger,
                     LogSimpleNetworkConnectionDecorator.Decorate);
 
-                slicFrameReaderWriterFactory = simpleStream =>
-                {
-                    (ISlicFrameReader reader, ISlicFrameWriter writer) = slicFrameReaderWriterFactory(simpleStream);
-
-                    return (new LogSlicFrameReaderDecorator(reader, logger),
-                            new LogSlicFrameWriterDecorator(writer, logger));
-                };
+                slicFrameReaderDecorator = reader => new LogSlicFrameReaderDecorator(reader, logger);
+                slicFrameWriterDecorator = writer => new LogSlicFrameWriterDecorator(writer, logger);
             }
 
-            return new SlicListener(simpleListener, slicFrameReaderWriterFactory, _slicOptions);
+            return new SlicListener(simpleListener, slicFrameReaderDecorator, slicFrameWriterDecorator, _slicOptions);
         }
     }
 }

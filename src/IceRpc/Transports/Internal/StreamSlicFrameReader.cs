@@ -6,7 +6,7 @@ namespace IceRpc.Transports.Internal
 {
     /// <summary>The buffered receiver Slic frame reader class reads Slic frames from a buffered
     /// receiver.</summary>
-    internal class BufferedReceiverSlicFrameReader : ISlicFrameReader
+    internal class BufferedReceiverSlicFrameReader : ISlicFrameReader, IDisposable
     {
         private readonly BufferedReceiver _receiver;
 
