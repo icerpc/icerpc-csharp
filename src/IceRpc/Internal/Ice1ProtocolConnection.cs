@@ -50,7 +50,7 @@ namespace IceRpc.Internal
         private readonly object _mutex = new();
         private readonly ISimpleStream _simpleStream;
         private int _nextRequestId;
-        private readonly TaskCompletionSource _pendingCloseConnection =
+        private readonly TaskCompletionSource _pendingCloseConnectionFrameReceive =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly AsyncSemaphore _sendSemaphore = new(1);
@@ -73,7 +73,7 @@ namespace IceRpc.Internal
                 _cancelShutdown.TrySetResult();
                 var exception = new ConnectionLostException();
                 _sendSemaphore.Complete(exception);
-                _pendingCloseConnection.TrySetException(exception);
+                _pendingCloseConnectionFrameReceive.TrySetException(exception);
                 if (_invocations.Count > 0 || _dispatch.Count > 0)
                 {
                     foreach (OutgoingRequest request in _invocations.Values)
@@ -526,7 +526,7 @@ namespace IceRpc.Internal
 
         public async Task<string> WaitForShutdownAsync(CancellationToken cancel)
         {
-            await _pendingCloseConnection.Task.WaitAsync(cancel).ConfigureAwait(false);
+            await _pendingCloseConnectionFrameReceive.Task.WaitAsync(cancel).ConfigureAwait(false);
             return "connection graceful shutdown";
         }
 
@@ -671,7 +671,7 @@ namespace IceRpc.Internal
                             throw new InvalidDataException(
                                 $"unexpected data for {nameof(Ice1FrameType.CloseConnection)}");
                         }
-                        _pendingCloseConnection.TrySetResult();
+                        _pendingCloseConnectionFrameReceive.TrySetResult();
                         break;
                     }
 

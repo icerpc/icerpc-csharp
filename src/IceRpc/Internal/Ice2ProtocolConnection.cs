@@ -54,26 +54,31 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public void CancelShutdown()
         {
+            IEnumerable<OutgoingRequest> invocations = Enumerable.Empty<OutgoingRequest>();
+            IEnumerable<IncomingRequest> dispatch = Enumerable.Empty<IncomingRequest>();
             lock (_mutex)
             {
                 _shutdownCanceled = true;
-
                 if (_shutdown)
                 {
-                    foreach (IncomingRequest request in _dispatch)
-                    {
-                        request.CancelDispatchSource!.Cancel();
-                    }
-                    foreach (OutgoingRequest request in _invocations)
-                    {
-                        request.Stream!.Abort(StreamError.ConnectionShutdown);
-                    }
+                    invocations = _invocations.ToArray();
+                    dispatch = _dispatch.ToArray();
                 }
+            }
+
+            foreach (IncomingRequest request in dispatch)
+            {
+                request.CancelDispatchSource!.Cancel();
+            }
+            foreach (OutgoingRequest request in invocations)
+            {
+                request.Stream!.Abort(StreamError.ConnectionShutdown);
             }
         }
 
         public void Dispose()
         {
+            // TODO: Look into getting rid of Dispose here. It's only useful for the Ice1 protocol connection.
         }
 
         public Task PingAsync(CancellationToken cancel) => SendControlFrameAsync(Ice2FrameType.Ping, null, cancel);

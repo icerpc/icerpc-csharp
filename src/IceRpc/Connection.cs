@@ -486,7 +486,8 @@ namespace IceRpc
                 {
                     return;
                 }
-                Debug.Assert(_networkConnection != null &&
+                Debug.Assert(
+                    _networkConnection != null &&
                     _protocolConnection != null &&
                     NetworkConnectionInformation != null);
 

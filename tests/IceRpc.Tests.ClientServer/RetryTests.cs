@@ -95,6 +95,7 @@ namespace IceRpc.Tests.ClientServer
             await bidir.AfterDelayAsync(2);
         }
 
+        // TODO: XXX: investigate Ice1 failures
         // [TestCase(ProtocolCode.Ice1, 2)]
         // [TestCase(ProtocolCode.Ice1, 10)]
         // [TestCase(ProtocolCode.Ice1, 20)]
