@@ -12,6 +12,9 @@ using System.Text;
 
 namespace IceRpc.Transports.Internal
 {
+// TODO: temporary, we need to make INetworkConnection IDisposable
+#pragma warning disable CA1001
+
     internal abstract class TcpNetworkConnection : INetworkConnection, ISimpleStream
     {
         int ISimpleStream.DatagramMaxReceiveSize => throw new InvalidOperationException();
@@ -21,7 +24,7 @@ namespace IceRpc.Transports.Internal
         TimeSpan INetworkConnection.LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
 
         internal abstract Socket Socket { get; }
-        private protected SslStream? SslStream { get; set; }
+        internal abstract SslStream? SslStream { get; }
 
         // The MaxDataSize of the SSL implementation.
         private const int MaxSslDataSize = 16 * 1024;
@@ -179,11 +182,14 @@ namespace IceRpc.Transports.Internal
     internal class TcpClientNetworkConnection : TcpNetworkConnection, ISimpleNetworkConnection
     {
         internal override Socket Socket { get; }
+        internal override SslStream? SslStream => _sslStream;
 
         private readonly EndPoint _addr;
         private readonly SslClientAuthenticationOptions? _authenticationOptions;
-        private readonly Endpoint _remoteEndpoint;
         private readonly TimeSpan _idleTimeout;
+
+        private readonly Endpoint _remoteEndpoint;
+        private SslStream? _sslStream;
 
         async Task<(ISimpleStream, NetworkConnectionInformation)> ISimpleNetworkConnection.ConnectAsync(
             CancellationToken cancel)
@@ -228,10 +234,11 @@ namespace IceRpc.Transports.Internal
                 if (tls == true)
                 {
                     // This can only be created with a connected socket.
-                    SslStream = new SslStream(new System.Net.Sockets.NetworkStream(Socket, false), false);
+                    _sslStream = new SslStream(new System.Net.Sockets.NetworkStream(Socket, false), false);
                     try
                     {
-                        await SslStream.AuthenticateAsClientAsync(authenticationOptions!, cancel).ConfigureAwait(false);
+                        await _sslStream.AuthenticateAsClientAsync(
+                            authenticationOptions!, cancel).ConfigureAwait(false);
                     }
                     catch (AuthenticationException ex)
                     {
@@ -254,7 +261,7 @@ namespace IceRpc.Transports.Internal
                                 },
                             remoteEndpoint: remoteEndpoint,
                             _idleTimeout,
-                            SslStream?.RemoteCertificate));
+                            _sslStream?.RemoteCertificate));
             }
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
             {
@@ -285,7 +292,7 @@ namespace IceRpc.Transports.Internal
 
             // A remote endpoint with no tls parameter is compatible with an established connection no matter
             // its tls disposition.
-            return tls == null || tls == (SslStream != null);
+            return tls == null || tls == (_sslStream != null);
         }
 
         internal TcpClientNetworkConnection(
@@ -343,12 +350,15 @@ namespace IceRpc.Transports.Internal
     {
         internal override Socket Socket { get; }
 
+        internal override SslStream? SslStream => _sslStream;
+
         // See https://tools.ietf.org/html/rfc5246#appendix-A.4
         private const byte TlsHandshakeRecord = 0x16;
         private readonly SslServerAuthenticationOptions? _authenticationOptions;
 
         private readonly TimeSpan _idleTimeout;
         private readonly Endpoint _localEndpoint;
+        private SslStream? _sslStream;
 
         async Task<(ISimpleStream, NetworkConnectionInformation)> ISimpleNetworkConnection.ConnectAsync(
             CancellationToken cancel)
@@ -397,10 +407,11 @@ namespace IceRpc.Transports.Internal
                     Debug.Assert(_authenticationOptions != null);
 
                     // This can only be created with a connected socket.
-                    SslStream = new SslStream(new System.Net.Sockets.NetworkStream(Socket, false), false);
+                    _sslStream = new SslStream(new System.Net.Sockets.NetworkStream(Socket, false), false);
                     try
                     {
-                        await SslStream.AuthenticateAsServerAsync(_authenticationOptions, cancel).ConfigureAwait(false);
+                        await _sslStream.AuthenticateAsServerAsync(
+                            _authenticationOptions, cancel).ConfigureAwait(false);
                     }
                     catch (AuthenticationException ex)
                     {
@@ -416,7 +427,8 @@ namespace IceRpc.Transports.Internal
                 if (tls == null)
                 {
                     // the accepted endpoint gets a tls parameter
-                    endpointParams = endpointParams.Add(new EndpointParam("tls", SslStream == null ? "false" : "true"));
+                    endpointParams =
+                        endpointParams.Add(new EndpointParam("tls", _sslStream == null ? "false" : "true"));
                 }
 
                 var ipEndPoint = (IPEndPoint)Socket.RemoteEndPoint!;
@@ -431,7 +443,7 @@ namespace IceRpc.Transports.Internal
                                     Params = endpointParams
                                 },
                             _idleTimeout,
-                            SslStream?.RemoteCertificate));
+                            _sslStream?.RemoteCertificate));
             }
             catch (Exception ex)
             {

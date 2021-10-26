@@ -114,7 +114,7 @@ namespace IceRpc.Transports.Internal
             Logger.LogSentData(size, sb.ToString().Trim());
         }
 
-        private protected virtual void LogConnected()
+        private protected void LogConnected()
         {
             using IDisposable? scope = Logger.StartConnectionScope(Information!.Value, IsServer);
             Action logSuccess = (IsServer, IsDatagram) switch
