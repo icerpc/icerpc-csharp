@@ -117,6 +117,6 @@ namespace IceRpc.Transports
         /// <summary>Waits for the stream shutdown completion.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A value task that completes once the stream is shutdown.</returns>
-        ValueTask ShutdownCompleted(CancellationToken cancel);
+        Task ShutdownCompleted(CancellationToken cancel);
     }
 }

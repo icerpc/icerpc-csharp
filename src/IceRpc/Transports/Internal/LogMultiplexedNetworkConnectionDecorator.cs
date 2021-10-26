@@ -100,7 +100,7 @@ namespace IceRpc.Transports.Internal
             _parent.LogSentData(buffers);
         }
 
-        public ValueTask ShutdownCompleted(CancellationToken cancel) => Decoratee.ShutdownCompleted(cancel);
+        public Task ShutdownCompleted(CancellationToken cancel) => Decoratee.ShutdownCompleted(cancel);
 
         public override string? ToString() => Decoratee.ToString();
 

@@ -15,7 +15,7 @@ namespace IceRpc.Transports.Internal
         private readonly TimeSpan _idleTimeout;
         private readonly Socket _socket;
 
-        public async ValueTask<ISimpleNetworkConnection> AcceptAsync()
+        public async Task<ISimpleNetworkConnection> AcceptAsync()
         {
             try
             {
