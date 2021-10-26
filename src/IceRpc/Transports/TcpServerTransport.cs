@@ -46,12 +46,8 @@ namespace IceRpc.Transports
             // is enabled.
 
             Func<TcpServerNetworkConnection, ISimpleNetworkConnection> serverConnectionDecorator =
-                connection => connection;
-
-            if (loggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger && logger.IsEnabled(LogLevel.Error))
-            {
-                serverConnectionDecorator = connection => new LogTcpNetworkConnectionDecorator(connection, logger);
-            }
+                loggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger && logger.IsEnabled(LogLevel.Error) ?
+                    connection => new LogTcpNetworkConnectionDecorator(connection, logger) : connection => connection;
 
             return new TcpListener(endpoint, _tcpOptions, _authenticationOptions, serverConnectionDecorator);
         }
