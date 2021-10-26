@@ -66,8 +66,14 @@ namespace IceRpc.Transports.Internal
                 try
                 {
                     _lock.Enter(ref lockTaken);
-                    _shutdownAction = value;
-                    alreadyShutdown = IsShutdown;
+                    if (IsShutdown)
+                    {
+                        alreadyShutdown = true;
+                    }
+                    else
+                    {
+                        _shutdownAction = value;
+                    }
                 }
                 finally
                 {
@@ -79,7 +85,7 @@ namespace IceRpc.Transports.Internal
 
                 if (alreadyShutdown)
                 {
-                    _shutdownAction?.Invoke();
+                    value?.Invoke();
                 }
             }
         }
@@ -407,11 +413,11 @@ namespace IceRpc.Transports.Internal
             try
             {
                 _lock.Enter(ref lockTaken);
-                _shutdownCompletedTaskSource ??= new(TaskCreationOptions.RunContinuationsAsynchronously);
                 if (IsShutdown)
                 {
                     return;
                 }
+                _shutdownCompletedTaskSource ??= new(TaskCreationOptions.RunContinuationsAsynchronously);
             }
             finally
             {
@@ -561,9 +567,10 @@ namespace IceRpc.Transports.Internal
             bool lockTaken = false;
             try
             {
+                _lock.Enter(ref lockTaken);
                 try
                 {
-                    ShutdownAction?.Invoke();
+                    _shutdownAction?.Invoke();
                 }
                 catch (Exception ex)
                 {
@@ -579,27 +586,29 @@ namespace IceRpc.Transports.Internal
                     _lock.Exit();
                 }
             }
-            _streamFactory.RemoveStream(Id);
 
-            // The stream might not be signaled if it's shutdown gracefully after receiving endStream. We make sure to
-            // set the exception in this case to prevent WaitAsync calls to block.
-            _queue.Complete(new StreamAbortedException(StreamError.StreamAborted));
-
-            // Release connection stream count or semaphore for this stream.
-            _streamFactory.ReleaseStream(this);
-
-            // Local streams are released from the connection when the StreamLast or StreamReset frame is received.
-            // Since a remote un-directional stream doesn't send stream frames, we have to send a stream last frame here
-            // to ensure the local stream is released from the connection.
-            if (IsRemote && !IsBidirectional)
+            if (IsStarted)
             {
-                // It's important to decrement the stream count before sending the StreamLast frame to prevent a race
-                // where the peer could start a new stream before the counter is decremented.
-                _writer.WriteStreamFrameAsync(
-                    this,
-                    new ReadOnlyMemory<byte>[] { SlicDefinitions.FrameHeader.ToArray() },
-                    true,
-                    default).AsTask();
+                // Release connection stream count or semaphore for this stream and remove it from the factory.
+                _streamFactory.ReleaseStream(this);
+
+                // The stream might not be signaled if it's shutdown gracefully after receiving endStream. We make sure
+                // to set the exception in this case to prevent ReadAsync from blocking.
+                _queue.Complete(new StreamAbortedException(StreamError.StreamAborted));
+
+                // Local streams are released from the connection when the StreamLast or StreamReset frame is received.
+                // Since a remote un-directional stream doesn't send stream frames, we have to send a stream last frame
+                // here to ensure the local stream is released from the connection.
+                if (IsRemote && !IsBidirectional)
+                {
+                    // It's important to decrement the stream count before sending the StreamLast frame to prevent a race
+                    // where the peer could start a new stream before the counter is decremented.
+                    _writer.WriteStreamFrameAsync(
+                        this,
+                        new ReadOnlyMemory<byte>[] { SlicDefinitions.FrameHeader.ToArray() },
+                        true,
+                        default).AsTask();
+                }
             }
 
             // We're done with the receive buffer.
@@ -610,7 +619,7 @@ namespace IceRpc.Transports.Internal
         {
             // If both reads and writes are completed, the stream is started and not already shutdown, call
             // shutdown.
-            if (ReadsCompleted && WritesCompleted && TrySetState(State.Shutdown, false) && IsStarted)
+            if (ReadsCompleted && WritesCompleted && TrySetState(State.Shutdown, false))
             {
                 try
                 {
