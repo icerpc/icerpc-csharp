@@ -550,23 +550,11 @@ namespace IceRpc.Tests.Internal
                 Task shutdownTask = factory.ClientConnection.ShutdownAsync("client message", cancelSource.Token);
                 cancelSource.Cancel();
 
-                // Ensure that dispatch is canceled (with Ice1 it's canceled on receive of the CloseConnection
-                // frame and the GoAwayCanceled frame for Ice2).
+                // Ensure that dispatch is canceled.
                 await dispatchSemaphore.WaitAsync();
 
                 // The invocation on the connection has been canceled by the shutdown cancellation
-                Exception? ex = Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
-
-                if (protocol == ProtocolCode.Ice1)
-                {
-                    // Client-side Ice1 invocations are canceled immediately on shutdown.
-                    Assert.That(ex!.Message, Is.EqualTo("client message"));
-                }
-                else
-                {
-                    // Client-side Ice2 invocations are canceled when the dispatch is canceled by the peer.
-                    Assert.That(ex!.Message, Is.EqualTo("dispatch canceled by peer"));
-                }
+                Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
             }
             else
             {

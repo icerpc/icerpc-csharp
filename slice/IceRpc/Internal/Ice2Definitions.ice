@@ -31,10 +31,6 @@ module IceRpc::Internal
         Ping = 5,
         /// The go away frame is sent to notify the peer that the connection is being shutdown.
         GoAway = 6,
-        /// The go away canceled frame is sent to notify the peer that the connection shutdown has
-        /// been canceled. The peer can cancel dispatch which are still in-progress when this
-        /// frame is received.
-        GoAwayCanceled = 7
     }
 
     /// Keys of reserved ice2 connection parameters.
