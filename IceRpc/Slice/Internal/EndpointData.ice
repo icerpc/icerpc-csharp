@@ -5,10 +5,14 @@
 [[suppress-warning(reserved-identifier)]]
 
 #include <IceRpc/EndpointParam.ice>
-#include <IceRpc/Protocol.ice>
+#include <IceRpc/ProtocolCode.ice>
 
-module IceRpc::Slice
+// TODO: use generated internal types once supported
+module IceRpc::Slice::Internal
 {
+    // temporary
+    sequence<EndpointParam> EndpointParamSeq;
+
     /// The "on-the-wire" representation of an endpoint when using the Ice 2.0 encoding.
     [cs:readonly]
     struct EndpointData
