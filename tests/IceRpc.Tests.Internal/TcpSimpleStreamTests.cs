@@ -16,9 +16,9 @@ namespace IceRpc.Tests.Internal
     [Timeout(5000)]
     public class TcpSimpleStreamTests
     {
-        private static readonly ReadOnlyMemory<ReadOnlyMemory<byte>> _oneBSendBuffer =
+        private static readonly ReadOnlyMemory<ReadOnlyMemory<byte>> _oneBWriteBuffer =
             new ReadOnlyMemory<byte>[] { new byte[1] };
-        private static readonly ReadOnlyMemory<ReadOnlyMemory<byte>> _oneMBSendBuffer =
+        private static readonly ReadOnlyMemory<ReadOnlyMemory<byte>> _oneMBWriteBuffer =
             new ReadOnlyMemory<byte>[] { new byte[1024 * 1024] };
 
         private ISimpleStream ClientStream => _clientStream!;
@@ -154,7 +154,7 @@ namespace IceRpc.Tests.Internal
             Task writeTask;
             do
             {
-                writeTask = ClientStream.WriteAsync(_oneMBSendBuffer, canceled.Token).AsTask();
+                writeTask = ClientStream.WriteAsync(_oneMBWriteBuffer, canceled.Token).AsTask();
                 await Task.WhenAny(Task.Delay(500), writeTask);
             }
             while (writeTask.IsCompleted);
@@ -173,7 +173,7 @@ namespace IceRpc.Tests.Internal
                 {
                     while (true)
                     {
-                        await ClientStream.WriteAsync(_oneMBSendBuffer, default);
+                        await ClientStream.WriteAsync(_oneMBWriteBuffer, default);
                     }
                 });
         }
@@ -182,7 +182,7 @@ namespace IceRpc.Tests.Internal
         public void TcpSimpleStream_WriteAsync_Close()
         {
             _clientConnection!.Close();
-            Assert.CatchAsync<TransportException>(async () => await ClientStream.WriteAsync(_oneBSendBuffer, default));
+            Assert.CatchAsync<TransportException>(async () => await ClientStream.WriteAsync(_oneBWriteBuffer, default));
         }
 
         [Test]
@@ -191,7 +191,7 @@ namespace IceRpc.Tests.Internal
             using var canceled = new CancellationTokenSource();
             canceled.Cancel();
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await ClientStream.WriteAsync(_oneBSendBuffer, canceled.Token));
+                async () => await ClientStream.WriteAsync(_oneBWriteBuffer, canceled.Token));
         }
 
         [TestCase(1)]
