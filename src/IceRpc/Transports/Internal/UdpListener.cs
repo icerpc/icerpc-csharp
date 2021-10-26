@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Net.Sockets;
-
 using IceRpc.Internal;
 
 namespace IceRpc.Transports.Internal
@@ -44,10 +42,11 @@ namespace IceRpc.Transports.Internal
            _acceptTask.SetException(new ObjectDisposedException(nameof(UdpListener)));
         }
 
-        internal UdpListener(Socket socket, Endpoint endpoint)
+        internal UdpListener(Endpoint endpoint, UdpOptions options)
         {
-            Endpoint = endpoint;
-            _serverConnection = new UdpServerNetworkConnection(socket, endpoint);
+            var serverConnection = new UdpServerNetworkConnection(endpoint, options);
+            Endpoint = serverConnection.LocalEndpoint;
+            _serverConnection = serverConnection;
         }
     }
 }

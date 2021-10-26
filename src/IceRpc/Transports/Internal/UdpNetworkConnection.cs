@@ -232,9 +232,10 @@ namespace IceRpc.Transports.Internal
 
         public override TimeSpan LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
 
+        internal Endpoint LocalEndpoint { get; }
+
         internal Socket Socket { get; }
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
-        private readonly Endpoint _localEndpoint;
 
         public override void Close(Exception? exception) => Socket.Close();
 
@@ -243,8 +244,8 @@ namespace IceRpc.Transports.Internal
             // The remote endpoint is set to an empty endpoint for a UDP server connection because the
             // socket accepts datagrams from "any" client since it's not connected to a specific client.
             Task.FromResult((this as ISimpleStream,
-                             new NetworkConnectionInformation(localEndpoint: _localEndpoint,
-                                                              remoteEndpoint: _localEndpoint with
+                             new NetworkConnectionInformation(localEndpoint: LocalEndpoint,
+                                                              remoteEndpoint: LocalEndpoint with
                                                               {
                                                                  Host = "::0",
                                                                  Port = 0
@@ -281,11 +282,84 @@ namespace IceRpc.Transports.Internal
         ValueTask ISimpleStream.WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
             throw new TransportException("cannot write to a UDP server stream");
 
-        internal UdpServerNetworkConnection(Socket socket, Endpoint localEndpoint)
+        internal UdpServerNetworkConnection(Endpoint endpoint, UdpOptions options)
         {
-            DatagramMaxReceiveSize = Math.Min(UdpUtils.MaxPacketSize, socket.ReceiveBufferSize - UdpUtils.UdpOverhead);
-            Socket = socket;
-            _localEndpoint = localEndpoint;
+            // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
+            // a udp endpoint regardless of its actual transport name.
+
+            if (!IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress))
+            {
+                throw new NotSupportedException(
+                    $"endpoint '{endpoint}' cannot accept datagrams because it has a DNS name");
+            }
+
+            string? multicastInterface = endpoint.ParseUdpParams().MulticastInterface;
+
+            IPEndPoint? multicastAddress = null;
+            Socket = new Socket(ipAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+
+            try
+            {
+                if (ipAddress.AddressFamily == AddressFamily.InterNetworkV6)
+                {
+                    // TODO: Don't enable DualMode sockets on macOS, https://github.com/dotnet/corefx/issues/31182
+                    Socket.DualMode = !(OperatingSystem.IsMacOS() || options.IsIPv6Only);
+                }
+
+                Socket.ExclusiveAddressUse = true;
+
+                if (options.ReceiveBufferSize is int receiveSize)
+                {
+                    Socket.ReceiveBufferSize = receiveSize;
+                }
+                if (options.SendBufferSize is int sendSize)
+                {
+                    Socket.SendBufferSize = sendSize;
+                }
+
+                var addr = new IPEndPoint(ipAddress, endpoint.Port);
+                if (IsMulticast(ipAddress))
+                {
+                    multicastAddress = addr;
+
+                    Socket.ExclusiveAddressUse = false;
+                    Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+
+                    if (OperatingSystem.IsWindows())
+                    {
+                        // Windows does not allow binding to the multicast address itself so we bind to the wildcard
+                        // instead. As a result, bidirectional connection won't work because the source address won't
+                        // be the multicast address and the client will therefore reject the datagram.
+                        addr = new IPEndPoint(
+                            addr.AddressFamily == AddressFamily.InterNetwork ? IPAddress.Any : IPAddress.IPv6Any,
+                            addr.Port);
+                    }
+                }
+
+                Socket.Bind(addr);
+
+                ushort port = (ushort)((IPEndPoint)Socket.LocalEndPoint!).Port;
+
+                if (multicastAddress != null)
+                {
+                    multicastAddress.Port = port;
+                    SetMulticastGroup(Socket, multicastInterface, multicastAddress.Address);
+                }
+
+                LocalEndpoint = endpoint with { Port = port };
+            }
+            catch (SocketException ex)
+            {
+                Socket.Dispose();
+                throw new TransportException(ex);
+            }
+            catch
+            {
+                Socket.Dispose();
+                throw;
+            }
+
+            DatagramMaxReceiveSize = Math.Min(MaxPacketSize, Socket.ReceiveBufferSize - UdpOverhead);
         }
 
         private protected override bool PrintMembers(StringBuilder builder)
