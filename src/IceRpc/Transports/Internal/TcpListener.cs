@@ -14,17 +14,18 @@ namespace IceRpc.Transports.Internal
 
         private readonly SslServerAuthenticationOptions? _authenticationOptions;
         private readonly TimeSpan _idleTimeout;
+        private readonly Func<TcpServerNetworkConnection, ISimpleNetworkConnection> _serverConnectionDecorator;
         private readonly Socket _socket;
 
         public async ValueTask<ISimpleNetworkConnection> AcceptAsync()
         {
             try
             {
-                return new TcpServerNetworkConnection(
-                    await _socket.AcceptAsync().ConfigureAwait(false),
-                    Endpoint,
-                    _idleTimeout,
-                    _authenticationOptions);
+                return _serverConnectionDecorator(
+                    new TcpServerNetworkConnection(await _socket.AcceptAsync().ConfigureAwait(false),
+                                                   Endpoint,
+                                                   _idleTimeout,
+                                                   _authenticationOptions));
             }
             catch (Exception ex)
             {
@@ -39,7 +40,8 @@ namespace IceRpc.Transports.Internal
         internal TcpListener(
             Endpoint endpoint,
             TcpOptions tcpOptions,
-            SslServerAuthenticationOptions? authenticationOptions)
+            SslServerAuthenticationOptions? authenticationOptions,
+            Func<TcpServerNetworkConnection, ISimpleNetworkConnection> serverConnectionDecorator)
         {
             // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
             // a tcp or ssl endpoint regardless of its actual transport name.
@@ -54,6 +56,7 @@ namespace IceRpc.Transports.Internal
             _ = endpoint.ParseTcpParams();
 
             _idleTimeout = tcpOptions.IdleTimeout;
+            _serverConnectionDecorator = serverConnectionDecorator;
 
             if (authenticationOptions != null)
             {
