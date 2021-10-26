@@ -22,6 +22,10 @@ namespace IceRpc.Transports.Internal
         private int _bidirectionalStreamCount;
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly int _bidirectionalMaxStreams;
+
+        private readonly IDisposable _disposableReader;
+        private readonly IDisposable _disposableWriter;
+
         private long _lastRemoteBidirectionalStreamId = -1;
         private long _lastRemoteUnidirectionalStreamId = -1;
         // _mutex ensure the assignment of _lastRemoteXxx members and the addition of the stream to _streams is
@@ -216,13 +220,14 @@ namespace IceRpc.Transports.Internal
             _bidirectionalStreamSemaphore?.Complete(exception);
             _unidirectionalStreamSemaphore?.Complete(exception);
 
-            _reader.Dispose();
-            _writer.Dispose();
+            _disposableReader.Dispose();
+            _disposableWriter.Dispose();
         }
 
         internal SlicMultiplexedStreamFactory(
-            ISlicFrameReader reader,
-            ISlicFrameWriter writer,
+            ISimpleStream simpleStream,
+            Func<ISlicFrameReader, ISlicFrameReader> slicFrameReaderDecorator,
+            Func<ISlicFrameWriter, ISlicFrameWriter> slicFrameWriterDecorator,
             bool isServer,
             TimeSpan idleTimeout,
             SlicOptions options)
@@ -230,8 +235,16 @@ namespace IceRpc.Transports.Internal
             IdleTimeout = idleTimeout;
             IsServer = isServer;
 
-            _reader = reader;
-            _writer = new SynchronizedSlicFrameWriterDecorator(writer, this);
+            var reader = new StreamSlicFrameReader(simpleStream);
+            _disposableReader = reader;
+            _reader = slicFrameReaderDecorator(reader);
+
+            var writer = new SynchronizedSlicFrameWriterDecorator(
+                slicFrameWriterDecorator(new StreamSlicFrameWriter(simpleStream)),
+                this);
+
+            _disposableWriter = writer;
+            _writer = writer;
 
             _packetMaxSize = options.PacketMaxSize;
             StreamBufferMaxSize = options.StreamBufferMaxSize;

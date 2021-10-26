@@ -7,7 +7,7 @@ namespace IceRpc.Transports.Internal
     /// <summary>The synchronized Slic frame writer decorator synchronizes concurrent calls to write Slic
     /// frames. It also ensures that Slic streams which are not started are started when the first stream data
     /// frame is written.</summary>
-    internal sealed class SynchronizedSlicFrameWriterDecorator : ISlicFrameWriter
+    internal sealed class SynchronizedSlicFrameWriterDecorator : ISlicFrameWriter, IDisposable
     {
         private readonly ISlicFrameWriter _decoratee;
         private long _nextBidirectionalId;
@@ -15,11 +15,7 @@ namespace IceRpc.Transports.Internal
         private readonly AsyncSemaphore _sendSemaphore = new(1);
         private readonly SlicMultiplexedStreamFactory _streamFactory;
 
-        public void Dispose()
-        {
-            _decoratee.Dispose();
-            _sendSemaphore.Complete(new ConnectionClosedException());
-        }
+        public void Dispose() => _sendSemaphore.Complete(new ConnectionClosedException());
 
         public async ValueTask WriteFrameAsync(
             SlicMultiplexedStream? stream,
