@@ -42,7 +42,7 @@ namespace IceRpc.Transports
             Endpoint endpoint,
             ILoggerFactory loggerFactory)
         {
-            // This is the composition root of the tcp client transport, where we install log decorators when logging
+            // This is the composition root of the tcp server transport, where we install log decorators when logging
             // is enabled.
 
             Func<TcpServerNetworkConnection, ISimpleNetworkConnection> serverConnectionDecorator =
