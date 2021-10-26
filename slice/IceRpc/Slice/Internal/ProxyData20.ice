@@ -4,10 +4,11 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-#include <IceRpc/Slice/EndpointData.ice>
-#include <IceRpc/Protocol.ice>
+#include <IceRpc/Slice/Internal/EndpointData.ice>
+#include <IceRpc/ProtocolCode.ice>
 
-module IceRpc::Slice
+// TODO: use generated internal types once supported
+module IceRpc::Slice::Internal
 {
     // These definitions help with the encoding of proxies with the Ice 2.0 encoding.
 
