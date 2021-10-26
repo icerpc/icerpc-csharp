@@ -44,8 +44,8 @@ namespace IceRpc.Transports
             // is enabled.
             var clientConnection = new TcpClientNetworkConnection(remoteEndpoint, _tcpOptions, _authenticationOptions);
 
-            return loggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger &&
-                logger.IsEnabled(LogLevel.Error) ?
+            return
+                loggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger && logger.IsEnabled(LogLevel.Error) ?
                     new LogTcpNetworkConnectionDecorator(clientConnection, logger) : clientConnection;
         }
     }
