@@ -97,6 +97,20 @@ namespace IceRpc.Tests.Internal
         [OneTimeTearDown]
         public void Shutdown() => _listener.Dispose();
 
+         [Test]
+        public async Task TcpSimpleStream_LastActivity()
+        {
+            TimeSpan lastActivity = _clientConnection!.LastActivity;
+            await Task.Delay(2);
+            await ClientStream.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
+            Assert.That(_clientConnection!.LastActivity, Is.GreaterThan(lastActivity));
+
+            lastActivity = _serverConnection!.LastActivity;
+            await Task.Delay(2);
+            await ServerStream.ReadAsync(new byte[1], default);
+            Assert.That(_serverConnection!.LastActivity, Is.GreaterThan(lastActivity));
+        }
+
         [Test]
         public void TcpSimpleStream_ReadAsync_Cancellation()
         {
