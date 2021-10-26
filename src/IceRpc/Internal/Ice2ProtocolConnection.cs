@@ -524,8 +524,8 @@ namespace IceRpc.Internal
             }
 
             // Wait for the control streams to shutdown.
-            await _controlStream!.ShutdownCompleted(cancel).ConfigureAwait(false);
-            await _remoteControlStream!.ShutdownCompleted(cancel).ConfigureAwait(false);
+            await _controlStream!.WaitForShutdownAsync(cancel).ConfigureAwait(false);
+            await _remoteControlStream!.WaitForShutdownAsync(cancel).ConfigureAwait(false);
         }
 
         public async Task<string> WaitForShutdownAsync(CancellationToken cancel)
@@ -621,14 +621,14 @@ namespace IceRpc.Internal
                 var buffer = new Memory<byte>(bufferArray);
 
                 // Read the frame type and first byte of the size.
-                await stream.ReceiveUntilFullAsync(buffer[0..2], cancel).ConfigureAwait(false);
+                await stream.ReadUntilFullAsync(buffer[0..2], cancel).ConfigureAwait(false);
                 var frameType = (Ice2FrameType)buffer.Span[0];
 
                 // Read the remainder of the size if needed.
                 int sizeLength = Ice20Decoder.DecodeSizeLength(buffer.Span[1]);
                 if (sizeLength > 1)
                 {
-                    await stream.ReceiveUntilFullAsync(buffer.Slice(2, sizeLength - 1), cancel).ConfigureAwait(false);
+                    await stream.ReadUntilFullAsync(buffer.Slice(2, sizeLength - 1), cancel).ConfigureAwait(false);
                 }
 
                 int frameSize = Ice20Decoder.DecodeSize(buffer[1..].AsReadOnlySpan()).Size;
@@ -642,7 +642,7 @@ namespace IceRpc.Internal
                 {
                     // TODO: rent buffer from Memory pool
                     buffer = frameSize > buffer.Length ? new byte[frameSize] : buffer[..frameSize];
-                    await stream.ReceiveUntilFullAsync(buffer, cancel).ConfigureAwait(false);
+                    await stream.ReadUntilFullAsync(buffer, cancel).ConfigureAwait(false);
                 }
                 else
                 {

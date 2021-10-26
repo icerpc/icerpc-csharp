@@ -15,8 +15,6 @@ namespace IceRpc.Transports.Internal
         private readonly ISlicFrameWriter _decoratee;
         private readonly ILogger _logger;
 
-        public void Dispose() => _decoratee.Dispose();
-
         public async ValueTask WriteFrameAsync(
             SlicMultiplexedStream? stream,
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,

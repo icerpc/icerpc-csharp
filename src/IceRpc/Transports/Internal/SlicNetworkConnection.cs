@@ -15,7 +15,9 @@ namespace IceRpc.Transports.Internal
         private readonly bool _isServer;
 
         private readonly ISimpleNetworkConnection _simpleNetworkConnection;
-        private readonly Func<ISimpleStream, (ISlicFrameReader, ISlicFrameWriter)> _slicFrameReaderWriterFactory;
+        private readonly Func<ISlicFrameReader, ISlicFrameReader> _slicFrameReaderDecorator;
+        private readonly Func<ISlicFrameWriter, ISlicFrameWriter> _slicFrameWriterDecorator;
+
         private SlicMultiplexedStreamFactory? _slicMultiplexedStreamFactory;
         private readonly SlicOptions _slicOptions;
 
@@ -31,10 +33,10 @@ namespace IceRpc.Transports.Internal
             (ISimpleStream simpleStream, NetworkConnectionInformation information) =
                 await _simpleNetworkConnection.ConnectAsync(cancel).ConfigureAwait(false);
 
-            (ISlicFrameReader reader, ISlicFrameWriter writer) = _slicFrameReaderWriterFactory(simpleStream);
             _slicMultiplexedStreamFactory = new SlicMultiplexedStreamFactory(
-                reader,
-                writer,
+                simpleStream,
+                _slicFrameReaderDecorator,
+                _slicFrameWriterDecorator,
                 isServer: _isServer,
                 information.IdleTimeout,
                 _slicOptions);
@@ -49,12 +51,14 @@ namespace IceRpc.Transports.Internal
         internal SlicNetworkConnection(
             ISimpleNetworkConnection simpleNetworkConnection,
             bool isServer,
-            Func<ISimpleStream, (ISlicFrameReader, ISlicFrameWriter)> slicFrameReaderWriterFactory,
+            Func<ISlicFrameReader, ISlicFrameReader> slicFrameReaderDecorator,
+            Func<ISlicFrameWriter, ISlicFrameWriter> slicFrameWriterDecorator,
             SlicOptions slicOptions)
         {
             _simpleNetworkConnection = simpleNetworkConnection;
             _isServer = isServer;
-            _slicFrameReaderWriterFactory = slicFrameReaderWriterFactory;
+            _slicFrameReaderDecorator = slicFrameReaderDecorator;
+            _slicFrameWriterDecorator = slicFrameWriterDecorator;
             _slicOptions = slicOptions;
         }
     }

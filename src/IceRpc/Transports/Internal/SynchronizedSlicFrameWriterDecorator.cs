@@ -7,18 +7,15 @@ namespace IceRpc.Transports.Internal
     /// <summary>The synchronized Slic frame writer decorator synchronizes concurrent calls to write Slic
     /// frames. It also ensures that Slic streams which are not started are started when the first stream data
     /// frame is written.</summary>
-    internal sealed class SynchronizedSlicFrameWriterDecorator : ISlicFrameWriter
+    internal sealed class SynchronizedSlicFrameWriterDecorator : ISlicFrameWriter, IDisposable
     {
         private readonly ISlicFrameWriter _decoratee;
         private long _nextBidirectionalId;
         private long _nextUnidirectionalId;
         private readonly AsyncSemaphore _sendSemaphore = new(1);
+        private readonly SlicMultiplexedStreamFactory _streamFactory;
 
-        public void Dispose()
-        {
-            _decoratee.Dispose();
-            _sendSemaphore.Complete(new ConnectionClosedException());
-        }
+        public void Dispose() => _sendSemaphore.Complete(new ConnectionClosedException());
 
         public async ValueTask WriteFrameAsync(
             SlicMultiplexedStream? stream,
@@ -59,12 +56,12 @@ namespace IceRpc.Transports.Internal
                 {
                     if (stream.IsBidirectional)
                     {
-                        stream.Id = _nextBidirectionalId;
+                        _streamFactory.AddStream(_nextBidirectionalId, stream);
                         _nextBidirectionalId += 4;
                     }
                     else
                     {
-                        stream.Id = _nextUnidirectionalId;
+                        _streamFactory.AddStream(_nextUnidirectionalId, stream);
                         _nextUnidirectionalId += 4;
                     }
                 }
@@ -85,12 +82,13 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal SynchronizedSlicFrameWriterDecorator(ISlicFrameWriter decoratee, bool isServer)
+        internal SynchronizedSlicFrameWriterDecorator(ISlicFrameWriter decoratee, SlicMultiplexedStreamFactory factory)
         {
             _decoratee = decoratee;
+            _streamFactory = factory;
 
             // We use the same stream ID numbering scheme as Quic
-            if (isServer)
+            if (factory.IsServer)
             {
                 _nextBidirectionalId = 1;
                 _nextUnidirectionalId = 3;
