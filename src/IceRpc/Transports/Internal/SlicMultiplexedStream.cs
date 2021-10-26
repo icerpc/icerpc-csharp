@@ -7,16 +7,9 @@ using System.Threading.Tasks.Sources;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The stream implementation for Slic. The stream implementation implements flow control to
-    /// ensure data isn't buffered indefinitely if the application doesn't consume it. Buffering and flow
-    /// control are only enable when EnableReceiveFlowControl is called. Until this is called, the data is not
-    /// buffered, instead, the data is not received from the Slic connection until the application protocol
-    /// provides a buffer (by calling ReceiveAsync), to receive the data. With Ice2, this means that the
-    /// request or response frame is received directly from the Slic connection with intermediate buffering
-    /// and data copying and Ice2 enables receive buffering and flow control for receiving the data associated
-    /// to a stream a parameter. Enabling buffering only for stream parameters also ensure a lightweight Slic
-    /// stream object where no additional heap objects (such as the circular buffer, send semaphore, etc) are
-    /// necessary to receive a simple response/request frame.</summary>
+    /// <summary>The stream implementation for Slic. The stream implementation implements flow control to ensure data
+    /// isn't buffered indefinitely if the application doesn't consume it. Buffering and flow control are only enable
+    /// when sending multiple Slic packet or if the Slic packet size exceeds the peer packet maximum size.</summary>
     internal class SlicMultiplexedStream : IMultiplexedStream, IAsyncQueueValueTaskSource<(int, bool)>
     {
         /// <inheritdoc/>
@@ -33,7 +26,7 @@ namespace IceRpc.Transports.Internal
             set
             {
                 Debug.Assert(_id == -1);
-                _streamFactory.AddStream(value, this, ref _id);
+                _id = value;
             }
         }
 
@@ -94,10 +87,12 @@ namespace IceRpc.Transports.Internal
 
         internal bool IsRemote => _id != -1 && _id % 2 == (_streamFactory.IsServer ? 0 : 1);
         internal bool IsStarted => _id != -1;
-        internal bool WritesCompleted => (Thread.VolatileRead(ref _state) & (int)State.WriteCompleted) > 0;
+        internal bool WritesCompleted => ((State)Thread.VolatileRead(ref _state)).HasFlag(State.WriteCompleted);
 
-        private bool IsShutdown => (Thread.VolatileRead(ref _state) & (int)State.Shutdown) > 0;
-        private bool ReadsCompleted => (Thread.VolatileRead(ref _state) & (int)State.ReadCompleted) > 0;
+        private bool IsShutdown =>
+            ((State)Thread.VolatileRead(ref _state)).HasFlag(State.WriteCompleted | State.ReadCompleted);
+
+        private bool ReadsCompleted => ((State)Thread.VolatileRead(ref _state)).HasFlag(State.ReadCompleted);
 
         private readonly SlicMultiplexedStreamFactory _streamFactory;
         private long _id = -1;
@@ -138,22 +133,17 @@ namespace IceRpc.Transports.Internal
                 return;
             }
 
-            // It's important to set the exception before completing the reads because WaitAsync expects the
-            // exception to be set if reads are completed.
+            // Unblock ReceiveAsync which is blocked on _queue.WaitAsync()
             _queue.Complete(new StreamAbortedException(errorCode));
 
-            if (TrySetReadCompleted(shutdown: false))
+            if (IsStarted && !IsShutdown && errorCode != StreamError.ConnectionAborted)
             {
-                if (IsStarted && !IsShutdown && errorCode != StreamError.ConnectionAborted)
-                {
-                    // Notify the peer of the read abort by sending a stop sending frame.
-                    _ = SendStopSendingFrameAndShutdownAsync();
-                }
-                else
-                {
-                    // Shutdown the stream if not already done.
-                    TryShutdown();
-                }
+                // Notify the peer of the read abort by sending a stop sending frame.
+                _ = SendStopSendingFrameAndShutdownAsync();
+            }
+            else
+            {
+                TrySetReadCompleted();
             }
 
             async Task SendStopSendingFrameAndShutdownAsync()
@@ -169,7 +159,7 @@ namespace IceRpc.Transports.Internal
                 {
                     // Ignore.
                 }
-                TryShutdown();
+                TrySetReadCompleted();
             }
         }
 
@@ -211,9 +201,7 @@ namespace IceRpc.Transports.Internal
                 _receivedOffset = 0;
                 _receivedSize = 0;
 
-                // Wait to be signaled for the reception of a new stream frame for this stream. If buffering is
-                // enabled, check for the circular buffer element count instead of the signal result since
-                // multiple Slic frame might have been received and buffered while waiting for the signal.
+                // Wait to be signaled for the reception of a new stream frame for this stream.
                 (_receivedSize, _receivedEndStream) = await _queue.WaitAsync(this, cancel).ConfigureAwait(false);
 
                 if (_receivedSize == 0)
@@ -434,32 +422,12 @@ namespace IceRpc.Transports.Internal
 
         internal SlicMultiplexedStream(
             SlicMultiplexedStreamFactory streamFactory,
-            long streamId,
+            bool bidirectional,
+            bool remote,
             ISlicFrameReader reader,
             ISlicFrameWriter writer)
         {
             _streamFactory = streamFactory;
-            _reader = reader;
-            _writer = writer;
-
-            IsBidirectional = streamId % 4 < 2;
-            _streamFactory.AddStream(streamId, this, ref _id);
-            _receiveBuffer = new CircularBuffer(_streamFactory.StreamBufferMaxSize);
-
-            if (!IsBidirectional)
-            {
-                // Write-side of remote unidirectional stream is marked as completed.
-                TrySetWriteCompleted();
-            }
-        }
-
-        internal SlicMultiplexedStream(
-            SlicMultiplexedStreamFactory connection,
-            bool bidirectional,
-            ISlicFrameReader reader,
-            ISlicFrameWriter writer)
-        {
-            _streamFactory = connection;
             _reader = reader;
             _writer = writer;
             _receiveBuffer = new CircularBuffer(_streamFactory.StreamBufferMaxSize);
@@ -467,8 +435,16 @@ namespace IceRpc.Transports.Internal
             IsBidirectional = bidirectional;
             if (!IsBidirectional)
             {
-                // Read-side of local unidirectional stream is marked as completed.
-                TrySetReadCompleted();
+                if (remote)
+                {
+                    // Write-side of remote unidirectional stream is marked as completed.
+                    TrySetWriteCompleted();
+                }
+                else
+                {
+                    // Read-side of local unidirectional stream is marked as completed.
+                    TrySetReadCompleted();
+                }
             }
         }
 
@@ -537,16 +513,15 @@ namespace IceRpc.Transports.Internal
                 throw new InvalidDataException("received reset frame on local unidirectional stream");
             }
 
-            // It's important to set the exception before completing the reads because ReceiveAsync expects the
-            // exception to be set if reads are completed.
+            // Unblock ReceiveAsync which is blocked on _queue.WaitAsync()
             _queue.Complete(new StreamAbortedException(errorCode));
 
             TrySetReadCompleted();
         }
 
-        internal bool TrySetReadCompleted(bool shutdown = true) => TrySetState(State.ReadCompleted, shutdown);
+        internal bool TrySetReadCompleted() => TrySetState(State.ReadCompleted);
 
-        internal bool TrySetWriteCompleted() => TrySetState(State.WriteCompleted, true);
+        internal bool TrySetWriteCompleted() => TrySetState(State.WriteCompleted);
 
         (int, bool) IValueTaskSource<(int, bool)>.GetResult(short token) => _queue.GetResult(token);
 
@@ -563,20 +538,13 @@ namespace IceRpc.Transports.Internal
 
         private void Shutdown()
         {
-            Debug.Assert(_state == (int)(State.ReadCompleted | State.WriteCompleted | State.Shutdown));
+            Debug.Assert(_state == (int)(State.ReadCompleted | State.WriteCompleted));
             bool lockTaken = false;
+            Action? shutdownAction = null;
             try
             {
                 _lock.Enter(ref lockTaken);
-                try
-                {
-                    _shutdownAction?.Invoke();
-                }
-                catch (Exception ex)
-                {
-                    Debug.Assert(false, $"unexpected exception {ex}");
-                    throw;
-                }
+                shutdownAction = _shutdownAction;
                 _shutdownCompletedTaskSource?.SetResult();
             }
             finally
@@ -585,6 +553,16 @@ namespace IceRpc.Transports.Internal
                 {
                     _lock.Exit();
                 }
+            }
+
+            try
+            {
+                shutdownAction?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                Debug.Assert(false, $"unexpected exception from stream shutdown action {ex}");
+                throw;
             }
 
             if (IsStarted)
@@ -615,11 +593,17 @@ namespace IceRpc.Transports.Internal
             _receiveBuffer.Dispose();
         }
 
-        private void TryShutdown()
+        private bool TrySetState(State state)
         {
-            // If both reads and writes are completed, the stream is started and not already shutdown, call
-            // shutdown.
-            if (ReadsCompleted && WritesCompleted && TrySetState(State.Shutdown, false))
+            if (((State)Interlocked.Or(ref _state, (int)state)).HasFlag(state))
+            {
+                // The given state was already set.
+                return false;
+            }
+
+            // If the state is updated, check if we need to call shutdown.
+            var newState = (State)Thread.VolatileRead(ref _state);
+            if (newState.HasFlag(State.ReadCompleted | State.WriteCompleted))
             {
                 try
                 {
@@ -630,22 +614,7 @@ namespace IceRpc.Transports.Internal
                     Debug.Assert(false, $"unexpected exception {exception}");
                 }
             }
-        }
-
-        private bool TrySetState(State state, bool shutdown)
-        {
-            if (((State)Interlocked.Or(ref _state, (int)state)).HasFlag(state))
-            {
-                return false;
-            }
-            else
-            {
-                if (shutdown)
-                {
-                    TryShutdown();
-                }
-                return true;
-            }
+            return true;
         }
 
         // A System.IO.Stream class to wrap SendAsync/ReceiveAsync functionality of the RpcStream. For Quic,
@@ -752,11 +721,11 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private enum State : int
+        [Flags]
+        private enum State : byte
         {
             ReadCompleted = 1,
             WriteCompleted = 2,
-            Shutdown = 4
         }
     }
 }
