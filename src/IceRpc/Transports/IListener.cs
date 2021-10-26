@@ -17,6 +17,6 @@ namespace IceRpc.Transports
     {
         /// <summary>Accepts a new connection.</summary>
         /// <return>The accepted connection.</return>
-        ValueTask<T> AcceptAsync();
+        Task<T> AcceptAsync();
     }
 }

@@ -11,7 +11,7 @@ namespace IceRpc.Transports.Internal
 
         public Endpoint Endpoint => _simpleListener.Endpoint;
 
-        public async ValueTask<IMultiplexedNetworkConnection> AcceptAsync() =>
+        public async Task<IMultiplexedNetworkConnection> AcceptAsync() =>
             new SlicNetworkConnection(
                 await _simpleListener.AcceptAsync().ConfigureAwait(false),
                 isServer: true,

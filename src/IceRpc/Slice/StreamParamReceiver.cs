@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Transports;
+using IceRpc.Transports.Internal;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -174,16 +175,16 @@ namespace IceRpc.Slice
             private readonly Func<IceDecoder, T> _decodeAction;
             private readonly IIceDecoderFactory<IceDecoder> _decoderFactory;
             private readonly IInvoker? _invoker;
-            private readonly IMultiplexedStream? _simpleStream;
+            private readonly IMultiplexedStream? _multiplexedStream;
 
             internal AsyncEnumerableStreamParamReceiver(
-                IMultiplexedStream? simpleStream,
+                IMultiplexedStream? multiplexedStream,
                 Connection connection,
                 IInvoker? invoker,
                 IIceDecoderFactory<IceDecoder> decoderFactory,
                 Func<IceDecoder, T> decodeAction)
             {
-                _simpleStream = simpleStream;
+                _multiplexedStream = multiplexedStream;
                 _connection = connection;
                 _invoker = invoker;
                 _decoderFactory = decoderFactory;
@@ -192,12 +193,12 @@ namespace IceRpc.Slice
 
             internal async IAsyncEnumerable<T> ReadAsync([EnumeratorCancellation] CancellationToken cancel = default)
             {
-                if (_simpleStream == null)
+                if (_multiplexedStream == null)
                 {
                     yield break; // finish iteration
                 }
 
-                cancel.Register(() => _simpleStream.AbortRead(StreamError.StreamingCanceledByReader));
+                cancel.Register(() => _multiplexedStream.AbortRead(StreamError.StreamingCanceledByReader));
 
                 while (true)
                 {
@@ -206,14 +207,14 @@ namespace IceRpc.Slice
                     try
                     {
                         // TODO: Use Ice2 protocol frame reader to read the frame
-                        int received = await _simpleStream.ReadAsync(buffer[0..2], cancel).ConfigureAwait(false);
+                        int received = await _multiplexedStream.ReadAsync(buffer[0..2], cancel).ConfigureAwait(false);
                         if (received == 0)
                         {
                             break; // EOF
                         }
                         else if (received == 1)
                         {
-                            await _simpleStream.ReceiveUntilFullAsync(buffer[1..2], cancel).ConfigureAwait(false);
+                            await _multiplexedStream.ReadUntilFullAsync(buffer[1..2], cancel).ConfigureAwait(false);
                         }
 
                         if ((Ice2FrameType)buffer.Span[0] != Ice2FrameType.BoundedData)
@@ -226,7 +227,7 @@ namespace IceRpc.Slice
                         int sizeLength = Ice20Decoder.DecodeSizeLength(buffer.Span[1]);
                         if (sizeLength > 1)
                         {
-                            await _simpleStream.ReceiveUntilFullAsync(
+                            await _multiplexedStream.ReadUntilFullAsync(
                                 buffer.Slice(2, sizeLength - 1),
                                 cancel).ConfigureAwait(false);
                         }
@@ -242,11 +243,11 @@ namespace IceRpc.Slice
 
                         buffer = size > buffer.Length ? new byte[size] : buffer.Slice(0, size);
 
-                        await _simpleStream.ReceiveUntilFullAsync(buffer, cancel).ConfigureAwait(false);
+                        await _multiplexedStream.ReadUntilFullAsync(buffer, cancel).ConfigureAwait(false);
                     }
                     catch
                     {
-                        _simpleStream.AbortRead(StreamError.StreamingCanceledByReader);
+                        _multiplexedStream.AbortRead(StreamError.StreamingCanceledByReader);
                         yield break; // finish iteration
                     }
 
@@ -260,7 +261,7 @@ namespace IceRpc.Slice
                         }
                         catch
                         {
-                            _simpleStream.AbortRead(StreamError.StreamingCanceledByReader);
+                            _multiplexedStream.AbortRead(StreamError.StreamingCanceledByReader);
                             yield break; // finish iteration
                         }
                         yield return value;
