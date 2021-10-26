@@ -20,7 +20,7 @@ namespace IceRpc.Transports.Internal
 
         TimeSpan INetworkConnection.LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
 
-        internal Socket Socket { get; }
+        internal abstract Socket Socket { get; }
         private protected SslStream? SslStream { get; set; }
 
         // The MaxDataSize of the SSL implementation.
@@ -165,8 +165,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private protected TcpNetworkConnection(Socket socket) => Socket = socket;
-
         /// <summary>Prints the fields/properties of this class using the Records format.</summary>
         /// <param name="builder">The string builder.</param>
         /// <returns><c>true</c>when members are appended to the builder; otherwise, <c>false</c>.</returns>
@@ -180,6 +178,8 @@ namespace IceRpc.Transports.Internal
 
     internal class TcpClientNetworkConnection : TcpNetworkConnection, ISimpleNetworkConnection
     {
+        internal override Socket Socket { get; }
+
         private readonly EndPoint _addr;
         private readonly SslClientAuthenticationOptions? _authenticationOptions;
         private readonly Endpoint _remoteEndpoint;
@@ -294,8 +294,8 @@ namespace IceRpc.Transports.Internal
             TimeSpan idleTimeout,
             SslClientAuthenticationOptions? authenticationOptions,
             EndPoint addr)
-           : base(socket)
         {
+            Socket = socket;
             _addr = addr;
             _authenticationOptions = authenticationOptions;
             _idleTimeout = idleTimeout;
@@ -305,6 +305,8 @@ namespace IceRpc.Transports.Internal
 
     internal class TcpServerNetworkConnection : TcpNetworkConnection, ISimpleNetworkConnection
     {
+        internal override Socket Socket { get; }
+
         // See https://tools.ietf.org/html/rfc5246#appendix-A.4
         private const byte TlsHandshakeRecord = 0x16;
         private readonly SslServerAuthenticationOptions? _authenticationOptions;
@@ -409,11 +411,11 @@ namespace IceRpc.Transports.Internal
             Endpoint localEndpoint,
             TimeSpan idleTimeout,
             SslServerAuthenticationOptions? authenticationOptions)
-           : base(socket)
         {
-           _authenticationOptions = authenticationOptions;
-           _idleTimeout = idleTimeout;
-           _localEndpoint = localEndpoint;
+            Socket = socket;
+            _authenticationOptions = authenticationOptions;
+            _idleTimeout = idleTimeout;
+            _localEndpoint = localEndpoint;
         }
     }
 }
