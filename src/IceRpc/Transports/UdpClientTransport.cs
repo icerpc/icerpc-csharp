@@ -100,11 +100,12 @@ namespace IceRpc.Transports
                 throw new TransportException(ex);
             }
 
-            return new SocketNetworkConnection(
-                new UdpSocket(socket, isServer: false, netEndPoint, ttl, multicastInterface),
-                remoteEndpoint,
-                isServer: false,
-                _options.IdleTimeout);
+            return new UdpClientNetworkConnection(socket,
+                                                  remoteEndpoint,
+                                                  _options.IdleTimeout,
+                                                  netEndPoint,
+                                                  ttl,
+                                                  multicastInterface);
         }
     }
 }

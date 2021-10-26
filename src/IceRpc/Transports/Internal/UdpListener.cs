@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Net.Sockets;
+
 using IceRpc.Internal;
 
 namespace IceRpc.Transports.Internal
@@ -10,24 +12,20 @@ namespace IceRpc.Transports.Internal
         public Endpoint Endpoint { get; }
 
         private readonly TaskCompletionSource<ISimpleNetworkConnection> _acceptTask = new();
-        private UdpSocket? _socket;
+        private ISimpleNetworkConnection? _serverConnection;
 
         public async ValueTask<ISimpleNetworkConnection> AcceptAsync()
         {
             try
             {
-                if (Interlocked.Exchange(ref _socket, null) is UdpSocket socket)
+                if (Interlocked.Exchange(ref _serverConnection, null) is ISimpleNetworkConnection serverConnection)
                 {
-                    // Return the server-side network connection if the socket wasn't already consumed.
-                    return new SocketNetworkConnection(
-                        socket,
-                        Endpoint,
-                        isServer: true,
-                        idleTimeout: TimeSpan.MaxValue);
+                    // Return the server network connection for first call
+                    return serverConnection;
                 }
                 else
                 {
-                    // Wait indefinitely until Dispose is called if the socket was already consumed.
+                    // Wait indefinitely until Close is called
                     return await _acceptTask.Task.ConfigureAwait(false);
                 }
             }
@@ -41,15 +39,15 @@ namespace IceRpc.Transports.Internal
 
         public void Dispose()
         {
-           // Dispose the UdpSocket if AcceptAsync didn't already consume it.
-           Interlocked.Exchange(ref _socket, null)?.Dispose();
+           // Close the server connection if AcceptAsync didn't already consume it.
+           Interlocked.Exchange(ref _serverConnection, null)?.Close();
            _acceptTask.SetException(new ObjectDisposedException(nameof(UdpListener)));
         }
 
-        internal UdpListener(UdpSocket socket, Endpoint endpoint)
+        internal UdpListener(Socket socket, Endpoint endpoint)
         {
             Endpoint = endpoint;
-            _socket = socket;
+            _serverConnection = new UdpServerNetworkConnection(socket, endpoint);
         }
     }
 }

@@ -8,84 +8,62 @@ using System.Net.Sockets;
 
 namespace IceRpc.Transports.Internal
 {
-    internal sealed class UdpSocket : NetworkSocket
+    internal class UdpClientNetworkConnection : ISimpleNetworkConnection, ISimpleStream
     {
-        internal override int DatagramMaxReceiveSize { get; }
-        internal override bool IsDatagram => true;
+        public int DatagramMaxReceiveSize { get; }
+        bool ISimpleStream.IsDatagram => true;
+        bool INetworkConnection.IsSecure => false;
 
-        // The maximum IP datagram size is 65535. Subtract 20 bytes for the IP header and 8 bytes for the UDP header
-        // to get the maximum payload.
-        private const int MaxPacketSize = 65535 - UdpOverhead;
-        private const int UdpOverhead = 20 + 8;
+        TimeSpan INetworkConnection.LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
 
-        private readonly EndPoint? _addr;
-        private readonly bool _isServer;
-        private readonly IPEndPoint? _multicastEndpoint;
+        internal Socket Socket { get; }
+        private readonly EndPoint _addr;
+        private readonly Endpoint _remoteEndpoint;
+        private readonly TimeSpan _idleTimeout;
+        private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
+
         private readonly string? _multicastInterface;
         private readonly int _ttl;
 
-        internal override async ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
-        {
-            if (_isServer)
-            {
-                // The remote endpoint is set to an empty endpoint for a UDP server connection because the
-                // socket accepts datagrams from "any" client since it's not connected to a specific client.
-                return endpoint with
-                {
-                    Host = "::0",
-                    Port = 0
-                };
-            }
-            else
-            {
-                Debug.Assert(_addr != null);
-                try
-                {
-                    await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
-                    var ipEndPoint = (IPEndPoint)Socket.LocalEndPoint!;
-                    return endpoint with
-                    {
-                        Host = ipEndPoint.Address.ToString(),
-                        Port = checked((ushort)ipEndPoint.Port)
-                    };
-                }
-                catch (Exception ex)
-                {
-                    throw new ConnectFailedException(ex);
-                }
-            }
+        void INetworkConnection.Close(Exception? exception) => Socket.Close();
 
+        async Task<(ISimpleStream, NetworkConnectionInformation)> ISimpleNetworkConnection.ConnectAsync(
+            CancellationToken cancel)
+        {
+            try
+            {
+                await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
+                var ipEndPoint = (IPEndPoint)Socket.LocalEndPoint!;
+
+                return (this,
+                        new NetworkConnectionInformation(
+                            localEndpoint: _remoteEndpoint with
+                                {
+                                    Host = ipEndPoint.Address.ToString(),
+                                    Port = checked((ushort)ipEndPoint.Port)
+                                },
+                            remoteEndpoint: _remoteEndpoint,
+                            _idleTimeout,
+                            remoteCertificate: null));
+            }
+            catch (Exception ex)
+            {
+                throw new ConnectFailedException(ex);
+            }
         }
 
-        internal override bool HasCompatibleParams(Endpoint remoteEndpoint)
+        bool INetworkConnection.HasCompatibleParams(Endpoint remoteEndpoint)
         {
             (_, int ttl, string? multicastInterface) = remoteEndpoint.ParseUdpParams();
             return ttl == _ttl && multicastInterface == _multicastInterface;
         }
 
-        internal override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
+        async ValueTask<int> ISimpleStream.ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             try
             {
-                int received;
-                if (_isServer)
-                {
-                    EndPoint remoteAddress = new IPEndPoint(
-                        Socket.AddressFamily == AddressFamily.InterNetwork ? IPAddress.Any : IPAddress.IPv6Any,
-                        0);
-
-                    SocketReceiveFromResult result =
-                        await Socket.ReceiveFromAsync(buffer,
-                                                      SocketFlags.None,
-                                                      remoteAddress,
-                                                      cancel).ConfigureAwait(false);
-
-                    received = result.ReceivedBytes;
-                }
-                else
-                {
-                    received = await Socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
-                }
+                int received = await Socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
+                Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
                 return received;
             }
             catch (Exception ex)
@@ -94,15 +72,8 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal override async ValueTask SendAsync(
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
-            CancellationToken cancel)
+        async ValueTask ISimpleStream.WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
         {
-            if (_isServer)
-            {
-                throw new TransportException("cannot send datagram with server connection");
-            }
-
             try
             {
                 if (buffers.Length == 1)
@@ -115,11 +86,11 @@ namespace IceRpc.Transports.Internal
                     int size = buffers.GetByteCount();
                     using IMemoryOwner<byte> writeBufferOwner = MemoryPool<byte>.Shared.Rent(size);
                     buffers.CopyTo(writeBufferOwner.Memory);
-                    await Socket.SendAsync(
-                        writeBufferOwner.Memory[0..size],
-                        SocketFlags.None,
-                        cancel).ConfigureAwait(false);
+                    await Socket.SendAsync(writeBufferOwner.Memory[0..size],
+                                           SocketFlags.None,
+                                           cancel).ConfigureAwait(false);
                 }
+                Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
             }
             catch (Exception ex)
             {
@@ -127,29 +98,87 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        // Only for use by UdpEndpoint.
-        internal UdpSocket(
+        internal UdpClientNetworkConnection(
             Socket socket,
-            bool isServer,
-            EndPoint? addr,
-            int ttl = -1,
+            Endpoint remoteEndpoint,
+            TimeSpan idleTimeout,
+            EndPoint addr,
+            int ttl,
             string? multicastInterface = null)
-            : base(socket)
         {
-            _isServer = isServer;
-            _ttl = ttl;
+            DatagramMaxReceiveSize = Math.Min(UdpUtils.MaxPacketSize, socket.ReceiveBufferSize - UdpUtils.UdpOverhead);
+            Socket = socket;
+
+            _addr = addr;
+            _idleTimeout = idleTimeout;
             _multicastInterface = multicastInterface;
+            _remoteEndpoint = remoteEndpoint;
+            _ttl = ttl;
+        }
+    }
 
-            DatagramMaxReceiveSize = Math.Min(MaxPacketSize, socket.ReceiveBufferSize - UdpOverhead);
+    internal class UdpServerNetworkConnection : ISimpleNetworkConnection, ISimpleStream
+    {
+        public int DatagramMaxReceiveSize { get; }
+        bool ISimpleStream.IsDatagram => true;
+        bool INetworkConnection.IsSecure => false;
 
-            if (isServer)
+        TimeSpan INetworkConnection.LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
+
+        internal Socket Socket { get; }
+        private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
+        private readonly Endpoint _localEndpoint;
+
+        void INetworkConnection.Close(Exception? exception) => Socket.Close();
+
+        Task<(ISimpleStream, NetworkConnectionInformation)> ISimpleNetworkConnection.ConnectAsync(
+            CancellationToken cancel) =>
+            // The remote endpoint is set to an empty endpoint for a UDP server connection because the
+            // socket accepts datagrams from "any" client since it's not connected to a specific client.
+            Task.FromResult((this as ISimpleStream,
+                             new NetworkConnectionInformation(localEndpoint: _localEndpoint,
+                                                              remoteEndpoint: _localEndpoint with
+                                                              {
+                                                                 Host = "::0",
+                                                                 Port = 0
+                                                              },
+                                                              Timeout.InfiniteTimeSpan,
+                                                              remoteCertificate: null)));
+
+        bool INetworkConnection.HasCompatibleParams(Endpoint remoteEndpoint) =>
+            throw new NotSupportedException(
+                $"{nameof(INetworkConnection.HasCompatibleParams)} is only supported by client connections.");
+
+        async ValueTask<int> ISimpleStream.ReadAsync(Memory<byte> buffer, CancellationToken cancel)
+        {
+            try
             {
-                _multicastEndpoint = addr as IPEndPoint;
+                var remoteAddress = new IPEndPoint(
+                    Socket.AddressFamily == AddressFamily.InterNetwork ? IPAddress.Any : IPAddress.IPv6Any,
+                    0);
+
+                SocketReceiveFromResult result = await Socket.ReceiveFromAsync(buffer,
+                                                                               SocketFlags.None,
+                                                                               remoteAddress,
+                                                                               cancel).ConfigureAwait(false);
+
+                Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
+                return result.ReceivedBytes;
             }
-            else
+            catch (Exception ex)
             {
-                _addr = addr!;
+                throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
             }
+        }
+
+        ValueTask ISimpleStream.WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
+            throw new TransportException("cannot write to a UDP server stream");
+
+        internal UdpServerNetworkConnection(Socket socket, Endpoint localEndpoint)
+        {
+            DatagramMaxReceiveSize = Math.Min(UdpUtils.MaxPacketSize, socket.ReceiveBufferSize - UdpUtils.UdpOverhead);
+            Socket = socket;
+            _localEndpoint = localEndpoint;
         }
     }
 }
