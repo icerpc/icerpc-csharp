@@ -41,14 +41,14 @@ namespace IceRpc.Internal
         private readonly int _incomingFrameMaxSize;
         private readonly HashSet<OutgoingRequest> _invocations = new();
         private long _lastRemoteBidirectionalStreamId = -1;
+        private (long Bidirectional, long Unidirectional)? _lastRemoteDispatchLocalStreamIds;
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
         private long _lastRemoteUnidirectionalStreamId = -1;
         private readonly object _mutex = new();
-        private IMultiplexedStream? _remoteControlStream;
         private int? _peerIncomingFrameMaxSize;
+        private IMultiplexedStream? _remoteControlStream;
         private bool _shutdown;
         private bool _shutdownCanceled;
-        private (long Bidirectional, long Unidirectional)? _lastRemoteStreamIds;
         private readonly IMultiplexedStreamFactory _streamFactory;
 
         /// <inheritdoc/>
@@ -458,8 +458,8 @@ namespace IceRpc.Internal
                 {
                     // Abort invocations that were not dispatched by the peer.
                     invocations = _invocations.Where(request => request.Stream!.Id > (request.Stream!.IsBidirectional ?
-                        _lastRemoteStreamIds!.Value.Bidirectional :
-                        _lastRemoteStreamIds!.Value.Unidirectional)).ToArray();
+                        _lastRemoteDispatchLocalStreamIds!.Value.Bidirectional :
+                        _lastRemoteDispatchLocalStreamIds!.Value.Unidirectional)).ToArray();
                 }
 
                 if (_shutdown)
@@ -536,8 +536,12 @@ namespace IceRpc.Internal
                 Ice2FrameType.GoAway,
                 cancel).ConfigureAwait(false);
 
+            // Keep track of the last local stream IDs dispatched by the peer.
             var goAwayFrame = new Ice2GoAwayBody(new Ice20Decoder(buffer));
-            _lastRemoteStreamIds = (goAwayFrame.LastBidirectionalStreamId, goAwayFrame.LastUnidirectionalStreamId);
+            _lastRemoteDispatchLocalStreamIds =
+                (goAwayFrame.LastBidirectionalStreamId,
+                 goAwayFrame.LastUnidirectionalStreamId);
+
             return goAwayFrame.Message;
         }
 
