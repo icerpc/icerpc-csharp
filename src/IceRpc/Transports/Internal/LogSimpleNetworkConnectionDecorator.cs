@@ -27,20 +27,8 @@ namespace IceRpc.Transports.Internal
             ISimpleNetworkConnection decoratee,
             bool isServer,
             Endpoint endpoint,
-            ILogger logger)
-        {
-            if (decoratee is SocketNetworkConnection socketNetworkConnection)
-            {
-                return new LogSocketNetworkConnectionDecorator(socketNetworkConnection,
-                                                               isServer,
-                                                               endpoint,
-                                                               logger);
-            }
-            else
-            {
-                return new LogSimpleNetworkConnectionDecorator(decoratee, isServer, endpoint, logger);
-            }
-        }
+            ILogger logger) =>
+            new LogSimpleNetworkConnectionDecorator(decoratee, isServer, endpoint, logger);
 
         internal LogSimpleNetworkConnectionDecorator(
             ISimpleNetworkConnection decoratee,
@@ -82,6 +70,7 @@ namespace IceRpc.Transports.Internal
         }
     }
 
+    /*
     internal class LogSocketNetworkConnectionDecorator : LogSimpleNetworkConnectionDecorator
     {
         private readonly SocketNetworkConnection _decoratee;
@@ -126,4 +115,5 @@ namespace IceRpc.Transports.Internal
                        _decoratee.NetworkSocket.Socket.SendBufferSize);
         }
     }
+    */
 }

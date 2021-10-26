@@ -8,6 +8,7 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests.Internal
 {
+    /*
     public class SocketNetworkConnectionTests
     {
         [Test]
@@ -102,4 +103,5 @@ namespace IceRpc.Tests.Internal
             connection.Close();
         }
     }
+    */
 }

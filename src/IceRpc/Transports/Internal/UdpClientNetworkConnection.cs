@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 
 namespace IceRpc.Transports.Internal
 {
@@ -77,6 +78,20 @@ namespace IceRpc.Transports.Internal
             }
         }
 
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            var builder = new StringBuilder();
+            builder.Append(GetType().Name);
+            builder.Append(" { ");
+            if (PrintMembers(builder))
+            {
+                builder.Append(' ');
+            }
+            builder.Append('}');
+            return builder.ToString();
+        }
+
         async ValueTask ISimpleStream.WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
         {
             try
@@ -119,6 +134,16 @@ namespace IceRpc.Transports.Internal
             _multicastInterface = multicastInterface;
             _remoteEndpoint = remoteEndpoint;
             _ttl = ttl;
+        }
+
+        /// <summary>Prints the fields/properties of this class using the Records format.</summary>
+        /// <param name="builder">The string builder.</param>
+        /// <returns><c>true</c>when members are appended to the builder; otherwise, <c>false</c>.</returns>
+        private bool PrintMembers(StringBuilder builder)
+        {
+            builder.Append("LocalEndPoint = ").Append(Socket.LocalEndPoint).Append(", ");
+            builder.Append("RemoteEndPoint = ").Append(Socket.RemoteEndPoint);
+            return true;
         }
     }
 }

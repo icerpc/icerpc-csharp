@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 
 namespace IceRpc.Transports.Internal
 {
@@ -62,6 +63,20 @@ namespace IceRpc.Transports.Internal
             }
         }
 
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            var builder = new StringBuilder();
+            builder.Append(GetType().Name);
+            builder.Append(" { ");
+            if (PrintMembers(builder))
+            {
+                builder.Append(' ');
+            }
+            builder.Append('}');
+            return builder.ToString();
+        }
+
         ValueTask ISimpleStream.WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
             throw new TransportException("cannot write to a UDP server stream");
 
@@ -70,6 +85,12 @@ namespace IceRpc.Transports.Internal
             DatagramMaxReceiveSize = Math.Min(UdpUtils.MaxPacketSize, socket.ReceiveBufferSize - UdpUtils.UdpOverhead);
             Socket = socket;
             _localEndpoint = localEndpoint;
+        }
+
+        private bool PrintMembers(StringBuilder builder)
+        {
+            builder.Append("LocalEndPoint = ").Append(Socket.LocalEndPoint);
+            return true;
         }
     }
 }

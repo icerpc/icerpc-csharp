@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Tests
 {
+    /*
     /// <summary>A network socket stub</summary>
     internal class NetworkSocketStub : NetworkSocket
     {
@@ -39,4 +40,5 @@ namespace IceRpc.Tests
         internal NetworkSocketStub(bool isDatagram) :
             base(null!) => _isDatagram = isDatagram;
     }
+    */
 }

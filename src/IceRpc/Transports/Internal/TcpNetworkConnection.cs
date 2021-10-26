@@ -8,6 +8,7 @@ using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
+using System.Text;
 
 namespace IceRpc.Transports.Internal
 {
@@ -66,6 +67,20 @@ namespace IceRpc.Transports.Internal
 
             Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
             return received;
+        }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            var builder = new StringBuilder();
+            builder.Append(GetType().Name);
+            builder.Append(" { ");
+            if (PrintMembers(builder))
+            {
+                builder.Append(' ');
+            }
+            builder.Append('}');
+            return builder.ToString();
         }
 
         async ValueTask ISimpleStream.WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
@@ -151,6 +166,16 @@ namespace IceRpc.Transports.Internal
         }
 
         private protected TcpNetworkConnection(Socket socket) => Socket = socket;
+
+        /// <summary>Prints the fields/properties of this class using the Records format.</summary>
+        /// <param name="builder">The string builder.</param>
+        /// <returns><c>true</c>when members are appended to the builder; otherwise, <c>false</c>.</returns>
+        private protected virtual bool PrintMembers(StringBuilder builder)
+        {
+            builder.Append("LocalEndPoint = ").Append(Socket.LocalEndPoint).Append(", ");
+            builder.Append("RemoteEndPoint = ").Append(Socket.RemoteEndPoint);
+            return true;
+        }
     }
 
     internal class TcpClientNetworkConnection : TcpNetworkConnection, ISimpleNetworkConnection
