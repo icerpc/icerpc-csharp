@@ -331,6 +331,10 @@ namespace IceRpc.Transports.Internal
 
         internal void ReleaseStream(SlicMultiplexedStream stream)
         {
+            Debug.Assert(stream.IsStarted);
+
+            _streams.TryRemove(stream.Id, out SlicMultiplexedStream? _);
+
             if (stream.IsRemote)
             {
                 if (stream.IsBidirectional)
@@ -353,8 +357,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal void RemoveStream(long id) => _streams.TryRemove(id, out SlicMultiplexedStream? _);
-
         internal async ValueTask SendStreamFrameAsync(
             SlicMultiplexedStream stream,
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
@@ -376,7 +378,7 @@ namespace IceRpc.Transports.Internal
             {
                 await _writer.WriteStreamFrameAsync(stream, buffers, endStream, cancel).ConfigureAwait(false);
             }
-            finally
+            catch
             {
                 if (!stream.IsStarted)
                 {

@@ -53,7 +53,7 @@ namespace IceRpc.Transports
 
                 slicFrameReaderWriterFactory = simpleStream =>
                 {
-                    (ISlicFrameReader reader, ISlicFrameWriter writer) = slicFrameReaderWriterFactory(simpleStream);
+                    (ISlicFrameReader reader, ISlicFrameWriter writer) = _slicFrameReaderWriterFactory(simpleStream);
 
                     return (new LogSlicFrameReaderDecorator(reader, logger),
                             new LogSlicFrameWriterDecorator(writer, logger));

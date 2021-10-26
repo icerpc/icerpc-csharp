@@ -355,11 +355,9 @@ namespace IceRpc.Internal
             }
             catch
             {
-                // Make sure the shutdown action is executed, it might not be executed if the stream is not
-                // started. TODO: XXX review this when the SlicStream/NetworkStream classes are merged. The
-                // shutdown action should proably be invoked regardless. If the stream isn't started, it
-                // should not send reset/stop sending frames however.
-                request.Stream.ShutdownAction?.Invoke();
+                // Abort the stream if write fails. The shutdown action will be executed and will remove the request
+                // from _invocations.
+                request.Stream.Abort(StreamError.StreamAborted);
                 throw;
             }
         }
