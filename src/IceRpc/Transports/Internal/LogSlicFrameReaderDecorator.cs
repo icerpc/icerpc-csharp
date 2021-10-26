@@ -18,8 +18,6 @@ namespace IceRpc.Transports.Internal
         private long? _frameStreamId;
         private readonly ILogger _logger;
 
-        public void Dispose() => _decoratee.Dispose();
-
         public async ValueTask ReadFrameDataAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             await _decoratee.ReadFrameDataAsync(buffer, cancel).ConfigureAwait(false);
