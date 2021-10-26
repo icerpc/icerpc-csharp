@@ -95,13 +95,13 @@ namespace IceRpc.Tests.ClientServer
             await bidir.AfterDelayAsync(2);
         }
 
-        // TODO: XXX: investigate Ice1 failures
-        // [TestCase(ProtocolCode.Ice1, 2)]
-        // [TestCase(ProtocolCode.Ice1, 10)]
-        // [TestCase(ProtocolCode.Ice1, 20)]
-        // [TestCase(ProtocolCode.Ice2, 2)]
-        // [TestCase(ProtocolCode.Ice2, 10)]
-        // [TestCase(ProtocolCode.Ice2, 20)]
+        [TestCase(ProtocolCode.Ice1, 2)]
+        [TestCase(ProtocolCode.Ice1, 10)]
+        [TestCase(ProtocolCode.Ice1, 20)]
+        [TestCase(ProtocolCode.Ice2, 2)]
+        [TestCase(ProtocolCode.Ice2, 10)]
+        [TestCase(ProtocolCode.Ice2, 20)]
+        [Repeat(100)]
         public async Task Retry_GracefulClose(ProtocolCode protocol, int maxQueue)
         {
             await WithRetryServiceAsync(Protocol.FromProtocolCode(protocol), null, async (service, retry) =>

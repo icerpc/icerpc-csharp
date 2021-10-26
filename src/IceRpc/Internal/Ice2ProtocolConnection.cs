@@ -497,25 +497,26 @@ namespace IceRpc.Internal
                     StreamError.ConnectionShutdown);
             }
 
-            if (alreadyShuttingDown)
+            if (!alreadyShuttingDown)
             {
-                return;
+                // Send GoAway frame
+                await SendControlFrameAsync(
+                    Ice2FrameType.GoAway,
+                    encoder => new Ice2GoAwayBody(
+                        _lastRemoteBidirectionalStreamId,
+                        _lastRemoteUnidirectionalStreamId,
+                        message).Encode(encoder),
+                    cancel).ConfigureAwait(false);
             }
-
-            // Send GoAway frame
-            await SendControlFrameAsync(
-                Ice2FrameType.GoAway,
-                encoder => new Ice2GoAwayBody(
-                    _lastRemoteBidirectionalStreamId,
-                    _lastRemoteUnidirectionalStreamId,
-                    message).Encode(encoder),
-                cancel).ConfigureAwait(false);
 
             // Wait for dispatch and invocations to complete.
             await _dispatchAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
 
-            // Abort the control stream and wait for its shutdown.
-            _controlStream!.AbortWrite(StreamError.ConnectionShutdown);
+            if (!alreadyShuttingDown)
+            {
+                // Abort the control stream and wait for its shutdown.
+                _controlStream!.AbortWrite(StreamError.ConnectionShutdown);
+            }
 
             // Wait for the control streams to shutdown.
             await _controlStream!.ShutdownCompleted(cancel).ConfigureAwait(false);
