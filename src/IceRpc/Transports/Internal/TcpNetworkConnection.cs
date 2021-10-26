@@ -289,17 +289,53 @@ namespace IceRpc.Transports.Internal
         }
 
         internal TcpClientNetworkConnection(
-            Socket socket,
             Endpoint remoteEndpoint,
-            TimeSpan idleTimeout,
-            SslClientAuthenticationOptions? authenticationOptions,
-            EndPoint addr)
+            TcpOptions tcpOptions,
+            SslClientAuthenticationOptions? authenticationOptions)
         {
-            Socket = socket;
-            _addr = addr;
-            _authenticationOptions = authenticationOptions;
-            _idleTimeout = idleTimeout;
             _remoteEndpoint = remoteEndpoint;
+
+            _addr = IPAddress.TryParse(_remoteEndpoint.Host, out IPAddress? ipAddress) ?
+                new IPEndPoint(ipAddress, _remoteEndpoint.Port) :
+                new DnsEndPoint(_remoteEndpoint.Host, _remoteEndpoint.Port);
+
+            // We still specify the address family for the socket if an address is set to ensure an IPv4 socket is
+            // created if the address is an IPv4 address.
+            Socket = ipAddress == null ?
+                new Socket(SocketType.Stream, ProtocolType.Tcp) :
+                new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+
+            try
+            {
+                if (ipAddress?.AddressFamily == AddressFamily.InterNetworkV6)
+                {
+                    Socket.DualMode = !tcpOptions.IsIPv6Only;
+                }
+
+                if (tcpOptions.LocalEndPoint is IPEndPoint localEndPoint)
+                {
+                    Socket.Bind(localEndPoint);
+                }
+
+                if (tcpOptions.ReceiveBufferSize is int receiveSize)
+                {
+                    Socket.ReceiveBufferSize = receiveSize;
+                }
+                if (tcpOptions.SendBufferSize is int sendSize)
+                {
+                    Socket.SendBufferSize = sendSize;
+                }
+
+                Socket.NoDelay = true;
+            }
+            catch (SocketException ex)
+            {
+                Socket.Dispose();
+                throw new TransportException(ex);
+            }
+
+            _authenticationOptions = authenticationOptions;
+            _idleTimeout = tcpOptions.IdleTimeout;
         }
     }
 
