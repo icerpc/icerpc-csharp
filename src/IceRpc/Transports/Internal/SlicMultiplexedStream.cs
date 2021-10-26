@@ -407,7 +407,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public async Task ShutdownCompleted(CancellationToken cancel)
+        public async Task WaitForShutdownAsync(CancellationToken cancel)
         {
             bool lockTaken = false;
             try
