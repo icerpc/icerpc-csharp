@@ -13,7 +13,7 @@ namespace IceRpc.Transports.Internal
 {
     internal abstract class UdpNetworkConnection : ISimpleNetworkConnection
     {
-        bool INetworkConnection.IsSecure => false;
+        public bool IsSecure => false;
 
         public abstract TimeSpan LastActivity { get; }
 

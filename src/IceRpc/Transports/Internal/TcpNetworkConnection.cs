@@ -19,9 +19,9 @@ namespace IceRpc.Transports.Internal
     {
         int ISimpleStream.DatagramMaxReceiveSize => throw new InvalidOperationException();
         bool ISimpleStream.IsDatagram => false;
-        bool INetworkConnection.IsSecure => SslStream != null;
+        public bool IsSecure => SslStream != null;
 
-        TimeSpan INetworkConnection.LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
+        public TimeSpan LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
 
         internal abstract Socket Socket { get; }
         internal abstract SslStream? SslStream { get; }
@@ -31,7 +31,7 @@ namespace IceRpc.Transports.Internal
 
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
 
-        void INetworkConnection.Close(Exception? exception)
+        public void Close(Exception? exception)
         {
             SslStream?.Dispose();
             Socket.Dispose();

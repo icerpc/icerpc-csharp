@@ -9,16 +9,14 @@ namespace IceRpc.Transports.Internal
     /// <summary>The log decorator installed by the TCP transports.</summary>
     internal class LogTcpNetworkConnectionDecorator : ISimpleNetworkConnection
     {
-        bool INetworkConnection.IsSecure => Decoratee.IsSecure;
-        TimeSpan INetworkConnection.LastActivity => Decoratee.LastActivity;
+        bool INetworkConnection.IsSecure => _decoratee.IsSecure;
+        TimeSpan INetworkConnection.LastActivity => _decoratee.LastActivity;
 
-        private ISimpleNetworkConnection Decoratee => _tcpNetworkConnection;
-
+        private readonly TcpNetworkConnection _decoratee;
         private readonly Action<ILogger, int, int> _logSuccess;
         private readonly ILogger _logger;
-        private readonly TcpNetworkConnection _tcpNetworkConnection;
 
-        void INetworkConnection.Close(Exception? exception) => Decoratee.Close(exception);
+        void INetworkConnection.Close(Exception? exception) => _decoratee.Close(exception);
 
         async Task<(ISimpleStream, NetworkConnectionInformation)> ISimpleNetworkConnection.ConnectAsync(
             CancellationToken cancel)
@@ -26,16 +24,16 @@ namespace IceRpc.Transports.Internal
             try
             {
                 (ISimpleStream, NetworkConnectionInformation) result =
-                    await Decoratee.ConnectAsync(cancel).ConfigureAwait(false);
+                    await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
 
-                if (_tcpNetworkConnection.SslStream is SslStream sslStream)
+                if (_decoratee.SslStream is SslStream sslStream)
                 {
                     _logger.LogTlsAuthenticationSucceeded(sslStream);
                 }
 
                 _logSuccess(_logger,
-                            _tcpNetworkConnection.Socket.ReceiveBufferSize,
-                            _tcpNetworkConnection.Socket.SendBufferSize);
+                            _decoratee.Socket.ReceiveBufferSize,
+                            _decoratee.Socket.SendBufferSize);
 
                 return result;
             }
@@ -47,9 +45,9 @@ namespace IceRpc.Transports.Internal
         }
 
         bool INetworkConnection.HasCompatibleParams(Endpoint remoteEndpoint) =>
-            Decoratee.HasCompatibleParams(remoteEndpoint);
+            _decoratee.HasCompatibleParams(remoteEndpoint);
 
-        public override string? ToString() => Decoratee.ToString();
+        public override string? ToString() => _decoratee.ToString();
 
         internal LogTcpNetworkConnectionDecorator(TcpServerNetworkConnection tcpServerNetworkConnection, ILogger logger)
             : this(tcpServerNetworkConnection, logger, server: true)
@@ -61,12 +59,13 @@ namespace IceRpc.Transports.Internal
         {
         }
 
-        private LogTcpNetworkConnectionDecorator(TcpNetworkConnection tcpNetworkConnection, ILogger logger, bool server)
+        private LogTcpNetworkConnectionDecorator(TcpNetworkConnection decoratee, ILogger logger, bool server)
         {
+            _decoratee = decoratee;
             _logger = logger;
             _logSuccess = server ? TransportLoggerExtensions.LogTcpNetworkConnectionAccepted :
                 TransportLoggerExtensions.LogTcpNetworkConnectionEstablished;
-            _tcpNetworkConnection = tcpNetworkConnection;
+
         }
     }
 }

@@ -7,34 +7,32 @@ namespace IceRpc.Transports.Internal
     /// <summary>The log decorator installed by the UDP transports.</summary>
     internal class LogUdpNetworkConnectionDecorator : ISimpleNetworkConnection
     {
-        bool INetworkConnection.IsSecure => Decoratee.IsSecure;
-        TimeSpan INetworkConnection.LastActivity => Decoratee.LastActivity;
-
-        private ISimpleNetworkConnection Decoratee => _udpNetworkConnection;
+        bool INetworkConnection.IsSecure => _decoratee.IsSecure;
+        TimeSpan INetworkConnection.LastActivity => _decoratee.LastActivity;
 
         private readonly Action<ILogger, int, int> _logSuccess;
         private readonly ILogger _logger;
-        private readonly UdpNetworkConnection _udpNetworkConnection;
+        private readonly UdpNetworkConnection _decoratee;
 
-        void INetworkConnection.Close(Exception? exception) => Decoratee.Close(exception);
+        void INetworkConnection.Close(Exception? exception) => _decoratee.Close(exception);
 
         async Task<(ISimpleStream, NetworkConnectionInformation)> ISimpleNetworkConnection.ConnectAsync(
             CancellationToken cancel)
         {
             (ISimpleStream, NetworkConnectionInformation) result =
-                await Decoratee.ConnectAsync(cancel).ConfigureAwait(false);
+                await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
 
             _logSuccess(_logger,
-                        _udpNetworkConnection.Socket.ReceiveBufferSize,
-                        _udpNetworkConnection.Socket.SendBufferSize);
+                        _decoratee.Socket.ReceiveBufferSize,
+                        _decoratee.Socket.SendBufferSize);
 
             return result;
         }
 
         bool INetworkConnection.HasCompatibleParams(Endpoint remoteEndpoint) =>
-            Decoratee.HasCompatibleParams(remoteEndpoint);
+            _decoratee.HasCompatibleParams(remoteEndpoint);
 
-        public override string? ToString() => Decoratee.ToString();
+        public override string? ToString() => _decoratee.ToString();
 
         internal LogUdpNetworkConnectionDecorator(UdpServerNetworkConnection udpServerNetworkConnection, ILogger logger)
             : this(udpServerNetworkConnection, logger, server: true)
@@ -46,12 +44,12 @@ namespace IceRpc.Transports.Internal
         {
         }
 
-        private LogUdpNetworkConnectionDecorator(UdpNetworkConnection udpNetworkConnection, ILogger logger, bool server)
+        private LogUdpNetworkConnectionDecorator(UdpNetworkConnection decoratee, ILogger logger, bool server)
         {
+            _decoratee = decoratee;
             _logger = logger;
             _logSuccess = server ? TransportLoggerExtensions.LogUdpStartReceivingDatagrams :
                 TransportLoggerExtensions.LogUdpStartSendingDatagrams;
-            _udpNetworkConnection = udpNetworkConnection;
         }
     }
 }
