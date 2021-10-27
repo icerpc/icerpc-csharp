@@ -12,7 +12,7 @@ namespace IceRpc.Transports.Internal
 
         private ISimpleNetworkConnection Decoratee => _udpNetworkConnection;
 
-        private readonly Action<int, int> _logSuccess;
+        private readonly Action<ILogger, int, int> _logSuccess;
         private readonly ILogger _logger;
         private readonly UdpNetworkConnection _udpNetworkConnection;
 
@@ -24,7 +24,9 @@ namespace IceRpc.Transports.Internal
             (ISimpleStream, NetworkConnectionInformation) result =
                 await Decoratee.ConnectAsync(cancel).ConfigureAwait(false);
 
-            _logSuccess(_udpNetworkConnection.Socket.ReceiveBufferSize, _udpNetworkConnection.Socket.SendBufferSize);
+            _logSuccess(_logger,
+                        _udpNetworkConnection.Socket.ReceiveBufferSize,
+                        _udpNetworkConnection.Socket.SendBufferSize);
 
             return result;
         }
@@ -45,7 +47,8 @@ namespace IceRpc.Transports.Internal
         private LogUdpNetworkConnectionDecorator(UdpNetworkConnection udpNetworkConnection, ILogger logger, bool server)
         {
             _logger = logger;
-            _logSuccess = server ? _logger.LogUdpStartReceivingDatagrams : logger.LogUdpStartSendingDatagrams;
+            _logSuccess = server ? TransportLoggerExtensions.LogUdpStartReceivingDatagrams :
+                TransportLoggerExtensions.LogUdpStartSendingDatagrams;
             _udpNetworkConnection = udpNetworkConnection;
         }
     }

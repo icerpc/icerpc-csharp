@@ -14,7 +14,7 @@ namespace IceRpc.Transports.Internal
 
         private ISimpleNetworkConnection Decoratee => _tcpNetworkConnection;
 
-        private readonly Action<int, int> _logSuccess;
+        private readonly Action<ILogger, int, int> _logSuccess;
         private readonly ILogger _logger;
         private readonly TcpNetworkConnection _tcpNetworkConnection;
 
@@ -33,7 +33,8 @@ namespace IceRpc.Transports.Internal
                     _logger.LogTlsAuthenticationSucceeded(sslStream);
                 }
 
-                _logSuccess(_tcpNetworkConnection.Socket.ReceiveBufferSize,
+                _logSuccess(_logger,
+                            _tcpNetworkConnection.Socket.ReceiveBufferSize,
                             _tcpNetworkConnection.Socket.SendBufferSize);
 
                 return result;
@@ -61,8 +62,8 @@ namespace IceRpc.Transports.Internal
         private LogTcpNetworkConnectionDecorator(TcpNetworkConnection tcpNetworkConnection, ILogger logger, bool server)
         {
             _logger = logger;
-            _logSuccess = server ?
-                _logger.LogTcpNetworkConnectionAccepted : logger.LogTcpNetworkConnectionEstablished;
+            _logSuccess = server ? TransportLoggerExtensions.LogTcpNetworkConnectionAccepted :
+                TransportLoggerExtensions.LogTcpNetworkConnectionEstablished;
             _tcpNetworkConnection = tcpNetworkConnection;
         }
     }
