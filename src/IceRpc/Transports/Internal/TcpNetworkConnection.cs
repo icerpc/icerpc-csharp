@@ -361,14 +361,14 @@ namespace IceRpc.Transports.Internal
         private readonly Endpoint _localEndpoint;
         private SslStream? _sslStream;
 
+        private readonly bool? _tls;
+
         public override async Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel)
         {
-            // TODO: why are we doing this parsing for every single accepted connection?
-            bool? tls = _localEndpoint.ParseTcpParams().Tls;
             try
             {
                 bool secure;
-                if (tls == false)
+                if (_tls == false)
                 {
                     // Don't establish a secure connection is the tls param is explicitly set to false.
                     secure = false;
@@ -377,7 +377,7 @@ namespace IceRpc.Transports.Internal
                 {
                     // On the server side, if the tls parameter is not set, the TCP socket checks the first
                     // byte sent by the peer to figure out if the peer tries to establish a TLS connection.
-                    if (tls == null)
+                    if (_tls == null)
                     {
                         // Peek one byte into the tcp stream to see if it contains the TLS handshake record
                         Memory<byte> buffer = new byte[1];
@@ -424,7 +424,7 @@ namespace IceRpc.Transports.Internal
                 }
 
                 ImmutableList<EndpointParam> endpointParams = _localEndpoint.Params;
-                if (tls == null)
+                if (_tls == null)
                 {
                     // the accepted endpoint gets a tls parameter
                     endpointParams =
@@ -457,6 +457,7 @@ namespace IceRpc.Transports.Internal
         internal TcpServerNetworkConnection(
             Socket socket,
             Endpoint localEndpoint,
+            bool? tls,
             TimeSpan idleTimeout,
             SslServerAuthenticationOptions? authenticationOptions)
         {
@@ -464,6 +465,7 @@ namespace IceRpc.Transports.Internal
             _authenticationOptions = authenticationOptions;
             _idleTimeout = idleTimeout;
             _localEndpoint = localEndpoint;
+            _tls = tls;
         }
     }
 }

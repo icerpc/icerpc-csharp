@@ -17,6 +17,9 @@ namespace IceRpc.Transports.Internal
         private readonly Func<TcpServerNetworkConnection, ISimpleNetworkConnection> _serverConnectionDecorator;
         private readonly Socket _socket;
 
+        // tls parsed from endpoint
+        private readonly bool? _tls;
+
         public async Task<ISimpleNetworkConnection> AcceptAsync()
         {
             try
@@ -24,6 +27,7 @@ namespace IceRpc.Transports.Internal
                 return _serverConnectionDecorator(
                     new TcpServerNetworkConnection(await _socket.AcceptAsync().ConfigureAwait(false),
                                                    Endpoint,
+                                                   _tls,
                                                    _idleTimeout,
                                                    _authenticationOptions));
             }
@@ -52,10 +56,9 @@ namespace IceRpc.Transports.Internal
                     $"endpoint '{endpoint}' cannot accept connections because it has a DNS name");
             }
 
-            // We always call ParseTcpParams to make sure the params are ok, even when Protocol is ice1.
-            _ = endpoint.ParseTcpParams();
-
+            _tls = endpoint.ParseTcpParams().Tls;
             _idleTimeout = tcpOptions.IdleTimeout;
+
             _serverConnectionDecorator = serverConnectionDecorator;
 
             if (authenticationOptions != null)
