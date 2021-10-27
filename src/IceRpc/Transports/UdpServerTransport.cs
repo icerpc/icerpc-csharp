@@ -26,8 +26,10 @@ namespace IceRpc.Transports
             // is enabled.
 
             Func<UdpServerNetworkConnection, ISimpleNetworkConnection> serverConnectionDecorator =
-                loggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger && logger.IsEnabled(LogLevel.Error) ?
-                    connection => new LogUdpNetworkConnectionDecorator(connection, logger) : connection => connection;
+                loggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger &&
+                    logger.IsEnabled(UdpLoggerExtensions.MaxLogLevel) ?
+                        connection => new LogUdpNetworkConnectionDecorator(connection, logger) :
+                            connection => connection;
 
             return new UdpListener(endpoint, _options, serverConnectionDecorator);
         }

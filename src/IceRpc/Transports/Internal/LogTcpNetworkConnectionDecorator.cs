@@ -63,8 +63,8 @@ namespace IceRpc.Transports.Internal
         {
             _decoratee = decoratee;
             _logger = logger;
-            _logSuccess = server ? TransportLoggerExtensions.LogTcpNetworkConnectionAccepted :
-                TransportLoggerExtensions.LogTcpNetworkConnectionEstablished;
+            _logSuccess = server ? TcpLoggerExtensions.LogTcpNetworkConnectionAccepted :
+                TcpLoggerExtensions.LogTcpNetworkConnectionEstablished;
 
         }
     }

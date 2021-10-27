@@ -48,8 +48,8 @@ namespace IceRpc.Transports.Internal
         {
             _decoratee = decoratee;
             _logger = logger;
-            _logSuccess = server ? TransportLoggerExtensions.LogUdpStartReceivingDatagrams :
-                TransportLoggerExtensions.LogUdpStartSendingDatagrams;
+            _logSuccess = server ? UdpLoggerExtensions.LogUdpStartReceivingDatagrams :
+                UdpLoggerExtensions.LogUdpStartSendingDatagrams;
         }
     }
 }

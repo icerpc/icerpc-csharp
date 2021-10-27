@@ -26,8 +26,8 @@ namespace IceRpc.Transports
             // is enabled.
             var clientConnection = new UdpClientNetworkConnection(remoteEndpoint, _options);
 
-            return
-                loggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger && logger.IsEnabled(LogLevel.Error) ?
+            return loggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger &&
+                logger.IsEnabled(UdpLoggerExtensions.MaxLogLevel) ?
                     new LogUdpNetworkConnectionDecorator(clientConnection, logger) : clientConnection;
         }
     }

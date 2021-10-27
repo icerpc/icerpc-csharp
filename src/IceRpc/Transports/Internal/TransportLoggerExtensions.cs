@@ -141,38 +141,6 @@ namespace IceRpc.Transports.Internal
             Message = "stopping to receive datagrams")]
         internal static partial void LogStopReceivingDatagrams(this ILogger logger);
 
-        // TCP messages
-
-        [LoggerMessage(
-            EventId = (int)TransportEventIds.TcpNetworkConnectionAccepted,
-            EventName = nameof(TransportEventIds.TcpNetworkConnectionAccepted),
-            Level = LogLevel.Debug,
-            Message = "accepted tcp connection (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize})")]
-        internal static partial void LogTcpNetworkConnectionAccepted(this ILogger logger, int rcvSize, int sndSize);
-
-        [LoggerMessage(
-            EventId = (int)TransportEventIds.TcpNetworkConnectionEstablished,
-            EventName = nameof(TransportEventIds.TcpNetworkConnectionEstablished),
-            Level = LogLevel.Debug,
-            Message = "established tcp connection (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize})")]
-        internal static partial void LogTcpNetworkConnectionEstablished(this ILogger logger, int rcvSize, int sndSize);
-
-        // UDP messages
-
-        [LoggerMessage(
-            EventId = (int)TransportEventIds.UdpStartReceivingDatagrams,
-            EventName = nameof(TransportEventIds.UdpStartReceivingDatagrams),
-            Level = LogLevel.Information,
-            Message = "starting to receive udp datagrams (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize}")]
-        internal static partial void LogUdpStartReceivingDatagrams(this ILogger logger, int rcvSize, int sndSize);
-
-        [LoggerMessage(
-            EventId = (int)TransportEventIds.UdpStartSendingDatagrams,
-            EventName = nameof(TransportEventIds.UdpStartSendingDatagrams),
-            Level = LogLevel.Debug,
-            Message = "starting to send udp datagrams (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize}")]
-        internal static partial void LogUdpStartSendingDatagrams(this ILogger logger, int rcvSize, int sndSize);
-
         internal static IDisposable? StartListenerScope(this ILogger logger, IListener listener) =>
             logger.IsEnabled(LogLevel.Error) ? _listenerScope(logger, listener.Endpoint.ToString()) : null;
 

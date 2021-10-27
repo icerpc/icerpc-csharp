@@ -45,11 +45,6 @@ namespace IceRpc.Transports
         /// <summary>The transport stops receiving datagram messages.</summary>
         StopReceivingDatagrams,
 
-        /// <summary>The TCP server accepted a new connection.</summary>
-        TcpNetworkConnectionAccepted,
-        /// <summary>The TCP client connection was established.</summary>
-        TcpNetworkConnectionEstablished,
-
         /// <summary>The UDP server starts receiving datagram messages.</summary>
         UdpStartReceivingDatagrams,
         /// <summary>The UDP connection starts sending datagram messages.</summary>
