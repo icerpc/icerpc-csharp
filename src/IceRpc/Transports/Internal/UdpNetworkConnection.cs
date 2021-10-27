@@ -11,13 +11,16 @@ using static IceRpc.Transports.Internal.UdpUtils;
 
 namespace IceRpc.Transports.Internal
 {
-    internal abstract class UdpNetworkConnection : INetworkConnection
+    internal abstract class UdpNetworkConnection : ISimpleNetworkConnection
     {
         bool INetworkConnection.IsSecure => false;
 
         public abstract TimeSpan LastActivity { get; }
 
         public abstract void Close(Exception? exception);
+
+        public abstract Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel);
+
         public abstract bool HasCompatibleParams(Endpoint remoteEndpoint);
 
          /// <inheritdoc/>
@@ -34,20 +37,22 @@ namespace IceRpc.Transports.Internal
             return builder.ToString();
         }
 
+        internal abstract Socket Socket { get; }
+
         /// <summary>Prints the fields/properties of this class using the Records format.</summary>
         /// <param name="builder">The string builder.</param>
         /// <returns><c>true</c>when members are appended to the builder; otherwise, <c>false</c>.</returns>
         private protected abstract bool PrintMembers(StringBuilder builder);
     }
 
-    internal class UdpClientNetworkConnection : UdpNetworkConnection, ISimpleNetworkConnection, ISimpleStream
+    internal class UdpClientNetworkConnection : UdpNetworkConnection, ISimpleStream
     {
         public int DatagramMaxReceiveSize { get; }
         bool ISimpleStream.IsDatagram => true;
 
         public override TimeSpan LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
 
-        internal Socket Socket { get; }
+        internal override Socket Socket { get; }
         private readonly EndPoint _addr;
         private readonly Endpoint _remoteEndpoint;
         private readonly TimeSpan _idleTimeout;
@@ -58,8 +63,7 @@ namespace IceRpc.Transports.Internal
 
         public override void Close(Exception? exception) => Socket.Close();
 
-        async Task<(ISimpleStream, NetworkConnectionInformation)> ISimpleNetworkConnection.ConnectAsync(
-            CancellationToken cancel)
+        public override async Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel)
         {
             try
             {
@@ -224,23 +228,21 @@ namespace IceRpc.Transports.Internal
         }
     }
 
-     internal class UdpServerNetworkConnection : UdpNetworkConnection, ISimpleNetworkConnection, ISimpleStream
+     internal class UdpServerNetworkConnection : UdpNetworkConnection, ISimpleStream
     {
         public int DatagramMaxReceiveSize { get; }
         bool ISimpleStream.IsDatagram => true;
-        bool INetworkConnection.IsSecure => false;
 
         public override TimeSpan LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
 
         internal Endpoint LocalEndpoint { get; }
 
-        internal Socket Socket { get; }
+        internal override Socket Socket { get; }
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
 
         public override void Close(Exception? exception) => Socket.Close();
 
-        Task<(ISimpleStream, NetworkConnectionInformation)> ISimpleNetworkConnection.ConnectAsync(
-            CancellationToken cancel) =>
+        public override Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel) =>
             // The remote endpoint is set to an empty endpoint for a UDP server connection because the
             // socket accepts datagrams from "any" client since it's not connected to a specific client.
             Task.FromResult((this as ISimpleStream,

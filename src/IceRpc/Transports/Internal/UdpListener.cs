@@ -42,11 +42,14 @@ namespace IceRpc.Transports.Internal
            _acceptTask.SetException(new ObjectDisposedException(nameof(UdpListener)));
         }
 
-        internal UdpListener(Endpoint endpoint, UdpOptions options)
+        internal UdpListener(
+            Endpoint endpoint,
+            UdpOptions options,
+            Func<UdpServerNetworkConnection, ISimpleNetworkConnection> serverConnectionDecorator)
         {
             var serverConnection = new UdpServerNetworkConnection(endpoint, options);
             Endpoint = serverConnection.LocalEndpoint;
-            _serverConnection = serverConnection;
+            _serverConnection = serverConnectionDecorator(serverConnection);
         }
     }
 }

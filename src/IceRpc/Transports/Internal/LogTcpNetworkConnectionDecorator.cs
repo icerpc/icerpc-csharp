@@ -9,27 +9,33 @@ namespace IceRpc.Transports.Internal
     /// <summary>The log decorator installed by the TCP transports.</summary>
     internal class LogTcpNetworkConnectionDecorator : ISimpleNetworkConnection
     {
-        bool INetworkConnection.IsSecure => _decoratee.IsSecure;
-        TimeSpan INetworkConnection.LastActivity => _decoratee.LastActivity;
+        bool INetworkConnection.IsSecure => Decoratee.IsSecure;
+        TimeSpan INetworkConnection.LastActivity => Decoratee.LastActivity;
 
-        private readonly ISimpleNetworkConnection _decoratee;
+        private ISimpleNetworkConnection Decoratee => _tcpNetworkConnection;
 
+        private readonly Action<int, int> _logSuccess;
         private readonly ILogger _logger;
-        private readonly TcpNetworkConnection _tcpConnection;
+        private readonly TcpNetworkConnection _tcpNetworkConnection;
 
-        void INetworkConnection.Close(Exception? exception) => _decoratee.Close(exception);
+        void INetworkConnection.Close(Exception? exception) => Decoratee.Close(exception);
 
         async Task<(ISimpleStream, NetworkConnectionInformation)> ISimpleNetworkConnection.ConnectAsync(
             CancellationToken cancel)
         {
             try
             {
-                var result = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
+                (ISimpleStream, NetworkConnectionInformation) result =
+                    await Decoratee.ConnectAsync(cancel).ConfigureAwait(false);
 
-                if (_tcpConnection.SslStream is SslStream sslStream)
+                if (_tcpNetworkConnection.SslStream is SslStream sslStream)
                 {
                     _logger.LogTlsAuthenticationSucceeded(sslStream);
                 }
+
+                _logSuccess(_tcpNetworkConnection.Socket.ReceiveBufferSize,
+                            _tcpNetworkConnection.Socket.SendBufferSize);
+
                 return result;
             }
             catch (TransportException exception) when (exception.InnerException is AuthenticationException ex)
@@ -40,20 +46,24 @@ namespace IceRpc.Transports.Internal
         }
 
         bool INetworkConnection.HasCompatibleParams(Endpoint remoteEndpoint) =>
-            _decoratee.HasCompatibleParams(remoteEndpoint);
+            Decoratee.HasCompatibleParams(remoteEndpoint);
 
-        internal LogTcpNetworkConnectionDecorator(TcpClientNetworkConnection clientConnection, ILogger logger)
+        internal LogTcpNetworkConnectionDecorator(TcpServerNetworkConnection tcpServerNetworkConnection, ILogger logger)
+            : this(tcpServerNetworkConnection, logger, server: true)
         {
-            _decoratee = clientConnection;
-            _logger = logger;
-            _tcpConnection = clientConnection;
         }
 
-        internal LogTcpNetworkConnectionDecorator(TcpServerNetworkConnection serverConnection, ILogger logger)
+        internal LogTcpNetworkConnectionDecorator(TcpClientNetworkConnection tcpClientNetworkConnection, ILogger logger)
+            : this(tcpClientNetworkConnection, logger, server: false)
         {
-            _decoratee = serverConnection;
+        }
+
+        private LogTcpNetworkConnectionDecorator(TcpNetworkConnection tcpNetworkConnection, ILogger logger, bool server)
+        {
             _logger = logger;
-            _tcpConnection = serverConnection;
+            _logSuccess = server ?
+                _logger.LogSocketNetworkConnectionAccepted : logger.LogSocketNetworkConnectionEstablished;
+            _tcpNetworkConnection = tcpNetworkConnection;
         }
     }
 }

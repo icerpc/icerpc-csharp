@@ -15,7 +15,7 @@ namespace IceRpc.Transports.Internal
 // TODO: temporary, we need to make INetworkConnection IDisposable
 #pragma warning disable CA1001
 
-    internal abstract class TcpNetworkConnection : INetworkConnection, ISimpleStream
+    internal abstract class TcpNetworkConnection : ISimpleNetworkConnection, ISimpleStream
     {
         int ISimpleStream.DatagramMaxReceiveSize => throw new InvalidOperationException();
         bool ISimpleStream.IsDatagram => false;
@@ -36,6 +36,8 @@ namespace IceRpc.Transports.Internal
             SslStream?.Dispose();
             Socket.Dispose();
         }
+
+        public abstract Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel);
 
         public abstract bool HasCompatibleParams(Endpoint remoteEndpoint);
 
@@ -179,7 +181,7 @@ namespace IceRpc.Transports.Internal
         }
     }
 
-    internal class TcpClientNetworkConnection : TcpNetworkConnection, ISimpleNetworkConnection
+    internal class TcpClientNetworkConnection : TcpNetworkConnection
     {
         internal override Socket Socket { get; }
         internal override SslStream? SslStream => _sslStream;
@@ -191,8 +193,7 @@ namespace IceRpc.Transports.Internal
         private readonly Endpoint _remoteEndpoint;
         private SslStream? _sslStream;
 
-        async Task<(ISimpleStream, NetworkConnectionInformation)> ISimpleNetworkConnection.ConnectAsync(
-            CancellationToken cancel)
+        public override async Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel)
         {
             bool? tls = _remoteEndpoint.ParseTcpParams().Tls;
 
@@ -346,7 +347,7 @@ namespace IceRpc.Transports.Internal
         }
     }
 
-    internal class TcpServerNetworkConnection : TcpNetworkConnection, ISimpleNetworkConnection
+    internal class TcpServerNetworkConnection : TcpNetworkConnection
     {
         internal override Socket Socket { get; }
 
@@ -360,8 +361,7 @@ namespace IceRpc.Transports.Internal
         private readonly Endpoint _localEndpoint;
         private SslStream? _sslStream;
 
-        async Task<(ISimpleStream, NetworkConnectionInformation)> ISimpleNetworkConnection.ConnectAsync(
-            CancellationToken cancel)
+        public override async Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel)
         {
             // TODO: why are we doing this parsing for every single accepted connection?
             bool? tls = _localEndpoint.ParseTcpParams().Tls;
