@@ -73,7 +73,17 @@ namespace IceRpc.Transports.Internal
         /// <summary>Releases the resources used by the socket.</summary>
         /// <param name="disposing">True to release both managed and unmanaged resources; false to release only
         /// unmanaged resources.</param>
-        protected virtual void Dispose(bool disposing) => Socket.Dispose();
+        protected virtual void Dispose(bool disposing)
+        {
+            try
+            {
+                Socket.Shutdown(SocketShutdown.Both);
+            }
+            finally
+            {
+                Socket.Close();
+            }
+        }
 
         /// <summary>Prints the fields/properties of this class using the Records format.</summary>
         /// <param name="builder">The string builder.</param>

@@ -225,7 +225,7 @@ namespace IceRpc.Internal
             }
 
             ReadOnlyMemory<byte> buffer =
-                await ReceiveFrameAsync(request.Stream!, Ice2FrameType.Response, cancel).ConfigureAwait(false);
+                await ReceiveFrameAsync(request.Stream, Ice2FrameType.Response, cancel).ConfigureAwait(false);
 
             var decoder = new Ice20Decoder(buffer);
             int headerSize = decoder.DecodeSize();
@@ -282,6 +282,7 @@ namespace IceRpc.Internal
                 {
                     if (_shutdown)
                     {
+                        request.Stream.Abort(StreamError.ConnectionShutdown);
                         throw new ConnectionClosedException();
                     }
                     _invocations.Add(request);
@@ -529,8 +530,8 @@ namespace IceRpc.Internal
             }
 
             // Wait for the control streams to shutdown.
-            await _controlStream!.WaitForShutdownAsync(cancel).ConfigureAwait(false);
             await _remoteControlStream!.WaitForShutdownAsync(cancel).ConfigureAwait(false);
+            await _controlStream!.WaitForShutdownAsync(cancel).ConfigureAwait(false);
         }
 
         public async Task<string> WaitForShutdownAsync(CancellationToken cancel)

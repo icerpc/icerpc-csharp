@@ -117,7 +117,7 @@ namespace IceRpc.Internal
 
             foreach (OutgoingRequest request in invocations)
             {
-                request.Features.Get<Ice1Request>()?.ResponseCompletionSource?.TrySetException(exception);
+                request.Features.Get<Ice1Request>()!.ResponseCompletionSource!.TrySetException(exception);
             }
             foreach (IncomingRequest request in dispatch)
             {
@@ -185,7 +185,7 @@ namespace IceRpc.Internal
                     Deadline = DateTime.MaxValue,
                     Payload = payload,
                 };
-                request.Features = request.Features.With(new Ice1Request(requestId, incoming: true));
+                request.Features = request.Features.With(new Ice1Request(requestId, outgoing: false));
                 if (requestHeader.Context.Count > 0)
                 {
                     request.Features = request.Features.WithContext(requestHeader.Context);
@@ -322,6 +322,7 @@ namespace IceRpc.Internal
                         }
                         requestId = ++_nextRequestId;
                         _invocations[requestId] = request;
+                        request.Features = request.Features.With(new Ice1Request(requestId, outgoing: true));
                     }
                 }
                 catch
@@ -342,7 +343,6 @@ namespace IceRpc.Internal
                 encoder.EncodeByte(0); // compression status
                 BufferWriter.Position frameSizeStart = encoder.StartFixedLengthSize();
 
-                request.Features = request.Features.With(new Ice1Request(requestId, incoming: false));
                 encoder.EncodeInt(requestId);
 
                 (byte encodingMajor, byte encodingMinor) = request.PayloadEncoding.ToMajorMinor();
@@ -531,7 +531,7 @@ namespace IceRpc.Internal
                 Exception closeEx = shutdownByPeer ? exception : new OperationCanceledException(message);
                 foreach (OutgoingRequest request in invocations)
                 {
-                    request.Features.Get<Ice1Request>()?.ResponseCompletionSource?.TrySetException(closeEx);
+                    request.Features.Get<Ice1Request>()!.ResponseCompletionSource!.TrySetException(closeEx);
                 }
 
                 if (!shutdownByPeer)
@@ -733,7 +733,7 @@ namespace IceRpc.Internal
                         {
                             if (_invocations.TryGetValue(requestId, out OutgoingRequest? request))
                             {
-                                request.Features.Get<Ice1Request>()?.ResponseCompletionSource?.SetResult(buffer[4..]);
+                                request.Features.Get<Ice1Request>()!.ResponseCompletionSource!.SetResult(buffer[4..]);
                             }
                             else if (!_shutdown)
                             {

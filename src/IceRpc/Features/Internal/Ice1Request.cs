@@ -11,11 +11,12 @@ namespace IceRpc.Features.Internal
         /// <summary>The task completion source that will be completed when the response is received.</summary>
         internal TaskCompletionSource<ReadOnlyMemory<byte>>? ResponseCompletionSource { get; }
 
-        internal Ice1Request(int id, bool incoming)
+        internal Ice1Request(int id, bool outgoing)
         {
             Id = id;
-            if (!incoming)
+            if (outgoing)
             {
+                // If it's an outgoing request, create the a response completion source.
                 ResponseCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
             }
         }
