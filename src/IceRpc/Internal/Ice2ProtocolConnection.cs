@@ -63,7 +63,7 @@ namespace IceRpc.Internal
 
                 // If shutdown wasn't called yet, delay the cancellation until ShutdownAsync is called (this can occur
                 // if the application cancels ShutdownAsync immediately or before ShutdownAsync is called on the
-                // protocol connection).
+                // protocol connection). Otherwise, cancel the dispatch and invocations now.
                 if (_shutdown)
                 {
                     invocations = _invocations.ToArray();

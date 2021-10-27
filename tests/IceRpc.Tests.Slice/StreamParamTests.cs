@@ -49,6 +49,7 @@ namespace IceRpc.Tests.Slice.Stream
         }
 
         [Test]
+        [Repeat(100)]
         public async Task StreamParam_Byte()
         {
             System.IO.Stream stream;
