@@ -34,6 +34,8 @@ namespace IceRpc.Transports.Internal
         bool INetworkConnection.HasCompatibleParams(Endpoint remoteEndpoint) =>
             Decoratee.HasCompatibleParams(remoteEndpoint);
 
+        public override string? ToString() => Decoratee.ToString();
+
         internal LogUdpNetworkConnectionDecorator(UdpServerNetworkConnection udpServerNetworkConnection, ILogger logger)
             : this(udpServerNetworkConnection, logger, server: true)
         {
