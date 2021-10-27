@@ -13,7 +13,7 @@ namespace IceRpc.Transports.Internal
         [LoggerMessage(
             EventId = (int)UdpEventIds.StartReceivingDatagrams,
             EventName = nameof(UdpEventIds.StartReceivingDatagrams),
-            Level = LogLevel.Information,
+            Level = LogLevel.Debug,
             Message = "starting to receive udp datagrams (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize}")]
         internal static partial void LogUdpStartReceivingDatagrams(this ILogger logger, int rcvSize, int sndSize);
 

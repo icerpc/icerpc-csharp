@@ -10,11 +10,11 @@ namespace IceRpc.Transports
     {
         private readonly UdpOptions _options;
 
-        /// <summary>Constructs a <see cref="UdpClientTransport"/> that use the default <see cref="UdpOptions"/>.
+        /// <summary>Constructs a <see cref="UdpClientTransport"/> with the default <see cref="UdpOptions"/>.
         /// </summary>
         public UdpClientTransport() => _options = new UdpOptions();
 
-        /// <summary>Constructs a <see cref="UdpClientTransport"/> that use the given <see cref="UdpOptions"/>.
+        /// <summary>Constructs a <see cref="UdpClientTransport"/> with the specified <see cref="UdpOptions"/>.
         /// </summary>
         public UdpClientTransport(UdpOptions options) => _options = options;
 
