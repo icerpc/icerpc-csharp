@@ -344,7 +344,7 @@ namespace IceRpc.Transports.Internal
 
                 Socket.Bind(addr);
 
-                ushort port = (ushort)((IPEndPoint)Socket.LocalEndPoint!).Port;
+                int port = ((IPEndPoint)Socket.LocalEndPoint!).Port;
 
                 if (multicastAddress != null)
                 {
@@ -352,7 +352,7 @@ namespace IceRpc.Transports.Internal
                     SetMulticastGroup(Socket, multicastInterface, multicastAddress.Address);
                 }
 
-                LocalEndpoint = endpoint with { Port = port };
+                LocalEndpoint = endpoint with { Port = checked((ushort)port) };
             }
             catch (SocketException ex)
             {
