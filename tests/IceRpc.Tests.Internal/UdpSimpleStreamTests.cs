@@ -42,7 +42,7 @@ namespace IceRpc.Tests.Internal
         [OneTimeSetUp]
         public async Task OneTimeSetupAsync()
         {
-            Task<ISimpleNetworkConnection> acceptTask = _listener.AcceptAsync().AsTask();
+            Task<ISimpleNetworkConnection> acceptTask = _listener.AcceptAsync();
 
             _clientConnection =
                 _clientTransport.CreateConnection(_listener.Endpoint, LogAttributeLoggerFactory.Instance);

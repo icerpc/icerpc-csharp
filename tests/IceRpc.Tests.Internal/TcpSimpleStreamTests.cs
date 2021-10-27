@@ -70,7 +70,7 @@ namespace IceRpc.Tests.Internal
         [SetUp]
         public async Task SetupAsync()
         {
-            Task<ISimpleNetworkConnection> acceptTask = _listener.AcceptAsync().AsTask();
+            Task<ISimpleNetworkConnection> acceptTask = _listener.AcceptAsync();
 
             IClientTransport<ISimpleNetworkConnection> clientTransport =
                 new TcpClientTransport(new TcpOptions(), _clientAuthenticationOptions);

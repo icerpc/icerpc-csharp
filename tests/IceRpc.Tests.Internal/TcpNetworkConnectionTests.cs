@@ -66,7 +66,7 @@ namespace IceRpc.Tests.Internal
             using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
             ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
 
-            Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync().AsTask();
+            Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
             var connectTask = clientConnection.ConnectAsync(default);
 
             ISimpleNetworkConnection serverConnection = await acceptTask;
@@ -90,7 +90,7 @@ namespace IceRpc.Tests.Internal
         {
             using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
 
-            Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync().AsTask();
+            Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
 
             ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
 
@@ -119,7 +119,7 @@ namespace IceRpc.Tests.Internal
         {
             using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
 
-            Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync().AsTask();
+            Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
 
             ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
 
