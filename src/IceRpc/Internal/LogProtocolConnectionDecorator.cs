@@ -20,22 +20,48 @@ namespace IceRpc.Internal
 
         Task IProtocolConnection.PingAsync(CancellationToken cancel) => _decoratee.PingAsync(cancel);
 
-        Task<IncomingRequest> IProtocolConnection.ReceiveRequestAsync(CancellationToken cancel) =>
-            _decoratee.ReceiveRequestAsync(cancel);
+        async Task<IncomingRequest> IProtocolConnection.ReceiveRequestAsync(CancellationToken cancel)
+        {
+            IncomingRequest request = await _decoratee.ReceiveRequestAsync(cancel).ConfigureAwait(false);
+            _logger.LogReceivedRequestFrame(request.Path,
+                                            request.Operation,
+                                            request.PayloadSize,
+                                            request.PayloadEncoding);
+            return request;
+        }
 
-        Task<IncomingResponse> IProtocolConnection.ReceiveResponseAsync(
+        async Task<IncomingResponse> IProtocolConnection.ReceiveResponseAsync(
             OutgoingRequest request,
-            CancellationToken cancel) =>
-            _decoratee.ReceiveResponseAsync(request, cancel);
+            CancellationToken cancel)
+        {
+            IncomingResponse response = await _decoratee.ReceiveResponseAsync(request, cancel).ConfigureAwait(false);
 
-        Task IProtocolConnection.SendRequestAsync(OutgoingRequest request, CancellationToken cancel) =>
-            _decoratee.SendRequestAsync(request, cancel);
+            _logger.LogReceivedResponseFrame(request.Path,
+                                             request.Operation,
+                                             response.PayloadSize,
+                                             response.PayloadEncoding,
+                                             response.ResultType);
+            return response;
+        }
 
-        Task IProtocolConnection.SendResponseAsync(
+        async Task IProtocolConnection.SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
+        {
+            await _decoratee.SendRequestAsync(request, cancel).ConfigureAwait(false);
+            _logger.LogSentRequestFrame(request.Path, request.Operation, request.PayloadSize, request.PayloadEncoding);
+        }
+
+        async Task IProtocolConnection.SendResponseAsync(
             OutgoingResponse response,
             IncomingRequest request,
-            CancellationToken cancel) =>
-            _decoratee.SendResponseAsync(response, request, cancel);
+            CancellationToken cancel)
+        {
+            await _decoratee.SendResponseAsync(response, request, cancel).ConfigureAwait(false);
+            _logger.LogSentResponseFrame(request.Path,
+                                         request.Operation,
+                                         response.PayloadSize,
+                                         response.PayloadEncoding,
+                                         response.ResultType);
+        }
 
         Task IProtocolConnection.ShutdownAsync(bool shutdownByPeer, string message, CancellationToken cancel) =>
             _decoratee.ShutdownAsync(shutdownByPeer, message, cancel);
