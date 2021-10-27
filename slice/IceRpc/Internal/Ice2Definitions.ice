@@ -19,16 +19,22 @@ module IceRpc::Internal
         /// The initialize frame is sent by each side the Ice2 connection on connection establishment
         /// to exchange Ice2 parameters.
         Initialize = 0,
+
         /// The request frame.
         Request = 1,
+
         /// The response frame.
         Response = 2,
+
         /// The data frames.
         /// TODO: replace these 2 frames with a single data frame.
         BoundedData = 3,
+
         UnboundedData = 4,
+
         /// The ping frame is sent to keep alive the Ice2 connection.
         Ping = 5,
+
         /// The go away frame is sent to notify the peer that the connection is being shutdown.
         GoAway = 6,
     }

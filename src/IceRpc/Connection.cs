@@ -669,8 +669,8 @@ namespace IceRpc
             }
             catch (OperationCanceledException) when (cancel.IsCancellationRequested)
             {
-                // Cancel the shutdown if cancellation is requested.
-                _protocolConnection?.CancelShutdown();
+                // Cancel pending invocations and dispatch to speed up the shutdown.
+                _protocolConnection?.CancelInvocationsAndDispatch();
             }
 
             await shutdownTask.ConfigureAwait(false);

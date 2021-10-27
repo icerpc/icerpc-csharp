@@ -59,7 +59,7 @@ namespace IceRpc.Internal
         private bool _shutdown;
 
         /// <inheritdoc/>
-        public void CancelShutdown() =>
+        public void CancelInvocationsAndDispatch() =>
             // Notify the task completion source that shutdown was canceled. PerformShutdownAsync will
             // cancel the dispatch. We can't cancel the dispatch until ShutdownAsync is called.
             _cancelShutdown.TrySetResult();

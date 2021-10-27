@@ -48,17 +48,22 @@ namespace IceRpc.Internal
         private int? _peerIncomingFrameMaxSize;
         private IMultiplexedStream? _remoteControlStream;
         private bool _shutdown;
-        private bool _shutdownCanceled;
+        private bool _cancelInvocationsAndDispatch;
         private readonly IMultiplexedStreamFactory _streamFactory;
 
         /// <inheritdoc/>
-        public void CancelShutdown()
+        public void CancelInvocationsAndDispatch()
         {
             IEnumerable<OutgoingRequest> invocations = Enumerable.Empty<OutgoingRequest>();
             IEnumerable<IncomingRequest> dispatch = Enumerable.Empty<IncomingRequest>();
+
             lock (_mutex)
             {
-                _shutdownCanceled = true;
+                _cancelInvocationsAndDispatch = true;
+
+                // If shutdown wasn't called yet, delay the cancellation until ShutdownAsync is called (this can occur
+                // if the application cancels ShutdownAsync immediately or before ShutdownAsync is called on the
+                // protocol connection).
                 if (_shutdown)
                 {
                     invocations = _invocations.ToArray();
@@ -454,7 +459,7 @@ namespace IceRpc.Internal
             bool alreadyShuttingDown = false;
             lock (_mutex)
             {
-                if (shutdownByPeer && !_shutdownCanceled)
+                if (shutdownByPeer && !_cancelInvocationsAndDispatch)
                 {
                     // Abort invocations that were not dispatched by the peer.
                     invocations = _invocations.Where(request => request.Stream!.Id > (request.Stream!.IsBidirectional ?
@@ -477,7 +482,7 @@ namespace IceRpc.Internal
                     }
                 }
 
-                if (_shutdownCanceled)
+                if (_cancelInvocationsAndDispatch)
                 {
                     Debug.Assert(!shutdownByPeer);
                     if (_invocations.Count > 0)
