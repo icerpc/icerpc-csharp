@@ -52,7 +52,7 @@ namespace IceRpc.Internal
         private readonly IMultiplexedStreamFactory _streamFactory;
 
         /// <inheritdoc/>
-        public void CancelInvocationsAndDispatch()
+        public void CancelInvocationsAndDispatches()
         {
             IEnumerable<OutgoingRequest> invocations = Enumerable.Empty<OutgoingRequest>();
             IEnumerable<IncomingRequest> dispatch = Enumerable.Empty<IncomingRequest>();

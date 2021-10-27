@@ -220,7 +220,18 @@ namespace IceRpc
                                                             RemoteEndpoint,
                                                             logger);
 
-                    // TODO: decorate protocol connections created by protocol connection factory
+                    ProtocolConnectionFactory<T> createProtocolConnectionAsync = protocolConnectionFactory;
+
+                    protocolConnectionFactory = async (networkConnection, incomingFrameMaxSize, isServer, cancel) =>
+                    {
+                        (IProtocolConnection protocolConnection, NetworkConnectionInformation connectionInformation) =
+                            await createProtocolConnectionAsync(networkConnection,
+                                                                incomingFrameMaxSize,
+                                                                isServer,
+                                                                cancel).ConfigureAwait(false);
+
+                        return (new LogProtocolConnectionDecorator(protocolConnection, logger), connectionInformation);
+                    };
                 }
 
                 return ConnectAsync(networkConnection, protocolConnectionFactory);
@@ -670,7 +681,7 @@ namespace IceRpc
             catch (OperationCanceledException) when (cancel.IsCancellationRequested)
             {
                 // Cancel pending invocations and dispatch to speed up the shutdown.
-                _protocolConnection?.CancelInvocationsAndDispatch();
+                _protocolConnection?.CancelInvocationsAndDispatches();
             }
 
             await shutdownTask.ConfigureAwait(false);
