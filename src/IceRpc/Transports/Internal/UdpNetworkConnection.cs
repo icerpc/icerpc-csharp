@@ -240,6 +240,8 @@ namespace IceRpc.Transports.Internal
         internal override Socket Socket { get; }
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
 
+        private readonly EndPoint _remoteAddress;
+
         public override void Close(Exception? exception) => Socket.Close();
 
         public override Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel) =>
@@ -263,13 +265,9 @@ namespace IceRpc.Transports.Internal
         {
             try
             {
-                var remoteAddress = new IPEndPoint(
-                    Socket.AddressFamily == AddressFamily.InterNetwork ? IPAddress.Any : IPAddress.IPv6Any,
-                    0);
-
                 SocketReceiveFromResult result = await Socket.ReceiveFromAsync(buffer,
                                                                                SocketFlags.None,
-                                                                               remoteAddress,
+                                                                               _remoteAddress,
                                                                                cancel).ConfigureAwait(false);
 
                 Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
@@ -306,6 +304,12 @@ namespace IceRpc.Transports.Internal
                 {
                     // TODO: Don't enable DualMode sockets on macOS, https://github.com/dotnet/corefx/issues/31182
                     Socket.DualMode = !(OperatingSystem.IsMacOS() || options.IsIPv6Only);
+
+                    _remoteAddress = new IPEndPoint(IPAddress.IPv6Any, 0);
+                }
+                else
+                {
+                    _remoteAddress = new IPEndPoint(IPAddress.Any, 0);
                 }
 
                 Socket.ExclusiveAddressUse = true;
