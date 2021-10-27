@@ -25,13 +25,6 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogConnectionAccepted(this ILogger logger);
 
         [LoggerMessage(
-            EventId = (int)TransportEventIds.SocketNetworkConnectionAccepted,
-            EventName = nameof(TransportEventIds.SocketNetworkConnectionAccepted),
-            Level = LogLevel.Debug,
-            Message = "accepted connection (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize})")]
-        internal static partial void LogSocketNetworkConnectionAccepted(this ILogger logger, int rcvSize, int sndSize);
-
-        [LoggerMessage(
             EventId = (int)TransportEventIds.ConnectionAcceptFailed,
             EventName = nameof(TransportEventIds.ConnectionAcceptFailed),
             Level = LogLevel.Debug,
@@ -86,13 +79,6 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogListenerShutDown(this ILogger logger, Endpoint endpoint);
 
         [LoggerMessage(
-            EventId = (int)TransportEventIds.SocketNetworkConnectionEstablished,
-            EventName = nameof(TransportEventIds.SocketNetworkConnectionEstablished),
-            Level = LogLevel.Debug,
-            Message = "established connection (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize})")]
-        internal static partial void LogSocketNetworkConnectionEstablished(this ILogger logger, int rcvSize, int sndSize);
-
-        [LoggerMessage(
             EventId = (int)TransportEventIds.ConnectionEventHandlerException,
             EventName = nameof(TransportEventIds.ConnectionEventHandlerException),
             Level = LogLevel.Warning,
@@ -128,13 +114,6 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogStartReceivingDatagrams(this ILogger logger);
 
         [LoggerMessage(
-            EventId = (int)TransportEventIds.SocketStartReceivingDatagrams,
-            EventName = nameof(TransportEventIds.SocketStartReceivingDatagrams),
-            Level = LogLevel.Information,
-            Message = "starting to receive datagrams (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize}")]
-        internal static partial void LogSocketStartReceivingDatagrams(this ILogger logger, int rcvSize, int sndSize);
-
-        [LoggerMessage(
             EventId = (int)TransportEventIds.StartReceivingDatagramsFailed,
             EventName = nameof(TransportEventIds.StartReceivingDatagramsFailed),
             Level = LogLevel.Information,
@@ -149,13 +128,6 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogStartSendingDatagrams(this ILogger logger);
 
         [LoggerMessage(
-            EventId = (int)TransportEventIds.SocketStartSendingDatagrams,
-            EventName = nameof(TransportEventIds.SocketStartSendingDatagrams),
-            Level = LogLevel.Debug,
-            Message = "starting to send datagrams (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize}")]
-        internal static partial void LogSocketStartSendingDatagrams(this ILogger logger, int rcvSize, int sndSize);
-
-        [LoggerMessage(
             EventId = (int)TransportEventIds.StartSendingDatagramsFailed,
             EventName = nameof(TransportEventIds.StartSendingDatagramsFailed),
             Level = LogLevel.Debug,
@@ -168,6 +140,38 @@ namespace IceRpc.Transports.Internal
             Level = LogLevel.Information,
             Message = "stopping to receive datagrams")]
         internal static partial void LogStopReceivingDatagrams(this ILogger logger);
+
+        // TCP messages
+
+        [LoggerMessage(
+            EventId = (int)TransportEventIds.TcpNetworkConnectionAccepted,
+            EventName = nameof(TransportEventIds.TcpNetworkConnectionAccepted),
+            Level = LogLevel.Debug,
+            Message = "accepted tcp connection (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize})")]
+        internal static partial void LogTcpNetworkConnectionAccepted(this ILogger logger, int rcvSize, int sndSize);
+
+        [LoggerMessage(
+            EventId = (int)TransportEventIds.TcpNetworkConnectionEstablished,
+            EventName = nameof(TransportEventIds.TcpNetworkConnectionEstablished),
+            Level = LogLevel.Debug,
+            Message = "established tcp connection (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize})")]
+        internal static partial void LogTcpNetworkConnectionEstablished(this ILogger logger, int rcvSize, int sndSize);
+
+        // UDP messages
+
+        [LoggerMessage(
+            EventId = (int)TransportEventIds.UdpStartReceivingDatagrams,
+            EventName = nameof(TransportEventIds.UdpStartReceivingDatagrams),
+            Level = LogLevel.Information,
+            Message = "starting to receive udp datagrams (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize}")]
+        internal static partial void LogUdpStartReceivingDatagrams(this ILogger logger, int rcvSize, int sndSize);
+
+        [LoggerMessage(
+            EventId = (int)TransportEventIds.UdpStartSendingDatagrams,
+            EventName = nameof(TransportEventIds.UdpStartSendingDatagrams),
+            Level = LogLevel.Debug,
+            Message = "starting to send udp datagrams (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize}")]
+        internal static partial void LogUdpStartSendingDatagrams(this ILogger logger, int rcvSize, int sndSize);
 
         internal static IDisposable? StartListenerScope(this ILogger logger, IListener listener) =>
             logger.IsEnabled(LogLevel.Error) ? _listenerScope(logger, listener.Endpoint.ToString()) : null;

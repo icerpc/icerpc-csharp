@@ -45,7 +45,7 @@ namespace IceRpc.Transports.Internal
         private LogUdpNetworkConnectionDecorator(UdpNetworkConnection udpNetworkConnection, ILogger logger, bool server)
         {
             _logger = logger;
-            _logSuccess = server ? _logger.LogSocketStartReceivingDatagrams : logger.LogSocketStartSendingDatagrams;
+            _logSuccess = server ? _logger.LogUdpStartReceivingDatagrams : logger.LogUdpStartSendingDatagrams;
             _udpNetworkConnection = udpNetworkConnection;
         }
     }

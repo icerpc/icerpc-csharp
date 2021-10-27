@@ -62,7 +62,7 @@ namespace IceRpc.Transports.Internal
         {
             _logger = logger;
             _logSuccess = server ?
-                _logger.LogSocketNetworkConnectionAccepted : logger.LogSocketNetworkConnectionEstablished;
+                _logger.LogTcpNetworkConnectionAccepted : logger.LogTcpNetworkConnectionEstablished;
             _tcpNetworkConnection = tcpNetworkConnection;
         }
     }
