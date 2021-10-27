@@ -30,13 +30,6 @@ namespace IceRpc.Internal
         internal static partial void LogDatagramSizeExceededIncomingFrameMaxSize(this ILogger logger, int size);
 
         [LoggerMessage(
-            EventId = (int)ProtocolEventIds.ReceivedGoAwayCanceledFrame,
-            EventName = nameof(ProtocolEventIds.ReceivedGoAwayCanceledFrame),
-            Level = LogLevel.Debug,
-            Message = "received go away canceled frame")]
-        internal static partial void LogReceivedGoAwayCanceledFrame(this ILogger logger);
-
-        [LoggerMessage(
             EventId = (int)ProtocolEventIds.ReceivedIce1RequestBatchFrame,
             EventName = nameof(ProtocolEventIds.ReceivedIce1RequestBatchFrame),
             Level = LogLevel.Debug,
@@ -69,13 +62,6 @@ namespace IceRpc.Internal
             int payloadSize,
             Encoding payloadEncoding,
             ResultType resultType);
-
-        [LoggerMessage(
-            EventId = (int)ProtocolEventIds.SentGoAwayCanceledFrame,
-            EventName = nameof(ProtocolEventIds.SentGoAwayCanceledFrame),
-            Level = LogLevel.Debug,
-            Message = "sent go away canceled frame")]
-        internal static partial void LogSentGoAwayCanceledFrame(this ILogger logger);
 
         [LoggerMessage(
             EventId = (int)ProtocolEventIds.SentRequestFrame,
