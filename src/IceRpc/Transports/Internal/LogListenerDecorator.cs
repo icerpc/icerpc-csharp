@@ -12,7 +12,7 @@ namespace IceRpc.Transports.Internal
 
         Endpoint IListener.Endpoint => _decoratee.Endpoint;
 
-        async ValueTask<T> IListener<T>.AcceptAsync()
+        async Task<T> IListener<T>.AcceptAsync()
         {
             try
             {

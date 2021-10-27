@@ -211,7 +211,7 @@ namespace IceRpc.Tests.Api
             Assert.That(server.ShutdownComplete.IsCompleted, Is.False);
             await dispatchStartSemaphore.WaitAsync(); // Wait for the dispatch
 
-            var shutdownTask = server.ShutdownAsync();
+            Task shutdownTask = server.ShutdownAsync();
             Assert.That(server.ShutdownComplete.IsCompleted, Is.False);
             dispatchContinueSemaphore.Release();
 

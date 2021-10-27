@@ -307,6 +307,15 @@ namespace IceRpc
                 request.Features = request.Features.With(RetryPolicy.Immediately);
                 throw new ConnectionClosedException("connection shutdown by peer", ex);
             }
+            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.ConnectionShutdown)
+            {
+                if (request.IsIdempotent || !request.IsSent)
+                {
+                    // Only retry if it's safe to retry: the request is idempotent or it hasn't been sent.
+                    request.Features = request.Features.With(RetryPolicy.Immediately);
+                }
+                throw new OperationCanceledException("connection shutdown", ex);
+            }
             catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.ConnectionAborted)
             {
                 if (request.IsIdempotent || !request.IsSent)
@@ -341,13 +350,10 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Send the GoAway or CloseConnection frame to initiate the shutdown of the connection. Before
-        /// sending the frame, ShutdownAsync first ensures that no new streams are accepted. After sending the frame,
-        /// ShutdownAsync waits for the streams to complete, the connection closure from the peer or the close
-        /// timeout to close the connection. If ShutdownAsync is canceled, dispatch in progress are canceled and a
-        /// GoAwayCanceled frame is sent to the peer to cancel its dispatches as well. Shutdown cancellation can
-        /// lead to a speedier shutdown if dispatches are cancelable.</summary>
-        /// <param name="message">The message transmitted to the peer with the GoAway frame.</param>
+        /// <summary>Gracefully shuts down of the connection. The graceful shutdown waits for pending invocations to
+        /// return and dispatch to complete. If ShutdownAsync is canceled, dispatch are canceled and invocations
+        /// aborted. Shutdown cancellation can lead to a speedier shutdown if dispatch are cancelable.</summary>
+        /// <param name="message">The message transmitted to the peer when using the Ice2 protocol.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public Task ShutdownAsync(string? message = null, CancellationToken cancel = default) =>
             ShutdownAsync(shutdownByPeer: false, message ?? "connection closed gracefully", cancel);
@@ -663,8 +669,8 @@ namespace IceRpc
             }
             catch (OperationCanceledException) when (cancel.IsCancellationRequested)
             {
-                // Cancel the shutdown if cancellation is requested.
-                _protocolConnection?.CancelShutdown();
+                // Cancel pending invocations and dispatch to speed up the shutdown.
+                _protocolConnection?.CancelInvocationsAndDispatch();
             }
 
             await shutdownTask.ConfigureAwait(false);

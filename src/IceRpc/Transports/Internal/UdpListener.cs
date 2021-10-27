@@ -12,7 +12,7 @@ namespace IceRpc.Transports.Internal
         private readonly TaskCompletionSource<ISimpleNetworkConnection> _acceptTask = new();
         private ISimpleNetworkConnection? _serverConnection;
 
-        public async ValueTask<ISimpleNetworkConnection> AcceptAsync()
+        public async Task<ISimpleNetworkConnection> AcceptAsync()
         {
             try
             {

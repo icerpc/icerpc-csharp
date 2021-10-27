@@ -86,26 +86,10 @@ namespace IceRpc.Transports
         /// <returns>The number of bytes read.</returns>
         ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel);
 
-        /// <summary>Reads data from the stream until the given buffer is full.</summary>
-        /// <param name="buffer">The buffer that holds the read data.</param>
+        /// <summary>Waits for the stream shutdown completion.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A value task that completes once the buffer is filled up with read data.</returns>
-        /// TODO: XXX Remove this, this is used by the Ice2 protocol implementation to read the header. It should
-        /// instead use something like BufferedReceiver to receive the type and frame size.
-        async ValueTask ReceiveUntilFullAsync(Memory<byte> buffer, CancellationToken cancel)
-        {
-            // Loop until we received enough data to fully fill the given buffer.
-            int offset = 0;
-            while (offset < buffer.Length)
-            {
-                int received = await ReadAsync(buffer[offset..], cancel).ConfigureAwait(false);
-                if (received == 0)
-                {
-                    throw new InvalidDataException("unexpected end of stream");
-                }
-                offset += received;
-            }
-        }
+        /// <returns>A task that completes once the stream is shutdown.</returns>
+        Task WaitForShutdownAsync(CancellationToken cancel);
 
         /// <summary>Writes data over the stream.</summary>
         /// <param name="buffers">The buffers containing the data to write.</param>
@@ -113,10 +97,5 @@ namespace IceRpc.Transports
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A value task that completes once the buffers are written.</returns>
         ValueTask WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, bool endStream, CancellationToken cancel);
-
-        /// <summary>Waits for the stream shutdown completion.</summary>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A value task that completes once the stream is shutdown.</returns>
-        ValueTask ShutdownCompleted(CancellationToken cancel);
     }
 }

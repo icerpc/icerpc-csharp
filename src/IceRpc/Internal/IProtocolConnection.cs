@@ -16,8 +16,9 @@ namespace IceRpc.Internal
         /// otherwise.</summary>
         bool HasInvocationsInProgress { get; }
 
-        /// <summary>Cancel the shutdown which is in progress.</summary>
-        void CancelShutdown();
+        /// <summary>Cancel the pending invocations and dispatch. This is called when the application cancels the <see
+        /// cref="Connection.ShutdownAsync(string, CancellationToken)"/> call to speed up the shutdown.</summary>
+        void CancelInvocationsAndDispatch();
 
         /// <summary>Sends a ping frame to defer the idle timeout.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

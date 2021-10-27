@@ -20,8 +20,6 @@ namespace IceRpc
         ReceivedIce1ValidateConnectionFrame,
         /// <summary>Received an ice2 go away frame.</summary>
         ReceivedGoAwayFrame,
-        /// <summary>Received an ice2 go away canceled frame.</summary>
-        ReceivedGoAwayCanceledFrame,
         /// <summary>Received an ice2 initialize frame.</summary>
         ReceivedInitializeFrame,
         /// <summary>Received a request frame.</summary>
@@ -34,8 +32,6 @@ namespace IceRpc
         SentIce1CloseConnectionFrame,
         /// <summary>An ice2 go away frame was sent.</summary>
         SentGoAwayFrame,
-        /// <summary>An ice2 go away canceled frame was sent.</summary>
-        SentGoAwayCanceledFrame,
         /// <summary>An ice2 initialize frame was sent.</summary>
         SentInitializeFrame,
         /// <summary>A request frame was sent.</summary>

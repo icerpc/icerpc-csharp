@@ -17,7 +17,7 @@ namespace IceRpc.Transports.Internal
         private readonly Func<TcpServerNetworkConnection, ISimpleNetworkConnection> _serverConnectionDecorator;
         private readonly Socket _socket;
 
-        public async ValueTask<ISimpleNetworkConnection> AcceptAsync()
+        public async Task<ISimpleNetworkConnection> AcceptAsync()
         {
             try
             {
