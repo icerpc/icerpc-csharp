@@ -2,6 +2,7 @@
 
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.Net;
 using System.Net.Sockets;
@@ -240,10 +241,10 @@ namespace IceRpc.Tests.Internal
             IClientTransport<ISimpleNetworkConnection> clientTransport =
                 new TcpClientTransport(tcpOptions ?? new TcpOptions(), null);
 
+            // We pass the null logger factory to avoid decoration of the resulting connection.
             ISimpleNetworkConnection clientConnection =
-                clientTransport.CreateConnection(endpoint, LogAttributeLoggerFactory.Instance);
+                clientTransport.CreateConnection(endpoint, NullLoggerFactory.Instance);
 
-            // The client connection is never decorated at this point, so we can cast it:
             return (TcpClientNetworkConnection)clientConnection;
         }
 
@@ -259,7 +260,9 @@ namespace IceRpc.Tests.Internal
                 new TcpServerTransport(tcpOptions ?? new TcpOptions(), null);
             host ??= _isIPv6 ? "[::1]" : "127.0.0.1";
             Endpoint endpoint = $"ice+tcp://{host}:0?tls=false";
-            return serverTransport.Listen(endpoint, LogAttributeLoggerFactory.Instance);
+
+            // We pass the null logger factory to avoid decoration of the listener.
+            return serverTransport.Listen(endpoint, NullLoggerFactory.Instance);
         }
     }
 }
