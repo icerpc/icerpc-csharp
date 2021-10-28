@@ -92,10 +92,10 @@ namespace IceRpc.Tests.Internal
             }
             Assert.AreNotEqual(0, count);
 
-            clientConnection.Close();
+            clientConnection.Dispose();
 
             listenerList.ForEach(listener => listener.Dispose());
-            serverConnectionList.ForEach(serverConnection => serverConnection.Close());
+            serverConnectionList.ForEach(serverConnection => serverConnection.Dispose());
         }
 
         private static string GetEndpoint(string host, int port, bool ipv6, bool client)

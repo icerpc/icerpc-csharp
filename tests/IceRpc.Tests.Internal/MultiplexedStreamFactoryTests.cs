@@ -24,7 +24,7 @@ namespace IceRpc.Tests.Internal
         public void MultiplexedStreamFactory_Dispose()
         {
             ValueTask<IMultiplexedStream> acceptStreamTask = ServerMultiplexedStreamFactory.AcceptStreamAsync(default);
-            ClientConnection.Close(new ConnectionClosedException());
+            ClientConnection.Dispose();
             Assert.ThrowsAsync<ConnectionLostException>(async () => await acceptStreamTask);
         }
 
@@ -34,7 +34,7 @@ namespace IceRpc.Tests.Internal
             IMultiplexedStream clientStream = ClientMultiplexedStreamFactory.CreateStream(true);
             await clientStream.WriteAsync(CreateSendPayload(clientStream), true, default);
 
-            ClientConnection.Close(new ConnectionClosedException());
+            ClientConnection.Dispose();
 
             StreamAbortedException? ex;
             // Stream is aborted
@@ -75,7 +75,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void MultiplexedStreamFactory_AcceptStream_Failure()
         {
-            ClientConnection.Close(new ConnectionClosedException());
+            ClientConnection.Dispose();
             Assert.CatchAsync<TransportException>(async () => await ServerMultiplexedStreamFactory.AcceptStreamAsync(default));
         }
 
@@ -235,7 +235,7 @@ namespace IceRpc.Tests.Internal
         public void MultiplexedStreamFactory_SendAsync_Failure()
         {
             IMultiplexedStream stream = ClientMultiplexedStreamFactory.CreateStream(false);
-            ClientConnection.Close(new ConnectionClosedException());
+            ClientConnection.Dispose();
             Assert.CatchAsync<TransportException>(
                 async () => await stream.WriteAsync(CreateSendPayload(stream), true, default));
         }
@@ -248,7 +248,7 @@ namespace IceRpc.Tests.Internal
 
             IMultiplexedStream serverStream = await ServerMultiplexedStreamFactory.AcceptStreamAsync(default);
             await serverStream.ReadAsync(CreateReceivePayload(), default);
-            ServerConnection.Close(new ConnectionClosedException());
+            ServerConnection.Dispose();
             Assert.CatchAsync<StreamAbortedException>(
                 async () => await serverStream.WriteAsync(CreateSendPayload(serverStream), true, default));
         }

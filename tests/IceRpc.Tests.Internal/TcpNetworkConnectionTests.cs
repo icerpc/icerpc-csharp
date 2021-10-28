@@ -73,8 +73,8 @@ namespace IceRpc.Tests.Internal
             _ = await serverConnection.ConnectAsync(default);
             _ = await connectTask;
 
-            clientConnection.Close();
-            serverConnection.Close();
+            clientConnection.Dispose();
+            serverConnection.Dispose();
         }
 
         [Test]
@@ -110,8 +110,8 @@ namespace IceRpc.Tests.Internal
 
             _ = await serverConnectTask;
 
-            clientConnection.Close();
-            serverConnection.Close();
+            clientConnection.Dispose();
+            serverConnection.Dispose();
         }
 
         [Test]
@@ -131,7 +131,7 @@ namespace IceRpc.Tests.Internal
                 new DnsEndPoint(listener.Endpoint.Host, listener.Endpoint.Port)).ConfigureAwait(false);
 
             ISimpleNetworkConnection serverConnection = await acceptTask;
-            clientConnection.Close();
+            clientConnection.Dispose();
 
             AsyncTestDelegate testDelegate;
             if (_tls == false)
@@ -145,7 +145,7 @@ namespace IceRpc.Tests.Internal
                 testDelegate = async () => await serverConnection.ConnectAsync(default);
             }
             Assert.ThrowsAsync<ConnectionLostException>(testDelegate);
-            serverConnection.Close();
+            serverConnection.Dispose();
         }
 
         [TestCase(false, false)]
@@ -231,7 +231,7 @@ namespace IceRpc.Tests.Internal
                 source.Cancel();
                 Assert.CatchAsync<OperationCanceledException>(async () => await connectTask);
 
-                clientConnection.Close();
+                clientConnection.Dispose();
             }
 
             using var source2 = new CancellationTokenSource();

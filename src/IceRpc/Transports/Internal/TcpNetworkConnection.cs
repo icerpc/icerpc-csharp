@@ -31,7 +31,7 @@ namespace IceRpc.Transports.Internal
 
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
 
-        public void Close(Exception? exception)
+        public void Dispose()
         {
             SslStream?.Dispose();
             Socket.Dispose();

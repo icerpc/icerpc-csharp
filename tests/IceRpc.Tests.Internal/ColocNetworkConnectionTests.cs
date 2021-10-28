@@ -13,8 +13,8 @@ namespace IceRpc.Tests.Internal
         public void ColocNetworkConnection_Close()
         {
             ISimpleNetworkConnection connection = CreateConnection(false);
-            connection.Close();
-            connection.Close();
+            connection.Dispose();
+            connection.Dispose();
         }
 
         [TestCase(true, false)]
@@ -24,7 +24,7 @@ namespace IceRpc.Tests.Internal
             ISimpleNetworkConnection connection = CreateConnection(isServer);
             Assert.That(connection.HasCompatibleParams(Endpoint.FromString("ice+coloc://host")),
                         Is.EqualTo(expectedResult));
-            connection.Close();
+            connection.Dispose();
         }
 
         [TestCase(false)]
@@ -39,7 +39,7 @@ namespace IceRpc.Tests.Internal
             Assert.That(information.RemoteEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
             Assert.That(information.IdleTimeout, Is.EqualTo(TimeSpan.MaxValue));
 
-            connection.Close();
+            connection.Dispose();
         }
 
         [Test]
@@ -60,7 +60,7 @@ namespace IceRpc.Tests.Internal
             await stream.ReadAsync(new byte[1], default);
             Assert.That(connection.LastActivity, Is.EqualTo(TimeSpan.Zero));
 
-            connection.Close();
+            connection.Dispose();
         }
 
         private static ISimpleNetworkConnection CreateConnection(bool isServer)

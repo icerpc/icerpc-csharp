@@ -90,8 +90,8 @@ namespace IceRpc.Tests.Internal
         [TearDown]
         public void TearDown()
         {
-            _clientConnection?.Close();
-            _serverConnection?.Close();
+            _clientConnection?.Dispose();
+            _serverConnection?.Dispose();
         }
 
         [OneTimeTearDown]
@@ -124,7 +124,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void TcpSimpleStream_ReadAsync_ConnectionLostException()
         {
-            _serverConnection!.Close();
+            _serverConnection!.Dispose();
             Assert.CatchAsync<ConnectionLostException>(
                 async () => await ClientStream.ReadAsync(new byte[1], default));
         }
@@ -132,7 +132,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void TcpSimpleStream_ReadAsync_Dispose()
         {
-            _clientConnection!.Close();
+            _clientConnection!.Dispose();
             Assert.CatchAsync<TransportException>(async () => await ClientStream.ReadAsync(new byte[1], default));
         }
 
@@ -181,7 +181,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void TcpSimpleStream_WriteAsync_ConnectionLostException()
         {
-            _serverConnection!.Close();
+            _serverConnection!.Dispose();
             Assert.CatchAsync<ConnectionLostException>(
                 async () =>
                 {
@@ -195,7 +195,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void TcpSimpleStream_WriteAsync_Close()
         {
-            _clientConnection!.Close();
+            _clientConnection!.Dispose();
             Assert.CatchAsync<TransportException>(async () => await ClientStream.WriteAsync(_oneBWriteBuffer, default));
         }
 

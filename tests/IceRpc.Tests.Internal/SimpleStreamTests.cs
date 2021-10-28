@@ -96,8 +96,8 @@ namespace IceRpc.Tests.Internal
         [TestCase]
         public void SimpleStream_Close()
         {
-            _clientConnection!.Close();
-            _serverConnection!.Close();
+            _clientConnection!.Dispose();
+            _serverConnection!.Dispose();
 
             Memory<byte> buffer = new byte[1];
             var buffers = new ReadOnlyMemory<byte>[] { buffer };
@@ -131,8 +131,8 @@ namespace IceRpc.Tests.Internal
         [TearDown]
         public void TearDown()
         {
-            _clientConnection?.Close(new ConnectionClosedException());
-            _serverConnection?.Close(new ConnectionClosedException());
+            _clientConnection?.Dispose();
+            _serverConnection?.Dispose();
         }
     }
 }

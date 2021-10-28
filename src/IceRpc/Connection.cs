@@ -124,14 +124,20 @@ namespace IceRpc
 
         // The connect task is assigned when ConnectAsync is called, it's protected with _mutex.
         private Task? _connectTask;
+
         private EventHandler<ClosedEventArgs>? _closed;
+
         // The close task is assigned when ShutdownAsync or CloseAsync are called, it's protected with _mutex.
         private Task? _closeTask;
+
         // The initial remote endpoint for client connections.
         private readonly Endpoint? _initialRemoteEndpoint;
+
         // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
         private readonly object _mutex = new();
+
         private INetworkConnection? _networkConnection;
+
         // _protocol is non-null only for server connections. For client connections, it's null. The protocol
         // is instead obtained with RemoteEndpoint.Protocol
         private readonly Protocol? _protocol;
@@ -631,7 +637,7 @@ namespace IceRpc
 
                 try
                 {
-                    _networkConnection?.Close(exception);
+                    _networkConnection?.Dispose();
                 }
                 catch (Exception exception)
                 {

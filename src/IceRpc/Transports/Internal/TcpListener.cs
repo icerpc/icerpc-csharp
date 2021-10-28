@@ -25,11 +25,13 @@ namespace IceRpc.Transports.Internal
             try
             {
                 return _serverConnectionDecorator(
+#pragma warning disable CA2000 // the caller disposes the TcpServerNetworkConnection
                     new TcpServerNetworkConnection(await _socket.AcceptAsync().ConfigureAwait(false),
                                                    Endpoint,
                                                    _tls,
                                                    _idleTimeout,
                                                    _authenticationOptions));
+#pragma warning restore CA2000
             }
             catch (Exception ex)
             {

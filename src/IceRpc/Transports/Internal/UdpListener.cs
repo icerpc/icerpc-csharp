@@ -37,8 +37,8 @@ namespace IceRpc.Transports.Internal
 
         public void Dispose()
         {
-           // Close the server connection if AcceptAsync didn't already consume it.
-           Interlocked.Exchange(ref _serverConnection, null)?.Close();
+           // Dispose the server connection if AcceptAsync didn't already consume it.
+           Interlocked.Exchange(ref _serverConnection, null)?.Dispose();
            _acceptTask.SetException(new ObjectDisposedException(nameof(UdpListener)));
         }
 

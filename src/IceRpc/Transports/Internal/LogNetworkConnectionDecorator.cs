@@ -29,7 +29,7 @@ namespace IceRpc.Transports.Internal
 
         private readonly Endpoint _endpoint;
 
-        public void Close(Exception? exception)
+        public void Dispose()
         {
             if (Information == null)
             {
@@ -44,7 +44,7 @@ namespace IceRpc.Transports.Internal
                     (true, false) => Logger.LogConnectionAcceptFailed,
                     (true, true) => Logger.LogStartReceivingDatagramsFailed,
                 };
-                logFailure(exception);
+                logFailure(null);
             }
             else
             {
@@ -55,10 +55,10 @@ namespace IceRpc.Transports.Internal
                 }
                 else
                 {
-                    Logger.LogConnectionClosed(exception?.Message ?? "graceful close");
+                    Logger.LogConnectionClosed();
                 }
             }
-            Decoratee.Close(exception);
+            Decoratee.Dispose();
         }
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) => Decoratee.HasCompatibleParams(remoteEndpoint);
