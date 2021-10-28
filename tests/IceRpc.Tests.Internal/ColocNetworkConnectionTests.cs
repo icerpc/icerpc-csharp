@@ -21,31 +21,28 @@ namespace IceRpc.Tests.Internal
         [TestCase(false, true)]
         public void ColocNetworkConnection_HasCompatibleParams(bool isServer, bool expectedResult)
         {
-            ISimpleNetworkConnection connection = CreateConnection(isServer);
+            using ISimpleNetworkConnection connection = CreateConnection(isServer);
             Assert.That(connection.HasCompatibleParams(Endpoint.FromString("ice+coloc://host")),
                         Is.EqualTo(expectedResult));
-            connection.Dispose();
         }
 
         [TestCase(false)]
         [TestCase(true)]
         public async Task ColocNetworkConnection_Properties(bool isServer)
         {
-            ISimpleNetworkConnection connection = CreateConnection(isServer);
+            using ISimpleNetworkConnection connection = CreateConnection(isServer);
 
             (ISimpleStream? _, NetworkConnectionInformation information) = await connection.ConnectAsync(default);
 
             Assert.That(information.LocalEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
             Assert.That(information.RemoteEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
             Assert.That(information.IdleTimeout, Is.EqualTo(TimeSpan.MaxValue));
-
-            connection.Dispose();
         }
 
         [Test]
         public async Task ColocNetworkConnection_LastActivity()
         {
-            ISimpleNetworkConnection connection = CreateConnection(false);
+            using ISimpleNetworkConnection connection = CreateConnection(false);
 
             (ISimpleStream stream, NetworkConnectionInformation _) = await connection.ConnectAsync(default);
 
@@ -59,8 +56,6 @@ namespace IceRpc.Tests.Internal
             await Task.Delay(2);
             await stream.ReadAsync(new byte[1], default);
             Assert.That(connection.LastActivity, Is.EqualTo(TimeSpan.Zero));
-
-            connection.Dispose();
         }
 
         private static ISimpleNetworkConnection CreateConnection(bool isServer)

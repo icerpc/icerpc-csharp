@@ -12,9 +12,6 @@ using System.Text;
 
 namespace IceRpc.Transports.Internal
 {
-// TODO: temporary, we need to make INetworkConnection IDisposable
-#pragma warning disable CA1001
-
     internal abstract class TcpNetworkConnection : ISimpleNetworkConnection, ISimpleStream
     {
         int ISimpleStream.DatagramMaxReceiveSize => throw new InvalidOperationException();

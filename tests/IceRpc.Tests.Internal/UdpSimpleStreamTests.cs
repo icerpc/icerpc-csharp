@@ -140,10 +140,7 @@ namespace IceRpc.Tests.Internal
             }
             Assert.AreNotEqual(0, count);
 
-            foreach (ISimpleNetworkConnection connection in clientConnectionList)
-            {
-                connection.Dispose();
-            }
+            clientConnectionList.ForEach(connection => connection.Dispose());
         }
 
         [Test]
