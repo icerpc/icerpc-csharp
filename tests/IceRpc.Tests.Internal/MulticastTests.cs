@@ -20,24 +20,45 @@ namespace IceRpc.Tests.Internal
 
         public MulticastTests(AddressFamily addressFamily) => _ipv6 = addressFamily == AddressFamily.InterNetworkV6;
 
-        [TestCase(1)]
-        [TestCase(1024)]
-        public async Task Multicast_ReadWriteAsync(int size)
+        [TestCase(1, 1)]
+        [TestCase(1024, 1)]
+        [TestCase(1, 5)]
+        [TestCase(1024, 5)]
+        public async Task Multicast_ReadWriteAsync(int size, int serverCount)
         {
             byte[] writeBuffer = new byte[size];
             new Random().NextBytes(writeBuffer);
             ReadOnlyMemory<ReadOnlyMemory<byte>> sendBuffers = new ReadOnlyMemory<byte>[] { writeBuffer };
 
             string host = _ipv6 ? "\"::1\"" : "127.0.0.1";
-            string serverEndpoint = GetEndpoint(host, port: 0, _ipv6, client: false);
+            Endpoint serverEndpoint = GetEndpoint(host, port: 0, _ipv6, client: false);
 
-            using IListener<ISimpleNetworkConnection> listener =
+            var listenerList = new List<IListener<ISimpleNetworkConnection>>();
+            var serverConnectionList = new List<ISimpleNetworkConnection>();
+            var serverStreamList = new List<ISimpleStream>();
+
+            IListener<ISimpleNetworkConnection> listener =
                 _serverTransport.Listen(serverEndpoint, LogAttributeLoggerFactory.Instance);
+            listenerList.Add(listener);
 
-            ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
-            (ISimpleStream serverStream, _) = await serverConnection.ConnectAsync(default);
+            serverEndpoint.Port = listener.Endpoint.Port;
 
-            string clientEndpoint = GetEndpoint(host, port: listener.Endpoint.Port, _ipv6, client: true);
+            // We create serverCount servers all listening on the same endpoint (including same port)
+            for (int i = 0; i < serverCount; ++i)
+            {
+                if (i > 0)
+                {
+                    listener = _serverTransport.Listen(serverEndpoint, LogAttributeLoggerFactory.Instance);
+                }
+
+                ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
+                serverConnectionList.Add(serverConnection);
+
+                (ISimpleStream serverStream, _) = await serverConnection.ConnectAsync(default);
+                serverStreamList.Add(serverStream);
+            }
+
+            string clientEndpoint = GetEndpoint(host, port: serverEndpoint.Port, _ipv6, client: true);
 
             ISimpleNetworkConnection clientConnection =
                 _clientTransport.CreateConnection(clientEndpoint, LogAttributeLoggerFactory.Instance);
@@ -51,14 +72,17 @@ namespace IceRpc.Tests.Internal
                 try
                 {
                     using var source = new CancellationTokenSource(1000);
-                    ValueTask sendTask = clientStream.WriteAsync(sendBuffers, default);
+                    ValueTask writeTask = clientStream.WriteAsync(sendBuffers, default);
 
-                    Memory<byte> readBuffer = new byte[serverStream.DatagramMaxReceiveSize];
-                    int received = await serverStream.ReadAsync(readBuffer, source.Token);
-                    Assert.AreEqual(writeBuffer.Length, received);
-                    for (int i = 0; i < received; ++i)
+                    foreach (ISimpleStream serverStream in serverStreamList)
                     {
-                        Assert.AreEqual(writeBuffer[i], readBuffer.Span[i]);
+                        Memory<byte> readBuffer = new byte[serverStream.DatagramMaxReceiveSize];
+                        int received = await serverStream.ReadAsync(readBuffer, source.Token);
+                        Assert.AreEqual(writeBuffer.Length, received);
+                        for (int i = 0; i < received; ++i)
+                        {
+                            Assert.AreEqual(writeBuffer[i], readBuffer.Span[i]);
+                        }
                     }
                     break; // done
                 }
@@ -69,7 +93,9 @@ namespace IceRpc.Tests.Internal
             Assert.AreNotEqual(0, count);
 
             clientConnection.Close();
-            serverConnection.Close();
+
+            listenerList.ForEach(listener => listener.Dispose());
+            serverConnectionList.ForEach(serverConnection => serverConnection.Close());
         }
 
         private static string GetEndpoint(string host, int port, bool ipv6, bool client)
