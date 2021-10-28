@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
-using System.Net.Security;
-using System.Security.Authentication;
 
 namespace IceRpc.Transports.Internal
 {
@@ -27,20 +25,8 @@ namespace IceRpc.Transports.Internal
             ISimpleNetworkConnection decoratee,
             bool isServer,
             Endpoint endpoint,
-            ILogger logger)
-        {
-            if (decoratee is SocketNetworkConnection socketNetworkConnection)
-            {
-                return new LogSocketNetworkConnectionDecorator(socketNetworkConnection,
-                                                               isServer,
-                                                               endpoint,
-                                                               logger);
-            }
-            else
-            {
-                return new LogSimpleNetworkConnectionDecorator(decoratee, isServer, endpoint, logger);
-            }
-        }
+            ILogger logger) =>
+            new LogSimpleNetworkConnectionDecorator(decoratee, isServer, endpoint, logger);
 
         internal LogSimpleNetworkConnectionDecorator(
             ISimpleNetworkConnection decoratee,
@@ -79,51 +65,6 @@ namespace IceRpc.Transports.Internal
         {
             _parent = parent;
             _decoratee = decoratee;
-        }
-    }
-
-    internal class LogSocketNetworkConnectionDecorator : LogSimpleNetworkConnectionDecorator
-    {
-        private readonly SocketNetworkConnection _decoratee;
-
-        internal LogSocketNetworkConnectionDecorator(
-            SocketNetworkConnection decoratee,
-            bool isServer,
-            Endpoint endpoint,
-            ILogger logger) :
-            base(decoratee, isServer, endpoint, logger) => _decoratee = decoratee;
-
-        public override async Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel)
-        {
-            try
-            {
-                (ISimpleStream simpleStream, Information) = await base.ConnectAsync(cancel).ConfigureAwait(false);
-
-                if (_decoratee.NetworkSocket.SslStream is SslStream sslStream)
-                {
-                    Logger.LogTlsAuthenticationSucceeded(sslStream);
-                }
-                return (simpleStream, Information.Value);
-            }
-            catch (TransportException exception) when (exception.InnerException is AuthenticationException ex)
-            {
-                Logger.LogTlsAuthenticationFailed(ex);
-                throw;
-            }
-        }
-
-        private protected override void LogConnected()
-        {
-            using IDisposable? scope = Logger.StartConnectionScope(Information!.Value, IsServer);
-            Action<int, int> logSuccess = (IsServer, _decoratee.IsDatagram) switch
-            {
-                (false, false) => Logger.LogSocketNetworkConnectionEstablished,
-                (false, true) => Logger.LogSocketStartSendingDatagrams,
-                (true, false) => Logger.LogSocketNetworkConnectionAccepted,
-                (true, true) => Logger.LogSocketStartReceivingDatagrams
-            };
-            logSuccess(_decoratee.NetworkSocket.Socket.ReceiveBufferSize,
-                       _decoratee.NetworkSocket.Socket.SendBufferSize);
         }
     }
 }

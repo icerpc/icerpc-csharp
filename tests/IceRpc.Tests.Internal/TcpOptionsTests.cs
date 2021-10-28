@@ -2,24 +2,22 @@
 
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.Net;
 using System.Net.Sockets;
 
 namespace IceRpc.Tests.Internal
 {
+    [Parallelizable(scope: ParallelScope.All)]
     [TestFixture(AddressFamily.InterNetwork)]
-    [TestFixture(AddressFamily.InterNetwork)]
-    [TestFixture(AddressFamily.InterNetworkV6)]
     [TestFixture(AddressFamily.InterNetworkV6)]
     [Timeout(5000)]
-    public class TcpOptionsTests : NetworkSocketBaseTest
+    public class TcpOptionsTests
     {
         private readonly bool _isIPv6;
 
-        public TcpOptionsTests(AddressFamily addressFamily)
-            : base("tcp", tls: false, addressFamily) =>
-            _isIPv6 = addressFamily == AddressFamily.InterNetworkV6;
+        public TcpOptionsTests(AddressFamily addressFamily) => _isIPv6 = addressFamily == AddressFamily.InterNetworkV6;
 
         [TestCase(16 * 1024)]
         [TestCase(64 * 1024)]
@@ -27,40 +25,56 @@ namespace IceRpc.Tests.Internal
         [TestCase(384 * 1024)]
         public void TcpOptions_Client_BufferSize(int size)
         {
-            using IListener<ISimpleNetworkConnection> listener = CreateSimpleListener();
-            using NetworkSocket clientSocket = CreateClientSocket(
+            using IListener<ISimpleNetworkConnection> listener = CreateListener();
+
+            TcpClientNetworkConnection clientConnection = CreateClientConnection(
+                listener.Endpoint,
                 new TcpOptions
                 {
                     SendBufferSize = size,
                     ReceiveBufferSize = size
                 });
 
+            Socket socket = clientConnection.Socket;
+
             // The OS might allocate more space than the requested size.
-            Assert.That(clientSocket.Socket!.SendBufferSize, Is.GreaterThanOrEqualTo(size));
-            Assert.That(clientSocket.Socket!.ReceiveBufferSize, Is.GreaterThanOrEqualTo(size));
+            Assert.That(socket.SendBufferSize, Is.GreaterThanOrEqualTo(size));
+            Assert.That(socket.ReceiveBufferSize, Is.GreaterThanOrEqualTo(size));
 
             // But ensure it doesn't allocate too much as well
             if (OperatingSystem.IsLinux())
             {
                 // Linux allocates twice the size.
-                Assert.That(clientSocket.Socket!.SendBufferSize, Is.LessThanOrEqualTo(2.5 * size));
-                Assert.That(clientSocket.Socket!.ReceiveBufferSize, Is.LessThanOrEqualTo(2.5 * size));
+                Assert.That(socket.SendBufferSize, Is.LessThanOrEqualTo(2.5 * size));
+                Assert.That(socket.ReceiveBufferSize, Is.LessThanOrEqualTo(2.5 * size));
             }
             else
             {
                 // Windows typically allocates the requested size and macOS allocates a little more than the
                 // requested size.
-                Assert.That(clientSocket.Socket!.SendBufferSize, Is.LessThanOrEqualTo(1.5 * size));
-                Assert.That(clientSocket.Socket!.ReceiveBufferSize, Is.LessThanOrEqualTo(1.5 * size));
+                Assert.That(socket.SendBufferSize, Is.LessThanOrEqualTo(1.5 * size));
+                Assert.That(socket.ReceiveBufferSize, Is.LessThanOrEqualTo(1.5 * size));
             }
+
+            (clientConnection as INetworkConnection).Close();
         }
 
         [Test]
         public void TcpOptions_Client_IsIPv6Only()
         {
-            using IListener<ISimpleNetworkConnection> listener = CreateSimpleListener();
-            using NetworkSocket clientSocket = CreateClientSocket(new TcpOptions { IsIPv6Only = true });
-            Assert.That(clientSocket.Socket!.DualMode, Is.False);
+            using IListener<ISimpleNetworkConnection> listener = CreateListener();
+
+            TcpClientNetworkConnection clientConnection = CreateClientConnection(
+                listener.Endpoint,
+                new TcpOptions
+                {
+                    IsIPv6Only = true
+                });
+
+            Socket socket = clientConnection.Socket;
+
+            Assert.That(socket.DualMode, Is.False);
+            (clientConnection as INetworkConnection).Close();
         }
 
         [Test]
@@ -71,11 +85,20 @@ namespace IceRpc.Tests.Internal
             {
                 try
                 {
-                    using IListener<ISimpleNetworkConnection> listener = CreateSimpleListener();
+                    using IListener<ISimpleNetworkConnection> listener = CreateListener();
                     var localEndPoint = new IPEndPoint(_isIPv6 ? IPAddress.IPv6Loopback : IPAddress.Loopback, port++);
-                    using NetworkSocket clientSocket = CreateClientSocket(
-                        new TcpOptions { LocalEndPoint = localEndPoint });
-                    Assert.AreEqual(localEndPoint, clientSocket.Socket!.LocalEndPoint);
+
+                    TcpClientNetworkConnection clientConnection = CreateClientConnection(
+                        listener.Endpoint,
+                        new TcpOptions
+                        {
+                            LocalEndPoint = localEndPoint
+                        });
+
+                    Socket socket = clientConnection.Socket;
+
+                    Assert.AreEqual(localEndPoint, socket.LocalEndPoint);
+                    (clientConnection as INetworkConnection).Close();
                     break;
                 }
                 catch (TransportException)
@@ -91,41 +114,48 @@ namespace IceRpc.Tests.Internal
         [TestCase(384 * 1024)]
         public async Task TcpOptions_Server_BufferSizeAsync(int size)
         {
-            IListener<ISimpleNetworkConnection> listener = CreateSimpleListener(new TcpOptions
+            IListener<ISimpleNetworkConnection> listener = CreateListener(tcpOptions: new TcpOptions
             {
                 SendBufferSize = size,
                 ReceiveBufferSize = size
             });
-            ValueTask<NetworkSocket> acceptTask = CreateServerSocketAsync(listener);
-            using NetworkSocket clientSocket = CreateClientSocket();
-            ValueTask<Endpoint> connectTask = clientSocket.ConnectAsync(ClientEndpoint, default);
-            using NetworkSocket serverSocket = await acceptTask;
+
+            Task<TcpServerNetworkConnection> acceptTask = CreateServerConnection(listener);
+            TcpClientNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
+
+            _ = (clientConnection as ISimpleNetworkConnection).ConnectAsync(default);
+            TcpServerNetworkConnection serverConnection = await acceptTask;
+
+            Socket socket = serverConnection.Socket;
 
             // The OS might allocate more space than the requested size.
-            Assert.That(serverSocket.Socket!.SendBufferSize, Is.GreaterThanOrEqualTo(size));
-            Assert.That(serverSocket.Socket!.ReceiveBufferSize, Is.GreaterThanOrEqualTo(size));
+            Assert.That(socket.SendBufferSize, Is.GreaterThanOrEqualTo(size));
+            Assert.That(socket.ReceiveBufferSize, Is.GreaterThanOrEqualTo(size));
 
             // But ensure it doesn't allocate too much as well
             if (OperatingSystem.IsMacOS())
             {
                 // macOS Big Sur appears to have a low limit of a little more than 256KB for the receive buffer and
                 // 64KB for the send buffer.
-                Assert.That(serverSocket.Socket!.SendBufferSize,
+                Assert.That(socket.SendBufferSize,
                             Is.LessThanOrEqualTo(1.5 * Math.Max(size, 64 * 1024)));
-                Assert.That(serverSocket.Socket!.ReceiveBufferSize,
+                Assert.That(socket.ReceiveBufferSize,
                             Is.LessThanOrEqualTo(1.5 * Math.Max(size, 256 * 1024)));
             }
             else if (OperatingSystem.IsLinux())
             {
                 // Linux allocates twice the size
-                Assert.That(serverSocket.Socket!.SendBufferSize, Is.LessThanOrEqualTo(2.5 * size));
-                Assert.That(serverSocket.Socket!.ReceiveBufferSize, Is.LessThanOrEqualTo(2.5 * size));
+                Assert.That(socket.SendBufferSize, Is.LessThanOrEqualTo(2.5 * size));
+                Assert.That(socket.ReceiveBufferSize, Is.LessThanOrEqualTo(2.5 * size));
             }
             else
             {
-                Assert.That(serverSocket.Socket!.SendBufferSize, Is.LessThanOrEqualTo(1.5 * size));
-                Assert.That(serverSocket.Socket!.ReceiveBufferSize, Is.LessThanOrEqualTo(1.5 * size));
+                Assert.That(socket.SendBufferSize, Is.LessThanOrEqualTo(1.5 * size));
+                Assert.That(socket.ReceiveBufferSize, Is.LessThanOrEqualTo(1.5 * size));
             }
+
+            (clientConnection as INetworkConnection).Close();
+            (serverConnection as INetworkConnection).Close();
             listener.Dispose();
         }
 
@@ -136,19 +166,19 @@ namespace IceRpc.Tests.Internal
             if (_isIPv6)
             {
                 // Create a server endpoint for ::0 instead of loopback
-                Endpoint serverEndpoint = ServerEndpoint with { Host = "::0" };
 
                 using IListener<ISimpleNetworkConnection> listener =
-                    CreateSimpleListener(new TcpOptions() { IsIPv6Only = ipv6Only }, serverEndpoint);
+                    CreateListener(host: "[::0]",
+                                         new TcpOptions() { IsIPv6Only = ipv6Only });
 
-                ValueTask<NetworkSocket> acceptTask = CreateServerSocketAsync(listener);
+                Task<TcpServerNetworkConnection> acceptTask = CreateServerConnection(listener);
 
                 // Create a client endpoints that uses the 127.0.0.1 IPv4-mapped address
-                Endpoint clientEndpoint = ClientEndpoint with { Host = "::FFFF:127.0.0.1" };
+                Endpoint clientEndpoint = listener.Endpoint with { Host = "::FFFF:127.0.0.1" };
 
-                using NetworkSocket clientSocket = CreateClientSocket(endpoint: clientEndpoint);
+                TcpClientNetworkConnection clientConnection = CreateClientConnection(clientEndpoint);
 
-                ValueTask<Endpoint> connectTask = clientSocket.ConnectAsync(clientEndpoint, default);
+                var connectTask = (clientConnection as ISimpleNetworkConnection).ConnectAsync(default);
 
                 if (ipv6Only)
                 {
@@ -157,8 +187,8 @@ namespace IceRpc.Tests.Internal
                 }
                 else
                 {
-                    using NetworkSocket serverSocket = await acceptTask;
-                    ValueTask<Endpoint> task = serverSocket.ConnectAsync(serverEndpoint, default);
+                    TcpServerNetworkConnection serverConnection = await acceptTask;
+                    _ = await (serverConnection as ISimpleNetworkConnection).ConnectAsync(default);
 
                     // This should succeed, the server accepts IPv4 and IPv6 connections
                     Assert.DoesNotThrowAsync(async () => await connectTask);
@@ -169,24 +199,28 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task TcpOptions_Server_ListenerBackLog()
         {
-            IListener<ISimpleNetworkConnection> listener = CreateSimpleListener(new TcpOptions
+            IListener<ISimpleNetworkConnection> listener = CreateListener(tcpOptions: new TcpOptions
             {
                 ListenerBackLog = 18
             });
-            ValueTask<NetworkSocket> acceptTask = CreateServerSocketAsync(listener);
-            var connections = new List<NetworkSocket>();
+
+            Task<TcpServerNetworkConnection> acceptTask = CreateServerConnection(listener);
+
+            var connections = new List<TcpClientNetworkConnection>();
             while (true)
             {
                 using var source = new CancellationTokenSource(500);
-                NetworkSocket clientSocket = CreateClientSocket();
+
+                TcpClientNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
+
                 try
                 {
-                    await clientSocket.ConnectAsync(ClientEndpoint, source.Token);
-                    connections.Add(clientSocket);
+                    _ = await (clientConnection as ISimpleNetworkConnection).ConnectAsync(source.Token);
+                    connections.Add(clientConnection);
                 }
                 catch (OperationCanceledException)
                 {
-                    clientSocket.Dispose();
+                    ((INetworkConnection)clientConnection).Close();
                     break;
                 }
             }
@@ -196,18 +230,39 @@ namespace IceRpc.Tests.Internal
             Assert.That(connections.Count, Is.GreaterThanOrEqualTo(19));
             Assert.That(connections.Count, Is.LessThanOrEqualTo(25));
 
-            connections.ForEach(connection => connection.Dispose());
+            connections.ForEach(connection => (connection as INetworkConnection).Close());
             listener.Dispose();
         }
 
-        private NetworkSocket CreateClientSocket(TcpOptions? options = null, Endpoint? endpoint = null) =>
+        private static TcpClientNetworkConnection CreateClientConnection(
+            Endpoint endpoint,
+            TcpOptions? tcpOptions = null)
+        {
+            IClientTransport<ISimpleNetworkConnection> clientTransport =
+                new TcpClientTransport(tcpOptions ?? new TcpOptions(), null);
 
-            GetNetworkSocket(TestHelper.CreateSimpleClientTransport(
-                (endpoint ?? ClientEndpoint).Transport,
-                options).CreateConnection(endpoint ?? ClientEndpoint, LogAttributeLoggerFactory.Instance));
+            // We pass the null logger factory to avoid decoration of the resulting connection.
+            ISimpleNetworkConnection clientConnection =
+                clientTransport.CreateConnection(endpoint, NullLoggerFactory.Instance);
 
-        private static async ValueTask<NetworkSocket> CreateServerSocketAsync(
+            return (TcpClientNetworkConnection)clientConnection;
+        }
+
+        private static async Task<TcpServerNetworkConnection> CreateServerConnection(
             IListener<ISimpleNetworkConnection> listener) =>
-            GetNetworkSocket(await listener.AcceptAsync());
+                (TcpServerNetworkConnection)await listener.AcceptAsync();
+
+        private IListener<ISimpleNetworkConnection> CreateListener(
+            string? host = null,
+            TcpOptions? tcpOptions = null)
+        {
+            IServerTransport<ISimpleNetworkConnection> serverTransport =
+                new TcpServerTransport(tcpOptions ?? new TcpOptions(), null);
+            host ??= _isIPv6 ? "[::1]" : "127.0.0.1";
+            Endpoint endpoint = $"ice+tcp://{host}:0?tls=false";
+
+            // We pass the null logger factory to avoid decoration of the listener.
+            return serverTransport.Listen(endpoint, NullLoggerFactory.Instance);
+        }
     }
 }

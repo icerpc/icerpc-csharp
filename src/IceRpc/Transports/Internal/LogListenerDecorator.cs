@@ -38,6 +38,8 @@ namespace IceRpc.Transports.Internal
             }
         }
 
+        public override string? ToString() => _decoratee.ToString();
+
         internal LogListenerDecorator(
             IListener<T> decoratee,
             ILogger logger,

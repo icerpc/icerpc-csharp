@@ -30,14 +30,6 @@ namespace IceRpc.Transports
         ReceivedInvalidDatagram,
         /// <summary>The transport sent data.</summary>
         SentData,
-        /// <summary>The transport accepted a new socket connection.</summary>
-        SocketNetworkConnectionAccepted,
-        /// <summary>The socket connection connect operation succeed.</summary>
-        SocketNetworkConnectionEstablished,
-        /// <summary>The transport starts receiving datagram messages.</summary>
-        SocketStartReceivingDatagrams,
-        /// <summary>The transport starts sending datagram messages.</summary>
-        SocketStartSendingDatagrams,
         /// <summary>The transport starts accepting connections.</summary>
         StartAcceptingConnections,
         /// <summary>The transport starts receiving datagram messages.</summary>
@@ -51,6 +43,6 @@ namespace IceRpc.Transports
         /// <summary>The transport stops accepting connections.</summary>
         StopAcceptingConnections,
         /// <summary>The transport stops receiving datagram messages.</summary>
-        StopReceivingDatagrams
+        StopReceivingDatagrams,
     }
 }
