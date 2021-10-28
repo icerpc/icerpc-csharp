@@ -240,6 +240,8 @@ namespace IceRpc.Transports.Internal
         internal override Socket Socket { get; }
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
 
+        private readonly IPEndPoint? _multicastAddress;
+
         private readonly EndPoint _remoteAddress;
 
         public override void Close(Exception? exception) => Socket.Close();
@@ -295,7 +297,7 @@ namespace IceRpc.Transports.Internal
 
             string? multicastInterface = endpoint.ParseUdpParams().MulticastInterface;
 
-            IPEndPoint? multicastAddress = null;
+            _multicastAddress = null;
             Socket = new Socket(ipAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
 
             try
@@ -326,7 +328,7 @@ namespace IceRpc.Transports.Internal
                 var addr = new IPEndPoint(ipAddress, endpoint.Port);
                 if (IsMulticast(ipAddress))
                 {
-                    multicastAddress = addr;
+                    _multicastAddress = addr;
 
                     Socket.ExclusiveAddressUse = false;
                     Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
@@ -346,10 +348,10 @@ namespace IceRpc.Transports.Internal
 
                 int port = ((IPEndPoint)Socket.LocalEndPoint!).Port;
 
-                if (multicastAddress != null)
+                if (_multicastAddress != null)
                 {
-                    multicastAddress.Port = port;
-                    SetMulticastGroup(Socket, multicastInterface, multicastAddress.Address);
+                    _multicastAddress.Port = port;
+                    SetMulticastGroup(Socket, multicastInterface, _multicastAddress.Address);
                 }
 
                 LocalEndpoint = endpoint with { Port = checked((ushort)port) };
@@ -371,6 +373,10 @@ namespace IceRpc.Transports.Internal
         private protected override bool PrintMembers(StringBuilder builder)
         {
             builder.Append("LocalEndPoint = ").Append(Socket.LocalEndPoint);
+            if (_multicastAddress is IPEndPoint multicastAddress)
+            {
+                builder.Append(", MulticastAddress = ").Append(multicastAddress);
+            }
             return true;
         }
     }

@@ -35,14 +35,14 @@ namespace IceRpc.Tests.Internal
                 _serverTransport.Listen(serverEndpoint, LogAttributeLoggerFactory.Instance);
 
             ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
-            ISimpleStream serverStream = (await serverConnection.ConnectAsync(default)).Item1;
+            (ISimpleStream serverStream, _) = await serverConnection.ConnectAsync(default);
 
             string clientEndpoint = GetEndpoint(host, port: listener.Endpoint.Port, _ipv6, client: true);
 
             ISimpleNetworkConnection clientConnection =
                 _clientTransport.CreateConnection(clientEndpoint, LogAttributeLoggerFactory.Instance);
 
-            ISimpleStream clientStream = (await clientConnection.ConnectAsync(default)).Item1;
+            (ISimpleStream clientStream, _) = await clientConnection.ConnectAsync(default);
 
             // Datagrams aren't reliable, try up to 5 times in case a datagram is lost.
             int count = 5;

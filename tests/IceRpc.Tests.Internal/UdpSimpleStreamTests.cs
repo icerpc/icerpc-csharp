@@ -52,8 +52,8 @@ namespace IceRpc.Tests.Internal
             Task<(ISimpleStream, NetworkConnectionInformation)> serverConnectTask =
                 _serverConnection.ConnectAsync(default);
 
-            _serverStream = (await serverConnectTask).Item1;
-            _clientStream = (await connectTask).Item1;
+            (_serverStream, _) = await serverConnectTask;
+            (_clientStream, _) = await connectTask;
         }
 
         [OneTimeTearDown]
@@ -84,7 +84,8 @@ namespace IceRpc.Tests.Internal
                     _clientTransport.CreateConnection(_listener.Endpoint, LogAttributeLoggerFactory.Instance);
 
                 clientConnectionList.Add(clientConnection);
-                clientStreamList.Add((await clientConnection.ConnectAsync(default)).Item1);
+                (ISimpleStream clientStream, _) = await clientConnection.ConnectAsync(default);
+                clientStreamList.Add(clientStream);
             }
 
             // Datagrams aren't reliable, try up to 5 times in case the datagram is lost.

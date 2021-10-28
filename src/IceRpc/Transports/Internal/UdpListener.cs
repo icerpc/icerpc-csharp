@@ -23,7 +23,7 @@ namespace IceRpc.Transports.Internal
                 }
                 else
                 {
-                    // Wait indefinitely until Close is called
+                    // Wait indefinitely until Dispose is called
                     return await _acceptTask.Task.ConfigureAwait(false);
                 }
             }
@@ -42,14 +42,10 @@ namespace IceRpc.Transports.Internal
            _acceptTask.SetException(new ObjectDisposedException(nameof(UdpListener)));
         }
 
-        internal UdpListener(
-            Endpoint endpoint,
-            UdpOptions options,
-            Func<UdpServerNetworkConnection, ISimpleNetworkConnection> serverConnectionDecorator)
+        internal UdpListener(Endpoint endpoint, ISimpleNetworkConnection serverConnection)
         {
-            var serverConnection = new UdpServerNetworkConnection(endpoint, options);
-            Endpoint = serverConnection.LocalEndpoint;
-            _serverConnection = serverConnectionDecorator(serverConnection);
+            Endpoint = endpoint;
+            _serverConnection = serverConnection;
         }
     }
 }

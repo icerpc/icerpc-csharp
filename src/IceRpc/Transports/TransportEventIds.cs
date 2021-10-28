@@ -44,10 +44,5 @@ namespace IceRpc.Transports
         StopAcceptingConnections,
         /// <summary>The transport stops receiving datagram messages.</summary>
         StopReceivingDatagrams,
-
-        /// <summary>The UDP server starts receiving datagram messages.</summary>
-        UdpStartReceivingDatagrams,
-        /// <summary>The UDP connection starts sending datagram messages.</summary>
-        UdpStartSendingDatagrams,
     }
 }

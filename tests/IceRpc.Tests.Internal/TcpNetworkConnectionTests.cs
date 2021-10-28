@@ -101,7 +101,7 @@ namespace IceRpc.Tests.Internal
             Task<(ISimpleStream, NetworkConnectionInformation)> serverConnectTask =
                 serverConnection.ConnectAsync(default);
 
-            ISimpleStream clientStream = (await connectTask).Item1;
+            (ISimpleStream clientStream, _) = await connectTask;
 
             if (_tls == null)
             {
@@ -137,7 +137,7 @@ namespace IceRpc.Tests.Internal
             if (_tls == false)
             {
                 // Server side ConnectAsync is a no-op for non secure TCP connections so it won't throw.
-                ISimpleStream serverStream = (await serverConnection.ConnectAsync(default)).Item1;
+                (ISimpleStream serverStream, _) = await serverConnection.ConnectAsync(default);
                 testDelegate = async () => await serverStream.ReadAsync(new byte[1], default);
             }
             else

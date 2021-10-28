@@ -83,8 +83,8 @@ namespace IceRpc.Tests.Internal
             Task<(ISimpleStream, NetworkConnectionInformation)> serverConnectTask =
                 _serverConnection.ConnectAsync(default);
 
-            _serverStream = (await serverConnectTask).Item1;
-            _clientStream = (await connectTask).Item1;
+            (_serverStream, _) = await serverConnectTask;
+            (_clientStream, _) = await connectTask;
         }
 
         [TearDown]

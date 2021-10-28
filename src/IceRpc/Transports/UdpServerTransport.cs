@@ -25,13 +25,14 @@ namespace IceRpc.Transports
             // This is the composition root of the tcp server transport, where we install log decorators when logging
             // is enabled.
 
-            Func<UdpServerNetworkConnection, ISimpleNetworkConnection> serverConnectionDecorator =
+            var udpServerConnection = new UdpServerNetworkConnection(endpoint, _options);
+
+            ISimpleNetworkConnection serverConnection =
                 loggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger &&
                     logger.IsEnabled(UdpLoggerExtensions.MaxLogLevel) ?
-                        connection => new LogUdpNetworkConnectionDecorator(connection, logger) :
-                            connection => connection;
+                        new LogUdpNetworkConnectionDecorator(udpServerConnection, logger) : udpServerConnection;
 
-            return new UdpListener(endpoint, _options, serverConnectionDecorator);
+            return new UdpListener(udpServerConnection.LocalEndpoint, serverConnection);
         }
     }
 }
