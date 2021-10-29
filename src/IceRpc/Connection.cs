@@ -219,12 +219,10 @@ namespace IceRpc
                 _networkConnection = networkConnection;
                 _state = ConnectionState.Connecting;
 
-                ILogger logger = LoggerFactory.CreateLogger("IceRpc.Transports");
-                bool logEnabled = logger.IsEnabled(LogLevel.Error); // TODO: log level
-
                 EventHandler<ClosedEventArgs>? closedEventHandler = null;
 
-                if (logEnabled)
+                if (LoggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger &&
+                    logger.IsEnabled(LogLevel.Error)) // TODO: log level
                 {
                     networkConnection = logDecoratorFactory(networkConnection,
                                                             isServer: false,
@@ -455,8 +453,8 @@ namespace IceRpc
         /// <param name="networkConnection">The underlying network connection.</param>
         /// <param name="protocolConnectionFactory">A factory function that creates a protocol connection from a
         /// a network connection.</param>
-        /// <param name="closedEventHandler">An event handler added to the connection once the connection is active.
-        /// </param>
+        /// <param name="closedEventHandler">A closed event handler added to the connection once the connection is
+        /// active.</param>
         internal async Task ConnectAsync<T>(
             T networkConnection,
             ProtocolConnectionFactory<T> protocolConnectionFactory,
