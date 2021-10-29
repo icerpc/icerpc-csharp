@@ -22,8 +22,6 @@ namespace IceRpc.Transports.Internal
 
         private protected abstract INetworkConnection Decoratee { get; }
 
-        private protected bool IsDatagram { get; set; }
-
         private protected bool IsServer { get; }
         private protected ILogger Logger { get; }
 
@@ -31,6 +29,8 @@ namespace IceRpc.Transports.Internal
 
         public void Close(Exception? exception)
         {
+            // TODO: see other PR
+            /*
             if (Information == null)
             {
                 using IDisposable? scope = Logger.StartConnectionScope(_endpoint, IsServer);
@@ -58,6 +58,7 @@ namespace IceRpc.Transports.Internal
                     Logger.LogConnectionClosed(exception?.Message ?? "graceful close");
                 }
             }
+            */
             Decoratee.Close(exception);
         }
 
@@ -114,8 +115,10 @@ namespace IceRpc.Transports.Internal
             Logger.LogSentData(size, sb.ToString().Trim());
         }
 
-        private protected void LogConnected()
+        private protected static void LogConnected()
         {
+            // TODO: see other PR
+            /*
             using IDisposable? scope = Logger.StartConnectionScope(Information!.Value, IsServer);
             Action logSuccess = (IsServer, IsDatagram) switch
             {
@@ -125,6 +128,7 @@ namespace IceRpc.Transports.Internal
                 (true, true) => Logger.LogStartReceivingDatagrams
             };
             logSuccess();
+            */
         }
     }
 }

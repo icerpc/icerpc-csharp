@@ -370,7 +370,14 @@ namespace IceRpc
             (ISimpleStream simpleStream, NetworkConnectionInformation connectionInfo) =
                 await networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
 
-            var protocolConnection = new Ice1ProtocolConnection(simpleStream, incomingFrameMaxSize);
+            // Check if we're using the special udp transport for ice1
+            bool isUdp = connectionInfo.LocalEndpoint.Transport == TransportNames.Udp;
+            if (isUdp)
+            {
+                incomingFrameMaxSize = Math.Min(incomingFrameMaxSize, UdpUtils.MaxPacketSize);
+            }
+
+            var protocolConnection = new Ice1ProtocolConnection(simpleStream, incomingFrameMaxSize, isUdp);
             try
             {
                 await protocolConnection.InitializeAsync(isServer, cancel).ConfigureAwait(false);

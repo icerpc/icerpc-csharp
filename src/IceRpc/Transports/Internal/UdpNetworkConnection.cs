@@ -47,9 +47,6 @@ namespace IceRpc.Transports.Internal
 
     internal class UdpClientNetworkConnection : UdpNetworkConnection, ISimpleStream
     {
-        public int DatagramMaxReceiveSize { get; }
-        bool ISimpleStream.IsDatagram => true;
-
         public override TimeSpan LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
 
         internal override Socket Socket { get; }
@@ -216,8 +213,6 @@ namespace IceRpc.Transports.Internal
                 Socket.Dispose();
                 throw new TransportException(ex);
             }
-
-            DatagramMaxReceiveSize = Math.Min(MaxPacketSize, Socket.ReceiveBufferSize - UdpOverhead);
         }
 
         private protected override bool PrintMembers(StringBuilder builder)
@@ -228,11 +223,8 @@ namespace IceRpc.Transports.Internal
         }
     }
 
-     internal class UdpServerNetworkConnection : UdpNetworkConnection, ISimpleStream
+    internal class UdpServerNetworkConnection : UdpNetworkConnection, ISimpleStream
     {
-        public int DatagramMaxReceiveSize { get; }
-        bool ISimpleStream.IsDatagram => true;
-
         public override TimeSpan LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
 
         internal Endpoint LocalEndpoint { get; }
@@ -366,8 +358,6 @@ namespace IceRpc.Transports.Internal
                 Socket.Dispose();
                 throw;
             }
-
-            DatagramMaxReceiveSize = Math.Min(MaxPacketSize, Socket.ReceiveBufferSize - UdpOverhead);
         }
 
         private protected override bool PrintMembers(StringBuilder builder)

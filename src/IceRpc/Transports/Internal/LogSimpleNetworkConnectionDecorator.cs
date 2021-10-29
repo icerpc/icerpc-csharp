@@ -15,7 +15,6 @@ namespace IceRpc.Transports.Internal
             ISimpleStream simpleStream;
             (simpleStream, Information) = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
             simpleStream = new LogSimpleStreamDecorator(this, simpleStream);
-            IsDatagram = simpleStream.IsDatagram;
 
             LogConnected();
             return (simpleStream, Information.Value);
@@ -38,9 +37,6 @@ namespace IceRpc.Transports.Internal
 
     internal sealed class LogSimpleStreamDecorator : ISimpleStream
     {
-        public int DatagramMaxReceiveSize => _decoratee.DatagramMaxReceiveSize;
-        public bool IsDatagram => _decoratee.IsDatagram;
-
         private readonly ISimpleStream _decoratee;
         private readonly LogNetworkConnectionDecorator _parent;
 

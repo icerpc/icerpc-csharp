@@ -9,10 +9,6 @@ namespace IceRpc.Transports.Internal
     /// copies the send buffer into the receive buffer.</summary>
     internal class ColocNetworkConnection : ISimpleNetworkConnection, ISimpleStream
     {
-        int ISimpleStream.DatagramMaxReceiveSize => throw new InvalidOperationException();
-
-        bool ISimpleStream.IsDatagram => false;
-
         bool INetworkConnection.IsSecure => true;
 
         TimeSpan INetworkConnection.LastActivity => TimeSpan.Zero;
