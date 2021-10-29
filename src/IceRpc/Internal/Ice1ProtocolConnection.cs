@@ -45,7 +45,6 @@ namespace IceRpc.Internal
         private readonly HashSet<IncomingRequest> _dispatches = new();
         private readonly int _incomingFrameMaxSize;
         private readonly Dictionary<int, OutgoingRequest> _invocations = new();
-
         private readonly bool _isUdp;
         private readonly ILogger _logger;
         private readonly object _mutex = new();
@@ -316,7 +315,7 @@ namespace IceRpc.Internal
             }
             else if (_isUdp && !request.IsOneway)
             {
-                throw new InvalidOperationException("cannot send twoway request over datagram connection");
+                throw new InvalidOperationException("cannot send twoway request over UDP");
             }
 
             // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue to
