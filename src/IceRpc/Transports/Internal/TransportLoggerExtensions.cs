@@ -18,6 +18,13 @@ namespace IceRpc.Transports.Internal
             LoggerMessage.DefineScope<long, string, string>("stream(ID={ID}, InitiatedBy={InitiatedBy}, Kind={Kind})");
 
         [LoggerMessage(
+            EventId = (int)TransportEventIds.ClientConnectionClosed,
+            EventName = nameof(TransportEventIds.ClientConnectionClosed),
+            Level = LogLevel.Debug,
+            Message = "closed client connection")]
+        internal static partial void LogClientConnectionClosed(this ILogger logger);
+
+        [LoggerMessage(
             EventId = (int)TransportEventIds.ConnectionAccepted,
             EventName = nameof(TransportEventIds.ConnectionAccepted),
             Level = LogLevel.Debug,
@@ -32,11 +39,11 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogConnectionAcceptFailed(this ILogger logger, Exception? exception);
 
         [LoggerMessage(
-            EventId = (int)TransportEventIds.ConnectionClosed,
-            EventName = nameof(TransportEventIds.ConnectionClosed),
+            EventId = (int)TransportEventIds.ConnectionClosedReason,
+            EventName = nameof(TransportEventIds.ConnectionClosedReason),
             Level = LogLevel.Debug,
-            Message = "closed connection")]
-        internal static partial void LogConnectionClosed(this ILogger logger);
+            Message = "connection closed due to exception")]
+        internal static partial void LogConnectionClosedReason(this ILogger logger, Exception exception);
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.ConnectionConnectFailed,
@@ -103,6 +110,13 @@ namespace IceRpc.Transports.Internal
             Level = LogLevel.Trace,
             Message = "sent {Size} bytes ({Data})")]
         internal static partial void LogSentData(this ILogger logger, int size, string data);
+
+        [LoggerMessage(
+            EventId = (int)TransportEventIds.ServerConnectionClosed,
+            EventName = nameof(TransportEventIds.ServerConnectionClosed),
+            Level = LogLevel.Debug,
+            Message = "closed server connection")]
+        internal static partial void LogServerConnectionClosed(this ILogger logger);
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.StartReceivingDatagrams,

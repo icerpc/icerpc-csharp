@@ -17,8 +17,16 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel)
         {
             IMultiplexedStreamFactory multiplexedStreamFactory;
-            (multiplexedStreamFactory, Information) = await _decoratee.ConnectAsync(
-                cancel).ConfigureAwait(false);
+            try
+            {
+                (multiplexedStreamFactory, Information) = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                LogConnectFailed(ex);
+                throw;
+            }
+
             multiplexedStreamFactory = new LogMultiplexedStreamFactoryDecorator(this, multiplexedStreamFactory);
             LogConnected();
             return (multiplexedStreamFactory, Information.Value);

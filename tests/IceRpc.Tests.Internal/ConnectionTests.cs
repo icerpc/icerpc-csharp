@@ -84,15 +84,12 @@ namespace IceRpc.Tests.Internal
 
                 async Task<(Connection, Connection)> PerformAcceptAndConnectAsync<T>(
                     IServerTransport<T> serverTransport,
-                    ProtocolConnectionFactory<T> protocolConnectionFactory
-                ) where T : INetworkConnection
+                    ProtocolConnectionFactory<T> protocolConnectionFactory) where T : INetworkConnection
                 {
                     using IListener<T> listener =
                         serverTransport.Listen(Endpoint, LogAttributeLoggerFactory.Instance);
-                    #pragma warning disable CA2000
                     Task<Connection> serverTask = AcceptAsync(listener, protocolConnectionFactory);
                     Task<Connection> clientTask = ConnectAsync(listener.Endpoint);
-                    #pragma warning restore CA2000
                     return (await serverTask, await clientTask);
                 }
 
@@ -107,7 +104,9 @@ namespace IceRpc.Tests.Internal
                         Dispatcher = _dispatcher,
                         Options = _serverConnectionOptions
                     };
-                    await connection.ConnectAsync<T>(networkConnection, protocolConnectionFactory);
+                    await connection.ConnectAsync<T>(networkConnection,
+                                                     protocolConnectionFactory,
+                                                     closedEventHandler: null);
                     return connection;
                 }
 
