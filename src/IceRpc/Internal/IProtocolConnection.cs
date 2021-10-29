@@ -8,17 +8,17 @@ namespace IceRpc.Internal
     /// or Ice2 protocol.</summary>
     internal interface IProtocolConnection : IDisposable
     {
-        /// <summary>Returns <c>true</c> if one or more dispatch are in progress, <c>false</c>
+        /// <summary>Returns <c>true</c> if one or more dispatches are in progress, <c>false</c>
         /// otherwise.</summary>
-        bool HasDispatchInProgress { get; }
+        bool HasDispatchesInProgress { get; }
 
         /// <summary>Returns <c>true</c> if one or more invocations are in progress, <c>false</c>
         /// otherwise.</summary>
         bool HasInvocationsInProgress { get; }
 
-        /// <summary>Cancel the pending invocations and dispatch. This is called when the application cancels the <see
-        /// cref="Connection.ShutdownAsync(string, CancellationToken)"/> call to speed up the shutdown.</summary>
-        void CancelInvocationsAndDispatch();
+        /// <summary>Cancels all pending invocations and dispatches. This is called when the application cancels the
+        /// <see cref="Connection.ShutdownAsync(string, CancellationToken)"/> call to speed up the shutdown.</summary>
+        void CancelInvocationsAndDispatches();
 
         /// <summary>Sends a ping frame to defer the idle timeout.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
@@ -60,9 +60,8 @@ namespace IceRpc.Internal
 
     /// <summary>Creates a protocol connection from a network connection.</summary>
     internal delegate Task<(IProtocolConnection, NetworkConnectionInformation)> ProtocolConnectionFactory<T>(
-            T networkConnection,
-            int incomingFrameMaxSize,
-            bool isServer,
-            CancellationToken cancel
-        );
+        T networkConnection,
+        int incomingFrameMaxSize,
+        bool isServer,
+        CancellationToken cancel);
 }

@@ -10,6 +10,11 @@ namespace IceRpc.Transports.Internal
 {
     internal static class UdpUtils
     {
+        // The maximum IP datagram size is 65535. Subtract 20 bytes for the IP header and 8 bytes for the UDP header
+        // to get the maximum payload.
+        internal const int MaxPacketSize = 65535 - UdpOverhead;
+        internal const int UdpOverhead = 20 + 8;
+
         internal static IPAddress GetIPv4InterfaceAddress(string @interface)
         {
             // The @interface parameter must either be an IP address, an index or the name of an interface. If it's an

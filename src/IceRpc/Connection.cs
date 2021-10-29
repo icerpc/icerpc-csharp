@@ -220,7 +220,18 @@ namespace IceRpc
                                                             RemoteEndpoint,
                                                             logger);
 
-                    // TODO: decorate protocol connections created by protocol connection factory
+                    ProtocolConnectionFactory<T> createProtocolConnectionAsync = protocolConnectionFactory;
+
+                    protocolConnectionFactory = async (networkConnection, incomingFrameMaxSize, isServer, cancel) =>
+                    {
+                        (IProtocolConnection protocolConnection, NetworkConnectionInformation connectionInformation) =
+                            await createProtocolConnectionAsync(networkConnection,
+                                                                incomingFrameMaxSize,
+                                                                isServer,
+                                                                cancel).ConfigureAwait(false);
+
+                        return (new LogProtocolConnectionDecorator(protocolConnection, logger), connectionInformation);
+                    };
                 }
 
                 return ConnectAsync(networkConnection, protocolConnectionFactory);
@@ -470,7 +481,7 @@ namespace IceRpc
                     }
                 }
                 else if (idleTime > NetworkConnectionInformation.Value.IdleTimeout / 4 &&
-                         (Options.KeepAlive || _protocolConnection.HasDispatchInProgress))
+                         (Options.KeepAlive || _protocolConnection.HasDispatchesInProgress))
                 {
                     // We send a ping if there was no activity in the last (IdleTimeout / 4) period. Sending a
                     // ping sooner than really needed is safer to ensure that the receiver will receive the
@@ -633,7 +644,7 @@ namespace IceRpc
             catch (OperationCanceledException) when (cancel.IsCancellationRequested)
             {
                 // Cancel pending invocations and dispatch to speed up the shutdown.
-                _protocolConnection?.CancelInvocationsAndDispatch();
+                _protocolConnection?.CancelInvocationsAndDispatches();
             }
 
             await shutdownTask.ConfigureAwait(false);

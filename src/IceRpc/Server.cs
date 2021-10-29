@@ -139,11 +139,22 @@ namespace IceRpc
                 {
                     listener = new LogListenerDecorator<T>(listener, logger, logDecoratorFactory);
 
-                    // TODO: install log decorator for protocol connections created by protocol connection factory
+                    ProtocolConnectionFactory<T> createProtocolConnectionAsync = protocolConnectionFactory;
+
+                    protocolConnectionFactory = async (networkConnection, incomingFrameMaxSize, isServer, cancel) =>
+                    {
+                        (IProtocolConnection protocolConnection, NetworkConnectionInformation connectionInformation) =
+                            await createProtocolConnectionAsync(networkConnection,
+                                                                incomingFrameMaxSize,
+                                                                isServer,
+                                                                cancel).ConfigureAwait(false);
+
+                        return (new LogProtocolConnectionDecorator(protocolConnection, logger), connectionInformation);
+                    };
                 }
 
                 // Run task to start accepting new connections.
-                Task.Run(() => AcceptAsync(listener, protocolConnectionFactory));
+                _ = Task.Run(() => AcceptAsync(listener, protocolConnectionFactory));
 
                 _listening = true;
             }

@@ -11,13 +11,13 @@ namespace IceRpc.Internal
     internal sealed class Ice2ProtocolConnection : IProtocolConnection
     {
         /// <inheritdoc/>
-        public bool HasDispatchInProgress
+        public bool HasDispatchesInProgress
         {
             get
             {
                 lock (_mutex)
                 {
-                    return _dispatch.Count > 0;
+                    return _dispatches.Count > 0;
                 }
             }
         }
@@ -34,10 +34,10 @@ namespace IceRpc.Internal
             }
         }
 
-        private readonly TaskCompletionSource _dispatchAndInvocationsCompleted =
+        private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private IMultiplexedStream? _controlStream;
-        private readonly HashSet<IncomingRequest> _dispatch = new();
+        private readonly HashSet<IncomingRequest> _dispatches = new();
         private readonly int _incomingFrameMaxSize;
         private readonly HashSet<OutgoingRequest> _invocations = new();
         private long _lastRemoteBidirectionalStreamId = -1;
@@ -48,30 +48,30 @@ namespace IceRpc.Internal
         private int? _peerIncomingFrameMaxSize;
         private IMultiplexedStream? _remoteControlStream;
         private bool _shutdown;
-        private bool _cancelInvocationsAndDispatch;
+        private bool _cancelInvocationsAndDispatches;
         private readonly IMultiplexedStreamFactory _streamFactory;
 
         /// <inheritdoc/>
-        public void CancelInvocationsAndDispatch()
+        public void CancelInvocationsAndDispatches()
         {
             IEnumerable<OutgoingRequest> invocations = Enumerable.Empty<OutgoingRequest>();
-            IEnumerable<IncomingRequest> dispatch = Enumerable.Empty<IncomingRequest>();
+            IEnumerable<IncomingRequest> dispatches = Enumerable.Empty<IncomingRequest>();
 
             lock (_mutex)
             {
-                _cancelInvocationsAndDispatch = true;
+                _cancelInvocationsAndDispatches = true;
 
                 // If shutdown wasn't called yet, delay the cancellation until ShutdownAsync is called (this can occur
                 // if the application cancels ShutdownAsync immediately or before ShutdownAsync is called on the
-                // protocol connection). Otherwise, cancel the dispatch and invocations now.
+                // protocol connection). Otherwise, cancel the dispatches and invocations now.
                 if (_shutdown)
                 {
                     invocations = _invocations.ToArray();
-                    dispatch = _dispatch.ToArray();
+                    dispatches = _dispatches.ToArray();
                 }
             }
 
-            foreach (IncomingRequest request in dispatch)
+            foreach (IncomingRequest request in dispatches)
             {
                 try
                 {
@@ -79,7 +79,7 @@ namespace IceRpc.Internal
                 }
                 catch (ObjectDisposedException)
                 {
-                    // Ignore the dispatch completed concurrently.
+                    // Ignore, the dispatch completed concurrently.
                 }
             }
             foreach (OutgoingRequest request in invocations)
@@ -185,7 +185,7 @@ namespace IceRpc.Internal
                     // connection is closed.
                     if (!_shutdown)
                     {
-                        _dispatch.Add(request);
+                        _dispatches.Add(request);
                         request.CancelDispatchSource = new();
 
                         if (stream.IsBidirectional)
@@ -204,12 +204,12 @@ namespace IceRpc.Internal
 
                                 lock (_mutex)
                                 {
-                                    _dispatch.Remove(request);
+                                    _dispatches.Remove(request);
 
-                                    // If no more invocations or dispatch and shutting down, shutdown can complete.
-                                    if (_shutdown && _invocations.Count == 0 && _dispatch.Count == 0)
+                                    // If no more invocations or dispatches and shutting down, shutdown can complete.
+                                    if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
                                     {
-                                        _dispatchAndInvocationsCompleted.SetResult();
+                                        _dispatchesAndInvocationsCompleted.SetResult();
                                     }
                                 }
                             };
@@ -335,10 +335,10 @@ namespace IceRpc.Internal
                             {
                                 _invocations.Remove(request);
 
-                                // If no more invocations or dispatch and shutting down, shutdown can complete.
-                                if (_shutdown && _invocations.Count == 0 && _dispatch.Count == 0)
+                                // If no more invocations or dispatches and shutting down, shutdown can complete.
+                                if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
                                 {
-                                    _dispatchAndInvocationsCompleted.SetResult();
+                                    _dispatchesAndInvocationsCompleted.SetResult();
                                 }
                             }
                         };
@@ -507,7 +507,7 @@ namespace IceRpc.Internal
         public async Task ShutdownAsync(bool shutdownByPeer, string message, CancellationToken cancel)
         {
             IEnumerable<OutgoingRequest> invocations = Enumerable.Empty<OutgoingRequest>();
-            IEnumerable<IncomingRequest> dispatch = Enumerable.Empty<IncomingRequest>();
+            IEnumerable<IncomingRequest> dispatches = Enumerable.Empty<IncomingRequest>();
             bool alreadyShuttingDown = false;
 
             lock (_mutex)
@@ -522,21 +522,21 @@ namespace IceRpc.Internal
                     _shutdown = true;
                     // _streamFactory.Shutdown();
 
-                    if (_invocations.Count == 0 && _dispatch.Count == 0)
+                    if (_invocations.Count == 0 && _dispatches.Count == 0)
                     {
-                        _dispatchAndInvocationsCompleted.SetResult();
+                        _dispatchesAndInvocationsCompleted.SetResult();
                     }
                 }
 
-                if (_cancelInvocationsAndDispatch)
+                if (_cancelInvocationsAndDispatches)
                 {
                     if (_invocations.Count > 0)
                     {
                         invocations = _invocations.ToArray();
                     }
-                    if (_dispatch.Count > 0)
+                    if (_dispatches.Count > 0)
                     {
-                        dispatch = _dispatch.ToArray();
+                        dispatches = _dispatches.ToArray();
                     }
                 }
                 else if (shutdownByPeer)
@@ -551,7 +551,7 @@ namespace IceRpc.Internal
                 }
             }
 
-            foreach (IncomingRequest request in dispatch)
+            foreach (IncomingRequest request in dispatches)
             {
                 try
                 {
@@ -559,12 +559,12 @@ namespace IceRpc.Internal
                 }
                 catch (ObjectDisposedException)
                 {
-                    // Ignore the dispatch completed concurrently.
+                    // Ignore, the dispatch completed concurrently.
                 }
             }
             foreach (OutgoingRequest request in invocations)
             {
-                request.Stream!.Abort(_cancelInvocationsAndDispatch ?
+                request.Stream!.Abort(_cancelInvocationsAndDispatches ?
                     StreamError.ConnectionShutdown :
                     StreamError.ConnectionShutdownByPeer);
             }
@@ -582,7 +582,7 @@ namespace IceRpc.Internal
             }
 
             // Wait for dispatch and invocations to complete.
-            await _dispatchAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
+            await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
 
             if (!alreadyShuttingDown)
             {
@@ -607,7 +607,7 @@ namespace IceRpc.Internal
             var goAwayFrame = new Ice2GoAwayBody(new Ice20Decoder(buffer));
             _lastRemoteDispatchLocalStreamIds =
                 (goAwayFrame.LastBidirectionalStreamId,
-                goAwayFrame.LastUnidirectionalStreamId);
+                 goAwayFrame.LastUnidirectionalStreamId);
 
             return goAwayFrame.Message;
         }
