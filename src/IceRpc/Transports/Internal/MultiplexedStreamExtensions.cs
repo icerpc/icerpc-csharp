@@ -9,6 +9,8 @@ namespace IceRpc.Transports.Internal
         /// <param name="errorCode">The reason of the abort.</param>
         internal static void Abort(this IMultiplexedStream stream, StreamError errorCode)
         {
+            // TODO: XXX: Aborting both read/write triggers the sending of two frames: StopSending frame for AbortRead
+            // and Reset frame for AbortWrite
             stream.AbortRead(errorCode);
             stream.AbortWrite(errorCode);
         }

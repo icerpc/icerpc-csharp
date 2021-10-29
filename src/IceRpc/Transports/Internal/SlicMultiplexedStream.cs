@@ -17,21 +17,25 @@ namespace IceRpc.Transports.Internal
         {
             get
             {
-                if (_id == -1)
+                long id = Thread.VolatileRead(ref _id);
+                if (id == -1)
                 {
                     throw new InvalidOperationException("stream ID isn't allocated yet");
                 }
-                return _id;
+                return id;
             }
             set
             {
                 Debug.Assert(_id == -1);
-                _id = value;
+                Thread.VolatileWrite(ref _id, value);
             }
         }
 
         /// <inheritdoc/>
         public bool IsBidirectional { get; }
+
+        /// <inheritdoc/>
+        public bool IsStarted => Thread.VolatileRead(ref _id) != -1;
 
         /// <inheritdoc/>
         public Action? ShutdownAction
@@ -86,7 +90,6 @@ namespace IceRpc.Transports.Internal
         public ReadOnlyMemory<byte> TransportHeader => SlicDefinitions.FrameHeader;
 
         internal bool IsRemote => _id != -1 && _id % 2 == (_streamFactory.IsServer ? 0 : 1);
-        internal bool IsStarted => _id != -1;
         internal bool WritesCompleted => ((State)Thread.VolatileRead(ref _state)).HasFlag(State.WriteCompleted);
 
         private bool IsShutdown =>
@@ -206,10 +209,7 @@ namespace IceRpc.Transports.Internal
 
                 if (_receivedSize == 0)
                 {
-                    if (!_receivedEndStream)
-                    {
-                        throw new InvalidDataException("invalid stream frame, received 0 bytes without end of stream");
-                    }
+                    Debug.Assert(_receivedEndStream);
                     TrySetReadCompleted();
                     return 0;
                 }
@@ -474,6 +474,10 @@ namespace IceRpc.Transports.Internal
             if (!IsBidirectional && !IsRemote && (size > 0 || !endStream))
             {
                 throw new InvalidDataException($"received stream frame on local unidirectional stream");
+            }
+            else if (size == 0 && !endStream)
+            {
+                throw new InvalidDataException("invalid stream frame, received 0 bytes without end of stream");
             }
 
             // Read and append the received data into the circular buffer.

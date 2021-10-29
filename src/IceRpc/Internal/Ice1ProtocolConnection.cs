@@ -14,13 +14,13 @@ namespace IceRpc.Internal
     internal sealed class Ice1ProtocolConnection : IProtocolConnection
     {
         /// <inheritdoc/>
-        public bool HasDispatchInProgress
+        public bool HasDispatchesInProgress
         {
             get
             {
                 lock (_mutex)
                 {
-                    return _dispatch.Count > 0;
+                    return _dispatches.Count > 0;
                 }
             }
         }
@@ -39,11 +39,10 @@ namespace IceRpc.Internal
 
         // TODO: XXX, add back configuration to limit the number of concurrent dispatch.
         // private readonly AsyncSemaphore? _bidirectionalStreamSemaphore;
-        private readonly TaskCompletionSource _cancelShutdown =
-            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private bool _cancelDispatches;
         private readonly TaskCompletionSource _dispatchAndInvocationsCompleted =
             new (TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly HashSet<IncomingRequest> _dispatch = new();
+        private readonly HashSet<IncomingRequest> _dispatches = new();
         private readonly int _incomingFrameMaxSize;
         private readonly Dictionary<int, OutgoingRequest> _invocations = new();
         private readonly ILogger _logger;
@@ -59,35 +58,83 @@ namespace IceRpc.Internal
         private bool _shutdown;
 
         /// <inheritdoc/>
-        public void CancelInvocationsAndDispatches() =>
-            // Notify the task completion source that shutdown was canceled. PerformShutdownAsync will
-            // cancel the dispatch. We can't cancel the dispatch until ShutdownAsync is called.
-            _cancelShutdown.TrySetResult();
+        public void CancelInvocationsAndDispatches()
+        {
+            // We don't need to cancel invocations with Ice1 since invocations are always canceled immediately
+            // when ShutdownAsync is called.
+
+            IEnumerable<IncomingRequest> dispatches = Enumerable.Empty<IncomingRequest>();
+
+            lock (_mutex)
+            {
+                _cancelDispatches = true;
+
+                // If shutdown wasn't called yet, delay the cancellation of the dispatches until ShutdownAsync is called
+                // (this can occur if the application cancels ShutdownAsync immediately or before ShutdownAsync is
+                // called on the protocol connection).
+                if (_shutdown)
+                {
+                    dispatches = _dispatches.ToArray();
+                }
+            }
+
+            foreach (IncomingRequest request in dispatches)
+            {
+                try
+                {
+                    request.CancelDispatchSource!.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Ignore, the dispatch completed concurrently.
+                }
+            }
+        }
 
         /// <inheritdoc/>
         public void Dispose()
         {
+            // The connection is disposed, if there's sill pending invocations, they will raise ConnectionLostException.
+            var exception = new ConnectionLostException();
+
+            IEnumerable<IncomingRequest> dispatches = Enumerable.Empty<IncomingRequest>();
+            IEnumerable<OutgoingRequest> invocations = Enumerable.Empty<OutgoingRequest>();
+
             lock (_mutex)
             {
+                // Unblock ShutdownAsync which might be waiting to the connection to be disposed.
                 _pendingClose.TrySetResult();
-                _cancelShutdown.TrySetResult();
-                var exception = new ConnectionLostException();
+
+                // Unblock WaitForShutdownAsync which is waiting to receive the CloseConnection frame.
+                _pendingCloseConnectionFrameReceive.TrySetResult();
+
+                // Unblock invocations which are waiting to be sent.
                 _sendSemaphore.Complete(exception);
-                _pendingCloseConnectionFrameReceive.TrySetException(exception);
-                if (_invocations.Count > 0 || _dispatch.Count > 0)
+
+                // Cancel remaining pending invocations and dispatch.
+                if (_invocations.Count > 0)
                 {
-                    foreach (OutgoingRequest request in _invocations.Values)
-                    {
-                        request.Features.Get<Ice1Request>()?.ResponseCompletionSource?.TrySetException(exception);
-                    }
-                    _invocations.Clear();
-                    foreach (IncomingRequest request in _dispatch)
-                    {
-                        request.CancelDispatchSource!.Cancel();
-                        request.CancelDispatchSource!.Dispose();
-                    }
-                    _dispatch.Clear();
-                    _dispatchAndInvocationsCompleted.SetResult();
+                    invocations = _invocations.Values.ToArray();
+                }
+                if (_dispatches.Count > 0)
+                {
+                    dispatches = _dispatches.ToArray();
+                }
+            }
+
+            foreach (OutgoingRequest request in invocations)
+            {
+                request.Features.Get<Ice1Request>()!.ResponseCompletionSource!.TrySetException(exception);
+            }
+            foreach (IncomingRequest request in dispatches)
+            {
+                try
+                {
+                    request.CancelDispatchSource!.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Ignore, the dispatch completed concurrently.
                 }
             }
         }
@@ -152,7 +199,7 @@ namespace IceRpc.Internal
                     Deadline = DateTime.MaxValue,
                     Payload = payload,
                 };
-                request.Features = request.Features.With(new Ice1Request(requestId, incoming: true));
+                request.Features = request.Features.With(new Ice1Request(requestId, outgoing: false));
                 if (requestHeader.Context.Count > 0)
                 {
                     request.Features = request.Features.WithContext(requestHeader.Context);
@@ -164,7 +211,7 @@ namespace IceRpc.Internal
                     // connection is closed.
                     if (!_shutdown)
                     {
-                        _dispatch.Add(request);
+                        _dispatches.Add(request);
                         request.CancelDispatchSource = new();
                         return request;
                     }
@@ -198,8 +245,8 @@ namespace IceRpc.Internal
                 {
                     if (_invocations.Remove(requestFeature.Id))
                     {
-                        // If no more invocations or dispatch and shutting down, shutdown can complete.
-                        if (_shutdown && _invocations.Count == 0 && _dispatch.Count == 0)
+                        // If no more invocations or dispatches and shutting down, shutdown can complete.
+                        if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
                         {
                             _dispatchAndInvocationsCompleted.SetResult();
                         }
@@ -289,6 +336,7 @@ namespace IceRpc.Internal
                         }
                         requestId = ++_nextRequestId;
                         _invocations[requestId] = request;
+                        request.Features = request.Features.With(new Ice1Request(requestId, outgoing: true));
                     }
                 }
                 catch
@@ -309,7 +357,6 @@ namespace IceRpc.Internal
                 encoder.EncodeByte(0); // compression status
                 BufferWriter.Position frameSizeStart = encoder.StartFixedLengthSize();
 
-                request.Features = request.Features.With(new Ice1Request(requestId, incoming: false));
                 encoder.EncodeInt(requestId);
 
                 (byte encodingMajor, byte encodingMinor) = request.PayloadEncoding.ToMajorMinor();
@@ -344,8 +391,8 @@ namespace IceRpc.Internal
                 {
                     if (_invocations.Remove(requestId))
                     {
-                        // If no more invocations or dispatch and shutting down, shutdown can complete.
-                        if (_shutdown && _invocations.Count == 0 && _dispatch.Count == 0)
+                        // If no more invocations or dispatches and shutting down, shutdown can complete.
+                        if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
                         {
                             _dispatchAndInvocationsCompleted.SetResult();
                         }
@@ -428,12 +475,12 @@ namespace IceRpc.Internal
                 lock (_mutex)
                 {
                     // Dispatch is done, remove the cancellation token source for the dispatch.
-                    if (_dispatch.Remove(request))
+                    if (_dispatches.Remove(request))
                     {
                         request.CancelDispatchSource!.Dispose();
 
-                        // If no more invocations or dispatch and shutting down, shutdown can complete.
-                        if (_shutdown && _invocations.Count == 0 && _dispatch.Count == 0)
+                        // If no more invocations or dispatches and shutting down, shutdown can complete.
+                        if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
                         {
                             _dispatchAndInvocationsCompleted.SetResult();
                         }
@@ -456,71 +503,73 @@ namespace IceRpc.Internal
             }
             else
             {
+                IEnumerable<OutgoingRequest> invocations = Enumerable.Empty<OutgoingRequest>();
+                IEnumerable<IncomingRequest> dispatches = Enumerable.Empty<IncomingRequest>();
+
                 lock (_mutex)
                 {
                     if (_shutdown && shutdownByPeer)
                     {
-                        // If shutdown is already in progress and the peer sent the CloseConnection frame, we
-                        // can return after canceling the dispatch which are still in progress. The peer is no
-                        // longer has pending dispatch and is no longer interested in the dispatch respones.
-                        CancelDispatch();
-                        return;
+                        // If shutdown is already in progress and the peer sent the CloseConnection frame, we can cancel
+                        // the dispatches in progress since the peer is no longer interested by the responses.
+                        dispatches = _dispatches.ToArray();
                     }
-
-                    _shutdown = true;
-
-                    // If shutdown locally, we raise OperationCanceledException for pending invocations. The
-                    // invocation won't be retried, otherwise we raise the shutdown close exception.
-                    if (_invocations.Count > 0)
+                    else if (!_shutdown)
                     {
-                        Exception closeEx = shutdownByPeer ? exception : new OperationCanceledException(message);
-                        foreach (OutgoingRequest request in _invocations.Values)
+                        _shutdown = true;
+
+                        if (_dispatches.Count == 0 && _invocations.Count == 0)
                         {
-                            request.Features.Get<Ice1Request>()?.ResponseCompletionSource?.TrySetException(closeEx);
+                            _dispatchAndInvocationsCompleted.SetResult();
+                        }
+
+                        // Cancel pending invocations in progress if shutdown is not initiated by the peer.
+                        if (_invocations.Count > 0)
+                        {
+                            invocations = _invocations.Values.ToArray();
+                        }
+
+                        if (_cancelDispatches && _dispatches.Count > 0)
+                        {
+                            Debug.Assert(!shutdownByPeer);
+                            dispatches = _dispatches.ToArray();
                         }
                     }
+                }
 
-                    if (_dispatch.Count == 0 && _invocations.Count == 0)
+                foreach (IncomingRequest request in dispatches)
+                {
+                    try
                     {
-                        _dispatchAndInvocationsCompleted.SetResult();
+                        request.CancelDispatchSource!.Cancel();
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // Ignore, the dispatch completed concurrently.
                     }
                 }
 
-                if (shutdownByPeer)
+                Exception closeEx = shutdownByPeer ? exception : new OperationCanceledException(message);
+                foreach (OutgoingRequest request in invocations)
                 {
-                    // Peer sent CloseConnection frame, we can cancel remaining dispatch since the peer is no
-                    // longer interested in the dispatch responses.
-                    CancelDispatch();
+                    request.Features.Get<Ice1Request>()!.ResponseCompletionSource!.TrySetException(closeEx);
                 }
-                else
-                {
-                    // If shutdown is canceled, cancel pending dispatch.
-                    _ = CancelDispatchIfShutdownCanceledAsync();
 
-                    // Wait for dispatch to complete.
+                if (!shutdownByPeer)
+                {
+                    // Wait for dispatches to complete.
                     await _dispatchAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
 
                     _sendSemaphore.Complete(exception);
 
-                    // Send the CloseConnection frame once all the dispatch are done.
-                    await _simpleStream.WriteAsync(
-                        Ice1Definitions.CloseConnectionFrame,
-                        cancel).ConfigureAwait(false);
+                    // Send the CloseConnection frame once all the dispatches are done.
+                    await _simpleStream.WriteAsync(Ice1Definitions.CloseConnectionFrame, cancel).ConfigureAwait(false);
 
                     // Wait for the peer to close the connection. When the peer receives the CloseConnection
                     // frame the peer closes the connection. This will cause ReceiveRequestAsync to throw and
                     // the connection will call Dispose to terminate the protocol connection.
                     await _pendingClose.Task.WaitAsync(cancel).ConfigureAwait(false);
                 }
-            }
-
-            async Task CancelDispatchIfShutdownCanceledAsync()
-            {
-                // Wait for the shutdown cancellation.
-                await _cancelShutdown.Task.ConfigureAwait(false);
-
-                // Cancel dispatch if shutdown is canceled.
-                CancelDispatch();
             }
         }
 
@@ -574,18 +623,6 @@ namespace IceRpc.Internal
                         throw new InvalidDataException(@$"expected '{nameof(Ice1FrameType.ValidateConnection)
                             }' frame but received frame type '{(Ice1FrameType)buffer.Span[8]}'");
                     }
-                }
-            }
-        }
-
-        private void CancelDispatch()
-        {
-            lock (_mutex)
-            {
-                Debug.Assert(_shutdown);
-                foreach (IncomingRequest request in _dispatch)
-                {
-                    request.CancelDispatchSource!.Cancel();
                 }
             }
         }
@@ -701,7 +738,7 @@ namespace IceRpc.Internal
                         {
                             if (_invocations.TryGetValue(requestId, out OutgoingRequest? request))
                             {
-                                request.Features.Get<Ice1Request>()?.ResponseCompletionSource?.SetResult(buffer[4..]);
+                                request.Features.Get<Ice1Request>()!.ResponseCompletionSource!.SetResult(buffer[4..]);
                             }
                             else if (!_shutdown)
                             {

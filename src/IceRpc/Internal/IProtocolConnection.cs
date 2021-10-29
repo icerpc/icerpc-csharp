@@ -8,9 +8,9 @@ namespace IceRpc.Internal
     /// or Ice2 protocol.</summary>
     internal interface IProtocolConnection : IDisposable
     {
-        /// <summary>Returns <c>true</c> if one or more dispatch are in progress, <c>false</c>
+        /// <summary>Returns <c>true</c> if one or more dispatches are in progress, <c>false</c>
         /// otherwise.</summary>
-        bool HasDispatchInProgress { get; }
+        bool HasDispatchesInProgress { get; }
 
         /// <summary>Returns <c>true</c> if one or more invocations are in progress, <c>false</c>
         /// otherwise.</summary>

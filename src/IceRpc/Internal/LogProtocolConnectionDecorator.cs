@@ -7,7 +7,7 @@ namespace IceRpc.Internal
     /// <summary>A log decorator for protocol connections.</summary>
     internal class LogProtocolConnectionDecorator : IProtocolConnection
     {
-        bool IProtocolConnection.HasDispatchInProgress => _decoratee.HasDispatchInProgress;
+        bool IProtocolConnection.HasDispatchesInProgress => _decoratee.HasDispatchesInProgress;
         bool IProtocolConnection.HasInvocationsInProgress => _decoratee.HasInvocationsInProgress;
 
         private readonly IProtocolConnection _decoratee;

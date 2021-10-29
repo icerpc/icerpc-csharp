@@ -94,7 +94,7 @@ namespace IceRpc.Internal
             {
                 if (_exception != null)
                 {
-                    throw _exception;
+                    throw ExceptionUtil.Throw(_exception);
                 }
 
                 if (_currentCount > 0)
