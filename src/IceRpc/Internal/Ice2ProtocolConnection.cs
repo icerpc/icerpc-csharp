@@ -73,7 +73,14 @@ namespace IceRpc.Internal
 
             foreach (IncomingRequest request in dispatch)
             {
-                request.CancelDispatchSource!.Cancel();
+                try
+                {
+                    request.CancelDispatchSource!.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Ignore the dispatch completed concurrently.
+                }
             }
             foreach (OutgoingRequest request in invocations)
             {
@@ -224,50 +231,85 @@ namespace IceRpc.Internal
                 throw new InvalidOperationException("can't receive a response for a one-way request");
             }
 
-            ReadOnlyMemory<byte> buffer =
-                await ReceiveFrameAsync(request.Stream, Ice2FrameType.Response, cancel).ConfigureAwait(false);
-
-            var decoder = new Ice20Decoder(buffer);
-            int headerSize = decoder.DecodeSize();
-            int headerStartPos = decoder.Pos;
-
-            var responseHeaderBody = new Ice2ResponseHeaderBody(decoder);
-            IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields = decoder.DecodeFieldDictionary();
-            int payloadSize = decoder.DecodeSize();
-            if (decoder.Pos - headerStartPos != headerSize)
+            try
             {
-                throw new InvalidDataException(
-                    @$"received invalid response header: expected {headerSize} bytes but read {
-                        decoder.Pos - headerStartPos} bytes");
+                ReadOnlyMemory<byte> buffer =
+                    await ReceiveFrameAsync(request.Stream, Ice2FrameType.Response, cancel).ConfigureAwait(false);
+
+                var decoder = new Ice20Decoder(buffer);
+                int headerSize = decoder.DecodeSize();
+                int headerStartPos = decoder.Pos;
+
+                var responseHeaderBody = new Ice2ResponseHeaderBody(decoder);
+                IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields = decoder.DecodeFieldDictionary();
+                int payloadSize = decoder.DecodeSize();
+                if (decoder.Pos - headerStartPos != headerSize)
+                {
+                    throw new InvalidDataException(
+                        @$"received invalid response header: expected {headerSize} bytes but read {
+                            decoder.Pos - headerStartPos} bytes");
+                }
+
+                Encoding payloadEncoding = responseHeaderBody.PayloadEncoding is string encoding ?
+                    Encoding.FromString(encoding) : Ice2Definitions.Encoding;
+
+                FeatureCollection features = FeatureCollection.Empty;
+                RetryPolicy? retryPolicy = fields.Get((int)FieldKey.RetryPolicy, decoder => new RetryPolicy(decoder));
+                if (retryPolicy != null)
+                {
+                    features = new();
+                    features.Set(retryPolicy);
+                }
+
+                var response = new IncomingResponse(Protocol.Ice2, responseHeaderBody.ResultType)
+                {
+                    Features = features,
+                    Fields = fields,
+                    PayloadEncoding = payloadEncoding,
+                    Payload = buffer[decoder.Pos..],
+                };
+
+                if (payloadSize != response.Payload.Length)
+                {
+                    throw new InvalidDataException(
+                        @$"response payload size mismatch: expected {payloadSize} bytes, read
+                            {response.Payload.Length} bytes");
+                }
+
+                return response;
             }
-
-            Encoding payloadEncoding = responseHeaderBody.PayloadEncoding is string encoding ?
-                Encoding.FromString(encoding) : Ice2Definitions.Encoding;
-
-            FeatureCollection features = FeatureCollection.Empty;
-            RetryPolicy? retryPolicy = fields.Get((int)FieldKey.RetryPolicy, decoder => new RetryPolicy(decoder));
-            if (retryPolicy != null)
+            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.DispatchCanceled)
             {
-                features = new();
-                features.Set(retryPolicy);
+                throw new OperationCanceledException("dispatch canceled by peer", ex);
             }
-
-            var response = new IncomingResponse(Protocol.Ice2, responseHeaderBody.ResultType)
+            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.ConnectionShutdownByPeer)
             {
-                Features = features,
-                Fields = fields,
-                PayloadEncoding = payloadEncoding,
-                Payload = buffer[decoder.Pos..],
-            };
-
-            if (payloadSize != response.Payload.Length)
-            {
-                throw new InvalidDataException(
-                    @$"response payload size mismatch: expected {payloadSize} bytes, read
-                        {response.Payload.Length} bytes");
+                // If the peer shuts down the connection, streams which are aborted with this error code are
+                // always safe to retry since only streams not processed by the peer are aborted.
+                request.Features = request.Features.With(RetryPolicy.Immediately);
+                throw new ConnectionClosedException("connection shutdown by peer", ex);
             }
-
-            return response;
+            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.ConnectionShutdown)
+            {
+                if (request.IsIdempotent)
+                {
+                    request.Features = request.Features.With(RetryPolicy.Immediately);
+                }
+                throw new OperationCanceledException("connection shutdown", ex);
+            }
+            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.ConnectionAborted)
+            {
+                if (request.IsIdempotent)
+                {
+                    request.Features = request.Features.With(RetryPolicy.Immediately);
+                }
+                throw new ConnectionLostException(ex);
+            }
+            catch (StreamAbortedException ex)
+            {
+                // Unexpected stream abort. This shouldn't occur unless the peer sends bogus data.
+                throw new InvalidDataException($"unexpected stream abort (ErrorCode = {ex.ErrorCode})", ex);
+            }
         }
 
         /// <inheritdoc/>
@@ -366,24 +408,33 @@ namespace IceRpc.Internal
 
                 // Send the request frame.
                 await request.Stream.WriteAsync(bufferWriter.Finish(),
-                                               endStream: request.StreamParamSender == null,
-                                               cancel).ConfigureAwait(false);
+                                                endStream: request.StreamParamSender == null,
+                                                cancel).ConfigureAwait(false);
 
                 // Mark the request as sent.
                 request.IsSent = true;
-
-                // If there's a stream param sender, we can start sending the data.
-                if (request.StreamParamSender != null)
-                {
-                    request.SendStreamParam(request.Stream);
-                }
             }
-            catch
+            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.ConnectionShutdown)
             {
-                // Abort the stream if write fails. The shutdown action will be executed and will remove the request
-                // from _invocations.
-                request.Stream.Abort(StreamError.StreamAborted);
-                throw;
+                request.Features = request.Features.With(RetryPolicy.Immediately);
+                throw new OperationCanceledException("connection shutdown", ex);
+            }
+            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.StreamAborted ||
+                                                    ex.ErrorCode == StreamError.ConnectionAborted)
+            {
+                request.Features = request.Features.With(RetryPolicy.Immediately);
+                throw new ConnectionLostException(ex);
+            }
+            catch (StreamAbortedException ex)
+            {
+                // Unexpected stream abort. This shouldn't occur unless the peer sends bogus data.
+                throw new InvalidDataException($"unexpected stream abort (ErrorCode = {ex.ErrorCode})", ex);
+            }
+
+            // If there's a stream param sender, we can start sending the data.
+            if (request.StreamParamSender != null)
+            {
+                request.SendStreamParam(request.Stream);
             }
         }
 
@@ -458,16 +509,9 @@ namespace IceRpc.Internal
             IEnumerable<OutgoingRequest> invocations = Enumerable.Empty<OutgoingRequest>();
             IEnumerable<IncomingRequest> dispatch = Enumerable.Empty<IncomingRequest>();
             bool alreadyShuttingDown = false;
+
             lock (_mutex)
             {
-                if (shutdownByPeer && !_cancelInvocationsAndDispatch)
-                {
-                    // Abort invocations that were not dispatched by the peer.
-                    invocations = _invocations.Where(request => request.Stream!.Id > (request.Stream!.IsBidirectional ?
-                        _lastRemoteDispatchLocalStreamIds!.Value.Bidirectional :
-                        _lastRemoteDispatchLocalStreamIds!.Value.Unidirectional)).ToArray();
-                }
-
                 if (_shutdown)
                 {
                     alreadyShuttingDown = true;
@@ -476,6 +520,7 @@ namespace IceRpc.Internal
                 {
                     // Mark the connection as shutdown to prevent further request from being accepted.
                     _shutdown = true;
+                    // _streamFactory.Shutdown();
 
                     if (_invocations.Count == 0 && _dispatch.Count == 0)
                     {
@@ -485,7 +530,6 @@ namespace IceRpc.Internal
 
                 if (_cancelInvocationsAndDispatch)
                 {
-                    Debug.Assert(!shutdownByPeer);
                     if (_invocations.Count > 0)
                     {
                         invocations = _invocations.ToArray();
@@ -495,17 +539,34 @@ namespace IceRpc.Internal
                         dispatch = _dispatch.ToArray();
                     }
                 }
+                else if (shutdownByPeer)
+                {
+                    // Abort invocations that were not dispatched by the peer.
+                    invocations = _invocations.Where(request =>
+                        !request.Stream!.IsStarted ||
+                        (request.Stream.Id > (request.Stream!.IsBidirectional ?
+                            _lastRemoteDispatchLocalStreamIds!.Value.Bidirectional :
+                            _lastRemoteDispatchLocalStreamIds!.Value.Unidirectional))).ToArray();
+
+                }
             }
 
             foreach (IncomingRequest request in dispatch)
             {
-                request.CancelDispatchSource!.Cancel();
+                try
+                {
+                    request.CancelDispatchSource!.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Ignore the dispatch completed concurrently.
+                }
             }
             foreach (OutgoingRequest request in invocations)
             {
-                request.Stream!.Abort(shutdownByPeer ?
-                    StreamError.ConnectionShutdownByPeer :
-                    StreamError.ConnectionShutdown);
+                request.Stream!.Abort(_cancelInvocationsAndDispatch ?
+                    StreamError.ConnectionShutdown :
+                    StreamError.ConnectionShutdownByPeer);
             }
 
             if (!alreadyShuttingDown)
@@ -530,8 +591,8 @@ namespace IceRpc.Internal
             }
 
             // Wait for the control streams to shutdown.
-            await _remoteControlStream!.WaitForShutdownAsync(cancel).ConfigureAwait(false);
             await _controlStream!.WaitForShutdownAsync(cancel).ConfigureAwait(false);
+            await _remoteControlStream!.WaitForShutdownAsync(cancel).ConfigureAwait(false);
         }
 
         public async Task<string> WaitForShutdownAsync(CancellationToken cancel)
@@ -546,7 +607,7 @@ namespace IceRpc.Internal
             var goAwayFrame = new Ice2GoAwayBody(new Ice20Decoder(buffer));
             _lastRemoteDispatchLocalStreamIds =
                 (goAwayFrame.LastBidirectionalStreamId,
-                 goAwayFrame.LastUnidirectionalStreamId);
+                goAwayFrame.LastUnidirectionalStreamId);
 
             return goAwayFrame.Message;
         }

@@ -56,6 +56,9 @@ namespace IceRpc.Transports
         /// <summary>Returns <c>true</c> if the stream is a bidirectional stream, <c>false</c> otherwise.</summary>
         bool IsBidirectional { get; }
 
+        /// <summary>Returns <c>true</c> if the local stream is started, <c>false</c> otherwise.</summary>
+        bool IsStarted { get; }
+
         /// <summary>Sets the action which is called when the stream is reset.</summary>
         Action? ShutdownAction { get; set; }
 

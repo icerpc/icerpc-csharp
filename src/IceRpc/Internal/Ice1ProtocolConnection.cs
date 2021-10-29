@@ -80,7 +80,14 @@ namespace IceRpc.Internal
 
             foreach (IncomingRequest request in dispatch)
             {
-                request.CancelDispatchSource!.Cancel();
+                try
+                {
+                    request.CancelDispatchSource!.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Ignore the dispatch completed concurrently.
+                }
             }
         }
 
@@ -121,7 +128,14 @@ namespace IceRpc.Internal
             }
             foreach (IncomingRequest request in dispatch)
             {
-                request.CancelDispatchSource!.Cancel();
+                try
+                {
+                    request.CancelDispatchSource!.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Ignore the dispatch completed concurrently.
+                }
             }
         }
 
@@ -525,7 +539,14 @@ namespace IceRpc.Internal
 
                 foreach (IncomingRequest request in dispatch)
                 {
-                    request.CancelDispatchSource!.Cancel();
+                    try
+                    {
+                        request.CancelDispatchSource!.Cancel();
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // Ignore the dispatch completed concurrently.
+                    }
                 }
 
                 Exception closeEx = shutdownByPeer ? exception : new OperationCanceledException(message);
@@ -618,7 +639,14 @@ namespace IceRpc.Internal
 
             foreach (IncomingRequest request in dispatch)
             {
-                request.CancelDispatchSource!.Cancel();
+                try
+                {
+                    request.CancelDispatchSource!.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Ignore the dispatch completed concurrently.
+                }
             }
         }
 

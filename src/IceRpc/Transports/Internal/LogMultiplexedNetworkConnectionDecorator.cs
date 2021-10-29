@@ -7,7 +7,9 @@ using System.Text;
 
 namespace IceRpc.Transports.Internal
 {
-    internal class LogMultiplexedNetworkConnectionDecorator : LogNetworkConnectionDecorator, IMultiplexedNetworkConnection
+    internal class LogMultiplexedNetworkConnectionDecorator :
+        LogNetworkConnectionDecorator,
+        IMultiplexedNetworkConnection
     {
         private protected override INetworkConnection Decoratee => _decoratee;
 
@@ -65,28 +67,29 @@ namespace IceRpc.Transports.Internal
 
     internal sealed class LogMultiplexedStreamDecorator : IMultiplexedStream
     {
-        public long Id => Decoratee.Id;
-        public bool IsBidirectional => Decoratee.IsBidirectional;
+        public long Id => _decoratee.Id;
+        public bool IsBidirectional => _decoratee.IsBidirectional;
+        public bool IsStarted => _decoratee.IsStarted;
         public Action? ShutdownAction
         {
-            get => Decoratee.ShutdownAction;
-            set => Decoratee.ShutdownAction = value;
+            get => _decoratee.ShutdownAction;
+            set => _decoratee.ShutdownAction = value;
         }
 
-        private readonly IMultiplexedStream Decoratee;
+        private readonly IMultiplexedStream _decoratee;
         private readonly LogNetworkConnectionDecorator _parent;
 
-        public ReadOnlyMemory<byte> TransportHeader => Decoratee.TransportHeader;
+        public ReadOnlyMemory<byte> TransportHeader => _decoratee.TransportHeader;
 
-        public void AbortRead(StreamError errorCode) => Decoratee.AbortRead(errorCode);
+        public void AbortRead(StreamError errorCode) => _decoratee.AbortRead(errorCode);
 
-        public void AbortWrite(StreamError errorCode) => Decoratee.AbortWrite(errorCode);
+        public void AbortWrite(StreamError errorCode) => _decoratee.AbortWrite(errorCode);
 
-        public Stream AsByteStream() => Decoratee.AsByteStream();
+        public Stream AsByteStream() => _decoratee.AsByteStream();
 
         public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
-            int received = await Decoratee.ReadAsync(buffer, cancel).ConfigureAwait(false);
+            int received = await _decoratee.ReadAsync(buffer, cancel).ConfigureAwait(false);
             _parent.LogReceivedData(buffer[0..received]);
             return received;
         }
@@ -96,20 +99,20 @@ namespace IceRpc.Transports.Internal
             bool endStream,
             CancellationToken cancel)
         {
-            await Decoratee.WriteAsync(buffers, endStream, cancel).ConfigureAwait(false);
+            await _decoratee.WriteAsync(buffers, endStream, cancel).ConfigureAwait(false);
             _parent.LogSentData(buffers);
         }
 
-        public Task WaitForShutdownAsync(CancellationToken cancel) => Decoratee.WaitForShutdownAsync(cancel);
+        public Task WaitForShutdownAsync(CancellationToken cancel) => _decoratee.WaitForShutdownAsync(cancel);
 
-        public override string? ToString() => Decoratee.ToString();
+        public override string? ToString() => _decoratee.ToString();
 
         internal LogMultiplexedStreamDecorator(
             LogNetworkConnectionDecorator parent,
             IMultiplexedStream decoratee)
         {
             _parent = parent;
-            Decoratee = decoratee;
+            _decoratee = decoratee;
         }
     }
 }

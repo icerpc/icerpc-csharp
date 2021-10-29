@@ -202,6 +202,11 @@ namespace IceRpc.Transports.Internal
 
         public void Dispose()
         {
+            // Unblock requests waiting on the semaphores.
+            var exception = new ConnectionClosedException();
+            _bidirectionalStreamSemaphore?.Complete(exception);
+            _unidirectionalStreamSemaphore?.Complete(exception);
+
             // Abort streams.
             foreach (SlicMultiplexedStream stream in _streams.Values)
             {
@@ -214,11 +219,6 @@ namespace IceRpc.Transports.Internal
                     Debug.Assert(false, $"unexpected exception on Stream.Abort: {ex}");
                 }
             }
-
-            // Unblock requests waiting on the semaphores.
-            var exception = new ConnectionClosedException();
-            _bidirectionalStreamSemaphore?.Complete(exception);
-            _unidirectionalStreamSemaphore?.Complete(exception);
 
             _disposableReader.Dispose();
             _disposableWriter.Dispose();

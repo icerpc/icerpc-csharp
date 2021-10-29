@@ -77,12 +77,15 @@ namespace IceRpc.Transports.Internal
         {
             try
             {
+                // TODO: Investigate with calling Shutdown is necessary. In theory it shouldn't. However on macOS at
+                // least the peer doesn't detect the connection closure if this isn't called.
                 Socket.Shutdown(SocketShutdown.Both);
             }
-            finally
+            catch
             {
-                Socket.Close();
+                // Ignore, the socket might not be connected.
             }
+            Socket.Dispose();
         }
 
         /// <summary>Prints the fields/properties of this class using the Records format.</summary>

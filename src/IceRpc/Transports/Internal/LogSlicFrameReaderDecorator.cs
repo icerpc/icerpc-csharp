@@ -23,7 +23,15 @@ namespace IceRpc.Transports.Internal
             await _decoratee.ReadFrameDataAsync(buffer, cancel).ConfigureAwait(false);
             if (_frameType != FrameType.Stream && _frameType != FrameType.StreamLast)
             {
-                LogReadFrame(_frameType, _frameDataSize, _frameStreamId, buffer);
+                if (_frameStreamId == null)
+                {
+                    LogReadFrame(_frameType, _frameDataSize, null, buffer);
+                }
+                else
+                {
+                    using IDisposable? scope = _logger.StartStreamScope(_frameStreamId.Value);
+                    LogReadFrame(_frameType, _frameDataSize, _frameStreamId, buffer);
+                }
             }
         }
 
@@ -109,19 +117,19 @@ namespace IceRpc.Transports.Internal
                 case FrameType.StreamReset:
                 {
                     StreamResetBody body = ReadFrame(() => reader.ReadStreamResetAsync(dataSize, default));
-                    _logger.LogReceivedSlicResetFrame(frameSize, (StreamError)body.ApplicationProtocolErrorCode);
+                    _logger.LogReceivedSlicResetFrame(dataSize, (StreamError)body.ApplicationProtocolErrorCode);
                     break;
                 }
                 case FrameType.StreamConsumed:
                 {
                     StreamConsumedBody body = ReadFrame(() => reader.ReadStreamConsumedAsync(dataSize, default));
-                    _logger.LogReceivedSlicConsumedFrame(frameSize, (int)body.Size);
+                    _logger.LogReceivedSlicConsumedFrame(dataSize, (int)body.Size);
                     break;
                 }
                 case FrameType.StreamStopSending:
                 {
                     StreamStopSendingBody body = ReadFrame(() => reader.ReadStreamStopSendingAsync(dataSize, default));
-                    _logger.LogReceivedSlicStopSendingFrame(frameSize, (StreamError)body.ApplicationProtocolErrorCode);
+                    _logger.LogReceivedSlicStopSendingFrame(dataSize, (StreamError)body.ApplicationProtocolErrorCode);
                     break;
                 }
                 default:
