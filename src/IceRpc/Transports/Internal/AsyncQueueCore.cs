@@ -6,6 +6,9 @@ using System.Threading.Tasks.Sources;
 
 namespace IceRpc.Transports.Internal
 {
+    /// <summary>This interface is required because AsyncQueueCore is a struct and we can't reference a struct from a
+    /// lambra expression. The struct would be copied. This is necessary for the implementation of
+    /// SetException.</summary>
     internal interface IAsyncQueueValueTaskSource<T> : IValueTaskSource<T>
     {
         void SetException(Exception exception);
@@ -97,8 +100,7 @@ namespace IceRpc.Transports.Internal
             }
             catch (Exception ex)
             {
-                // If the stream has been aborted, we let the exception go through and we don't reset the
-                // source.
+                // If the stream has been aborted, we let the exception go through and we don't reset the source.
                 if (_exception != null)
                 {
                     throw ExceptionUtil.Throw(_exception);
@@ -111,9 +113,8 @@ namespace IceRpc.Transports.Internal
             {
                 _lock.Enter(ref lockTaken);
 
-                // Reseting the source must be done with the lock held because other threads are checking the
-                // source status to figure out whether or not to set another result or exception on the
-                // source.
+                // Reseting the source must be done with the lock held because other threads are checking the source
+                // status to figure out whether or not to set another result or exception on the source.
                 _source.Reset();
 
                 if (_queue != null && _queue.Count > 0)

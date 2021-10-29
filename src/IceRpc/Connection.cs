@@ -304,43 +304,6 @@ namespace IceRpc
                 request.Stream?.Abort(StreamError.InvocationCanceled);
                 throw;
             }
-            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.DispatchCanceled)
-            {
-                // TODO: XXX: Instead of the Ice2 protocol implementation letting the StreamAbortedException
-                // to propagate here and below, consider throwing the appropriate exception from the Ice2
-                // protocol implementation?
-                throw new OperationCanceledException("dispatch canceled by peer", ex);
-            }
-            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.ConnectionShutdownByPeer)
-            {
-                // If the peer shuts down the connection, streams which are aborted with this error code are
-                // always safe to retry since only streams not processed by the peer are aborted.
-                request.Features = request.Features.With(RetryPolicy.Immediately);
-                throw new ConnectionClosedException("connection shutdown by peer", ex);
-            }
-            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.ConnectionShutdown)
-            {
-                if (request.IsIdempotent || !request.IsSent)
-                {
-                    // Only retry if it's safe to retry: the request is idempotent or it hasn't been sent.
-                    request.Features = request.Features.With(RetryPolicy.Immediately);
-                }
-                throw new OperationCanceledException("connection shutdown", ex);
-            }
-            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.ConnectionAborted)
-            {
-                if (request.IsIdempotent || !request.IsSent)
-                {
-                    // Only retry if it's safe to retry: the request is idempotent or it hasn't been sent.
-                    request.Features = request.Features.With(RetryPolicy.Immediately);
-                }
-                throw new ConnectionLostException(ex);
-            }
-            catch (StreamAbortedException ex)
-            {
-                // Unexpected stream abort. This shouldn't occur unless the peer sends bogus data.
-                throw new InvalidDataException($"unexpected stream abort (ErrorCode = {ex.ErrorCode})", ex);
-            }
             catch (ConnectionClosedException)
             {
                 // If the peer gracefully shuts down the connection, it's always safe to retry since only
@@ -518,7 +481,7 @@ namespace IceRpc
                     }
                 }
                 else if (idleTime > NetworkConnectionInformation.Value.IdleTimeout / 4 &&
-                         (Options.KeepAlive || _protocolConnection.HasDispatchInProgress))
+                         (Options.KeepAlive || _protocolConnection.HasDispatchesInProgress))
                 {
                     // We send a ping if there was no activity in the last (IdleTimeout / 4) period. Sending a
                     // ping sooner than really needed is safer to ensure that the receiver will receive the
@@ -623,20 +586,20 @@ namespace IceRpc
                 {
                     _protocolConnection?.Dispose();
                 }
-                catch (Exception exception)
+                catch (Exception ex)
                 {
                     // The protocol or transport aren't supposed to raise.
-                    Debug.Assert(false, $"unexpected protocol close exception\n{exception}");
+                    Debug.Assert(false, $"unexpected protocol close exception\n{ex}");
                 }
 
                 try
                 {
                     _networkConnection?.Close(exception);
                 }
-                catch (Exception exception)
+                catch (Exception ex)
                 {
                     // The protocol or transport aren't supposed to raise.
-                    Debug.Assert(false, $"unexpected transport close exception\n{exception}");
+                    Debug.Assert(false, $"unexpected transport close exception\n{ex}");
                 }
 
                 if (_timer != null)
@@ -730,11 +693,6 @@ namespace IceRpc
                     shutdownByPeer: true,
                     message,
                     CancellationToken.None).ConfigureAwait(false);
-            }
-            catch (ConnectionClosedException)
-            {
-                Debug.Assert(false);
-                // Expected if closed locally.
             }
             catch (Exception exception)
             {

@@ -95,14 +95,48 @@ namespace IceRpc.Tests.ClientServer
             await bidir.AfterDelayAsync(2);
         }
 
-        // TODO: XXX: investigate Ice1 failures
-        // [TestCase(ProtocolCode.Ice1, 2)]
-        // [TestCase(ProtocolCode.Ice1, 10)]
-        // [TestCase(ProtocolCode.Ice1, 20)]
+        // TODO: XXX: investigate Ice2 failures
+        [TestCase(ProtocolCode.Ice1, 2)]
+        [TestCase(ProtocolCode.Ice1, 10)]
+        [TestCase(ProtocolCode.Ice1, 20)]
         // [TestCase(ProtocolCode.Ice2, 2)]
         // [TestCase(ProtocolCode.Ice2, 10)]
         // [TestCase(ProtocolCode.Ice2, 20)]
         public async Task Retry_GracefulClose(ProtocolCode protocol, int maxQueue)
+        {
+            await WithRetryServiceAsync(Protocol.FromProtocolCode(protocol), null, async (service, retry) =>
+            {
+                // Remote case: send multiple OpWithData, followed by a close and followed by multiple OpWithData. The
+                // goal is to make sure that none of the OpWithData fail even if the server closes the connection
+                // gracefully in between.
+                byte[] seq = new byte[1024 * 10];
+
+                await retry.IcePingAsync();
+                var results = new List<Task>();
+                for (int i = 0; i < maxQueue; ++i)
+                {
+                    results.Add(retry.OpWithDataAsync(-1, 0, seq));
+                }
+
+                Task shutdownTask = service.Connection!.ShutdownAsync();
+
+                for (int i = 0; i < maxQueue; i++)
+                {
+                    results.Add(retry.OpWithDataAsync(-1, 0, seq));
+                }
+
+                await Task.WhenAll(results);
+            });
+        }
+
+        // TODO: XXX: investigate Ice2 failures
+        [TestCase(ProtocolCode.Ice1, 2)]
+        [TestCase(ProtocolCode.Ice1, 10)]
+        [TestCase(ProtocolCode.Ice1, 20)]
+        // [TestCase(ProtocolCode.Ice2, 2)]
+        // [TestCase(ProtocolCode.Ice2, 10)]
+        // [TestCase(ProtocolCode.Ice2, 20)]
+        public async Task Retry_GracefulCloseCanceled(ProtocolCode protocol, int maxQueue)
         {
             await WithRetryServiceAsync(Protocol.FromProtocolCode(protocol), null, async (service, retry) =>
             {
@@ -118,7 +152,9 @@ namespace IceRpc.Tests.ClientServer
                     results.Add(retry.OpWithDataAsync(-1, 0, seq));
                 }
 
-                Task shutdownTask = service.Connection!.ShutdownAsync();
+                var source = new CancellationTokenSource();
+                Task shutdownTask = service.Connection!.ShutdownAsync(cancel: source.Token);
+                source.Cancel();
 
                 for (int i = 0; i < maxQueue; i++)
                 {
@@ -443,6 +479,7 @@ namespace IceRpc.Tests.ClientServer
             var pool = new ConnectionPool()
             {
                 ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) },
+                LoggerFactory = LogAttributeLoggerFactory.Instance
             };
             return pool;
         }
@@ -496,6 +533,7 @@ namespace IceRpc.Tests.ClientServer
                 Dispatcher = router,
                 Endpoint = GetTestEndpoint(protocol: protocol),
                 ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) },
+                LoggerFactory = LogAttributeLoggerFactory.Instance
             };
             server.Listen();
 
