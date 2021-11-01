@@ -5,12 +5,13 @@ authors = ["ZeroC Inc."]
 description = """
 The slicec-cs compiler, for compiling Slice files into C# code.
 """
-keywords = ["slice", "slice", "ice", "icerpc"]
+keywords = ["slice", "ice", "icerpc"]
 license = "Apache-2.0"
 edition = "2018"
 
 [dependencies]
-slicec = { path = "../slicec", version = "0.1.0" }
+# Uses the github repo when built locally, and Crates.io when published.
+slicec = { git = "https://github.com/zeroc-ice/icerpc", version = "0.1.0" }
 structopt = "0.3.13"
 regex = "1.5"
 
