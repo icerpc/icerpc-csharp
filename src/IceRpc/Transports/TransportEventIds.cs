@@ -6,10 +6,10 @@ namespace IceRpc.Transports
     public enum TransportEventIds
     {
         /// <summary>A client connection was closed.</summary>
-        ClientConnectionClosed,
+        ClientConnectionClosed = IceRpc.Internal.BaseEventIds.Transport,
 
         /// <summary>The transport accepted a new connection.</summary>
-        ConnectionAccepted = IceRpc.Internal.BaseEventIds.Transport,
+        ConnectionAccepted,
 
         /// <summary>The transport failed to accept a connection.</summary>
         ConnectionAcceptFailed,
