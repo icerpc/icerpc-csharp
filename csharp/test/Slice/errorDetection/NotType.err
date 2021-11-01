@@ -1,7 +1,0 @@
-NotType.ice:14: 'Mod' is not a type
-NotType.ice:15: 'Mod' is not a type
-NotType.ice:16: 'Mod' is not a type
-NotType.ice:17: 'Mod' is not a type
-NotType.ice:25: 'E' is an exception, which cannot be used as a type
-NotType.ice:26: struct 'S' must have at least one member
-NotType.ice:30: 'E' is an exception, which cannot be used as a type
