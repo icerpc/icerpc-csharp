@@ -1,8 +1,0 @@
-ReservedSuppressed.ice:16: illegal leading underscore in identifier '_a'
-ReservedSuppressed.ice:17: illegal leading underscore in identifier '_true'
-ReservedSuppressed.ice:18: illegal leading underscore in identifier '_true'
-ReservedSuppressed.ice:20: illegal trailing underscore in identifier 'b_'
-ReservedSuppressed.ice:22: illegal double underscore in identifier 'b__c'
-ReservedSuppressed.ice:23: illegal double underscore in identifier 'b___c'
-ReservedSuppressed.ice:25: illegal leading underscore in identifier '_a_'
-ReservedSuppressed.ice:28: illegal leading underscore in identifier '_a__b__'
