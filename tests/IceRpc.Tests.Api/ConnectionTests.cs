@@ -34,10 +34,16 @@ namespace IceRpc.Tests.Api
         }
 
         [Test]
-        public void Connection_UdpTransportOptions_ArgumentException()
+        public void Connection_UdpClientTransportOptions_ArgumentException()
         {
-            var options = new Transports.UdpOptions();
+            var options = new Transports.UdpClientOptions();
             Assert.Throws<ArgumentException>(() => options.SendBufferSize = 512);
+        }
+
+        [Test]
+        public void Connection_UdpServerTransportOptions_ArgumentException()
+        {
+            var options = new Transports.UdpServerOptions();
             Assert.Throws<ArgumentException>(() => options.ReceiveBufferSize = 512);
         }
     }

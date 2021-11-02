@@ -8,15 +8,15 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IClientTransport{ISimpleNetworkConnection}"/> for the UDP transport.</summary>
     public class UdpClientTransport : IClientTransport<ISimpleNetworkConnection>
     {
-        private readonly UdpOptions _options;
+        private readonly UdpClientOptions _options;
 
-        /// <summary>Constructs a <see cref="UdpClientTransport"/> with the default <see cref="UdpOptions"/>.
+        /// <summary>Constructs a <see cref="UdpClientTransport"/> with the default <see cref="UdpClientOptions"/>.
         /// </summary>
-        public UdpClientTransport() => _options = new UdpOptions();
+        public UdpClientTransport() => _options = new UdpClientOptions();
 
-        /// <summary>Constructs a <see cref="UdpClientTransport"/> with the specified <see cref="UdpOptions"/>.
+        /// <summary>Constructs a <see cref="UdpClientTransport"/> with the specified <see cref="UdpClientOptions"/>.
         /// </summary>
-        public UdpClientTransport(UdpOptions options) => _options = options;
+        public UdpClientTransport(UdpClientOptions options) => _options = options;
 
         ISimpleNetworkConnection IClientTransport<ISimpleNetworkConnection>.CreateConnection(
             Endpoint remoteEndpoint,
