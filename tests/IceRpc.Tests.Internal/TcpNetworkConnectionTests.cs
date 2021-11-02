@@ -64,17 +64,14 @@ namespace IceRpc.Tests.Internal
         public async Task TcpNetworkConnection_Listener_AcceptAsync()
         {
             using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
-            ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
+            using ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
 
             Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
             var connectTask = clientConnection.ConnectAsync(default);
 
-            ISimpleNetworkConnection serverConnection = await acceptTask;
+            using ISimpleNetworkConnection serverConnection = await acceptTask;
             _ = await serverConnection.ConnectAsync(default);
             _ = await connectTask;
-
-            clientConnection.Close();
-            serverConnection.Close();
         }
 
         [Test]
@@ -92,11 +89,11 @@ namespace IceRpc.Tests.Internal
 
             Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
 
-            ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
+            using ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
 
             Task<(ISimpleStream, NetworkConnectionInformation)> connectTask = clientConnection.ConnectAsync(default);
 
-            ISimpleNetworkConnection serverConnection = await acceptTask;
+            using ISimpleNetworkConnection serverConnection = await acceptTask;
 
             Task<(ISimpleStream, NetworkConnectionInformation)> serverConnectTask =
                 serverConnection.ConnectAsync(default);
@@ -109,9 +106,6 @@ namespace IceRpc.Tests.Internal
             }
 
             _ = await serverConnectTask;
-
-            clientConnection.Close();
-            serverConnection.Close();
         }
 
         [Test]
@@ -130,8 +124,8 @@ namespace IceRpc.Tests.Internal
             await clientSocket.ConnectAsync(
                 new DnsEndPoint(listener.Endpoint.Host, listener.Endpoint.Port)).ConfigureAwait(false);
 
-            ISimpleNetworkConnection serverConnection = await acceptTask;
-            clientConnection.Close();
+            using ISimpleNetworkConnection serverConnection = await acceptTask;
+            clientConnection.Dispose();
 
             AsyncTestDelegate testDelegate;
             if (_tls == false)
@@ -145,7 +139,6 @@ namespace IceRpc.Tests.Internal
                 testDelegate = async () => await serverConnection.ConnectAsync(default);
             }
             Assert.ThrowsAsync<ConnectionLostException>(testDelegate);
-            serverConnection.Close();
         }
 
         [TestCase(false, false)]
@@ -225,13 +218,11 @@ namespace IceRpc.Tests.Internal
             }
             else
             {
-                ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
+                using ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
 
                 var connectTask = clientConnection.ConnectAsync(source.Token);
                 source.Cancel();
                 Assert.CatchAsync<OperationCanceledException>(async () => await connectTask);
-
-                clientConnection.Close();
             }
 
             using var source2 = new CancellationTokenSource();

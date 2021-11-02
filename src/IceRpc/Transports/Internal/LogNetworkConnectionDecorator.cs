@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
-using System.Net.Security;
-using System.Security.Authentication;
 using System.Text;
 
 namespace IceRpc.Transports.Internal
@@ -29,36 +27,25 @@ namespace IceRpc.Transports.Internal
 
         private readonly Endpoint _endpoint;
 
-        public void Close(Exception? exception)
+        public void Dispose()
         {
-            if (Information == null)
-            {
-                using IDisposable? scope = Logger.StartConnectionScope(_endpoint, IsServer);
+            Decoratee.Dispose();
 
-                // If the connection is connecting but not active yet, we print a trace to show that the
-                // connection got connected or accepted before printing out the connection closed trace.
-                Action<Exception?> logFailure = (IsServer, IsDatagram) switch
-                {
-                    (false, false) => Logger.LogConnectionConnectFailed,
-                    (false, true) => Logger.LogStartSendingDatagramsFailed,
-                    (true, false) => Logger.LogConnectionAcceptFailed,
-                    (true, true) => Logger.LogStartReceivingDatagramsFailed,
-                };
-                logFailure(exception);
-            }
-            else
+            if (Information is NetworkConnectionInformation connectionInformation)
             {
-                using IDisposable? scope = Logger.StartConnectionScope(Information.Value, IsServer);
-                if (IsDatagram && IsServer)
+                using IDisposable? scope = Logger.StartConnectionScope(connectionInformation, IsServer);
+
+                if (IsServer)
                 {
-                    Logger.LogStopReceivingDatagrams();
+                    Logger.LogServerConnectionClosed();
                 }
                 else
                 {
-                    Logger.LogConnectionClosed(exception?.Message ?? "graceful close");
+                    Logger.LogClientConnectionClosed();
                 }
             }
-            Decoratee.Close(exception);
+            // We don't emit a log when closing a connection that was not connected.
+
         }
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) => Decoratee.HasCompatibleParams(remoteEndpoint);
@@ -125,6 +112,21 @@ namespace IceRpc.Transports.Internal
                 (true, true) => Logger.LogStartReceivingDatagrams
             };
             logSuccess();
+        }
+
+        private protected void LogConnectFailed(Exception ex)
+        {
+            using IDisposable? scope = Logger.StartConnectionScope(_endpoint, IsServer);
+
+            // TODO: different log messages for UDP?
+            if (IsServer)
+            {
+                Logger.LogConnectionAcceptFailed(ex);
+            }
+            else
+            {
+                Logger.LogConnectionConnectFailed(ex);
+            }
         }
     }
 }

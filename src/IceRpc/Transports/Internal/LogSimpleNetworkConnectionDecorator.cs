@@ -13,7 +13,16 @@ namespace IceRpc.Transports.Internal
         public virtual async Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel)
         {
             ISimpleStream simpleStream;
-            (simpleStream, Information) = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
+            try
+            {
+                (simpleStream, Information) = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                LogConnectFailed(ex);
+                throw;
+            }
+
             simpleStream = new LogSimpleStreamDecorator(this, simpleStream);
             IsDatagram = simpleStream.IsDatagram;
 
