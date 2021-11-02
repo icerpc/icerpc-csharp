@@ -2,7 +2,7 @@
 
 namespace IceRpc.Transports
 {
-    /// <summary>The options class for configuring <see cref="UdpClientTransport"/>.</summary>
+    /// <summary>The options class for configuring <see cref="UdpServerTransport"/>.</summary>
     public sealed class UdpServerOptions
     {
         /// <summary>Configures an IPv6 socket to only support IPv6. The socket won't support IPv4 mapped addresses
