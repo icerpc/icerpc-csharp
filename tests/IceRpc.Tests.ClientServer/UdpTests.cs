@@ -46,7 +46,7 @@ namespace IceRpc.Tests.ClientServer
         {
             await using var connection = new Connection
             {
-                RemoteEndpoint = GetTestEndpoint(protocol: Protocol.Ice1, transport: "udp"),
+                RemoteEndpoint = GetTestEndpoint(protocol: Protocol.Ice1, port: 4061, transport: "udp"),
             };
             await connection.ConnectAsync();
 
