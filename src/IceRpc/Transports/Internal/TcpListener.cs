@@ -63,16 +63,17 @@ namespace IceRpc.Transports.Internal
 
             _serverConnectionDecorator = serverConnectionDecorator;
 
-            if (options.AuthenticationOptions != null)
+            _authenticationOptions = options.AuthenticationOptions;
+
+            if (_authenticationOptions != null)
             {
                 // Add the endpoint protocol to the SSL application protocols (used by TLS ALPN)
-                options.AuthenticationOptions = options.AuthenticationOptions.Clone();
-                options.AuthenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
+                _authenticationOptions = _authenticationOptions.Clone();
+                _authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
                     {
                         new SslApplicationProtocol(endpoint.Protocol.Name)
                     };
             }
-            _authenticationOptions = options.AuthenticationOptions;
 
             var address = new IPEndPoint(ipAddress, endpoint.Port);
             _socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
