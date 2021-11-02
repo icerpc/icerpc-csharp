@@ -248,7 +248,7 @@ namespace IceRpc.Transports.Internal
                                                                  Host = "::0",
                                                                  Port = 0
                                                               },
-                                                              TimeSpan.MaxValue, // TODO: returning Infinite doesn't work
+                                                              Timeout.InfiniteTimeSpan,
                                                               remoteCertificate: null)));
 
         public override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
