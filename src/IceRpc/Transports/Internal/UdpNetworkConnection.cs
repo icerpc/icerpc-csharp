@@ -51,11 +51,13 @@ namespace IceRpc.Transports.Internal
 
         internal override Socket Socket { get; }
         private readonly EndPoint _addr;
-        private readonly Endpoint _remoteEndpoint;
         private readonly TimeSpan _idleTimeout;
+        private readonly bool _ignoreUnreachableDestinationPort;
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
 
         private readonly string? _multicastInterface;
+
+        private readonly Endpoint _remoteEndpoint;
         private readonly int _ttl;
 
         public override async Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel)
@@ -95,15 +97,27 @@ namespace IceRpc.Transports.Internal
 
         async ValueTask<int> ISimpleStream.ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
-            try
+            // We don't expect to read anything from this socket. We call ReceiveAsync to receive the ICMP packet
+            // "destination port unreachable" error.
+
+            while (true)
             {
-                int received = await Socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
-                Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
-                return received;
-            }
-            catch (Exception ex)
-            {
-                throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
+                try
+                {
+                    int received = await Socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
+                    return received;
+                }
+                catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionReset)
+                {
+                    if (!_ignoreUnreachableDestinationPort)
+                    {
+                        throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
+                }
             }
         }
 
@@ -145,6 +159,7 @@ namespace IceRpc.Transports.Internal
             (bool _, _ttl, _multicastInterface) = remoteEndpoint.ParseUdpParams();
 
             _idleTimeout = options.IdleTimeout;
+            _ignoreUnreachableDestinationPort = options.IgnoreUnreachableDestinationPort;
             _remoteEndpoint = remoteEndpoint;
 
             _addr = IPAddress.TryParse(remoteEndpoint.Host, out IPAddress? ipAddress) ?

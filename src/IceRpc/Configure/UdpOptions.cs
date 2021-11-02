@@ -18,6 +18,14 @@ namespace IceRpc.Transports
                 throw new ArgumentException($"0 is not a valid value for {nameof(IdleTimeout)}", nameof(value));
         }
 
+        /// <summary>When sending datagrams to a server, the server host can return an ICMP packet to notify the sender
+        /// that the destination port is unreachable. The sender can either ignore this notification or close the
+        /// connection.</summary>
+        /// <value>When true, the sender ignores the port unreachable ICMP packet. When false (the default), the sender
+        /// closes its connection when it receives such an ICMP packet, and subsequent sends on that connection will
+        /// fail.</value>
+        public bool IgnoreUnreachableDestinationPort { get; set; }
+
         /// <summary>Configures an IPv6 socket to only support IPv6. The socket won't support IPv4 mapped addresses
         /// when this property is set to true. The default value is false.</summary>
         /// <value>The boolean value to enable or disable IPv6-only support.</value>
