@@ -76,7 +76,7 @@ namespace IceRpc.Tests.Internal
 
                     foreach (ISimpleStream serverStream in serverStreamList)
                     {
-                        Memory<byte> readBuffer = new byte[serverStream.DatagramMaxReceiveSize];
+                        Memory<byte> readBuffer = new byte[UdpUtils.MaxPacketSize];
                         int received = await serverStream.ReadAsync(readBuffer, source.Token);
                         Assert.AreEqual(writeBuffer.Length, received);
                         for (int i = 0; i < received; ++i)

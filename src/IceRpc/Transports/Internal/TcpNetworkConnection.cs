@@ -14,8 +14,6 @@ namespace IceRpc.Transports.Internal
 {
     internal abstract class TcpNetworkConnection : ISimpleNetworkConnection, ISimpleStream
     {
-        int ISimpleStream.DatagramMaxReceiveSize => throw new InvalidOperationException();
-        bool ISimpleStream.IsDatagram => false;
         public bool IsSecure => SslStream != null;
 
         public TimeSpan LastActivity => TimeSpan.FromMilliseconds(_lastActivity);

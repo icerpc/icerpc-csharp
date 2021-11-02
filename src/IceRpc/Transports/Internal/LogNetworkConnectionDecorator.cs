@@ -20,8 +20,6 @@ namespace IceRpc.Transports.Internal
 
         private protected abstract INetworkConnection Decoratee { get; }
 
-        private protected bool IsDatagram { get; set; }
-
         private protected bool IsServer { get; }
         private protected ILogger Logger { get; }
 
@@ -104,14 +102,15 @@ namespace IceRpc.Transports.Internal
         private protected void LogConnected()
         {
             using IDisposable? scope = Logger.StartConnectionScope(Information!.Value, IsServer);
-            Action logSuccess = (IsServer, IsDatagram) switch
+
+            if (IsServer)
             {
-                (false, false) => Logger.LogConnectionEstablished,
-                (false, true) => Logger.LogStartSendingDatagrams,
-                (true, false) => Logger.LogConnectionAccepted,
-                (true, true) => Logger.LogStartReceivingDatagrams
-            };
-            logSuccess();
+                Logger.LogConnectionAccepted();
+            }
+            else
+            {
+                Logger.LogConnectionEstablished();
+            }
         }
 
         private protected void LogConnectFailed(Exception ex)

@@ -47,9 +47,6 @@ namespace IceRpc.Transports.Internal
 
     internal class UdpClientNetworkConnection : UdpNetworkConnection, ISimpleStream
     {
-        public int DatagramMaxReceiveSize { get; }
-        bool ISimpleStream.IsDatagram => true;
-
         public override TimeSpan LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
 
         internal override Socket Socket { get; }
@@ -138,8 +135,12 @@ namespace IceRpc.Transports.Internal
 
         internal UdpClientNetworkConnection(Endpoint remoteEndpoint, UdpOptions options)
         {
-            // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
-            // a udp endpoint regardless of its actual transport name.
+            // udp is a special transport that requires "udp" endpoints.
+            if (remoteEndpoint.Transport != TransportNames.Udp)
+            {
+                throw new ArgumentException($"cannot use UDP transport with endpoint '{remoteEndpoint}'",
+                                            nameof(remoteEndpoint));
+            }
 
             (bool _, _ttl, _multicastInterface) = remoteEndpoint.ParseUdpParams();
 
@@ -214,8 +215,6 @@ namespace IceRpc.Transports.Internal
                 Socket.Dispose();
                 throw new TransportException(ex);
             }
-
-            DatagramMaxReceiveSize = Math.Min(MaxPacketSize, Socket.ReceiveBufferSize - UdpOverhead);
         }
 
         private protected override bool PrintMembers(StringBuilder builder)
@@ -228,9 +227,6 @@ namespace IceRpc.Transports.Internal
 
     internal class UdpServerNetworkConnection : UdpNetworkConnection, ISimpleStream
     {
-        public int DatagramMaxReceiveSize { get; }
-        bool ISimpleStream.IsDatagram => true;
-
         public override TimeSpan LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
 
         internal Endpoint LocalEndpoint { get; }
@@ -282,8 +278,12 @@ namespace IceRpc.Transports.Internal
 
         internal UdpServerNetworkConnection(Endpoint endpoint, UdpOptions options)
         {
-            // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
-            // a udp endpoint regardless of its actual transport name.
+            // udp is a special transport that requires "udp" endpoints.
+            if (endpoint.Transport != TransportNames.Udp)
+            {
+                throw new ArgumentException($"cannot use UDP transport with endpoint '{endpoint}'",
+                                            nameof(endpoint));
+            }
 
             if (!IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress))
             {
@@ -362,8 +362,6 @@ namespace IceRpc.Transports.Internal
                 Socket.Dispose();
                 throw;
             }
-
-            DatagramMaxReceiveSize = Math.Min(MaxPacketSize, Socket.ReceiveBufferSize - UdpOverhead);
         }
 
         private protected override bool PrintMembers(StringBuilder builder)

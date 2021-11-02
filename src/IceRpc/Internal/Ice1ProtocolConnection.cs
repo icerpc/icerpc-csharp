@@ -45,6 +45,7 @@ namespace IceRpc.Internal
         private readonly HashSet<IncomingRequest> _dispatches = new();
         private readonly int _incomingFrameMaxSize;
         private readonly Dictionary<int, OutgoingRequest> _invocations = new();
+        private readonly bool _isUdp;
         private readonly ILogger _logger;
         private readonly object _mutex = new();
         private readonly ISimpleStream _simpleStream;
@@ -312,9 +313,9 @@ namespace IceRpc.Internal
             {
                 throw new NotSupportedException($"{nameof(Protocol.Ice1)} doesn't support fields");
             }
-            else if (_simpleStream.IsDatagram && !request.IsOneway)
+            else if (_isUdp && !request.IsOneway)
             {
-                throw new InvalidOperationException("cannot send twoway request over datagram connection");
+                throw new InvalidOperationException("cannot send twoway request over UDP");
             }
 
             // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue to
@@ -493,7 +494,7 @@ namespace IceRpc.Internal
         public async Task ShutdownAsync(bool shutdownByPeer, string message, CancellationToken cancel)
         {
             var exception = new ConnectionClosedException(message);
-            if (_simpleStream.IsDatagram)
+            if (_isUdp)
             {
                 lock (_mutex)
                 {
@@ -579,26 +580,19 @@ namespace IceRpc.Internal
             return "connection graceful shutdown";
         }
 
-        internal Ice1ProtocolConnection(ISimpleStream simpleStream, int incomingFrameMaxSize)
+        internal Ice1ProtocolConnection(ISimpleStream simpleStream, int incomingFrameMaxSize, bool isUdp)
         {
+            _isUdp = isUdp;
+            _incomingFrameMaxSize = incomingFrameMaxSize;
             _simpleStream = simpleStream;
-            if (_simpleStream.IsDatagram)
-            {
-                _incomingFrameMaxSize = Math.Min(
-                    incomingFrameMaxSize,
-                    _simpleStream.DatagramMaxReceiveSize);
-            }
-            else
-            {
-                _incomingFrameMaxSize = incomingFrameMaxSize;
-            }
+
             // TODO: temporary, this will be removed once we add a log protocol connection decorator
             _logger = NullLogger.Instance;
         }
 
         internal async Task InitializeAsync(bool isServer, CancellationToken cancel)
         {
-            if (!_simpleStream.IsDatagram)
+            if (!_isUdp)
             {
                 if (isServer)
                 {
@@ -633,7 +627,7 @@ namespace IceRpc.Internal
             {
                 // Receive the Ice1 frame header.
                 Memory<byte> buffer;
-                if (_simpleStream.IsDatagram)
+                if (_isUdp)
                 {
                     buffer = new byte[_incomingFrameMaxSize];
                     int received = await _simpleStream.ReadAsync(buffer, cancel).ConfigureAwait(false);
@@ -654,14 +648,14 @@ namespace IceRpc.Internal
                 // Check the header
                 Ice1Definitions.CheckHeader(buffer.Span[0..Ice1Definitions.HeaderSize]);
                 int frameSize = IceDecoder.DecodeInt(buffer.AsReadOnlySpan().Slice(10, 4));
-                if (_simpleStream.IsDatagram && frameSize != buffer.Length)
+                if (_isUdp && frameSize != buffer.Length)
                 {
                     _logger.LogReceivedInvalidDatagram(frameSize);
                     continue; // while
                 }
                 else if (frameSize > _incomingFrameMaxSize)
                 {
-                    if (_simpleStream.IsDatagram)
+                    if (_isUdp)
                     {
                         _logger.LogDatagramSizeExceededIncomingFrameMaxSize(frameSize);
                         continue;
@@ -682,7 +676,7 @@ namespace IceRpc.Internal
                 }
 
                 // Read the remainder of the frame if needed.
-                if (_simpleStream.IsDatagram)
+                if (_isUdp)
                 {
                     Debug.Assert(frameSize == buffer.Length);
                     buffer = buffer[Ice1Definitions.HeaderSize..];

@@ -24,7 +24,6 @@ namespace IceRpc.Transports.Internal
             }
 
             simpleStream = new LogSimpleStreamDecorator(this, simpleStream);
-            IsDatagram = simpleStream.IsDatagram;
 
             LogConnected();
             return (simpleStream, Information.Value);
@@ -47,9 +46,6 @@ namespace IceRpc.Transports.Internal
 
     internal sealed class LogSimpleStreamDecorator : ISimpleStream
     {
-        public int DatagramMaxReceiveSize => _decoratee.DatagramMaxReceiveSize;
-        public bool IsDatagram => _decoratee.IsDatagram;
-
         private readonly ISimpleStream _decoratee;
         private readonly LogNetworkConnectionDecorator _parent;
 
