@@ -22,26 +22,34 @@ namespace IceRpc.Tests
         public static IClientTransport<IMultiplexedNetworkConnection> GetSecureMultiplexedClientTransport(
             string caFile = "cacert.der") =>
             new SlicClientTransport(
-                    new TcpClientTransport(authenticationOptions:
-                    new()
-                    {
-                        RemoteCertificateValidationCallback =
-                            CertificateValidaton.GetServerCertificateValidationCallback(
-                                certificateAuthorities: new X509Certificate2Collection
-                                {
-                                    new X509Certificate2(Path.Combine(Environment.CurrentDirectory, "certs", caFile))
-                                })
-                    }));
+                    new TcpClientTransport(
+                        new TcpClientOptions
+                        {
+                            AuthenticationOptions =
+                            new()
+                            {
+                                RemoteCertificateValidationCallback =
+                                    CertificateValidaton.GetServerCertificateValidationCallback(
+                                        certificateAuthorities: new X509Certificate2Collection
+                                        {
+                                            new X509Certificate2(Path.Combine(Environment.CurrentDirectory, "certs", caFile))
+                                        })
+                            }
+                        }));
 
         public static IServerTransport<IMultiplexedNetworkConnection> GetSecureMultiplexedServerTransport(
             string certificateFile = "server.p12") =>
              new SlicServerTransport(
-                new TcpServerTransport(authenticationOptions:
-                    new()
+                new TcpServerTransport(
+                    new TcpServerOptions
                     {
-                        ServerCertificate = new X509Certificate2(
-                            Path.Combine(Environment.CurrentDirectory, "certs", certificateFile),
-                            "password")
+                        AuthenticationOptions =
+                        new()
+                        {
+                            ServerCertificate = new X509Certificate2(
+                                Path.Combine(Environment.CurrentDirectory, "certs", certificateFile),
+                                "password")
+                        }
                     }));
 
         public static Endpoint GetTestEndpoint(
@@ -100,15 +108,14 @@ namespace IceRpc.Tests
 
         public static IClientTransport<IMultiplexedNetworkConnection> CreateMultiplexedClientTransport(
             string transport = "tcp",
-            TcpOptions? options = null,
-            SslClientAuthenticationOptions? authenticationOptions = null,
+            TcpClientOptions? options = null,
             SlicOptions? slicOptions = null,
             ILoggerFactory? _ = null)
         {
             // TODO: give loggerFactory to SlicClientTransport
             return transport switch
                 {
-                    "tcp" => new SlicClientTransport(new TcpClientTransport(options ?? new(), authenticationOptions),
+                    "tcp" => new SlicClientTransport(new TcpClientTransport(options ?? new()),
                                                      slicOptions ?? new SlicOptions()),
                     "coloc" => new SlicClientTransport(new ColocClientTransport(), slicOptions ?? new SlicOptions()),
                     _ => throw new UnknownTransportException(transport)
@@ -117,7 +124,7 @@ namespace IceRpc.Tests
 
         public static IServerTransport<IMultiplexedNetworkConnection> CreateMultiplexedServerTransport(
             string transport = "tcp",
-            TcpOptions? options = null,
+            TcpServerOptions? options = null,
             SslServerAuthenticationOptions? authenticationOptions = null,
             SlicOptions? slicOptions = null,
             ILoggerFactory? _ = null)
@@ -125,7 +132,7 @@ namespace IceRpc.Tests
             // TODO: give loggerFactory to SlicServerTransport
             return transport switch
                 {
-                    "tcp" => new SlicServerTransport(new TcpServerTransport(options ?? new(), authenticationOptions),
+                    "tcp" => new SlicServerTransport(new TcpServerTransport(options ?? new()),
                                                      slicOptions ?? new SlicOptions()),
                     "coloc" => new SlicServerTransport(new ColocServerTransport(), slicOptions ?? new SlicOptions()),
                     _ => throw new UnknownTransportException(transport)
@@ -134,13 +141,12 @@ namespace IceRpc.Tests
 
         public static IClientTransport<ISimpleNetworkConnection> CreateSimpleClientTransport(
             string transport = "tcp",
-            object? options = null,
-            SslClientAuthenticationOptions? authenticationOptions = null)
+            object? options = null)
         {
             return transport switch
                 {
-                    "tcp" => new TcpClientTransport((TcpOptions?)options ?? new(), authenticationOptions),
-                    "ssl" => new TcpClientTransport((TcpOptions?)options ?? new(), authenticationOptions),
+                    "tcp" => new TcpClientTransport((TcpClientOptions?)options ?? new()),
+                    "ssl" => new TcpClientTransport((TcpClientOptions?)options ?? new()),
                     "udp" => new UdpClientTransport((UdpOptions?)options ?? new()),
                     "coloc" => new ColocClientTransport(),
                     _ => throw new UnknownTransportException(transport)
@@ -149,13 +155,12 @@ namespace IceRpc.Tests
 
         public static IServerTransport<ISimpleNetworkConnection> CreateSimpleServerTransport(
             string transport = "tcp",
-            object? options = null,
-            SslServerAuthenticationOptions? authenticationOptions = null)
+            object? options = null)
         {
             return transport switch
                 {
-                    "tcp" => new TcpServerTransport((TcpOptions?)options ?? new(), authenticationOptions),
-                    "ssl" => new TcpServerTransport((TcpOptions?)options ?? new(), authenticationOptions),
+                    "tcp" => new TcpServerTransport((TcpServerOptions?)options ?? new()),
+                    "ssl" => new TcpServerTransport((TcpServerOptions?)options ?? new()),
                     "udp" => new UdpServerTransport((UdpOptions?)options ?? new()),
                     "coloc" => new ColocServerTransport(),
                     _ => throw new UnknownTransportException(transport)

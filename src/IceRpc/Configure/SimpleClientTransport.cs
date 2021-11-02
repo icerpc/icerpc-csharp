@@ -23,60 +23,35 @@ namespace IceRpc.Configure
 
         /// <summary>Adds the ssl client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
-        /// <param name="authenticationOptions">The ssl authentication options.</param>
+        /// <param name="options">The TCP client options.</param>
         /// <returns>The transport being configured.</returns>
         public static ClientTransport<ISimpleNetworkConnection> UseSsl(
             this ClientTransport<ISimpleNetworkConnection> clientTransport,
-            SslClientAuthenticationOptions authenticationOptions) =>
-            clientTransport.Add(TransportNames.Ssl, new TcpClientTransport(authenticationOptions));
+            TcpClientOptions options)
+        {
+            if (options.AuthenticationOptions == null)
+            {
+                throw new ArgumentException("AuthenticationOptions must be set for ssl transport", nameof(options));
+            }
 
-        /// <summary>Adds the ssl client transport to this composite client transport.</summary>
-        /// <param name="clientTransport">The transport being configured.</param>
-        /// <param name="tcpOptions">The TCP transport options.</param>
-        /// <param name="authenticationOptions">The ssl authentication options.</param>
-        /// <returns>The transport being configured.</returns>
-        public static ClientTransport<ISimpleNetworkConnection> UseSsl(
-            this ClientTransport<ISimpleNetworkConnection> clientTransport,
-            TcpOptions tcpOptions,
-            SslClientAuthenticationOptions authenticationOptions) =>
-            clientTransport.Add(TransportNames.Ssl,
-                                new TcpClientTransport(tcpOptions, authenticationOptions));
+            return clientTransport.Add(TransportNames.Ssl, new TcpClientTransport(options));
+        }
 
         /// <summary>Adds the tcp client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
         /// <returns>The transport being configured.</returns>
         public static ClientTransport<ISimpleNetworkConnection> UseTcp(
             this ClientTransport<ISimpleNetworkConnection> clientTransport) =>
-            clientTransport.UseTcp(new TcpOptions());
+            clientTransport.UseTcp(new TcpClientOptions());
 
         /// <summary>Adds the tcp client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
-        /// <param name="tcpOptions">The TCP transport options.</param>
+        /// <param name="options">The TCP client options.</param>
         /// <returns>The transport being configured.</returns>
         public static ClientTransport<ISimpleNetworkConnection> UseTcp(
             this ClientTransport<ISimpleNetworkConnection> clientTransport,
-            TcpOptions tcpOptions) =>
-            clientTransport.Add(TransportNames.Tcp, new TcpClientTransport(tcpOptions, null));
-
-        /// <summary>Adds the tcp client transport with ssl support to this composite client transport.</summary>
-        /// <param name="clientTransport">The transport being configured.</param>
-        /// <param name="authenticationOptions">The ssl authentication options.</param>
-        /// <returns>The transport being configured.</returns>
-        public static ClientTransport<ISimpleNetworkConnection> UseTcp(
-            this ClientTransport<ISimpleNetworkConnection> clientTransport,
-            SslClientAuthenticationOptions authenticationOptions) =>
-            clientTransport.UseTcp(new TcpOptions(), authenticationOptions);
-
-        /// <summary>Adds the tcp client transport with ssl support to this composite client transport.</summary>
-        /// <param name="clientTransport">The transport being configured.</param>
-        /// <param name="tcpOptions">The TCP transport options.</param>
-        /// <param name="authenticationOptions">The ssl authentication options.</param>
-        /// <returns>The transport being configured.</returns>
-        public static ClientTransport<ISimpleNetworkConnection> UseTcp(
-            this ClientTransport<ISimpleNetworkConnection>  clientTransport,
-            TcpOptions tcpOptions,
-            SslClientAuthenticationOptions authenticationOptions) =>
-            clientTransport.Add(TransportNames.Tcp, new TcpClientTransport(tcpOptions, authenticationOptions));
+            TcpClientOptions options) =>
+            clientTransport.Add(TransportNames.Tcp, new TcpClientTransport(options));
 
         /// <summary>Adds the udp client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The client transport being configured.</param>

@@ -24,15 +24,12 @@ namespace IceRpc.Tests.Internal
         private ISimpleStream ClientStream => _clientStream!;
         private ISimpleStream ServerStream => _serverStream!;
 
-        private readonly SslClientAuthenticationOptions _clientAuthenticationOptions;
         private ISimpleNetworkConnection? _clientConnection;
         private ISimpleStream? _clientStream;
         private readonly IListener<ISimpleNetworkConnection> _listener;
 
         private readonly bool _isIPv6;
         private ISimpleStream? _serverStream;
-
-        private readonly SslServerAuthenticationOptions _serverAuthenticationOptions;
         private ISimpleNetworkConnection? _serverConnection;
 
         private readonly bool _tls;
@@ -42,25 +39,14 @@ namespace IceRpc.Tests.Internal
             _isIPv6 = addressFamily == AddressFamily.InterNetworkV6;
             _tls = tls;
 
-            _clientAuthenticationOptions = new()
-            {
-                RemoteCertificateValidationCallback =
-                            CertificateValidaton.GetServerCertificateValidationCallback(
-                                certificateAuthorities: new X509Certificate2Collection()
-                                {
-                                    new X509Certificate2("../../../certs/cacert.pem")
-                                }),
-                TargetHost = _isIPv6 ? "[::1]" : "127.0.0.1"
-            };
-
-            _serverAuthenticationOptions = new()
+            var serverAuthenticationOptions = new SslServerAuthenticationOptions
             {
                 ClientCertificateRequired = false,
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
             };
 
             IServerTransport<ISimpleNetworkConnection> serverTransport =
-                new TcpServerTransport(new TcpOptions(), _serverAuthenticationOptions);
+                new TcpServerTransport(new TcpServerOptions { AuthenticationOptions = serverAuthenticationOptions });
 
             string host = _isIPv6 ? "[::1]" : "127.0.0.1";
 
@@ -72,8 +58,19 @@ namespace IceRpc.Tests.Internal
         {
             Task<ISimpleNetworkConnection> acceptTask = _listener.AcceptAsync();
 
+            var clientAuthenticationOptions = new SslClientAuthenticationOptions
+            {
+                RemoteCertificateValidationCallback =
+                            CertificateValidaton.GetServerCertificateValidationCallback(
+                                certificateAuthorities: new X509Certificate2Collection()
+                                {
+                                    new X509Certificate2("../../../certs/cacert.pem")
+                                }),
+                TargetHost = _isIPv6 ? "[::1]" : "127.0.0.1"
+            };
+
             IClientTransport<ISimpleNetworkConnection> clientTransport =
-                new TcpClientTransport(new TcpOptions(), _clientAuthenticationOptions);
+                new TcpClientTransport(new TcpClientOptions { AuthenticationOptions = clientAuthenticationOptions });
 
             _clientConnection =
                 clientTransport.CreateConnection(_listener.Endpoint, LogAttributeLoggerFactory.Instance);

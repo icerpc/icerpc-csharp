@@ -35,19 +35,22 @@ namespace IceRpc.Tests.ClientServer
 
             await using var connection = new Connection
             {
-                MultiplexedClientTransport = new SlicClientTransport(new TcpClientTransport(authenticationOptions:
-                    new()
+                MultiplexedClientTransport = new SlicClientTransport(new TcpClientTransport(
+                    new TcpClientOptions
                     {
-                        ClientCertificates = new X509Certificate2Collection
-                            {
-                                new X509Certificate2(GetCertificatePath(clientCertFile), "password")
-                            },
-                        RemoteCertificateValidationCallback =
-                            CertificateValidaton.GetServerCertificateValidationCallback(
-                                certificateAuthorities: new X509Certificate2Collection
+                        AuthenticationOptions = new()
+                        {
+                            ClientCertificates = new X509Certificate2Collection
                                 {
-                                    new X509Certificate2(GetCertificatePath(caFile))
-                                })
+                                    new X509Certificate2(GetCertificatePath(clientCertFile), "password")
+                                },
+                            RemoteCertificateValidationCallback =
+                                CertificateValidaton.GetServerCertificateValidationCallback(
+                                    certificateAuthorities: new X509Certificate2Collection
+                                    {
+                                        new X509Certificate2(GetCertificatePath(caFile))
+                                    })
+                        }
                     })),
                 RemoteEndpoint = server.Endpoint
             };
@@ -80,17 +83,20 @@ namespace IceRpc.Tests.ClientServer
 
             await using var connection = new Connection
             {
-                MultiplexedClientTransport = new SlicClientTransport(new TcpClientTransport(authenticationOptions:
-                    new()
+                MultiplexedClientTransport = new SlicClientTransport(new TcpClientTransport(
+                    new TcpClientOptions
                     {
-                        ClientCertificates = new X509Certificate2Collection
+                        AuthenticationOptions = new()
                         {
-                            new X509Certificate2(GetCertificatePath(clientCertFile), "password")
-                        },
-                        RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
-                        {
-                            clientValidationCallbackCalled = true;
-                            return true;
+                            ClientCertificates = new X509Certificate2Collection
+                            {
+                                new X509Certificate2(GetCertificatePath(clientCertFile), "password")
+                            },
+                            RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
+                            {
+                                clientValidationCallbackCalled = true;
+                                return true;
+                            }
                         }
                     })),
                 RemoteEndpoint = server.Endpoint
@@ -123,28 +129,31 @@ namespace IceRpc.Tests.ClientServer
 
             await using var connection = new Connection
             {
-                MultiplexedClientTransport = new SlicClientTransport(new TcpClientTransport(authenticationOptions:
-                    new()
+                MultiplexedClientTransport = new SlicClientTransport(new TcpClientTransport(
+                    new TcpClientOptions
                     {
-                        ClientCertificates = new X509Certificate2Collection
+                        AuthenticationOptions = new()
                         {
-                            cert0,
-                            cert1
-                        },
-                        LocalCertificateSelectionCallback =
-                            (sender, targetHost, certs, remoteCertificate, acceptableIssuers) =>
+                            ClientCertificates = new X509Certificate2Collection
                             {
-                                Assert.AreEqual(2, certs.Count);
-                                Assert.AreEqual(cert0, certs[0]);
-                                Assert.AreEqual(cert1, certs[1]);
-                                return certs[0];
+                                cert0,
+                                cert1
                             },
-                        RemoteCertificateValidationCallback =
-                            CertificateValidaton.GetServerCertificateValidationCallback(
-                                certificateAuthorities: new X509Certificate2Collection
+                            LocalCertificateSelectionCallback =
+                                (sender, targetHost, certs, remoteCertificate, acceptableIssuers) =>
                                 {
-                                    new X509Certificate2(GetCertificatePath("cacert1.der"))
-                                }),
+                                    Assert.AreEqual(2, certs.Count);
+                                    Assert.AreEqual(cert0, certs[0]);
+                                    Assert.AreEqual(cert1, certs[1]);
+                                    return certs[0];
+                                },
+                            RemoteCertificateValidationCallback =
+                                CertificateValidaton.GetServerCertificateValidationCallback(
+                                    certificateAuthorities: new X509Certificate2Collection
+                                    {
+                                        new X509Certificate2(GetCertificatePath("cacert1.der"))
+                                    }),
+                        }
                     })),
                 RemoteEndpoint = server.Endpoint
             };
@@ -183,8 +192,7 @@ namespace IceRpc.Tests.ClientServer
 
             await using var connection = new Connection
             {
-                MultiplexedClientTransport =
-                    new SlicClientTransport(new TcpClientTransport(authenticationOptions: new())),
+                MultiplexedClientTransport = new SlicClientTransport(new TcpClientTransport()),
                 RemoteEndpoint = server.Endpoint
             };
             var prx = ServicePrx.FromConnection(connection);
@@ -240,7 +248,7 @@ namespace IceRpc.Tests.ClientServer
             await using var connection = new Connection
             {
                 MultiplexedClientTransport = new SlicClientTransport(
-                    new TcpClientTransport(authenticationOptions: tlsClientOptions)),
+                    new TcpClientTransport(new TcpClientOptions { AuthenticationOptions = tlsClientOptions })),
                 RemoteEndpoint = server.Endpoint
             };
             var prx = ServicePrx.FromConnection(connection);
@@ -282,15 +290,19 @@ namespace IceRpc.Tests.ClientServer
 
             await using var connection = new Connection
             {
-                MultiplexedClientTransport = new SlicClientTransport(new TcpClientTransport(authenticationOptions: new()
-                {
-                    RemoteCertificateValidationCallback =
-                    CertificateValidaton.GetServerCertificateValidationCallback(
-                        certificateAuthorities: new X509Certificate2Collection
+                MultiplexedClientTransport = new SlicClientTransport(new TcpClientTransport(
+                    new TcpClientOptions
+                    {
+                        AuthenticationOptions = new()
                         {
-                            new X509Certificate2(GetCertificatePath("cacert1.der"))
-                        })
-                })),
+                            RemoteCertificateValidationCallback =
+                                CertificateValidaton.GetServerCertificateValidationCallback(
+                                    certificateAuthorities: new X509Certificate2Collection
+                                    {
+                                        new X509Certificate2(GetCertificatePath("cacert1.der"))
+                                    })
+                        }
+                    })),
                 RemoteEndpoint =
                     $"ice+tcp://{TestHelper.EscapeIPv6Address(targetHost, server.Protocol)}:{server.Endpoint.Port}"
             };
@@ -323,16 +335,19 @@ namespace IceRpc.Tests.ClientServer
 
             await using var connection = new Connection
             {
-                MultiplexedClientTransport = new SlicClientTransport(new TcpClientTransport(authenticationOptions:
-                    new()
+                MultiplexedClientTransport = new SlicClientTransport(new TcpClientTransport(
+                    new TcpClientOptions
                     {
-                        RemoteCertificateValidationCallback =
-                            CertificateValidaton.GetServerCertificateValidationCallback(
-                                certificateAuthorities: new X509Certificate2Collection
-                                {
-                                    new X509Certificate2(GetCertificatePath("cacert1.der"))
-                                }),
-                        EnabledSslProtocols = SslProtocols.Tls12
+                        AuthenticationOptions = new()
+                        {
+                            RemoteCertificateValidationCallback =
+                                CertificateValidaton.GetServerCertificateValidationCallback(
+                                    certificateAuthorities: new X509Certificate2Collection
+                                    {
+                                        new X509Certificate2(GetCertificatePath("cacert1.der"))
+                                    }),
+                            EnabledSslProtocols = SslProtocols.Tls12
+                        }
                     })),
                 RemoteEndpoint = server.Endpoint
             };
@@ -365,16 +380,19 @@ namespace IceRpc.Tests.ClientServer
 
             await using var connection = new Connection
             {
-                MultiplexedClientTransport = new SlicClientTransport(new TcpClientTransport(authenticationOptions:
-                    new()
+                MultiplexedClientTransport = new SlicClientTransport(new TcpClientTransport(
+                    new TcpClientOptions
                     {
-                        RemoteCertificateValidationCallback =
-                            CertificateValidaton.GetServerCertificateValidationCallback(
-                                certificateAuthorities: new X509Certificate2Collection
-                                {
-                                    new X509Certificate2(GetCertificatePath("cacert1.der"))
-                                }),
-                        EnabledSslProtocols = SslProtocols.Tls12
+                        AuthenticationOptions = new()
+                        {
+                            RemoteCertificateValidationCallback =
+                                CertificateValidaton.GetServerCertificateValidationCallback(
+                                    certificateAuthorities: new X509Certificate2Collection
+                                    {
+                                        new X509Certificate2(GetCertificatePath("cacert1.der"))
+                                    }),
+                            EnabledSslProtocols = SslProtocols.Tls12
+                        }
                     })),
                 RemoteEndpoint = server.Endpoint
             };
@@ -406,7 +424,10 @@ namespace IceRpc.Tests.ClientServer
                 Dispatcher = new Greeter(),
                 Endpoint = GetTestEndpoint(serverHost, tls: true),
                 MultiplexedServerTransport =
-                    new SlicServerTransport(new TcpServerTransport(authenticationOptions: tlsServerOptions))
+                    new SlicServerTransport(new TcpServerTransport(new TcpServerOptions
+                    {
+                        AuthenticationOptions = tlsServerOptions
+                    }))
             };
 
             server.Listen();

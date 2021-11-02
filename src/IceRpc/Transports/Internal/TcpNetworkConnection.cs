@@ -291,10 +291,7 @@ namespace IceRpc.Transports.Internal
             return tls == null || tls == (_sslStream != null);
         }
 
-        internal TcpClientNetworkConnection(
-            Endpoint remoteEndpoint,
-            TcpOptions tcpOptions,
-            SslClientAuthenticationOptions? authenticationOptions)
+        internal TcpClientNetworkConnection(Endpoint remoteEndpoint, TcpClientOptions options)
         {
             _remoteEndpoint = remoteEndpoint;
 
@@ -312,19 +309,19 @@ namespace IceRpc.Transports.Internal
             {
                 if (ipAddress?.AddressFamily == AddressFamily.InterNetworkV6)
                 {
-                    Socket.DualMode = !tcpOptions.IsIPv6Only;
+                    Socket.DualMode = !options.IsIPv6Only;
                 }
 
-                if (tcpOptions.LocalEndPoint is IPEndPoint localEndPoint)
+                if (options.LocalEndPoint is IPEndPoint localEndPoint)
                 {
                     Socket.Bind(localEndPoint);
                 }
 
-                if (tcpOptions.ReceiveBufferSize is int receiveSize)
+                if (options.ReceiveBufferSize is int receiveSize)
                 {
                     Socket.ReceiveBufferSize = receiveSize;
                 }
-                if (tcpOptions.SendBufferSize is int sendSize)
+                if (options.SendBufferSize is int sendSize)
                 {
                     Socket.SendBufferSize = sendSize;
                 }
@@ -337,8 +334,8 @@ namespace IceRpc.Transports.Internal
                 throw new TransportException(ex);
             }
 
-            _authenticationOptions = authenticationOptions;
-            _idleTimeout = tcpOptions.IdleTimeout;
+            _authenticationOptions = options.AuthenticationOptions;
+            _idleTimeout = options.IdleTimeout;
         }
     }
 

@@ -46,8 +46,7 @@ namespace IceRpc.Transports.Internal
 
         internal TcpListener(
             Endpoint endpoint,
-            TcpOptions tcpOptions,
-            SslServerAuthenticationOptions? authenticationOptions,
+            TcpServerOptions options,
             Func<TcpServerNetworkConnection, ISimpleNetworkConnection> serverConnectionDecorator)
         {
             // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
@@ -60,20 +59,20 @@ namespace IceRpc.Transports.Internal
             }
 
             _tls = endpoint.ParseTcpParams().Tls;
-            _idleTimeout = tcpOptions.IdleTimeout;
+            _idleTimeout = options.IdleTimeout;
 
             _serverConnectionDecorator = serverConnectionDecorator;
 
-            if (authenticationOptions != null)
+            if (options.AuthenticationOptions != null)
             {
                 // Add the endpoint protocol to the SSL application protocols (used by TLS ALPN)
-                authenticationOptions = authenticationOptions.Clone();
-                authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
+                options.AuthenticationOptions = options.AuthenticationOptions.Clone();
+                options.AuthenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
                     {
                         new SslApplicationProtocol(endpoint.Protocol.Name)
                     };
             }
-            _authenticationOptions = authenticationOptions;
+            _authenticationOptions = options.AuthenticationOptions;
 
             var address = new IPEndPoint(ipAddress, endpoint.Port);
             _socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
@@ -81,23 +80,23 @@ namespace IceRpc.Transports.Internal
             {
                 if (ipAddress.AddressFamily == AddressFamily.InterNetworkV6)
                 {
-                    _socket.DualMode = !tcpOptions.IsIPv6Only;
+                    _socket.DualMode = !options.IsIPv6Only;
                 }
 
                 _socket.ExclusiveAddressUse = true;
 
-                if (tcpOptions.ReceiveBufferSize is int receiveSize)
+                if (options.ReceiveBufferSize is int receiveSize)
                 {
                     _socket.ReceiveBufferSize = receiveSize;
                 }
-                if (tcpOptions.SendBufferSize is int sendSize)
+                if (options.SendBufferSize is int sendSize)
                 {
                     _socket.SendBufferSize = sendSize;
                 }
 
                 _socket.Bind(address);
                 address = (IPEndPoint)_socket.LocalEndPoint!;
-                _socket.Listen(tcpOptions.ListenerBackLog);
+                _socket.Listen(options.ListenerBackLog);
             }
             catch (SocketException ex)
             {
