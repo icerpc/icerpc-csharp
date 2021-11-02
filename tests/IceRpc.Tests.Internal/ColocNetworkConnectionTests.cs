@@ -13,39 +13,36 @@ namespace IceRpc.Tests.Internal
         public void ColocNetworkConnection_Close()
         {
             ISimpleNetworkConnection connection = CreateConnection(false);
-            connection.Close();
-            connection.Close();
+            connection.Dispose();
+            connection.Dispose();
         }
 
         [TestCase(true, false)]
         [TestCase(false, true)]
         public void ColocNetworkConnection_HasCompatibleParams(bool isServer, bool expectedResult)
         {
-            ISimpleNetworkConnection connection = CreateConnection(isServer);
+            using ISimpleNetworkConnection connection = CreateConnection(isServer);
             Assert.That(connection.HasCompatibleParams(Endpoint.FromString("ice+coloc://host")),
                         Is.EqualTo(expectedResult));
-            connection.Close();
         }
 
         [TestCase(false)]
         [TestCase(true)]
         public async Task ColocNetworkConnection_Properties(bool isServer)
         {
-            ISimpleNetworkConnection connection = CreateConnection(isServer);
+            using ISimpleNetworkConnection connection = CreateConnection(isServer);
 
             (ISimpleStream? _, NetworkConnectionInformation information) = await connection.ConnectAsync(default);
 
             Assert.That(information.LocalEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
             Assert.That(information.RemoteEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
             Assert.That(information.IdleTimeout, Is.EqualTo(TimeSpan.MaxValue));
-
-            connection.Close();
         }
 
         [Test]
         public async Task ColocNetworkConnection_LastActivity()
         {
-            ISimpleNetworkConnection connection = CreateConnection(false);
+            using ISimpleNetworkConnection connection = CreateConnection(false);
 
             (ISimpleStream stream, NetworkConnectionInformation _) = await connection.ConnectAsync(default);
 
@@ -59,8 +56,6 @@ namespace IceRpc.Tests.Internal
             await Task.Delay(2);
             await stream.ReadAsync(new byte[1], default);
             Assert.That(connection.LastActivity, Is.EqualTo(TimeSpan.Zero));
-
-            connection.Close();
         }
 
         private static ISimpleNetworkConnection CreateConnection(bool isServer)

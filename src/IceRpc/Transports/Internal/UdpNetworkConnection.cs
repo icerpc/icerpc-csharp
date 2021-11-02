@@ -17,7 +17,7 @@ namespace IceRpc.Transports.Internal
 
         public abstract TimeSpan LastActivity { get; }
 
-        public abstract void Close(Exception? exception);
+        public void Dispose() => Socket.Close();
 
         public abstract Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel);
 
@@ -57,8 +57,6 @@ namespace IceRpc.Transports.Internal
 
         private readonly string? _multicastInterface;
         private readonly int _ttl;
-
-        public override void Close(Exception? exception) => Socket.Close();
 
         public override async Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel)
         {
@@ -239,8 +237,6 @@ namespace IceRpc.Transports.Internal
         private readonly IPEndPoint? _multicastAddress;
 
         private readonly EndPoint _remoteAddress;
-
-        public override void Close(Exception? exception) => Socket.Close();
 
         public override Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel) =>
             // The remote endpoint is set to an empty endpoint for a UDP server connection because the

@@ -14,7 +14,7 @@ namespace IceRpc.Transports.Internal
         private readonly ILogger _logger;
         private readonly UdpNetworkConnection _decoratee;
 
-        void INetworkConnection.Close(Exception? exception) => _decoratee.Close(exception);
+        void IDisposable.Dispose() => _decoratee.Dispose();
 
         async Task<(ISimpleStream, NetworkConnectionInformation)> ISimpleNetworkConnection.ConnectAsync(
             CancellationToken cancel)

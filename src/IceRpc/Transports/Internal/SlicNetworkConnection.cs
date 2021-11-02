@@ -21,9 +21,9 @@ namespace IceRpc.Transports.Internal
         private SlicMultiplexedStreamFactory? _slicMultiplexedStreamFactory;
         private readonly SlicOptions _slicOptions;
 
-        public void Close(Exception? exception = null)
+        public void Dispose()
         {
-            _simpleNetworkConnection.Close(exception);
+            _simpleNetworkConnection.Dispose();
             _slicMultiplexedStreamFactory?.Dispose();
         }
 

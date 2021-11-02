@@ -59,8 +59,8 @@ namespace IceRpc.Tests.Internal
         [OneTimeTearDown]
         public void Shutdown()
         {
-            _clientConnection?.Close();
-            _serverConnection?.Close();
+            _clientConnection?.Dispose();
+            _serverConnection?.Dispose();
             _listener.Dispose();
         }
 
@@ -140,10 +140,7 @@ namespace IceRpc.Tests.Internal
             }
             Assert.AreNotEqual(0, count);
 
-            foreach (ISimpleNetworkConnection connection in clientConnectionList)
-            {
-                connection.Close();
-            }
+            clientConnectionList.ForEach(connection => connection.Dispose());
         }
 
         [Test]
@@ -159,7 +156,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void UdpSimpleStream_ReadAsync_Dispose()
         {
-            _clientConnection!.Close();
+            _clientConnection!.Dispose();
             Assert.CatchAsync<TransportException>(async () => await ClientStream.ReadAsync(new byte[256], default));
         }
 
@@ -176,7 +173,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void UdpSimpleStream_WriteAsync_Dispose()
         {
-            _clientConnection!.Close();
+            _clientConnection!.Dispose();
             Assert.CatchAsync<TransportException>(async () => await ClientStream.WriteAsync(_oneBWriteBuffer, default));
         }
 

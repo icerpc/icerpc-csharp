@@ -124,14 +124,20 @@ namespace IceRpc
 
         // The connect task is assigned when ConnectAsync is called, it's protected with _mutex.
         private Task? _connectTask;
+
         private EventHandler<ClosedEventArgs>? _closed;
+
         // The close task is assigned when ShutdownAsync or CloseAsync are called, it's protected with _mutex.
         private Task? _closeTask;
+
         // The initial remote endpoint for client connections.
         private readonly Endpoint? _initialRemoteEndpoint;
+
         // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
         private readonly object _mutex = new();
+
         private INetworkConnection? _networkConnection;
+
         // _protocol is non-null only for server connections. For client connections, it's null. The protocol
         // is instead obtained with RemoteEndpoint.Protocol
         private readonly Protocol? _protocol;
@@ -192,7 +198,8 @@ namespace IceRpc
                                             LogMultiplexedNetworkConnectionDecorator.Decorate);
                 }
 
-                Debug.Assert(_state == ConnectionState.Connecting && _connectTask != null);
+                Debug.Assert(_state == ConnectionState.Connecting);
+                Debug.Assert(_connectTask != null);
             }
 
             return _connectTask.WaitAsync(cancel);
@@ -212,8 +219,10 @@ namespace IceRpc
                 _networkConnection = networkConnection;
                 _state = ConnectionState.Connecting;
 
+                EventHandler<ClosedEventArgs>? closedEventHandler = null;
+
                 if (LoggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger &&
-                    logger.IsEnabled(LogLevel.Error))
+                    logger.IsEnabled(LogLevel.Error)) // TODO: log level
                 {
                     networkConnection = logDecoratorFactory(networkConnection,
                                                             isServer: false,
@@ -230,11 +239,23 @@ namespace IceRpc
                                                                 isServer,
                                                                 cancel).ConfigureAwait(false);
 
-                        return (new LogProtocolConnectionDecorator(protocolConnection, logger), connectionInformation);
+                        return (new LogProtocolConnectionDecorator(protocolConnection, logger),
+                                connectionInformation);
+                    };
+
+                    closedEventHandler = (sender, args) =>
+                    {
+                        if (args.Exception is Exception exception)
+                        {
+                            // This event handler is added/executed after NetworkConnectionInformation is set.
+                            using IDisposable? scope =
+                                logger.StartConnectionScope(NetworkConnectionInformation!.Value, isServer: false);
+                            logger.LogConnectionClosedReason(exception);
+                        }
                     };
                 }
 
-                return ConnectAsync(networkConnection, protocolConnectionFactory);
+                return ConnectAsync(networkConnection, protocolConnectionFactory, closedEventHandler);
             }
         }
 
@@ -399,9 +420,15 @@ namespace IceRpc
         }
 
         /// <summary>Establishes a connection. This method is used for both client and server connections.</summary>
+        /// <param name="networkConnection">The underlying network connection.</param>
+        /// <param name="protocolConnectionFactory">A factory function that creates a protocol connection from a
+        /// a network connection.</param>
+        /// <param name="closedEventHandler">A closed event handler added to the connection once the connection is
+        /// active.</param>
         internal async Task ConnectAsync<T>(
             T networkConnection,
-            ProtocolConnectionFactory<T> protocolConnectionFactory) where T : INetworkConnection
+            ProtocolConnectionFactory<T> protocolConnectionFactory,
+            EventHandler<ClosedEventArgs>? closedEventHandler) where T : INetworkConnection
         {
             // Note: networkConnection may be more decorated than _networkConnection
 
@@ -420,12 +447,13 @@ namespace IceRpc
                 {
                     if (_state == ConnectionState.Closed)
                     {
-                        // This can occur if the connection is disposed while the connection is being
-                        // initialized.
+                        // This can occur if the connection is disposed while the connection is being initialized.
                         throw new ConnectionClosedException();
                     }
 
                     _state = ConnectionState.Active;
+
+                    _closed += closedEventHandler;
 
                     // Setup a timer to check for the connection idle time every IdleTimeout / 2 period. If the
                     // transport doesn't support idle timeout (e.g.: the colocated transport), IdleTimeout will
@@ -601,7 +629,7 @@ namespace IceRpc
 
                 try
                 {
-                    _networkConnection?.Close(exception);
+                    _networkConnection?.Dispose();
                 }
                 catch (Exception ex)
                 {

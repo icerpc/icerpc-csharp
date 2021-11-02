@@ -3,7 +3,7 @@
 namespace IceRpc.Transports
 {
     /// <summary>A network connection represents a transport-level connection used to exchange data as bytes.</summary>
-    public interface INetworkConnection
+    public interface INetworkConnection : IDisposable
     {
         /// <summary>Indicates whether or not this network connection is secure.</summary>
         /// <value><c>true</c> means the network connection is secure. <c>false</c> means the network connection is not
@@ -12,10 +12,6 @@ namespace IceRpc.Transports
 
         /// <summary>The time elapsed since the last activity of the connection.</summary>
         TimeSpan LastActivity { get; }
-
-        /// <summary>Closes the network connection.</summary>
-        /// <param name="exception">The reason of the connection closure.</param>
-        void Close(Exception? exception = null);
 
         /// <summary>Checks if the parameters of the provided endpoint are compatible with this network connection.
         /// Compatible means a client could reuse this network connection instead of establishing a new network

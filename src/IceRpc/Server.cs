@@ -134,6 +134,8 @@ namespace IceRpc
 
                 // This is the composition root of Server, where we install log decorators when logging is enabled.
 
+                EventHandler<ClosedEventArgs>? closedEventHandler = null;
+
                 if (LoggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger &&
                     logger.IsEnabled(LogLevel.Error))
                 {
@@ -151,10 +153,22 @@ namespace IceRpc
 
                         return (new LogProtocolConnectionDecorator(protocolConnection, logger), connectionInformation);
                     };
+
+                    closedEventHandler = (sender, args) =>
+                    {
+                        if (sender is Connection connection && args.Exception is Exception exception)
+                        {
+                            // This event handler is added/executed after NetworkConnectionInformation is set.
+                             using IDisposable? scope =
+                                logger.StartConnectionScope(connection.NetworkConnectionInformation!.Value,
+                                                            isServer: true);
+                            logger.LogConnectionClosedReason(exception);
+                        }
+                    };
                 }
 
                 // Run task to start accepting new connections.
-                _ = Task.Run(() => AcceptAsync(listener, protocolConnectionFactory));
+                _ = Task.Run(() => AcceptAsync(listener, protocolConnectionFactory, closedEventHandler));
 
                 _listening = true;
             }
@@ -232,7 +246,8 @@ namespace IceRpc
 
         private async Task AcceptAsync<T>(
             IListener<T> listener,
-            ProtocolConnectionFactory<T> protocolConnectionFactory) where T : INetworkConnection
+            ProtocolConnectionFactory<T> protocolConnectionFactory,
+            EventHandler<ClosedEventArgs>? closedEventHandler) where T : INetworkConnection
         {
             while (true)
             {
@@ -295,7 +310,7 @@ namespace IceRpc
                 // such as TLS based transports where the handshake requires few round trips between the client
                 // and server. Waiting could also cause a security issue if the client doesn't respond to the
                 // connection initialization as we wouldn't be able to accept new connections in the meantime.
-                _ = connection.ConnectAsync(networkConnection, protocolConnectionFactory);
+                _ = connection.ConnectAsync(networkConnection, protocolConnectionFactory, closedEventHandler);
             }
         }
     }

@@ -12,9 +12,6 @@ using System.Text;
 
 namespace IceRpc.Transports.Internal
 {
-// TODO: temporary, we need to make INetworkConnection IDisposable
-#pragma warning disable CA1001
-
     internal abstract class TcpNetworkConnection : ISimpleNetworkConnection, ISimpleStream
     {
         public bool IsSecure => SslStream != null;
@@ -29,7 +26,7 @@ namespace IceRpc.Transports.Internal
 
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
 
-        public void Close(Exception? exception)
+        public void Dispose()
         {
             SslStream?.Dispose();
             Socket.Dispose();
