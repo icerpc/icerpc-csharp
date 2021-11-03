@@ -2,7 +2,6 @@
 
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
-using System.Net.Security;
 
 namespace IceRpc.Transports
 {

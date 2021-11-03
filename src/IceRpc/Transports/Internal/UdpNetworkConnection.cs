@@ -23,7 +23,7 @@ namespace IceRpc.Transports.Internal
 
         public abstract bool HasCompatibleParams(Endpoint remoteEndpoint);
 
-         /// <inheritdoc/>
+        /// <inheritdoc/>
         public override string ToString()
         {
             var builder = new StringBuilder();
@@ -240,8 +240,8 @@ namespace IceRpc.Transports.Internal
                              new NetworkConnectionInformation(localEndpoint: LocalEndpoint,
                                                               remoteEndpoint: LocalEndpoint with
                                                               {
-                                                                 Host = "::0",
-                                                                 Port = 0
+                                                                  Host = "::0",
+                                                                  Port = 0
                                                               },
                                                               Timeout.InfiniteTimeSpan,
                                                               remoteCertificate: null)));

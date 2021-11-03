@@ -94,7 +94,7 @@ namespace IceRpc.Tests.Internal
         [OneTimeTearDown]
         public void Shutdown() => _listener.Dispose();
 
-         [Test]
+        [Test]
         public async Task TcpSimpleStream_LastActivity()
         {
             TimeSpan lastActivity = _clientConnection!.LastActivity;

@@ -2,7 +2,6 @@
 
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
-using System.Net.Security;
 
 namespace IceRpc.Configure
 {

@@ -5,7 +5,6 @@ using IceRpc.Internal;
 using IceRpc.Transports;
 using NUnit.Framework;
 using System.Collections.Immutable;
-using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Tests.Internal

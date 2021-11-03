@@ -12,8 +12,8 @@ namespace IceRpc.Tests.Api
         public void Connection_Options_ArgumentException()
         {
             Assert.Throws<ArgumentException>(() => new ConnectionOptions { CloseTimeout = TimeSpan.Zero });
-            Assert.Throws<ArgumentException>(() => new ConnectionOptions { IncomingFrameMaxSize = 512});
-            Assert.Throws<ArgumentException>(() => new ConnectionOptions {  ConnectTimeout = TimeSpan.Zero});
+            Assert.Throws<ArgumentException>(() => new ConnectionOptions { IncomingFrameMaxSize = 512 });
+            Assert.Throws<ArgumentException>(() => new ConnectionOptions { ConnectTimeout = TimeSpan.Zero });
         }
 
         [Test]

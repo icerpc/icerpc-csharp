@@ -4,8 +4,8 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using NUnit.Framework;
 using System.Net;
-using System.Net.Sockets;
 using System.Net.Security;
+using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Tests.Internal

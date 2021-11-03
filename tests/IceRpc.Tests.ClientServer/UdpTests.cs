@@ -1,9 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Configure;
 using IceRpc.Transports;
 using NUnit.Framework;
-using System.Collections.Immutable;
 
 namespace IceRpc.Tests.ClientServer
 {

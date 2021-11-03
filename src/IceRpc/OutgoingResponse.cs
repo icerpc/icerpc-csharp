@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
-
 namespace IceRpc
 {
     /// <summary>Represents a response protocol frame sent by the application.</summary>

@@ -4,7 +4,6 @@ using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
-using System.Diagnostics;
 
 namespace IceRpc.Internal
 {
@@ -448,7 +447,7 @@ namespace IceRpc.Internal
             {
                 throw new InvalidOperationException($"{nameof(request.Stream)} is not set");
             }
-            else  if (request.IsOneway)
+            else if (request.IsOneway)
             {
                 return;
             }
@@ -683,7 +682,7 @@ namespace IceRpc.Internal
             CancellationToken cancel)
         {
             byte[] bufferArray = new byte[256];
-            while(true)
+            while (true)
             {
                 var buffer = new Memory<byte>(bufferArray);
 

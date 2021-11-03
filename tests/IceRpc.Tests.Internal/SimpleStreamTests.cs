@@ -103,7 +103,7 @@ namespace IceRpc.Tests.Internal
             var buffers = new ReadOnlyMemory<byte>[] { buffer };
 
             Assert.CatchAsync<TransportException>(async () => await ClientStream.WriteAsync(buffers, default));
-            Assert.CatchAsync <TransportException>(async () => await ClientStream.ReadAsync(buffer, default));
+            Assert.CatchAsync<TransportException>(async () => await ClientStream.ReadAsync(buffer, default));
 
             Assert.CatchAsync<TransportException>(async () => await ServerStream.WriteAsync(buffers, default));
             Assert.CatchAsync<TransportException>(async () => await ServerStream.ReadAsync(buffer, default));

@@ -432,7 +432,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private void SetParameters(IDictionary<int, IList<byte>>  parameters)
+        private void SetParameters(IDictionary<int, IList<byte>> parameters)
         {
             TimeSpan? peerIdleTimeout = null;
 

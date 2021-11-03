@@ -2,7 +2,6 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
-using IceRpc.Slice.Internal;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
