@@ -1,5 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
+using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using System.Collections.Immutable;
 
@@ -73,14 +76,34 @@ namespace IceRpc
             Proxy? targetProxy)
         {
             Protocol targetProtocol = targetConnection?.Protocol ?? targetProxy!.Protocol;
-            IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields;
+
+            // Fields and context forwarding
+            IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields = ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
+            FeatureCollection features = FeatureCollection.Empty;
+
             if (Protocol == Protocol.Ice2 && targetProtocol == Protocol.Ice2)
             {
+                // The context is just another field, features remain empty
                 fields = Fields;
             }
-            else
+            else if (targetProtocol == Protocol.Ice1)
             {
-                fields = ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
+                // When target protocol is Ice1 we forward the context feature.
+                features = features.WithContext(Features.GetContext());
+            }
+            else // Protocol == Ice1 && targetProtocol == Protocol.Ice2
+            {
+                // Encode the context feature into the corresponding Ice2 field.
+                var bufferWriter = new BufferWriter();
+                var encoder = new Ice20Encoder(bufferWriter);
+                encoder.EncodeDictionary(Features.GetContext(),
+                                         (encoder, value) => encoder.EncodeString(value),
+                                         (encoder, value) => encoder.EncodeString(value));
+                fields = new Dictionary<int, ReadOnlyMemory<byte>>
+                {
+                   [(int)FieldKey.Context] = bufferWriter.Finish().ToSingleBuffer()
+                };
+                features = FeatureCollection.Empty;
             }
 
             // TODO: forward stream parameters
@@ -94,7 +117,7 @@ namespace IceRpc
                 Connection = targetConnection ?? targetProxy?.Connection,
                 Deadline = Deadline,
                 Endpoint = targetProxy?.Endpoint,
-                Features = Features,
+                Features = features,
                 FieldsDefaults = fields,
                 IsOneway = IsOneway,
                 IsIdempotent = IsIdempotent,

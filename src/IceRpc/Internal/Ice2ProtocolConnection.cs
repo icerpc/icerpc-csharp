@@ -372,10 +372,8 @@ namespace IceRpc.Internal
 
                 requestHeaderBody.Encode(encoder);
 
-                IDictionary<string, string> context = request.Features.GetContext();
-                // TODO: should this just check for context.Count > 0? See
-                // https://github.com/zeroc-ice/icerpc-csharp/issues/542
-                if (request.FieldsDefaults.ContainsKey((int)FieldKey.Context) || context.Count > 0)
+                if (request.Features.Get<Features.Internal.Context>()?.Value is IDictionary<string, string> context &&
+                    (context.Count > 0 || request.FieldsDefaults.ContainsKey((int)FieldKey.Context)))
                 {
                     // Encodes context
                     request.Fields[(int)FieldKey.Context] =
