@@ -41,7 +41,10 @@ namespace IceRpc.Tests.Internal
                 TargetHost = host
             };
 
-            _clientTransport = new TcpClientTransport(clientAuthenticationOptions);
+            _clientTransport = new TcpClientTransport(new TcpClientOptions
+            {
+                AuthenticationOptions = clientAuthenticationOptions
+            });
 
             var serverAuthenticationOptions = new SslServerAuthenticationOptions
             {
@@ -49,7 +52,10 @@ namespace IceRpc.Tests.Internal
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
             };
 
-            _serverTransport = new TcpServerTransport(serverAuthenticationOptions);
+            _serverTransport = new TcpServerTransport(new TcpServerOptions
+            {
+                AuthenticationOptions = serverAuthenticationOptions
+            });
 
             string tlsString = "";
             if (tls != null)

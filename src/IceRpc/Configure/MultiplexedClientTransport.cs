@@ -35,42 +35,18 @@ namespace IceRpc.Configure
         /// <returns>The transport being configured.</returns>
         public static ClientTransport<IMultiplexedNetworkConnection> UseTcp(
             this ClientTransport<IMultiplexedNetworkConnection> clientTransport) =>
-            clientTransport.UseTcp(new TcpOptions(), new SlicOptions());
+            clientTransport.UseTcp(new TcpClientOptions(), new SlicOptions());
 
         /// <summary>Adds the tcp client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
-        /// <param name="tcpOptions">The TCP transport options.</param>
+        /// <param name="tcpOptions">The TCP client options.</param>
         /// <param name="slicOptions">The Slic transport options.</param>
         /// <returns>The transport being configured.</returns>
         public static ClientTransport<IMultiplexedNetworkConnection> UseTcp(
             this ClientTransport<IMultiplexedNetworkConnection> clientTransport,
-            TcpOptions tcpOptions,
+            TcpClientOptions tcpOptions,
             SlicOptions slicOptions) =>
             clientTransport.Add(TransportNames.Tcp,
-                                new SlicClientTransport(new TcpClientTransport(tcpOptions, null), slicOptions));
-
-        /// <summary>Adds the tcp client transport with ssl support to this composite client transport.</summary>
-        /// <param name="clientTransport">The transport being configured.</param>
-        /// <param name="authenticationOptions">The ssl authentication options.</param>
-        /// <returns>The transport being configured.</returns>
-        public static ClientTransport<IMultiplexedNetworkConnection> UseTcp(
-            this ClientTransport<IMultiplexedNetworkConnection> clientTransport,
-            SslClientAuthenticationOptions authenticationOptions) =>
-            clientTransport.UseTcp(new TcpOptions(), new SlicOptions(), authenticationOptions);
-
-        /// <summary>Adds the tcp client transport with ssl support to this composite client transport.</summary>
-        /// <param name="clientTransport">The transport being configured.</param>
-        /// <param name="tcpOptions">The TCP transport options.</param>
-        /// <param name="slicOptions">The Slic transport options.</param>
-        /// <param name="authenticationOptions">The ssl authentication options.</param>
-        /// <returns>The transport being configured.</returns>
-        public static ClientTransport<IMultiplexedNetworkConnection> UseTcp(
-            this ClientTransport<IMultiplexedNetworkConnection> clientTransport,
-            TcpOptions tcpOptions,
-            SlicOptions slicOptions,
-            SslClientAuthenticationOptions authenticationOptions) =>
-            clientTransport.Add(
-                TransportNames.Tcp,
-                new SlicClientTransport(new TcpClientTransport(tcpOptions, authenticationOptions), slicOptions));
+                                new SlicClientTransport(new TcpClientTransport(tcpOptions), slicOptions));
     }
 }

@@ -17,9 +17,9 @@ namespace IceRpc.Tests.Api
         }
 
         [Test]
-        public void Connection_TcpTransportOptions_ArgumentException()
+        public void Connection_TcpServerTransportOptions_ArgumentException()
         {
-            var options = new Transports.TcpOptions();
+            var options = new Transports.TcpServerOptions();
             Assert.Throws<ArgumentException>(() => options.ListenerBackLog = 0);
             Assert.Throws<ArgumentException>(() => options.SendBufferSize = 512);
             Assert.Throws<ArgumentException>(() => options.ReceiveBufferSize = 512);
