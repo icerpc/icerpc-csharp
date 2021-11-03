@@ -10,10 +10,10 @@ namespace IceRpc.Tests.Internal
     public class MultiplexedStreamFactoryTests : MultiplexedStreamFactoryBaseTest
     {
         private static readonly SlicOptions _serverSlicOptions = new()
-            {
-                BidirectionalStreamMaxCount = 15,
-                UnidirectionalStreamMaxCount = 10
-            };
+        {
+            BidirectionalStreamMaxCount = 15,
+            UnidirectionalStreamMaxCount = 10
+        };
 
         public MultiplexedStreamFactoryTests()
             : base(serverOptions: _serverSlicOptions)

@@ -114,12 +114,12 @@ namespace IceRpc.Tests
         {
             // TODO: give loggerFactory to SlicClientTransport
             return transport switch
-                {
-                    "tcp" => new SlicClientTransport(new TcpClientTransport(options ?? new()),
-                                                     slicOptions ?? new SlicOptions()),
-                    "coloc" => new SlicClientTransport(new ColocClientTransport(), slicOptions ?? new SlicOptions()),
-                    _ => throw new UnknownTransportException(transport)
-                };
+            {
+                "tcp" => new SlicClientTransport(new TcpClientTransport(options ?? new()),
+                                                 slicOptions ?? new SlicOptions()),
+                "coloc" => new SlicClientTransport(new ColocClientTransport(), slicOptions ?? new SlicOptions()),
+                _ => throw new UnknownTransportException(transport)
+            };
         }
 
         public static IServerTransport<IMultiplexedNetworkConnection> CreateMultiplexedServerTransport(
@@ -131,12 +131,12 @@ namespace IceRpc.Tests
         {
             // TODO: give loggerFactory to SlicServerTransport
             return transport switch
-                {
-                    "tcp" => new SlicServerTransport(new TcpServerTransport(options ?? new()),
-                                                     slicOptions ?? new SlicOptions()),
-                    "coloc" => new SlicServerTransport(new ColocServerTransport(), slicOptions ?? new SlicOptions()),
-                    _ => throw new UnknownTransportException(transport)
-                };
+            {
+                "tcp" => new SlicServerTransport(new TcpServerTransport(options ?? new()),
+                                                 slicOptions ?? new SlicOptions()),
+                "coloc" => new SlicServerTransport(new ColocServerTransport(), slicOptions ?? new SlicOptions()),
+                _ => throw new UnknownTransportException(transport)
+            };
         }
 
         public static IClientTransport<ISimpleNetworkConnection> CreateSimpleClientTransport(
@@ -144,13 +144,13 @@ namespace IceRpc.Tests
             object? options = null)
         {
             return transport switch
-                {
-                    "tcp" => new TcpClientTransport((TcpClientOptions?)options ?? new()),
-                    "ssl" => new TcpClientTransport((TcpClientOptions?)options ?? new()),
-                    "udp" => new UdpClientTransport((UdpClientOptions?)options ?? new()),
-                    "coloc" => new ColocClientTransport(),
-                    _ => throw new UnknownTransportException(transport)
-                };
+            {
+                "tcp" => new TcpClientTransport((TcpClientOptions?)options ?? new()),
+                "ssl" => new TcpClientTransport((TcpClientOptions?)options ?? new()),
+                "udp" => new UdpClientTransport((UdpClientOptions?)options ?? new()),
+                "coloc" => new ColocClientTransport(),
+                _ => throw new UnknownTransportException(transport)
+            };
         }
 
         public static IServerTransport<ISimpleNetworkConnection> CreateSimpleServerTransport(
@@ -158,13 +158,13 @@ namespace IceRpc.Tests
             object? options = null)
         {
             return transport switch
-                {
-                    "tcp" => new TcpServerTransport((TcpServerOptions?)options ?? new()),
-                    "ssl" => new TcpServerTransport((TcpServerOptions?)options ?? new()),
-                    "udp" => new UdpServerTransport((UdpServerOptions?)options ?? new()),
-                    "coloc" => new ColocServerTransport(),
-                    _ => throw new UnknownTransportException(transport)
-                };
+            {
+                "tcp" => new TcpServerTransport((TcpServerOptions?)options ?? new()),
+                "ssl" => new TcpServerTransport((TcpServerOptions?)options ?? new()),
+                "udp" => new UdpServerTransport((UdpServerOptions?)options ?? new()),
+                "coloc" => new ColocServerTransport(),
+                _ => throw new UnknownTransportException(transport)
+            };
         }
     }
 }

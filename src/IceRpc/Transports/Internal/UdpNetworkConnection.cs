@@ -68,10 +68,10 @@ namespace IceRpc.Transports.Internal
                 return (this,
                         new NetworkConnectionInformation(
                             localEndpoint: _remoteEndpoint with
-                                {
-                                    Host = ipEndPoint.Address.ToString(),
-                                    Port = checked((ushort)ipEndPoint.Port)
-                                },
+                            {
+                                Host = ipEndPoint.Address.ToString(),
+                                Port = checked((ushort)ipEndPoint.Port)
+                            },
                             remoteEndpoint: _remoteEndpoint,
                             _idleTimeout,
                             remoteCertificate: null));

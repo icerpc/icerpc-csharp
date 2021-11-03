@@ -251,10 +251,10 @@ namespace IceRpc.Transports.Internal
                 return (this,
                         new NetworkConnectionInformation(
                             localEndpoint: remoteEndpoint with
-                                {
-                                    Host = ipEndPoint.Address.ToString(),
-                                    Port = checked((ushort)ipEndPoint.Port)
-                                },
+                            {
+                                Host = ipEndPoint.Address.ToString(),
+                                Port = checked((ushort)ipEndPoint.Port)
+                            },
                             remoteEndpoint: remoteEndpoint,
                             _idleTimeout,
                             _sslStream?.RemoteCertificate));
@@ -429,11 +429,11 @@ namespace IceRpc.Transports.Internal
                         new NetworkConnectionInformation(
                             localEndpoint: _localEndpoint,
                             remoteEndpoint: _localEndpoint with
-                                {
-                                    Host = ipEndPoint.Address.ToString(),
-                                    Port = checked((ushort)ipEndPoint.Port),
-                                    Params = endpointParams
-                                },
+                            {
+                                Host = ipEndPoint.Address.ToString(),
+                                Port = checked((ushort)ipEndPoint.Port),
+                                Params = endpointParams
+                            },
                             _idleTimeout,
                             _sslStream?.RemoteCertificate));
             }
