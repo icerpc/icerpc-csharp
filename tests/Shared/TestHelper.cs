@@ -141,7 +141,7 @@ namespace IceRpc.Tests
                 {
                     "tcp" => new TcpClientTransport((TcpOptions?)options ?? new(), authenticationOptions),
                     "ssl" => new TcpClientTransport((TcpOptions?)options ?? new(), authenticationOptions),
-                    "udp" => new UdpClientTransport((UdpOptions?)options ?? new()),
+                    "udp" => new UdpClientTransport((UdpClientOptions?)options ?? new()),
                     "coloc" => new ColocClientTransport(),
                     _ => throw new UnknownTransportException(transport)
                 };
@@ -156,7 +156,7 @@ namespace IceRpc.Tests
                 {
                     "tcp" => new TcpServerTransport((TcpOptions?)options ?? new(), authenticationOptions),
                     "ssl" => new TcpServerTransport((TcpOptions?)options ?? new(), authenticationOptions),
-                    "udp" => new UdpServerTransport((UdpOptions?)options ?? new()),
+                    "udp" => new UdpServerTransport((UdpServerOptions?)options ?? new()),
                     "coloc" => new ColocServerTransport(),
                     _ => throw new UnknownTransportException(transport)
                 };

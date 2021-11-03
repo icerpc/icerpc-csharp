@@ -83,14 +83,14 @@ namespace IceRpc.Configure
         /// <returns>The server transport being configured.</returns>
         public static ServerTransport<ISimpleNetworkConnection> UseUdp(
             this ServerTransport<ISimpleNetworkConnection> serverTransport) =>
-            serverTransport.UseUdp(new UdpOptions());
+            serverTransport.UseUdp(new UdpServerOptions());
 
         /// <summary>Adds the udp server transport to this composite server transport.</summary>
         /// <param name="serverTransport">The composite server transport being configured.</param>
         /// <param name="options">The transport options.</param>
         /// <returns>The server transport being configured.</returns>
         public static ServerTransport<ISimpleNetworkConnection> UseUdp(
-            this ServerTransport<ISimpleNetworkConnection> serverTransport, UdpOptions options) =>
+            this ServerTransport<ISimpleNetworkConnection> serverTransport, UdpServerOptions options) =>
             serverTransport.Add(TransportNames.Udp, new UdpServerTransport(options));
     }
 }
