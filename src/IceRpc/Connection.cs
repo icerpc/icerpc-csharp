@@ -458,10 +458,10 @@ namespace IceRpc
                     // Setup a timer to check for the connection idle time every IdleTimeout / 2 period. If the
                     // transport doesn't support idle timeout (e.g.: the colocated transport), IdleTimeout will
                     // be infinite.
-                    if (NetworkConnectionInformation!.Value.IdleTimeout != TimeSpan.MaxValue)
+                    TimeSpan idleTimeout = NetworkConnectionInformation!.Value.IdleTimeout;
+                    if (idleTimeout != TimeSpan.MaxValue && idleTimeout != Timeout.InfiniteTimeSpan)
                     {
-                        TimeSpan period = NetworkConnectionInformation.Value.IdleTimeout / 2;
-                        _timer = new Timer(value => Monitor(), null, period, period);
+                        _timer = new Timer(value => Monitor(), null, idleTimeout / 2, idleTimeout / 2);
                     }
 
                     // Start a task to wait for graceful shutdown.
@@ -469,9 +469,8 @@ namespace IceRpc
 
                     // Start the receive request task. The task accepts new incoming requests and
                     // processes them. It only completes once the connection is closed.
-                    _ = Task.Run(
-                        () => AcceptIncomingRequestAsync(Dispatcher ?? NullDispatcher.Instance),
-                        CancellationToken.None);
+                    _ = Task.Run(() => AcceptIncomingRequestAsync(Dispatcher ?? NullDispatcher.Instance),
+                                 CancellationToken.None);
                 }
             }
             catch (OperationCanceledException)
