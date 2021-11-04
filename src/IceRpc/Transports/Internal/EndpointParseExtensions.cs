@@ -16,7 +16,7 @@ namespace IceRpc.Transports.Internal
         {
             if (endpoint.Protocol != Protocol.Ice1)
             {
-                throw new FormatException($"endpoint '{endpoint}': protocol/transport mistmatch");
+                throw new FormatException($"endpoint '{endpoint}': protocol/transport mismatch");
             }
 
             TransportCode? transportCode = null;
@@ -187,7 +187,7 @@ namespace IceRpc.Transports.Internal
         {
             if (endpoint.Protocol != Protocol.Ice1)
             {
-                throw new FormatException($"endpoint '{endpoint}': protocol/transport mistmatch");
+                throw new FormatException($"endpoint '{endpoint}': protocol/transport mismatch");
             }
 
             bool compress = false;
