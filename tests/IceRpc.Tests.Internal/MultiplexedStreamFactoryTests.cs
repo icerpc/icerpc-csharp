@@ -25,7 +25,7 @@ namespace IceRpc.Tests.Internal
         {
             ValueTask<IMultiplexedStream> acceptStreamTask = ServerMultiplexedStreamFactory.AcceptStreamAsync(default);
             ClientConnection.Dispose();
-            Assert.ThrowsAsync<ConnectionLostException>(async () => await acceptStreamTask);
+            Assert.ThrowsAsync<ObjectDisposedException>(async () => await acceptStreamTask);
         }
 
         [Test]
@@ -73,10 +73,11 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void MultiplexedStreamFactory_AcceptStream_Failure()
+        public void MultiplexedStreamFactory_AcceptStream_Dispose()
         {
             ClientConnection.Dispose();
-            Assert.CatchAsync<TransportException>(async () => await ServerMultiplexedStreamFactory.AcceptStreamAsync(default));
+            Assert.CatchAsync<ObjectDisposedException>(
+                async () => await ServerMultiplexedStreamFactory.AcceptStreamAsync(default));
         }
 
         [TestCase(false)]

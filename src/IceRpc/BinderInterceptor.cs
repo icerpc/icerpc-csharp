@@ -64,10 +64,10 @@ namespace IceRpc
                         request.Proxy.Connection = request.Connection;
                     }
                 }
-                catch (TransportException)
+                catch (TransportException exception) when (exception.RetryPolicy != RetryPolicy.NoRetry)
                 {
                     // If obtaining a connection failed with a transport exception, the request can be retried.
-                    request.Features = request.Features.With(RetryPolicy.Immediately);
+                    request.Features = request.Features.With(exception.RetryPolicy);
                     throw;
                 }
                 return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);

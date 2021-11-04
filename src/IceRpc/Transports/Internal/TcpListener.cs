@@ -34,9 +34,9 @@ namespace IceRpc.Transports.Internal
                                                    _authenticationOptions));
 #pragma warning restore CA2000
             }
-            catch (Exception ex)
+            catch (SocketException ex)
             {
-                throw ExceptionUtil.Throw(ex.ToTransportException(default));
+                throw new TransportException(ex);
             }
         }
 
@@ -102,7 +102,7 @@ namespace IceRpc.Transports.Internal
             catch (SocketException ex)
             {
                 _socket.Dispose();
-                throw new TransportException(ex);
+                throw ex.ToTransportException(default);
             }
 
             Endpoint = endpoint with { Port = (ushort)address.Port };

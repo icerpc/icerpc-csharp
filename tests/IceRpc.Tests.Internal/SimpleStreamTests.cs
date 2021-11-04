@@ -94,7 +94,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [TestCase]
-        public void SimpleStream_Close()
+        public void SimpleStream_Dispose()
         {
             _clientConnection!.Dispose();
             _serverConnection!.Dispose();
@@ -102,11 +102,11 @@ namespace IceRpc.Tests.Internal
             Memory<byte> buffer = new byte[1];
             var buffers = new ReadOnlyMemory<byte>[] { buffer };
 
-            Assert.CatchAsync<TransportException>(async () => await ClientStream.WriteAsync(buffers, default));
-            Assert.CatchAsync<TransportException>(async () => await ClientStream.ReadAsync(buffer, default));
+            Assert.CatchAsync<ObjectDisposedException>(async () => await ClientStream.WriteAsync(buffers, default));
+            Assert.CatchAsync<ObjectDisposedException>(async () => await ClientStream.ReadAsync(buffer, default));
 
-            Assert.CatchAsync<TransportException>(async () => await ServerStream.WriteAsync(buffers, default));
-            Assert.CatchAsync<TransportException>(async () => await ServerStream.ReadAsync(buffer, default));
+            Assert.CatchAsync<ObjectDisposedException>(async () => await ServerStream.WriteAsync(buffers, default));
+            Assert.CatchAsync<ObjectDisposedException>(async () => await ServerStream.ReadAsync(buffer, default));
         }
 
         [SetUp]

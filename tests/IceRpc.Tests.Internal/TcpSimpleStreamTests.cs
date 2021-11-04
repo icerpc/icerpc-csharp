@@ -130,7 +130,7 @@ namespace IceRpc.Tests.Internal
         public void TcpSimpleStream_ReadAsync_Dispose()
         {
             _clientConnection!.Dispose();
-            Assert.CatchAsync<TransportException>(async () => await ClientStream.ReadAsync(new byte[1], default));
+            Assert.CatchAsync<ObjectDisposedException>(async () => await ClientStream.ReadAsync(new byte[1], default));
         }
 
         [Test]
@@ -190,10 +190,10 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void TcpSimpleStream_WriteAsync_Close()
+        public void TcpSimpleStream_WriteAsync_Dispose()
         {
             _clientConnection!.Dispose();
-            Assert.CatchAsync<TransportException>(async () => await ClientStream.WriteAsync(_oneBWriteBuffer, default));
+            Assert.CatchAsync<ObjectDisposedException>(async () => await ClientStream.WriteAsync(_oneBWriteBuffer, default));
         }
 
         [Test]

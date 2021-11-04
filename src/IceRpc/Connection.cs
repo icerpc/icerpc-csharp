@@ -287,19 +287,11 @@ namespace IceRpc
         /// <inheritdoc/>
         public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            // Make sure the connection is connected.
             try
             {
+                // Make sure the connection is connected.
                 await ConnectAsync(cancel).ConfigureAwait(false);
-            }
-            catch
-            {
-                request.Features = request.Features.With(RetryPolicy.Immediately);
-                throw;
-            }
 
-            try
-            {
                 // Send the request.
                 await _protocolConnection!.SendRequestAsync(request, cancel).ConfigureAwait(false);
 
@@ -325,21 +317,21 @@ namespace IceRpc
                 request.Stream?.Abort(StreamError.InvocationCanceled);
                 throw;
             }
-            catch (ConnectionClosedException)
+            catch (ConnectionClosedException exception)
             {
                 // If the peer gracefully shuts down the connection, it's always safe to retry since only
                 // streams not processed by the peer are aborted.
-                request.Features = request.Features.With(RetryPolicy.Immediately);
+                request.Features = request.Features.With(exception.RetryPolicy);
                 throw;
             }
-            catch (TransportException)
+            catch (TransportException exception) when (exception.RetryPolicy != RetryPolicy.NoRetry)
             {
                 if (request.IsIdempotent || !request.IsSent)
                 {
                     // If the connection is being shutdown, exceptions are expected since the request send or
                     // response receive can fail. If the request is idempotent or hasn't been sent it's safe
                     // to retry it.
-                    request.Features = request.Features.With(RetryPolicy.Immediately);
+                    request.Features = request.Features.With(exception.RetryPolicy);
                 }
                 throw;
             }
