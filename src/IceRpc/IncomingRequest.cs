@@ -73,14 +73,21 @@ namespace IceRpc
             Proxy? targetProxy)
         {
             Protocol targetProtocol = targetConnection?.Protocol ?? targetProxy!.Protocol;
-            IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields;
+
+            // Fields and context forwarding
+            IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields = ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
+            FeatureCollection features = FeatureCollection.Empty;
+
             if (Protocol == Protocol.Ice2 && targetProtocol == Protocol.Ice2)
             {
+                // The context is just another field, features remain empty
                 fields = Fields;
             }
             else
             {
-                fields = ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
+                // When Protocol or targetProtocol is Ice1, fields remains empty and we put only the request context
+                // in the initial features of the new outgoing request
+                features = features.WithContext(Features.GetContext());
             }
 
             // TODO: forward stream parameters
@@ -94,7 +101,7 @@ namespace IceRpc
                 Connection = targetConnection ?? targetProxy?.Connection,
                 Deadline = Deadline,
                 Endpoint = targetProxy?.Endpoint,
-                Features = Features,
+                Features = features,
                 FieldsDefaults = fields,
                 IsOneway = IsOneway,
                 IsIdempotent = IsIdempotent,
