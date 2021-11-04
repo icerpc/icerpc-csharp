@@ -444,8 +444,6 @@ namespace IceRpc
                                                     IsServer,
                                                     connectCancellationSource.Token).ConfigureAwait(false);
 
-                await Console.Error.WriteLineAsync($"CONNECTED {this}").ConfigureAwait(false);
-
                 lock (_mutex)
                 {
                     if (_state == ConnectionState.Closed)
@@ -629,7 +627,6 @@ namespace IceRpc
                     // The protocol or transport aren't supposed to raise.
                     Debug.Assert(false, $"unexpected protocol close exception\n{ex}");
                 }
-                await Console.Error.WriteLineAsync($"CLOSED {this}").ConfigureAwait(false);
 
                 try
                 {
@@ -708,7 +705,6 @@ namespace IceRpc
                 }
                 catch (OperationCanceledException)
                 {
-                    await Console.Error.WriteLineAsync($"SHUTDOWN TIMEOUT {this}").ConfigureAwait(false);
                     await CloseAsync(new ConnectionClosedException("shutdown timed out")).ConfigureAwait(false);
                 }
                 catch (Exception exception)
