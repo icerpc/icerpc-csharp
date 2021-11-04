@@ -23,14 +23,14 @@ namespace IceRpc.Slice
             _encoder = (stream, streamCompressor) => SendAsync(stream, streamCompressor, byteStream);
 
         private static async Task SendAsync(
-            IMultiplexedStream rpcStream,
+            IMultiplexedStream multiplexedStream,
             Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? streamCompressor,
             System.IO.Stream inputStream)
         {
             try
             {
                 // TODO: use a buffered stream to ensure the header isn't sent immediately?
-                using System.IO.Stream ioStream = rpcStream.AsByteStream();
+                using System.IO.Stream ioStream = multiplexedStream.AsByteStream();
 
                 // If there's a stream compressor, get the compression format and compressed output stream.
                 CompressionFormat compressionFormat;
@@ -82,7 +82,7 @@ namespace IceRpc.Slice
                 }
                 catch
                 {
-                    rpcStream.AbortWrite(StreamError.StreamingCanceledByWriter);
+                    multiplexedStream.AbortWrite(StreamError.StreamingCanceledByWriter);
                     throw;
                 }
             }

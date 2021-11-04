@@ -4,7 +4,6 @@ using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
-using System.Diagnostics;
 
 namespace IceRpc.Internal
 {
@@ -520,8 +519,6 @@ namespace IceRpc.Internal
                 {
                     // Mark the connection as shutdown to prevent further request from being accepted.
                     _shutdown = true;
-                    // _streamFactory.Shutdown();
-
                     if (_invocations.Count == 0 && _dispatches.Count == 0)
                     {
                         _dispatchesAndInvocationsCompleted.SetResult();
@@ -547,7 +544,6 @@ namespace IceRpc.Internal
                         (request.Stream.Id > (request.Stream!.IsBidirectional ?
                             _lastRemoteDispatchLocalStreamIds!.Value.Bidirectional :
                             _lastRemoteDispatchLocalStreamIds!.Value.Unidirectional))).ToArray();
-
                 }
             }
 
@@ -586,13 +582,27 @@ namespace IceRpc.Internal
 
             if (!alreadyShuttingDown)
             {
-                // Abort the control stream and wait for its shutdown.
                 _controlStream!.AbortWrite(StreamError.ConnectionShutdown);
             }
 
             // Wait for the control streams to shutdown.
             await _controlStream!.WaitForShutdownAsync(cancel).ConfigureAwait(false);
             await _remoteControlStream!.WaitForShutdownAsync(cancel).ConfigureAwait(false);
+
+            // if (shutdownByPeer)
+            // {
+            //     // Complete the control stream by sending empty data with the endStream flag set and wait for its
+            //     // shutdown.
+            //     await SendControlFrameAsync(
+            //         Ice2FrameType.GoAwayAck,
+            //         frameEncodeAction: null,
+            //         cancel).ConfigureAwait(false);
+            // }
+
+            // if (!alreadyShuttingDown)
+            // {
+            //     // await ReceiveFrameAsync(_remoteControlStream!, Ice2FrameType.GoAwayAck, cancel).ConfigureAwait(false);
+            // }
         }
 
         public async Task<string> WaitForShutdownAsync(CancellationToken cancel)
@@ -608,7 +618,6 @@ namespace IceRpc.Internal
             _lastRemoteDispatchLocalStreamIds =
                 (goAwayFrame.LastBidirectionalStreamId,
                  goAwayFrame.LastUnidirectionalStreamId);
-
             return goAwayFrame.Message;
         }
 
@@ -690,6 +699,10 @@ namespace IceRpc.Internal
                 // Read the frame type and first byte of the size.
                 await stream.ReadUntilFullAsync(buffer[0..2], cancel).ConfigureAwait(false);
                 var frameType = (Ice2FrameType)buffer.Span[0];
+                if (frameType > Ice2FrameType.GoAway)
+                {
+                    throw new InvalidDataException($"invalid Ice2 frame type {frameType}");
+                }
 
                 // Read the remainder of the size if needed.
                 int sizeLength = Ice20Decoder.DecodeSizeLength(buffer.Span[1]);

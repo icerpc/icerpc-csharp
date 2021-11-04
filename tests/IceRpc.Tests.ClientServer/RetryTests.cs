@@ -95,13 +95,14 @@ namespace IceRpc.Tests.ClientServer
             await bidir.AfterDelayAsync(2);
         }
 
-        // TODO: XXX: investigate Ice2 failures
-        [TestCase(ProtocolCode.Ice1, 2)]
-        [TestCase(ProtocolCode.Ice1, 10)]
+        // [TestCase(ProtocolCode.Ice1, 2)]
+        // [TestCase(ProtocolCode.Ice1, 10)]
         [TestCase(ProtocolCode.Ice1, 20)]
         // [TestCase(ProtocolCode.Ice2, 2)]
         // [TestCase(ProtocolCode.Ice2, 10)]
         // [TestCase(ProtocolCode.Ice2, 20)]
+        [Repeat(1000)]
+        [Log(LogAttributeLevel.Trace)]
         public async Task Retry_GracefulClose(ProtocolCode protocol, int maxQueue)
         {
             await WithRetryServiceAsync(Protocol.FromProtocolCode(protocol), null, async (service, retry) =>
@@ -129,13 +130,12 @@ namespace IceRpc.Tests.ClientServer
             });
         }
 
-        // TODO: XXX: investigate Ice2 failures
         [TestCase(ProtocolCode.Ice1, 2)]
         [TestCase(ProtocolCode.Ice1, 10)]
         [TestCase(ProtocolCode.Ice1, 20)]
-        // [TestCase(ProtocolCode.Ice2, 2)]
-        // [TestCase(ProtocolCode.Ice2, 10)]
-        // [TestCase(ProtocolCode.Ice2, 20)]
+        [TestCase(ProtocolCode.Ice2, 2)]
+        [TestCase(ProtocolCode.Ice2, 10)]
+        [TestCase(ProtocolCode.Ice2, 20)]
         public async Task Retry_GracefulCloseCanceled(ProtocolCode protocol, int maxQueue)
         {
             await WithRetryServiceAsync(Protocol.FromProtocolCode(protocol), null, async (service, retry) =>
@@ -532,13 +532,16 @@ namespace IceRpc.Tests.ClientServer
             {
                 Dispatcher = router,
                 Endpoint = GetTestEndpoint(protocol: protocol),
-                ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) },
+                ConnectionOptions = new() { CloseTimeout = TimeSpan.FromSeconds(5) },
                 LoggerFactory = LogAttributeLoggerFactory.Instance
             };
             server.Listen();
 
             var retry = RetryTestPrx.Parse(GetTestProxy("/retry", protocol: protocol), pipeline);
             await closure(service, retry);
+
+            await Console.Error.WriteLineAsync("DISPOSE SERVER");
+            await server.DisposeAsync();
         }
 
         private Task WithRetryServiceAsync(Func<RetryTest, RetryTestPrx, Task> closure) =>
