@@ -16,11 +16,11 @@ namespace IceRpc
     {
         /// <summary>The default value for <see cref="MultiplexedServerTransport"/>.</summary>
         public static IServerTransport<IMultiplexedNetworkConnection> DefaultMultiplexedServerTransport { get; } =
-            new MultiplexedServerTransport().UseColoc().UseTcp();
+            new CompositeMultiplexedServerTransport().UseSlicOverColoc().UseSlicOverTcp();
 
         /// <summary>The default value for <see cref="SimpleServerTransport"/>.</summary>
         public static IServerTransport<ISimpleNetworkConnection> DefaultSimpleServerTransport { get; } =
-            new SimpleServerTransport().UseColoc().UseTcp().UseUdp();
+            new CompositeSimpleServerTransport().UseColoc().UseTcp().UseUdp();
 
         /// <summary>Gets or sets the options of server connections created by this server.</summary>
         public ConnectionOptions ConnectionOptions { get; set; } = new();
