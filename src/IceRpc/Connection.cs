@@ -214,11 +214,6 @@ namespace IceRpc
 
                 T networkConnection = clientTransport.CreateConnection(RemoteEndpoint, LoggerFactory);
 
-                // This local function is called with _mutex locked and executes synchronously until the call to
-                // ConnectAsync.
-                _networkConnection = networkConnection;
-                _state = ConnectionState.Connecting;
-
                 EventHandler<ClosedEventArgs>? closedEventHandler = null;
 
                 if (LoggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger &&
@@ -254,6 +249,11 @@ namespace IceRpc
                         }
                     };
                 }
+
+                // This local function is called with _mutex locked and executes synchronously until the call to
+                // ConnectAsync so it's safe to assign _networkConnection here.
+                _networkConnection = networkConnection;
+                _state = ConnectionState.Connecting;
 
                 return ConnectAsync(networkConnection, protocolConnectionFactory, closedEventHandler);
             }
