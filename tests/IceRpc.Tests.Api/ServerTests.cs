@@ -37,6 +37,16 @@ namespace IceRpc.Tests.Api
             }
 
             {
+                // Change the endpoint after listen is not allowed
+                await using var server = new Server
+                {
+                    Endpoint = TestHelper.GetUniqueColocEndpoint()
+                };
+                server.Listen();
+                Assert.Throws<InvalidOperationException>(() => server.Endpoint = TestHelper.GetUniqueColocEndpoint());
+            }
+
+            {
                 await using var server = new Server
                 {
                     Dispatcher = new Greeter(),
@@ -120,6 +130,16 @@ namespace IceRpc.Tests.Api
                         };
                         server2.Listen();
                     });
+            }
+
+            {
+                // Calling Listen on a disposed server throws ObjectDisposedException
+                var server = new Server
+                {
+                    Endpoint = TestHelper.GetUniqueColocEndpoint()
+                };
+                await server.DisposeAsync();
+                Assert.Throws< ObjectDisposedException>(()=> server.Listen());
             }
         }
 
