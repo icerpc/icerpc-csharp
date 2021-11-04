@@ -14,35 +14,35 @@ namespace IceRpc.Configure
     /// </summary>
     public static class CompositeMultiplexedClientTransportExtensions
     {
-        /// <summary>Adds the coloc client transport to this composite client transport.</summary>
+        /// <summary>Adds the Slic over Coloc client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
         /// <returns>The transport being configured.</returns>
-        public static CompositeClientTransport<IMultiplexedNetworkConnection> UseColoc(
+        public static CompositeClientTransport<IMultiplexedNetworkConnection> UseSlicOverColoc(
             this CompositeClientTransport<IMultiplexedNetworkConnection> clientTransport) =>
-            clientTransport.UseColoc(new());
+            clientTransport.UseSlicOverColoc(new());
 
-        /// <summary>Adds the coloc client transport to this composite client transport.</summary>
+        /// <summary>Adds the Slic over Coloc client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
         /// <param name="options">The transport options.</param>
         /// <returns>The transport being configured.</returns>
-        public static CompositeClientTransport<IMultiplexedNetworkConnection> UseColoc(
+        public static CompositeClientTransport<IMultiplexedNetworkConnection> UseSlicOverColoc(
             this CompositeClientTransport<IMultiplexedNetworkConnection> clientTransport,
             SlicOptions options) =>
             clientTransport.Add(TransportNames.Coloc, new SlicClientTransport(new ColocClientTransport(), options));
 
-        /// <summary>Adds the tcp client transport to this composite client transport.</summary>
+        /// <summary>Adds the Slic over TCP client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
         /// <returns>The transport being configured.</returns>
-        public static CompositeClientTransport<IMultiplexedNetworkConnection> UseTcp(
+        public static CompositeClientTransport<IMultiplexedNetworkConnection> UseSlicOverTcp(
             this CompositeClientTransport<IMultiplexedNetworkConnection> clientTransport) =>
-            clientTransport.UseTcp(new TcpClientOptions(), new SlicOptions());
+            clientTransport.UseSlicOverTcp(new TcpClientOptions(), new SlicOptions());
 
-        /// <summary>Adds the tcp client transport to this composite client transport.</summary>
+        /// <summary>Adds the Slic over TCP client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
         /// <param name="tcpOptions">The TCP client options.</param>
         /// <param name="slicOptions">The Slic transport options.</param>
         /// <returns>The transport being configured.</returns>
-        public static CompositeClientTransport<IMultiplexedNetworkConnection> UseTcp(
+        public static CompositeClientTransport<IMultiplexedNetworkConnection> UseSlicOverTcp(
             this CompositeClientTransport<IMultiplexedNetworkConnection> clientTransport,
             TcpClientOptions tcpOptions,
             SlicOptions slicOptions) =>

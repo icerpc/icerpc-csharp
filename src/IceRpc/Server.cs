@@ -16,7 +16,7 @@ namespace IceRpc
     {
         /// <summary>The default value for <see cref="MultiplexedServerTransport"/>.</summary>
         public static IServerTransport<IMultiplexedNetworkConnection> DefaultMultiplexedServerTransport { get; } =
-            new CompositeMultiplexedServerTransport().UseColoc().UseTcp();
+            new CompositeMultiplexedServerTransport().UseSlicOverColoc().UseSlicOverTcp();
 
         /// <summary>The default value for <see cref="SimpleServerTransport"/>.</summary>
         public static IServerTransport<ISimpleNetworkConnection> DefaultSimpleServerTransport { get; } =
