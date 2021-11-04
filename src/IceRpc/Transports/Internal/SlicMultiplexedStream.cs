@@ -201,6 +201,12 @@ namespace IceRpc.Transports.Internal
 
         public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
+            if (ReadsCompleted)
+            {
+                Debug.Assert(_resetErrorCode != null);
+                throw new StreamAbortedException(_resetErrorCode.Value);
+            }
+
             if (_receivedSize == _receivedOffset)
             {
                 _receivedOffset = 0;

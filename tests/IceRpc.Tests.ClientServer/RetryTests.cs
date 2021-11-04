@@ -97,12 +97,12 @@ namespace IceRpc.Tests.ClientServer
 
         // [TestCase(ProtocolCode.Ice1, 2)]
         // [TestCase(ProtocolCode.Ice1, 10)]
-        [TestCase(ProtocolCode.Ice1, 20)]
-        // [TestCase(ProtocolCode.Ice2, 2)]
-        // [TestCase(ProtocolCode.Ice2, 10)]
-        // [TestCase(ProtocolCode.Ice2, 20)]
+        // [TestCase(ProtocolCode.Ice1, 20)]
+        [TestCase(ProtocolCode.Ice2, 2)]
+        [TestCase(ProtocolCode.Ice2, 10)]
+        [TestCase(ProtocolCode.Ice2, 20)]
         [Repeat(1000)]
-        [Log(LogAttributeLevel.Trace)]
+        // [Log(LogAttributeLevel.Trace)]
         public async Task Retry_GracefulClose(ProtocolCode protocol, int maxQueue)
         {
             await WithRetryServiceAsync(Protocol.FromProtocolCode(protocol), null, async (service, retry) =>
@@ -540,7 +540,6 @@ namespace IceRpc.Tests.ClientServer
             var retry = RetryTestPrx.Parse(GetTestProxy("/retry", protocol: protocol), pipeline);
             await closure(service, retry);
 
-            await Console.Error.WriteLineAsync("DISPOSE SERVER");
             await server.DisposeAsync();
         }
 
