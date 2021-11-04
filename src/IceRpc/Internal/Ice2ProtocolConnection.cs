@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
@@ -372,7 +373,11 @@ namespace IceRpc.Internal
 
                 requestHeaderBody.Encode(encoder);
 
-                if (request.Features.Get<Features.Internal.Context>()?.Value is IDictionary<string, string> context &&
+                // If the context feature is set to a non empty context, or if the fields defaults contains a context
+                // entry and the context feature is set, marshal the context feature in the request fields. The context
+                // feature must prevail over field defaults. Cannot use request.Features.GetContext it doesn't
+                // distinguish between empty an non set context.
+                if (request.Features.Get<Context>()?.Value is IDictionary<string, string> context &&
                     (context.Count > 0 || request.FieldsDefaults.ContainsKey((int)FieldKey.Context)))
                 {
                     // Encodes context
