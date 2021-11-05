@@ -37,15 +37,7 @@ namespace IceRpc
         public Endpoint Endpoint
         {
             get => _endpoint;
-            set
-            {
-                if (_listening)
-                {
-                    throw new InvalidOperationException("cannot change the endpoint of a server after calling Listen");
-                }
-
-                _endpoint = value;
-            }
+            init => _endpoint = value;
         }
 
         /// <summary>The logger factory used to create loggers to log connection-related activities.</summary>
@@ -58,7 +50,7 @@ namespace IceRpc
 
         /// <summary>Gets the Ice protocol used by this server.</summary>
         /// <value>The Ice protocol of this server.</value>
-        public Protocol Protocol => _endpoint?.Protocol ?? Protocol.Ice2;
+        public Protocol Protocol => _endpoint.Protocol;
 
         /// <summary>The <see cref="IServerTransport{ISimpleNetworkConnection}"/> used by this server to accept
         /// simple connections.</summary>
@@ -238,7 +230,7 @@ namespace IceRpc
         }
 
         /// <inherit-doc/>
-        public override string ToString() => _endpoint?.ToString() ?? "";
+        public override string ToString() => _endpoint.ToString();
 
         /// <inheritdoc/>
         public async ValueTask DisposeAsync() =>

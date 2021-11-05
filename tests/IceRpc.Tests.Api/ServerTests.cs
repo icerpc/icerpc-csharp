@@ -121,6 +121,16 @@ namespace IceRpc.Tests.Api
                         server2.Listen();
                     });
             }
+
+            {
+                // Calling Listen on a disposed server throws ObjectDisposedException
+                var server = new Server
+                {
+                    Endpoint = TestHelper.GetUniqueColocEndpoint()
+                };
+                await server.DisposeAsync();
+                Assert.Throws<ObjectDisposedException>(() => server.Listen());
+            }
         }
 
         [TestCase(" :")]
