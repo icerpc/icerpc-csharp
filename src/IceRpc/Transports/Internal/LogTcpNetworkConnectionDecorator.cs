@@ -37,7 +37,7 @@ namespace IceRpc.Transports.Internal
 
                 return result;
             }
-            catch (TransportException exception) when (exception.InnerException is AuthenticationException ex)
+            catch (AuthenticationException ex)
             {
                 _logger.LogTlsAuthenticationFailed(ex);
                 throw;

@@ -197,7 +197,7 @@ namespace IceRpc.Tests.ClientServer
             };
             var prx = ServicePrx.FromConnection(connection);
 
-            Assert.ThrowsAsync<TransportException>(async () => await prx.IcePingAsync());
+            Assert.ThrowsAsync<AuthenticationException>(async () => await prx.IcePingAsync());
         }
 
         // The server doesn't have a CA certificate to verify the client
@@ -315,7 +315,7 @@ namespace IceRpc.Tests.ClientServer
             }
             else
             {
-                Assert.ThrowsAsync<TransportException>(async () => await prx.IcePingAsync());
+                Assert.ThrowsAsync<AuthenticationException>(async () => await prx.IcePingAsync());
             }
         }
 
@@ -398,7 +398,7 @@ namespace IceRpc.Tests.ClientServer
             };
             var prx = ServicePrx.FromConnection(connection);
 
-            Assert.ThrowsAsync<TransportException>(async () => await prx.IcePingAsync());
+            Assert.ThrowsAsync<AuthenticationException>(async () => await prx.IcePingAsync());
         }
 
         private static string GetCertificatesDir() =>

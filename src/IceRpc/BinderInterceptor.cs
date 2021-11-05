@@ -1,5 +1,7 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
+
 namespace IceRpc
 {
     /// <summary>A binder interceptor is responsible for providing connections to requests using an
@@ -56,6 +58,8 @@ namespace IceRpc
 
             async Task<IncomingResponse> PerformAsync(ValueTask<Connection> task)
             {
+                // TODO: GetConnectionAsync can throw an AggregateException with for example multiple
+                // TransportException.
                 try
                 {
                     request.Connection = await task.ConfigureAwait(false);
@@ -63,6 +67,11 @@ namespace IceRpc
                     {
                         request.Proxy.Connection = request.Connection;
                     }
+                }
+                catch (ConnectTimeoutException)
+                {
+                    request.Features = request.Features.With(RetryPolicy.Immediately);
+                    throw;
                 }
                 catch (TransportException)
                 {

@@ -2,18 +2,6 @@
 
 namespace IceRpc.Transports
 {
-    /// <summary>Raised if a stream is aborted.</summary>
-    public class StreamAbortedException : Exception
-    {
-        /// <summary>The stream error code.</summary>
-        public StreamError ErrorCode { get; }
-
-        /// <summary>Constructs a new exception.</summary>
-        /// <param name="errorCode">The stream error code.</param>
-        public StreamAbortedException(StreamError errorCode) :
-            base($"stream aborted with error code {errorCode}") => ErrorCode = errorCode;
-    }
-
     /// <summary>Error codes for stream errors.</summary>
     public enum StreamError : byte
     {

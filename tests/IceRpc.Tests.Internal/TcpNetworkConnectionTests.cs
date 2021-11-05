@@ -115,7 +115,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task TcpNetworkConnection_AcceptAsync_ConnectionLostExceptionAsync()
+        public async Task TcpNetworkConnection_AcceptAsync_ConnectFailedExceptionAsync()
         {
             using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
 
@@ -133,18 +133,18 @@ namespace IceRpc.Tests.Internal
             using ISimpleNetworkConnection serverConnection = await acceptTask;
             clientConnection.Dispose();
 
-            AsyncTestDelegate testDelegate;
             if (_tls == false)
             {
                 // Server side ConnectAsync is a no-op for non secure TCP connections so it won't throw.
                 (ISimpleStream serverStream, _) = await serverConnection.ConnectAsync(default);
-                testDelegate = async () => await serverStream.ReadAsync(new byte[1], default);
+
+                Assert.ThrowsAsync<ConnectionLostException>(
+                    async () => await serverStream.ReadAsync(new byte[1], default));
             }
             else
             {
-                testDelegate = async () => await serverConnection.ConnectAsync(default);
+                Assert.ThrowsAsync<ConnectFailedException>(async () => await serverConnection.ConnectAsync(default));
             }
-            Assert.ThrowsAsync<ConnectionLostException>(testDelegate);
         }
 
         [TestCase(false, false)]

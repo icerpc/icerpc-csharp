@@ -101,9 +101,9 @@ namespace IceRpc.Transports.Internal
                 Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
                 return received;
             }
-            catch (Exception ex)
+            catch (SocketException ex)
             {
-                throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
+                throw ex.ToTransportException(cancel);
             }
         }
 
@@ -127,7 +127,7 @@ namespace IceRpc.Transports.Internal
                 }
                 Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
             }
-            catch (Exception ex)
+            catch (SocketException ex)
             {
                 throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
             }
@@ -260,14 +260,14 @@ namespace IceRpc.Transports.Internal
                                                                                cancel).ConfigureAwait(false);
                 return result.ReceivedBytes;
             }
-            catch (Exception ex)
+            catch (SocketException ex)
             {
-                throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
+                throw ex.ToTransportException(cancel);
             }
         }
 
         ValueTask ISimpleStream.WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
-            throw new TransportException("cannot write to a UDP server stream");
+            throw new InvalidOperationException("cannot write to a UDP server stream");
 
         internal UdpServerNetworkConnection(Endpoint endpoint, UdpServerOptions options)
         {
@@ -343,6 +343,8 @@ namespace IceRpc.Transports.Internal
             }
             catch (SocketException ex)
             {
+                // The TransportException is thrown to the caller of Server.Listen. We don't call ToTransportException
+                // as there is no need to wrap the socket exception in a ConnectionLostException..
                 Socket.Dispose();
                 throw new TransportException(ex);
             }

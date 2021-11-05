@@ -20,25 +20,19 @@ namespace IceRpc.Transports.Internal
         // tls parsed from endpoint
         private readonly bool? _tls;
 
-        public async Task<ISimpleNetworkConnection> AcceptAsync()
-        {
-            try
-            {
-                return _serverConnectionDecorator(
-#pragma warning disable CA2000
-                    // the caller will Dispose the connection and _serverConnectionDecorator never throws
-                    new TcpServerNetworkConnection(await _socket.AcceptAsync().ConfigureAwait(false),
-                                                   Endpoint,
-                                                   _tls,
-                                                   _idleTimeout,
-                                                   _authenticationOptions));
+        public async Task<ISimpleNetworkConnection> AcceptAsync() =>
+            _serverConnectionDecorator(
+#pragma warning disable CA2000 // the caller will Dispose the connection and _serverConnectionDecorator never throws
+                new TcpServerNetworkConnection(
+                    // We don't catch and wrap SocketException thrown by _socket.AcceptAsync() because the caller is
+                    // class Server and the application code has no opportunity to catch and handle exceptions thrown by
+                    // AcceptAsync.
+                    await _socket.AcceptAsync().ConfigureAwait(false),
+                    Endpoint,
+                    _tls,
+                    _idleTimeout,
+                    _authenticationOptions));
 #pragma warning restore CA2000
-            }
-            catch (Exception ex)
-            {
-                throw ExceptionUtil.Throw(ex.ToTransportException(default));
-            }
-        }
 
         public void Dispose() => _socket.Dispose();
 
@@ -102,7 +96,7 @@ namespace IceRpc.Transports.Internal
             catch (SocketException ex)
             {
                 _socket.Dispose();
-                throw new TransportException(ex);
+                throw ex.ToTransportException(default);
             }
 
             Endpoint = endpoint with { Port = (ushort)address.Port };
