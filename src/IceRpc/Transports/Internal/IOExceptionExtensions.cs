@@ -20,7 +20,7 @@ namespace IceRpc.Transports.Internal
         }
 
         /// <summary>Converts an IO exception into a <see cref="TransportException"/> or
-        /// <see cref="OperationCanceledException"/>.</summary>
+        /// <see cref="ConnectionLostException"/> or <see cref="OperationCanceledException"/>.</summary>
         internal static Exception ToTransportException(this IOException exception, CancellationToken cancel)
         {
             if (cancel.IsCancellationRequested)

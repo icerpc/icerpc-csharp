@@ -19,8 +19,8 @@ namespace IceRpc.Transports.Internal
                 new ConnectionRefusedException(exception) : new ConnectFailedException(exception);
         }
 
-        /// <summary>Converts a socket exception into a <see cref="TransportException"/> or
-        /// <see cref="OperationCanceledException"/>.</summary>
+        /// <summary>Converts a socket exception into a <see cref="TransportException"/>,
+        /// <see cref="ConnectionLostException"/> or <see cref="OperationCanceledException"/>.</summary>
         internal static Exception ToTransportException(this SocketException exception, CancellationToken cancel)
         {
             if (cancel.IsCancellationRequested)

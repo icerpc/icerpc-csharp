@@ -343,6 +343,8 @@ namespace IceRpc.Transports.Internal
             }
             catch (SocketException ex)
             {
+                // The TransportException is thrown to the caller of Server.Listen. We don't call ToTransportException
+                // as there is no need to wrap the socket exception in a ConnectionLostException..
                 Socket.Dispose();
                 throw new TransportException(ex);
             }
