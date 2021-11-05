@@ -16,6 +16,8 @@ namespace IceRpc.Tests.Slice
         private readonly OperationsPrx _prx;
         private readonly DerivedOperationsPrx _derivedPrx;
 
+        // TODO: in this Slice test, the protocol code is used to select the encoding of the payload. We should instead
+        // use the ice2 protocol all the time and pass a parameter for the encoding.
         public OperationsTests(ProtocolCode protocol)
         {
             Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
@@ -82,6 +84,29 @@ namespace IceRpc.Tests.Slice
             await _prx.OpOnewayMetadataAsync();
 
             await _prx.IcePingAsync();
+        }
+
+        [TestCase("ice+tcp://host:1000/identity?foo=bar")]
+        [TestCase("identity:tcp -h host -p 10000")]
+        [TestCase("identity:opaque -t 99 -e 1.1 -v abcd")] // 99 = unknown and -t -e -v in this order
+        [TestCase("identity:opaque -t 99 -e 1.0 -v CTEyNy4wLjAuMeouAAAQJwAAAA==")]
+        [TestCase("identity:opaque -t 1 -e 1.1 -v CTEyNy4wLjAuMeouAAAQJwAAAA==",
+                  "identity:tcp -h 127.0.0.1 -p 12010 -t 10000")]
+        [TestCase("identity:opaque -t 1 -e 1.0 -v CTEyNy4wLjAuMeouAAAQJwAAAA==",
+                  "identity:tcp -h 127.0.0.1 -p 12010 -t 10000")]
+        public async Task Operations_ServiceAsync(string proxy, string? actualIce1Proxy = null)
+        {
+            var service = ServicePrx.Parse(proxy);
+            ServicePrx result = await _prx.OpServiceAsync(service);
+
+            if (_prx.Proxy.Protocol == Protocol.Ice1 && actualIce1Proxy != null)
+            {
+                Assert.AreEqual(ServicePrx.Parse(actualIce1Proxy), result);
+            }
+            else
+            {
+                Assert.AreEqual(service, result);
+            }
         }
 
         public class Operations : Service, IOperations
@@ -176,6 +201,11 @@ namespace IceRpc.Tests.Slice
                 string p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<ServicePrx> OpServiceAsync(
+                ServicePrx service,
+                Dispatch dispatch,
+                CancellationToken cancel) => new(service);
 
             // Oneway Operations
 
