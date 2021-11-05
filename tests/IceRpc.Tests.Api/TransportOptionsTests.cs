@@ -26,7 +26,6 @@ namespace IceRpc.Tests.Api
         public void TransportOptions_UdpServerOptions()
         {
             var options = new UdpServerOptions();
-
             Assert.That(options.IsIPv6Only, Is.False);
             Assert.That(options.ReceiveBufferSize, Is.Null);
             // Buffer size must be at least 1KB
