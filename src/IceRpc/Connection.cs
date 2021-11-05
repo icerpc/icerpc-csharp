@@ -288,15 +288,7 @@ namespace IceRpc
         public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
             // Make sure the connection is connected.
-            try
-            {
-                await ConnectAsync(cancel).ConfigureAwait(false);
-            }
-            catch
-            {
-                request.Features = request.Features.With(RetryPolicy.Immediately);
-                throw;
-            }
+            await ConnectAsync(cancel).ConfigureAwait(false);
 
             try
             {
@@ -323,24 +315,6 @@ namespace IceRpc
             catch (OperationCanceledException)
             {
                 request.Stream?.Abort(StreamError.InvocationCanceled);
-                throw;
-            }
-            catch (ConnectionClosedException)
-            {
-                // If the peer gracefully shuts down the connection, it's always safe to retry since only dispatches not
-                // processed by the peer are aborted.
-                request.Features = request.Features.With(RetryPolicy.Immediately);
-                throw;
-            }
-            catch (TransportException)
-            {
-                if (request.IsIdempotent || !request.IsSent)
-                {
-                    // If the connection is being shutdown, exceptions are expected since the request send or
-                    // response receive can fail. If the request is idempotent or hasn't been sent it's safe
-                    // to retry it.
-                    request.Features = request.Features.With(RetryPolicy.Immediately);
-                }
                 throw;
             }
         }
