@@ -90,4 +90,16 @@ namespace IceRpc.Transports
         {
         }
     }
+
+    /// <summary>This exception is thrown when a multiplexed stream is aborted.</summary>
+    public class StreamAbortedException : TransportException
+    {
+        /// <summary>The stream error code.</summary>
+        public StreamError ErrorCode { get; }
+
+        /// <summary>Constructs a new exception.</summary>
+        /// <param name="errorCode">The stream error code.</param>
+        public StreamAbortedException(StreamError errorCode) :
+            base($"stream aborted with error code {errorCode}") => ErrorCode = errorCode;
+    }
 }

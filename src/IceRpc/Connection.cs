@@ -327,8 +327,8 @@ namespace IceRpc
             }
             catch (ConnectionClosedException)
             {
-                // If the peer gracefully shuts down the connection, it's always safe to retry since only
-                // streams not processed by the peer are aborted.
+                // If the peer gracefully shuts down the connection, it's always safe to retry since only streams not
+                // processed by the peer are aborted.
                 request.Features = request.Features.With(RetryPolicy.Immediately);
                 throw;
             }
