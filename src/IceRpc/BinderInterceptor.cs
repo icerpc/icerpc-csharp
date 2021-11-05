@@ -1,5 +1,7 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
+
 namespace IceRpc
 {
     /// <summary>A binder interceptor is responsible for providing connections to requests using an

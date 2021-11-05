@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
+
 namespace IceRpc
 {
     /// <summary>Provides connections to the <see cref="BinderInterceptor"/> interceptor.</summary>

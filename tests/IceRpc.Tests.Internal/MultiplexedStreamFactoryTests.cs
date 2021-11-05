@@ -237,7 +237,7 @@ namespace IceRpc.Tests.Internal
         {
             IMultiplexedStream stream = ClientMultiplexedStreamFactory.CreateStream(false);
             ClientConnection.Dispose();
-            Assert.CatchAsync<TransportException>(
+            Assert.CatchAsync<ConnectionClosedException>(
                 async () => await stream.WriteAsync(CreateSendPayload(stream), true, default));
         }
 
