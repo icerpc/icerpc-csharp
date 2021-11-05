@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 #pragma once
+#include <IceRpc/Service.ice>
 
 [[suppress-warning(reserved-identifier)]]
 
@@ -26,6 +27,9 @@ module IceRpc::Tests::Slice
         (float r1, float r2) opFloat(float p1, float p2);
         (double r1, double r2) opDouble(double p1, double p2);
         (string r1, string r2) opString(string p1, string p2);
+
+        // Returns a proxy to a Service
+        IceRpc::Service opService(IceRpc::Service service);
 
         // Oneway Operations
         void opOneway();

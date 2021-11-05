@@ -9,7 +9,7 @@
 
   <ItemDefinitionGroup>
     <SliceCompile>
-      <IncludeDirectories>.</IncludeDirectories>
+      <IncludeDirectories>.;$(MSBuildThisFileDirectory)..\IceRpc.Tests.ReferencedAssemblies\A</IncludeDirectories>
     </SliceCompile>
   </ItemDefinitionGroup>
 

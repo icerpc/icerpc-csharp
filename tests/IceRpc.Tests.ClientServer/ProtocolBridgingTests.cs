@@ -55,7 +55,6 @@ namespace IceRpc.Tests.ClientServer
 
             ProtocolBridgingTestPrx newPrx = await TestProxyAsync(forwarderServicePrx, direct: false);
 
-
             if (colocated)
             {
                 if (newPrx.Proxy.Connection == null)
@@ -138,7 +137,7 @@ namespace IceRpc.Tests.ClientServer
         {
             public ImmutableDictionary<string, string> Context { get; set; } = ImmutableDictionary<string, string>.Empty;
 
-            public ValueTask<int> OpAsync(int x, Dispatch dispatch, CancellationToken cancel) =>                
+            public ValueTask<int> OpAsync(int x, Dispatch dispatch, CancellationToken cancel) =>
                 new(x);
 
             public ValueTask OpContextAsync(Dispatch dispatch, CancellationToken cancel)
