@@ -430,8 +430,6 @@ namespace IceRpc
             ProtocolConnectionFactory<T> protocolConnectionFactory,
             EventHandler<ClosedEventArgs>? closedEventHandler) where T : INetworkConnection
         {
-            // Note: networkConnection may be more decorated than _networkConnection
-
             using var connectCancellationSource = new CancellationTokenSource(Options.ConnectTimeout);
             try
             {
