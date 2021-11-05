@@ -27,16 +27,15 @@ namespace IceRpc.Tests.Slice
                 RemoteEndpoint = endpoint
             };
 
-            // This should fail because there isn't a factory for ClassB and slicing is not allowed
+            // This should fail the client has no factory for ClassB and compact format prevents slicing
             var prx = AssembliesOperationsPrx.FromConnection(connection);
             var pipeline = new Pipeline();
             prx.Proxy.Invoker = pipeline;
-            // Clear the default factories, so that ClassB cannot be found
+            // Setup response decode factories excluding ClassB assembly
             SetupResponseIceDecoderFactory(pipeline);
             Assert.ThrowsAsync<InvalidDataException>(async () => await prx.OpAAsync(new ClassB("A", "B")));
 
-            // Repeat but this time setup the SliceAssembliesInterceptor after clearing the factories, this should
-            // make the ClassB factory available.
+            // Repeat but this time use SliceAssemblies interceptor to include ClassB factory
             prx = AssembliesOperationsPrx.FromConnection(connection);
             pipeline = new Pipeline();
             prx.Proxy.Invoker = pipeline;
@@ -86,12 +85,12 @@ namespace IceRpc.Tests.Slice
                     RemoteEndpoint = endpoint
                 };
 
-                // This should fail because the server doesn't have a factory for ClassB and slicing is not allowed
+                // This should fail the server has no factory for ClassB and compact format prevents slicing
                 var prx = AssembliesOperationsPrx.FromConnection(connection);
                 Assert.ThrowsAsync<UnhandledException>(async () => await prx.OpAAsync(new ClassB("A", "B")));
             }
 
-            // Repeat this time setup the assemblies middleware to allow locate ClassB
+            // Repeat but this time use SliceAssemblies middleware to include ClassB factory
             {
                 var router = new Router();
                 SetupRequestIceDecoderFactory(router);
@@ -109,12 +108,11 @@ namespace IceRpc.Tests.Slice
                     RemoteEndpoint = endpoint
                 };
 
-                // This should fail because the server doesn't have a factory for ClassB and slicing is not allowed
                 var prx = AssembliesOperationsPrx.FromConnection(connection);
                 await prx.OpAAsync(new ClassB("A", "B"));
             }
 
-            // Set the response decode factories so that ClassB is not available
+            // Set the request decode factories so that ClassB is not available
             static void SetupRequestIceDecoderFactory(Router router)
             {
                 var decoderFactory11 = new Ice11DecoderFactory(Ice11Decoder.GetActivator(typeof(ClassA).Assembly));
