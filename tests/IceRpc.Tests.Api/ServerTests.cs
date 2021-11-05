@@ -129,7 +129,7 @@ namespace IceRpc.Tests.Api
                     Endpoint = TestHelper.GetUniqueColocEndpoint()
                 };
                 await server.DisposeAsync();
-                Assert.Throws< ObjectDisposedException>(() => server.Listen());
+                Assert.Throws<ObjectDisposedException>(() => server.Listen());
             }
         }
 
