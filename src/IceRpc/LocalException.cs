@@ -21,9 +21,6 @@ namespace IceRpc
     /// <summary>This exception reports an error from the transport layer.</summary>
     public class TransportException : Exception
     {
-        /// <summary>The retry policy of this exception.</summary>
-        public RetryPolicy RetryPolicy { get; init; } = RetryPolicy.NoRetry;
-
         /// <summary>Constructs a new instance of the <see cref="TransportException"/> class with a specified error
         /// message.</summary>
         /// <param name="message">The message that describes the error.</param>
@@ -75,8 +72,9 @@ namespace IceRpc
     {
         /// <summary>Constructs a new instance of the <see cref="ConnectTimeoutException"/> class.</summary>
         public ConnectTimeoutException()
-            : base("connection establishment timed out") =>
-            RetryPolicy = RetryPolicy.Immediately;
+            : base("connection establishment timed out")
+        {
+        }
     }
 
     /// <summary>This exception reports a connection refused error.</summary>
@@ -84,15 +82,17 @@ namespace IceRpc
     {
         /// <summary>Constructs a new instance of the <see cref="ConnectionRefusedException"/> class.</summary>
         public ConnectionRefusedException()
-            : base("connection establishment was refused by the peer") =>
-            RetryPolicy = RetryPolicy.OtherReplica;
+            : base("connection establishment was refused by the peer")
+        {
+        }
 
         /// <summary>Constructs a new instance of the <see cref="ConnectionRefusedException"/> class with a reference
         /// to the inner exception that is the cause of this exception.</summary>
         /// <param name="innerException">The exception that is the cause of the current exception.</param>
         public ConnectionRefusedException(Exception innerException)
-            : base(innerException) =>
-            RetryPolicy = RetryPolicy.OtherReplica;
+            : base(innerException)
+        {
+        }
     }
 
     /// <summary>This exception reports that a previously established connection was lost.</summary>
@@ -100,15 +100,17 @@ namespace IceRpc
     {
         /// <summary>Constructs a new instance of the <see cref="ConnectionLostException"/> class.</summary>
         public ConnectionLostException()
-            : base("connection lost") =>
-            RetryPolicy = RetryPolicy.Immediately;
+            : base("connection lost")
+        {
+        }
 
         /// <summary>Constructs a new instance of the <see cref="ConnectionLostException"/> class with a reference to
         /// the inner exception that is the cause of this exception.</summary>
         /// <param name="innerException">The exception that is the cause of the current exception.</param>
         public ConnectionLostException(Exception innerException)
-            : base("connection lost", innerException) =>
-            RetryPolicy = RetryPolicy.Immediately;
+            : base("connection lost", innerException)
+        {
+        }
     }
 
     /// <summary>This exception indicates that a previous established connection was closed.</summary>
@@ -116,23 +118,26 @@ namespace IceRpc
     {
         /// <summary>Constructs a new instance of the <see cref="ConnectionClosedException"/> class.</summary>
         public ConnectionClosedException()
-            : base("cannot access closed connection") =>
-            RetryPolicy = RetryPolicy.Immediately;
+            : base("cannot access closed connection")
+        {
+        }
 
         /// <summary>Constructs a new instance of the <see cref="ConnectionClosedException"/> class with a specified
         /// error message.</summary>
         /// <param name="message">The message that describes the error.</param>
         public ConnectionClosedException(string message)
-            : base(message) =>
-            RetryPolicy = RetryPolicy.Immediately;
+            : base(message)
+        {
+        }
 
         /// <summary>Constructs a new instance of the <see cref="ConnectionClosedException"/> class with a specified
         /// error message.</summary>
         /// <param name="message">The message that describes the error.</param>
         /// <param name="innerException">The exception that is the cause of the current exception.</param>
         public ConnectionClosedException(string message, Exception innerException)
-            : base(message, innerException) =>
-            RetryPolicy = RetryPolicy.Immediately;
+            : base(message, innerException)
+        {
+        }
     }
 
     /// <summary>This exception reports that data (bytes) received are not in an expected format.</summary>
