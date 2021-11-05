@@ -41,7 +41,8 @@ namespace IceRpc.Tests.Slice
             prx.Proxy.Invoker = pipeline;
             // Setup the Assemblies interceptors to ensure it correctly setup the factories
             pipeline.UseSliceAssemblies(typeof(ClassB).Assembly);
-            // Clear the default factories, so that ClassB cannot be found
+            // Clear the default factories, so that ClassB cannot be found, we install this interceptor after the
+            // SliceAssemblies interceptor: this way, it intercepts responses before the SliceAssemblies interceptor.
             SetupResponseIceDecoderFactory(pipeline);
             await prx.OpAAsync(new ClassB("A", "B"));
 
