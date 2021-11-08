@@ -5,7 +5,7 @@
 ## Building
 
 The build depends on NuGet packages that are not publicly available, for accessing this packages you must create a
-`NuGet.config` file with the following contents.
+`nuget.config` file with the following contents.
 
 You must replace:
 * USERNAME with the name of your user account on GitHub
@@ -28,7 +28,7 @@ You must replace:
 </configuration>
 ```
 
-You can create the `NuGet.config` in the source folder or any folder up to the drive root.
+You can create the `nuget.config` in the source folder or any folder up to the drive root.
 
 ## Testing
 
