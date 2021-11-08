@@ -3,9 +3,7 @@
 use crate::builders::ContainerBuilder;
 use crate::code_block::CodeBlock;
 use crate::generated_code::GeneratedCode;
-use slice::ast::{Ast, Node};
 use slice::grammar::*;
-use slice::ref_from_node;
 use slice::slice_file::SliceFile;
 use slice::visitor::Visitor;
 
@@ -14,19 +12,18 @@ pub struct ModuleVisitor<'a> {
 }
 
 impl Visitor for ModuleVisitor<'_> {
-    fn visit_file_start(&mut self, slice_file: &SliceFile, ast: &Ast) {
-        let mut top_level_modules = slice_file
-            .contents
+    fn visit_file_start(&mut self, slice_file: &SliceFile) {
+        let mut top_level_modules = slice_file.contents
             .iter()
-            .map(|index| ref_from_node!(Node::Module, ast, *index))
+            .map(|module_ptr| module_ptr.borrow())
             .collect::<Vec<_>>();
 
         // Must be sorted first for dedup to work
-        top_level_modules.sort_by_key(|m| m.identifier());
-        top_level_modules.dedup_by_key(|m| m.identifier());
+        top_level_modules.sort_by_key(|module| module.identifier());
+        top_level_modules.dedup_by_key(|module| module.identifier());
 
         for module in top_level_modules {
-            let code_block = self.module_code_block(module, None, ast);
+            let code_block = self.module_code_block(module, None);
             self.generated_code.code_blocks.push(code_block);
         }
     }
@@ -37,9 +34,8 @@ impl ModuleVisitor<'_> {
         &mut self,
         module: &Module,
         module_prefix: Option<String>,
-        ast: &Ast,
     ) -> CodeBlock {
-        let submodules = module.submodules(ast);
+        let submodules = module.submodules();
         let code_blocks = self.generated_code.remove_scoped(module);
 
         let module_identifier = match &module_prefix {
@@ -55,7 +51,7 @@ impl ModuleVisitor<'_> {
 
         let submodules_code: CodeBlock = submodules
             .iter()
-            .map(|s| self.module_code_block(s, submodule_prefix.to_owned(), ast))
+            .map(|s| self.module_code_block(s, submodule_prefix.to_owned()))
             .collect();
 
         if let Some(vec) = code_blocks {

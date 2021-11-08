@@ -1,18 +1,16 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use slice::ast::{Ast, Node};
 use slice::grammar::*;
-use slice::util::*;
+use slice::code_gen_util::*;
 
 use crate::code_block::CodeBlock;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
 
 pub fn encode_data_members(
-    members: &[&Member],
+    members: &[&DataMember],
     namespace: &str,
     field_type: FieldType,
-    ast: &Ast,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
 
@@ -21,7 +19,7 @@ pub fn encode_data_members(
     let mut bit_sequence_index = -1;
     // Tagged members are encoded in a dictionary and don't count towards the optional bit sequence
     // size.
-    let bit_sequence_size = get_bit_sequence_size(&required_members, ast);
+    let bit_sequence_size = get_bit_sequence_size(&required_members);
 
     if bit_sequence_size > 0 {
         writeln!(
@@ -36,12 +34,11 @@ pub fn encode_data_members(
         let param = format!("this.{}", member.field_name(field_type));
 
         let encode_member = encode_type(
-            &member.data_type,
+            member.data_type(),
             &mut bit_sequence_index,
             true,
             namespace,
             &param,
-            ast,
         );
         code.writeln(&encode_member);
     }
@@ -49,7 +46,7 @@ pub fn encode_data_members(
     // Encode tagged
     for member in tagged_members {
         let param = format!("this.{}", member.field_name(field_type));
-        code.writeln(&encode_tagged_type(member, namespace, &param, true, ast));
+        code.writeln(&encode_tagged_type(member, namespace, &param, true));
     }
 
     code
@@ -57,30 +54,27 @@ pub fn encode_data_members(
 
 pub fn encode_type(
     type_ref: &TypeRef,
-    bit_sequence_index: &mut i32,
+    bit_sequence_index: &mut i64,
     for_nested_type: bool,
     namespace: &str,
     param: &str,
-    ast: &Ast,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
 
-    let node = type_ref.definition(ast);
-
-    let value = if type_ref.is_optional && type_ref.is_value_type(ast) {
+    let value = if type_ref.is_optional && type_ref.is_value_type() {
         format!("{}.Value", param)
     } else {
         param.to_owned()
     };
 
-    match node {
-        Node::Interface(_, _) => {
+    match type_ref.concrete_type() {
+        Types::Interface(_) => {
             writeln!(code, "encoder.EncodeProxy({}.Proxy);", value)
         }
-        Node::Class(_, _) => {
+        Types::Class(_) => {
             writeln!(code, "encoder.EncodeClass({});", value)
         }
-        Node::Primitive(_, primitive) => {
+        Types::Primitive(primitive) => {
             writeln!(
                 code,
                 "encoder.Encode{}({});",
@@ -88,10 +82,10 @@ pub fn encode_type(
                 value
             )
         }
-        Node::Struct(_, _) => {
+        Types::Struct(_) => {
             writeln!(code, "{}.Encode(encoder);", value)
         }
-        Node::Sequence(_, sequence_def) => writeln!(
+        Types::Sequence(sequence_def) => writeln!(
             code,
             "{};",
             encode_sequence(
@@ -101,26 +95,24 @@ pub fn encode_type(
                 param,
                 !for_nested_type,
                 !for_nested_type,
-                ast,
             ),
         ),
-        Node::Dictionary(_, dictionary_def) => {
+        Types::Dictionary(dictionary_def) => {
             writeln!(
                 code,
                 "{};",
-                encode_dictionary(dictionary_def, namespace, param, ast)
+                encode_dictionary(dictionary_def, namespace, param)
             )
         }
-        Node::Enum(_, enum_def) => {
+        Types::Enum(enum_def) => {
             writeln!(
                 code,
                 "{helper}.Encode{name}(encoder, {param});",
                 helper = enum_def.helper_name(namespace),
-                name = node.as_named_symbol().unwrap().identifier(),
-                param = value
+                name = enum_def.identifier(),
+                param = value,
             );
         }
-        _ => panic!("Node does not represent a type: {:?}", node),
     }
 
     if type_ref.is_optional {
@@ -130,7 +122,6 @@ pub fn encode_type(
             for_nested_type,
             param,
             &code,
-            ast,
         );
     }
 
@@ -139,32 +130,30 @@ pub fn encode_type(
 
 // TODO: should is_data_member be TypeContext instead of bool?
 pub fn encode_tagged_type(
-    member: &Member,
+    member: &impl Member,
     namespace: &str,
     param: &str,
     is_data_member: bool,
-    ast: &Ast,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
+    let data_type = member.data_type();
 
-    assert!(member.data_type.is_optional && member.tag.is_some());
+    assert!(data_type.is_optional && member.tag().is_some());
 
-    let tag = member.tag.unwrap();
+    let tag = member.tag().unwrap();
 
-    let node = member.data_type.definition(ast);
-
-    let read_only_memory = match node {
-        Node::Sequence(_, sequence_def)
-            if sequence_def.is_fixed_size(ast)
+    let read_only_memory = match data_type.concrete_type() {
+        Types::Sequence(sequence_def)
+            if sequence_def.is_fixed_size()
                 && !is_data_member
-                && !member.data_type.has_attribute("cs:generic") =>
+                && !data_type.has_attribute("cs:generic", false) =>
         {
             true
         }
         _ => false,
     };
 
-    let value = if member.data_type.is_value_type(ast) {
+    let value = if data_type.is_value_type() {
         format!("{}.Value", param)
     } else {
         param.to_owned()
@@ -174,10 +163,10 @@ pub fn encode_tagged_type(
     // param/member:
     let mut size_parameter = String::new();
 
-    match node {
-        Node::Primitive(_, primitive_def) => {
-            if primitive_def.is_fixed_size(ast) {
-                size_parameter = primitive_def.min_wire_size(ast).to_string();
+    match data_type.concrete_type() {
+        Types::Primitive(primitive_def) => {
+            if primitive_def.is_fixed_size() {
+                size_parameter = primitive_def.min_wire_size().to_string();
             } else if !matches!(primitive_def, Primitive::String) {
                 if primitive_def.is_unsigned_numeric() {
                     size_parameter = format!("IceEncoder.GetVarULongEncodedSize({})", value)
@@ -187,51 +176,53 @@ pub fn encode_tagged_type(
             }
             // else no size
         }
-        Node::Struct(_, struct_def) => {
-            if struct_def.is_fixed_size(ast) {
-                size_parameter = struct_def.min_wire_size(ast).to_string();
+        Types::Struct(struct_def) => {
+            if struct_def.is_fixed_size() {
+                size_parameter = struct_def.min_wire_size().to_string();
             }
         }
-        Node::Enum(_, enum_def) => {
+        Types::Enum(enum_def) => {
             if let Some(underlying) = &enum_def.underlying {
-                size_parameter = underlying.min_wire_size(ast).to_string();
+                size_parameter = underlying.min_wire_size().to_string();
             } else {
                 size_parameter = format!("encoder.GetSizeLength((int){})", value);
             }
         }
-        Node::Sequence(_, sequence_def) => {
+        Types::Sequence(sequence_def) => {
             let element_type = &sequence_def.element_type;
 
-            if element_type.is_fixed_size(ast) {
+            if element_type.is_fixed_size() {
                 if read_only_memory {
                     size_parameter = format!(
                         "encoder.GetSizeLength({value}) + {element_min_wire_size} * {value}.Length",
                         value = value,
-                        element_min_wire_size = element_type.min_wire_size(ast)
+                        element_min_wire_size = element_type.min_wire_size()
                     );
                 } else {
                     writeln!(code, "int count = {}.Count();", value);
                     size_parameter = format!(
                         "encoder.GetSizeLength(count) + {} * count",
-                        element_type.min_wire_size(ast)
+                        element_type.min_wire_size()
                     )
                 }
             }
         }
-        Node::Dictionary(_, dictionary_def) => {
+        Types::Dictionary(dictionary_def) => {
             let key_type = &dictionary_def.key_type;
             let value_type = &dictionary_def.value_type;
 
-            if key_type.is_fixed_size(ast) && value_type.is_fixed_size(ast) {
+            if key_type.is_fixed_size() && value_type.is_fixed_size() {
                 writeln!(code, "int count = {}.Count();", value);
                 size_parameter = format!(
                     "encoder.GetSizeLength(count) + {min_wire_size} * count",
-                    min_wire_size = key_type.min_wire_size(ast) + value_type.min_wire_size(ast)
+                    min_wire_size = key_type.min_wire_size() + value_type.min_wire_size()
                 );
             }
         }
-        Node::Interface(_, _) => {}
-        _ => panic!("unexpected node type: {:?}", node),
+        Types::Interface(_) => {}
+        Types::Class(_) => {
+            panic!("TODO: Tagged classes are not allowed!");
+        }
     }
 
     let mut args = vec![];
@@ -239,7 +230,7 @@ pub fn encode_tagged_type(
 
     args.push(format!(
         "IceRpc.Slice.TagFormat.{}",
-        member.data_type.tag_format(ast)
+        data_type.tag_format()
     ));
     if !size_parameter.is_empty() {
         args.push("size: ".to_owned() + &size_parameter);
@@ -247,11 +238,10 @@ pub fn encode_tagged_type(
     args.push(value);
     args.push(
         encode_action(
-            &member.data_type,
+            data_type,
             namespace,
             !is_data_member,
             !is_data_member,
-            ast,
         )
         .to_string(),
     );
@@ -281,14 +271,13 @@ pub fn encode_sequence(
     value: &str,
     is_param: bool,
     is_read_only: bool,
-    ast: &Ast,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
 
-    let has_custom_type = matches!(type_ref.find_attribute("cs:generic"), Some(_));
+    let has_custom_type = matches!(type_ref.get_attribute("cs:generic", false), Some(_));
     let mut args = Vec::new();
 
-    if sequence_def.is_element_fixed_sized_numeric(ast) && (is_read_only && !has_custom_type) {
+    if sequence_def.has_fixed_size_numeric_elements() && (is_read_only || !has_custom_type) {
         if is_param && is_read_only && !has_custom_type {
             args.push(format!("{}.Span", value));
         } else {
@@ -297,8 +286,8 @@ pub fn encode_sequence(
     } else {
         args.push(value.to_owned());
 
-        if sequence_def.element_type.encode_using_bit_sequence(ast)
-            && sequence_def.element_type.is_reference_type(ast)
+        if sequence_def.element_type.is_bit_sequence_encodable()
+            && sequence_def.element_type.is_reference_type()
         {
             assert!(sequence_def.element_type.is_optional);
             args.push("withBitSequence: true".to_owned());
@@ -310,7 +299,6 @@ pub fn encode_sequence(
                 namespace,
                 is_read_only,
                 is_param,
-                ast,
             )
             .to_string(),
         );
@@ -329,19 +317,18 @@ pub fn encode_dictionary(
     dictionary_def: &Dictionary,
     namespace: &str,
     param: &str,
-    ast: &Ast,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
 
     let mut args = vec![param.to_owned()];
 
-    let with_bit_sequence = dictionary_def.value_type.encode_using_bit_sequence(ast);
+    let with_bit_sequence = dictionary_def.value_type.is_bit_sequence_encodable();
 
-    if with_bit_sequence && dictionary_def.value_type.is_reference_type(ast) {
+    if with_bit_sequence && dictionary_def.value_type.is_reference_type() {
         args.push("withBitSequence: true".to_owned());
     }
-    args.push(encode_action(&dictionary_def.key_type, namespace, false, false, ast).to_string());
-    args.push(encode_action(&dictionary_def.value_type, namespace, false, false, ast).to_string());
+    args.push(encode_action(&dictionary_def.key_type, namespace, false, false).to_string());
+    args.push(encode_action(&dictionary_def.value_type, namespace, false, false).to_string());
 
     write!(
         code,
@@ -354,20 +341,18 @@ pub fn encode_dictionary(
 
 pub fn encode_as_optional(
     type_ref: &TypeRef,
-    bit_sequence_index: &mut i32,
+    bit_sequence_index: &mut i64,
     for_nested_type: bool,
     param: &str,
     encode_type: &CodeBlock,
-    ast: &Ast,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
-    let node = type_ref.definition(ast);
 
-    match node {
-        Node::Interface(_, _) => {
+    match type_ref.concrete_type() {
+        Types::Interface(_) => {
             writeln!(code, "encoder.EncodeNullableProxy({}?.Proxy);", param)
         }
-        Node::Class(_, _) => {
+        Types::Class(_) => {
             writeln!(code, "encoder.EncodeNullableClass({});", param)
         }
         _ => {
@@ -389,10 +374,10 @@ else
     bitSequence[{bit_sequence_index}] = false;
 }}
 ",
-                param = match node {
-                    Node::Sequence(_, sequence_def)
-                        if sequence_def.is_element_fixed_sized_numeric(ast)
-                            && !!matches!(type_ref.find_attribute("cs:generic"), Some(_))
+                param = match type_ref.concrete_type() {
+                    Types::Sequence(sequence_def)
+                        if sequence_def.has_fixed_size_numeric_elements()
+                            && !!matches!(type_ref.get_attribute("cs:generic", false), Some(_))
                             && !for_nested_type =>
                         format!("{}.Span", param),
                     _ => param.to_owned(),
@@ -412,21 +397,17 @@ pub fn encode_action(
     namespace: &str,
     is_read_only: bool,
     is_param: bool,
-    ast: &Ast,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
-
-    let node = type_ref.definition(ast);
-
     let is_optional = type_ref.is_optional;
 
-    let value = match (type_ref.is_optional, type_ref.is_value_type(ast)) {
+    let value = match (type_ref.is_optional, type_ref.is_value_type()) {
         (true, false) => "value!",
         _ => "value",
     };
 
-    match node {
-        Node::Interface(_, _) => {
+    match type_ref.concrete_type() {
+        Types::Interface(_) => {
             if is_optional {
                 write!(
                     code,
@@ -436,7 +417,7 @@ pub fn encode_action(
                 write!(code, "(encoder, value) => encoder.EncodeProxy(value.Proxy)");
             }
         }
-        Node::Class(_, _) => {
+        Types::Class(_) => {
             if is_optional {
                 write!(
                     code,
@@ -446,7 +427,7 @@ pub fn encode_action(
                 write!(code, "(encoder, value) => encoder.EncodeClass(value)");
             }
         }
-        Node::Primitive(_, primitive) => {
+        Types::Primitive(primitive) => {
             write!(
                 code,
                 "(encoder, value) => encoder.Encode{builtin_type}({value})",
@@ -454,7 +435,7 @@ pub fn encode_action(
                 value = value
             )
         }
-        Node::Enum(_, enum_def) => {
+        Types::Enum(enum_def) => {
             write!(
                 code,
                 "(encoder, value) => {helper}.Encode{name}(encoder, {value})",
@@ -463,14 +444,14 @@ pub fn encode_action(
                 value = value
             )
         }
-        Node::Dictionary(_, dictionary_def) => {
+        Types::Dictionary(dictionary_def) => {
             write!(
                 code,
                 "(encoder, value) => {}",
-                encode_dictionary(dictionary_def, namespace, "value", ast)
+                encode_dictionary(dictionary_def, namespace, "value")
             );
         }
-        Node::Sequence(_, sequence_def) => {
+        Types::Sequence(sequence_def) => {
             // We generate the sequence encoder inline, so this function must not be called when
             // the top-level object is not cached.
             write!(
@@ -483,34 +464,32 @@ pub fn encode_action(
                     "value",
                     is_read_only,
                     is_param,
-                    ast
                 )
             )
         }
-        Node::Struct(_, _) => {
+        Types::Struct(_) => {
             write!(code, "(encoder, value) => value.Encode(encoder)")
         }
-        _ => panic!("Unexpected node type {:?}", node),
     }
 
     code
 }
 
-pub fn encode_operation(operation: &Operation, return_type: bool, ast: &Ast) -> CodeBlock {
+pub fn encode_operation(operation: &Operation, return_type: bool) -> CodeBlock {
     let mut code = CodeBlock::new();
     let namespace = &operation.namespace();
 
     let members = if return_type {
-        operation.non_streamed_returns(ast)
+        operation.nonstreamed_return_members()
     } else {
-        operation.non_streamed_params(ast)
+        operation.nonstreamed_parameters()
     };
 
     let (required_members, tagged_members) = get_sorted_members(&members);
 
-    let mut bit_sequence_index = -1;
+    let mut bit_sequence_index: i64 = -1;
 
-    let bit_sequence_size = get_bit_sequence_size(&members, ast);
+    let bit_sequence_size = get_bit_sequence_size(&members);
 
     if bit_sequence_size > 0 {
         writeln!(
@@ -523,7 +502,7 @@ pub fn encode_operation(operation: &Operation, return_type: bool, ast: &Ast) -> 
 
     for member in required_members {
         code.writeln(&encode_type(
-            &member.data_type,
+            member.data_type(),
             &mut bit_sequence_index,
             true,
             namespace,
@@ -531,12 +510,11 @@ pub fn encode_operation(operation: &Operation, return_type: bool, ast: &Ast) -> 
                 [_] => "value".to_owned(),
                 _ => format!("value.{}", &member.field_name(FieldType::NonMangled)),
             },
-            ast,
         ));
     }
 
     if bit_sequence_size > 0 {
-        assert_eq!(bit_sequence_index, bit_sequence_size);
+        assert_eq!(bit_sequence_index, bit_sequence_size as i64);
     }
 
     for member in tagged_members {
@@ -548,7 +526,6 @@ pub fn encode_operation(operation: &Operation, return_type: bool, ast: &Ast) -> 
                 _ => format!("value.{}", &member.field_name(FieldType::NonMangled)),
             },
             false,
-            ast,
         ));
     }
 

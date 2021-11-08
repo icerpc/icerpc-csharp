@@ -1,8 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use slice::ast::Ast;
-use slice::grammar::{Class, NamedSymbol, Operation, ScopedSymbol};
-use slice::util::TypeContext;
+use slice::grammar::{Attributable, Class, NamedSymbol, Operation};
+use slice::code_gen_util::TypeContext;
 
 use crate::code_block::CodeBlock;
 use crate::comments::{operation_parameter_doc_comment, CommentTag};
@@ -31,12 +30,12 @@ pub trait AttributeBuilder {
     /// Adds multiple "container" attributes.
     /// - The obsolete attribute
     /// - Any custom attributes
-    fn add_container_attributes(&mut self, named_symbol: &dyn NamedSymbol) -> &mut Self {
-        if let Some(attribute) = named_symbol.obsolete_attribute(false) {
+    fn add_container_attributes(&mut self, container: &dyn Attributable) -> &mut Self {
+        if let Some(attribute) = container.obsolete_attribute(false) {
             self.add_attribute(&attribute);
         }
 
-        for attribute in named_symbol.custom_attributes() {
+        for attribute in container.custom_attributes() {
             // The custom attribute value is always quoted in Slice and we unquote it here
             // [cs:attribute("System.Flags")] would become [System.Flags]
             debug_assert!(attribute.starts_with('\"') && attribute.ends_with('\"'));
@@ -277,14 +276,13 @@ impl FunctionBuilder {
         &mut self,
         operation: &Operation,
         context: TypeContext,
-        ast: &Ast,
     ) -> &mut Self {
-        let parameters = operation.parameters(ast);
+        let parameters = operation.parameters();
 
         for parameter in &parameters {
             // The attributes are a space separated list of attributes.
             // eg. [attribute1] [attribute2]
-            let parameter_attributes = parameter.find_attribute("cs:attribute").map_or_else(
+            let parameter_attributes = parameter.get_attribute("cs:attribute", false).map_or_else(
                 || "".to_owned(),
                 |vec| {
                     vec.iter()
@@ -294,11 +292,7 @@ impl FunctionBuilder {
                 },
             );
 
-            let parameter_type =
-                parameter
-                    .data_type
-                    .to_type_string(&operation.namespace(), ast, context);
-
+            let parameter_type = parameter.to_type_string(&operation.namespace(), context);
             let parameter_name = parameter.parameter_name();
 
             // TODO: it would be better if we could use parameter.comment() to get the parameter

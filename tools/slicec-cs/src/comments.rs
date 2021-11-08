@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use slice::grammar::{DocComment, NamedSymbol, Operation};
+use slice::grammar::{Commentable, DocComment, Operation};
 use std::fmt;
 
 use regex::Regex;
@@ -63,6 +63,7 @@ impl fmt::Display for CommentTag {
     }
 }
 
+// TODO this should probably be converted into an extension trait.
 pub struct CsharpComment(pub DocComment);
 
 impl CsharpComment {
@@ -73,17 +74,17 @@ impl CsharpComment {
 
         // Replace comments like '<code>my code</code>' by 'my code'
         let re: regex::Regex = Regex::new(r"(?ms)<.+>\s?(?P<content>.+)\s?</.+>").unwrap();
-        comment.message = re.replace_all(&comment.message, "${content}").to_string();
+        comment.overview = re.replace_all(&comment.overview, "${content}").to_string();
 
         // Replace comments like '{@link FooBar}' by 'FooBar'
         let re: regex::Regex = Regex::new(r"\{@link\s+(?P<link>\w+)\s?\}").unwrap();
-        comment.message = re.replace_all(&comment.message, "${link}").to_string();
+        comment.overview = re.replace_all(&comment.overview, "${link}").to_string();
 
         // TODO: ${see} should actually be replaced by the real Csharp identifier (see
         // csharpIdentifier in C++)
         let re: regex::Regex = Regex::new(r"\{@see\s+(?P<see>\w+)\s?\}").unwrap();
-        comment.message = re
-            .replace_all(&comment.message, r#"<see cref="${see}"/>"#)
+        comment.overview = re
+            .replace_all(&comment.overview, r#"<see cref="${see}"/>"#)
             .to_string();
 
         CsharpComment(comment)
@@ -95,7 +96,7 @@ impl fmt::Display for CsharpComment {
         let comment = &self.0;
 
         // Write the comment's summary message.
-        writeln!(f, "{}", CommentTag::new("summary", &comment.message))?;
+        writeln!(f, "{}", CommentTag::new("summary", &comment.overview))?;
 
         // Write deprecate reason if present
         if let Some(reason) = &comment.deprecate_reason {
@@ -131,10 +132,10 @@ impl fmt::Display for CsharpComment {
     }
 }
 
-pub fn doc_comment_message(named_symbol: &dyn NamedSymbol) -> String {
-    named_symbol
+pub fn doc_comment_message(entity: &dyn Commentable) -> String {
+    entity
         .comment()
-        .map_or_else(|| "".to_owned(), |c| CsharpComment::new(c).0.message)
+        .map_or_else(|| "".to_owned(), |c| CsharpComment::new(c).0.overview)
 }
 
 // TODO: the `DocComment` message for an operation parameter should be the same as the `DocComment`
@@ -143,13 +144,11 @@ pub fn operation_parameter_doc_comment<'a>(
     operation: &'a Operation,
     parameter_name: &str,
 ) -> Option<&'a str> {
-    operation.comment().map(|comment| {
+    operation.comment().and_then(|comment| {
         comment
             .params
             .iter()
             .find(|(param, _)| param == parameter_name)
-            .unwrap()
-            .1
-            .as_str()
+            .map(|(_, description)| description.as_str())
     })
 }

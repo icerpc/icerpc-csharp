@@ -1,15 +1,14 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use slice::ast::{Ast, Node};
-use slice::grammar::{Member, NamedSymbol, Primitive};
-use slice::util::TypeContext;
+use slice::grammar::{AsTypes, DataMember, Member, Primitive, Types};
+use slice::code_gen_util::TypeContext;
 
 use crate::code_block::CodeBlock;
 use crate::comments::{doc_comment_message, CommentTag};
 use crate::cs_util::*;
 use crate::slicec_ext::*;
 
-pub fn escape_parameter_name(parameters: &[&Member], name: &str) -> String {
+pub fn escape_parameter_name(parameters: &[&impl Member], name: &str) -> String {
     if parameters.iter().any(|p| p.identifier() == name) {
         name.to_owned() + "_"
     } else {
@@ -18,15 +17,12 @@ pub fn escape_parameter_name(parameters: &[&Member], name: &str) -> String {
 }
 
 pub fn data_member_declaration(
-    data_member: &Member,
+    data_member: &DataMember,
     is_readonly: bool,
     field_type: FieldType,
-    ast: &Ast,
 ) -> String {
-    let data_type = &data_member.data_type;
-
     let type_string =
-        data_type.to_type_string(&data_member.namespace(), ast, TypeContext::DataMember);
+        data_member.data_type().to_type_string(&data_member.namespace(), TypeContext::DataMember);
     let mut prelude = CodeBlock::new();
 
     prelude.writeln(&CommentTag::new(
@@ -55,9 +51,8 @@ public {readonly}{type_string} {name};",
 }
 
 pub fn initialize_non_nullable_fields(
-    members: &[&Member],
+    members: &[&impl Member],
     field_type: FieldType,
-    ast: &Ast,
 ) -> CodeBlock {
     // This helper should only be used for classes and exceptions
     assert!(field_type == FieldType::Class || field_type == FieldType::Exception);
@@ -65,15 +60,15 @@ pub fn initialize_non_nullable_fields(
     let mut code = CodeBlock::new();
 
     for member in members {
-        let data_type = &member.data_type;
-        let data_node = data_type.definition(ast);
+        let data_type = member.data_type();
+
         if data_type.is_optional {
             continue;
         }
 
-        let suppress = match data_node {
-            Node::Class(..) | Node::Sequence(..) | Node::Dictionary(..) => true,
-            Node::Primitive(_, primitive) if matches!(primitive, Primitive::String) => true,
+        let suppress = match data_type.concrete_type() {
+            Types::Class(_) | Types::Sequence(_) | Types::Dictionary(_) => true,
+            Types::Primitive(primitive) if matches!(primitive, Primitive::String) => true,
             _ => false,
         };
 

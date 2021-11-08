@@ -1,107 +1,82 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use slice::ast::{Ast, Node};
 use slice::grammar::*;
-use slice::util::TypeContext;
+use slice::code_gen_util::TypeContext;
 
 use super::interface_ext::InterfaceExt;
 use super::named_symbol_ext::NamedSymbolExt;
+use super::primitive_ext::PrimitiveExt;
 
 pub trait TypeRefExt {
     /// Is the type a reference type (eg. Class)
-    fn is_reference_type(&self, ast: &Ast) -> bool;
+    fn is_reference_type(&self) -> bool;
 
     /// Is the type a value type (eg. Struct)
-    fn is_value_type(&self, ast: &Ast) -> bool;
+    fn is_value_type(&self) -> bool;
+
+    /// The C# mapped type for this type reference, without checking optionality.
+    fn to_non_optional_type_string(&self, namespace: &str, context: TypeContext) -> String;
 
     /// The C# mapped type for this type reference.
-    fn to_type_string(&self, namespace: &str, ast: &Ast, context: TypeContext) -> String;
+    fn to_type_string(&self, namespace: &str, context: TypeContext) -> String;
 }
 
-impl TypeRefExt for TypeRef {
-    fn is_reference_type(&self, ast: &Ast) -> bool {
-        !self.is_value_type(ast)
+impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
+    fn is_reference_type(&self) -> bool {
+        !self.is_value_type()
     }
 
-    fn is_value_type(&self, ast: &Ast) -> bool {
-        match self.definition(ast) {
-            Node::Primitive(_, primitive) => !matches!(primitive, Primitive::String),
-            Node::Enum(_, _) | Node::Struct(_, _) | Node::Interface(_, _) => true,
+    fn is_value_type(&self) -> bool {
+        match self.concrete_type() {
+            Types::Primitive(primitive) => {
+                !matches!(primitive, Primitive::String | Primitive::AnyClass)
+            }
+            Types::Enum(_) | Types::Struct(_) | Types::Interface(_) => true,
             _ => false,
         }
     }
 
-    fn to_type_string(&self, namespace: &str, ast: &Ast, context: TypeContext) -> String {
-        let type_str = match self.definition(ast) {
-            Node::Struct(_, struct_def) => struct_def.escape_scoped_identifier(namespace),
-            Node::Class(_, class_def) => class_def.escape_scoped_identifier(namespace),
-            Node::Exception(_, exception_def) => exception_def.escape_scoped_identifier(namespace),
-            Node::Enum(_, enum_def) => enum_def.escape_scoped_identifier(namespace),
-            Node::Interface(_, interface_def) => {
+    fn to_non_optional_type_string(&self, namespace: &str, context: TypeContext) -> String {
+        match self.concrete_type() {
+            Types::Struct(struct_def) => struct_def.escape_scoped_identifier(namespace),
+            Types::Class(class_def) => class_def.escape_scoped_identifier(namespace),
+            Types::Enum(enum_def) => enum_def.escape_scoped_identifier(namespace),
+            Types::Interface(interface_def) => {
                 interface_def.scoped_proxy_implementation_name(namespace)
             }
-            Node::Sequence(_, sequence) => {
-                sequence_type_to_string(self, sequence, namespace, ast, context)
+            Types::Sequence(sequence) => {
+                sequence_type_to_string(self, sequence, namespace, context)
             }
-            Node::Dictionary(_, dictionary) => {
-                dictionary_type_to_string(self, dictionary, namespace, ast, context)
+            Types::Dictionary(dictionary) => {
+                dictionary_type_to_string(self, dictionary, namespace, context)
             }
-            Node::Primitive(_, primitive) => match primitive {
-                Primitive::Bool => "bool",
-                Primitive::Byte => "byte",
-                Primitive::Short => "short",
-                Primitive::UShort => "ushort",
-                Primitive::Int => "int",
-                Primitive::UInt => "uint",
-                Primitive::VarInt => "int",
-                Primitive::VarUInt => "uint",
-                Primitive::Long => "long",
-                Primitive::ULong => "ulong",
-                Primitive::VarLong => "long",
-                Primitive::VarULong => "ulong",
-                Primitive::Float => "float",
-                Primitive::Double => "double",
-                Primitive::String => "string",
-            }
-            .to_owned(),
-            node => {
-                panic!("Node does not represent a type: '{:?}'!", node);
-            }
-        };
-
-        if self.is_streamed {
-            match type_str.as_str() {
-                "byte" => "global::System.IO.Stream".to_owned(),
-                _ => format!(
-                    "global::System.Collections.Generic.IAsyncEnumerable<{}>",
-                    type_str
-                ),
-            }
-        } else if self.is_optional {
-            format!("{}?", type_str)
-        } else {
-            type_str
+            Types::Primitive(primitive) => primitive.cs_keyword().to_owned(),
         }
+    }
+
+    fn to_type_string(&self, namespace: &str, context: TypeContext) -> String {
+        let mut type_str = self.to_non_optional_type_string(namespace, context);
+        if self.is_optional {
+            type_str += "?";
+        }
+        type_str
     }
 }
 
 /// Helper method to convert a sequence type into a string
 fn sequence_type_to_string(
-    type_ref: &TypeRef,
+    type_ref: &TypeRef<impl Type + ?Sized>, // TODO change this to Sequence
     sequence: &Sequence,
     namespace: &str,
-    ast: &Ast,
     context: TypeContext,
 ) -> String {
-    let element_type = sequence
-        .element_type
-        .to_type_string(namespace, ast, TypeContext::Nested);
+    let element_type = sequence.element_type.to_type_string(namespace, TypeContext::Nested);
 
     match context {
         TypeContext::DataMember | TypeContext::Nested => {
             format!("global::System.Collections.Generic.IList<{}>", element_type)
         }
-        TypeContext::Incoming => match type_ref.find_attribute("cs:generic") {
+        TypeContext::Incoming => match type_ref.get_attribute("cs:generic", false) {
             Some(args) => match args.first().unwrap().as_str() {
                 value @ "List" | value @ "LinkedList" | value @ "Queue" | value @ "Stack" => {
                     format!(
@@ -115,7 +90,7 @@ fn sequence_type_to_string(
         },
         TypeContext::Outgoing => {
             // If the underlying type is of fixed size, we map to `ReadOnlyMemory` instead.
-            if is_fixed_size_numeric_sequence(sequence, ast) {
+            if sequence.has_fixed_size_numeric_elements() {
                 format!("global::System.ReadOnlyMemory<{}>", element_type)
             } else {
                 format!(
@@ -127,28 +102,15 @@ fn sequence_type_to_string(
     }
 }
 
-fn is_fixed_size_numeric_sequence(sequence: &Sequence, ast: &Ast) -> bool {
-    match sequence.element_type.definition(ast) {
-        Node::Primitive(_, primitive) if primitive.is_fixed_size(ast) => true,
-        Node::Enum(_, enum_def) => matches!(&enum_def.underlying, Some(t) if t.is_fixed_size(ast)),
-        _ => false,
-    }
-}
-
 /// Helper method to convert a dictionary type into a string
 fn dictionary_type_to_string(
-    type_ref: &TypeRef,
+    type_ref: &TypeRef<impl Type + ?Sized>, // TODO change this to Dictionary
     dictionary: &Dictionary,
     namespace: &str,
-    ast: &Ast,
     context: TypeContext,
 ) -> String {
-    let key_type = &dictionary
-        .key_type
-        .to_type_string(namespace, ast, TypeContext::Nested);
-    let value_type = dictionary
-        .value_type
-        .to_type_string(namespace, ast, TypeContext::Nested);
+    let key_type = dictionary.key_type.to_type_string(namespace, TypeContext::Nested);
+    let value_type = dictionary.value_type.to_type_string(namespace, TypeContext::Nested);
 
     match context {
         TypeContext::DataMember | TypeContext::Nested => {
@@ -157,7 +119,7 @@ fn dictionary_type_to_string(
                 key_type, value_type,
             )
         }
-        TypeContext::Incoming => match type_ref.find_attribute("cs:generic") {
+        TypeContext::Incoming => match type_ref.get_attribute("cs:generic", false) {
             Some(args) => {
                 let prefix = match args.first().unwrap().as_str() {
                     "SortedDictionary" => "global::System.Collections.Generic.",

@@ -11,9 +11,8 @@ use crate::encoding::encode_data_members;
 use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
-use slice::ast::Ast;
 use slice::grammar::Exception;
-use slice::util::TypeContext;
+use slice::code_gen_util::TypeContext;
 use slice::visitor::Visitor;
 
 pub struct ExceptionVisitor<'a> {
@@ -21,18 +20,18 @@ pub struct ExceptionVisitor<'a> {
 }
 
 impl<'a> Visitor for ExceptionVisitor<'_> {
-    fn visit_exception_start(&mut self, exception_def: &Exception, _: usize, ast: &Ast) {
+    fn visit_exception_start(&mut self, exception_def: &Exception) {
         let exception_name = exception_def.escape_identifier();
         let has_base = exception_def.base.is_some();
 
         let namespace = &exception_def.namespace();
 
-        let members = exception_def.members(ast);
+        let members = exception_def.members();
 
         let has_public_parameter_constructor = exception_def
-            .all_data_members(ast)
+            .all_members()
             .iter()
-            .all(|m| m.is_default_initialized(ast));
+            .all(|m| m.is_default_initialized());
 
         let mut exception_class_builder =
             ContainerBuilder::new("public partial class", &exception_name);
@@ -42,7 +41,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
             .add_type_id_attribute(exception_def)
             .add_container_attributes(exception_def);
 
-        if let Some(base) = exception_def.base(ast) {
+        if let Some(base) = exception_def.base_exception() {
             exception_class_builder.add_base(base.escape_scoped_identifier(namespace));
         } else {
             exception_class_builder.add_base("IceRpc.RemoteException".to_owned());
@@ -51,7 +50,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
         exception_class_builder.add_block(
             members
                 .iter()
-                .map(|m| data_member_declaration(m, false, FieldType::Exception, ast))
+                .map(|m| data_member_declaration(m, false, FieldType::Exception))
                 .collect::<Vec<_>>()
                 .join("\n")
                 .into(),
@@ -66,8 +65,8 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
         );
 
         exception_class_builder
-            .add_block(one_shot_constructor(exception_def, false, ast))
-            .add_block(one_shot_constructor(exception_def, true, ast));
+            .add_block(one_shot_constructor(exception_def, false))
+            .add_block(one_shot_constructor(exception_def, true));
 
         // public parameter-less constructor
         if has_public_parameter_constructor {
@@ -91,13 +90,12 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
                 .set_body(initialize_non_nullable_fields(
                     &members,
                     FieldType::Exception,
-                    ast,
                 ))
                 .add_never_editor_browsable_attribute()
                 .build(),
         );
 
-        if !has_base && !exception_def.uses_classes(ast) {
+        if !has_base && !exception_def.uses_classes() {
             // public constructor used for Ice 2.0 decoding
             exception_class_builder.add_block(
                 FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody)
@@ -107,7 +105,6 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
                         &members,
                         namespace,
                         FieldType::Exception,
-                        ast,
                     ))
                     .build(),
             );
@@ -129,7 +126,6 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
                     &members,
                     namespace,
                     FieldType::Exception,
-                    ast,
                 ));
                 code.writeln("decoder.IceEndSlice();");
 
@@ -156,7 +152,6 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
                     &members,
                     namespace,
                     FieldType::Exception,
-                    ast,
                 ));
 
                 if has_base {
@@ -171,7 +166,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
             .build(),
         );
 
-        if !has_base && !exception_def.uses_classes(ast) {
+        if !has_base && !exception_def.uses_classes() {
             exception_class_builder.add_block(
                 FunctionBuilder::new(
                     "protected override",
@@ -187,7 +182,7 @@ encoder.EncodeString(_iceTypeId);
 encoder.EncodeString(Message);
 Origin.Encode(encoder);
 {}",
-                        &encode_data_members(&members, namespace, FieldType::Exception, ast,)
+                        &encode_data_members(&members, namespace, FieldType::Exception)
                     )
                     .into(),
                 )
@@ -203,13 +198,12 @@ Origin.Encode(encoder);
 fn one_shot_constructor(
     exception_def: &Exception,
     add_message_and_exception_parameters: bool,
-    ast: &Ast,
 ) -> CodeBlock {
     let exception_name = exception_def.escape_identifier();
 
     let namespace = &exception_def.namespace();
 
-    let all_data_members = exception_def.all_data_members(ast);
+    let all_data_members = exception_def.all_members();
 
     if all_data_members.is_empty() && !add_message_and_exception_parameters {
         return CodeBlock::new();
@@ -224,14 +218,14 @@ fn one_shot_constructor(
         .map(|m| {
             let member_type = m
                 .data_type
-                .to_type_string(namespace, ast, TypeContext::DataMember);
+                .to_type_string(namespace, TypeContext::DataMember);
             let member_name = m.parameter_name();
             format!("{} {}", member_type, member_name)
         })
         .collect::<Vec<_>>();
 
-    let base_parameters = if let Some(base) = exception_def.base(ast) {
-        base.all_data_members(ast)
+    let base_parameters = if let Some(base) = exception_def.base_exception() {
+        base.all_members()
             .iter()
             .map(|m| m.parameter_name())
             .collect::<Vec<_>>()
@@ -283,7 +277,7 @@ fn one_shot_constructor(
 
     // ctor impl
     let mut ctor_body = CodeBlock::new();
-    for member in exception_def.members(ast) {
+    for member in exception_def.members() {
         let member_name = member.field_name(FieldType::Exception);
         let parameter_name = member.parameter_name();
 

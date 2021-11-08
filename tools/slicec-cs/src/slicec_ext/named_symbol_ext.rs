@@ -2,7 +2,7 @@
 
 use crate::cs_util::escape_keyword;
 use slice::grammar::NamedSymbol;
-use slice::util::{fix_case, CaseStyle};
+use slice::code_gen_util::{fix_case, CaseStyle};
 
 pub trait NamedSymbolExt: NamedSymbol {
     /// Escapes and returns the definition's identifier, without any scoping.
@@ -25,6 +25,9 @@ pub trait NamedSymbolExt: NamedSymbol {
 
     /// The C# namespace
     fn namespace(&self) -> String;
+
+    /// The C# Type Id attribute.
+    fn type_id_attribute(&self) -> String;
 }
 
 impl<T> NamedSymbolExt for T
@@ -84,25 +87,13 @@ where
     /// The C# namespace of this NamedSymbol
     fn namespace(&self) -> String {
         // TODO: check metadata
-        // TODO: not all types need to remove just one "::" (we use this currently for operations)
-        let tokens = self
-            .scope()
-            .strip_prefix("::")
-            .unwrap()
-            .split("::")
+        self.raw_scope().module_scope.iter()
             .map(|segment| escape_keyword(&fix_case(segment, CaseStyle::Pascal)))
-            .collect::<Vec<_>>();
+            .collect::<Vec<_>>()
+            .join(".")
+    }
 
-        // TODO: Workaround for operation scope
-        let drop = match self.kind() {
-            "operation" => match tokens.last().unwrap().as_str() {
-                "_return" => 3,
-                _ => 1,
-            },
-            "data member" => 1,
-            _ => 0,
-        };
-
-        tokens[0..tokens.len() - drop].join(".")
+    fn type_id_attribute(&self) -> String {
+        format!(r#"IceRpc.Slice.TypeId("{}")"#, self.module_scoped_identifier())
     }
 }

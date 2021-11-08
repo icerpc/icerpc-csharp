@@ -10,9 +10,8 @@ use crate::encoding::*;
 use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
-use slice::ast::{Ast, Node};
 use slice::grammar::*;
-use slice::util::*;
+use slice::code_gen_util::*;
 use slice::visitor::Visitor;
 
 pub struct ProxyVisitor<'a> {
@@ -20,13 +19,13 @@ pub struct ProxyVisitor<'a> {
 }
 
 impl<'a> Visitor for ProxyVisitor<'_> {
-    fn visit_interface_start(&mut self, interface_def: &Interface, _: usize, ast: &Ast) {
+    fn visit_interface_start(&mut self, interface_def: &Interface) {
         let namespace = interface_def.namespace();
         let prx_interface = interface_def.proxy_name(); // IFooPrx
         let prx_impl: String = interface_def.proxy_implementation_name(); // FooPrx
 
-        let all_bases: Vec<&Interface> = interface_def.all_bases(ast);
-        let bases: Vec<&Interface> = interface_def.bases(ast);
+        let all_bases: Vec<&Interface> = interface_def.all_base_interfaces();
+        let bases: Vec<&Interface> = interface_def.base_interfaces();
 
         let mut prx_impl_bases: Vec<String> = vec![prx_interface.clone(), "IPrx".to_owned()];
 
@@ -36,8 +35,8 @@ impl<'a> Visitor for ProxyVisitor<'_> {
             .collect();
 
         let mut add_service_prx = false;
-        if !all_bases.iter().any(|b| b.scope() == "::IceRpc::Service")
-            && interface_def.scoped_identifier() != "::IceRpc::Service"
+        if !all_bases.iter().any(|b| b.module_scope() == "IceRpc::Service")
+            && interface_def.module_scoped_identifier() != "IceRpc::Service"
         {
             prx_impl_bases.push("IceRpc.IServicePrx".to_owned());
             all_base_impl.push("IceRpc.ServicePrx".to_owned());
@@ -63,7 +62,7 @@ impl<'a> Visitor for ProxyVisitor<'_> {
             .add_type_id_attribute(interface_def)
             .add_container_attributes(interface_def)
             .add_bases(&prx_bases)
-            .add_block(proxy_interface_operations(interface_def, ast))
+            .add_block(proxy_interface_operations(interface_def))
             .build();
 
         let mut proxy_impl_builder =
@@ -73,8 +72,8 @@ impl<'a> Visitor for ProxyVisitor<'_> {
             .add_comment("summary", &format!(r#"Typed proxy record struct. It implements <see cref="{}"/> by sending requests to a remote IceRPC service."#, prx_interface))
             .add_type_id_attribute(interface_def)
             .add_container_attributes(interface_def)
-            .add_block(request_class(interface_def, ast))
-            .add_block(response_class(interface_def, ast))
+            .add_block(request_class(interface_def))
+            .add_block(response_class(interface_def))
             .add_block(format!(r#"
 /// <summary>The default path for services that implement Slice interface <c>{interface_name}</c>.</summary>
 public static readonly string DefaultPath = typeof({prx_impl}).GetDefaultPath();
@@ -127,12 +126,12 @@ public global::System.Threading.Tasks.Task IcePingAsync(
             );
         }
 
-        for operation in interface_def.all_base_operations(ast) {
-            proxy_impl_builder.add_block(proxy_base_operation_impl(interface_def, operation, ast));
+        for operation in interface_def.all_inherited_operations() {
+            proxy_impl_builder.add_block(proxy_base_operation_impl(interface_def, operation));
         }
 
-        for operation in interface_def.operations(ast) {
-            proxy_impl_builder.add_block(proxy_operation_impl(interface_def, operation, ast));
+        for operation in interface_def.operations() {
+            proxy_impl_builder.add_block(proxy_operation_impl(operation));
         }
 
         // Generate abstract methods and documentation
@@ -207,21 +206,21 @@ public override string ToString() => Proxy.ToString();"#,
 }
 
 /// The actual implementation of the proxy operation.
-fn proxy_operation_impl(interface_def: &Interface, operation: &Operation, ast: &Ast) -> CodeBlock {
+fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
     let namespace = &operation.namespace();
     let operation_name = operation.escape_identifier();
     let async_operation_name = operation.escape_identifier_with_suffix("Async");
-    let return_task = operation.return_task(interface_def, false, ast);
-    let is_oneway = operation.has_attribute("oneway");
+    let return_task = operation.return_task(false);
+    let is_oneway = operation.has_attribute("oneway", false);
 
-    let parameters = operation.non_streamed_params(ast);
-    let stream_return = operation.stream_return(ast);
+    let parameters = operation.nonstreamed_parameters();
+    let stream_return = operation.streamed_return_member();
 
-    let invocation_parameter = escape_parameter_name(&operation.parameters(ast), "invocation");
-    let cancel_parameter = escape_parameter_name(&operation.parameters(ast), "cancel");
+    let invocation_parameter = escape_parameter_name(&operation.parameters(), "invocation");
+    let cancel_parameter = escape_parameter_name(&operation.parameters(), "cancel");
 
-    let sends_classes = operation.sends_classes(ast);
-    let void_return = !operation.has_non_streamed_return(ast);
+    let sends_classes = operation.sends_classes();
+    let void_return = !operation.has_nonstreamed_return_members();
 
     let mut builder = FunctionBuilder::new(
         "public",
@@ -230,7 +229,7 @@ fn proxy_operation_impl(interface_def: &Interface, operation: &Operation, ast: &
         FunctionType::BlockBody,
     );
     builder.set_inherit_doc(true);
-    builder.add_operation_parameters(operation, TypeContext::Outgoing, ast);
+    builder.add_operation_parameters(operation, TypeContext::Outgoing);
 
     let mut body = CodeBlock::new();
 
@@ -279,11 +278,11 @@ if {invocation}?.RequestFeatures.Get<IceRpc.Features.CompressPayload>() == null)
     }
 
     // Stream parameter (if any)
-    if let Some(stream_parameter) = operation.stream_parameter(ast) {
+    if let Some(stream_parameter) = operation.streamed_parameter() {
         let stream_parameter_name = stream_parameter.parameter_name();
-        let stream_type = clone_as_non_streamed(&stream_parameter.data_type);
-        match stream_parameter.data_type.definition(ast) {
-            Node::Primitive(_, b) if matches!(b, Primitive::Byte) => invoke_args.push(format!(
+        let stream_type = stream_parameter.data_type();
+        match stream_type.concrete_type() {
+            Types::Primitive(b) if matches!(b, Primitive::Byte) => invoke_args.push(format!(
                 "new IceRpc.Slice.ByteStreamParamSender({})",
                 stream_parameter_name
             )),
@@ -294,10 +293,10 @@ new IceRpc.Slice.AsyncEnumerableStreamParamSender<{stream_type}>(
 {payload_encoding},
 {encode_action}
 )",
-                stream_type = stream_type.to_type_string(namespace, ast, TypeContext::Outgoing),
+                stream_type = stream_type.to_type_string(namespace, TypeContext::Outgoing),
                 stream_parameter = stream_parameter_name,
                 payload_encoding = payload_encoding,
-                encode_action = encode_action(&stream_type, namespace, true, true, ast).indent()
+                encode_action = encode_action(stream_type, namespace, true, true).indent()
             )),
         }
     } else {
@@ -307,12 +306,12 @@ new IceRpc.Slice.AsyncEnumerableStreamParamSender<{stream_type}>(
     if !void_return {
         invoke_args.push("Response.".to_owned() + &operation_name);
     } else if let Some(stream_return) = stream_return {
-        let stream_return_func = match stream_return.data_type.definition(ast) {
-            Node::Primitive(_, b) if matches!(b, Primitive::Byte) => {
+        let stream_type = stream_return.data_type();
+        let stream_return_func = match stream_type.concrete_type() {
+            Types::Primitive(primitive) if matches!(primitive, Primitive::Byte) => {
                 "streamParamReceiver!.ToByteStream()".to_owned()
             }
             _ => {
-                let stream_type = clone_as_non_streamed(&stream_return.data_type);
                 format!(
                     "\
 streamParamReceiver!.ToAsyncEnumerable<{stream_type}>(
@@ -320,8 +319,8 @@ response,
 invoker,
 response.GetIceDecoderFactory(_defaultIceDecoderFactories),
 {decode_func})",
-                    stream_type = stream_type.to_type_string(namespace, ast, TypeContext::Incoming),
-                    decode_func = decode_func(&stream_type, namespace, ast).indent()
+                    stream_type = stream_type.to_type_string(namespace, TypeContext::Incoming),
+                    decode_func = decode_func(stream_type, namespace).indent()
                 )
             }
         };
@@ -363,29 +362,28 @@ return Proxy.InvokeAsync(
 fn proxy_base_operation_impl(
     interface_def: &Interface,
     operation: &Operation,
-    ast: &Ast,
 ) -> CodeBlock {
     let async_name = operation.escape_identifier_with_suffix("Async");
-    let return_task = operation.return_task(interface_def, false, ast);
+    let return_task = operation.return_task(false);
     let mut operation_params = operation
-        .parameters(ast)
+        .parameters()
         .iter()
         .map(|p| p.parameter_name())
         .collect::<Vec<_>>();
 
     operation_params.push(escape_parameter_name(
-        &operation.parameters(ast),
+        &operation.parameters(),
         "invocation",
     ));
-    operation_params.push(escape_parameter_name(&operation.parameters(ast), "cancel"));
+    operation_params.push(escape_parameter_name(&operation.parameters(), "cancel"));
 
     let base_interface = interface_def
-        .all_bases(ast)
+        .all_base_interfaces()
         .iter()
         .find(|base| {
-            base.operations(ast)
+            base.operations()
                 .iter()
-                .any(|op| op.scope() == operation.scope())
+                .any(|op| op.parser_scope() == operation.parser_scope())
         })
         .cloned()
         .unwrap();
@@ -397,7 +395,7 @@ fn proxy_base_operation_impl(
         FunctionType::ExpressionBody,
     );
     builder.set_inherit_doc(true);
-    builder.add_operation_parameters(operation, TypeContext::Outgoing, ast);
+    builder.add_operation_parameters(operation, TypeContext::Outgoing);
 
     builder.set_body(
         format!(
@@ -412,9 +410,9 @@ fn proxy_base_operation_impl(
     builder.build()
 }
 
-fn proxy_interface_operations(interface_def: &Interface, ast: &Ast) -> CodeBlock {
+fn proxy_interface_operations(interface_def: &Interface) -> CodeBlock {
     let mut code = CodeBlock::new();
-    let operations = interface_def.operations(ast);
+    let operations = interface_def.operations();
 
     for operation in operations {
         // TODO: add returns doc comments (see C++) and obsolete attribute
@@ -422,13 +420,13 @@ fn proxy_interface_operations(interface_def: &Interface, ast: &Ast) -> CodeBlock
         code.add_block(
             &FunctionBuilder::new(
                 "",
-                &operation.return_task(interface_def, false, ast),
+                &operation.return_task(false),
                 &operation.escape_identifier_with_suffix("Async"),
                 FunctionType::Declaration,
             )
             .add_container_attributes(interface_def)
             .add_comment("summary", &doc_comment_message(operation))
-            .add_operation_parameters(operation, TypeContext::Outgoing, ast)
+            .add_operation_parameters(operation, TypeContext::Outgoing)
             .build(),
         );
     }
@@ -436,12 +434,12 @@ fn proxy_interface_operations(interface_def: &Interface, ast: &Ast) -> CodeBlock
     code
 }
 
-fn request_class(interface_def: &Interface, ast: &Ast) -> CodeBlock {
+fn request_class(interface_def: &Interface) -> CodeBlock {
     let namespace = &interface_def.namespace();
     let operations = interface_def
-        .operations(ast)
+        .operations()
         .iter()
-        .filter(|o| o.has_non_streamed_params(ast))
+        .filter(|o| o.has_nonstreamed_parameters())
         .cloned()
         .collect::<Vec<_>>();
 
@@ -457,13 +455,13 @@ fn request_class(interface_def: &Interface, ast: &Ast) -> CodeBlock {
     );
 
     for operation in operations {
-        let params: Vec<&Member> = operation.non_streamed_params(ast);
+        let params: Vec<&Parameter> = operation.nonstreamed_parameters();
 
         if params.is_empty() {
             continue;
         }
 
-        let sends_classes = operation.sends_classes(ast);
+        let sends_classes = operation.sends_classes();
 
         let mut builder = FunctionBuilder::new(
             "public static",
@@ -491,7 +489,7 @@ fn request_class(interface_def: &Interface, ast: &Ast) -> CodeBlock {
 
         if params.len() == 1 {
             builder.add_parameter(
-                &params.to_tuple_type(namespace, ast, TypeContext::Outgoing),
+                &params.to_tuple_type(namespace, TypeContext::Outgoing),
                 "arg",
                 None,
                 Some("The request argument."),
@@ -500,7 +498,7 @@ fn request_class(interface_def: &Interface, ast: &Ast) -> CodeBlock {
             builder.add_parameter(
                 &format!(
                     "in {}",
-                    params.to_tuple_type(namespace, ast, TypeContext::Outgoing)
+                    params.to_tuple_type(namespace, TypeContext::Outgoing)
                 ),
                 "args",
                 None,
@@ -531,7 +529,7 @@ fn request_class(interface_def: &Interface, ast: &Ast) -> CodeBlock {
                 _ => "CreatePayloadFromArgs",
             },
             args = if params.len() == 1 { "arg" } else { "in args" },
-            encode_action = request_encode_action(operation, ast).indent()
+            encode_action = request_encode_action(operation).indent()
         )
         .into();
 
@@ -543,12 +541,12 @@ fn request_class(interface_def: &Interface, ast: &Ast) -> CodeBlock {
     class_builder.build().into()
 }
 
-fn response_class(interface_def: &Interface, ast: &Ast) -> CodeBlock {
+fn response_class(interface_def: &Interface) -> CodeBlock {
     let namespace = &interface_def.namespace();
     let operations = interface_def
-        .operations(ast)
+        .operations()
         .iter()
-        .filter(|o| o.has_non_streamed_return(ast))
+        .filter(|o| o.has_nonstreamed_return_members())
         .cloned()
         .collect::<Vec<_>>();
 
@@ -563,13 +561,13 @@ fn response_class(interface_def: &Interface, ast: &Ast) -> CodeBlock {
     &format!(r#"Holds a <see cref="IceRpc.Gen.ResponseDecodeFunc{{T}}"/> for each non-void remote operation defined in <see cref="{}Prx"/>."#, interface_def.interface_name()));
 
     for operation in operations {
-        let members = operation.return_members(ast);
+        let members = operation.return_members();
 
         if members.is_empty() {
             continue;
         }
 
-        let decoder = if operation.returns_classes(ast) {
+        let decoder = if operation.returns_classes() {
             "response.GetIceDecoderFactory(_defaultIceDecoderFactories.Ice11DecoderFactory)"
         } else {
             "response.GetIceDecoderFactory(_defaultIceDecoderFactories)"
@@ -585,34 +583,33 @@ public static {return_type} {escaped_name}(IceRpc.IncomingResponse response, Ice
         {response_decode_func});"#,
             name = operation.identifier(),
             escaped_name = operation.escape_identifier(),
-            return_type = members.to_tuple_type( namespace, ast, TypeContext::Incoming),
+            return_type = members.to_tuple_type( namespace, TypeContext::Incoming),
             decoder = decoder,
-            response_decode_func = response_decode_func(operation, ast).indent()
+            response_decode_func = response_decode_func(operation).indent()
         ).into());
     }
 
     class_builder.build().into()
 }
 
-fn request_encode_action(operation: &Operation, ast: &Ast) -> CodeBlock {
+fn request_encode_action(operation: &Operation) -> CodeBlock {
     // TODO: scope
     let namespace = &operation.namespace();
 
     // We only want the non-streamed params
-    let params: Vec<&Member> = operation.non_streamed_params(ast);
+    let params: Vec<&Parameter> = operation.nonstreamed_parameters();
 
     // When the operation's parameter is a T? where T is an interface or a class, there is a
     // built-in encoder, so defaultEncodeAction is true.
     if params.len() == 1
-        && get_bit_sequence_size(&params, ast) == 0
+        && get_bit_sequence_size(&params) == 0
         && params.first().unwrap().tag.is_none()
     {
         encode_action(
-            &params.first().unwrap().data_type,
+            params.first().unwrap().data_type(),
             namespace,
             true,
             true,
-            ast,
         )
     } else {
         format!(
@@ -622,32 +619,32 @@ fn request_encode_action(operation: &Operation, ast: &Ast) -> CodeBlock {
     {encode}
 }}",
             _in = if params.len() == 1 { "" } else { "in " },
-            param_type = params.to_tuple_type(namespace, ast, TypeContext::Outgoing),
-            encode = encode_operation(operation, false, ast).indent()
+            param_type = params.to_tuple_type(namespace, TypeContext::Outgoing),
+            encode = encode_operation(operation, false).indent()
         )
         .into()
     }
 }
 
-fn response_decode_func(operation: &Operation, ast: &Ast) -> CodeBlock {
+fn response_decode_func(operation: &Operation) -> CodeBlock {
     let namespace = &operation.namespace();
     // vec of members
-    let members = operation.return_members(ast);
+    let members = operation.return_members();
 
     assert!(
         !members.is_empty()
-            && (members.len() > 1 || !members.last().unwrap().data_type.is_streamed)
+            && (members.len() > 1 || !members.last().unwrap().is_streamed)
     );
 
     if members.len() == 1
-        && get_bit_sequence_size(&members, ast) == 0
+        && get_bit_sequence_size(&members) == 0
         && members.first().unwrap().tag.is_none()
     {
-        decode_func(&members.first().unwrap().data_type, namespace, ast)
+        decode_func(members.first().unwrap().data_type(), namespace)
     } else {
         format!(
             "decoder => {{ {decode} }}",
-            decode = decode_operation(operation, true, ast).indent()
+            decode = decode_operation(operation, false).indent()
         )
         .into()
     }
