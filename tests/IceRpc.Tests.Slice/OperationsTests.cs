@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using NUnit.Framework;
+using IceRpc.Slice;
 
 namespace IceRpc.Tests.Slice
 {
@@ -109,6 +110,24 @@ namespace IceRpc.Tests.Slice
             }
         }
 
+        [Test]
+        public async Task Operations_OperationNotFoundExceptionAsync()
+        {
+            Endpoint endpoint = TestHelper.GetUniqueColocEndpoint();
+            await using var server = new Server
+            {
+                Dispatcher = new NoOperations(),
+                Endpoint = endpoint
+            };
+            server.Listen();
+            await using var connection = new Connection
+            {
+                RemoteEndpoint = endpoint
+            };
+            var prx = OperationsPrx.FromConnection(connection);
+            Assert.ThrowsAsync<OperationNotFoundException>(async () => await prx.OpBoolAsync(true, false));
+        }
+
         public class Operations : Service, IOperations
         {
             // Builtin types
@@ -213,6 +232,9 @@ namespace IceRpc.Tests.Slice
 
             public ValueTask OpOnewayMetadataAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new SomeException();
+        }
+        public class NoOperations : Service, INoOperations
+        {
         }
     }
 }

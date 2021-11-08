@@ -40,4 +40,8 @@ module IceRpc::Tests::Slice
     interface DerivedOperations : Operations
     {
     }
+
+    interface NoOperations
+    {
+    }
 }
