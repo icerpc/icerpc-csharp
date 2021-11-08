@@ -596,11 +596,18 @@ namespace IceRpc.Transports.Internal
                 {
                     // It's important to decrement the stream count before sending the StreamLast frame to prevent a
                     // race where the peer could start a new stream before the counter is decremented.
-                    _writer.WriteStreamFrameAsync(
-                        this,
-                        new ReadOnlyMemory<byte>[] { SlicDefinitions.FrameHeader.ToArray() },
-                        true,
-                        default).AsTask();
+                    try
+                    {
+                        _writer.WriteStreamFrameAsync(
+                            this,
+                            new ReadOnlyMemory<byte>[] { SlicDefinitions.FrameHeader.ToArray() },
+                            true,
+                            default).AsTask();
+                    }
+                    catch
+                    {
+                        // Ignore, the connection is closed.
+                    }
                 }
             }
 

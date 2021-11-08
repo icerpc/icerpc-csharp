@@ -37,6 +37,10 @@ module IceRpc::Internal
 
         /// The go away frame is sent to notify the peer that the connection is being shutdown.
         GoAway = 6,
+
+        /// The go away acknowledgment frame is sent in response to a GoAway frame. It indicates that invocations
+        /// and dispatches are completed. The peer can safely close the connection when it gets this frame.
+        GoAwayAck = 7,
     }
 
     /// Keys of reserved ice2 connection parameters.

@@ -95,9 +95,9 @@ namespace IceRpc.Tests.ClientServer
             await bidir.AfterDelayAsync(2);
         }
 
-        // [TestCase(ProtocolCode.Ice1, 2)]
-        // [TestCase(ProtocolCode.Ice1, 10)]
-        // [TestCase(ProtocolCode.Ice1, 20)]
+        [TestCase(ProtocolCode.Ice1, 2)]
+        [TestCase(ProtocolCode.Ice1, 10)]
+        [TestCase(ProtocolCode.Ice1, 20)]
         [TestCase(ProtocolCode.Ice2, 2)]
         [TestCase(ProtocolCode.Ice2, 10)]
         [TestCase(ProtocolCode.Ice2, 20)]
@@ -130,12 +130,13 @@ namespace IceRpc.Tests.ClientServer
             });
         }
 
-        [TestCase(ProtocolCode.Ice1, 2)]
-        [TestCase(ProtocolCode.Ice1, 10)]
-        [TestCase(ProtocolCode.Ice1, 20)]
-        [TestCase(ProtocolCode.Ice2, 2)]
-        [TestCase(ProtocolCode.Ice2, 10)]
-        [TestCase(ProtocolCode.Ice2, 20)]
+        // [TestCase(ProtocolCode.Ice1, 2)]
+        // [TestCase(ProtocolCode.Ice1, 10)]
+        // [TestCase(ProtocolCode.Ice1, 20)]
+        // [TestCase(ProtocolCode.Ice2, 2)]
+        // [TestCase(ProtocolCode.Ice2, 10)]
+        // [TestCase(ProtocolCode.Ice2, 20)]
+        // [Repeat(1000)]
         public async Task Retry_GracefulCloseCanceled(ProtocolCode protocol, int maxQueue)
         {
             await WithRetryServiceAsync(Protocol.FromProtocolCode(protocol), null, async (service, retry) =>
@@ -469,7 +470,11 @@ namespace IceRpc.Tests.ClientServer
         {
             var pipeline = new Pipeline();
             pipeline.UseLogger(LogAttributeLoggerFactory.Instance);
-            pipeline.UseRetry(new RetryOptions { MaxAttempts = 5 });
+            pipeline.UseRetry(new RetryOptions
+                {
+                    MaxAttempts = 5,
+                    LoggerFactory = LogAttributeLoggerFactory.Instance
+                });
             pipeline.UseBinder(pool);
             return pipeline;
         }
