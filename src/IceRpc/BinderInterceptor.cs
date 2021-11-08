@@ -58,27 +58,12 @@ namespace IceRpc
 
             async Task<IncomingResponse> PerformAsync(ValueTask<Connection> task)
             {
-                // TODO: GetConnectionAsync can throw an AggregateException with for example multiple
-                // TransportException.
-                try
+                request.Connection = await task.ConfigureAwait(false);
+                if (_cacheConnection && request.Proxy != null)
                 {
-                    request.Connection = await task.ConfigureAwait(false);
-                    if (_cacheConnection && request.Proxy != null)
-                    {
-                        request.Proxy.Connection = request.Connection;
-                    }
+                    request.Proxy.Connection = request.Connection;
                 }
-                catch (ConnectTimeoutException)
-                {
-                    request.Features = request.Features.With(RetryPolicy.Immediately);
-                    throw;
-                }
-                catch (TransportException)
-                {
-                    // If obtaining a connection failed with a transport exception, the request can be retried.
-                    request.Features = request.Features.With(RetryPolicy.Immediately);
-                    throw;
-                }
+
                 return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
             }
         }

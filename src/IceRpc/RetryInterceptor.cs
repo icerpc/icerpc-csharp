@@ -1,6 +1,7 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
@@ -46,7 +47,10 @@ namespace IceRpc
             {
                 do
                 {
-                    RetryPolicy retryPolicy;
+                    RetryPolicy retryPolicy = RetryPolicy.NoRetry;
+
+                    // At this point, response can be non-null and carry a failure for which we're retrying. If
+                    // _next.InvokeAsync throws NoEndpointException, we return this previous failure.
                     try
                     {
                         response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
@@ -60,21 +64,28 @@ namespace IceRpc
 
                         retryPolicy = response.Features.Get<RetryPolicy>() ?? RetryPolicy.NoRetry;
                     }
-                    catch (OperationCanceledException)
-                    {
-                        throw;
-                    }
                     catch (NoEndpointException ex)
                     {
                         // NoEndpointException is always considered non-retryable; it typically occurs because we
                         // removed all remaining usable endpoints through request.ExcludedEndpoints.
                         return response ?? throw ExceptionUtil.Throw(exception ?? ex);
                     }
+                    catch (OperationCanceledException)
+                    {
+                        // TODO: try other replica in some cases?
+                        throw;
+                    }
                     catch (Exception ex)
                     {
                         response = null;
                         exception = ex;
-                        retryPolicy = request.Features.Get<RetryPolicy>() ?? RetryPolicy.NoRetry;
+
+                        // ConnectionClosedException is a graceful connection closure that is always safe to retry.
+                        if (ex is ConnectionClosedException ||
+                            (ex is TransportException && (request.IsIdempotent || !request.IsSent)))
+                        {
+                            retryPolicy = RetryPolicy.Immediately;
+                        }
                     }
 
                     // Compute retry policy based on the exception or response retry policy, whether or not the

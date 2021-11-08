@@ -278,37 +278,25 @@ namespace IceRpc.Internal
 
                 return response;
             }
-            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.DispatchCanceled)
-            {
-                throw new OperationCanceledException("dispatch canceled by peer", ex);
-            }
-            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.ConnectionShutdownByPeer)
-            {
-                // If the peer shuts down the connection, streams which are aborted with this error code are
-                // always safe to retry since only streams not processed by the peer are aborted.
-                request.Features = request.Features.With(RetryPolicy.Immediately);
-                throw new ConnectionClosedException("connection shutdown by peer", ex);
-            }
-            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.ConnectionShutdown)
-            {
-                if (request.IsIdempotent)
-                {
-                    request.Features = request.Features.With(RetryPolicy.Immediately);
-                }
-                throw new OperationCanceledException("connection shutdown", ex);
-            }
-            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.ConnectionAborted)
-            {
-                if (request.IsIdempotent)
-                {
-                    request.Features = request.Features.With(RetryPolicy.Immediately);
-                }
-                throw new ConnectionLostException(ex);
-            }
             catch (StreamAbortedException ex)
             {
-                // Unexpected stream abort. This shouldn't occur unless the peer sends bogus data.
-                throw new InvalidDataException($"unexpected stream abort (ErrorCode = {ex.ErrorCode})", ex);
+                switch (ex.ErrorCode)
+                {
+                    case StreamError.ConnectionAborted:
+                        throw new ConnectionLostException(ex);
+
+                    case StreamError.ConnectionShutdown:
+                        throw new OperationCanceledException("connection shutdown", ex);
+
+                    case StreamError.ConnectionShutdownByPeer:
+                        throw new ConnectionClosedException("connection shutdown by peer", ex);
+
+                    case StreamError.DispatchCanceled:
+                        throw new OperationCanceledException("dispatch canceled by peer", ex);
+
+                    default:
+                        throw;
+                }
             }
         }
 
@@ -416,21 +404,20 @@ namespace IceRpc.Internal
                 // Mark the request as sent.
                 request.IsSent = true;
             }
-            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.ConnectionShutdown)
-            {
-                request.Features = request.Features.With(RetryPolicy.Immediately);
-                throw new OperationCanceledException("connection shutdown", ex);
-            }
-            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.StreamAborted ||
-                                                    ex.ErrorCode == StreamError.ConnectionAborted)
-            {
-                request.Features = request.Features.With(RetryPolicy.Immediately);
-                throw new ConnectionLostException(ex);
-            }
             catch (StreamAbortedException ex)
             {
-                // Unexpected stream abort. This shouldn't occur unless the peer sends bogus data.
-                throw new InvalidDataException($"unexpected stream abort (ErrorCode = {ex.ErrorCode})", ex);
+                switch (ex.ErrorCode)
+                {
+                    case StreamError.ConnectionAborted:
+                    case StreamError.StreamAborted:
+                        throw new ConnectionLostException(ex);
+
+                    case StreamError.ConnectionShutdown:
+                        throw new OperationCanceledException("connection shutdown", ex);
+
+                    default:
+                        throw;
+                }
             }
 
             // If there's a stream param sender, we can start sending the data.

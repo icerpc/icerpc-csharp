@@ -18,21 +18,21 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task Logging_RetryInterceptor()
         {
-            await WithConnectionAndLoggerFactory((connection, loggerFactory) =>
+            await WithConnectionAndLoggerFactory(async (connection, loggerFactory) =>
             {
                 var policy = RetryPolicy.AfterDelay(TimeSpan.FromTicks(1));
-                var exception = new ConnectFailedException("test message");
                 OutgoingRequest request = CreateOutgoingRequest(connection, twoway: true);
 
                 var pipeline = new Pipeline();
                 pipeline.UseRetry(new RetryOptions { MaxAttempts = 3, LoggerFactory = loggerFactory });
-                pipeline.Use(next => new InlineInvoker((request, cancel) =>
+                pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
                     {
-                        request.Features = request.Features.With(policy);
-                        throw exception;
+                        IncomingResponse response = await next.InvokeAsync(request, cancel);
+                        response.Features = response.Features.With(policy);
+                        return response;
                     }));
 
-                Assert.CatchAsync<ConnectFailedException>(async () => await pipeline.InvokeAsync(request, default));
+                await pipeline.InvokeAsync(request, default);
 
                 Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc"));
                 Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(2));
@@ -46,7 +46,7 @@ namespace IceRpc.Tests.Internal
                     request.Operation,
                     connection.NetworkConnectionInformation?.LocalEndpoint!,
                     connection.NetworkConnectionInformation?.RemoteEndpoint!,
-                    exception: exception);
+                    exception: null);
 
                 Assert.That(entry.State["RetryPolicy"], Is.EqualTo(policy));
                 Assert.That(entry.State["Attempt"], Is.EqualTo(2));
@@ -61,7 +61,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(true)]
         public async Task Logging_RequestInterceptor(bool twoway)
         {
-            await WithConnectionAndLoggerFactory((connection, loggerFactory) =>
+            await WithConnectionAndLoggerFactory(async (connection, loggerFactory) =>
             {
                 OutgoingRequest request = CreateOutgoingRequest(connection, twoway);
                 IncomingResponse response = CreateIncomingResponse();
@@ -70,7 +70,7 @@ namespace IceRpc.Tests.Internal
                 pipeline.UseLogger(loggerFactory);
                 pipeline.Use(next => new InlineInvoker((request, cancel) => Task.FromResult(response)));
 
-                Assert.That(pipeline.InvokeAsync(request, default).Result, Is.EqualTo(response));
+                Assert.That(await pipeline.InvokeAsync(request, default), Is.EqualTo(response));
 
                 Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc"));
                 Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(twoway ? 2 : 1));
@@ -129,6 +129,8 @@ namespace IceRpc.Tests.Internal
                                 connection.NetworkConnectionInformation?.LocalEndpoint!,
                                 connection.NetworkConnectionInformation?.RemoteEndpoint!,
                                 exception: exception);
+
+                return Task.CompletedTask;
             });
         }
 
@@ -136,7 +138,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(true)]
         public async Task Logging_RequestMiddleware(bool twoway)
         {
-            await WithConnectionAndLoggerFactory((connection, loggerFactory) =>
+            await WithConnectionAndLoggerFactory(async (connection, loggerFactory) =>
             {
                 IncomingRequest request = CreateIncomingRequest(connection, twoway);
                 OutgoingResponse response = CreateOutgoingResponse();
@@ -145,7 +147,7 @@ namespace IceRpc.Tests.Internal
                 router.UseLogger(loggerFactory);
                 router.Use(next => new InlineDispatcher((request, cancel) => new(response)));
 
-                Assert.That(((IDispatcher)router).DispatchAsync(request, default).AsTask().Result, Is.EqualTo(response));
+                Assert.That(await ((IDispatcher)router).DispatchAsync(request, default), Is.EqualTo(response));
 
                 Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc"));
                 Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(twoway ? 2 : 1));
@@ -204,6 +206,8 @@ namespace IceRpc.Tests.Internal
                                 connection.NetworkConnectionInformation?.RemoteEndpoint!,
                                 connection.NetworkConnectionInformation?.LocalEndpoint!,
                                 exception: exception);
+
+                return Task.CompletedTask;
             });
         }
 
@@ -270,14 +274,14 @@ namespace IceRpc.Tests.Internal
                 PayloadEncoding = Encoding.Ice20
             };
 
-        private static async Task WithConnectionAndLoggerFactory(Action<Connection, TestLoggerFactory> test)
+        private static async Task WithConnectionAndLoggerFactory(Func<Connection, TestLoggerFactory, Task> testAsync)
         {
             using var loggerFactory = new TestLoggerFactory();
             await using var server = new Server { Endpoint = TestHelper.GetUniqueColocEndpoint() };
             server.Listen();
             await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
             await connection.ConnectAsync();
-            test(connection, loggerFactory);
+            await testAsync(connection, loggerFactory);
         }
     }
 }
