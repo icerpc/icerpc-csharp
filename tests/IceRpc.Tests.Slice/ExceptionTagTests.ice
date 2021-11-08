@@ -1,7 +1,5 @@
 [[suppress-warning(reserved-identifier)]]
 
-#pragma once
-
 module IceRpc::Tests::Slice
 {
     struct TaggedExceptionStruct

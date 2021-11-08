@@ -1,11 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-#pragma once
-
 [[suppress-warning(reserved-identifier)]]
-
-#include <IceRpc/Slice/Internal/EndpointData.ice>
-#include <IceRpc/ProtocolCode.ice>
 
 // TODO: use generated internal types once supported
 module IceRpc::Slice::Internal
@@ -19,6 +14,6 @@ module IceRpc::Slice::Internal
         ProtocolCode? protocol;              // null is equivalent to ProtocolCode::Ice2
         string? encoding;                    // null means use the encoding of protocol
         EndpointData? endpoint;
-        EndpointDataSeq? altEndpoints;
+        sequence<EndpointData>? altEndpoints;
     }
 }

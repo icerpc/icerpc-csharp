@@ -1,10 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-#pragma once
-
 [[suppress-warning(reserved-identifier)]]
-[cs:namespace(IceRpc.Tests.Slice.NamespaceMD.WithNamespace)]
 
+[cs:namespace(IceRpc.Tests.Slice.NamespaceMD.WithNamespace)]
 module WithNamespace
 {
     module N1::N2

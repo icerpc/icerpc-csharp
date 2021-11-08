@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-#pragma once
-
 [[suppress-warning(reserved-identifier)]]
 
 // Ensure that using the same type names in different modules, doesn't cause any conflicts and generates correct code.
@@ -12,16 +10,16 @@ module IceRpc::Tests::Slice::Scope
         int v;
     }
 
-    dictionary<string, S> SMap;
-    sequence<S> SSeq;
+    typealias SMap = dictionary<string, S>;
+    typealias SSeq = sequence<S>;
 
     class C
     {
         S s;
     }
 
-    dictionary<string, C> CMap;
-    sequence<C> CSeq;
+    typealias CMap = dictionary<string, C>;
+    typealias CSeq = sequence<C>;
 
     enum E1
     {
@@ -72,8 +70,8 @@ module IceRpc::Tests::Slice::Scope
         C1 opC1(C1 C1);
     }
 
-    dictionary<string, Operations> OperationsMap;
-    sequence<Operations> OperationsSeq;
+    typealias OperationsMap = dictionary<string, Operations>;
+    typealias OperationsSeq = sequence<Operations>;
 
     module Inner
     {
@@ -89,16 +87,16 @@ module IceRpc::Tests::Slice::Scope
                 int v;
             }
 
-            dictionary<string, S> SMap;
-            sequence<S> SSeq;
+            typealias SMap = dictionary<string, S>;
+            typealias SSeq = sequence<S>;
 
             class C
             {
                 S s;
             }
 
-            dictionary<string, C> CMap;
-            sequence<C> CSeq;
+            typealias CMap = dictionary<string, C>;
+            typealias CSeq = sequence<C>;
 
             interface Operations
             {
@@ -111,8 +109,8 @@ module IceRpc::Tests::Slice::Scope
                 CMap opCMap(CMap p1);
             }
 
-            dictionary<string, Operations> OperationsMap;
-            sequence<Operations> OperationsSeq;
+            typealias OperationsMap = dictionary<string, Operations>;
+            typealias OperationsSeq = sequence<Operations>;
         }
 
         class C
@@ -120,11 +118,11 @@ module IceRpc::Tests::Slice::Scope
             S s;
         }
 
-        sequence<Inner2::S> SSeq;
-        dictionary<string, Inner2::S> SMap;
+        typealias SMap = dictionary<string, Inner2::S>;
+        typealias SSeq = sequence<Inner2::S>;
 
-        dictionary<string, Inner2::C> CMap;
-        sequence<Inner2::C> CSeq;
+        typealias CMap = dictionary<string, Inner2::C>;
+        typealias CSeq = sequence<Inner2::C>;
 
         interface Operations
         {
@@ -137,8 +135,8 @@ module IceRpc::Tests::Slice::Scope
             Inner2::CMap opCMap(Inner2::CMap p1);
         }
 
-        dictionary<string, Operations> OperationsMap;
-        sequence<Operations> OperationsSeq;
+        typealias OperationsMap = dictionary<string, Operations>;
+        typealias OperationsSeq = sequence<Operations>;
     }
 }
 

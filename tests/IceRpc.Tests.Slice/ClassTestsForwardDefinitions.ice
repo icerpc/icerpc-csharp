@@ -1,4 +1,3 @@
-#pragma once
 
 [[suppress-warning(reserved-identifier)]]
 

@@ -2,8 +2,6 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-#include <IceRpc/BuiltinSequences.ice>
-
 module IceRpc::Tests::ClientServer
 {
     interface Greeter
@@ -13,7 +11,7 @@ module IceRpc::Tests::ClientServer
 
     interface StressTest
     {
-        void opSendByteSeq(IceRpc::ByteSeq data);
-        IceRpc::ByteSeq opReceiveByteSeq(int size);
+        void opSendByteSeq(sequence<byte> data);
+        sequence<byte> opReceiveByteSeq(int size);
     }
 }

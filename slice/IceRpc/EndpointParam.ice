@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-#pragma once
-
 [[suppress-warning(reserved-identifier)]]
 
 module IceRpc
@@ -16,7 +14,4 @@ module IceRpc
         /// The parameter value.
         string value;
     }
-
-    // temporary
-    sequence<EndpointParam> EndpointParamSeq;
 }
