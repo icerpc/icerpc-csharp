@@ -82,3 +82,6 @@ TestResults
 
 # docfx
 doc/_site
+
+nuget.config
+NuGet.config
