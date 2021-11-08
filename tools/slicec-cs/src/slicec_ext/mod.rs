@@ -10,7 +10,7 @@ mod type_ref_ext;
 
 pub use attribute_ext::AttributeExt;
 pub use interface_ext::InterfaceExt;
-pub use member_ext::{MemberExt, MemberSliceExt};
+pub use member_ext::{MemberExt, ParameterExt, ParameterSliceExt};
 pub use named_symbol_ext::NamedSymbolExt;
 pub use operation_ext::OperationExt;
 pub use primitive_ext::PrimitiveExt;

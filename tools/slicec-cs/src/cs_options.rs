@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use slice::options::SliceOptions;
+use slice::command_line::SliceOptions;
 use structopt::StructOpt;
 
 // Note: StructOpt uses the doc-comments of fields to populate the '--help' output of slicec-cs.

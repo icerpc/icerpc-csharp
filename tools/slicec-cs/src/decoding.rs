@@ -2,22 +2,20 @@
 use crate::code_block::CodeBlock;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
-use slice::ast::{Ast, Node};
 use slice::grammar::*;
-use slice::util::*;
+use slice::code_gen_util::*;
 
 pub fn decode_data_members(
-    members: &[&Member],
+    members: &[&DataMember],
     namespace: &str,
     field_type: FieldType,
-    ast: &Ast,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
 
     let (required_members, tagged_members) = get_sorted_members(members);
 
-    let mut bit_sequence_index = -1;
-    let bit_sequence_size = get_bit_sequence_size(members, ast);
+    let mut bit_sequence_index: i64 = -1;
+    let bit_sequence_size = get_bit_sequence_size(members);
 
     if bit_sequence_size > 0 {
         writeln!(
@@ -31,39 +29,36 @@ pub fn decode_data_members(
     // Decode required members
     for member in required_members {
         let param = format!("this.{}", member.field_name(field_type));
-        let decode_member = decode_member(member, &mut bit_sequence_index, namespace, &param, ast);
+        let decode_member = decode_member(member, &mut bit_sequence_index, namespace, &param);
         code.writeln(&decode_member);
     }
 
     // Decode tagged members
     for member in tagged_members {
         let param = format!("this.{}", member.field_name(field_type));
-        code.writeln(&decode_tagged_member(member, namespace, &param, ast));
+        code.writeln(&decode_tagged_member(member, namespace, &param));
     }
 
-    assert!(bit_sequence_size == 0 || bit_sequence_index == bit_sequence_size);
+    assert!(bit_sequence_size == 0 || bit_sequence_index == bit_sequence_size as i64);
 
     code
 }
 
 pub fn decode_member(
-    member: &Member,
-    bit_sequence_index: &mut i32,
+    member: &impl Member,
+    bit_sequence_index: &mut i64,
     namespace: &str,
     param: &str,
-    ast: &Ast,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
-    let data_type = &member.data_type;
-
-    let node = data_type.definition(ast);
-    let type_string = data_type.to_type_string(namespace, ast, TypeContext::Incoming);
+    let data_type = member.data_type();
+    let type_string = data_type.to_type_string(namespace, TypeContext::Incoming);
 
     write!(code, "{} = ", param);
 
     if data_type.is_optional {
-        match node {
-            Node::Interface(_, _) => {
+        match data_type.concrete_type() {
+            Types::Interface(_) => {
                 // does not use bit sequence
                 writeln!(
                     code,
@@ -72,7 +67,7 @@ pub fn decode_member(
                 );
                 return code;
             }
-            Node::Class(_, _) => {
+            Types::Class(_) => {
                 // does not use bit sequence
                 writeln!(code, "decoder.DecodeNullableClass<{}>();", type_string);
                 return code;
@@ -86,32 +81,32 @@ pub fn decode_member(
         }
     }
 
-    match node {
-        Node::Interface(_, _) => {
+    match data_type.concrete_type() {
+        Types::Interface(_) => {
             assert!(!data_type.is_optional);
             write!(code, "new {}(decoder.DecodeProxy());", type_string);
         }
-        Node::Class(_, _) => {
+        Types::Class(_) => {
             assert!(!data_type.is_optional);
             write!(code, "decoder.DecodeClass<{}>();", type_string);
         }
-        Node::Primitive(_, primitive_def) => {
-            write!(code, "decoder.Decode{}()", primitive_def.type_suffix());
+        Types::Primitive(primitive) => {
+            write!(code, "decoder.Decode{}()", primitive.type_suffix());
         }
-        Node::Struct(_, struct_def) => {
+        Types::Struct(struct_def) => {
             write!(
                 code,
                 "new {}(decoder)",
                 struct_def.escape_scoped_identifier(namespace),
             );
         }
-        Node::Dictionary(_, dictionary) => {
-            code.write(&decode_dictionary(data_type, dictionary, namespace, ast))
+        Types::Dictionary(dictionary) => {
+            code.write(&decode_dictionary(data_type, dictionary, namespace))
         }
-        Node::Sequence(_, sequence) => {
-            code.write(&decode_sequence(data_type, sequence, namespace, ast))
+        Types::Sequence(sequence) => {
+            code.write(&decode_sequence(data_type, sequence, namespace))
         }
-        Node::Enum(_, enum_def) => {
+        Types::Enum(enum_def) => {
             write!(
                 code,
                 "{}.Decode{}(decoder)",
@@ -119,7 +114,6 @@ pub fn decode_member(
                 enum_def.identifier(),
             );
         }
-        _ => panic!("Node does not represent a type: {:?}", node),
     }
 
     if data_type.is_optional {
@@ -130,14 +124,14 @@ pub fn decode_member(
     code
 }
 
-pub fn decode_tagged_member(member: &Member, namespace: &str, param: &str, ast: &Ast) -> CodeBlock {
-    assert!(member.data_type.is_optional && member.tag.is_some());
+pub fn decode_tagged_member(member: &impl Member, namespace: &str, param: &str) -> CodeBlock {
+    assert!(member.data_type().is_optional && member.tag().is_some());
     format!(
         "{param} = decoder.DecodeTagged({tag}, IceRpc.Slice.TagFormat.{tag_format}, {decode_func});",
         param = param,
-        tag = member.tag.unwrap(),
-        tag_format = member.data_type.tag_format(ast),
-        decode_func = decode_func(&member.data_type, namespace, ast)
+        tag = member.tag().unwrap(),
+        tag_format = member.data_type().tag_format(),
+        decode_func = decode_func(member.data_type(), namespace)
     )
     .into()
 }
@@ -146,37 +140,31 @@ pub fn decode_dictionary(
     type_ref: &TypeRef,
     dictionary_def: &Dictionary,
     namespace: &str,
-    ast: &Ast,
 ) -> CodeBlock {
     let value_type = &dictionary_def.value_type;
-    let value_node = value_type.definition(ast);
+    let with_bit_sequence = value_type.is_bit_sequence_encodable();
 
-    let with_bit_sequence = value_type.encode_using_bit_sequence(ast);
-
-    let mut args = vec![format!("minKeySize: {}", dictionary_def.key_type.min_wire_size(ast))];
+    let mut args = vec![format!("minKeySize: {}", dictionary_def.key_type.min_wire_size())];
 
     if !with_bit_sequence {
-        args.push(format!("minValueSize: {}", value_type.min_wire_size(ast)));
+        args.push(format!("minValueSize: {}", value_type.min_wire_size()));
     }
 
-    if with_bit_sequence && value_type.is_reference_type(ast) {
+    if with_bit_sequence && value_type.is_reference_type() {
         args.push("withBitSequence: true".to_owned());
     }
 
     // decode key
-    args.push(decode_func(&dictionary_def.key_type, namespace, ast).to_string());
+    args.push(decode_func(&dictionary_def.key_type, namespace).to_string());
 
     // decode value
-    let mut decode_value = decode_func(value_type, namespace, ast);
-    match value_node {
-        Node::Sequence(_, _) | Node::Dictionary(_, _) => {
-            write!(
-                decode_value,
-                " as {}",
-                value_type.to_type_string(namespace, ast, TypeContext::Nested)
-            );
-        }
-        _ => {}
+    let mut decode_value = decode_func(value_type, namespace);
+    if matches!(value_type.concrete_type(), Types::Sequence(_) | Types::Dictionary(_)) {
+        write!(
+            decode_value,
+            " as {}",
+            value_type.to_type_string(namespace, TypeContext::Nested)
+        );
     }
     args.push(decode_value.to_string());
 
@@ -184,7 +172,7 @@ pub fn decode_dictionary(
     write!(
         code,
         "decoder.{method}({args})",
-        method = match type_ref.find_attribute("cs:generic") {
+        method = match type_ref.get_attribute("cs:generic", false) {
             Some(attributes) if attributes.first().unwrap() == "SortedDictionary" =>
                 "DecodeSortedDictionary",
             _ => "DecodeDictionary",
@@ -198,62 +186,59 @@ pub fn decode_sequence(
     type_ref: &TypeRef,
     sequence: &Sequence,
     namespace: &str,
-    ast: &Ast,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
     let element_type = &sequence.element_type;
-    let element_node = element_type.definition(ast);
 
-    if let Some(generic_attribute) = type_ref.find_attribute("cs:generic") {
+    if let Some(generic_attribute) = type_ref.get_attribute("cs:generic", false) {
         let args: String;
         assert!(!generic_attribute.is_empty());
 
-        match element_node {
-            Node::Primitive(_, primitive)
-                if primitive.is_numeric_or_bool() && primitive.is_fixed_size(ast) =>
+        match element_type.concrete_type() {
+            Types::Primitive(primitive)
+                if primitive.is_numeric_or_bool() && primitive.is_fixed_size() =>
             {
                 // We always read an array even when mapped to a collection, as it's expected to be
                 // faster than unmarshaling the collection elements one by one.
                 args = format!(
                     "decoder.DecodeArray<{}>()",
-                    element_type.to_type_string(namespace, ast, TypeContext::Incoming)
+                    element_type.to_type_string(namespace, TypeContext::Incoming)
                 );
             }
-            Node::Enum(_, enum_def) if enum_def.underlying.is_some() => {
+            Types::Enum(enum_def) if enum_def.underlying.is_some() => {
                 // We always read an array even when mapped to a collection, as it's expected to be
                 // faster than unmarshaling the collection elements one by one.
                 if enum_def.is_unchecked {
                     args = format!(
                         "decoder.DecodeArray<{}>()",
-                        element_type.to_type_string(namespace, ast, TypeContext::Incoming)
+                        element_type.to_type_string(namespace, TypeContext::Incoming)
                     );
                 } else {
-                    let underlying_type = enum_def.underlying.as_ref().unwrap().definition(ast);
                     args = format!(
                         "decoder.DecodeArray(({enum_type_name} e) => _ = {helper}.As{name}(({underlying_type})e))",
-                        enum_type_name = element_type.to_type_string(namespace, ast, TypeContext::Incoming),
+                        enum_type_name = element_type.to_type_string(namespace, TypeContext::Incoming),
                         helper = enum_def.helper_name(namespace),
                         name = enum_def.identifier(),
-                        underlying_type = underlying_type.as_named_symbol().unwrap().identifier(),
+                        underlying_type = enum_def.underlying_type().cs_keyword()
                     );
                 }
             }
             _ => {
-                if element_type.is_optional && element_type.encode_using_bit_sequence(ast) {
+                if element_type.is_optional && element_type.is_bit_sequence_encodable() {
                     args = format!(
                         "decoder.DecodeSequence({}{})",
-                        if element_type.is_reference_type(ast) {
+                        if element_type.is_reference_type() {
                             "withBitSequence: true, "
                         } else {
                             ""
                         },
-                        decode_func(element_type, namespace, ast)
+                        decode_func(element_type, namespace)
                     );
                 } else {
                     args = format!(
                         "decoder.DecodeSequence(minElementSize: {}, {})",
-                        element_type.min_wire_size(ast),
-                        decode_func(element_type, namespace, ast)
+                        element_type.min_wire_size(),
+                        decode_func(element_type, namespace)
                     );
                 }
             }
@@ -262,60 +247,57 @@ pub fn decode_sequence(
         write!(
             code,
             "new {}({})",
-            type_ref.to_type_string(namespace, ast, TypeContext::Incoming),
+            type_ref.to_type_string(namespace, TypeContext::Incoming),
             match generic_attribute.first().unwrap().as_str() {
                 "Stack" => format!("global::System.Linq.Enumerable.Reverse({})", args),
                 _ => args,
             }
         );
     } else {
-        match element_node {
-            Node::Primitive(_, primitive) if primitive.is_fixed_size(ast) => {
+        match element_type.concrete_type() {
+            Types::Primitive(primitive) if primitive.is_fixed_size() => {
                 write!(
                     code,
                     "decoder.DecodeArray<{}>()",
-                    element_type.to_type_string(namespace, ast, TypeContext::Incoming)
+                    element_type.to_type_string(namespace, TypeContext::Incoming)
                 )
             }
-            Node::Enum(_, enum_def) if enum_def.underlying.is_some() => {
+            Types::Enum(enum_def) if enum_def.underlying.is_some() => {
                 if enum_def.is_unchecked {
                     write!(
                         code,
                         "decoder.DecodeArray<{}>()",
-                        element_type.to_type_string(namespace, ast, TypeContext::Incoming)
+                        element_type.to_type_string(namespace, TypeContext::Incoming)
                     )
                 } else {
                     write!(
                         code,
                         "decoder.DecodeArray(({enum_type} e) => _ = {helper}.As{name}(({underlying_type})e))",
-                        enum_type = element_type.to_type_string(namespace, ast, TypeContext::Incoming),
+                        enum_type = element_type.to_type_string(namespace, TypeContext::Incoming),
                         helper = enum_def.helper_name(namespace),
                         name = enum_def.identifier(),
-                        underlying_type = enum_def.underlying.as_ref().unwrap().to_type_string(
-                            namespace,
-                            ast,
-                            TypeContext::Nested));
+                        underlying_type = enum_def.underlying_type().cs_keyword());
                 }
             }
             _ => {
                 write!(
                     code,
                     "decoder.DecodeSequence({}).ToArray()",
-                    if element_type.is_optional && element_type.encode_using_bit_sequence(ast) {
+                    if element_type.is_optional && element_type.is_bit_sequence_encodable() {
                         format!(
                             "{}{}",
-                            if element_type.is_reference_type(ast) {
+                            if element_type.is_reference_type() {
                                 "withBitSequence: true, "
                             } else {
                                 ""
                             },
-                            decode_func(element_type, namespace, ast)
+                            decode_func(element_type, namespace)
                         )
                     } else {
                         format!(
                             "minElementSize:{}, {}",
-                            element_type.min_wire_size(ast),
-                            decode_func(element_type, namespace, ast)
+                            element_type.min_wire_size(),
+                            decode_func(element_type, namespace)
                         )
                     }
                 );
@@ -326,20 +308,18 @@ pub fn decode_sequence(
     code
 }
 
-pub fn decode_func(type_ref: &TypeRef, namespace: &str, ast: &Ast) -> CodeBlock {
+pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
     let mut code = CodeBlock::new();
-    let node = type_ref.definition(ast);
 
     // For value types the type declaration includes ? at the end, but the type name does not.
-    let type_name = match type_ref.is_optional && type_ref.is_value_type(ast) {
-        true => {
-            clone_as_non_optional(type_ref).to_type_string(namespace, ast, TypeContext::Incoming)
-        }
-        _ => type_ref.to_type_string(namespace, ast, TypeContext::Incoming),
+    let type_name = if type_ref.is_optional && type_ref.is_value_type() {
+        type_ref.to_non_optional_type_string(namespace, TypeContext::Incoming)
+    } else {
+        type_ref.to_type_string(namespace, TypeContext::Incoming)
     };
 
-    match node {
-        Node::Interface(_, _) => {
+    match type_ref.concrete_type() {
+        Types::Interface(_) => {
             if type_ref.is_optional {
                 write!(
                     code,
@@ -350,7 +330,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, ast: &Ast) -> CodeBlock 
                 write!(code, "decoder => new {}(decoder.DecodeProxy())", type_name);
             }
         }
-        Node::Class(_, _) => {
+        Types::Class(_) => {
             if type_ref.is_optional {
                 write!(
                     code,
@@ -361,28 +341,28 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, ast: &Ast) -> CodeBlock 
                 write!(code, "decoder => decoder.DecodeClass<{}>()", type_name);
             }
         }
-        Node::Primitive(_, primitive) => {
+        Types::Primitive(primitive) => {
             write!(
                 code,
                 "decoder => decoder.Decode{}()",
                 primitive.type_suffix()
             );
         }
-        Node::Sequence(_, sequence) => {
+        Types::Sequence(sequence) => {
             write!(
                 code,
                 "decoder => {}",
-                decode_sequence(type_ref, sequence, namespace, ast)
+                decode_sequence(type_ref, sequence, namespace)
             );
         }
-        Node::Dictionary(_, dictionary) => {
+        Types::Dictionary(dictionary) => {
             write!(
                 code,
                 "decoder => {}",
-                decode_dictionary(type_ref, dictionary, namespace, ast)
+                decode_dictionary(type_ref, dictionary, namespace)
             );
         }
-        Node::Enum(_, enum_def) => {
+        Types::Enum(enum_def) => {
             write!(
                 code,
                 "decoder => {}.Decode{}(decoder)",
@@ -390,42 +370,41 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str, ast: &Ast) -> CodeBlock 
                 enum_def.identifier()
             );
         }
-        Node::Struct(_, _) => {
+        Types::Struct(_) => {
             write!(code, "decoder => new {}(decoder)", type_name);
         }
-        _ => panic!("unexpected node type"),
     }
 
-    if type_ref.is_optional && type_ref.is_value_type(ast) {
+    if type_ref.is_optional && type_ref.is_value_type() {
         write!(code, " as {}?", type_name);
     }
 
     code
 }
 
-pub fn decode_operation(operation: &Operation, dispatch: bool, ast: &Ast) -> CodeBlock {
+pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
     let mut code = CodeBlock::new();
 
     let namespace = &operation.namespace();
 
     let (all_members, non_streamed_members, stream_member) = if dispatch {
         (
-            operation.parameters(ast),
-            operation.non_streamed_params(ast),
-            operation.stream_parameter(ast),
+            operation.parameters(),
+            operation.nonstreamed_parameters(),
+            operation.streamed_parameter(),
         )
     } else {
         (
-            operation.return_members(ast),
-            operation.non_streamed_returns(ast),
-            operation.stream_return(ast),
+            operation.return_members(),
+            operation.nonstreamed_return_members(),
+            operation.streamed_return_member(),
         )
     };
 
     let (required_members, tagged_members) = get_sorted_members(&non_streamed_members);
 
-    let mut bit_sequence_index = -1;
-    let bit_sequence_size = get_bit_sequence_size(&non_streamed_members, ast);
+    let mut bit_sequence_index: i64 = -1;
+    let bit_sequence_size = get_bit_sequence_size(&non_streamed_members);
 
     if bit_sequence_size > 0 {
         writeln!(
@@ -441,46 +420,42 @@ pub fn decode_operation(operation: &Operation, dispatch: bool, ast: &Ast) -> Cod
             code,
             "{param_type} {decode}",
             param_type = member
-                .data_type
-                .to_type_string(namespace, ast, TypeContext::Incoming),
+                .data_type()
+                .to_type_string(namespace, TypeContext::Incoming),
             decode = decode_member(
                 member,
                 &mut bit_sequence_index,
                 namespace,
                 &member.parameter_name_with_prefix("iceP_"),
-                ast,
             )
         )
     }
 
-    assert!(bit_sequence_size == -1 || bit_sequence_index == bit_sequence_size);
+    assert!(bit_sequence_index == -1 || bit_sequence_index == bit_sequence_size as i64);
 
     for member in tagged_members {
         writeln!(
             code,
             "{param_type} {decode}",
             param_type = member
-                .data_type
-                .to_type_string(namespace, ast, TypeContext::Incoming),
+                .data_type()
+                .to_type_string(namespace, TypeContext::Incoming),
             decode = decode_tagged_member(
                 member,
                 namespace,
                 &member.parameter_name_with_prefix("iceP_"),
-                ast,
             )
         )
     }
 
     if let Some(stream_member) = stream_member {
-        let stream_param_type =
-            stream_member
-                .data_type
-                .to_type_string(namespace, ast, TypeContext::Incoming);
-        let param_type = clone_as_non_streamed(&stream_member.data_type);
-        let param_type_str = param_type.to_type_string(namespace, ast, TypeContext::Incoming);
+        let param_type = stream_member.data_type();
+        let param_type_str = param_type.to_type_string(namespace, TypeContext::Incoming);
+        // Call to_type_string on the parameter itself to get its stream qualifier.
+        let stream_type_str = stream_member.to_type_string(namespace, TypeContext::Incoming);
 
-        let mut create_stream_param: CodeBlock = match stream_member.data_type.definition(ast) {
-            Node::Primitive(_, primitive) if matches!(primitive, Primitive::Byte) => {
+        let mut create_stream_param: CodeBlock = match param_type.concrete_type() {
+            Types::Primitive(primitive) if matches!(primitive, Primitive::Byte) => {
                 if dispatch {
                     "IceRpc.Slice.StreamParamReceiver.ToByteStream(request);".into()
                 } else {
@@ -496,7 +471,7 @@ IceRpc.Slice.StreamParamReceiver.ToAsyncEnumerable<{param_type}>(
     request.GetIceDecoderFactory(_defaultIceDecoderFactories),
     {decode_func});",
                         param_type = param_type_str,
-                        decode_func = decode_func(&param_type, namespace, ast)
+                        decode_func = decode_func(param_type, namespace)
                     )
                     .into()
                 } else {
@@ -508,7 +483,7 @@ streamParamReceiver!.ToAsyncEnumerable<{param_type}>(
     response.GetIceDecoderFactory(_defaultIceDecoderFactories),
     {decode_func});",
                         param_type = param_type_str,
-                        decode_func = decode_func(&param_type, namespace, ast)
+                        decode_func = decode_func(param_type, namespace)
                     )
                     .into()
                 }
@@ -518,7 +493,7 @@ streamParamReceiver!.ToAsyncEnumerable<{param_type}>(
         writeln!(
             code,
             "{stream_param_type} {param_name} = {create_stream_param}",
-            stream_param_type = stream_param_type,
+            stream_param_type = stream_type_str,
             param_name = stream_member.parameter_name_with_prefix("iceP_"),
             create_stream_param = create_stream_param.indent()
         );

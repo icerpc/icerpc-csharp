@@ -5,10 +5,8 @@ use crate::cs_util::*;
 use crate::generated_code::GeneratedCode;
 use crate::slicec_ext::*;
 
-use slice::ast::{Ast, Node};
 use slice::grammar::*;
-use slice::ref_from_node;
-use slice::util::*;
+use slice::code_gen_util::*;
 use slice::visitor::Visitor;
 
 #[derive(Debug)]
@@ -17,28 +15,28 @@ pub struct EnumVisitor<'a> {
 }
 
 impl<'a> Visitor for EnumVisitor<'a> {
-    fn visit_enum_start(&mut self, enum_def: &Enum, _: usize, ast: &Ast) {
+    fn visit_enum_start(&mut self, enum_def: &Enum) {
         let mut code = CodeBlock::new();
-        code.add_block(&enum_declaration(enum_def, ast));
-        code.add_block(&enum_helper(enum_def, ast));
+        code.add_block(&enum_declaration(enum_def));
+        code.add_block(&enum_helper(enum_def));
         self.generated_code.insert_scoped(enum_def, code);
     }
 }
 
-fn enum_declaration(enum_def: &Enum, ast: &Ast) -> CodeBlock {
+fn enum_declaration(enum_def: &Enum) -> CodeBlock {
     let escaped_identifier = escape_keyword(enum_def.identifier());
     ContainerBuilder::new("public enum", &escaped_identifier)
         .add_comment("summary", &doc_comment_message(enum_def))
         .add_container_attributes(enum_def)
-        .add_base(underlying_type(enum_def, ast))
-        .add_block(enum_values(enum_def, ast))
+        .add_base(underlying_type(enum_def))
+        .add_block(enum_values(enum_def))
         .build()
         .into()
 }
 
-fn enum_values(enum_def: &Enum, ast: &Ast) -> CodeBlock {
+fn enum_values(enum_def: &Enum) -> CodeBlock {
     let mut code = CodeBlock::new();
-    for enumerator in enum_def.enumerators(ast) {
+    for enumerator in enum_def.enumerators() {
         // Use CodeBlock here in case the comment is empty. It automatically whitespace
         code.add_block(&CodeBlock::from(format!(
             "{}\n{} = {},",
@@ -50,7 +48,7 @@ fn enum_values(enum_def: &Enum, ast: &Ast) -> CodeBlock {
     code
 }
 
-fn enum_helper(enum_def: &Enum, ast: &Ast) -> CodeBlock {
+fn enum_helper(enum_def: &Enum) -> CodeBlock {
     let escaped_identifier = escape_keyword(enum_def.identifier());
     let namespace = &enum_def.namespace();
     let mut builder =
@@ -69,16 +67,15 @@ fn enum_helper(enum_def: &Enum, ast: &Ast) -> CodeBlock {
     // during unmarshaling.
     // Note that the values are not necessarily in order, e.g. we can use a simple range check
     // for enum E { A = 3, B = 2, C = 1 } during unmarshaling.
-    let use_set = if let (Some(min_value), Some(max_value)) =
-        (enum_def.min_value(ast), enum_def.max_value(ast))
-    {
+    let min_max_values = enum_def.get_min_max_values();
+    let use_set = if let Some((min_value, max_value)) = min_max_values {
         !enum_def.is_unchecked && (enum_def.enumerators.len() as i64) < max_value - min_value + 1
     } else {
         // This means there are no enumerators.*
         true
     };
 
-    let underlying_type = underlying_type(enum_def, ast);
+    let underlying_type = underlying_type(enum_def);
 
     if use_set {
         builder.add_block(
@@ -88,7 +85,7 @@ public static readonly global::System.Collections.Generic.HashSet<{underlying}> 
     new global::System.Collections.Generic.HashSet<{underlying}> {{ {enum_values} }};",
                 underlying = underlying_type,
                 enum_values = enum_def
-                    .enumerators(ast)
+                    .enumerators()
                     .iter()
                     .map(|e| e.value.to_string())
                     .collect::<Vec<_>>()
@@ -110,8 +107,8 @@ public static readonly global::System.Collections.Generic.HashSet<{underlying}> 
                 true => "EnumeratorValues.Contains(value)".to_owned(),
                 false => format!(
                     "{min_value} <= value && value <= {max_value}",
-                    min_value = enum_def.min_value(ast).unwrap(),
-                    max_value = enum_def.max_value(ast).unwrap()
+                    min_value = min_max_values.unwrap().0,
+                    max_value = min_max_values.unwrap().1,
                 ),
             },
             escaped_identifier = escaped_identifier,
@@ -144,8 +141,7 @@ public static {escaped_identifier} Decode{identifier}(this IceDecoder decoder) =
             decode_enum = match &enum_def.underlying {
                 Some(underlying) => format!(
                     "decoder.Decode{}()",
-                    ref_from_node!(Node::Primitive, ast, underlying.definition.unwrap())
-                        .type_suffix()
+                    underlying.definition().type_suffix()
                 ),
                 _ => "decoder.DecodeSize()".to_owned(),
             }
@@ -164,8 +160,7 @@ public static void Encode{identifier}(this IceEncoder encoder, {escaped_identifi
             encode_enum = match &enum_def.underlying {
                 Some(underlying) => format!(
                     "encoder.Encode{}",
-                    ref_from_node!(Node::Primitive, ast, underlying.definition.unwrap())
-                        .type_suffix()
+                    underlying.definition().type_suffix()
                 ),
                 None => "encoder.EncodeSize".to_owned(),
             },
@@ -177,9 +172,9 @@ public static void Encode{identifier}(this IceEncoder encoder, {escaped_identifi
     builder.build().into()
 }
 
-fn underlying_type(enum_def: &Enum, ast: &Ast) -> String {
+fn underlying_type(enum_def: &Enum) -> String {
     match &enum_def.underlying {
-        Some(typeref) => typeref.to_type_string(&enum_def.namespace(), ast, TypeContext::Nested),
-        _ => "int".to_owned(), // TODO we should make a builtin table to get names from.
+        Some(typeref) => typeref.to_type_string(&enum_def.namespace(), TypeContext::Nested),
+        _ => slice::borrow_ast().lookup_primitive("int").borrow().cs_keyword().to_owned()
     }
 }

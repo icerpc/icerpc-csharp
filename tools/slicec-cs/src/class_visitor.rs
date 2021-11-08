@@ -11,9 +11,8 @@ use crate::encoding::encode_data_members;
 use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
-use slice::ast::Ast;
-use slice::grammar::{Class, Member};
-use slice::util::TypeContext;
+use slice::grammar::{Class, DataMember};
+use slice::code_gen_util::TypeContext;
 use slice::visitor::Visitor;
 
 pub struct ClassVisitor<'a> {
@@ -21,14 +20,14 @@ pub struct ClassVisitor<'a> {
 }
 
 impl<'a> Visitor for ClassVisitor<'_> {
-    fn visit_class_start(&mut self, class_def: &Class, _: usize, ast: &Ast) {
+    fn visit_class_start(&mut self, class_def: &Class) {
         let class_name = class_def.escape_identifier();
         let namespace = class_def.namespace();
-        let has_base_class = class_def.base(ast).is_some();
+        let has_base_class = class_def.base_class().is_some();
 
-        let members = class_def.members(ast);
-        let base_members = if let Some(base) = class_def.base(ast) {
-            base.all_data_members(ast)
+        let members = class_def.members();
+        let base_members = if let Some(base) = class_def.base_class() {
+            base.all_members()
         } else {
             vec![]
         };
@@ -36,13 +35,13 @@ impl<'a> Visitor for ClassVisitor<'_> {
         let non_default_members = members
             .iter()
             .cloned()
-            .filter(|m| !m.is_default_initialized(ast))
+            .filter(|m| !m.is_default_initialized())
             .collect::<Vec<_>>();
 
         let non_default_base_members = base_members
             .iter()
             .cloned()
-            .filter(|m| !m.is_default_initialized(ast))
+            .filter(|m| !m.is_default_initialized())
             .collect::<Vec<_>>();
 
         let mut class_builder = ContainerBuilder::new("public partial class", &class_name);
@@ -53,7 +52,7 @@ impl<'a> Visitor for ClassVisitor<'_> {
             .add_compact_type_id_attribute(class_def)
             .add_container_attributes(class_def);
 
-        if let Some(base) = class_def.base(ast) {
+        if let Some(base) = class_def.base_class() {
             class_builder.add_base(base.escape_scoped_identifier(&namespace));
         } else {
             class_builder.add_base("IceRpc.AnyClass".to_owned());
@@ -63,7 +62,7 @@ impl<'a> Visitor for ClassVisitor<'_> {
         class_builder.add_block(
             members
                 .iter()
-                .map(|m| data_member_declaration(m, false, FieldType::Class, ast))
+                .map(|m| data_member_declaration(m, false, FieldType::Class))
                 .collect::<Vec<_>>()
                 .join("\n")
                 .into(),
@@ -99,7 +98,6 @@ impl<'a> Visitor for ClassVisitor<'_> {
             &namespace,
             &members,
             &base_members,
-            ast,
         ));
 
         // Second public constructor for all data members minus those with a default initializer
@@ -113,7 +111,6 @@ impl<'a> Visitor for ClassVisitor<'_> {
                 &namespace,
                 &non_default_members,
                 &non_default_base_members,
-                ast,
             ));
         }
 
@@ -140,13 +137,12 @@ impl<'a> Visitor for ClassVisitor<'_> {
             .set_body(initialize_non_nullable_fields(
                 &members,
                 FieldType::Class,
-                ast,
             ))
             .add_never_editor_browsable_attribute();
 
         class_builder.add_block(decode_constructor.build());
 
-        class_builder.add_block(encode_and_decode(class_def, ast));
+        class_builder.add_block(encode_and_decode(class_def));
 
         self.generated_code
             .insert_scoped(class_def, class_builder.build().into());
@@ -157,9 +153,8 @@ fn constructor(
     escaped_name: &str,
     summary_comment: &str,
     namespace: &str,
-    members: &[&Member],
-    base_members: &[&Member],
-    ast: &Ast,
+    members: &[&DataMember],
+    base_members: &[&DataMember],
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
 
@@ -170,7 +165,7 @@ fn constructor(
     builder.add_base_parameters(
         &base_members
             .iter()
-            .filter(|m| !m.is_default_initialized(ast))
+            .filter(|m| !m.is_default_initialized())
             .map(|m| m.parameter_name())
             .collect::<Vec<String>>(),
     );
@@ -179,7 +174,7 @@ fn constructor(
         let parameter_type =
             member
                 .data_type
-                .to_type_string(namespace, ast, TypeContext::DataMember);
+                .to_type_string(namespace, TypeContext::DataMember);
         let parameter_name = member.parameter_name();
 
         builder.add_parameter(
@@ -208,12 +203,12 @@ fn constructor(
     code
 }
 
-fn encode_and_decode(class_def: &Class, ast: &Ast) -> CodeBlock {
+fn encode_and_decode(class_def: &Class) -> CodeBlock {
     let mut code = CodeBlock::new();
 
     let namespace = &class_def.namespace();
-    let members = class_def.members(ast);
-    let has_base_class = class_def.base(ast).is_some();
+    let members = class_def.members();
+    let has_base_class = class_def.base_class().is_some();
 
     // TODO check preserve-slice metadata
     // const bool basePreserved = p->inheritsMetadata("preserve-slice");
@@ -254,7 +249,6 @@ protected override global::System.Collections.Immutable.ImmutableList<IceRpc.Sli
             &members,
             namespace,
             FieldType::Class,
-            ast,
         ));
 
         if has_base_class {
@@ -282,7 +276,6 @@ protected override global::System.Collections.Immutable.ImmutableList<IceRpc.Sli
             &members,
             namespace,
             FieldType::Class,
-            ast,
         ));
         code.writeln("decoder.IceEndSlice();");
         if has_base_class {

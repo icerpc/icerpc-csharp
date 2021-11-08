@@ -18,22 +18,17 @@ impl GeneratedCode {
     }
 
     pub fn insert_scoped(&mut self, symbol: &dyn ScopedSymbol, code: CodeBlock) {
-        let scope = symbol.scope().to_owned();
-        match self.scoped_code_blocks.get_mut(&scope) {
+        let module_scope = symbol.module_scope().to_owned();
+        match self.scoped_code_blocks.get_mut(&module_scope) {
             Some(vec) => vec.push(code),
             None => {
-                self.scoped_code_blocks.insert(scope, vec![code]);
+                self.scoped_code_blocks.insert(module_scope, vec![code]);
             }
         };
     }
 
     /// Removes (and returns) the code blocks for the given module.
     pub fn remove_scoped(&mut self, module: &Module) -> Option<Vec<CodeBlock>> {
-        let scope = format!(
-            "{}::{}",
-            if module.is_top_level() { "" } else { module.scope() },
-            module.identifier()
-        );
-        self.scoped_code_blocks.remove(&scope)
+        self.scoped_code_blocks.remove(&module.module_scoped_identifier())
     }
 }

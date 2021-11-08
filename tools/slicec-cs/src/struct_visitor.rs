@@ -10,9 +10,8 @@ use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::{MemberExt, NamedSymbolExt, TypeRefExt};
 
-use slice::ast::Ast;
 use slice::grammar::*;
-use slice::util::*;
+use slice::code_gen_util::*;
 use slice::visitor::Visitor;
 
 #[derive(Debug)]
@@ -21,10 +20,10 @@ pub struct StructVisitor<'a> {
 }
 
 impl<'a> Visitor for StructVisitor<'a> {
-    fn visit_struct_start(&mut self, struct_def: &Struct, _: usize, ast: &Ast) {
-        let readonly = struct_def.has_attribute("cs:readonly");
+    fn visit_struct_start(&mut self, struct_def: &Struct) {
+        let readonly = struct_def.has_attribute("cs:readonly", false);
         let escaped_identifier = struct_def.escape_identifier();
-        let members = struct_def.members(ast);
+        let members = struct_def.members();
         let namespace = struct_def.namespace();
 
         let mut builder = ContainerBuilder::new(
@@ -42,7 +41,7 @@ impl<'a> Visitor for StructVisitor<'a> {
         builder.add_block(
             members
                 .iter()
-                .map(|m| data_member_declaration(m, readonly, FieldType::NonMangled, ast))
+                .map(|m| data_member_declaration(m, readonly, FieldType::NonMangled))
                 .collect::<Vec<_>>()
                 .join("\n")
                 .into(),
@@ -61,8 +60,8 @@ impl<'a> Visitor for StructVisitor<'a> {
         for member in &members {
             main_constructor.add_parameter(
                 &member
-                    .data_type
-                    .to_type_string(&namespace, ast, TypeContext::DataMember),
+                    .data_type()
+                    .to_type_string(&namespace, TypeContext::DataMember),
                 member.identifier(),
                 None,
                 Some(&doc_comment_message(*member)),
@@ -97,7 +96,6 @@ impl<'a> Visitor for StructVisitor<'a> {
                     &members,
                     &namespace,
                     FieldType::NonMangled,
-                    ast,
                 ))
                 .build(),
         );
@@ -111,7 +109,6 @@ impl<'a> Visitor for StructVisitor<'a> {
                     &members,
                     &namespace,
                     FieldType::NonMangled,
-                    ast,
                 ))
                 .build(),
         );

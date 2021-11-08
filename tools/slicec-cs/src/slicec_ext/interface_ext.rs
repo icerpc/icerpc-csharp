@@ -2,7 +2,7 @@
 
 use super::named_symbol_ext::NamedSymbolExt;
 use slice::grammar::{Interface, NamedSymbol};
-use slice::util::{fix_case, CaseStyle};
+use slice::code_gen_util::{fix_case, CaseStyle};
 
 pub trait InterfaceExt: NamedSymbolExt {
     /// The name of the generated C# interface for this Slice interface.

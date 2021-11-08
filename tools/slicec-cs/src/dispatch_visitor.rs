@@ -1,6 +1,5 @@
-use slice::ast::{Ast, Node};
 use slice::grammar::*;
-use slice::util::*;
+use slice::code_gen_util::*;
 use slice::visitor::Visitor;
 
 use crate::builders::{
@@ -20,8 +19,8 @@ pub struct DispatchVisitor<'a> {
 }
 
 impl<'a> Visitor for DispatchVisitor<'_> {
-    fn visit_interface_start(&mut self, interface_def: &Interface, _: usize, ast: &Ast) {
-        let bases = interface_def.bases(ast);
+    fn visit_interface_start(&mut self, interface_def: &Interface) {
+        let bases = interface_def.base_interfaces();
         let interface_name = interface_def.interface_name();
 
         let mut interface_builder =
@@ -43,20 +42,20 @@ impl<'a> Visitor for DispatchVisitor<'_> {
         interface_builder.add_bases(&bases.iter().map(|b| b.interface_name()).collect::<Vec<_>>());
 
         interface_builder
-            .add_block(request_class(interface_def, ast))
-            .add_block(response_class(interface_def, ast));
+            .add_block(request_class(interface_def))
+            .add_block(response_class(interface_def));
 
         interface_builder.add_block(format!("\
 private static readonly DefaultIceDecoderFactories _defaultIceDecoderFactories = new(typeof({}).Assembly);
 ", interface_name).into());
 
-        for operation in interface_def.operations(ast) {
-            interface_builder.add_block(encoded_result_struct(operation, ast));
-            interface_builder.add_block(operation_declaration(interface_def, operation, ast));
+        for operation in interface_def.operations() {
+            interface_builder.add_block(encoded_result_struct(operation));
+            interface_builder.add_block(operation_declaration(operation));
         }
 
-        for operation in interface_def.operations(ast) {
-            interface_builder.add_block(operation_dispatch(interface_def, operation, ast));
+        for operation in interface_def.operations() {
+            interface_builder.add_block(operation_dispatch(operation));
         }
 
         self.generated_code
@@ -64,12 +63,12 @@ private static readonly DefaultIceDecoderFactories _defaultIceDecoderFactories =
     }
 }
 
-fn request_class(interface_def: &Interface, ast: &Ast) -> CodeBlock {
-    let bases = interface_def.bases(ast);
+fn request_class(interface_def: &Interface) -> CodeBlock {
+    let bases = interface_def.base_interfaces();
     let operations = interface_def
-        .operations(ast)
+        .operations()
         .iter()
-        .filter(|o| o.has_non_streamed_params(ast))
+        .filter(|o| o.has_nonstreamed_parameters())
         .cloned()
         .collect::<Vec<_>>();
 
@@ -92,11 +91,11 @@ fn request_class(interface_def: &Interface, ast: &Ast) -> CodeBlock {
     );
 
     for operation in operations {
-        let parameters = operation.parameters(ast);
+        let parameters = operation.parameters();
 
         let operation_name = operation.escape_identifier();
 
-        let decoder_factory = if operation.sends_classes(ast) {
+        let decoder_factory = if operation.sends_classes() {
             "request.GetIceDecoderFactory(_defaultIceDecoderFactories.Ice11DecoderFactory)"
         } else {
             "request.GetIceDecoderFactory(_defaultIceDecoderFactories)"
@@ -112,10 +111,10 @@ public static {return_type} {operation_name}(IceRpc.IncomingRequest request) =>
         {decoder_factory},
         {decode_func});",
             s = if parameters.len() == 1 { "" } else { "s" },
-            return_type = parameters.to_tuple_type(namespace, ast, TypeContext::Incoming),
+            return_type = parameters.to_tuple_type(namespace, TypeContext::Incoming),
             operation_name = operation_name,
             decoder_factory = decoder_factory,
-            decode_func = request_decode_func(operation, ast).indent().indent(),
+            decode_func = request_decode_func(operation).indent().indent(),
         );
 
         class_builder.add_block(code.into());
@@ -124,13 +123,13 @@ public static {return_type} {operation_name}(IceRpc.IncomingRequest request) =>
     class_builder.build().into()
 }
 
-fn response_class(interface_def: &Interface, ast: &Ast) -> CodeBlock {
-    let bases = interface_def.bases(ast);
+fn response_class(interface_def: &Interface) -> CodeBlock {
+    let bases = interface_def.base_interfaces();
 
     let operations = interface_def
-        .operations(ast)
+        .operations()
         .iter()
-        .filter(|o| o.has_non_streamed_return(ast))
+        .filter(|o| o.has_nonstreamed_return_members())
         .cloned()
         .collect::<Vec<_>>();
 
@@ -149,17 +148,17 @@ fn response_class(interface_def: &Interface, ast: &Ast) -> CodeBlock {
 
     class_builder.add_comment(
         "summary",
-        "Provides static methods that read the arguments of requests.",
+        "Provides static methods that write the return values of responses.",
     );
 
     for operation in operations {
-        let non_streamed_returns = operation.non_streamed_returns(ast);
+        let non_streamed_returns = operation.nonstreamed_return_members();
 
         let namespace = &operation.namespace();
         let operation_name = &operation.escape_identifier();
-        let returns_classes = operation.returns_classes(ast);
+        let returns_classes = operation.returns_classes();
         let return_type =
-            &non_streamed_returns.to_tuple_type(namespace, ast, TypeContext::Outgoing);
+            &non_streamed_returns.to_tuple_type(namespace, TypeContext::Outgoing);
 
         let mut builder = FunctionBuilder::new(
             "public static",
@@ -220,7 +219,7 @@ fn response_class(interface_def: &Interface, ast: &Ast) -> CodeBlock {
                 1 => "returnValue",
                 _ => "returnValueTuple",
             },
-            encode_action = response_encode_action(operation, ast)
+            encode_action = response_encode_action(operation)
         );
 
         builder.set_body(body.into());
@@ -231,51 +230,52 @@ fn response_class(interface_def: &Interface, ast: &Ast) -> CodeBlock {
     class_builder.build().into()
 }
 
-fn request_decode_func(operation: &Operation, ast: &Ast) -> CodeBlock {
+fn request_decode_func(operation: &Operation) -> CodeBlock {
     let namespace = &operation.namespace();
 
-    let parameters = operation.parameters(ast);
+    let parameters = operation.parameters();
 
     let use_default_decode_func = parameters.len() == 1
-        && get_bit_sequence_size(&parameters, ast) == 0
+        && get_bit_sequence_size(&parameters) == 0
         && parameters.first().unwrap().tag.is_none();
 
     if use_default_decode_func {
-        decode_func(&parameters.first().unwrap().data_type, namespace, ast)
+        // TODO is it possible for the first parameter to be streamed here?
+        // because if it is, then this is broken.
+        decode_func(parameters.first().unwrap().data_type(), namespace)
     } else {
         format!(
             "decoder =>
 {{
     {}
 }}",
-            decode_operation(operation, false, ast).indent()
+            decode_operation(operation, true).indent()
         )
         .into()
     }
 }
 
-pub fn response_encode_action(operation: &Operation, ast: &Ast) -> CodeBlock {
+pub fn response_encode_action(operation: &Operation) -> CodeBlock {
     let namespace = &operation.namespace();
 
     // We only want the non-streamed returns
-    let returns = operation.non_streamed_returns(ast);
+    let returns = operation.nonstreamed_return_members();
 
     // When the operation returns a T? where T is an interface or a class, there is a built-in
     // encoder, so defaultEncodeAction is true.
     let use_default_encode_action = returns.len() == 1
-        && get_bit_sequence_size(&returns, ast) == 0
+        && get_bit_sequence_size(&returns) == 0
         && returns.first().unwrap().tag.is_none();
 
     if use_default_encode_action {
         encode_action(
-            &returns.first().unwrap().data_type,
+            returns.first().unwrap().data_type(),
             namespace,
             true,
             true,
-            ast,
         )
     } else {
-        let encoder_class = if operation.returns_classes(ast) {
+        let encoder_class = if operation.returns_classes() {
             "Ice11Encoder"
         } else {
             "IceEncoder"
@@ -285,27 +285,27 @@ pub fn response_encode_action(operation: &Operation, ast: &Ast) -> CodeBlock {
             "({encoder} encoder, {_in}{tuple_type} value) => {{ {encode_action} }}",
             encoder = encoder_class,
             _in = if returns.len() == 1 { "" } else { "in " },
-            tuple_type = returns.to_tuple_type(namespace, ast, TypeContext::Outgoing),
-            encode_action = encode_operation(operation, true, ast),
+            tuple_type = returns.to_tuple_type(namespace, TypeContext::Outgoing),
+            encode_action = encode_operation(operation, true),
         )
         .into()
     }
 }
 
-fn operation_declaration(interface_def: &Interface, operation: &Operation, ast: &Ast) -> CodeBlock {
+fn operation_declaration(operation: &Operation) -> CodeBlock {
     // TODO: operation obsolete deprecation
     FunctionBuilder::new(
         "public",
-        &operation.return_task(interface_def, true, ast),
+        &operation.return_task(true),
         &(operation.escape_identifier_with_suffix("Async")),
         FunctionType::Declaration,
     )
     .add_comment("summary", &doc_comment_message(operation))
-    .add_operation_parameters(operation, TypeContext::Incoming, ast)
+    .add_operation_parameters(operation, TypeContext::Incoming)
     .build()
 }
 
-fn operation_dispatch(interface_def: &Interface, operation: &Operation, ast: &Ast) -> CodeBlock {
+fn operation_dispatch(operation: &Operation) -> CodeBlock {
     let operation_name = &operation.escape_identifier();
     let internal_name = format!("IceD{}Async", &operation_name);
 
@@ -323,18 +323,18 @@ protected static async global::System.Threading.Tasks.ValueTask<(IceEncoding, gl
 "#,
         name = operation.identifier(),
         internal_name = internal_name,
-        interface_name = interface_def.interface_name(),
-        dispatch_body = operation_dispatch_body(operation, ast).indent()
+        interface_name = operation.parent().unwrap().interface_name(),
+        dispatch_body = operation_dispatch_body(operation).indent()
     )
     .into()
 }
 
-fn operation_dispatch_body(operation: &Operation, ast: &Ast) -> CodeBlock {
+fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
     let namespace = &operation.namespace();
     let operation_name = &operation.escape_identifier();
-    let parameters = operation.parameters(ast);
-    let stream_parameter = operation.stream_parameter(ast);
-    let return_parameters = operation.return_members(ast);
+    let parameters = operation.parameters();
+    let stream_parameter = operation.streamed_parameter();
+    let return_parameters = operation.return_members();
 
     let mut code = CodeBlock::new();
 
@@ -366,10 +366,10 @@ fn operation_dispatch_body(operation: &Operation, ast: &Ast) -> CodeBlock {
         [] => {}
         [_] if stream_parameter.is_some() => {
             let stream_parameter = stream_parameter.unwrap();
-            let stream_type = clone_as_non_streamed(&stream_parameter.data_type);
+            let stream_type = stream_parameter.data_type();
             let name = stream_parameter.parameter_name_with_prefix("iceP_");
-            let stream_assignment = match stream_parameter.data_type.definition(ast) {
-                Node::Primitive(_, b) if matches!(b, Primitive::Byte) => {
+            let stream_assignment = match stream_type.concrete_type() {
+                Types::Primitive(primitive) if matches!(primitive, Primitive::Byte) => {
                     "IceRpc.Slice.StreamParamReceiver.ToByteStream(request)".to_owned()
                 }
                 _ => {
@@ -381,8 +381,8 @@ IceRpc.Slice.StreamParamReceiver.ToAsyncEnumerable<{stream_type}>(
     {decode_func})
     ",
                         stream_type =
-                            stream_type.to_type_string(namespace, ast, TypeContext::Outgoing),
-                        decode_func = decode_func(&stream_type, namespace, ast)
+                            stream_type.to_type_string(namespace, TypeContext::Outgoing),
+                        decode_func = decode_func(stream_type, namespace)
                     )
                 }
             };
@@ -432,7 +432,7 @@ IceRpc.Slice.StreamParamReceiver.ToAsyncEnumerable<{stream_type}>(
             args = args.join(", ")
         );
 
-        let encoding = if operation.returns_classes(ast) {
+        let encoding = if operation.returns_classes() {
             "IceRpc.Encoding.Ice11"
         } else {
             "request.GetIceEncoding()"
@@ -466,7 +466,7 @@ IceRpc.Slice.StreamParamReceiver.ToAsyncEnumerable<{stream_type}>(
             args = args.join(", ")
         );
 
-        let encoding = if operation.returns_classes(ast) {
+        let encoding = if operation.returns_classes() {
             "IceRpc.Encoding.Ice11"
         } else {
             code.writeln("var payloadEncoding = request.GetIceEncoding();");
@@ -477,24 +477,24 @@ IceRpc.Slice.StreamParamReceiver.ToAsyncEnumerable<{stream_type}>(
             code,
             "return ({encoding}, {payload}, {stream});",
             encoding = encoding,
-            payload = dispatch_return_payload(operation, encoding, ast),
-            stream = stream_param_sender(operation, encoding, ast)
+            payload = dispatch_return_payload(operation, encoding),
+            stream = stream_param_sender(operation, encoding)
         );
     }
 
     code
 }
 
-fn dispatch_return_payload(operation: &Operation, encoding: &str, ast: &Ast) -> CodeBlock {
-    let non_streamed_return_values = operation.non_streamed_returns(ast);
+fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
+    let non_streamed_return_values = operation.nonstreamed_return_members();
 
     let mut returns = vec![];
 
-    if !operation.returns_classes(ast) {
+    if !operation.returns_classes() {
         returns.push(encoding.to_owned());
     }
 
-    returns.push(match operation.return_members(ast).len() {
+    returns.push(match operation.return_members().len() {
         1 => "returnValue".to_owned(),
         _ => format!(
             "({})",
@@ -517,14 +517,14 @@ fn dispatch_return_payload(operation: &Operation, encoding: &str, ast: &Ast) -> 
     .into()
 }
 
-fn stream_param_sender(operation: &Operation, encoding: &str, ast: &Ast) -> CodeBlock {
+fn stream_param_sender(operation: &Operation, encoding: &str) -> CodeBlock {
     let namespace = &operation.namespace();
-    let return_values = operation.return_members(ast);
+    let return_values = operation.return_members();
 
-    match operation.stream_return(ast) {
+    match operation.streamed_return_member() {
         None => "null".into(),
         Some(stream_return) => {
-            let node = stream_return.data_type.definition(ast);
+            let stream_type = stream_return.data_type();
 
             let stream_arg = if return_values.len() == 1 {
                 "returnValue".to_owned()
@@ -535,23 +535,21 @@ fn stream_param_sender(operation: &Operation, encoding: &str, ast: &Ast) -> Code
                 )
             };
 
-            match node {
-                Node::Primitive(_, b) if matches!(b, Primitive::Byte) => {
+            match stream_type.concrete_type() {
+                Types::Primitive(primitive) if matches!(primitive, Primitive::Byte) => {
                     format!("new IceRpc.Slice.ByteStreamParamSender({})", stream_arg).into()
                 }
                 _ => {
-                    let stream_type = clone_as_non_streamed(&stream_return.data_type);
                     format!("\
 new IceRpc.Slice.AsyncEnumerableStreamParamSender<{stream_type}>({stream_arg}, {encoding}, {encode_action})",
-                             stream_type = stream_type.to_type_string(namespace, ast, TypeContext::Outgoing),
+                             stream_type = stream_type.to_type_string(namespace, TypeContext::Outgoing),
                              stream_arg = stream_arg,
                              encoding = encoding,
                              encode_action = encode_action(
-                                 &stream_type,
+                                 stream_type,
                                  namespace,
                                  false,
-                                 false,
-                                 ast),
+                                 false),
                     ).into()
                 }
             }

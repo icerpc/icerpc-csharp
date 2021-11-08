@@ -48,20 +48,19 @@ pub fn main() {
 fn try_main() -> Result<(), ()> {
     let options = CsOptions::from_args();
     let slice_options = &options.slice_options;
-    let mut data = slice::parse_from_options(slice_options)?;
+    let slice_files = slice::parse_from_options(slice_options)?;
 
-    let mut cs_validator = CsValidator::new(&mut data.error_handler);
-    for slice_file in data.slice_files.values() {
-        slice_file.visit_with(&mut cs_validator, &data.ast);
+    let mut cs_validator = CsValidator;
+    for slice_file in slice_files.values() {
+        slice_file.visit_with(&mut cs_validator);
     }
     slice::handle_errors(
         slice_options.warn_as_error,
-        &mut data.error_handler,
-        &data.slice_files,
+        &slice_files,
     )?;
 
     if !slice_options.validate {
-        for slice_file in data.slice_files.values().filter(|file| file.is_source) {
+        for slice_file in slice_files.values().filter(|file| file.is_source) {
             // TODO: actually check for the error
 
             let mut generated_code = GeneratedCode::new();
@@ -69,25 +68,25 @@ fn try_main() -> Result<(), ()> {
             generated_code.code_blocks.push(preamble(slice_file));
 
             let mut visitor = StructVisitor { generated_code: &mut generated_code };
-            slice_file.visit_with(&mut visitor, &data.ast);
+            slice_file.visit_with(&mut visitor);
 
             let mut proxy_visitor = ProxyVisitor { generated_code: &mut generated_code };
-            slice_file.visit_with(&mut proxy_visitor, &data.ast);
+            slice_file.visit_with(&mut proxy_visitor);
 
             let mut dispatch_visitor = DispatchVisitor { generated_code: &mut generated_code };
-            slice_file.visit_with(&mut dispatch_visitor, &data.ast);
+            slice_file.visit_with(&mut dispatch_visitor);
 
             let mut exception_visitor = ExceptionVisitor { generated_code: &mut generated_code };
-            slice_file.visit_with(&mut exception_visitor, &data.ast);
+            slice_file.visit_with(&mut exception_visitor);
 
             let mut enum_visitor = EnumVisitor { generated_code: &mut generated_code };
-            slice_file.visit_with(&mut enum_visitor, &data.ast);
+            slice_file.visit_with(&mut enum_visitor);
 
             let mut class_visitor = ClassVisitor { generated_code: &mut generated_code };
-            slice_file.visit_with(&mut class_visitor, &data.ast);
+            slice_file.visit_with(&mut class_visitor);
 
             let mut module_visitor = ModuleVisitor { generated_code: &mut generated_code };
-            slice_file.visit_with(&mut module_visitor, &data.ast);
+            slice_file.visit_with(&mut module_visitor);
 
             {
                 let path = match &slice_options.output_dir {
@@ -100,8 +99,9 @@ fn try_main() -> Result<(), ()> {
                 let mut file = match File::create(&path) {
                     Ok(file) => file,
                     Err(err) => {
-                        data.error_handler.report_error(
-                            format!("failed to create file {}: {}", &path.display(), err).into(),
+                        slice::report_error(
+                            format!("failed to create file {}: {}", &path.display(), err),
+                            None
                         );
                         continue;
                     }
@@ -117,8 +117,9 @@ fn try_main() -> Result<(), ()> {
                 ) {
                     Ok(_) => (),
                     Err(err) => {
-                        data.error_handler.report_error(
-                            format!("failed to write to file {}: {}", &path.display(), err).into(),
+                        slice::report_error(
+                            format!("failed to write to file {}: {}", &path.display(), err),
+                            None
                         );
                         continue;
                     }
@@ -127,7 +128,7 @@ fn try_main() -> Result<(), ()> {
         }
     }
 
-    slice::handle_errors(true, &mut data.error_handler, &data.slice_files)
+    slice::handle_errors(true, &slice_files)
 }
 
 fn preamble(slice_file: &SliceFile) -> CodeBlock {
