@@ -49,8 +49,8 @@ namespace IceRpc
                 {
                     RetryPolicy retryPolicy = RetryPolicy.NoRetry;
 
-                    // At this point, response can be non-null and carry a failure for which we're retrying. So if
-                    // _next.InvokeAsync throws, we use this response-with-a-failure to decide whether or not to retry.
+                    // At this point, response can be non-null and carry a failure for which we're retrying. If
+                    // _next.InvokeAsync throws NoEndpointException, we return this previous failure.
                     try
                     {
                         response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
