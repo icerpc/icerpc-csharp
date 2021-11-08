@@ -84,3 +84,4 @@ TestResults
 doc/_site
 
 nuget.config
+NuGet.config
