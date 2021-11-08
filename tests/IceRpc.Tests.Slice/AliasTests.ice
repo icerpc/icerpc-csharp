@@ -2,39 +2,33 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-#include <EnumTests.ice>
-#include <StructTests.ice>
-#include <ClassTests.ice>
-#include <SequenceTests.ice>
-#include <DictionaryTests.ice>
-
 module IceRpc::Tests::Slice
 {
     // builtin types
-    using boolA = bool;
-    using byteA = byte;
-    using shortA = short;
-    using ushortA = ushort;
-    using intA = int;
-    using uintA = uint;
-    using varintA = varint;
-    using varuintA = varuint;
-    using longA = long;
-    using ulongA = ulong;
-    using varlongA = varlong;
-    using varulongA = varulong;
-    using floatA = float;
-    using doubleA = double;
-    using stringA = string;
+    typealias boolA = bool;
+    typealias byteA = byte;
+    typealias shortA = short;
+    typealias ushortA = ushort;
+    typealias intA = int;
+    typealias uintA = uint;
+    typealias varintA = varint;
+    typealias varuintA = varuint;
+    typealias longA = long;
+    typealias ulongA = ulong;
+    typealias varlongA = varlong;
+    typealias varulongA = varulong;
+    typealias floatA = float;
+    typealias doubleA = double;
+    typealias stringA = string;
 
-    using MyEnumA = MyEnum;
-    using MyStructA = MyStruct;
-    using MyClassAA = MyClassA;
+    typealias MyEnumA = MyEnum;
+    typealias MyStructA = MyStruct;
+    typealias MyClassAA = MyClassA;
 
-    using ByteSeqA = ByteSeq;
-    using StringListA = StringList;
-    using MyEnumDictA = MyEnumDict;
-    dictionary<MyEnumA, MyEnumA> MyEnumDict2;
+    typealias ByteSeqA = ByteSeq;
+    typealias StringListA = StringList;
+    typealias MyEnumDictA = MyEnumDict;
+    typealais MyEnumDict2 = dictionary<MyEnumA, MyEnumA>;
 
     interface AliasOperations
     {

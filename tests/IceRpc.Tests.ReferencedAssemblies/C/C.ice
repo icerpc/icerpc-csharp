@@ -2,8 +2,6 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-#include <B.ice>
-
 module IceRpc::Tests::ReferencedAssemblies
 {
     class ClassC : ClassB

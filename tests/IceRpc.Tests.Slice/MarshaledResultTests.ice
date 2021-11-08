@@ -2,14 +2,6 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-#pragma once
-
-#include <OperationsTests.ice>
-#include <StructTests.ice>
-#include <SequenceTests.ice>
-#include <DictionaryTests.ice>
-#include <ClassTests.ice>
-
 module IceRpc::Tests::Slice
 {
     interface  MarshaledResultOperations

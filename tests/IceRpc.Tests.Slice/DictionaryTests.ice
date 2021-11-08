@@ -2,75 +2,69 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-#pragma once
-
-#include <OperationsTests.ice>
-#include <EnumTests.ice>
-#include <StructTests.ice>
-
 module IceRpc::Tests::Slice
 {
-    dictionary<byte, byte> ByteDict;
-    dictionary<bool, bool> BoolDict;
-    dictionary<short, short> ShortDict;
-    dictionary<ushort, ushort> UShortDict;
-    dictionary<int, int> IntDict;
-    dictionary<varint, varint> VarIntDict;
-    dictionary<uint, uint> UIntDict;
-    dictionary<varuint, varuint> VarUIntDict;
-    dictionary<long, long> LongDict;
-    dictionary<varlong, varlong> VarLongDict;
-    dictionary<ulong, ulong> ULongDict;
-    dictionary<varulong, varulong> VarULongDict;
-    dictionary<string, string> StringDict;
+    typealias ByteDict = dictionary<byte, byte>;
+    typealias BoolDict = dictionary<bool, bool>;
+    typealias ShortDict = dictionary<short, short>;
+    typealias UShortDict = dictionary<ushort, ushort>;
+    typealias IntDict = dictionary<int, int>;
+    typealias VarIntDict = dictionary<varint, varint>;
+    typealias UIntDict = dictionary<uint, uint>;
+    typealias VarUIntDict = dictionary<varuint, varuint>;
+    typealias LongDict = dictionary<long, long>;
+    typealias VarLongDict = dictionary<varlong, varlong>;
+    typealias ULongDict = dictionary<ulong, ulong>;
+    typealias VarULongDict = dictionary<varulong, varulong>;
+    typealias StringDict = dictionary<string, string>;
 
-    dictionary<byte, byte?> OptionalByteDict;
-    dictionary<bool, bool?> OptionalBoolDict;
-    dictionary<short, short?> OptionalShortDict;
-    dictionary<ushort, ushort?> OptionalUShortDict;
-    dictionary<int, int?> OptionalIntDict;
-    dictionary<varint, varint?> OptionalVarIntDict;
-    dictionary<uint, uint?> OptionalUIntDict;
-    dictionary<varuint, varuint?> OptionalVarUIntDict;
-    dictionary<long, long?> OptionalLongDict;
-    dictionary<varlong, varlong?> OptionalVarLongDict;
-    dictionary<ulong, ulong?> OptionalULongDict;
-    dictionary<varulong, varulong?> OptionalVarULongDict;
-    dictionary<string, string?> OptionalStringDict;
+    typealias OptionalByteDict = dictionary<byte, byte?>;
+    typealias OptionalBoolDict = dictionary<bool, bool?>;
+    typealias OptionalShortDict = dictionary<short, short?>;
+    typealias OptionalUShortDict = dictionary<ushort, ushort?>;
+    typealias OptionalIntDict = dictionary<int, int?>;
+    typealias OptionalVarIntDict = dictionary<varint, varint?>;
+    typealias OptionalUIntDict = dictionary<uint, uint?>;
+    typealias OptionalVarUIntDict = dictionary<varuint, varuint?>;
+    typealias OptionalLongDict = dictionary<long, long?>;
+    typealias OptionalVarLongDict = dictionary<varlong, varlong?>;
+    typealias OptionalULongDict = dictionary<ulong, ulong?>;
+    typealias OptionalVarULongDict = dictionary<varulong, varulong?>;
+    typealias OptionalStringDict = dictionary<string, string?>;
 
-    dictionary<MyEnum, MyEnum> MyEnumDict;
-    dictionary<MyFixedLengthEnum, MyFixedLengthEnum> MyFixedLengthEnumDict;
-    dictionary<MyUncheckedEnum, MyUncheckedEnum> MyUncheckedEnumDict;
-    dictionary<MyStruct, MyStruct> MyStructDict;
-    dictionary<string, Operations> OperationsDict;
-    dictionary<string, AnotherStruct> AnotherStructDict;
+    typealias MyEnumDict = dictionary<MyEnum, MyEnum>;
+    typealias MyFixedLengthEnumDict = dictionary<MyFixedLengthEnum, MyFixedLengthEnum>;
+    typealias MyUncheckedEnumDict = dictionary<MyUncheckedEnum, MyUncheckedEnum>;
+    typealias MyStructDict = dictionary<MyStruct, MyStruct>;
+    typealias OperationsDict = dictionary<string, Operations>;
+    typealias AnotherStructDict = dictionary<string, AnotherStruct>;
 
-    dictionary<MyEnum, MyEnum?> OptionalMyEnumDict;
-    dictionary<MyFixedLengthEnum, MyFixedLengthEnum?> OptionalMyFixedLengthEnumDict;
-    dictionary<MyUncheckedEnum, MyUncheckedEnum?> OptionalMyUncheckedEnumDict;
-    dictionary<MyStruct, MyStruct?> OptionalMyStructDict;
-    dictionary<string, Operations?> OptionalOperationsDict;
-    dictionary<string, AnotherStruct?> OptionalAnotherStructDict;
+    typealias OptionalMyEnumDict = dictionary<MyEnum, MyEnum?>;
+    typealias OptionalMyFixedLengthEnumDict = dictionary<MyFixedLengthEnum, MyFixedLengthEnum?>;
+    typealias OptionalMyUncheckedEnumDict = dictionary<MyUncheckedEnum, MyUncheckedEnum?>;
+    typealias OptionalMyStructDict = dictionary<MyStruct, MyStruct?>;
+    typealias OptionalOperationsDict = dictionary<string, Operations?>;
+    typealias OptionalAnotherStructDict = dictionary<string, AnotherStruct?>;
 
-    [cs:generic(SortedDictionary)] dictionary<byte, byte> ByteSortedDict;
-    [cs:generic(SortedDictionary)] dictionary<bool, bool> BoolSortedDict;
-    [cs:generic(SortedDictionary)] dictionary<short, short> ShortSortedDict;
-    [cs:generic(SortedDictionary)] dictionary<ushort, ushort> UShortSortedDict;
-    [cs:generic(SortedDictionary)] dictionary<int, int> IntSortedDict;
-    [cs:generic(SortedDictionary)] dictionary<int, int?> OptionalIntSortedDict;
-    [cs:generic(SortedDictionary)] dictionary<varint, varint> VarIntSortedDict;
-    [cs:generic(SortedDictionary)] dictionary<uint, uint> UIntSortedDict;
-    [cs:generic(SortedDictionary)] dictionary<varuint, varuint> VarUIntSortedDict;
-    [cs:generic(SortedDictionary)] dictionary<long, long> LongSortedDict;
-    [cs:generic(SortedDictionary)] dictionary<varlong, varlong> VarLongSortedDict;
-    [cs:generic(SortedDictionary)] dictionary<ulong, ulong> ULongSortedDict;
-    [cs:generic(SortedDictionary)] dictionary<varulong, varulong> VarULongSortedDict;
-    [cs:generic(SortedDictionary)] dictionary<string, string> StringSortedDict;
-    [cs:generic(SortedDictionary)] dictionary<string, string?> OptionalStringSortedDict;
+    typealias ByteSortedDict = [cs:generic(SortedDictionary)] dictionary<byte, byte>;
+    typealias BoolSortedDict = [cs:generic(SortedDictionary)] dictionary<bool, bool>;
+    typealias ShortSortedDict = [cs:generic(SortedDictionary)] dictionary<short, short>;
+    typealias UShortSortedDict = [cs:generic(SortedDictionary)] dictionary<ushort, ushort>;
+    typealias IntSortedDict = [cs:generic(SortedDictionary)] dictionary<int, int>;
+    typealias OptionalIntSortedDict = [cs:generic(SortedDictionary)] dictionary<int, int?>;
+    typealias VarIntSortedDict = [cs:generic(SortedDictionary)] dictionary<varint, varint>;
+    typealias UIntSortedDict = [cs:generic(SortedDictionary)] dictionary<uint, uint>;
+    typealias VarUIntSortedDict = [cs:generic(SortedDictionary)] dictionary<varuint, varuint>;
+    typealias LongSortedDict = [cs:generic(SortedDictionary)] dictionary<long, long>;
+    typealias VarLongSortedDict = [cs:generic(SortedDictionary)] dictionary<varlong, varlong>;
+    typealias ULongSortedDict = [cs:generic(SortedDictionary)] dictionary<ulong, ulong>;
+    typealias VarULongSortedDict = [cs:generic(SortedDictionary)] dictionary<varulong, varulong>;
+    typealias StringSortedDict = [cs:generic(SortedDictionary)] dictionary<string, string>;
+    typealias OptionalStringSortedDict = [cs:generic(SortedDictionary)] dictionary<string, string?>;
 
-    [cs:generic(SortedDictionary)] dictionary<MyEnum, MyEnum> MyEnumSortedDict;
-    [cs:generic(SortedDictionary)] dictionary<MyFixedLengthEnum, MyFixedLengthEnum> MyFixedLengthEnumSortedDict;
-    [cs:generic(SortedDictionary)] dictionary<MyUncheckedEnum, MyUncheckedEnum> MyUncheckedEnumSortedDict;
+    typealias MyEnumSortedDict = [cs:generic(SortedDictionary)] dictionary<MyEnum, MyEnum>;
+    typealias MyFixedLengthEnumSortedDict = [cs:generic(SortedDictionary)] dictionary<MyFixedLengthEnum, MyFixedLengthEnum>;
+    typealias MyUncheckedEnumSortedDict = [cs:generic(SortedDictionary)] dictionary<MyUncheckedEnum, MyUncheckedEnum>;
 
     interface DictionaryOperations
     {

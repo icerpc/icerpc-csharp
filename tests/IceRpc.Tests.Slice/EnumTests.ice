@@ -2,8 +2,6 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-#pragma once
-
 module IceRpc::Tests::Slice
 {
     enum MyEnum

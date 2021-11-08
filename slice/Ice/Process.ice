@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-#pragma once
-
 [[suppress-warning(reserved-identifier)]]
 
 [cs:namespace(IceRpc)]

@@ -1,9 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-#pragma once
-
-#include <IceRpc/BuiltinSequences.ice>
-
 [[suppress-warning(reserved-identifier)]]
 
 [cs:namespace(IceRpc)]
@@ -30,6 +26,6 @@ module Ice
 
         /// The optional facet: an empty sequence represents a null facet, while a single element represents a non-null
         /// facet. However, a null facet and a non-null empty facet are always treated the same.
-        IceRpc::StringSeq optionalFacet;
+        sequence<string> optionalFacet;
     }
 }

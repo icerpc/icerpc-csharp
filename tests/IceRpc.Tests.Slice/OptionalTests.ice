@@ -2,14 +2,6 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-#pragma once
-
-#include <OperationsTests.ice>
-#include <EnumTests.ice>
-#include <StructTests.ice>
-#include <SequenceTests.ice>
-#include <DictionaryTests.ice>
-
 module IceRpc::Tests::Slice
 {
     struct OneOptional
