@@ -20,9 +20,7 @@ jobs:
     - name: Build Slice compiler
       run: make -j8 V=1 -C ./cpp
     - name: Add github NuGet respository
-      env:
-        NUGET_API_TOKEN: ${{ secrets.NUGET_API_TOKEN }}
-      run: dotnet nuget add source "https://nuget.pkg.github.com/zeroc-ice/index.json" -n GitHub -u pepone --store-password-in-clear-text -p $NUGET_API_TOKEN
+      run: dotnet nuget add source "https://nuget.pkg.github.com/zeroc-ice/index.json" -n GitHub -u pepone --store-password-in-clear-text -p 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
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
