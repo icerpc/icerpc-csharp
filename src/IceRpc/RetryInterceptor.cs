@@ -49,7 +49,8 @@ namespace IceRpc
                 {
                     RetryPolicy retryPolicy = RetryPolicy.NoRetry;
 
-                    // At this point, response can be non-null and carry a failure for which we're retrying.
+                    // At this point, response can be non-null and carry a failure for which we're retrying. So if
+                    // _next.InvokeAsync throws, we use this response-with-a-failure to decide whether or not to retry.
                     try
                     {
                         response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
@@ -79,6 +80,7 @@ namespace IceRpc
                         response = null;
                         exception = ex;
 
+                        // ConnectionClosedException is a graceful connection closure that is always safe to retry.
                         if (ex is ConnectionClosedException ||
                             (ex is TransportException && (request.IsIdempotent || !request.IsSent)))
                         {

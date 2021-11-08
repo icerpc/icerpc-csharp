@@ -28,7 +28,8 @@ namespace IceRpc
         }
     }
 
-    /// <summary>This exception indicates that a previous established connection was closed.</summary>
+    /// <summary>This exception indicates that a previous established connection was closed gracefully. It is safe to
+    /// retry a request that failed with this exception.</summary>
     public class ConnectionClosedException : Exception
     {
         /// <summary>Constructs a new instance of the <see cref="ConnectionClosedException"/> class.</summary>
