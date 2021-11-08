@@ -2,6 +2,34 @@
 
 ![.github/workflows/dotnet.yml](https://github.com/zeroc-ice/icerpc-csharp/workflows/.NET/badge.svg?branch=main)
 
+## Building
+
+The build depends on NuGet packages that are not publicly available, for accessing this packages you must create a
+`NuGet.config` file with the following contents.
+
+You must replace:
+* USERNAME with the name of your user account on GitHub
+* TOKEN with your personal access token. Create your token from https://github.com/settings/tokens and give it the
+  `read:packages` permission.
+
+```
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+    <packageSources>
+        <clear />
+        <add key="github" value="https://nuget.pkg.github.com/zeroc-ice/index.json" />
+    </packageSources>
+    <packageSourceCredentials>
+        <github>
+            <add key="Username" value="USERNAME" />
+            <add key="ClearTextPassword" value="TOKEN" />
+        </github>
+    </packageSourceCredentials>
+</configuration>
+```
+
+You can create the `NuGet.config` in the source folder or any folder up to the drive root.
+
 ## Testing
 
 The test suite can be run from the command line by running `dotnet test` command in the repository top-level
