@@ -93,7 +93,7 @@ namespace IceRpc.Internal
                         {
                             // The connection was gracefully shutdown, raise ConnectionClosedException here to ensure
                             // that the ClosedEvent will report this exception instead of the transport failure.
-                            throw new ConnectionClosedException();
+                            throw new ConnectionClosedException("connection gracefully shutdown");
                         }
                     }
                     throw;

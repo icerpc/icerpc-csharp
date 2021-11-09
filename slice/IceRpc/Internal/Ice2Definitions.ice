@@ -38,9 +38,9 @@ module IceRpc::Internal
         /// The go away frame is sent to notify the peer that the connection is being shutdown.
         GoAway = 6,
 
-        /// The go away completed frame is sent in response to a GoAway frame. It indicates that invocations and
-        // dispatches of the sender are completed. The connection is closed once this frame is received and once
-        // the local dispatch and invocations are also completed.
+        /// The go away completed frame after receiving a GoAway frame and once the invocations and dispatches are
+        /// completed. The connection is closed once the local dispatch and invocations are completed and once this
+        /// frame is received.
         GoAwayCompleted = 7,
     }
 

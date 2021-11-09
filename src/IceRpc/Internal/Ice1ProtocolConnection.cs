@@ -106,10 +106,11 @@ namespace IceRpc.Internal
                 {
                     lock (_mutex)
                     {
-                        // Peer close the connection following graceful shutdown.
+                        // The connection was gracefully shutdown, raise ConnectionClosedException here to ensure
+                        // that the ClosedEvent will report this exception instead of the transport failure.
                         if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
                         {
-                            throw new ConnectionClosedException("connection shutdown");
+                            throw new ConnectionClosedException("connection gracefully shutdown");
                         }
                         else
                         {
