@@ -10,7 +10,6 @@ namespace IceRpc.Transports.Internal
         bool INetworkConnection.IsSecure => _decoratee.IsSecure;
         TimeSpan INetworkConnection.LastActivity => _decoratee.LastActivity;
 
-        private readonly Action<ILogger, int, int> _logSuccess;
         private readonly ILogger _logger;
         private readonly UdpNetworkConnection _decoratee;
 
@@ -22,9 +21,7 @@ namespace IceRpc.Transports.Internal
             (ISimpleStream, NetworkConnectionInformation) result =
                 await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
 
-            _logSuccess(_logger,
-                        _decoratee.Socket.ReceiveBufferSize,
-                        _decoratee.Socket.SendBufferSize);
+            _logger.LogUdpConnect(_decoratee.Socket.ReceiveBufferSize, _decoratee.Socket.SendBufferSize);
 
             return result;
         }
@@ -34,22 +31,10 @@ namespace IceRpc.Transports.Internal
 
         public override string? ToString() => _decoratee.ToString();
 
-        internal LogUdpNetworkConnectionDecorator(UdpServerNetworkConnection udpServerNetworkConnection, ILogger logger)
-            : this(udpServerNetworkConnection, logger, server: true)
-        {
-        }
-
-        internal LogUdpNetworkConnectionDecorator(UdpClientNetworkConnection udpClientNetworkConnection, ILogger logger)
-            : this(udpClientNetworkConnection, logger, server: false)
-        {
-        }
-
-        private LogUdpNetworkConnectionDecorator(UdpNetworkConnection decoratee, ILogger logger, bool server)
+        internal LogUdpNetworkConnectionDecorator(UdpNetworkConnection decoratee, ILogger logger)
         {
             _decoratee = decoratee;
             _logger = logger;
-            _logSuccess = server ? UdpLoggerExtensions.LogUdpStartReceivingDatagrams :
-                UdpLoggerExtensions.LogUdpStartSendingDatagrams;
         }
     }
 }

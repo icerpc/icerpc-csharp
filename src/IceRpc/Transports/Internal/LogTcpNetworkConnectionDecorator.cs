@@ -13,7 +13,6 @@ namespace IceRpc.Transports.Internal
         TimeSpan INetworkConnection.LastActivity => _decoratee.LastActivity;
 
         private readonly TcpNetworkConnection _decoratee;
-        private readonly Action<ILogger, int, int> _logSuccess;
         private readonly ILogger _logger;
 
         void IDisposable.Dispose() => _decoratee.Dispose();
@@ -28,12 +27,10 @@ namespace IceRpc.Transports.Internal
 
                 if (_decoratee.SslStream is SslStream sslStream)
                 {
-                    _logger.LogTlsAuthenticationSucceeded(sslStream);
+                    _logger.LogTlsAuthentication(sslStream);
                 }
 
-                _logSuccess(_logger,
-                            _decoratee.Socket.ReceiveBufferSize,
-                            _decoratee.Socket.SendBufferSize);
+                _logger.LogTcpConnect(_decoratee.Socket.ReceiveBufferSize, _decoratee.Socket.SendBufferSize);
 
                 return result;
             }
@@ -49,23 +46,10 @@ namespace IceRpc.Transports.Internal
 
         public override string? ToString() => _decoratee.ToString();
 
-        internal LogTcpNetworkConnectionDecorator(TcpServerNetworkConnection tcpServerNetworkConnection, ILogger logger)
-            : this(tcpServerNetworkConnection, logger, server: true)
-        {
-        }
-
-        internal LogTcpNetworkConnectionDecorator(TcpClientNetworkConnection tcpClientNetworkConnection, ILogger logger)
-            : this(tcpClientNetworkConnection, logger, server: false)
-        {
-        }
-
-        private LogTcpNetworkConnectionDecorator(TcpNetworkConnection decoratee, ILogger logger, bool server)
+        internal LogTcpNetworkConnectionDecorator(TcpNetworkConnection decoratee, ILogger logger)
         {
             _decoratee = decoratee;
             _logger = logger;
-            _logSuccess = server ? TcpLoggerExtensions.LogTcpNetworkConnectionAccepted :
-                TcpLoggerExtensions.LogTcpNetworkConnectionEstablished;
-
         }
     }
 }
