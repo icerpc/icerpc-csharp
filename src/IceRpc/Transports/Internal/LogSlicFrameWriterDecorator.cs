@@ -27,6 +27,7 @@ namespace IceRpc.Transports.Internal
             catch (Exception exception)
             {
                 _logger.LogSendSlicFrameFailure((FrameType)buffers.Span[0].Span[0], exception);
+                throw;
             }
             LogSentFrame(buffers);
         }
@@ -47,6 +48,7 @@ namespace IceRpc.Transports.Internal
             catch (Exception exception)
             {
                 _logger.LogSendSlicFrameFailure(endStream ? FrameType.StreamLast : FrameType.Stream, exception);
+                throw;
             }
         }
 
