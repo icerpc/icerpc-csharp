@@ -35,6 +35,9 @@ namespace IceRpc.Internal
             }
         }
 
+        /// <inheritdoc/>
+        public event Action? PeerShutdownInitiated;
+
         // TODO: XXX, add back configuration to limit the number of concurrent dispatch.
         // private readonly AsyncSemaphore? _bidirectionalStreamSemaphore;
         private bool _shutdownCanceled;
@@ -456,22 +459,33 @@ namespace IceRpc.Internal
             }
             else
             {
+                bool alreadyShuttingDown = false;
                 lock (_mutex)
                 {
-                    _shutdown = true;
-                    if (_dispatches.Count == 0 && _invocations.Count == 0)
+                    if (_shutdown)
                     {
-                        _dispatchAndInvocationsCompleted.TrySetResult();
+                        alreadyShuttingDown = true;
+                    }
+                    else
+                    {
+                        _shutdown = true;
+                        if (_dispatches.Count == 0 && _invocations.Count == 0)
+                        {
+                            _dispatchAndInvocationsCompleted.TrySetResult();
+                        }
                     }
                 }
 
-                // Cancel pending invocations immediately. Wait for dispatches to complete however.
-                CancelInvocations(new OperationCanceledException(message));
-
-                // If shutdown was canceled and CancelInvocationsAndDispatch was called, cancel dispatches.
-                if (_shutdownCanceled)
+                if (!alreadyShuttingDown)
                 {
-                    CancelDispatches();
+                    // Cancel pending invocations immediately. Wait for dispatches to complete however.
+                    CancelInvocations(new OperationCanceledException(message));
+
+                    // If shutdown was canceled and CancelInvocationsAndDispatch was called, cancel dispatches.
+                    if (_shutdownCanceled)
+                    {
+                        CancelDispatches();
+                    }
                 }
 
                 // Wait for dispatches to complete.
@@ -556,7 +570,6 @@ namespace IceRpc.Internal
                 if (_dispatches.Count > 0)
                 {
                     dispatches = _dispatches.ToArray();
-                    _dispatches.Clear();
                 }
             }
 
@@ -581,7 +594,6 @@ namespace IceRpc.Internal
                 if (_invocations.Count > 0)
                 {
                     invocations = _invocations.Values.ToArray();
-                    _invocations.Clear();
                 }
             }
 
@@ -689,6 +701,15 @@ namespace IceRpc.Internal
                             // If local shutdown is in progress, shutdown from peer prevails. The local shutdown
                             // will return once the connection disposes this protocol connection.
                             _shutdown = true;
+                        }
+
+                        try
+                        {
+                            PeerShutdownInitiated?.Invoke();
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.Assert(false, $"{nameof(PeerShutdownInitiated)} raised unexpected exception\n{ex}");
                         }
 
                         var exception = new ConnectionClosedException("connection shutdown by peer");

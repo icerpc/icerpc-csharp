@@ -325,7 +325,7 @@ namespace IceRpc
                 request.Stream?.Abort(StreamError.InvocationCanceled);
                 throw;
             }
-            catch (ConnectionClosedException ex)
+            catch (ConnectionClosedException)
             {
                 // If the peer gracefully shuts down the connection, it's always safe to retry since only
                 // streams not processed by the peer are aborted.
@@ -364,7 +364,9 @@ namespace IceRpc
             Task shutdownTask;
             lock (_mutex)
             {
-                if (_state == ConnectionState.Active)
+                // The connection might already be in the closing state if peer initiated shutdown. We still perform
+                // shutdown in this case to wait for shutdown completion.
+                if (_state == ConnectionState.Active || _state == ConnectionState.Closing)
                 {
                     _state = ConnectionState.Closing;
                     _closeTask ??= PerformShutdownAsync();
@@ -516,6 +518,19 @@ namespace IceRpc
                     _state = ConnectionState.Active;
 
                     _closed += closedEventHandler;
+
+                    // Switch the connection to the Closing state as soon as the protocol receives a notification
+                    // that peer initiated shutdown.
+                    _protocolConnection.PeerShutdownInitiated += () =>
+                        {
+                            lock(_mutex)
+                            {
+                                if (_state == ConnectionState.Active)
+                                {
+                                    _state = ConnectionState.Closing;
+                                }
+                            }
+                        };
 
                     // Setup a timer to check for the connection idle time every IdleTimeout / 2 period. If the
                     // transport doesn't support idle timeout (e.g.: the colocated transport), IdleTimeout will

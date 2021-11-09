@@ -4,6 +4,7 @@ using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
+using System.Diagnostics;
 
 namespace IceRpc.Internal
 {
@@ -32,6 +33,9 @@ namespace IceRpc.Internal
                 }
             }
         }
+
+        /// <inheritdoc/>
+        public event Action? PeerShutdownInitiated;
 
         private readonly CancellationTokenSource _shutdownCancellationTokenSource = new();
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
@@ -631,12 +635,10 @@ namespace IceRpc.Internal
                 if (_invocations.Count > 0)
                 {
                     invocations = _invocations.ToArray();
-                    _invocations.Clear();
                 }
                 if (_dispatches.Count > 0)
                 {
                     dispatches = _dispatches.ToArray();
-                    _dispatches.Clear();
                 }
             }
 
@@ -742,6 +744,16 @@ namespace IceRpc.Internal
                 Ice2FrameType.GoAway,
                 _shutdownCancellationTokenSource.Token).ConfigureAwait(false);
             var goAwayFrame = new Ice2GoAwayBody(new Ice20Decoder(buffer));
+
+            // Raise the peer shutdown initiated event.
+            try
+            {
+                PeerShutdownInitiated?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                Debug.Assert(false, $"{nameof(PeerShutdownInitiated)} raised unexpected exception\n{ex}");
+            }
 
             IEnumerable<OutgoingRequest> invocations = Enumerable.Empty<OutgoingRequest>();
             bool alreadyShuttingDown = false;

@@ -16,6 +16,9 @@ namespace IceRpc.Internal
         /// otherwise.</summary>
         bool HasInvocationsInProgress { get; }
 
+        /// <summary>This event is raised when the protocol connection is notified of the peer shutdown.</summary>
+        event Action? PeerShutdownInitiated;
+
         /// <summary>The <see cref="Connection.ShutdownAsync(CancellationToken)"/> call has been canceled. The protocol
         /// implementation should take action to speed-up the shutdown when notified of the cancellation by this
         /// method.</summary>

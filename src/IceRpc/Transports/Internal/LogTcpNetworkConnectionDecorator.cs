@@ -65,7 +65,6 @@ namespace IceRpc.Transports.Internal
             _logger = logger;
             _logSuccess = server ? TcpLoggerExtensions.LogTcpNetworkConnectionAccepted :
                 TcpLoggerExtensions.LogTcpNetworkConnectionEstablished;
-
         }
     }
 }
