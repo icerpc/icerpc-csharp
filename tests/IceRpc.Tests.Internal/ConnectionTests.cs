@@ -82,7 +82,7 @@ namespace IceRpc.Tests.Internal
                     ProtocolConnectionFactory<T> protocolConnectionFactory) where T : INetworkConnection
                 {
                     using IListener<T> listener =
-                        serverTransport.Listen(Endpoint, LogAttributeLoggerFactory.Instance);
+                        serverTransport.Listen(Endpoint, LogAttributeLoggerFactory.Instance.Server);
                     Task<Connection> serverTask = AcceptAsync(listener, protocolConnectionFactory);
                     Task<Connection> clientTask = ConnectAsync(listener.Endpoint);
                     return (await serverTask, await clientTask);
@@ -307,9 +307,9 @@ namespace IceRpc.Tests.Internal
                 new TcpServerTransport(new TcpServerOptions { ListenerBackLog = 1 });
 
             using IListener listener = protocol == ProtocolCode.Ice1 ?
-                tcpServerTransport.Listen(endpoint, LogAttributeLoggerFactory.Instance) :
+                tcpServerTransport.Listen(endpoint, LogAttributeLoggerFactory.Instance.Server) :
                 (new SlicServerTransport(tcpServerTransport) as IServerTransport<IMultiplexedNetworkConnection>).
-                    Listen(endpoint, LogAttributeLoggerFactory.Instance);
+                    Listen(endpoint, LogAttributeLoggerFactory.Instance.Server);
 
             await using var connection = new Connection
             {

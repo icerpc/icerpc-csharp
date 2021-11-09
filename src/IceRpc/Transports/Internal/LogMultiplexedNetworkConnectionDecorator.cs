@@ -26,9 +26,8 @@ namespace IceRpc.Transports.Internal
                 throw;
             }
 
-            multiplexedStreamFactory = new LogMultiplexedStreamFactoryDecorator(this, multiplexedStreamFactory);
-            LogConnected();
-            return (multiplexedStreamFactory, Information.Value);
+            LogConnect();
+            return (new LogMultiplexedStreamFactoryDecorator(this, multiplexedStreamFactory), Information.Value);
         }
 
         internal static IMultiplexedNetworkConnection Decorate(
@@ -75,6 +74,7 @@ namespace IceRpc.Transports.Internal
         public long Id => _decoratee.Id;
         public bool IsBidirectional => _decoratee.IsBidirectional;
         public bool IsStarted => _decoratee.IsStarted;
+
         public Action? ShutdownAction
         {
             get => _decoratee.ShutdownAction;
@@ -94,8 +94,9 @@ namespace IceRpc.Transports.Internal
 
         public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
+            using IDisposable? _ = IsStarted ? _parent.Logger.StartStreamScope(Id) : null;
             int received = await _decoratee.ReadAsync(buffer, cancel).ConfigureAwait(false);
-            _parent.LogReceivedData(buffer[0..received]);
+            _parent.LogStreamRead(buffer[0..received]);
             return received;
         }
 
@@ -104,17 +105,16 @@ namespace IceRpc.Transports.Internal
             bool endStream,
             CancellationToken cancel)
         {
+            using IDisposable? _ = IsStarted ? _parent.Logger.StartStreamScope(Id) : null;
             await _decoratee.WriteAsync(buffers, endStream, cancel).ConfigureAwait(false);
-            _parent.LogSentData(buffers);
+            _parent.LogStreamWrite(buffers);
         }
 
         public Task WaitForShutdownAsync(CancellationToken cancel) => _decoratee.WaitForShutdownAsync(cancel);
 
         public override string? ToString() => _decoratee.ToString();
 
-        internal LogMultiplexedStreamDecorator(
-            LogNetworkConnectionDecorator parent,
-            IMultiplexedStream decoratee)
+        internal LogMultiplexedStreamDecorator(LogNetworkConnectionDecorator parent, IMultiplexedStream decoratee)
         {
             _parent = parent;
             _decoratee = decoratee;

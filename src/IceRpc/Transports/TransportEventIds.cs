@@ -5,26 +5,11 @@ namespace IceRpc.Transports
     /// <summary>This enum contains event ID constants used for transport logging.</summary>
     public enum TransportEventIds
     {
-        /// <summary>A client connection was closed.</summary>
-        ClientConnectionClosed = IceRpc.Internal.BaseEventIds.Transport,
+        /// <summary>Connect on a network connection succeeded.</summary>
+        Connect = IceRpc.Internal.BaseEventIds.Transport,
 
-        /// <summary>The transport accepted a new connection.</summary>
-        ConnectionAccepted,
-
-        /// <summary>The transport failed to accept a connection.</summary>
-        ConnectionAcceptFailed,
-
-        /// <summary>The exception that triggered the closure of a connection.</summary>
-        ConnectionClosedReason,
-
-        /// <summary>A connection event handler threw an exception.</summary>
-        ConnectionEventHandlerException,
-
-        /// <summary>The ConnectAsync operation failed.</summary>
-        ConnectionConnectFailed,
-
-        /// <summary>The connection connect operation succeed.</summary>
-        ConnectionEstablished,
+        /// <summary>Connect on a network connection failed.</summary>
+        ConnectFailed,
 
         /// <summary>The transport failed to accept a connection.</summary>
         ListenerAcceptConnectionFailed,
@@ -35,37 +20,13 @@ namespace IceRpc.Transports
         /// <summary>The listener is shutdown and no longer accepts connections.</summary>
         ListenerShutDown,
 
-        /// <summary>The transport received data.</summary>
-        ReceivedData,
-
-        /// <summary>The transport received an invalid datagram message.</summary>
-        ReceivedInvalidDatagram,
+        /// <summary>Successfully read data from a transport stream.</summary>
+        StreamRead,
 
         /// <summary>The transport sent data.</summary>
-        SentData,
+        StreamWrite,
 
-        /// <summary>A server connection was closed.</summary>
-        ServerConnectionClosed,
-
-        /// <summary>The transport starts accepting connections.</summary>
-        StartAcceptingConnections,
-
-        /// <summary>The transport starts receiving datagram messages.</summary>
-        StartReceivingDatagrams,
-
-        /// <summary>The transport failed to start receiving datagram messages.</summary>
-        StartReceivingDatagramsFailed,
-
-        /// <summary>The transport starts sending datagram messages.</summary>
-        StartSendingDatagrams,
-
-        /// <summary>The transport failed to start sending datagram messages.</summary>
-        StartSendingDatagramsFailed,
-
-        /// <summary>The transport stops accepting connections.</summary>
-        StopAcceptingConnections,
-
-        /// <summary>The transport stops receiving datagram messages.</summary>
-        StopReceivingDatagrams,
+        /// <summary>A network connection was disposed.</summary>
+        ConnectionDispose,
     }
 }

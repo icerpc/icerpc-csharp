@@ -212,12 +212,13 @@ namespace IceRpc
                 // This is the composition root of client Connections, where we install log decorators when logging is
                 // enabled.
 
-                T networkConnection = clientTransport.CreateConnection(RemoteEndpoint, LoggerFactory);
+                ILogger logger = LoggerFactory.CreateLogger("IceRpc.Client");
+
+                T networkConnection = clientTransport.CreateConnection(RemoteEndpoint, logger);
 
                 EventHandler<ClosedEventArgs>? closedEventHandler = null;
 
-                if (LoggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger &&
-                    logger.IsEnabled(LogLevel.Error)) // TODO: log level
+                if (logger.IsEnabled(LogLevel.Error)) // TODO: log level
                 {
                     networkConnection = logDecoratorFactory(networkConnection,
                                                             isServer: false,
@@ -234,7 +235,10 @@ namespace IceRpc
                                                                 isServer,
                                                                 cancel).ConfigureAwait(false);
 
-                        return (new LogProtocolConnectionDecorator(protocolConnection, logger),
+                        return (new LogProtocolConnectionDecorator(protocolConnection,
+                                                                   connectionInformation,
+                                                                   isServer: false,
+                                                                   logger),
                                 connectionInformation);
                     };
 

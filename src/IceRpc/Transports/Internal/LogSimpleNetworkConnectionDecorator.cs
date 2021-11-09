@@ -23,10 +23,8 @@ namespace IceRpc.Transports.Internal
                 throw;
             }
 
-            simpleStream = new LogSimpleStreamDecorator(this, simpleStream);
-
-            LogConnected();
-            return (simpleStream, Information.Value);
+            LogConnect();
+            return (new LogSimpleStreamDecorator(this, simpleStream), Information.Value);
         }
 
         internal static ISimpleNetworkConnection Decorate(
@@ -52,7 +50,7 @@ namespace IceRpc.Transports.Internal
         public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             int received = await _decoratee.ReadAsync(buffer, cancel).ConfigureAwait(false);
-            _parent.LogReceivedData(buffer[0..received]);
+            _parent.LogStreamRead(buffer[0..received]);
             return received;
         }
 
@@ -61,12 +59,10 @@ namespace IceRpc.Transports.Internal
         public async ValueTask WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
         {
             await _decoratee.WriteAsync(buffers, cancel).ConfigureAwait(false);
-            _parent.LogSentData(buffers);
+            _parent.LogStreamWrite(buffers);
         }
 
-        internal LogSimpleStreamDecorator(
-            LogNetworkConnectionDecorator parent,
-            ISimpleStream decoratee)
+        internal LogSimpleStreamDecorator(LogNetworkConnectionDecorator parent, ISimpleStream decoratee)
         {
             _parent = parent;
             _decoratee = decoratee;

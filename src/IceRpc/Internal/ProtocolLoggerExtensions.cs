@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 namespace IceRpc.Internal
 {
     /// <summary>This class contains the ILogger extension methods for logging protocol messages.</summary>
-    // TODO: split Ice1 and Ice2 protocol logger extensions.
+    // TODO: split into Ice1LoggerExtensions and Ice2LoggerExtensions.
     internal static partial class ProtocolLoggerExtensions
     {
         [LoggerMessage(
@@ -35,60 +35,6 @@ namespace IceRpc.Internal
             Level = LogLevel.Debug,
             Message = "received batch request (RequestCount={RequestCount})")]
         internal static partial void LogReceivedIce1RequestBatchFrame(this ILogger logger, int requestCount);
-
-        [LoggerMessage(
-            EventId = (int)ProtocolEventIds.ReceivedRequestFrame,
-            EventName = nameof(ProtocolEventIds.ReceivedRequestFrame),
-            Level = LogLevel.Debug,
-            Message = "received request frame (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
-                      "PayloadEncoding={PayloadEncoding})")]
-        internal static partial void LogReceivedRequestFrame(
-            this ILogger logger,
-            string path,
-            string operation,
-            int payloadSize,
-            Encoding payloadEncoding);
-
-        [LoggerMessage(
-            EventId = (int)ProtocolEventIds.ReceivedResponseFrame,
-            EventName = nameof(ProtocolEventIds.ReceivedResponseFrame),
-            Level = LogLevel.Debug,
-            Message = "received response frame (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
-                      "PayloadEncoding={PayloadEncoding}, ResultType={ResultType})")]
-        internal static partial void LogReceivedResponseFrame(
-            this ILogger logger,
-            string path,
-            string operation,
-            int payloadSize,
-            Encoding payloadEncoding,
-            ResultType resultType);
-
-        [LoggerMessage(
-            EventId = (int)ProtocolEventIds.SentRequestFrame,
-            EventName = nameof(ProtocolEventIds.SentRequestFrame),
-            Level = LogLevel.Debug,
-            Message = "sent request frame (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
-                      "PayloadEncoding={PayloadEncoding})")]
-        internal static partial void LogSentRequestFrame(
-            this ILogger logger,
-            string path,
-            string operation,
-            int payloadSize,
-            Encoding payloadEncoding);
-
-        [LoggerMessage(
-            EventId = (int)ProtocolEventIds.SentResponseFrame,
-            EventName = nameof(ProtocolEventIds.SentResponseFrame),
-            Level = LogLevel.Debug,
-            Message = "sent response frame (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
-                      "PayloadEncoding={PayloadEncoding}, ResultType={ResultType})")]
-        internal static partial void LogSentResponseFrame(
-            this ILogger logger,
-            string path,
-            string operation,
-            int payloadSize,
-            Encoding payloadEncoding,
-            ResultType resultType);
 
         [LoggerMessage(
             EventId = (int)ProtocolEventIds.ReceivedGoAwayFrame,
@@ -122,6 +68,13 @@ namespace IceRpc.Internal
             Level = LogLevel.Debug,
             Message = "received initialize frame (IncomingFrameMaxSize={IncomingFrameMaxSize})")]
         internal static partial void LogReceivedInitializeFrame(this ILogger logger, int incomingFrameMaxSize);
+
+        [LoggerMessage(
+            EventId = (int)ProtocolEventIds.ReceivedInvalidDatagram,
+            EventName = nameof(ProtocolEventIds.ReceivedInvalidDatagram),
+            Level = LogLevel.Debug,
+            Message = "received invalid {Bytes} bytes datagram")]
+        internal static partial void LogReceivedInvalidDatagram(this ILogger logger, int bytes);
 
         [LoggerMessage(
             EventId = (int)ProtocolEventIds.SentGoAwayFrame,

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System.Text;
 
@@ -16,12 +17,13 @@ namespace IceRpc.Transports.Internal
         public bool IsSecure => Decoratee.IsSecure;
         public TimeSpan LastActivity => Decoratee.LastActivity;
 
-        protected NetworkConnectionInformation? Information { get; set; }
+        internal ILogger Logger { get; }
 
         private protected abstract INetworkConnection Decoratee { get; }
 
         private protected bool IsServer { get; }
-        private protected ILogger Logger { get; }
+
+        private protected NetworkConnectionInformation? Information { get; set; }
 
         private readonly Endpoint _endpoint;
 
@@ -31,19 +33,10 @@ namespace IceRpc.Transports.Internal
 
             if (Information is NetworkConnectionInformation connectionInformation)
             {
-                using IDisposable? scope = Logger.StartConnectionScope(connectionInformation, IsServer);
-
-                if (IsServer)
-                {
-                    Logger.LogServerConnectionClosed();
-                }
-                else
-                {
-                    Logger.LogClientConnectionClosed();
-                }
+                using IDisposable scope = Logger.StartConnectionScope(connectionInformation, IsServer);
+                Logger.LogConnectionDispose();
             }
             // We don't emit a log when closing a connection that was not connected.
-
         }
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) => Decoratee.HasCompatibleParams(remoteEndpoint);
@@ -60,7 +53,7 @@ namespace IceRpc.Transports.Internal
             Logger = logger;
         }
 
-        internal void LogReceivedData(Memory<byte> buffer)
+        internal void LogStreamRead(Memory<byte> buffer)
         {
             var sb = new StringBuilder();
             for (int i = 0; i < Math.Min(buffer.Length, 32); ++i)
@@ -71,11 +64,10 @@ namespace IceRpc.Transports.Internal
             {
                 _ = sb.Append("...");
             }
-            using IDisposable? scope = Logger.StartConnectionScope(Information!.Value, IsServer);
-            Logger.LogReceivedData(buffer.Length, sb.ToString().Trim());
+            Logger.LogStreamRead(buffer.Length, sb.ToString().Trim());
         }
 
-        internal void LogSentData(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
+        internal void LogStreamWrite(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
         {
             int size = 0;
             var sb = new StringBuilder();
@@ -95,37 +87,19 @@ namespace IceRpc.Transports.Internal
                     _ = sb.Append("...");
                 }
             }
-            using IDisposable? scope = Logger.StartConnectionScope(Information!.Value, IsServer);
-            Logger.LogSentData(size, sb.ToString().Trim());
+            Logger.LogStreamWrite(size, sb.ToString().Trim());
         }
 
-        private protected void LogConnected()
+        private protected void LogConnect()
         {
-            using IDisposable? scope = Logger.StartConnectionScope(Information!.Value, IsServer);
-
-            if (IsServer)
-            {
-                Logger.LogConnectionAccepted();
-            }
-            else
-            {
-                Logger.LogConnectionEstablished();
-            }
+            using IDisposable scope = Logger.StartConnectionScope(Information!.Value, IsServer);
+            Logger.LogConnect();
         }
 
         private protected void LogConnectFailed(Exception ex)
         {
-            using IDisposable? scope = Logger.StartConnectionScope(_endpoint, IsServer);
-
-            // TODO: different log messages for UDP?
-            if (IsServer)
-            {
-                Logger.LogConnectionAcceptFailed(ex);
-            }
-            else
-            {
-                Logger.LogConnectionConnectFailed(ex);
-            }
+            using IDisposable scope = Logger.StartConnectionScope(_endpoint, IsServer);
+            Logger.LogConnectFailed(ex);
         }
     }
 }

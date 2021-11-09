@@ -57,7 +57,7 @@ namespace IceRpc.Tests.Internal
                     _serverEndpoint.Transport,
                     options: null,
                     slicOptions: _serverOptions as SlicOptions).Listen(_serverEndpoint,
-                                                                       LogAttributeLoggerFactory.Instance);
+                                                                       LogAttributeLoggerFactory.Instance.Server);
             return await listener.AcceptAsync();
         }
 
@@ -67,7 +67,7 @@ namespace IceRpc.Tests.Internal
                 TestHelper.CreateMultiplexedClientTransport(
                     _clientEndpoint.Transport,
                     slicOptions: _clientOptions as SlicOptions);
-            return clientTransport.CreateConnection(_clientEndpoint, LogAttributeLoggerFactory.Instance);
+            return clientTransport.CreateConnection(_clientEndpoint, LogAttributeLoggerFactory.Instance.Client);
         }
 
         protected static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateSendPayload(
