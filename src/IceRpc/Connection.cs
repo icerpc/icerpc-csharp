@@ -160,6 +160,11 @@ namespace IceRpc
         /// for the events to be executed.</summary>
         /// <param name="message">A description of the connection close reason.</param>
         public Task CloseAsync(string? message = null) =>
+            // TODO: the retry interceptor considers ConnectionClosedException as always retryable. Raising this
+            // exception here is therefore wrong when aborting the connection. Invocations which are in progress
+            // shouldn't be retried unless not sent or idempotent.
+            // TODO2: consider removing this method? Throw ObjectDisposedException instead?
+            // TODO3: AbortAsync would be a better name.
             CloseAsync(new ConnectionClosedException(message ?? "connection closed forcefully"));
 
         /// <summary>Establishes the connection.</summary>

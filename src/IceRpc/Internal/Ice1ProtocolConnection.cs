@@ -63,17 +63,14 @@ namespace IceRpc.Internal
             // we raise ConnectionLostException.
             var exception = new ConnectionLostException();
 
-            lock (_mutex)
-            {
-                // Unblock ShutdownAsync which might be waiting for the connection to be disposed.
-                _pendingClose.TrySetResult();
+            // Unblock ShutdownAsync which might be waiting for the connection to be disposed.
+            _pendingClose.TrySetResult();
 
-                // Unblock invocations which are waiting to be sent.
-                _sendSemaphore.Complete(exception);
+            // Unblock invocations which are waiting to be sent.
+            _sendSemaphore.Complete(exception);
 
-                // Unblock ShutdownAsync if it's waiting for invocations and dispatches to complete.
-                _dispatchAndInvocationsCompleted.TrySetException(exception);
-            }
+            // Unblock ShutdownAsync if it's waiting for invocations and dispatches to complete.
+            _dispatchAndInvocationsCompleted.TrySetException(exception);
 
             CancelInvocations(exception);
             CancelDispatches();
@@ -342,20 +339,13 @@ namespace IceRpc.Internal
                 // Mark the request as sent and, if it's a twoway request, keep track of it.
                 request.IsSent = true;
             }
-            catch
+            catch (ObjectDisposedException exception)
             {
-                lock (_mutex)
-                {
-                    if (_invocations.Remove(requestId))
-                    {
-                        // If no more invocations or dispatches and shutting down, shutdown can complete.
-                        if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
-                        {
-                            _dispatchAndInvocationsCompleted.TrySetResult();
-                        }
-                    }
-                }
-                throw;
+                // If the network connection has been disposed, we raise ConnectionLostException to ensure the
+                // request is retried by the retry interceptor.
+                // TODO: this is clunky but required for retries to work because the retry interceptor only retry
+                // a request if the exception is a transport exception.
+                throw new ConnectionLostException(exception);
             }
             finally
             {
@@ -703,6 +693,7 @@ namespace IceRpc.Internal
                             _shutdown = true;
                         }
 
+                        // Raise the peer shutdown initiated event.
                         try
                         {
                             PeerShutdownInitiated?.Invoke();
