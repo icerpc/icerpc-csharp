@@ -129,6 +129,7 @@ fn try_main() -> Result<(), ()> {
                             format!("failed to write to file {}: {}", &path.display(), err).into(),
                             None,
                         );
+
                         continue;
                     }
                 }
@@ -169,7 +170,6 @@ fn file_is_up_to_date(generated_code: &str, path: &Path) -> bool {
         if io::copy(&mut file, &mut hasher).is_ok() {
             let file_hash = hasher.finalize();
             if generated_code_hash == file_hash {
-                println!("{} is up to date", path.display());
                 return true;
             }
         }
