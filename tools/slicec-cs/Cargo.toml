@@ -14,6 +14,7 @@ edition = "2018"
 slicec = { git = "https://github.com/zeroc-ice/icerpc", version = "0.1.0" }
 structopt = "0.3.13"
 regex = "1.5"
+blake2 = "0.9.2"
 
 [[bin]]
 name = "slicec-cs"
