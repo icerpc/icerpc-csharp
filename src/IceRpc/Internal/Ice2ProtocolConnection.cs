@@ -663,7 +663,7 @@ namespace IceRpc.Internal
                 // Read the frame type and first byte of the size.
                 await stream.ReadUntilFullAsync(buffer[0..2], cancel).ConfigureAwait(false);
                 var frameType = (Ice2FrameType)buffer.Span[0];
-                if (frameType > Ice2FrameType.GoAwayAck)
+                if (frameType > Ice2FrameType.GoAwayCompleted)
                 {
                     throw new InvalidDataException($"invalid Ice2 frame type {frameType}");
                 }
@@ -791,15 +791,20 @@ namespace IceRpc.Internal
             // Wait for dispatches and invocations to complete.
             await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
 
-            await SendControlFrameAsync(Ice2FrameType.GoAwayAck, frameEncodeAction: null, cancel).ConfigureAwait(false);
+            // We are done with the shutdown, notify the peer that shutdown completed on our side.
+            await SendControlFrameAsync(
+                Ice2FrameType.GoAwayCompleted,
+                frameEncodeAction: null,
+                cancel).ConfigureAwait(false);
 
+            // Wait for the peer to complete its side of the shutdown.
             buffer = await ReceiveFrameAsync(
                 _remoteControlStream!,
-                Ice2FrameType.GoAwayAck,
+                Ice2FrameType.GoAwayCompleted,
                 cancel).ConfigureAwait(false);
             if (!buffer.IsEmpty)
             {
-                throw new InvalidDataException($"{nameof(Ice2FrameType.GoAwayAck)} frame is not empty");
+                throw new InvalidDataException($"{nameof(Ice2FrameType.GoAwayCompleted)} frame is not empty");
             }
         }
     }
