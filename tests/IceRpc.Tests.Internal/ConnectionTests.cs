@@ -5,7 +5,6 @@ using IceRpc.Internal;
 using IceRpc.Transports;
 using NUnit.Framework;
 using System.Collections.Immutable;
-using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Tests.Internal
@@ -58,11 +57,9 @@ namespace IceRpc.Tests.Internal
 
             private Connection? _cachedClientConnection;
             private Connection? _cachedServerConnection;
-            private readonly SslClientAuthenticationOptions? _clientAuthenticationOptions;
             private readonly ConnectionOptions _clientConnectionOptions;
             private readonly object? _clientTransportOptions;
             private readonly IDispatcher? _dispatcher;
-            private readonly SslServerAuthenticationOptions? _serverAuthenticationOptions;
             private readonly ConnectionOptions _serverConnectionOptions;
             private readonly object? _serverTransportOptions;
 
@@ -72,27 +69,22 @@ namespace IceRpc.Tests.Internal
                     PerformAcceptAndConnectAsync(
                         TestHelper.CreateSimpleServerTransport(
                             Endpoint.Transport,
-                            options: _serverTransportOptions,
-                            authenticationOptions: _serverAuthenticationOptions),
+                            options: _serverTransportOptions),
                             Connection.CreateProtocolConnectionAsync) :
                     PerformAcceptAndConnectAsync(
                         TestHelper.CreateMultiplexedServerTransport(
                             Endpoint.Transport,
-                            options: _serverTransportOptions as TcpOptions,
-                            authenticationOptions: _serverAuthenticationOptions),
+                            options: _serverTransportOptions as TcpServerOptions),
                         Connection.CreateProtocolConnectionAsync);
 
                 async Task<(Connection, Connection)> PerformAcceptAndConnectAsync<T>(
                     IServerTransport<T> serverTransport,
-                    ProtocolConnectionFactory<T> protocolConnectionFactory
-                ) where T : INetworkConnection
+                    ProtocolConnectionFactory<T> protocolConnectionFactory) where T : INetworkConnection
                 {
                     using IListener<T> listener =
                         serverTransport.Listen(Endpoint, LogAttributeLoggerFactory.Instance);
-                    #pragma warning disable CA2000
                     Task<Connection> serverTask = AcceptAsync(listener, protocolConnectionFactory);
                     Task<Connection> clientTask = ConnectAsync(listener.Endpoint);
-                    #pragma warning restore CA2000
                     return (await serverTask, await clientTask);
                 }
 
@@ -107,7 +99,9 @@ namespace IceRpc.Tests.Internal
                         Dispatcher = _dispatcher,
                         Options = _serverConnectionOptions
                     };
-                    await connection.ConnectAsync<T>(networkConnection, protocolConnectionFactory);
+                    await connection.ConnectAsync<T>(networkConnection,
+                                                     protocolConnectionFactory,
+                                                     closedEventHandler: null);
                     return connection;
                 }
 
@@ -118,8 +112,7 @@ namespace IceRpc.Tests.Internal
                         {
                             SimpleClientTransport = TestHelper.CreateSimpleClientTransport(
                                 endpoint.Transport,
-                                options: _clientTransportOptions,
-                                authenticationOptions: _clientAuthenticationOptions),
+                                options: _clientTransportOptions),
                             Options = _clientConnectionOptions,
                             RemoteEndpoint = endpoint
                         } :
@@ -127,8 +120,7 @@ namespace IceRpc.Tests.Internal
                         {
                             MultiplexedClientTransport = TestHelper.CreateMultiplexedClientTransport(
                                 endpoint.Transport,
-                                options: _clientTransportOptions as TcpOptions,
-                                authenticationOptions: _clientAuthenticationOptions),
+                                options: _clientTransportOptions as TcpClientOptions),
                             Options = _clientConnectionOptions,
                             RemoteEndpoint = endpoint
                         };
@@ -163,7 +155,10 @@ namespace IceRpc.Tests.Internal
                 _serverTransportOptions = serverTransportOptions;
                 if (secure)
                 {
-                    _clientAuthenticationOptions = new()
+                    _clientTransportOptions ??= new TcpClientOptions();
+                    var tcpClientOptions = (TcpClientOptions)_clientTransportOptions;
+
+                    tcpClientOptions.AuthenticationOptions = new()
                     {
                         RemoteCertificateValidationCallback =
                             CertificateValidaton.GetServerCertificateValidationCallback(
@@ -173,7 +168,10 @@ namespace IceRpc.Tests.Internal
                                 })
                     };
 
-                    _serverAuthenticationOptions = new()
+                    _serverTransportOptions ??= new TcpServerOptions();
+                    var tcpServerOptions = (TcpServerOptions)_serverTransportOptions;
+
+                    tcpServerOptions.AuthenticationOptions = new()
                     {
                         ClientCertificateRequired = false,
                         ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
@@ -281,11 +279,11 @@ namespace IceRpc.Tests.Internal
             await using var factory = new ConnectionFactory(
                 "tcp",
                 protocol,
-                clientTransportOptions: new TcpOptions()
+                clientTransportOptions: new TcpClientOptions()
                 {
                     IdleTimeout = idleOnClient ? TimeSpan.FromMilliseconds(500) : TimeSpan.FromHours(1)
                 },
-                serverTransportOptions: new TcpOptions()
+                serverTransportOptions: new TcpServerOptions()
                 {
                     IdleTimeout = idleOnClient ? TimeSpan.FromHours(1) : TimeSpan.FromMilliseconds(500)
                 });
@@ -306,7 +304,7 @@ namespace IceRpc.Tests.Internal
                 protocol: Protocol.FromProtocolCode(protocol));
 
             IServerTransport<ISimpleNetworkConnection> tcpServerTransport =
-                new TcpServerTransport(new TcpOptions { ListenerBackLog = 1 }, null);
+                new TcpServerTransport(new TcpServerOptions { ListenerBackLog = 1 });
 
             using IListener listener = protocol == ProtocolCode.Ice1 ?
                 tcpServerTransport.Listen(endpoint, LogAttributeLoggerFactory.Instance) :
@@ -364,11 +362,11 @@ namespace IceRpc.Tests.Internal
             await using var factory = new ConnectionFactory(
                 "tcp",
                 protocol: protocol,
-                clientTransportOptions: new TcpOptions()
+                clientTransportOptions: new TcpClientOptions()
                 {
                     IdleTimeout = TimeSpan.FromSeconds(2)
                 },
-                serverTransportOptions: new TcpOptions()
+                serverTransportOptions: new TcpServerOptions()
                 {
                     IdleTimeout = TimeSpan.FromSeconds(3)
                 });
@@ -415,7 +413,7 @@ namespace IceRpc.Tests.Internal
             await using var factory = new ConnectionFactory(
                 "tcp",
                 protocol,
-                clientTransportOptions: new TcpOptions()
+                clientTransportOptions: new TcpClientOptions()
                 {
                     IdleTimeout = TimeSpan.FromMilliseconds(500),
                 },
@@ -423,7 +421,7 @@ namespace IceRpc.Tests.Internal
                 {
                     KeepAlive = heartbeatOnClient
                 },
-                serverTransportOptions: new TcpOptions()
+                serverTransportOptions: new TcpServerOptions()
                 {
                     IdleTimeout = TimeSpan.FromMilliseconds(500),
                 },
@@ -446,7 +444,7 @@ namespace IceRpc.Tests.Internal
             await using var factory = new ConnectionFactory(
                 "tcp",
                 protocol,
-                serverTransportOptions: new TcpOptions() { IdleTimeout = TimeSpan.FromSeconds(1) },
+                serverTransportOptions: new TcpServerOptions() { IdleTimeout = TimeSpan.FromSeconds(1) },
                 dispatcher: new InlineDispatcher(async (request, cancel) =>
                 {
                     await dispatchSemaphore.WaitAsync(cancel);

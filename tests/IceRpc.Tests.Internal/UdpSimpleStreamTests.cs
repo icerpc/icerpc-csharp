@@ -59,8 +59,8 @@ namespace IceRpc.Tests.Internal
         [OneTimeTearDown]
         public void Shutdown()
         {
-            _clientConnection?.Close();
-            _serverConnection?.Close();
+            _clientConnection?.Dispose();
+            _serverConnection?.Dispose();
             _listener.Dispose();
         }
 
@@ -99,7 +99,7 @@ namespace IceRpc.Tests.Internal
                         using var source = new CancellationTokenSource(1000);
                         ValueTask writeTask = stream.WriteAsync(writeBuffers, default);
 
-                        Memory<byte> readBuffer = new byte[ServerStream.DatagramMaxReceiveSize];
+                        Memory<byte> readBuffer = new byte[UdpUtils.MaxPacketSize];
                         int received = await ServerStream.ReadAsync(readBuffer, source.Token);
 
                         Assert.AreEqual(writeBuffer.Length, received);
@@ -128,7 +128,7 @@ namespace IceRpc.Tests.Internal
                     foreach (ISimpleStream stream in clientStreamList)
                     {
                         using var source = new CancellationTokenSource(1000);
-                        Memory<byte> readBuffer = new byte[ServerStream.DatagramMaxReceiveSize];
+                        Memory<byte> readBuffer = new byte[UdpUtils.MaxPacketSize];
                         int received = await ServerStream.ReadAsync(readBuffer, source.Token);
                         Assert.AreEqual(writeBuffer.Length, received);
                     }
@@ -140,17 +140,14 @@ namespace IceRpc.Tests.Internal
             }
             Assert.AreNotEqual(0, count);
 
-            foreach (ISimpleNetworkConnection connection in clientConnectionList)
-            {
-                connection.Close();
-            }
+            clientConnectionList.ForEach(connection => connection.Dispose());
         }
 
         [Test]
         public void UdpSimpleStream_ReadAsync_Cancellation()
         {
             using var canceled = new CancellationTokenSource();
-            Memory<byte> readBuffer = new byte[ClientStream.DatagramMaxReceiveSize];
+            Memory<byte> readBuffer = new byte[UdpUtils.MaxPacketSize];
             ValueTask<int> readTask = ClientStream.ReadAsync(readBuffer, canceled.Token);
             canceled.Cancel();
             Assert.CatchAsync<OperationCanceledException>(async () => await readTask);
@@ -159,8 +156,8 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void UdpSimpleStream_ReadAsync_Dispose()
         {
-            _clientConnection!.Close();
-            Assert.CatchAsync<TransportException>(async () => await ClientStream.ReadAsync(new byte[256], default));
+            _clientConnection!.Dispose();
+            Assert.CatchAsync<ObjectDisposedException>(async () => await ClientStream.ReadAsync(new byte[256], default));
         }
 
         [Test]
@@ -176,8 +173,8 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void UdpSimpleStream_WriteAsync_Dispose()
         {
-            _clientConnection!.Close();
-            Assert.CatchAsync<TransportException>(async () => await ClientStream.WriteAsync(_oneBWriteBuffer, default));
+            _clientConnection!.Dispose();
+            Assert.CatchAsync<ObjectDisposedException>(async () => await ClientStream.WriteAsync(_oneBWriteBuffer, default));
         }
 
         [Test]
@@ -206,7 +203,7 @@ namespace IceRpc.Tests.Internal
                 {
                     using var source = new CancellationTokenSource(1000);
                     ValueTask writeTask = ClientStream.WriteAsync(writeBuffers, default);
-                    Memory<byte> readBuffer = new byte[ServerStream.DatagramMaxReceiveSize];
+                    Memory<byte> readBuffer = new byte[UdpUtils.MaxPacketSize];
                     int received = await ServerStream.ReadAsync(readBuffer, source.Token);
                     Assert.AreEqual(writeBuffer.Length, received);
                     for (int i = 0; i < received; ++i)

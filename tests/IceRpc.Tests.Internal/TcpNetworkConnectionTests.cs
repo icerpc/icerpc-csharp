@@ -4,8 +4,8 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using NUnit.Framework;
 using System.Net;
-using System.Net.Sockets;
 using System.Net.Security;
+using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Tests.Internal
@@ -41,7 +41,10 @@ namespace IceRpc.Tests.Internal
                 TargetHost = host
             };
 
-            _clientTransport = new TcpClientTransport(clientAuthenticationOptions);
+            _clientTransport = new TcpClientTransport(new TcpClientOptions
+            {
+                AuthenticationOptions = clientAuthenticationOptions
+            });
 
             var serverAuthenticationOptions = new SslServerAuthenticationOptions
             {
@@ -49,7 +52,10 @@ namespace IceRpc.Tests.Internal
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
             };
 
-            _serverTransport = new TcpServerTransport(serverAuthenticationOptions);
+            _serverTransport = new TcpServerTransport(new TcpServerOptions
+            {
+                AuthenticationOptions = serverAuthenticationOptions
+            });
 
             string tlsString = "";
             if (tls != null)
@@ -64,17 +70,14 @@ namespace IceRpc.Tests.Internal
         public async Task TcpNetworkConnection_Listener_AcceptAsync()
         {
             using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
-            ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
+            using ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
 
             Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
             var connectTask = clientConnection.ConnectAsync(default);
 
-            ISimpleNetworkConnection serverConnection = await acceptTask;
+            using ISimpleNetworkConnection serverConnection = await acceptTask;
             _ = await serverConnection.ConnectAsync(default);
             _ = await connectTask;
-
-            clientConnection.Close();
-            serverConnection.Close();
         }
 
         [Test]
@@ -92,11 +95,11 @@ namespace IceRpc.Tests.Internal
 
             Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
 
-            ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
+            using ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
 
             Task<(ISimpleStream, NetworkConnectionInformation)> connectTask = clientConnection.ConnectAsync(default);
 
-            ISimpleNetworkConnection serverConnection = await acceptTask;
+            using ISimpleNetworkConnection serverConnection = await acceptTask;
 
             Task<(ISimpleStream, NetworkConnectionInformation)> serverConnectTask =
                 serverConnection.ConnectAsync(default);
@@ -109,13 +112,10 @@ namespace IceRpc.Tests.Internal
             }
 
             _ = await serverConnectTask;
-
-            clientConnection.Close();
-            serverConnection.Close();
         }
 
         [Test]
-        public async Task TcpNetworkConnection_AcceptAsync_ConnectionLostExceptionAsync()
+        public async Task TcpNetworkConnection_AcceptAsync_ConnectFailedExceptionAsync()
         {
             using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
 
@@ -130,22 +130,21 @@ namespace IceRpc.Tests.Internal
             await clientSocket.ConnectAsync(
                 new DnsEndPoint(listener.Endpoint.Host, listener.Endpoint.Port)).ConfigureAwait(false);
 
-            ISimpleNetworkConnection serverConnection = await acceptTask;
-            clientConnection.Close();
+            using ISimpleNetworkConnection serverConnection = await acceptTask;
+            clientConnection.Dispose();
 
-            AsyncTestDelegate testDelegate;
             if (_tls == false)
             {
                 // Server side ConnectAsync is a no-op for non secure TCP connections so it won't throw.
                 (ISimpleStream serverStream, _) = await serverConnection.ConnectAsync(default);
-                testDelegate = async () => await serverStream.ReadAsync(new byte[1], default);
+
+                Assert.ThrowsAsync<ConnectionLostException>(
+                    async () => await serverStream.ReadAsync(new byte[1], default));
             }
             else
             {
-                testDelegate = async () => await serverConnection.ConnectAsync(default);
+                Assert.ThrowsAsync<ConnectFailedException>(async () => await serverConnection.ConnectAsync(default));
             }
-            Assert.ThrowsAsync<ConnectionLostException>(testDelegate);
-            serverConnection.Close();
         }
 
         [TestCase(false, false)]
@@ -225,13 +224,11 @@ namespace IceRpc.Tests.Internal
             }
             else
             {
-                ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
+                using ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
 
                 var connectTask = clientConnection.ConnectAsync(source.Token);
                 source.Cancel();
                 Assert.CatchAsync<OperationCanceledException>(async () => await connectTask);
-
-                clientConnection.Close();
             }
 
             using var source2 = new CancellationTokenSource();

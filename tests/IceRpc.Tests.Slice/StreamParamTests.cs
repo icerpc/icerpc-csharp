@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports;
 using NUnit.Framework;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;

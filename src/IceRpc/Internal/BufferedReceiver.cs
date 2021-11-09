@@ -140,7 +140,7 @@ namespace IceRpc.Internal
 
         private async ValueTask ReceiveMoreAsync(int length, CancellationToken cancel)
         {
-            if(_bufferOwner == null || _source == null)
+            if (_bufferOwner == null || _source == null)
             {
                 throw new InvalidOperationException("can't receive additional data");
             }

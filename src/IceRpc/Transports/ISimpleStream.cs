@@ -5,13 +5,6 @@ namespace IceRpc.Transports
     /// <summary>A simple stream enables byte data exchange over a simple network connection.</summary>
     public interface ISimpleStream
     {
-        /// <summary>The maximum size of a received datagram if this connection is a datagram
-        /// connection.</summary>
-        int DatagramMaxReceiveSize { get; }
-
-        /// <summary><c>true</c> for a datagram network connection; <c>false</c> otherwise.</summary>
-        bool IsDatagram { get; }
-
         /// <summary>Reads data from the stream.</summary>
         /// <param name="buffer">The buffer that holds the read data.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

@@ -2,6 +2,7 @@
 
 using IceRpc.Configure;
 using NUnit.Framework;
+using System.Collections.Immutable;
 
 namespace IceRpc.Tests.ClientServer
 {
@@ -43,7 +44,7 @@ namespace IceRpc.Tests.ClientServer
             var pipeline = new Pipeline();
             pipeline.UseBinder(_pool);
 
-            ProtocolBridgingTestPrx forwarderService = SetupForwarderServer(
+            (ProtocolBridgingTestPrx forwarderServicePrx, ProtocolBridgingTest targetService) = SetupForwarderServer(
                 Protocol.FromProtocolCode(forwarderProtocol),
                 Protocol.FromProtocolCode(targetProtocol),
                 colocated,
@@ -52,7 +53,7 @@ namespace IceRpc.Tests.ClientServer
             // TODO: test with the other encoding; currently, the encoding is always the encoding of
             // forwardService.Proxy.Protocol
 
-            ProtocolBridgingTestPrx newPrx = await TestProxyAsync(forwarderService, direct: false);
+            ProtocolBridgingTestPrx newPrx = await TestProxyAsync(forwarderServicePrx, direct: false);
 
             if (colocated)
             {
@@ -77,46 +78,52 @@ namespace IceRpc.Tests.ClientServer
             {
                 Assert.AreEqual(prx.Proxy.Path, direct ? "/target" : "/forward");
 
+                Assert.AreEqual(13, await prx.OpAsync(13));
+
                 var invocation = new Invocation
                 {
                     Context = new Dictionary<string, string> { ["MyCtx"] = "hello" }
                 };
+                await prx.OpContextAsync(invocation);
+                CollectionAssert.AreEqual(invocation.Context, targetService.Context);
+                targetService.Context = ImmutableDictionary<string, string>.Empty;
 
-                Assert.AreEqual(13, await prx.OpAsync(13, invocation));
-
-                await prx.OpVoidAsync(invocation);
+                await prx.OpVoidAsync();
 
                 await prx.OpOnewayAsync(42);
 
                 Assert.ThrowsAsync<ProtocolBridgingException>(async () => await prx.OpExceptionAsync());
+
                 Assert.ThrowsAsync<ServiceNotFoundException>(async () => await prx.OpServiceNotFoundExceptionAsync());
 
-                return await prx.OpNewProxyAsync();
+                ProtocolBridgingTestPrx newProxy = await prx.OpNewProxyAsync();
+                return newProxy;
             }
         }
 
-        private ProtocolBridgingTestPrx SetupForwarderServer(
+        private (ProtocolBridgingTestPrx, ProtocolBridgingTest) SetupForwarderServer(
             Protocol forwarderProtocol,
             Protocol targetProtocol,
             bool colocated,
             IInvoker invoker)
         {
+            var targetService = new ProtocolBridgingTest();
             _targetServer = CreateServer(targetProtocol, port: 0, colocated);
-            _router.Map("/target", new ProtocolBridgingTest());
+            _router.Map("/target", targetService);
             _targetServer.Dispatcher = _router;
             _targetServer.Listen();
-            var targetService = ProtocolBridgingTestPrx.FromPath("/target", targetProtocol);
-            targetService.Proxy.Endpoint = _targetServer.Endpoint;
-            targetService.Proxy.Invoker = invoker;
+            var targetServicePrx = ProtocolBridgingTestPrx.FromPath("/target", targetProtocol);
+            targetServicePrx.Proxy.Endpoint = _targetServer.Endpoint;
+            targetServicePrx.Proxy.Invoker = invoker;
 
             _forwarderServer = CreateServer(forwarderProtocol, port: 1, colocated);
-            _router.Map("/forward", new Forwarder(targetService.Proxy));
+            _router.Map("/forward", new Forwarder(targetServicePrx.Proxy));
             _forwarderServer.Dispatcher = _router;
             _forwarderServer.Listen();
-            var forwardService = ProtocolBridgingTestPrx.FromPath("/forward", forwarderProtocol);
-            forwardService.Proxy.Endpoint = _forwarderServer.Endpoint;
-            forwardService.Proxy.Invoker = invoker;
-            return forwardService;
+            var forwardServicePrx = ProtocolBridgingTestPrx.FromPath("/forward", forwarderProtocol);
+            forwardServicePrx.Proxy.Endpoint = _forwarderServer.Endpoint;
+            forwardServicePrx.Proxy.Invoker = invoker;
+            return (forwardServicePrx, targetService);
 
             Server CreateServer(Protocol protocol, int port, bool colocated) => new()
             {
@@ -128,9 +135,16 @@ namespace IceRpc.Tests.ClientServer
 
         internal class ProtocolBridgingTest : Service, IProtocolBridgingTest
         {
+            public ImmutableDictionary<string, string> Context { get; set; } = ImmutableDictionary<string, string>.Empty;
+
             public ValueTask<int> OpAsync(int x, Dispatch dispatch, CancellationToken cancel) =>
                 new(x);
 
+            public ValueTask OpContextAsync(Dispatch dispatch, CancellationToken cancel)
+            {
+                Context = dispatch.Context.ToImmutableDictionary();
+                return default;
+            }
             public ValueTask OpExceptionAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new ProtocolBridgingException(42);
 

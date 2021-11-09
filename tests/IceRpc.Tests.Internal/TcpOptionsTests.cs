@@ -29,7 +29,7 @@ namespace IceRpc.Tests.Internal
 
             TcpClientNetworkConnection clientConnection = CreateClientConnection(
                 listener.Endpoint,
-                new TcpOptions
+                new TcpClientOptions
                 {
                     SendBufferSize = size,
                     ReceiveBufferSize = size
@@ -56,7 +56,7 @@ namespace IceRpc.Tests.Internal
                 Assert.That(socket.ReceiveBufferSize, Is.LessThanOrEqualTo(1.5 * size));
             }
 
-            (clientConnection as INetworkConnection).Close();
+            (clientConnection as INetworkConnection).Dispose();
         }
 
         [Test]
@@ -66,7 +66,7 @@ namespace IceRpc.Tests.Internal
 
             TcpClientNetworkConnection clientConnection = CreateClientConnection(
                 listener.Endpoint,
-                new TcpOptions
+                new TcpClientOptions
                 {
                     IsIPv6Only = true
                 });
@@ -74,7 +74,7 @@ namespace IceRpc.Tests.Internal
             Socket socket = clientConnection.Socket;
 
             Assert.That(socket.DualMode, Is.False);
-            (clientConnection as INetworkConnection).Close();
+            (clientConnection as INetworkConnection).Dispose();
         }
 
         [Test]
@@ -90,7 +90,7 @@ namespace IceRpc.Tests.Internal
 
                     TcpClientNetworkConnection clientConnection = CreateClientConnection(
                         listener.Endpoint,
-                        new TcpOptions
+                        new TcpClientOptions
                         {
                             LocalEndPoint = localEndPoint
                         });
@@ -98,7 +98,7 @@ namespace IceRpc.Tests.Internal
                     Socket socket = clientConnection.Socket;
 
                     Assert.AreEqual(localEndPoint, socket.LocalEndPoint);
-                    (clientConnection as INetworkConnection).Close();
+                    (clientConnection as INetworkConnection).Dispose();
                     break;
                 }
                 catch (TransportException)
@@ -114,7 +114,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(384 * 1024)]
         public async Task TcpOptions_Server_BufferSizeAsync(int size)
         {
-            IListener<ISimpleNetworkConnection> listener = CreateListener(tcpOptions: new TcpOptions
+            IListener<ISimpleNetworkConnection> listener = CreateListener(tcpOptions: new TcpServerOptions
             {
                 SendBufferSize = size,
                 ReceiveBufferSize = size
@@ -154,8 +154,8 @@ namespace IceRpc.Tests.Internal
                 Assert.That(socket.ReceiveBufferSize, Is.LessThanOrEqualTo(1.5 * size));
             }
 
-            (clientConnection as INetworkConnection).Close();
-            (serverConnection as INetworkConnection).Close();
+            (clientConnection as INetworkConnection).Dispose();
+            (serverConnection as INetworkConnection).Dispose();
             listener.Dispose();
         }
 
@@ -169,14 +169,14 @@ namespace IceRpc.Tests.Internal
 
                 using IListener<ISimpleNetworkConnection> listener =
                     CreateListener(host: "[::0]",
-                                         new TcpOptions() { IsIPv6Only = ipv6Only });
+                                         new TcpServerOptions() { IsIPv6Only = ipv6Only });
 
                 Task<TcpServerNetworkConnection> acceptTask = CreateServerConnection(listener);
 
                 // Create a client endpoints that uses the 127.0.0.1 IPv4-mapped address
                 Endpoint clientEndpoint = listener.Endpoint with { Host = "::FFFF:127.0.0.1" };
 
-                TcpClientNetworkConnection clientConnection = CreateClientConnection(clientEndpoint);
+                using TcpClientNetworkConnection clientConnection = CreateClientConnection(clientEndpoint);
 
                 var connectTask = (clientConnection as ISimpleNetworkConnection).ConnectAsync(default);
 
@@ -187,7 +187,7 @@ namespace IceRpc.Tests.Internal
                 }
                 else
                 {
-                    TcpServerNetworkConnection serverConnection = await acceptTask;
+                    using TcpServerNetworkConnection serverConnection = await acceptTask;
                     _ = await (serverConnection as ISimpleNetworkConnection).ConnectAsync(default);
 
                     // This should succeed, the server accepts IPv4 and IPv6 connections
@@ -199,7 +199,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task TcpOptions_Server_ListenerBackLog()
         {
-            IListener<ISimpleNetworkConnection> listener = CreateListener(tcpOptions: new TcpOptions
+            IListener<ISimpleNetworkConnection> listener = CreateListener(tcpOptions: new TcpServerOptions
             {
                 ListenerBackLog = 18
             });
@@ -220,7 +220,7 @@ namespace IceRpc.Tests.Internal
                 }
                 catch (OperationCanceledException)
                 {
-                    ((INetworkConnection)clientConnection).Close();
+                    ((INetworkConnection)clientConnection).Dispose();
                     break;
                 }
             }
@@ -230,16 +230,16 @@ namespace IceRpc.Tests.Internal
             Assert.That(connections.Count, Is.GreaterThanOrEqualTo(19));
             Assert.That(connections.Count, Is.LessThanOrEqualTo(25));
 
-            connections.ForEach(connection => (connection as INetworkConnection).Close());
+            connections.ForEach(connection => (connection as INetworkConnection).Dispose());
             listener.Dispose();
         }
 
         private static TcpClientNetworkConnection CreateClientConnection(
             Endpoint endpoint,
-            TcpOptions? tcpOptions = null)
+            TcpClientOptions? tcpOptions = null)
         {
             IClientTransport<ISimpleNetworkConnection> clientTransport =
-                new TcpClientTransport(tcpOptions ?? new TcpOptions(), null);
+                new TcpClientTransport(tcpOptions ?? new TcpClientOptions());
 
             // We pass the null logger factory to avoid decoration of the resulting connection.
             ISimpleNetworkConnection clientConnection =
@@ -254,10 +254,10 @@ namespace IceRpc.Tests.Internal
 
         private IListener<ISimpleNetworkConnection> CreateListener(
             string? host = null,
-            TcpOptions? tcpOptions = null)
+            TcpServerOptions? tcpOptions = null)
         {
             IServerTransport<ISimpleNetworkConnection> serverTransport =
-                new TcpServerTransport(tcpOptions ?? new TcpOptions(), null);
+                new TcpServerTransport(tcpOptions ?? new TcpServerOptions());
             host ??= _isIPv6 ? "[::1]" : "127.0.0.1";
             Endpoint endpoint = $"ice+tcp://{host}:0?tls=false";
 

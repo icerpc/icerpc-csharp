@@ -1,9 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
-using System.Net.Security;
-using System.Security.Authentication;
-using System.Text;
 
 namespace IceRpc.Transports.Internal
 {
@@ -19,8 +16,16 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel)
         {
             IMultiplexedStreamFactory multiplexedStreamFactory;
-            (multiplexedStreamFactory, Information) = await _decoratee.ConnectAsync(
-                cancel).ConfigureAwait(false);
+            try
+            {
+                (multiplexedStreamFactory, Information) = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                LogConnectFailed(ex);
+                throw;
+            }
+
             multiplexedStreamFactory = new LogMultiplexedStreamFactoryDecorator(this, multiplexedStreamFactory);
             LogConnected();
             return (multiplexedStreamFactory, Information.Value);

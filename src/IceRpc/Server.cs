@@ -16,11 +16,11 @@ namespace IceRpc
     {
         /// <summary>The default value for <see cref="MultiplexedServerTransport"/>.</summary>
         public static IServerTransport<IMultiplexedNetworkConnection> DefaultMultiplexedServerTransport { get; } =
-            new MultiplexedServerTransport().UseColoc().UseTcp();
+            new CompositeMultiplexedServerTransport().UseSlicOverColoc().UseSlicOverTcp();
 
         /// <summary>The default value for <see cref="SimpleServerTransport"/>.</summary>
         public static IServerTransport<ISimpleNetworkConnection> DefaultSimpleServerTransport { get; } =
-            new SimpleServerTransport().UseColoc().UseTcp().UseUdp();
+            new CompositeSimpleServerTransport().UseColoc().UseTcp().UseUdp();
 
         /// <summary>Gets or sets the options of server connections created by this server.</summary>
         public ConnectionOptions ConnectionOptions { get; set; } = new();
@@ -37,15 +37,7 @@ namespace IceRpc
         public Endpoint Endpoint
         {
             get => _endpoint;
-            set
-            {
-                if (_listening)
-                {
-                    throw new InvalidOperationException("cannot change the endpoint of a server after calling Listen");
-                }
-
-                _endpoint = value;
-            }
+            init => _endpoint = value;
         }
 
         /// <summary>The logger factory used to create loggers to log connection-related activities.</summary>
@@ -58,7 +50,7 @@ namespace IceRpc
 
         /// <summary>Gets the Ice protocol used by this server.</summary>
         /// <value>The Ice protocol of this server.</value>
-        public Protocol Protocol => _endpoint?.Protocol ?? Protocol.Ice2;
+        public Protocol Protocol => _endpoint.Protocol;
 
         /// <summary>The <see cref="IServerTransport{ISimpleNetworkConnection}"/> used by this server to accept
         /// simple connections.</summary>
@@ -134,6 +126,8 @@ namespace IceRpc
 
                 // This is the composition root of Server, where we install log decorators when logging is enabled.
 
+                EventHandler<ClosedEventArgs>? closedEventHandler = null;
+
                 if (LoggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger &&
                     logger.IsEnabled(LogLevel.Error))
                 {
@@ -151,10 +145,22 @@ namespace IceRpc
 
                         return (new LogProtocolConnectionDecorator(protocolConnection, logger), connectionInformation);
                     };
+
+                    closedEventHandler = (sender, args) =>
+                    {
+                        if (sender is Connection connection && args.Exception is Exception exception)
+                        {
+                            // This event handler is added/executed after NetworkConnectionInformation is set.
+                            using IDisposable? scope =
+                               logger.StartConnectionScope(connection.NetworkConnectionInformation!.Value,
+                                                           isServer: true);
+                            logger.LogConnectionClosedReason(exception);
+                        }
+                    };
                 }
 
                 // Run task to start accepting new connections.
-                _ = Task.Run(() => AcceptAsync(listener, protocolConnectionFactory));
+                _ = Task.Run(() => AcceptAsync(listener, protocolConnectionFactory, closedEventHandler));
 
                 _listening = true;
             }
@@ -224,7 +230,7 @@ namespace IceRpc
         }
 
         /// <inherit-doc/>
-        public override string ToString() => _endpoint?.ToString() ?? "";
+        public override string ToString() => _endpoint.ToString();
 
         /// <inheritdoc/>
         public async ValueTask DisposeAsync() =>
@@ -232,7 +238,8 @@ namespace IceRpc
 
         private async Task AcceptAsync<T>(
             IListener<T> listener,
-            ProtocolConnectionFactory<T> protocolConnectionFactory) where T : INetworkConnection
+            ProtocolConnectionFactory<T> protocolConnectionFactory,
+            EventHandler<ClosedEventArgs>? closedEventHandler) where T : INetworkConnection
         {
             while (true)
             {
@@ -295,7 +302,7 @@ namespace IceRpc
                 // such as TLS based transports where the handshake requires few round trips between the client
                 // and server. Waiting could also cause a security issue if the client doesn't respond to the
                 // connection initialization as we wouldn't be able to accept new connections in the meantime.
-                _ = connection.ConnectAsync(networkConnection, protocolConnectionFactory);
+                _ = connection.ConnectAsync(networkConnection, protocolConnectionFactory, closedEventHandler);
             }
         }
     }

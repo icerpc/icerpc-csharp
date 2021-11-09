@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
-using System.Diagnostics;
 
 namespace IceRpc.Internal
 {
@@ -278,37 +278,25 @@ namespace IceRpc.Internal
 
                 return response;
             }
-            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.DispatchCanceled)
-            {
-                throw new OperationCanceledException("dispatch canceled by peer", ex);
-            }
-            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.ConnectionShutdownByPeer)
-            {
-                // If the peer shuts down the connection, streams which are aborted with this error code are
-                // always safe to retry since only streams not processed by the peer are aborted.
-                request.Features = request.Features.With(RetryPolicy.Immediately);
-                throw new ConnectionClosedException("connection shutdown by peer", ex);
-            }
-            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.ConnectionShutdown)
-            {
-                if (request.IsIdempotent)
-                {
-                    request.Features = request.Features.With(RetryPolicy.Immediately);
-                }
-                throw new OperationCanceledException("connection shutdown", ex);
-            }
-            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.ConnectionAborted)
-            {
-                if (request.IsIdempotent)
-                {
-                    request.Features = request.Features.With(RetryPolicy.Immediately);
-                }
-                throw new ConnectionLostException(ex);
-            }
             catch (StreamAbortedException ex)
             {
-                // Unexpected stream abort. This shouldn't occur unless the peer sends bogus data.
-                throw new InvalidDataException($"unexpected stream abort (ErrorCode = {ex.ErrorCode})", ex);
+                switch (ex.ErrorCode)
+                {
+                    case StreamError.ConnectionAborted:
+                        throw new ConnectionLostException(ex);
+
+                    case StreamError.ConnectionShutdown:
+                        throw new OperationCanceledException("connection shutdown", ex);
+
+                    case StreamError.ConnectionShutdownByPeer:
+                        throw new ConnectionClosedException("connection shutdown by peer", ex);
+
+                    case StreamError.DispatchCanceled:
+                        throw new OperationCanceledException("dispatch canceled by peer", ex);
+
+                    default:
+                        throw;
+                }
             }
         }
 
@@ -373,10 +361,12 @@ namespace IceRpc.Internal
 
                 requestHeaderBody.Encode(encoder);
 
-                IDictionary<string, string> context = request.Features.GetContext();
-                // TODO: should this just check for context.Count > 0? See
-                // https://github.com/zeroc-ice/icerpc-csharp/issues/542
-                if (request.FieldsDefaults.ContainsKey((int)FieldKey.Context) || context.Count > 0)
+                // If the context feature is set to a non empty context, or if the fields defaults contains a context
+                // entry and the context feature is set, marshal the context feature in the request fields. The context
+                // feature must prevail over field defaults. Cannot use request.Features.GetContext it doesn't
+                // distinguish between empty an non set context.
+                if (request.Features.Get<Context>()?.Value is IDictionary<string, string> context &&
+                    (context.Count > 0 || request.FieldsDefaults.ContainsKey((int)FieldKey.Context)))
                 {
                     // Encodes context
                     request.Fields[(int)FieldKey.Context] =
@@ -414,21 +404,20 @@ namespace IceRpc.Internal
                 // Mark the request as sent.
                 request.IsSent = true;
             }
-            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.ConnectionShutdown)
-            {
-                request.Features = request.Features.With(RetryPolicy.Immediately);
-                throw new OperationCanceledException("connection shutdown", ex);
-            }
-            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamError.StreamAborted ||
-                                                    ex.ErrorCode == StreamError.ConnectionAborted)
-            {
-                request.Features = request.Features.With(RetryPolicy.Immediately);
-                throw new ConnectionLostException(ex);
-            }
             catch (StreamAbortedException ex)
             {
-                // Unexpected stream abort. This shouldn't occur unless the peer sends bogus data.
-                throw new InvalidDataException($"unexpected stream abort (ErrorCode = {ex.ErrorCode})", ex);
+                switch (ex.ErrorCode)
+                {
+                    case StreamError.ConnectionAborted:
+                    case StreamError.StreamAborted:
+                        throw new ConnectionLostException(ex);
+
+                    case StreamError.ConnectionShutdown:
+                        throw new OperationCanceledException("connection shutdown", ex);
+
+                    default:
+                        throw;
+                }
             }
 
             // If there's a stream param sender, we can start sending the data.
@@ -448,7 +437,7 @@ namespace IceRpc.Internal
             {
                 throw new InvalidOperationException($"{nameof(request.Stream)} is not set");
             }
-            else  if (request.IsOneway)
+            else if (request.IsOneway)
             {
                 return;
             }
@@ -683,7 +672,7 @@ namespace IceRpc.Internal
             CancellationToken cancel)
         {
             byte[] bufferArray = new byte[256];
-            while(true)
+            while (true)
             {
                 var buffer = new Memory<byte>(bufferArray);
 

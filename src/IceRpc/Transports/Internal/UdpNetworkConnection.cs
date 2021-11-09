@@ -17,13 +17,13 @@ namespace IceRpc.Transports.Internal
 
         public abstract TimeSpan LastActivity { get; }
 
-        public abstract void Close(Exception? exception);
+        public void Dispose() => Socket.Close();
 
         public abstract Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel);
 
         public abstract bool HasCompatibleParams(Endpoint remoteEndpoint);
 
-         /// <inheritdoc/>
+        /// <inheritdoc/>
         public override string ToString()
         {
             var builder = new StringBuilder();
@@ -47,9 +47,6 @@ namespace IceRpc.Transports.Internal
 
     internal class UdpClientNetworkConnection : UdpNetworkConnection, ISimpleStream
     {
-        public int DatagramMaxReceiveSize { get; }
-        bool ISimpleStream.IsDatagram => true;
-
         public override TimeSpan LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
 
         internal override Socket Socket { get; }
@@ -61,8 +58,6 @@ namespace IceRpc.Transports.Internal
         private readonly string? _multicastInterface;
         private readonly int _ttl;
 
-        public override void Close(Exception? exception) => Socket.Close();
-
         public override async Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel)
         {
             try
@@ -73,10 +68,10 @@ namespace IceRpc.Transports.Internal
                 return (this,
                         new NetworkConnectionInformation(
                             localEndpoint: _remoteEndpoint with
-                                {
-                                    Host = ipEndPoint.Address.ToString(),
-                                    Port = checked((ushort)ipEndPoint.Port)
-                                },
+                            {
+                                Host = ipEndPoint.Address.ToString(),
+                                Port = checked((ushort)ipEndPoint.Port)
+                            },
                             remoteEndpoint: _remoteEndpoint,
                             _idleTimeout,
                             remoteCertificate: null));
@@ -106,9 +101,9 @@ namespace IceRpc.Transports.Internal
                 Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
                 return received;
             }
-            catch (Exception ex)
+            catch (SocketException ex)
             {
-                throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
+                throw ex.ToTransportException(cancel);
             }
         }
 
@@ -132,16 +127,20 @@ namespace IceRpc.Transports.Internal
                 }
                 Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
             }
-            catch (Exception ex)
+            catch (SocketException ex)
             {
                 throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
             }
         }
 
-        internal UdpClientNetworkConnection(Endpoint remoteEndpoint, UdpOptions options)
+        internal UdpClientNetworkConnection(Endpoint remoteEndpoint, UdpClientOptions options)
         {
-            // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
-            // a udp endpoint regardless of its actual transport name.
+            // udp is a special transport that requires "udp" endpoints.
+            if (remoteEndpoint.Transport != TransportNames.Udp)
+            {
+                throw new ArgumentException($"cannot use UDP transport with endpoint '{remoteEndpoint}'",
+                                            nameof(remoteEndpoint));
+            }
 
             (bool _, _ttl, _multicastInterface) = remoteEndpoint.ParseUdpParams();
 
@@ -202,10 +201,6 @@ namespace IceRpc.Transports.Internal
                     Socket.Bind(localEndPoint);
                 }
 
-                if (options.ReceiveBufferSize is int receiveSize)
-                {
-                    Socket.ReceiveBufferSize = receiveSize;
-                }
                 if (options.SendBufferSize is int sendSize)
                 {
                     Socket.SendBufferSize = sendSize;
@@ -216,8 +211,6 @@ namespace IceRpc.Transports.Internal
                 Socket.Dispose();
                 throw new TransportException(ex);
             }
-
-            DatagramMaxReceiveSize = Math.Min(MaxPacketSize, Socket.ReceiveBufferSize - UdpOverhead);
         }
 
         private protected override bool PrintMembers(StringBuilder builder)
@@ -228,23 +221,17 @@ namespace IceRpc.Transports.Internal
         }
     }
 
-     internal class UdpServerNetworkConnection : UdpNetworkConnection, ISimpleStream
+    internal class UdpServerNetworkConnection : UdpNetworkConnection, ISimpleStream
     {
-        public int DatagramMaxReceiveSize { get; }
-        bool ISimpleStream.IsDatagram => true;
-
-        public override TimeSpan LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
+        public override TimeSpan LastActivity => TimeSpan.Zero;
 
         internal Endpoint LocalEndpoint { get; }
 
         internal override Socket Socket { get; }
-        private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
 
         private readonly IPEndPoint? _multicastAddress;
 
         private readonly EndPoint _remoteAddress;
-
-        public override void Close(Exception? exception) => Socket.Close();
 
         public override Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel) =>
             // The remote endpoint is set to an empty endpoint for a UDP server connection because the
@@ -253,10 +240,10 @@ namespace IceRpc.Transports.Internal
                              new NetworkConnectionInformation(localEndpoint: LocalEndpoint,
                                                               remoteEndpoint: LocalEndpoint with
                                                               {
-                                                                 Host = "::0",
-                                                                 Port = 0
+                                                                  Host = "::0",
+                                                                  Port = 0
                                                               },
-                                                              TimeSpan.MaxValue, // TODO: returning Infinite doesn't work
+                                                              Timeout.InfiniteTimeSpan,
                                                               remoteCertificate: null)));
 
         public override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
@@ -271,23 +258,25 @@ namespace IceRpc.Transports.Internal
                                                                                SocketFlags.None,
                                                                                _remoteAddress,
                                                                                cancel).ConfigureAwait(false);
-
-                Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
                 return result.ReceivedBytes;
             }
-            catch (Exception ex)
+            catch (SocketException ex)
             {
-                throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
+                throw ex.ToTransportException(cancel);
             }
         }
 
         ValueTask ISimpleStream.WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
-            throw new TransportException("cannot write to a UDP server stream");
+            throw new InvalidOperationException("cannot write to a UDP server stream");
 
-        internal UdpServerNetworkConnection(Endpoint endpoint, UdpOptions options)
+        internal UdpServerNetworkConnection(Endpoint endpoint, UdpServerOptions options)
         {
-            // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
-            // a udp endpoint regardless of its actual transport name.
+            // udp is a special transport that requires "udp" endpoints.
+            if (endpoint.Transport != TransportNames.Udp)
+            {
+                throw new ArgumentException($"cannot use UDP transport with endpoint '{endpoint}'",
+                                            nameof(endpoint));
+            }
 
             if (!IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress))
             {
@@ -319,10 +308,6 @@ namespace IceRpc.Transports.Internal
                 if (options.ReceiveBufferSize is int receiveSize)
                 {
                     Socket.ReceiveBufferSize = receiveSize;
-                }
-                if (options.SendBufferSize is int sendSize)
-                {
-                    Socket.SendBufferSize = sendSize;
                 }
 
                 var addr = new IPEndPoint(ipAddress, endpoint.Port);
@@ -358,6 +343,8 @@ namespace IceRpc.Transports.Internal
             }
             catch (SocketException ex)
             {
+                // The TransportException is thrown to the caller of Server.Listen. We don't call ToTransportException
+                // as there is no need to wrap the socket exception in a ConnectionLostException..
                 Socket.Dispose();
                 throw new TransportException(ex);
             }
@@ -366,8 +353,6 @@ namespace IceRpc.Transports.Internal
                 Socket.Dispose();
                 throw;
             }
-
-            DatagramMaxReceiveSize = Math.Min(MaxPacketSize, Socket.ReceiveBufferSize - UdpOverhead);
         }
 
         private protected override bool PrintMembers(StringBuilder builder)

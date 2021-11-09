@@ -1,5 +1,7 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
+
 namespace IceRpc
 {
     /// <summary>A binder interceptor is responsible for providing connections to requests using an
@@ -56,20 +58,12 @@ namespace IceRpc
 
             async Task<IncomingResponse> PerformAsync(ValueTask<Connection> task)
             {
-                try
+                request.Connection = await task.ConfigureAwait(false);
+                if (_cacheConnection && request.Proxy != null)
                 {
-                    request.Connection = await task.ConfigureAwait(false);
-                    if (_cacheConnection && request.Proxy != null)
-                    {
-                        request.Proxy.Connection = request.Connection;
-                    }
+                    request.Proxy.Connection = request.Connection;
                 }
-                catch (TransportException)
-                {
-                    // If obtaining a connection failed with a transport exception, the request can be retried.
-                    request.Features = request.Features.With(RetryPolicy.Immediately);
-                    throw;
-                }
+
                 return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
             }
         }

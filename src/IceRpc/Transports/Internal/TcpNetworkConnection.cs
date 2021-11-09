@@ -7,18 +7,12 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
-using System.Security.Authentication;
 using System.Text;
 
 namespace IceRpc.Transports.Internal
 {
-// TODO: temporary, we need to make INetworkConnection IDisposable
-#pragma warning disable CA1001
-
     internal abstract class TcpNetworkConnection : ISimpleNetworkConnection, ISimpleStream
     {
-        int ISimpleStream.DatagramMaxReceiveSize => throw new InvalidOperationException();
-        bool ISimpleStream.IsDatagram => false;
         public bool IsSecure => SslStream != null;
 
         public TimeSpan LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
@@ -31,7 +25,7 @@ namespace IceRpc.Transports.Internal
 
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
 
-        public void Close(Exception? exception)
+        public void Dispose()
         {
             SslStream?.Dispose();
             Socket.Dispose();
@@ -60,9 +54,13 @@ namespace IceRpc.Transports.Internal
                     received = await Socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
                 }
             }
-            catch (Exception ex)
+            catch (SocketException ex)
             {
-                throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
+                throw ex.ToTransportException(cancel);
+            }
+            catch (IOException ex)
+            {
+                throw ex.ToTransportException(cancel);
             }
 
             if (received == 0)
@@ -164,9 +162,13 @@ namespace IceRpc.Transports.Internal
                 // TODO: should we update _lastActivity when an exception is thrown?
                 Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
             }
-            catch (Exception ex)
+            catch (SocketException ex)
             {
-                throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
+                throw ex.ToTransportException(cancel);
+            }
+            catch (IOException ex)
+            {
+                throw ex.ToTransportException(cancel);
             }
         }
 
@@ -236,19 +238,7 @@ namespace IceRpc.Transports.Internal
                 {
                     // This can only be created with a connected socket.
                     _sslStream = new SslStream(new System.Net.Sockets.NetworkStream(Socket, false), false);
-                    try
-                    {
-                        await _sslStream.AuthenticateAsClientAsync(
-                            authenticationOptions!, cancel).ConfigureAwait(false);
-                    }
-                    catch (AuthenticationException ex)
-                    {
-                        throw new TransportException(ex);
-                    }
-                    catch (Exception ex)
-                    {
-                        throw ExceptionUtil.Throw(ex.ToTransportException(default));
-                    }
+                    await _sslStream.AuthenticateAsClientAsync(authenticationOptions!, cancel).ConfigureAwait(false);
                 }
 
                 var ipEndPoint = (IPEndPoint)Socket.LocalEndPoint!;
@@ -256,29 +246,21 @@ namespace IceRpc.Transports.Internal
                 return (this,
                         new NetworkConnectionInformation(
                             localEndpoint: remoteEndpoint with
-                                {
-                                    Host = ipEndPoint.Address.ToString(),
-                                    Port = checked((ushort)ipEndPoint.Port)
-                                },
+                            {
+                                Host = ipEndPoint.Address.ToString(),
+                                Port = checked((ushort)ipEndPoint.Port)
+                            },
                             remoteEndpoint: remoteEndpoint,
                             _idleTimeout,
                             _sslStream?.RemoteCertificate));
             }
-            catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
-            {
-                throw new ConnectionRefusedException(ex);
-            }
             catch (SocketException ex)
             {
-                throw new ConnectFailedException(ex);
+                throw ex.ToConnectFailedException(cancel);
             }
-            catch (Exception ex) when (cancel.IsCancellationRequested)
+            catch (IOException ex)
             {
-                throw new OperationCanceledException(null, ex, cancel);
-            }
-            catch (Exception ex)
-            {
-                throw new TransportException(ex);
+                throw ex.ToConnectFailedException(cancel);
             }
         }
 
@@ -296,10 +278,7 @@ namespace IceRpc.Transports.Internal
             return tls == null || tls == (_sslStream != null);
         }
 
-        internal TcpClientNetworkConnection(
-            Endpoint remoteEndpoint,
-            TcpOptions tcpOptions,
-            SslClientAuthenticationOptions? authenticationOptions)
+        internal TcpClientNetworkConnection(Endpoint remoteEndpoint, TcpClientOptions options)
         {
             _remoteEndpoint = remoteEndpoint;
 
@@ -317,19 +296,19 @@ namespace IceRpc.Transports.Internal
             {
                 if (ipAddress?.AddressFamily == AddressFamily.InterNetworkV6)
                 {
-                    Socket.DualMode = !tcpOptions.IsIPv6Only;
+                    Socket.DualMode = !options.IsIPv6Only;
                 }
 
-                if (tcpOptions.LocalEndPoint is IPEndPoint localEndPoint)
+                if (options.LocalEndPoint is IPEndPoint localEndPoint)
                 {
                     Socket.Bind(localEndPoint);
                 }
 
-                if (tcpOptions.ReceiveBufferSize is int receiveSize)
+                if (options.ReceiveBufferSize is int receiveSize)
                 {
                     Socket.ReceiveBufferSize = receiveSize;
                 }
-                if (tcpOptions.SendBufferSize is int sendSize)
+                if (options.SendBufferSize is int sendSize)
                 {
                     Socket.SendBufferSize = sendSize;
                 }
@@ -342,8 +321,8 @@ namespace IceRpc.Transports.Internal
                 throw new TransportException(ex);
             }
 
-            _authenticationOptions = authenticationOptions;
-            _idleTimeout = tcpOptions.IdleTimeout;
+            _authenticationOptions = options.AuthenticationOptions;
+            _idleTimeout = options.IdleTimeout;
         }
     }
 
@@ -383,7 +362,7 @@ namespace IceRpc.Transports.Internal
                         Memory<byte> buffer = new byte[1];
                         if (await Socket.ReceiveAsync(buffer, SocketFlags.Peek, cancel).ConfigureAwait(false) == 0)
                         {
-                            throw new ConnectionLostException();
+                            throw new ConnectFailedException("could not read any byte from socket");
                         }
                         secure = buffer.Span[0] == TlsHandshakeRecord;
                     }
@@ -401,26 +380,14 @@ namespace IceRpc.Transports.Internal
                         "cannot establish TLS connection: no TLS authentication options configured");
                 }
 
-                // If a secure connection is needed, create and authentication the SslStream.
+                // If a secure connection is needed, create and authenticate the SslStream.
                 if (secure)
                 {
                     Debug.Assert(_authenticationOptions != null);
 
                     // This can only be created with a connected socket.
                     _sslStream = new SslStream(new System.Net.Sockets.NetworkStream(Socket, false), false);
-                    try
-                    {
-                        await _sslStream.AuthenticateAsServerAsync(
-                            _authenticationOptions, cancel).ConfigureAwait(false);
-                    }
-                    catch (AuthenticationException ex)
-                    {
-                        throw new TransportException(ex);
-                    }
-                    catch (Exception ex)
-                    {
-                        throw ExceptionUtil.Throw(ex.ToTransportException(default));
-                    }
+                    await _sslStream.AuthenticateAsServerAsync(_authenticationOptions, cancel).ConfigureAwait(false);
                 }
 
                 ImmutableList<EndpointParam> endpointParams = _localEndpoint.Params;
@@ -437,17 +404,21 @@ namespace IceRpc.Transports.Internal
                         new NetworkConnectionInformation(
                             localEndpoint: _localEndpoint,
                             remoteEndpoint: _localEndpoint with
-                                {
-                                    Host = ipEndPoint.Address.ToString(),
-                                    Port = checked((ushort)ipEndPoint.Port),
-                                    Params = endpointParams
-                                },
+                            {
+                                Host = ipEndPoint.Address.ToString(),
+                                Port = checked((ushort)ipEndPoint.Port),
+                                Params = endpointParams
+                            },
                             _idleTimeout,
                             _sslStream?.RemoteCertificate));
             }
-            catch (Exception ex)
+            catch (SocketException ex)
             {
-                throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
+                throw ex.ToConnectFailedException(cancel);
+            }
+            catch (IOException ex)
+            {
+                throw ex.ToConnectFailedException(cancel);
             }
         }
 

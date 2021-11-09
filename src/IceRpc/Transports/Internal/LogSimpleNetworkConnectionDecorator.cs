@@ -13,9 +13,17 @@ namespace IceRpc.Transports.Internal
         public virtual async Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel)
         {
             ISimpleStream simpleStream;
-            (simpleStream, Information) = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
+            try
+            {
+                (simpleStream, Information) = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                LogConnectFailed(ex);
+                throw;
+            }
+
             simpleStream = new LogSimpleStreamDecorator(this, simpleStream);
-            IsDatagram = simpleStream.IsDatagram;
 
             LogConnected();
             return (simpleStream, Information.Value);
@@ -38,9 +46,6 @@ namespace IceRpc.Transports.Internal
 
     internal sealed class LogSimpleStreamDecorator : ISimpleStream
     {
-        public int DatagramMaxReceiveSize => _decoratee.DatagramMaxReceiveSize;
-        public bool IsDatagram => _decoratee.IsDatagram;
-
         private readonly ISimpleStream _decoratee;
         private readonly LogNetworkConnectionDecorator _parent;
 

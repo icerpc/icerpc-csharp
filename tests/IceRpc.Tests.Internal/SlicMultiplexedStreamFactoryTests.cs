@@ -13,17 +13,17 @@ namespace IceRpc.Tests.Internal
         public async Task SlicMultiplexedStreamFactoryTests_Options()
         {
             var clientOptions = new SlicOptions
-                {
-                    StreamBufferMaxSize = 2405,
-                    PacketMaxSize = 4567
-                };
+            {
+                StreamBufferMaxSize = 2405,
+                PacketMaxSize = 4567
+            };
             var serverOptions = new SlicOptions
-                {
-                    StreamBufferMaxSize = 6893,
-                    PacketMaxSize = 2098
-                };
+            {
+                StreamBufferMaxSize = 6893,
+                PacketMaxSize = 2098
+            };
 
-            (SlicMultiplexedStreamFactory clientConnection,  SlicMultiplexedStreamFactory serverConnection) =
+            (SlicMultiplexedStreamFactory clientConnection, SlicMultiplexedStreamFactory serverConnection) =
                 await CreateSlicClientServerConnectionsAsync(clientOptions, serverOptions);
             try
             {

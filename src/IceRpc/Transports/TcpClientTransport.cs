@@ -2,7 +2,6 @@
 
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
-using System.Net.Security;
 
 namespace IceRpc.Transports
 {
@@ -10,30 +9,17 @@ namespace IceRpc.Transports
     /// </summary>
     public class TcpClientTransport : IClientTransport<ISimpleNetworkConnection>
     {
-        private readonly SslClientAuthenticationOptions? _authenticationOptions;
-        private readonly TcpOptions _tcpOptions;
+        private readonly TcpClientOptions _options;
 
         /// <summary>Constructs a <see cref="TcpClientTransport"/>.</summary>
         public TcpClientTransport() :
-            this(tcpOptions: new(), null)
+            this(options: new())
         {
         }
 
         /// <summary>Constructs a <see cref="TcpClientTransport"/>.</summary>
-        /// <param name="authenticationOptions">The ssl authentication options.</param>
-        public TcpClientTransport(SslClientAuthenticationOptions authenticationOptions) :
-            this(tcpOptions: new(), authenticationOptions)
-        {
-        }
-
-        /// <summary>Constructs a <see cref="TcpClientTransport"/>.</summary>
-        /// <param name="tcpOptions">The TCP transport options.</param>
-        /// <param name="authenticationOptions">The ssl authentication options.</param>
-        public TcpClientTransport(TcpOptions tcpOptions, SslClientAuthenticationOptions? authenticationOptions)
-        {
-            _tcpOptions = tcpOptions;
-            _authenticationOptions = authenticationOptions;
-        }
+        /// <param name="options">The transport options.</param>
+        public TcpClientTransport(TcpClientOptions options) => _options = options;
 
         /// <inheritdoc/>
         ISimpleNetworkConnection IClientTransport<ISimpleNetworkConnection>.CreateConnection(
@@ -42,7 +28,7 @@ namespace IceRpc.Transports
         {
             // This is the composition root of the tcp client transport, where we install log decorators when logging
             // is enabled.
-            var clientConnection = new TcpClientNetworkConnection(remoteEndpoint, _tcpOptions, _authenticationOptions);
+            var clientConnection = new TcpClientNetworkConnection(remoteEndpoint, _options);
 
             return loggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger &&
                 logger.IsEnabled(TcpLoggerExtensions.MaxLogLevel) ?

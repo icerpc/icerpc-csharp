@@ -2,7 +2,6 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
-using IceRpc.Transports;
 
 namespace IceRpc
 {
@@ -114,7 +113,7 @@ namespace IceRpc
         /// <summary>Creates an outgoing response with the exception. With the ice1 protocol, this method sets
         /// the <see cref="ReplyStatus"/> feature. This method also sets the <see
         /// cref="FieldKey.RetryPolicy"/> if an exception retry policy is set.</summary>
-        internal virtual OutgoingResponse CreateResponseFromException(Exception exception,  IncomingRequest request)
+        internal virtual OutgoingResponse CreateResponseFromException(Exception exception, IncomingRequest request)
         {
             RemoteException? remoteException = exception as RemoteException;
             if (remoteException == null || remoteException.ConvertToUnhandled)

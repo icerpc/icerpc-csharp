@@ -2,7 +2,6 @@
 
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
-using System.Net.Security;
 
 namespace IceRpc.Transports
 {
@@ -10,32 +9,17 @@ namespace IceRpc.Transports
     /// </summary>
     public class TcpServerTransport : IServerTransport<ISimpleNetworkConnection>
     {
-        private readonly SslServerAuthenticationOptions? _authenticationOptions;
-        private readonly TcpOptions _tcpOptions;
+        private readonly TcpServerOptions _options;
 
         /// <summary>Constructs a <see cref="TcpServerTransport"/>.</summary>
         public TcpServerTransport() :
-            this(tcpOptions: new(), null)
+            this(new())
         {
         }
 
         /// <summary>Constructs a <see cref="TcpServerTransport"/>.</summary>
-        /// <param name="authenticationOptions">The ssl authentication options. If not set, ssl is disabled.</param>
-        public TcpServerTransport(SslServerAuthenticationOptions authenticationOptions) :
-            this(tcpOptions: new(), authenticationOptions)
-        {
-        }
-
-        /// <summary>Constructs a <see cref="TcpServerTransport"/>.</summary>
-        /// <param name="tcpOptions">The TCP transport options.</param>
-        /// <param name="authenticationOptions">The ssl authentication options. If not set, ssl is disabled.</param>
-        public TcpServerTransport(
-            TcpOptions tcpOptions,
-            SslServerAuthenticationOptions? authenticationOptions)
-        {
-            _tcpOptions = tcpOptions;
-            _authenticationOptions = authenticationOptions;
-        }
+        /// <param name="options">The transport options.</param>
+        public TcpServerTransport(TcpServerOptions options) => _options = options;
 
         /// <inheritdoc/>
         IListener<ISimpleNetworkConnection> IServerTransport<ISimpleNetworkConnection>.Listen(
@@ -51,7 +35,7 @@ namespace IceRpc.Transports
                         connection => new LogTcpNetworkConnectionDecorator(connection, logger) :
                             connection => connection;
 
-            return new TcpListener(endpoint, _tcpOptions, _authenticationOptions, serverConnectionDecorator);
+            return new TcpListener(endpoint, _options, serverConnectionDecorator);
         }
     }
 }

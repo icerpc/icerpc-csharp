@@ -38,7 +38,7 @@ namespace IceRpc.Transports.Internal
             return frame.Type switch
             {
                 FrameType.InitializeAck => (new InitializeAckBody(new Ice20Decoder(frame.Buffer)), null),
-                FrameType.Version =>  (null, new VersionBody(new Ice20Decoder(frame.Buffer))),
+                FrameType.Version => (null, new VersionBody(new Ice20Decoder(frame.Buffer))),
                 _ => throw new InvalidDataException($"unexpected Slic frame '{frame.Type}'")
             };
         }

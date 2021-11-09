@@ -94,19 +94,19 @@ namespace IceRpc.Tests.Internal
         }
 
         [TestCase]
-        public void SimpleStream_Close()
+        public void SimpleStream_Dispose()
         {
-            _clientConnection!.Close();
-            _serverConnection!.Close();
+            _clientConnection!.Dispose();
+            _serverConnection!.Dispose();
 
             Memory<byte> buffer = new byte[1];
             var buffers = new ReadOnlyMemory<byte>[] { buffer };
 
-            Assert.CatchAsync<TransportException>(async () => await ClientStream.WriteAsync(buffers, default));
-            Assert.CatchAsync <TransportException>(async () => await ClientStream.ReadAsync(buffer, default));
+            Assert.CatchAsync<ObjectDisposedException>(async () => await ClientStream.WriteAsync(buffers, default));
+            Assert.CatchAsync<ObjectDisposedException>(async () => await ClientStream.ReadAsync(buffer, default));
 
-            Assert.CatchAsync<TransportException>(async () => await ServerStream.WriteAsync(buffers, default));
-            Assert.CatchAsync<TransportException>(async () => await ServerStream.ReadAsync(buffer, default));
+            Assert.CatchAsync<ObjectDisposedException>(async () => await ServerStream.WriteAsync(buffers, default));
+            Assert.CatchAsync<ObjectDisposedException>(async () => await ServerStream.ReadAsync(buffer, default));
         }
 
         [SetUp]
@@ -131,8 +131,8 @@ namespace IceRpc.Tests.Internal
         [TearDown]
         public void TearDown()
         {
-            _clientConnection?.Close(new ConnectionClosedException());
-            _serverConnection?.Close(new ConnectionClosedException());
+            _clientConnection?.Dispose();
+            _serverConnection?.Dispose();
         }
     }
 }

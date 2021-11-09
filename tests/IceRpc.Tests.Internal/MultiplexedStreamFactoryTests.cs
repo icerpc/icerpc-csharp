@@ -10,10 +10,10 @@ namespace IceRpc.Tests.Internal
     public class MultiplexedStreamFactoryTests : MultiplexedStreamFactoryBaseTest
     {
         private static readonly SlicOptions _serverSlicOptions = new()
-            {
-                BidirectionalStreamMaxCount = 15,
-                UnidirectionalStreamMaxCount = 10
-            };
+        {
+            BidirectionalStreamMaxCount = 15,
+            UnidirectionalStreamMaxCount = 10
+        };
 
         public MultiplexedStreamFactoryTests()
             : base(serverOptions: _serverSlicOptions)
@@ -24,8 +24,8 @@ namespace IceRpc.Tests.Internal
         public void MultiplexedStreamFactory_Dispose()
         {
             ValueTask<IMultiplexedStream> acceptStreamTask = ServerMultiplexedStreamFactory.AcceptStreamAsync(default);
-            ClientConnection.Close(new ConnectionClosedException());
-            Assert.ThrowsAsync<ConnectionLostException>(async () => await acceptStreamTask);
+            ClientConnection.Dispose();
+            Assert.ThrowsAsync<ObjectDisposedException>(async () => await acceptStreamTask);
         }
 
         [Test]
@@ -34,7 +34,7 @@ namespace IceRpc.Tests.Internal
             IMultiplexedStream clientStream = ClientMultiplexedStreamFactory.CreateStream(true);
             await clientStream.WriteAsync(CreateSendPayload(clientStream), true, default);
 
-            ClientConnection.Close(new ConnectionClosedException());
+            ClientConnection.Dispose();
 
             StreamAbortedException? ex;
             // Stream is aborted
@@ -73,10 +73,11 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void MultiplexedStreamFactory_AcceptStream_Failure()
+        public void MultiplexedStreamFactory_AcceptStream_Dispose()
         {
-            ClientConnection.Close(new ConnectionClosedException());
-            Assert.CatchAsync<TransportException>(async () => await ServerMultiplexedStreamFactory.AcceptStreamAsync(default));
+            ClientConnection.Dispose();
+            Assert.CatchAsync<ObjectDisposedException>(
+                async () => await ServerMultiplexedStreamFactory.AcceptStreamAsync(default));
         }
 
         [TestCase(false)]
@@ -235,8 +236,8 @@ namespace IceRpc.Tests.Internal
         public void MultiplexedStreamFactory_SendAsync_Failure()
         {
             IMultiplexedStream stream = ClientMultiplexedStreamFactory.CreateStream(false);
-            ClientConnection.Close(new ConnectionClosedException());
-            Assert.CatchAsync<TransportException>(
+            ClientConnection.Dispose();
+            Assert.CatchAsync<ConnectionClosedException>(
                 async () => await stream.WriteAsync(CreateSendPayload(stream), true, default));
         }
 
@@ -248,7 +249,7 @@ namespace IceRpc.Tests.Internal
 
             IMultiplexedStream serverStream = await ServerMultiplexedStreamFactory.AcceptStreamAsync(default);
             await serverStream.ReadAsync(CreateReceivePayload(), default);
-            ServerConnection.Close(new ConnectionClosedException());
+            ServerConnection.Dispose();
             Assert.CatchAsync<StreamAbortedException>(
                 async () => await serverStream.WriteAsync(CreateSendPayload(serverStream), true, default));
         }
