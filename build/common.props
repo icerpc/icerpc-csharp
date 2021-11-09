@@ -13,50 +13,13 @@
         <LangVersion>10.0</LangVersion>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <ImplicitUsings>true</ImplicitUsings>
+        <!-- Slicec compiler location -->
+        <SliceCompilerExe Condition="'$(OS)' == 'Windows_NT'">slicec-cs.exe</SliceCompilerExe>
+        <SliceCompilerExe Condition="'$(OS)' != 'Windows_NT'">slicec-cs</SliceCompilerExe>
+        <IceRpcHome>$(MSBuildThisFileDirectory)..</IceRpcHome>
+        <IceRpcToolsPath Condition="'$(IceRpcToolsPath)' == '' AND Exists('$(IceRpcHome)/tools/slicec-cs/target/release/$(SliceCompilerExe)')">$(IceRpcHome)/tools/slicec-cs/target/release</IceRpcToolsPath>
+        <IceRpcToolsPath Condition="'$(IceRpcToolsPath)' == '' AND Exists('$(IceRpcHome)/tools/slicec-cs/target/debug/$(SliceCompilerExe)')">$(IceRpcHome)/tools/slicec-cs/target/debug</IceRpcToolsPath>
     </PropertyGroup>
-
-    <!-- Import Ice version settings -->
-    <Import Project="$(MSBuildThisFileDirectory)icebuilder.props" Condition="'$(ICE_BIN_DIST)' != 'all'"/>
-    <PropertyGroup>
-        <Company>ZeroC, Inc.</Company>
-        <Product>Ice</Product>
-        <Version>$(IceVersion)</Version>
-        <Copyright>© ZeroC, Inc.</Copyright>
-    </PropertyGroup>
-    <Choose>
-        <When Condition="'$(ICE_BIN_DIST)' != 'all'">
-            <PropertyGroup>
-                <IceHome>$(MSBuildThisFileDirectory)..</IceHome>
-                <IceAssembliesDir>$(MSBuildThisFileDirectory)..\csharp\lib</IceAssembliesDir>
-            </PropertyGroup>
-            <Choose>
-                <When Condition="'$(OS)' == 'Windows_NT'">
-                    <Choose>
-                        <When Condition="Exists('$(IceHome)\cpp\bin\$(CppPlatform)\$(Configuration)\slice2cs.exe')">
-                            <PropertyGroup>
-                                <IceToolsPath>$(IceHome)\cpp\bin\$(CppPlatform)\$(Configuration)</IceToolsPath>
-                            </PropertyGroup>
-                        </When>
-                        <When Condition="Exists('$(IceHome)\cpp\bin\x64\$(Configuration)\slice2cs.exe')">
-                            <PropertyGroup>
-                                <IceToolsPath>$(IceHome)\cpp\bin\x64\$(Configuration)</IceToolsPath>
-                            </PropertyGroup>
-                        </When>
-                        <When Condition="Exists('$(IceHome)\cpp\bin\Win32\$(Configuration)\slice2cs.exe')">
-                            <PropertyGroup>
-                                <IceToolsPath>$(IceHome)\cpp\bin\Win32\$(Configuration)</IceToolsPath>
-                            </PropertyGroup>
-                        </When>
-                    </Choose>
-                </When>
-                <Otherwise>
-                    <PropertyGroup>
-                        <IceToolsPath>$(IceHome)\cpp\bin</IceToolsPath>
-                    </PropertyGroup>
-                </Otherwise>
-            </Choose>
-        </When>
-    </Choose>
 
     <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
         <DebugType>portable</DebugType>
