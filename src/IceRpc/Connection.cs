@@ -496,8 +496,9 @@ namespace IceRpc
 
                     _closed += closedEventHandler;
 
-                    // Switch the connection to the Closing state as soon as the protocol receives a notification
-                    // that peer initiated shutdown.
+                    // Switch the connection to the Closing state as soon as the protocol receives a notification that
+                    // peer initiated shutdown. This is in particular useful for the connection pool to not return a
+                    // connection which is being shutdown.
                     _protocolConnection.PeerShutdownInitiated += () =>
                         {
                             lock(_mutex)
