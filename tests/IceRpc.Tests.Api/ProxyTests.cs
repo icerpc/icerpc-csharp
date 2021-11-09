@@ -8,7 +8,7 @@ namespace IceRpc.Tests.Api
 {
     [Parallelizable(scope: ParallelScope.All)]
     [Timeout(5000)]
-    [Log(LogAttributeLevel.Trace)]
+   // [Log(LogAttributeLevel.Trace)]
     public class ProxyTests
     {
         [TestCase(ProtocolCode.Ice1)]
@@ -21,13 +21,11 @@ namespace IceRpc.Tests.Api
             {
                 Dispatcher = new Greeter(),
                 Endpoint = serverEndpoint,
-                // LoggerFactory = LogAttributeLoggerFactory.Instance
             };
             server.Listen();
             await using var connection = new Connection
             {
-                RemoteEndpoint = serverEndpoint,
-                LoggerFactory = LogAttributeLoggerFactory.Instance
+                RemoteEndpoint = server.Endpoint,
             };
             await connection.ConnectAsync();
 

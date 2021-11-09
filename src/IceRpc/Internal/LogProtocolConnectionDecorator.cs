@@ -20,7 +20,12 @@ namespace IceRpc.Internal
 
         void IDisposable.Dispose() => _decoratee.Dispose();
 
-        Task IProtocolConnection.PingAsync(CancellationToken cancel) => _decoratee.PingAsync(cancel);
+        async Task IProtocolConnection.PingAsync(CancellationToken cancel)
+        {
+            using IDisposable connectionScope = _logger.StartConnectionScope(_connectionInformation, _isServer);
+            await _decoratee.PingAsync(cancel).ConfigureAwait(false);
+            _logger.LogPing();
+        }
 
         async Task<IncomingRequest> IProtocolConnection.ReceiveRequestAsync(CancellationToken cancel)
         {

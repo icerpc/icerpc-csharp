@@ -11,20 +11,26 @@ namespace IceRpc.Transports
         /// <summary>Connect on a network connection failed.</summary>
         ConnectFailed,
 
-        /// <summary>The transport failed to accept a connection.</summary>
-        ListenerAcceptConnectionFailed,
+        /// <summary>The listener failed to accept a connection.</summary>
+        ListenerAcceptFailed,
 
         /// <summary>The listener starts listening for new connections.</summary>
-        ListenerListening,
+        ListenerCreated,
 
-        /// <summary>The listener is shutdown and no longer accepts connections.</summary>
-        ListenerShutDown,
+        /// <summary>The listener is disposed and no longer accepts connections.</summary>
+        ListenerDisposed,
 
-        /// <summary>Successfully read data from a transport stream.</summary>
-        StreamRead,
+         /// <summary>Successfully read data from a multiplexed stream.</summary>
+        MultiplexedStreamRead,
 
-        /// <summary>The transport sent data.</summary>
-        StreamWrite,
+        /// <summary>Wrote data to a multiplexed stream.</summary>
+        MultiplexedStreamWrite,
+
+        /// <summary>Successfully read data from a simple stream.</summary>
+        SimpleStreamRead,
+
+        /// <summary>Wrote data to a simple stream.</summary>
+        SimpleStreamWrite,
 
         /// <summary>A network connection was disposed.</summary>
         ConnectionDispose,

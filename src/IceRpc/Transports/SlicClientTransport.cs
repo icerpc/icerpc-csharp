@@ -47,8 +47,6 @@ namespace IceRpc.Transports
 
             if (logger.IsEnabled(LogLevel.Error))
             {
-                // TODO: reusing the main LogSimpleNetworkConnectionDecorator results in redundant log messages. Slic
-                // should provide its own log decorator to avoid this issue.
                 simpleNetworkConnection = new LogSimpleNetworkConnectionDecorator(simpleNetworkConnection,
                                                                                   isServer: false,
                                                                                   remoteEndpoint,

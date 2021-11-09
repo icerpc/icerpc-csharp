@@ -46,8 +46,6 @@ namespace IceRpc.Transports
 
             if (logger.IsEnabled(LogLevel.Error))
             {
-                // TODO: reusing the main LogListenerDecorator results in redundant log messages. Slic should provide
-                // its own log decorator to avoid this issue.
                 simpleListener = new LogListenerDecorator<ISimpleNetworkConnection>(
                     simpleListener,
                     logger,

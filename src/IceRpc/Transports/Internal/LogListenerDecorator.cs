@@ -21,7 +21,7 @@ namespace IceRpc.Transports.Internal
             }
             catch (Exception ex)
             {
-                _logger.LogListenerAcceptingConnectionFailed(_decoratee.Endpoint, ex);
+                _logger.LogListenerAcceptFailed(_decoratee.Endpoint, ex);
                 throw;
             }
         }
@@ -34,7 +34,7 @@ namespace IceRpc.Transports.Internal
             }
             finally
             {
-                _logger.LogListenerShutDown(_decoratee.Endpoint);
+                _logger.LogListenerDispose(_decoratee.Endpoint);
             }
         }
 
@@ -48,7 +48,7 @@ namespace IceRpc.Transports.Internal
             _decoratee = decoratee;
             _logDecoratorFactory = logDecoratorFactory;
             _logger = logger;
-            _logger.LogListenerListening(_decoratee.Endpoint);
+            _logger.LogListenerCreated(_decoratee.Endpoint);
         }
     }
 }

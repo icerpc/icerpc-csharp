@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Internal
 {
-    /// <summary>This class contains the ILogger extension methods for connection-related messages.</summary>
+    /// <summary>This class provides ILogger extension methods for connection-related messages.</summary>
     internal static partial class ConnectionLoggerExtensions
     {
         private static readonly Func<ILogger, bool, string, string, IDisposable> _connectionScope =
@@ -28,6 +28,13 @@ namespace IceRpc.Internal
             Level = LogLevel.Debug,
             Message = "connection closed due to exception")]
         internal static partial void LogConnectionClosedReason(this ILogger logger, Exception exception);
+
+        [LoggerMessage(
+            EventId = (int)ConnectionEventIds.Ping,
+            EventName = nameof(ConnectionEventIds.Ping),
+            Level = LogLevel.Debug,
+            Message = "sent ping")]
+        internal static partial void LogPing(this ILogger logger);
 
         [LoggerMessage(
             EventId = (int)ConnectionEventIds.ReceiveRequest,
@@ -94,15 +101,15 @@ namespace IceRpc.Internal
                 isServer ? endpoint.ToString() : "undefined",
                 isServer ? "undefined" : endpoint.ToString());
 
-        /// <summary>Starts a scope for an incoming response.</summary>
+        /// <summary>Starts a scope for method IProtocolConnection.ReceiveResponseAsync.</summary>
         internal static IDisposable StartReceiveResponseScope(this ILogger logger, OutgoingRequest request) =>
             _receiveResponseScope(logger, request.Path, request.Operation);
 
-        /// <summary>Starts a scope for an outgoing request.</summary>
+        /// <summary>Starts a scope for method IProtocolConnection.SendRequestAsync.</summary>
         internal static IDisposable StartSendRequestScope(this ILogger logger, OutgoingRequest request) =>
             _sendRequestScope(logger, request.Path, request.Operation);
 
-        /// <summary>Starts a scope for an outgoing response.</summary>
+        /// <summary>Starts a scope for method IProtocolConnection.SendResponseAsync.</summary>
         internal static IDisposable StartSendResponseScope(
             this ILogger logger,
             OutgoingResponse response,

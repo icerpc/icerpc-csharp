@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace IceRpc.Transports.Internal
 {
@@ -12,9 +14,13 @@ namespace IceRpc.Transports.Internal
 
         private readonly IMultiplexedNetworkConnection _decoratee;
 
+        private readonly Endpoint _endpoint;
+
         public async Task<(IMultiplexedStreamFactory, NetworkConnectionInformation)> ConnectAsync(
             CancellationToken cancel)
         {
+            using IDisposable scope = Logger.StartConnectionScope(_endpoint, IsServer);
+
             IMultiplexedStreamFactory multiplexedStreamFactory;
             try
             {
@@ -22,12 +28,12 @@ namespace IceRpc.Transports.Internal
             }
             catch (Exception ex)
             {
-                LogConnectFailed(ex);
+                Logger.LogConnectFailed(ex);
                 throw;
             }
 
-            LogConnect();
-            return (new LogMultiplexedStreamFactoryDecorator(this, multiplexedStreamFactory), Information.Value);
+            Logger.LogConnect(Information.Value.LocalEndpoint, Information.Value.RemoteEndpoint);
+            return (new LogMultiplexedStreamFactoryDecorator(multiplexedStreamFactory, Logger), Information.Value);
         }
 
         internal static IMultiplexedNetworkConnection Decorate(
@@ -37,35 +43,37 @@ namespace IceRpc.Transports.Internal
             ILogger logger) =>
             new LogMultiplexedNetworkConnectionDecorator(decoratee, isServer, endpoint, logger);
 
-        internal LogMultiplexedNetworkConnectionDecorator(
+        private LogMultiplexedNetworkConnectionDecorator(
             IMultiplexedNetworkConnection decoratee,
             bool isServer,
             Endpoint endpoint,
             ILogger logger)
-            : base(isServer, endpoint, logger) => _decoratee = decoratee;
+            : base(isServer, logger)
+            {
+                _decoratee = decoratee;
+                _endpoint = endpoint;
+            }
     }
 
     internal sealed class LogMultiplexedStreamFactoryDecorator : IMultiplexedStreamFactory
     {
         private readonly IMultiplexedStreamFactory _decoratee;
-        private readonly LogMultiplexedNetworkConnectionDecorator _parent;
+        private readonly ILogger _logger;
 
         public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel) =>
             new LogMultiplexedStreamDecorator(
-                _parent,
-                await _decoratee.AcceptStreamAsync(cancel).ConfigureAwait(false));
+                await _decoratee.AcceptStreamAsync(cancel).ConfigureAwait(false),
+                _logger);
 
         public IMultiplexedStream CreateStream(bool bidirectional) =>
-            new LogMultiplexedStreamDecorator(_parent, _decoratee.CreateStream(bidirectional));
+            new LogMultiplexedStreamDecorator(_decoratee.CreateStream(bidirectional), _logger);
 
         public override string? ToString() => _decoratee.ToString();
 
-        internal LogMultiplexedStreamFactoryDecorator(
-            LogMultiplexedNetworkConnectionDecorator parent,
-            IMultiplexedStreamFactory decoratee)
+        internal LogMultiplexedStreamFactoryDecorator(IMultiplexedStreamFactory decoratee, ILogger logger)
         {
             _decoratee = decoratee;
-            _parent = parent;
+            _logger = logger;
         }
     }
 
@@ -82,7 +90,7 @@ namespace IceRpc.Transports.Internal
         }
 
         private readonly IMultiplexedStream _decoratee;
-        private readonly LogNetworkConnectionDecorator _parent;
+        private readonly ILogger _logger;
 
         public ReadOnlyMemory<byte> TransportHeader => _decoratee.TransportHeader;
 
@@ -94,9 +102,11 @@ namespace IceRpc.Transports.Internal
 
         public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
-            using IDisposable? _ = IsStarted ? _parent.Logger.StartStreamScope(Id) : null;
+            Debug.Assert(IsStarted);
+            using IDisposable _ = _logger.StartStreamScope(Id);
             int received = await _decoratee.ReadAsync(buffer, cancel).ConfigureAwait(false);
-            _parent.LogStreamRead(buffer[0..received]);
+            _logger.LogMultiplexedStreamRead(received,
+                                             LogNetworkConnectionDecorator.ToHexString(buffer[0..received]));
             return received;
         }
 
@@ -105,19 +115,24 @@ namespace IceRpc.Transports.Internal
             bool endStream,
             CancellationToken cancel)
         {
-            using IDisposable? _ = IsStarted ? _parent.Logger.StartStreamScope(Id) : null;
+            using IDisposable? scope = IsStarted ? _logger.StartStreamScope(Id) : null;
             await _decoratee.WriteAsync(buffers, endStream, cancel).ConfigureAwait(false);
-            _parent.LogStreamWrite(buffers);
+
+            // If the scope is null, we start it now:
+            using IDisposable? _ = scope == null ? _logger.StartStreamScope(Id) : null;
+
+            _logger.LogMultiplexedStreamWrite(buffers.GetByteCount(),
+                                              LogNetworkConnectionDecorator.ToHexString(buffers));
         }
 
         public Task WaitForShutdownAsync(CancellationToken cancel) => _decoratee.WaitForShutdownAsync(cancel);
 
         public override string? ToString() => _decoratee.ToString();
 
-        internal LogMultiplexedStreamDecorator(LogNetworkConnectionDecorator parent, IMultiplexedStream decoratee)
+        internal LogMultiplexedStreamDecorator(IMultiplexedStream decoratee, ILogger logger)
         {
-            _parent = parent;
             _decoratee = decoratee;
+            _logger = logger;
         }
     }
 }

@@ -25,8 +25,6 @@ namespace IceRpc.Transports.Internal
 
         private protected NetworkConnectionInformation? Information { get; set; }
 
-        private readonly Endpoint _endpoint;
-
         public void Dispose()
         {
             Decoratee.Dispose();
@@ -43,17 +41,13 @@ namespace IceRpc.Transports.Internal
 
         public override string? ToString() => Decoratee.ToString();
 
-        internal LogNetworkConnectionDecorator(
-            bool isServer,
-            Endpoint endpoint,
-            ILogger logger)
+        internal LogNetworkConnectionDecorator(bool isServer, ILogger logger)
         {
-            _endpoint = endpoint;
             IsServer = isServer;
             Logger = logger;
         }
 
-        internal void LogStreamRead(Memory<byte> buffer)
+        internal static string ToHexString(Memory<byte> buffer)
         {
             var sb = new StringBuilder();
             for (int i = 0; i < Math.Min(buffer.Length, 32); ++i)
@@ -64,10 +58,10 @@ namespace IceRpc.Transports.Internal
             {
                 _ = sb.Append("...");
             }
-            Logger.LogStreamRead(buffer.Length, sb.ToString().Trim());
+            return sb.ToString().Trim();
         }
 
-        internal void LogStreamWrite(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
+        internal static string ToHexString(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
         {
             int size = 0;
             var sb = new StringBuilder();
@@ -82,24 +76,12 @@ namespace IceRpc.Transports.Internal
                     }
                 }
                 size += buffer.Length;
-                if (size == 32 && i != buffers.Length)
+                if (size > 32)
                 {
                     _ = sb.Append("...");
                 }
             }
-            Logger.LogStreamWrite(size, sb.ToString().Trim());
-        }
-
-        private protected void LogConnect()
-        {
-            using IDisposable scope = Logger.StartConnectionScope(Information!.Value, IsServer);
-            Logger.LogConnect();
-        }
-
-        private protected void LogConnectFailed(Exception ex)
-        {
-            using IDisposable scope = Logger.StartConnectionScope(_endpoint, IsServer);
-            Logger.LogConnectFailed(ex);
+            return sb.ToString().Trim();
         }
     }
 }
