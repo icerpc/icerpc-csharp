@@ -258,7 +258,6 @@ namespace IceRpc.Tests.Internal
             EventHandler<ClosedEventArgs> handler = (sender, args) =>
             {
                 Assert.That(sender, Is.AssignableTo<Connection>());
-                Console.Error.WriteLine(args.Exception.ToString());
                 Assert.That(args.Exception, Is.AssignableTo<ConnectionClosedException>());
                 semaphore.Release();
             };

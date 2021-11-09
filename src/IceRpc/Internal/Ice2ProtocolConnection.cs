@@ -85,9 +85,18 @@ namespace IceRpc.Internal
                         Ice2FrameType.Request,
                         cancel).ConfigureAwait(false);
                 }
-                catch (OperationCanceledException ex) when (ex.CancellationToken == cancel)
+                catch
                 {
-                    throw new ConnectionClosedException("connection shutdown by peer");
+                    lock (_mutex)
+                    {
+                        if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
+                        {
+                            // The connection was gracefully shutdown, raise ConnectionClosedException here to ensure
+                            // that the ClosedEvent will report this exception instead of the transport failure.
+                            throw new ConnectionClosedException();
+                        }
+                    }
+                    throw;
                 }
 
                 var decoder = new Ice20Decoder(buffer);
@@ -732,7 +741,7 @@ namespace IceRpc.Internal
             ReadOnlyMemory<byte> buffer = await ReceiveFrameAsync(
                 _remoteControlStream!,
                 Ice2FrameType.GoAway,
-                _shutdownCancellationTokenSource.Token).ConfigureAwait(false);
+                cancel).ConfigureAwait(false);
             var goAwayFrame = new Ice2GoAwayBody(new Ice20Decoder(buffer));
 
             // Raise the peer shutdown initiated event.
