@@ -311,9 +311,9 @@ impl FunctionBuilder {
         match context {
             TypeContext::Incoming => {
                 self.add_parameter(
-                    "IceRpc.Dispatch?",
+                    "IceRpc.Dispatch",
                     &escape_parameter_name(&parameters, "dispatch"),
-                    Some("null"),
+                    None,
                     Some("The dispatch properties"),
                 );
             }
