@@ -14,22 +14,15 @@ namespace IceRpc.Transports.Internal
 
         public async Task<ISimpleNetworkConnection> AcceptAsync()
         {
-            try
+            if (Interlocked.Exchange(ref _serverConnection, null) is ISimpleNetworkConnection serverConnection)
             {
-                if (Interlocked.Exchange(ref _serverConnection, null) is ISimpleNetworkConnection serverConnection)
-                {
-                    // Return the server network connection for first call
-                    return serverConnection;
-                }
-                else
-                {
-                    // Wait indefinitely until Dispose is called
-                    return await _acceptTask.Task.ConfigureAwait(false);
-                }
+                // Return the server network connection for first call
+                return serverConnection;
             }
-            catch (Exception ex)
+            else
             {
-                throw ExceptionUtil.Throw(ex.ToTransportException(default));
+                // Wait indefinitely until Dispose is called
+                return await _acceptTask.Task.ConfigureAwait(false);
             }
         }
 
@@ -37,9 +30,9 @@ namespace IceRpc.Transports.Internal
 
         public void Dispose()
         {
-           // Dispose the server connection if AcceptAsync didn't already consume it.
-           Interlocked.Exchange(ref _serverConnection, null)?.Dispose();
-           _acceptTask.SetException(new ObjectDisposedException(nameof(UdpListener)));
+            // Dispose the server connection if AcceptAsync didn't already consume it.
+            Interlocked.Exchange(ref _serverConnection, null)?.Dispose();
+            _acceptTask.SetException(new ObjectDisposedException(nameof(UdpListener)));
         }
 
         internal UdpListener(Endpoint endpoint, ISimpleNetworkConnection serverConnection)

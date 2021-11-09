@@ -4,8 +4,8 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using NUnit.Framework;
 using System.Net;
-using System.Net.Sockets;
 using System.Net.Security;
+using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Tests.Internal
@@ -41,7 +41,10 @@ namespace IceRpc.Tests.Internal
                 TargetHost = host
             };
 
-            _clientTransport = new TcpClientTransport(clientAuthenticationOptions);
+            _clientTransport = new TcpClientTransport(new TcpClientOptions
+            {
+                AuthenticationOptions = clientAuthenticationOptions
+            });
 
             var serverAuthenticationOptions = new SslServerAuthenticationOptions
             {
@@ -49,7 +52,10 @@ namespace IceRpc.Tests.Internal
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
             };
 
-            _serverTransport = new TcpServerTransport(serverAuthenticationOptions);
+            _serverTransport = new TcpServerTransport(new TcpServerOptions
+            {
+                AuthenticationOptions = serverAuthenticationOptions
+            });
 
             string tlsString = "";
             if (tls != null)
@@ -109,7 +115,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task TcpNetworkConnection_AcceptAsync_ConnectionLostExceptionAsync()
+        public async Task TcpNetworkConnection_AcceptAsync_ConnectFailedExceptionAsync()
         {
             using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
 
@@ -127,18 +133,18 @@ namespace IceRpc.Tests.Internal
             using ISimpleNetworkConnection serverConnection = await acceptTask;
             clientConnection.Dispose();
 
-            AsyncTestDelegate testDelegate;
             if (_tls == false)
             {
                 // Server side ConnectAsync is a no-op for non secure TCP connections so it won't throw.
                 (ISimpleStream serverStream, _) = await serverConnection.ConnectAsync(default);
-                testDelegate = async () => await serverStream.ReadAsync(new byte[1], default);
+
+                Assert.ThrowsAsync<ConnectionLostException>(
+                    async () => await serverStream.ReadAsync(new byte[1], default));
             }
             else
             {
-                testDelegate = async () => await serverConnection.ConnectAsync(default);
+                Assert.ThrowsAsync<ConnectFailedException>(async () => await serverConnection.ConnectAsync(default));
             }
-            Assert.ThrowsAsync<ConnectionLostException>(testDelegate);
         }
 
         [TestCase(false, false)]

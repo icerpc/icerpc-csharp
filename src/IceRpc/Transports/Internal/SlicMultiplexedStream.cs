@@ -104,9 +104,9 @@ namespace IceRpc.Transports.Internal
         // TODO: remove pragma warning disable/restore once analyser is fixed.
         // It is necessary to call new() explicitly to execute the parameterless ctor of AsyncQueueCore, which is
         // synthesized from AsyncQueueCore fields defaults.
-        #pragma warning disable CA1805 // member is explicitly initialized to its default value
+#pragma warning disable CA1805 // member is explicitly initialized to its default value
         private AsyncQueueCore<(int, bool)> _queue = new();
-        #pragma warning restore CA1805
+#pragma warning restore CA1805
 
         private readonly ISlicFrameReader _reader;
         private CircularBuffer _receiveBuffer;

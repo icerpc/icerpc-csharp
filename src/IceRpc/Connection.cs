@@ -41,11 +41,11 @@ namespace IceRpc
     {
         /// <summary>The default value for <see cref="MultiplexedClientTransport"/>.</summary>
         public static IClientTransport<IMultiplexedNetworkConnection> DefaultMultiplexedClientTransport { get; } =
-            new MultiplexedClientTransport().UseColoc().UseTcp();
+            new CompositeMultiplexedClientTransport().UseSlicOverColoc().UseSlicOverTcp();
 
         /// <summary>The default value for <see cref="SimpleClientTransport"/>.</summary>
         public static IClientTransport<ISimpleNetworkConnection> DefaultSimpleClientTransport { get; } =
-            new SimpleClientTransport().UseColoc().UseTcp().UseUdp();
+            new CompositeSimpleClientTransport().UseColoc().UseTcp().UseUdp();
 
         /// <summary>This event is raised when the connection is closed. The connection object is passed as the
         /// event sender argument. The event handler should not throw.</summary>
@@ -146,9 +146,9 @@ namespace IceRpc
 
         private ConnectionState _state = ConnectionState.NotConnected;
 
-        #pragma warning disable CA2213 // _timer is disposed in CloseAsync
+#pragma warning disable CA2213 // _timer is disposed in CloseAsync
         private Timer? _timer;
-        #pragma warning restore CA2213
+#pragma warning restore CA2213
 
         /// <summary>Constructs a new client connection.</summary>
         public Connection()
@@ -251,7 +251,7 @@ namespace IceRpc
                 }
 
                 // This local function is called with _mutex locked and executes synchronously until the call to
-                // ConnectAsync.
+                // ConnectAsync so it's safe to assign _networkConnection here.
                 _networkConnection = networkConnection;
                 _state = ConnectionState.Connecting;
 
@@ -288,15 +288,7 @@ namespace IceRpc
         public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
             // Make sure the connection is connected.
-            try
-            {
-                await ConnectAsync(cancel).ConfigureAwait(false);
-            }
-            catch
-            {
-                request.Features = request.Features.With(RetryPolicy.Immediately);
-                throw;
-            }
+            await ConnectAsync(cancel).ConfigureAwait(false);
 
             try
             {
@@ -323,24 +315,6 @@ namespace IceRpc
             catch (OperationCanceledException)
             {
                 request.Stream?.Abort(StreamError.InvocationCanceled);
-                throw;
-            }
-            catch (ConnectionClosedException)
-            {
-                // If the peer gracefully shuts down the connection, it's always safe to retry since only
-                // streams not processed by the peer are aborted.
-                request.Features = request.Features.With(RetryPolicy.Immediately);
-                throw;
-            }
-            catch (TransportException)
-            {
-                if (request.IsIdempotent || !request.IsSent)
-                {
-                    // If the connection is being shutdown, exceptions are expected since the request send or
-                    // response receive can fail. If the request is idempotent or hasn't been sent it's safe
-                    // to retry it.
-                    request.Features = request.Features.With(RetryPolicy.Immediately);
-                }
                 throw;
             }
         }
@@ -493,8 +467,6 @@ namespace IceRpc
             ProtocolConnectionFactory<T> protocolConnectionFactory,
             EventHandler<ClosedEventArgs>? closedEventHandler) where T : INetworkConnection
         {
-            // Note: networkConnection may be more decorated than _networkConnection
-
             using var connectCancellationSource = new CancellationTokenSource(Options.ConnectTimeout);
             try
             {
@@ -535,17 +507,16 @@ namespace IceRpc
                     // Setup a timer to check for the connection idle time every IdleTimeout / 2 period. If the
                     // transport doesn't support idle timeout (e.g.: the colocated transport), IdleTimeout will
                     // be infinite.
-                    if (NetworkConnectionInformation!.Value.IdleTimeout != TimeSpan.MaxValue)
+                    TimeSpan idleTimeout = NetworkConnectionInformation!.Value.IdleTimeout;
+                    if (idleTimeout != TimeSpan.MaxValue && idleTimeout != Timeout.InfiniteTimeSpan)
                     {
-                        TimeSpan period = NetworkConnectionInformation.Value.IdleTimeout / 2;
-                        _timer = new Timer(value => Monitor(), null, period, period);
+                        _timer = new Timer(value => Monitor(), null, idleTimeout / 2, idleTimeout / 2);
                     }
 
                     // Start the receive request task. The task accepts new incoming requests and
                     // processes them. It only completes once the connection is closed.
-                    _ = Task.Run(
-                        () => AcceptIncomingRequestAsync(Dispatcher ?? NullDispatcher.Instance),
-                        CancellationToken.None);
+                    _ = Task.Run(() => AcceptIncomingRequestAsync(Dispatcher ?? NullDispatcher.Instance),
+                                 CancellationToken.None);
                 }
             }
             catch (OperationCanceledException)

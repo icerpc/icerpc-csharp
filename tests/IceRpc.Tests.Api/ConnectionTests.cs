@@ -12,14 +12,14 @@ namespace IceRpc.Tests.Api
         public void Connection_Options_ArgumentException()
         {
             Assert.Throws<ArgumentException>(() => new ConnectionOptions { CloseTimeout = TimeSpan.Zero });
-            Assert.Throws<ArgumentException>(() => new ConnectionOptions { IncomingFrameMaxSize = 512});
-            Assert.Throws<ArgumentException>(() => new ConnectionOptions {  ConnectTimeout = TimeSpan.Zero});
+            Assert.Throws<ArgumentException>(() => new ConnectionOptions { IncomingFrameMaxSize = 512 });
+            Assert.Throws<ArgumentException>(() => new ConnectionOptions { ConnectTimeout = TimeSpan.Zero });
         }
 
         [Test]
-        public void Connection_TcpTransportOptions_ArgumentException()
+        public void Connection_TcpServerTransportOptions_ArgumentException()
         {
-            var options = new Transports.TcpOptions();
+            var options = new Transports.TcpServerOptions();
             Assert.Throws<ArgumentException>(() => options.ListenerBackLog = 0);
             Assert.Throws<ArgumentException>(() => options.SendBufferSize = 512);
             Assert.Throws<ArgumentException>(() => options.ReceiveBufferSize = 512);
@@ -34,10 +34,16 @@ namespace IceRpc.Tests.Api
         }
 
         [Test]
-        public void Connection_UdpTransportOptions_ArgumentException()
+        public void Connection_UdpClientTransportOptions_ArgumentException()
         {
-            var options = new Transports.UdpOptions();
+            var options = new Transports.UdpClientOptions();
             Assert.Throws<ArgumentException>(() => options.SendBufferSize = 512);
+        }
+
+        [Test]
+        public void Connection_UdpServerTransportOptions_ArgumentException()
+        {
+            var options = new Transports.UdpServerOptions();
             Assert.Throws<ArgumentException>(() => options.ReceiveBufferSize = 512);
         }
     }

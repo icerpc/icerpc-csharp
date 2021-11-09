@@ -1,9 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Configure;
 using IceRpc.Transports;
 using NUnit.Framework;
-using System.Collections.Immutable;
 
 namespace IceRpc.Tests.ClientServer
 {
@@ -46,21 +44,19 @@ namespace IceRpc.Tests.ClientServer
         {
             await using var connection = new Connection
             {
-                RemoteEndpoint = GetTestEndpoint(protocol: Protocol.Ice1, port: 4061, transport: "udp"),
+                RemoteEndpoint = "udp -h 127.0.0.1 -p 4061"
             };
             await connection.ConnectAsync();
 
             var proxy = ServicePrx.FromConnection(connection);
-            Assert.CatchAsync<TransportException>(async () =>
-            {
-                // Depending on the system, the first send on the UDP socket will often succeed and the second will
-                // fail because the error that results from the absence of a listening UDP server socket is received
-                // asynchronously after the first send. We insert a small delay to ensure the error is received by
-                // the UDP socket before the second send.
-                await proxy.IcePingAsync(new Invocation { IsOneway = true });
-                await Task.Delay(500);
-                await proxy.IcePingAsync(new Invocation { IsOneway = true });
-            });
+            // We're sending a UDP request to an unreachable port. We get back a "destination port unreachable"
+            // ICMP packet and close the connection, which results in the second ping failing with a Connection
+            // closed exception.
+            await proxy.IcePingAsync(new Invocation { IsOneway = true });
+            await Task.Delay(500);
+
+            Assert.CatchAsync<ConnectionClosedException>(async () =>
+                await proxy.IcePingAsync(new Invocation { IsOneway = true }));
         }
 
         [Test]

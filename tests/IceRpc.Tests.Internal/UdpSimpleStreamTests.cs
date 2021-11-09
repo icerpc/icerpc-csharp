@@ -157,7 +157,7 @@ namespace IceRpc.Tests.Internal
         public void UdpSimpleStream_ReadAsync_Dispose()
         {
             _clientConnection!.Dispose();
-            Assert.CatchAsync<TransportException>(async () => await ClientStream.ReadAsync(new byte[256], default));
+            Assert.CatchAsync<ObjectDisposedException>(async () => await ClientStream.ReadAsync(new byte[256], default));
         }
 
         [Test]
@@ -174,7 +174,7 @@ namespace IceRpc.Tests.Internal
         public void UdpSimpleStream_WriteAsync_Dispose()
         {
             _clientConnection!.Dispose();
-            Assert.CatchAsync<TransportException>(async () => await ClientStream.WriteAsync(_oneBWriteBuffer, default));
+            Assert.CatchAsync<ObjectDisposedException>(async () => await ClientStream.WriteAsync(_oneBWriteBuffer, default));
         }
 
         [Test]

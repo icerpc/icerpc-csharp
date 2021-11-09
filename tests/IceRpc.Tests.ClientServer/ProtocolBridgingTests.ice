@@ -25,6 +25,9 @@ module IceRpc::Tests::ClientServer
         // Operation that throws ServiceNotFoundException (one of the special ice1 system exceptions)
         void opServiceNotFoundException();
 
+        // Check the context is correctly forwarded
+        void opContext();
+
         // Operation that returns a new proxy
         ProtocolBridgingTest opNewProxy();
     }

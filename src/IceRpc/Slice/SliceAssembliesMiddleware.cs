@@ -27,8 +27,10 @@ namespace IceRpc.Slice
             {
                 request.Features = new FeatureCollection(request.Features);
             }
-            request.Features.Set(_decoderFactory11);
-            request.Features.Set(_decoderFactory20);
+            // Do not use type inference for the generic parameter, we retrieve the feature using the interface type,
+            // not the implementation type.
+            request.Features.Set<IIceDecoderFactory<Ice11Decoder>>(_decoderFactory11);
+            request.Features.Set<IIceDecoderFactory<Ice20Decoder>>(_decoderFactory20);
             return _next.DispatchAsync(request, cancel);
         }
     }

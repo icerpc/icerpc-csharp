@@ -417,7 +417,7 @@ namespace IceRpc.Transports.Internal
                     EncodeParameter(ParameterKey.PacketMaxSize, (ulong)_packetMaxSize),
                     EncodeParameter(ParameterKey.StreamBufferMaxSize, (ulong)StreamBufferMaxSize)
                 };
-            if (IdleTimeout != TimeSpan.MaxValue)
+            if (IdleTimeout != TimeSpan.MaxValue && IdleTimeout != Timeout.InfiniteTimeSpan)
             {
                 parameters.Add(EncodeParameter(ParameterKey.IdleTimeout, (ulong)IdleTimeout.TotalMilliseconds));
             }
@@ -432,7 +432,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private void SetParameters(IDictionary<int, IList<byte>>  parameters)
+        private void SetParameters(IDictionary<int, IList<byte>> parameters)
         {
             TimeSpan? peerIdleTimeout = null;
 
@@ -478,7 +478,7 @@ namespace IceRpc.Transports.Internal
             }
 
             peerIdleTimeout ??= TimeSpan.MaxValue;
-            if (peerIdleTimeout < IdleTimeout)
+            if (IdleTimeout == Timeout.InfiniteTimeSpan || peerIdleTimeout < IdleTimeout)
             {
                 IdleTimeout = peerIdleTimeout.Value;
             }

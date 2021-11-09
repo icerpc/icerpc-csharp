@@ -26,11 +26,11 @@ namespace IceRpc.Tests.ClientServer
                                 request.Features.Get<Features.CompressPayload>());
 
                 return Task.FromResult(new IncomingResponse(request.Protocol, ResultType.Success)
-                    {
-                        Connection = connection, // without a connection, the decoding of response fails, even for void
-                        Payload = default,
-                        PayloadEncoding = Encoding.Ice20
-                    });
+                {
+                    Connection = connection, // without a connection, the decoding of response fails, even for void
+                    Payload = default,
+                    PayloadEncoding = Encoding.Ice20
+                });
             }));
 
             var prx = CompressTestPrx.FromPath(CompressTestPrx.DefaultPath);

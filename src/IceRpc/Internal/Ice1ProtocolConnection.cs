@@ -42,7 +42,7 @@ namespace IceRpc.Internal
         // private readonly AsyncSemaphore? _bidirectionalStreamSemaphore;
         private bool _shutdownCanceled;
         private readonly TaskCompletionSource _dispatchAndInvocationsCompleted =
-            new (TaskCreationOptions.RunContinuationsAsynchronously);
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly HashSet<IncomingRequest> _dispatches = new();
         private readonly int _incomingFrameMaxSize;
         private readonly Dictionary<int, OutgoingRequest> _invocations = new();
@@ -669,7 +669,7 @@ namespace IceRpc.Internal
                     Debug.Assert(frameSize == buffer.Length);
                     buffer = buffer[Ice1Definitions.HeaderSize..];
                 }
-                else if(frameSize == Ice1Definitions.HeaderSize)
+                else if (frameSize == Ice1Definitions.HeaderSize)
                 {
                     buffer = Memory<byte>.Empty;
                 }

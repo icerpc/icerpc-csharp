@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 namespace IceRpc.Transports
 {
     /// <summary>A composite server transport.</summary>
-    public class ServerTransport<T> : IServerTransport<T> where T : INetworkConnection
+    public class CompositeServerTransport<T> : IServerTransport<T> where T : INetworkConnection
     {
         private IReadOnlyDictionary<string, IServerTransport<T>>? _transports;
         private readonly Dictionary<string, IServerTransport<T>> _builder = new();
@@ -14,7 +14,7 @@ namespace IceRpc.Transports
         /// <param name="name">The transport name.</param>
         /// <param name="transport">The transport instance.</param>
         /// <returns>This transport.</returns>
-        public ServerTransport<T> Add(string name, IServerTransport<T> transport)
+        public CompositeServerTransport<T> Add(string name, IServerTransport<T> transport)
         {
             if (_transports != null)
             {

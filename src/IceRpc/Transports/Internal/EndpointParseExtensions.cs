@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using System.Globalization;
 using System.Net;
@@ -11,35 +12,33 @@ namespace IceRpc.Transports.Internal
     {
         internal const int DefaultTcpTimeout = 60_000; // 60s
 
-        internal static (TransportCode TransportCode, ReadOnlyMemory<byte> Bytes) ParseOpaqueParams(
+        internal static (TransportCode TransportCode, Encoding encoding, ReadOnlyMemory<byte> Bytes) ParseOpaqueParams(
            this Endpoint endpoint)
         {
             if (endpoint.Protocol != Protocol.Ice1)
             {
-                throw new FormatException($"endpoint '{endpoint}': protocol/transport mistmatch");
+                throw new FormatException($"endpoint '{endpoint}': protocol/transport mismatch");
             }
 
             TransportCode? transportCode = null;
             ReadOnlyMemory<byte> bytes = default;
-            bool encodingFound = false;
+            Encoding? encoding = null;
 
             foreach ((string name, string value) in endpoint.Params)
             {
                 switch (name)
                 {
                     case "-e":
-                        if (encodingFound)
+                        if (encoding != null)
                         {
                             throw new FormatException($"multiple -e parameters in endpoint '{endpoint}'");
                         }
-                        if (value == "1.0" || value == "1.1")
+                        encoding = value switch
                         {
-                            encodingFound = true;
-                        }
-                        else
-                        {
-                            throw new FormatException($"invalid value for -e parameter in endpoint '{endpoint}'");
-                        }
+                            "1.0" => Encoding.Ice10,
+                            "1.1" => Encoding.Ice11,
+                            _ => throw new FormatException($"invalid value for -e parameter in endpoint '{endpoint}'")
+                        };
                         break;
 
                     case "-t":
@@ -98,7 +97,7 @@ namespace IceRpc.Transports.Internal
                 throw new FormatException($"missing -v parameter in endpoint '{endpoint}'");
             }
 
-            return (transportCode.Value, bytes);
+            return (transportCode.Value, encoding ?? Encoding.Ice11, bytes);
         }
 
         internal static (bool Compress, int Timeout, bool? Tls) ParseTcpParams(this Endpoint endpoint)
@@ -187,7 +186,7 @@ namespace IceRpc.Transports.Internal
         {
             if (endpoint.Protocol != Protocol.Ice1)
             {
-                throw new FormatException($"endpoint '{endpoint}': protocol/transport mistmatch");
+                throw new FormatException($"endpoint '{endpoint}': protocol/transport mismatch");
             }
 
             bool compress = false;

@@ -44,17 +44,9 @@ namespace IceRpc.Transports.Internal
                 {
                     _receivedBuffer = await _reader.ReadAsync(cancel).ConfigureAwait(false);
                 }
-                catch (OperationCanceledException)
-                {
-                    throw;
-                }
                 catch (ChannelClosedException exception)
                 {
-                    throw new ConnectionLostException(exception);
-                }
-                catch (Exception exception)
-                {
-                    throw new TransportException(exception);
+                    throw new ObjectDisposedException(nameof(ColocNetworkConnection), exception);
                 }
             }
 
@@ -79,17 +71,9 @@ namespace IceRpc.Transports.Internal
             {
                 await _writer.WriteAsync(buffers.ToSingleBuffer(), cancel).ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
             catch (ChannelClosedException exception)
             {
-                throw new ConnectionLostException(exception);
-            }
-            catch (Exception exception)
-            {
-                throw new TransportException(exception);
+                throw new ObjectDisposedException(nameof(ColocNetworkConnection), exception);
             }
         }
 
