@@ -25,9 +25,9 @@ namespace IceRpc.Transports.Internal
 
         private readonly Endpoint _endpoint;
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
-            Decoratee.Dispose();
+            await Decoratee.DisposeAsync().ConfigureAwait(false);
 
             if (Information is NetworkConnectionInformation connectionInformation)
             {

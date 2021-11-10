@@ -15,7 +15,7 @@ namespace IceRpc.Tests.Internal
         public Task SetUp() => SetUpConnectionsAsync();
 
         [TearDown]
-        public void TearDown() => TearDownConnections();
+        public Task TearDown() => TearDownConnectionsAsync();
 
         [TestCase(StreamError.DispatchCanceled)]
         [TestCase(StreamError.InvocationCanceled)]
