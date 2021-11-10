@@ -185,8 +185,9 @@ namespace IceRpc.Tests.Internal
             using var source = new CancellationTokenSource();
             ValueTask<int> receiveTask = stream.ReadAsync(CreateReceivePayload(), source.Token);
             source.Cancel();
-
             Assert.CatchAsync<OperationCanceledException>(async () => await receiveTask);
+            stream.AbortRead(StreamError.InvocationCanceled);
+            Assert.DoesNotThrowAsync(async () => await dispatchCanceled.Task);
         }
 
         [TestCase(256, 256)]

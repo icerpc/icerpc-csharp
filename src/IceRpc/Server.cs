@@ -57,8 +57,8 @@ namespace IceRpc
         public IServerTransport<ISimpleNetworkConnection> SimpleServerTransport { get; set; } =
             DefaultSimpleServerTransport;
 
-        /// <summary>Returns a task that completes when the server's shutdown is complete: see
-        /// <see cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
+        /// <summary>Returns a task that completes when the server's shutdown is complete: see <see
+        /// cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
         public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
         private readonly HashSet<Connection> _connections = new();

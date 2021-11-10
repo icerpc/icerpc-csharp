@@ -107,7 +107,7 @@ namespace IceRpc.Tests.Internal
 
                 async Task<Connection> ConnectAsync(Endpoint endpoint)
                 {
-                    var connection = endpoint.Protocol == Protocol.Ice1 ?
+                    Connection connection = endpoint.Protocol == Protocol.Ice1 ?
                         new Connection
                         {
                             SimpleClientTransport = TestHelper.CreateSimpleClientTransport(

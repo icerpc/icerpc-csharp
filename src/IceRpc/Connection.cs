@@ -160,6 +160,11 @@ namespace IceRpc
         /// for the events to be executed.</summary>
         /// <param name="message">A description of the connection close reason.</param>
         public Task CloseAsync(string? message = null) =>
+            // TODO: the retry interceptor considers ConnectionClosedException as always retryable. Raising this
+            // exception here is therefore wrong when aborting the connection. Invocations which are in progress
+            // shouldn't be retried unless not sent or idempotent.
+            // TODO2: consider removing this method? Throw ObjectDisposedException instead?
+            // TODO3: AbortAsync would be a better name.
             CloseAsync(new ConnectionClosedException(message ?? "connection closed forcefully"));
 
         /// <summary>Establishes the connection.</summary>
@@ -319,13 +324,76 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Gracefully shuts down of the connection. The graceful shutdown waits for pending invocations to
-        /// return and dispatch to complete. If ShutdownAsync is canceled, dispatch are canceled and invocations
-        /// aborted. Shutdown cancellation can lead to a speedier shutdown if dispatch are cancelable.</summary>
-        /// <param name="message">The message transmitted to the peer when using the Ice2 protocol.</param>
+        /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
+        /// canceled. Shutdown cancellation can lead to a speedier shutdown if dispatch are cancelable.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public Task ShutdownAsync(string? message = null, CancellationToken cancel = default) =>
-            ShutdownAsync(shutdownByPeer: false, message ?? "connection closed gracefully", cancel);
+        public Task ShutdownAsync(CancellationToken cancel = default) => ShutdownAsync("connection shutdown", cancel);
+
+        /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
+        /// canceled. Shutdown cancellation can lead to a speedier shutdown if dispatch are cancelable.</summary>
+        /// <param name="message">The message transmitted to the peer (when using the Ice2 protocol).</param>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        public async Task ShutdownAsync(string message, CancellationToken cancel = default)
+        {
+            // TODO: should we keep this Ice2-only feature to transmit the shutdown message over-the-wire? The message
+            // will be accessible to the application through the message of the ConnectionClosedException raised when
+            // pending invocation are canceled because of the shutdown. If we keep it we should add a similar method on
+            // Server.
+
+            Task shutdownTask;
+            lock (_mutex)
+            {
+                // The connection might already be in the closing state if peer initiated shutdown. We still perform
+                // shutdown in this case to wait for shutdown completion.
+                if (_state == ConnectionState.Active || _state == ConnectionState.Closing)
+                {
+                    _state = ConnectionState.Closing;
+                    _closeTask ??= PerformShutdownAsync();
+                }
+                shutdownTask = _closeTask ?? CloseAsync(new ConnectionClosedException(message));
+            }
+
+            try
+            {
+                // Wait for the shutdown to complete or for the cancellation of this operation.
+                await shutdownTask.WaitAsync(cancel).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancel.IsCancellationRequested)
+            {
+                // Cancel pending invocations and dispatch to speed up the shutdown.
+                _protocolConnection?.ShutdownCanceled();
+
+                // ... and continue waiting for the shutdown to complete.
+                await shutdownTask.ConfigureAwait(false);
+            }
+
+            async Task PerformShutdownAsync()
+            {
+                // Yield before continuing to ensure the code below isn't executed with the mutex locked and
+                // that _closeTask is assigned before any synchronous continuations are ran.
+                await Task.Yield();
+
+                using var closeCancellationSource = new CancellationTokenSource(Options.CloseTimeout);
+                try
+                {
+                    // Shutdown the connection.
+                    await _protocolConnection!.ShutdownAsync(
+                        message,
+                        closeCancellationSource.Token).ConfigureAwait(false);
+
+                    // Close the connection.
+                    await CloseAsync(new ConnectionClosedException(message)).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    await CloseAsync(new ConnectionClosedException("shutdown timed out")).ConfigureAwait(false);
+                }
+                catch (Exception exception)
+                {
+                    await CloseAsync(exception).ConfigureAwait(false);
+                }
+            }
+        }
 
         /// <inheritdoc/>
         public override string ToString() => _networkConnection?.ToString() ?? "";
@@ -415,6 +483,7 @@ namespace IceRpc
                                                     Options.IncomingFrameMaxSize,
                                                     IsServer,
                                                     connectCancellationSource.Token).ConfigureAwait(false);
+
                 lock (_mutex)
                 {
                     if (_state == ConnectionState.Closed)
@@ -427,6 +496,20 @@ namespace IceRpc
 
                     _closed += closedEventHandler;
 
+                    // Switch the connection to the Closing state as soon as the protocol receives a notification that
+                    // peer initiated shutdown. This is in particular useful for the connection pool to not return a
+                    // connection which is being shutdown.
+                    _protocolConnection.PeerShutdownInitiated += () =>
+                        {
+                            lock(_mutex)
+                            {
+                                if (_state == ConnectionState.Active)
+                                {
+                                    _state = ConnectionState.Closing;
+                                }
+                            }
+                        };
+
                     // Setup a timer to check for the connection idle time every IdleTimeout / 2 period. If the
                     // transport doesn't support idle timeout (e.g.: the colocated transport), IdleTimeout will
                     // be infinite.
@@ -435,9 +518,6 @@ namespace IceRpc
                     {
                         _timer = new Timer(value => Monitor(), null, idleTimeout / 2, idleTimeout / 2);
                     }
-
-                    // Start a task to wait for graceful shutdown.
-                    _ = Task.Run(() => WaitForShutdownAsync(), CancellationToken.None);
 
                     // Start the receive request task. The task accepts new incoming requests and
                     // processes them. It only completes once the connection is closed.
@@ -483,7 +563,7 @@ namespace IceRpc
                     else
                     {
                         // The connection is idle, close it.
-                        _ = ShutdownAsync("connection idle");
+                        _ = ShutdownAsync("connection idle", CancellationToken.None);
                     }
                 }
                 else if (idleTime > NetworkConnectionInformation.Value.IdleTimeout / 4 &&
@@ -511,12 +591,7 @@ namespace IceRpc
             IncomingRequest request;
             try
             {
-                request = await _protocolConnection!.ReceiveRequestAsync(default).ConfigureAwait(false);
-            }
-            catch when (State >= ConnectionState.Closing)
-            {
-                _ = CloseAsync(new ConnectionClosedException());
-                return;
+                request = await _protocolConnection!.ReceiveRequestAsync().ConfigureAwait(false);
             }
             catch (Exception exception)
             {
@@ -622,87 +697,6 @@ namespace IceRpc
                 {
                     // Ignore, application event handlers shouldn't raise exceptions.
                 }
-            }
-        }
-
-        /// <summary>Shutdown the connection.</summary>
-        private async Task ShutdownAsync(bool shutdownByPeer, string message, CancellationToken cancel)
-        {
-            Task shutdownTask;
-            lock (_mutex)
-            {
-                if (_state == ConnectionState.Active)
-                {
-                    _state = ConnectionState.Closing;
-                    _closeTask ??= PerformShutdownAsync(message);
-                }
-                else if (_state == ConnectionState.Closing && shutdownByPeer)
-                {
-                    _ = PerformShutdownAsync(message);
-                }
-                shutdownTask = _closeTask ?? CloseAsync(new ConnectionClosedException(message));
-            }
-
-            try
-            {
-                await shutdownTask.WaitAsync(cancel).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (cancel.IsCancellationRequested)
-            {
-                // Cancel pending invocations and dispatch to speed up the shutdown.
-                _protocolConnection?.CancelInvocationsAndDispatches();
-            }
-
-            await shutdownTask.ConfigureAwait(false);
-
-            async Task PerformShutdownAsync(string message)
-            {
-                // Yield before continuing to ensure the code below isn't executed with the mutex locked and
-                // that _closeTask is assigned before any synchronous continuations are ran.
-                await Task.Yield();
-
-                using var closeCancellationSource = new CancellationTokenSource(Options.CloseTimeout);
-                try
-                {
-                    // Shutdown the connection.
-                    await _protocolConnection!.ShutdownAsync(
-                        shutdownByPeer,
-                        message,
-                        closeCancellationSource.Token).ConfigureAwait(false);
-
-                    // Close the connection.
-                    await CloseAsync(new ConnectionClosedException(message)).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    await CloseAsync(new ConnectionClosedException("shutdown timed out")).ConfigureAwait(false);
-                }
-                catch (Exception exception)
-                {
-                    await CloseAsync(exception).ConfigureAwait(false);
-                }
-            }
-        }
-
-        /// <summary>Waits for the shutdown of the connection by the peer. Once the peer requested the
-        /// connection shutdown, shutdown this side of connection.</summary>
-        private async Task WaitForShutdownAsync()
-        {
-            try
-            {
-                // Wait for the protocol shutdown.
-                string message = await _protocolConnection!.WaitForShutdownAsync(
-                    CancellationToken.None).ConfigureAwait(false);
-
-                // Shutdown the connection.
-                await ShutdownAsync(
-                    shutdownByPeer: true,
-                    message,
-                    CancellationToken.None).ConfigureAwait(false);
-            }
-            catch (Exception exception)
-            {
-                await CloseAsync(exception).ConfigureAwait(false);
             }
         }
     }
