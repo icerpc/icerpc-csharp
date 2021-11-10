@@ -17,11 +17,10 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: '6.0.x'
-    - name: Install SSH key
-      uses: shimataro/ssh-key-action@v2
+    - name: Start Ssh Agent
+      uses: webfactory/ssh-agent@v0.5.3
       with:
-        key: ${{ secrets.ICERPC_DEPLOY_KEY }}
-        known_hosts: unnecessary
+        ssh-private-key: ${{ secrets.ICERPC_DEPLOY_KEY }}
     - name: Setup Rust
       uses: actions-rs/toolchain@v1
       with:
