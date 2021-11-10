@@ -2,11 +2,7 @@
 
 namespace IceRpc.Transports.Internal
 {
-    // Disable warning: Type 'SlicNetworkConnectionDecorator' owns disposable field(s) but is not disposable
-    // The _slicMultiplexedStreamFactory is disposed by CloseAsync
-#pragma warning disable CA1001
     internal class SlicNetworkConnection : IMultiplexedNetworkConnection
-#pragma warning restore CA1001
     {
         public bool IsSecure => _simpleNetworkConnection.IsSecure;
 
@@ -21,9 +17,9 @@ namespace IceRpc.Transports.Internal
         private SlicMultiplexedStreamFactory? _slicMultiplexedStreamFactory;
         private readonly SlicOptions _slicOptions;
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
-            _simpleNetworkConnection.Dispose();
+            await _simpleNetworkConnection.DisposeAsync().ConfigureAwait(false);
             _slicMultiplexedStreamFactory?.Dispose();
         }
 

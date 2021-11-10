@@ -69,21 +69,21 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task TcpNetworkConnection_Listener_AcceptAsync()
         {
-            using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
-            using ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
+            await using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
+            await using ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
 
             Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
             var connectTask = clientConnection.ConnectAsync(default);
 
-            using ISimpleNetworkConnection serverConnection = await acceptTask;
+            await using ISimpleNetworkConnection serverConnection = await acceptTask;
             _ = await serverConnection.ConnectAsync(default);
             _ = await connectTask;
         }
 
         [Test]
-        public void TcpNetworkConnection_Listener_TransportException()
+        public async Task TcpNetworkConnection_Listener_TransportException()
         {
-            using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
+            await using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
             Assert.Throws<TransportException>(
                 () => _serverTransport.Listen(listener.Endpoint, LogAttributeLoggerFactory.Instance));
         }
@@ -91,15 +91,15 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task TcpNetworkConnection_AcceptAsync()
         {
-            using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
+            await using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
 
             Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
 
-            using ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
+            await using ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
 
             Task<(ISimpleStream, NetworkConnectionInformation)> connectTask = clientConnection.ConnectAsync(default);
 
-            using ISimpleNetworkConnection serverConnection = await acceptTask;
+            await using ISimpleNetworkConnection serverConnection = await acceptTask;
 
             Task<(ISimpleStream, NetworkConnectionInformation)> serverConnectTask =
                 serverConnection.ConnectAsync(default);
@@ -117,7 +117,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task TcpNetworkConnection_AcceptAsync_ConnectFailedExceptionAsync()
         {
-            using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
+            await using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
 
             Task<ISimpleNetworkConnection> acceptTask = listener.AcceptAsync();
 
@@ -128,10 +128,10 @@ namespace IceRpc.Tests.Internal
             // We don't use clientConnection.ConnectAsync() here as this would start the TLS handshake for secure
             // connections
             await clientSocket.ConnectAsync(
-                new DnsEndPoint(listener.Endpoint.Host, listener.Endpoint.Port)).ConfigureAwait(false);
+                new DnsEndPoint(listener.Endpoint.Host, listener.Endpoint.Port));
 
-            using ISimpleNetworkConnection serverConnection = await acceptTask;
-            clientConnection.Dispose();
+            await using ISimpleNetworkConnection serverConnection = await acceptTask;
+            await clientConnection.DisposeAsync();
 
             if (_tls == false)
             {
@@ -150,9 +150,9 @@ namespace IceRpc.Tests.Internal
         [TestCase(false, false)]
         [TestCase(true, false)]
         [TestCase(false, true)]
-        public void TcpNetworkConnection_Listener_AddressReuse(bool wildcard1, bool wildcard2)
+        public async Task TcpNetworkConnection_Listener_AddressReuse(bool wildcard1, bool wildcard2)
         {
-            using IListener<ISimpleNetworkConnection> listener = wildcard1 ?
+            await using IListener<ISimpleNetworkConnection> listener = wildcard1 ?
                 CreateListener(_endpoint with { Host = "::0" }) : CreateListener(_endpoint);
 
             Endpoint endpoint = listener.Endpoint with { Host = _endpoint.Host };
@@ -164,7 +164,7 @@ namespace IceRpc.Tests.Internal
                 {
                     // On macOS, it's still possible to bind to a specific address even if a connection is bound
                     // to the wildcard address.
-                    Assert.DoesNotThrow(() => CreateListener(serverEndpoint).Dispose());
+                    Assert.DoesNotThrowAsync(() => CreateListener(serverEndpoint).DisposeAsync().AsTask());
                 }
                 else
                 {
@@ -177,7 +177,7 @@ namespace IceRpc.Tests.Internal
                 {
                     // On macOS, it's still possible to bind to a specific address even if a connection is bound
                     // to the wildcard address.
-                    Assert.DoesNotThrow(() => CreateListener(endpoint).Dispose());
+                    Assert.DoesNotThrowAsync(() => CreateListener(endpoint).DisposeAsync().AsTask());
                 }
                 else
                 {
@@ -189,13 +189,13 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task TcpNetworkConnection_AcceptAsync_OperationCanceledExceptionAsync()
         {
-            using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
+            await using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
 
-            ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
+            await using ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
 
             var connectTask = clientConnection.ConnectAsync(default);
 
-            ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
+            await using ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
 
             using var source = new CancellationTokenSource();
             source.Cancel();
@@ -213,9 +213,9 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void TcpNetworkConnection_ConnectAsync_OperationCanceledException()
+        public async Task TcpNetworkConnection_ConnectAsync_OperationCanceledException()
         {
-            using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
+            await using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
 
             using var source = new CancellationTokenSource();
             if (_tls == false)
@@ -224,7 +224,7 @@ namespace IceRpc.Tests.Internal
             }
             else
             {
-                using ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
+                await using ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
 
                 var connectTask = clientConnection.ConnectAsync(source.Token);
                 source.Cancel();
