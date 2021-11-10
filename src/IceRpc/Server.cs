@@ -157,9 +157,8 @@ namespace IceRpc
                         if (sender is Connection connection && args.Exception is Exception exception)
                         {
                             // This event handler is added/executed after NetworkConnectionInformation is set.
-                            using IDisposable? scope =
-                               logger.StartConnectionScope(connection.NetworkConnectionInformation!.Value,
-                                                           isServer: true);
+                            using IDisposable scope =
+                               logger.StartServerConnectionScope(connection.NetworkConnectionInformation!.Value);
                             logger.LogConnectionClosedReason(exception);
                         }
                     };

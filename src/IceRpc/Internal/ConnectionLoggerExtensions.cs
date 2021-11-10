@@ -8,9 +8,9 @@ namespace IceRpc.Internal
     /// <summary>This class provides ILogger extension methods for connection-related messages.</summary>
     internal static partial class ConnectionLoggerExtensions
     {
-        private static readonly Func<ILogger, bool, string, string, IDisposable> _connectionScope =
-            LoggerMessage.DefineScope<bool, string, string>(
-                "connection(IsServer={IsServer}, LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint})");
+        private static readonly Func<ILogger, string, string, IDisposable> _clientConnectionScope =
+            LoggerMessage.DefineScope<string, string>(
+                "ClientConnection(LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint})");
 
         private static readonly Func<ILogger, string, string, IDisposable> _receiveResponseScope =
             LoggerMessage.DefineScope<string, string>("ReceiveResponse(Path={Path}, Operation={Operation})");
@@ -21,6 +21,10 @@ namespace IceRpc.Internal
         private static readonly Func<ILogger, string, string, ResultType, IDisposable> _sendResponseScope =
             LoggerMessage.DefineScope<string, string, ResultType>(
                 "SendResponse(Path={Path}, Operation={Operation}, ResultType={ResultType})");
+
+        private static readonly Func<ILogger, string, string, IDisposable> _serverConnectionScope =
+            LoggerMessage.DefineScope<string, string>(
+                "ServerConnection(LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint})");
 
         [LoggerMessage(
             EventId = (int)ConnectionEventIds.ConnectionClosedReason,
@@ -81,25 +85,34 @@ namespace IceRpc.Internal
             int payloadSize,
             Encoding payloadEncoding);
 
-        internal static IDisposable StartConnectionScope(
+        internal static IDisposable StartClientConnectionScope(
             this ILogger logger,
-            NetworkConnectionInformation information,
-            bool isServer) =>
-            _connectionScope(
+            NetworkConnectionInformation information) =>
+            _clientConnectionScope(
                 logger,
-                isServer,
                 information.LocalEndpoint.ToString(),
                 information.RemoteEndpoint.ToString());
 
         internal static IDisposable StartConnectionScope(
             this ILogger logger,
+            NetworkConnectionInformation information,
+            bool isServer) =>
+            isServer ? logger.StartServerConnectionScope(information) : logger.StartClientConnectionScope(information);
+
+        internal static IDisposable StartConnectionScope(
+            this ILogger logger,
             Endpoint endpoint,
             bool isServer) =>
-            _connectionScope(
+            isServer ? _serverConnectionScope(logger, endpoint.ToString(), "pending") :
+                _clientConnectionScope(logger, "pending", endpoint.ToString());
+
+        internal static IDisposable StartServerConnectionScope(
+            this ILogger logger,
+            NetworkConnectionInformation information) =>
+            _serverConnectionScope(
                 logger,
-                isServer,
-                isServer ? endpoint.ToString() : "undefined",
-                isServer ? "undefined" : endpoint.ToString());
+                information.LocalEndpoint.ToString(),
+                information.RemoteEndpoint.ToString());
 
         /// <summary>Starts a scope for method IProtocolConnection.ReceiveResponseAsync.</summary>
         internal static IDisposable StartReceiveResponseScope(this ILogger logger, OutgoingRequest request) =>

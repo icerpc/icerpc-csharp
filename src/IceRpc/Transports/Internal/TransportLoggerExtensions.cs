@@ -7,8 +7,9 @@ namespace IceRpc.Transports.Internal
     /// <summary>This class contains ILogger extension methods for logging calls to the transport APIs.</summary>
     internal static partial class TransportLoggerExtensions
     {
-        private static readonly Func<ILogger, long, string, string, IDisposable> _streamScope =
-            LoggerMessage.DefineScope<long, string, string>("stream(ID={ID}, InitiatedBy={InitiatedBy}, Kind={Kind})");
+        private static readonly Func<ILogger, long, string, string, IDisposable> _multiplexedStreamScope =
+            LoggerMessage.DefineScope<long, string, string>(
+                "MultiplexedStream(ID={ID}, InitiatedBy={InitiatedBy}, Kind={Kind})");
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.Connect,
@@ -89,13 +90,13 @@ namespace IceRpc.Transports.Internal
             Message = "connection closed")]
         internal static partial void LogConnectionDispose(this ILogger logger);
 
-        internal static IDisposable StartStreamScope(this ILogger logger, long id) =>
+        internal static IDisposable StartMultiplexedStreamScope(this ILogger logger, long id) =>
             (id % 4) switch
             {
-                0 => _streamScope(logger, id, "Client", "Bidirectional"),
-                1 => _streamScope(logger, id, "Server", "Bidirectional"),
-                2 => _streamScope(logger, id, "Client", "Unidirectional"),
-                _ => _streamScope(logger, id, "Server", "Unidirectional")
+                0 => _multiplexedStreamScope(logger, id, "Client", "Bidirectional"),
+                1 => _multiplexedStreamScope(logger, id, "Server", "Bidirectional"),
+                2 => _multiplexedStreamScope(logger, id, "Client", "Unidirectional"),
+                _ => _multiplexedStreamScope(logger, id, "Server", "Unidirectional")
             };
     }
 }

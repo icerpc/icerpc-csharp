@@ -103,7 +103,7 @@ namespace IceRpc.Transports.Internal
         public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             Debug.Assert(IsStarted);
-            using IDisposable _ = _logger.StartStreamScope(Id);
+            using IDisposable _ = _logger.StartMultiplexedStreamScope(Id);
             int received = await _decoratee.ReadAsync(buffer, cancel).ConfigureAwait(false);
             _logger.LogMultiplexedStreamRead(received,
                                              LogNetworkConnectionDecorator.ToHexString(buffer[0..received]));
@@ -115,11 +115,11 @@ namespace IceRpc.Transports.Internal
             bool endStream,
             CancellationToken cancel)
         {
-            using IDisposable? scope = IsStarted ? _logger.StartStreamScope(Id) : null;
+            using IDisposable? scope = IsStarted ? _logger.StartMultiplexedStreamScope(Id) : null;
             await _decoratee.WriteAsync(buffers, endStream, cancel).ConfigureAwait(false);
 
             // If the scope is null, we start it now:
-            using IDisposable? _ = scope == null ? _logger.StartStreamScope(Id) : null;
+            using IDisposable? _ = scope == null ? _logger.StartMultiplexedStreamScope(Id) : null;
 
             _logger.LogMultiplexedStreamWrite(buffers.GetByteCount(),
                                               LogNetworkConnectionDecorator.ToHexString(buffers));
