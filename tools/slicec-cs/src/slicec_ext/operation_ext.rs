@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use super::{InterfaceExt, NamedSymbolExt, ParameterSliceExt, ParameterExt};
-use slice::grammar::{Attributable, Contained, Operation};
+use super::{EntityExt, InterfaceExt, ParameterExt, ParameterSliceExt};
 use slice::code_gen_util::TypeContext;
+use slice::grammar::{Attributable, Contained, Operation};
 
 pub trait OperationExt {
     /// Returns true if the operation has the `cs:encoded-result` attribute. False otherwise.
@@ -24,8 +24,8 @@ impl OperationExt for Operation {
     fn has_encoded_result(&self) -> bool {
         let attribute = "cs:encoded-result";
 
-        self.has_attribute(attribute, false) ||
-        self.parent().unwrap().has_attribute(attribute, false)
+        self.has_attribute(attribute, false)
+            || self.parent().unwrap().has_attribute(attribute, false)
     }
 
     fn encoded_result_struct(&self) -> String {
@@ -69,11 +69,7 @@ impl OperationExt for Operation {
     }
 }
 
-fn operation_return_type(
-    operation: &Operation,
-    is_dispatch: bool,
-    context: TypeContext,
-) -> String {
+fn operation_return_type(operation: &Operation, is_dispatch: bool, context: TypeContext) -> String {
     let return_members = operation.return_members();
 
     if !return_members.is_empty() && is_dispatch && operation.has_encoded_result() {

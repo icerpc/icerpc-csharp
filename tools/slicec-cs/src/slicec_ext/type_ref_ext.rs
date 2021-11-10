@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use slice::grammar::*;
 use slice::code_gen_util::TypeContext;
+use slice::grammar::*;
 
+use super::entity_ext::EntityExt;
 use super::interface_ext::InterfaceExt;
-use super::named_symbol_ext::NamedSymbolExt;
 use super::primitive_ext::PrimitiveExt;
 
 pub trait TypeRefExt {
@@ -70,7 +70,9 @@ fn sequence_type_to_string(
     namespace: &str,
     context: TypeContext,
 ) -> String {
-    let element_type = sequence.element_type.to_type_string(namespace, TypeContext::Nested);
+    let element_type = sequence
+        .element_type
+        .to_type_string(namespace, TypeContext::Nested);
 
     match context {
         TypeContext::DataMember | TypeContext::Nested => {
@@ -109,8 +111,12 @@ fn dictionary_type_to_string(
     namespace: &str,
     context: TypeContext,
 ) -> String {
-    let key_type = dictionary.key_type.to_type_string(namespace, TypeContext::Nested);
-    let value_type = dictionary.value_type.to_type_string(namespace, TypeContext::Nested);
+    let key_type = dictionary
+        .key_type
+        .to_type_string(namespace, TypeContext::Nested);
+    let value_type = dictionary
+        .value_type
+        .to_type_string(namespace, TypeContext::Nested);
 
     match context {
         TypeContext::DataMember | TypeContext::Nested => {
