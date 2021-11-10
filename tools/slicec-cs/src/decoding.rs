@@ -52,7 +52,7 @@ pub fn decode_member(
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
     let data_type = member.data_type();
-    let type_string = data_type.to_type_string(namespace, TypeContext::Incoming);
+    let type_string = data_type.to_non_optional_type_string(namespace, TypeContext::Incoming);
 
     write!(code, "{} = ", param);
 

@@ -45,8 +45,7 @@ impl ModuleVisitor<'_> {
 
         let submodule_prefix = match &module_prefix {
             Some(_) if code_blocks.is_some() => None,
-            Some(prefix) => Some(format!("{}.{}", prefix, module.identifier())),
-            None => Some(module.identifier().to_owned()),
+            _ => Some(module_identifier),
         };
 
         let submodules_code: CodeBlock = submodules
