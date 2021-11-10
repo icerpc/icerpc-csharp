@@ -369,9 +369,9 @@ namespace IceRpc
 
             async Task PerformShutdownAsync()
             {
-                // We don't call Task.Yield() here. The protocol shutdown async is responsible for yielding if
-                // necessary. This also ensures that ShutdownCanceled won't be called before the protocol shutdown is
-                // initiated.
+                // We don't call Task.Yield() here. The IProtocolConnection.ShutdownAsync implementation is responsible
+                // for yielding if necessary. This ensures that ShutdownCanceled can't be called before the protocol
+                // shutdown is initiated.
 
                 using var closeCancellationSource = new CancellationTokenSource(Options.CloseTimeout);
                 try
