@@ -85,6 +85,7 @@ namespace IceRpc.Internal
             int payloadSize,
             Encoding payloadEncoding);
 
+        /// <summary>Starts a client connection scope.</summary>
         internal static IDisposable StartClientConnectionScope(
             this ILogger logger,
             NetworkConnectionInformation information) =>
@@ -93,19 +94,22 @@ namespace IceRpc.Internal
                 information.LocalEndpoint.ToString(),
                 information.RemoteEndpoint.ToString());
 
+        /// <summary>Starts a client or server connection scope.</summary>
         internal static IDisposable StartConnectionScope(
             this ILogger logger,
             NetworkConnectionInformation information,
             bool isServer) =>
             isServer ? logger.StartServerConnectionScope(information) : logger.StartClientConnectionScope(information);
 
-        internal static IDisposable StartConnectionScope(
+        /// <summary>Starts a client or server connection scope.</summary>
+         internal static IDisposable StartConnectionScope(
             this ILogger logger,
             Endpoint endpoint,
             bool isServer) =>
             isServer ? _serverConnectionScope(logger, endpoint.ToString(), "pending") :
                 _clientConnectionScope(logger, "pending", endpoint.ToString());
 
+        /// <summary>Starts a server connection scope.</summary>
         internal static IDisposable StartServerConnectionScope(
             this ILogger logger,
             NetworkConnectionInformation information) =>
