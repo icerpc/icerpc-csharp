@@ -24,7 +24,7 @@ namespace IceRpc.Transports
         {
             // This is the composition root of the tcp server transport, where we install log decorators when logging
             // is enabled.
-
+#pragma warning disable CA2000 // the caller will Dispose the connection
             var udpServerConnection = new UdpServerNetworkConnection(endpoint, _options);
 
             ISimpleNetworkConnection serverConnection =

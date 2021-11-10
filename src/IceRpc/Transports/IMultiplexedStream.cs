@@ -36,9 +36,9 @@ namespace IceRpc.Transports
     /// <summary>A multiplexed stream enables byte data exchange over a multiplexed transport.</summary>
     public interface IMultiplexedStream
     {
-        /// <summary>The stream ID. If the stream ID hasn't been assigned yet, an exception is thrown. Assigning the
-        /// stream ID registers the stream with the multi-stream connection.</summary>
-        /// <exception cref="InvalidOperationException">If the stream ID has not been assigned yet.</exception>
+        /// <summary>The stream ID.</summary>
+        /// <exception cref="InvalidOperationException">Raised if the stream is not started. Local streams are not
+        /// started until the first <see cref="WriteAsync"/> call. A remote stream is always started.</exception>
         long Id { get; }
 
         /// <summary>Returns <c>true</c> if the stream is a bidirectional stream, <c>false</c> otherwise.</summary>
@@ -83,7 +83,8 @@ namespace IceRpc.Transports
 
         /// <summary>Writes data over the stream.</summary>
         /// <param name="buffers">The buffers containing the data to write.</param>
-        /// <param name="endStream">True if no more data will be sent over this stream, False otherwise.</param>
+        /// <param name="endStream"><c>true</c> if no more data will be written over this stream, <c>false</c>
+        /// otherwise.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A value task that completes once the buffers are written.</returns>
         ValueTask WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, bool endStream, CancellationToken cancel);

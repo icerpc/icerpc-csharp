@@ -117,6 +117,7 @@ namespace IceRpc.Transports.Internal
         private bool _receivedEndStream;
         private int _receivedOffset;
         private int _receivedSize;
+        private StreamError? _resetErrorCode;
         // The send credit left for sending data when flow control is enabled. When this reaches 0, no more
         // data can be sent to the peer until the _sendSemaphore is released. The _sendSemaphore will be
         // released when a StreamConsumed frame is received (indicating that the peer has additional space
@@ -136,8 +137,9 @@ namespace IceRpc.Transports.Internal
                 return;
             }
 
-            // Unblock ReceiveAsync which is blocked on _queue.WaitAsync()
-            _queue.Complete(new StreamAbortedException(errorCode));
+            // Unblock ReadAsync which is blocked on _queue.WaitAsync()
+            _resetErrorCode = errorCode;
+            _queue.Enqueue((0, true));
 
             if (IsStarted && !IsShutdown && errorCode != StreamError.ConnectionAborted)
             {
@@ -199,6 +201,12 @@ namespace IceRpc.Transports.Internal
 
         public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
+            if (ReadsCompleted)
+            {
+                Debug.Assert(_resetErrorCode != null);
+                throw new StreamAbortedException(_resetErrorCode.Value);
+            }
+
             if (_receivedSize == _receivedOffset)
             {
                 _receivedOffset = 0;
@@ -209,7 +217,14 @@ namespace IceRpc.Transports.Internal
 
                 if (_receivedSize == 0)
                 {
-                    Debug.Assert(_receivedEndStream);
+                    if (!_receivedEndStream)
+                    {
+                        throw new InvalidDataException("empty Slic frame requires endStream to be set");
+                    }
+                    if (_resetErrorCode is StreamError streamError)
+                    {
+                        throw new StreamAbortedException(streamError);
+                    }
                     TrySetReadCompleted();
                     return 0;
                 }
@@ -227,7 +242,7 @@ namespace IceRpc.Transports.Internal
             int consumed = Interlocked.Add(ref _receiveCredit, size);
             if (consumed >= _streamFactory.StreamBufferMaxSize * 0.75)
             {
-                // Reset _receiveBufferConsumed before notifying the peer.
+                // Reset _receiveCredit before notifying the peer.
                 Interlocked.Exchange(ref _receiveCredit, 0);
 
                 // Notify the peer that it can send additional data.
@@ -310,7 +325,6 @@ namespace IceRpc.Transports.Internal
                 {
                     // The given buffer doesn't need to be fragmented as it's smaller than what we are allowed to send.
                     // We directly send the buffer.
-                    sendBuffer = buffers.ToArray();
                     sendSize = size;
                     lastBuffer = true;
                 }
@@ -358,7 +372,7 @@ namespace IceRpc.Transports.Internal
                 {
                     await _streamFactory.SendStreamFrameAsync(
                         this,
-                        sendBuffer.ToArray(),
+                        sendBuffer?.ToArray() ?? buffers,
                         lastBuffer && endStream,
                         cancel).ConfigureAwait(false);
                 }
@@ -369,14 +383,14 @@ namespace IceRpc.Transports.Internal
                         // If flow control is enabled, decrease the size of remaining data that we are allowed to send.
                         // If all the credit for sending data is consumed, _sendMaxSize will be 0 and we don't release
                         // the semaphore to prevent further sends. The semaphore will be released once the stream
-                        // receives a StreamConsumed frame. It's important to decrease _sendMaxSize before sending the
+                        // receives a StreamConsumed frame. It's important to decrease _sendCredit before sending the
                         // frame to avoid race conditions where the consumed frame could be received before we decreased
                         // it.
                         int value = Interlocked.Add(ref _sendCredit, -sendSize);
 
                         await _streamFactory.SendStreamFrameAsync(
                             this,
-                            sendBuffer.ToArray(),
+                            sendBuffer?.ToArray() ?? buffers,
                             lastBuffer && endStream,
                             cancel).ConfigureAwait(false);
 
@@ -493,16 +507,17 @@ namespace IceRpc.Transports.Internal
                 }
                 catch
                 {
-                    // Socket failure, just set the exception on the stream.
+                    // Socket failure, abort the stream.
                     AbortRead(StreamError.ConnectionAborted);
                     break;
                 }
+
                 offset += chunk.Length;
             }
 
             try
             {
-                _queue.Queue((size, endStream));
+                _queue.Enqueue((size, endStream));
             }
             catch
             {
@@ -517,8 +532,9 @@ namespace IceRpc.Transports.Internal
                 throw new InvalidDataException("received reset frame on local unidirectional stream");
             }
 
-            // Unblock ReceiveAsync which is blocked on _queue.WaitAsync()
-            _queue.Complete(new StreamAbortedException(errorCode));
+            // Unblock ReadAsync which is blocked on _queue.WaitAsync()
+            _resetErrorCode = errorCode;
+            _queue.Enqueue((0, true));
 
             TrySetReadCompleted();
         }
@@ -531,14 +547,13 @@ namespace IceRpc.Transports.Internal
 
         ValueTaskSourceStatus IValueTaskSource<(int, bool)>.GetStatus(short token) => _queue.GetStatus(token);
 
-        void IAsyncQueueValueTaskSource<(int, bool)>.SetException(Exception ex) => _queue.SetException(ex);
-
         void IValueTaskSource<(int, bool)>.OnCompleted(
             Action<object?> continuation,
             object? state,
             short token,
-            ValueTaskSourceOnCompletedFlags flags) =>
-            _queue.OnCompleted(continuation, state, token, flags);
+            ValueTaskSourceOnCompletedFlags flags) => _queue.OnCompleted(continuation, state, token, flags);
+
+        void IAsyncQueueValueTaskSource<(int, bool)>.Cancel() => _queue.Cancel();
 
         private void Shutdown()
         {
@@ -574,22 +589,25 @@ namespace IceRpc.Transports.Internal
                 // Release connection stream count or semaphore for this stream and remove it from the factory.
                 _streamFactory.ReleaseStream(this);
 
-                // The stream might not be signaled if it's shutdown gracefully after receiving endStream. We make sure
-                // to set the exception in this case to prevent ReadAsync from blocking.
-                _queue.Complete(new StreamAbortedException(StreamError.StreamAborted));
-
                 // Local streams are released from the connection when the StreamLast or StreamReset frame is received.
-                // Since a remote un-directional stream doesn't send stream frames, we have to send a stream last frame
+                // Since a remote unidirectional stream doesn't send stream frames, we have to send a stream last frame
                 // here to ensure the local stream is released from the connection.
                 if (IsRemote && !IsBidirectional)
                 {
-                    // It's important to decrement the stream count before sending the StreamLast frame to prevent a race
-                    // where the peer could start a new stream before the counter is decremented.
-                    _writer.WriteStreamFrameAsync(
-                        this,
-                        new ReadOnlyMemory<byte>[] { SlicDefinitions.FrameHeader.ToArray() },
-                        true,
-                        default).AsTask();
+                    // It's important to decrement the stream count before sending the StreamLast frame to prevent a
+                    // race where the peer could start a new stream before the counter is decremented.
+                    try
+                    {
+                        _writer.WriteStreamFrameAsync(
+                            this,
+                            new ReadOnlyMemory<byte>[] { SlicDefinitions.FrameHeader.ToArray() },
+                            true,
+                            default).AsTask();
+                    }
+                    catch
+                    {
+                        // Ignore, the connection is closed.
+                    }
                 }
             }
 
@@ -621,7 +639,7 @@ namespace IceRpc.Transports.Internal
             return true;
         }
 
-        // A System.IO.Stream class to wrap SendAsync/ReceiveAsync functionality of the RpcStream. For Quic,
+        // A System.IO.Stream class to wrap WriteAsync/ReadAsync functionality of the SlicMultiplexedStream. For Quic,
         // this won't be needed since the QuicStream is a System.IO.Stream.
         private class ByteStream : System.IO.Stream
         {

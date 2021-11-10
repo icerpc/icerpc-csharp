@@ -60,7 +60,7 @@ namespace IceRpc.Tests.Internal
 
             string clientEndpoint = GetEndpoint(host, port: serverEndpoint.Port, _ipv6, client: true);
 
-            using ISimpleNetworkConnection clientConnection =
+            await using ISimpleNetworkConnection clientConnection =
                 _clientTransport.CreateConnection(clientEndpoint, LogAttributeLoggerFactory.Instance.Client);
 
             (ISimpleStream clientStream, _) = await clientConnection.ConnectAsync(default);
@@ -92,8 +92,8 @@ namespace IceRpc.Tests.Internal
             }
             Assert.AreNotEqual(0, count);
 
-            listenerList.ForEach(listener => listener.Dispose());
-            serverConnectionList.ForEach(serverConnection => serverConnection.Dispose());
+            await Task.WhenAll(listenerList.Select(listener => listener.DisposeAsync().AsTask()));
+            await Task.WhenAll(serverConnectionList.Select(connection => connection.DisposeAsync().AsTask()));
         }
 
         private static string GetEndpoint(string host, int port, bool ipv6, bool client)

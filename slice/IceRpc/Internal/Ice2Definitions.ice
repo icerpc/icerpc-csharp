@@ -35,8 +35,14 @@ module IceRpc::Internal
         /// The ping frame is sent to keep alive the Ice2 connection.
         Ping = 5,
 
-        /// The go away frame is sent to notify the peer that the connection is being shutdown.
+        /// The go away frame is sent to notify the peer that the connection is being shutdown. The shutdown initiator
+        /// sends it as soon as the connection is shutdown. The receiver sends back a go away frame in return.
         GoAway = 6,
+
+        /// The go away completed frame is sent after receiving a go away frame and once the invocations and dispatches
+        /// are completed. The connection is closed once the local invocations and dispatches are completed and once
+        /// this frame is received.
+        GoAwayCompleted = 7,
     }
 
     /// Keys of reserved ice2 connection parameters.
@@ -95,6 +101,9 @@ module IceRpc::Internal
         varulong payloadSize;
     }
 
+    /// The go away frame is sent on connection shutdown to notify the peer that it shouldn't perform new invocations
+    /// and to provide the stream IDs of the invocations being dispatched. Invocations with stream IDs superior to
+    /// these stream IDs can safely be retried.
     [cs:readonly]
     struct Ice2GoAwayBody
     {

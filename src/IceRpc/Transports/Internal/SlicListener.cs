@@ -19,7 +19,7 @@ namespace IceRpc.Transports.Internal
                 _slicFrameWriterDecorator,
                 _slicOptions);
 
-        public void Dispose() => _simpleListener.Dispose();
+        public ValueTask DisposeAsync() => _simpleListener.DisposeAsync();
 
         internal SlicListener(
             IListener<ISimpleNetworkConnection> simpleListener,

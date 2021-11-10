@@ -25,9 +25,9 @@ namespace IceRpc.Transports.Internal
 
         private protected NetworkConnectionInformation? Information { get; set; }
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
-            Decoratee.Dispose();
+            await Decoratee.DisposeAsync().ConfigureAwait(false);
 
             if (Information is NetworkConnectionInformation connectionInformation)
             {

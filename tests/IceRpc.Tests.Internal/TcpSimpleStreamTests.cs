@@ -86,14 +86,20 @@ namespace IceRpc.Tests.Internal
         }
 
         [TearDown]
-        public void TearDown()
+        public async Task TearDown()
         {
-            _clientConnection?.Dispose();
-            _serverConnection?.Dispose();
+            if (_clientConnection is INetworkConnection clientConnection)
+            {
+                await clientConnection.DisposeAsync();
+            }
+            if (_serverConnection is INetworkConnection serverConnection)
+            {
+                await serverConnection.DisposeAsync();
+            }
         }
 
         [OneTimeTearDown]
-        public void Shutdown() => _listener.Dispose();
+        public Task Shutdown() => _listener.DisposeAsync().AsTask();
 
         [Test]
         public async Task TcpSimpleStream_LastActivity()
@@ -120,17 +126,17 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void TcpSimpleStream_ReadAsync_ConnectionLostException()
+        public async Task TcpSimpleStream_ReadAsync_ConnectionLostException()
         {
-            _serverConnection!.Dispose();
+            await _serverConnection!.DisposeAsync();
             Assert.CatchAsync<ConnectionLostException>(
                 async () => await ClientStream.ReadAsync(new byte[1], default));
         }
 
         [Test]
-        public void TcpSimpleStream_ReadAsync_Dispose()
+        public async Task TcpSimpleStream_ReadAsync_DisposeAsync()
         {
-            _clientConnection!.Dispose();
+            await _clientConnection!.DisposeAsync();
             Assert.CatchAsync<ObjectDisposedException>(async () => await ClientStream.ReadAsync(new byte[1], default));
         }
 
@@ -177,9 +183,9 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void TcpSimpleStream_WriteAsync_ConnectionLostException()
+        public async Task TcpSimpleStream_WriteAsync_ConnectionLostException()
         {
-            _serverConnection!.Dispose();
+            await _serverConnection!.DisposeAsync();
             Assert.CatchAsync<ConnectionLostException>(
                 async () =>
                 {
@@ -191,9 +197,9 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void TcpSimpleStream_WriteAsync_Dispose()
+        public async Task TcpSimpleStream_WriteAsync_DisposeAsync()
         {
-            _clientConnection!.Dispose();
+            await _clientConnection!.DisposeAsync();
             Assert.CatchAsync<ObjectDisposedException>(async () => await ClientStream.WriteAsync(_oneBWriteBuffer, default));
         }
 

@@ -44,15 +44,21 @@ namespace IceRpc.Tests.Internal
             (_clientMultiplexedStreamFactory, _) = await multiStreamTask;
         }
 
-        protected void TearDownConnections()
+        protected async Task TearDownConnectionsAsync()
         {
-            _clientConnection?.Dispose();
-            _serverConnection?.Dispose();
+            if (_clientConnection is INetworkConnection clientConnection)
+            {
+                await clientConnection.DisposeAsync();
+            }
+            if (_clientConnection is INetworkConnection serverConnection)
+            {
+                await serverConnection.DisposeAsync();
+            }
         }
 
         private async Task<IMultiplexedNetworkConnection> AcceptAsync()
         {
-            using IListener<IMultiplexedNetworkConnection> listener =
+            await using IListener<IMultiplexedNetworkConnection> listener =
                 TestHelper.CreateMultiplexedServerTransport(
                     _serverEndpoint.Transport,
                     options: null,

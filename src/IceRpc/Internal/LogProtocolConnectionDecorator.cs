@@ -10,13 +10,18 @@ namespace IceRpc.Internal
     {
         bool IProtocolConnection.HasDispatchesInProgress => _decoratee.HasDispatchesInProgress;
         bool IProtocolConnection.HasInvocationsInProgress => _decoratee.HasInvocationsInProgress;
+        event Action? IProtocolConnection.PeerShutdownInitiated
+        {
+            add => _decoratee.PeerShutdownInitiated += value;
+            remove => _decoratee.PeerShutdownInitiated -= value;
+        }
 
         private readonly NetworkConnectionInformation _connectionInformation;
         private readonly IProtocolConnection _decoratee;
         private readonly bool _isServer;
         private readonly ILogger _logger;
 
-        void IProtocolConnection.CancelInvocationsAndDispatches() => _decoratee.CancelInvocationsAndDispatches();
+        void IProtocolConnection.ShutdownCanceled() => _decoratee.ShutdownCanceled();
 
         void IDisposable.Dispose() => _decoratee.Dispose();
 
@@ -27,10 +32,10 @@ namespace IceRpc.Internal
             _logger.LogPing();
         }
 
-        async Task<IncomingRequest> IProtocolConnection.ReceiveRequestAsync(CancellationToken cancel)
+        async Task<IncomingRequest> IProtocolConnection.ReceiveRequestAsync()
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_connectionInformation, _isServer);
-            IncomingRequest request = await _decoratee.ReceiveRequestAsync(cancel).ConfigureAwait(false);
+            IncomingRequest request = await _decoratee.ReceiveRequestAsync().ConfigureAwait(false);
             _logger.LogReceiveRequest(request.Path, request.Operation, request.PayloadSize, request.PayloadEncoding);
             return request;
         }
@@ -66,11 +71,8 @@ namespace IceRpc.Internal
             _logger.LogSendResponse(response.PayloadSize, response.PayloadEncoding);
         }
 
-        Task IProtocolConnection.ShutdownAsync(bool shutdownByPeer, string message, CancellationToken cancel) =>
-            _decoratee.ShutdownAsync(shutdownByPeer, message, cancel);
-
-        Task<string> IProtocolConnection.WaitForShutdownAsync(CancellationToken cancel) =>
-            _decoratee.WaitForShutdownAsync(cancel);
+        Task IProtocolConnection.ShutdownAsync(string message, CancellationToken cancel) =>
+            _decoratee.ShutdownAsync(message, cancel);
 
         internal LogProtocolConnectionDecorator(
             IProtocolConnection decoratee,

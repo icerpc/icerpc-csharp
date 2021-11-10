@@ -26,11 +26,11 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
             try
             {
-                _decoratee.Dispose();
+                await _decoratee.DisposeAsync().ConfigureAwait(false);
             }
             finally
             {
