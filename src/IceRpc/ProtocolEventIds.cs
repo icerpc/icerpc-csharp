@@ -28,11 +28,6 @@ namespace IceRpc
         /// <summary>Received an invalid datagram message (ice1).</summary>
         ReceivedInvalidDatagram,
 
-        /// <summary>Received a request frame.</summary>
-        ReceiveRequest,
-
-        /// <summary>Received a response frame.</summary>
-        ReceiveResponse,
         /// <summary>An ice1 validate connection frame was sent.</summary>
         SentIce1ValidateConnectionFrame,
         /// <summary>An ice1 close connection frame was sent.</summary>
@@ -41,9 +36,5 @@ namespace IceRpc
         SentGoAwayFrame,
         /// <summary>An ice2 initialize frame was sent.</summary>
         SentInitializeFrame,
-        /// <summary>A request frame was sent.</summary>
-        SendRequest,
-        /// <summary>A response frame was sent.</summary>
-        SendResponse
     }
 }
