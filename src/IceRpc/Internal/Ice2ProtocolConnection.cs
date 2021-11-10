@@ -52,7 +52,6 @@ namespace IceRpc.Internal
         private int? _peerIncomingFrameMaxSize;
         private IMultiplexedStream? _remoteControlStream;
         private bool _shutdown;
-        private bool _shutdownCanceled;
         private readonly IMultiplexedStreamFactory _streamFactory;
 
         public void Dispose()
@@ -501,12 +500,6 @@ namespace IceRpc.Internal
                 }
             }
 
-            if (_shutdownCanceled)
-            {
-                // If shutdown has been canceled, cancel invocations and dispatch now.
-                CancelInvocationsAndDispatch(StreamError.ConnectionShutdown);
-            }
-
             if (!alreadyShuttingDown)
             {
                 // Send GoAway frame
@@ -528,18 +521,7 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public void ShutdownCanceled()
         {
-            lock (_mutex)
-            {
-                // If shutdown wasn't called yet, delay the cancellation until ShutdownAsync is called (this can occur
-                // if the application cancels ShutdownAsync immediately or before ShutdownAsync is called on the
-                // protocol connection). Otherwise, cancel the dispatches and invocations now.
-                if (!_shutdown)
-                {
-                    _shutdownCanceled = true;
-                    return;
-                }
-            }
-
+            Debug.Assert(_shutdown);
             CancelInvocationsAndDispatch(StreamError.ConnectionShutdown);
         }
 

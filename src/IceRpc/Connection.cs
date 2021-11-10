@@ -369,9 +369,9 @@ namespace IceRpc
 
             async Task PerformShutdownAsync()
             {
-                // Yield before continuing to ensure the code below isn't executed with the mutex locked and
-                // that _closeTask is assigned before any synchronous continuations are ran.
-                await Task.Yield();
+                // We don't call Task.Yield() here. The protocol shutdown async is responsible for yielding if
+                // necessary. This also ensures that ShutdownCanceled won't be called before the protocol shutdown is
+                // initiated.
 
                 using var closeCancellationSource = new CancellationTokenSource(Options.CloseTimeout);
                 try

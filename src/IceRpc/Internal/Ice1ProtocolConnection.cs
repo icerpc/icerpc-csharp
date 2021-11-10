@@ -40,7 +40,6 @@ namespace IceRpc.Internal
 
         // TODO: XXX, add back configuration to limit the number of concurrent dispatch.
         // private readonly AsyncSemaphore? _bidirectionalStreamSemaphore;
-        private bool _shutdownCanceled;
         private readonly TaskCompletionSource _dispatchAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly HashSet<IncomingRequest> _dispatches = new();
@@ -471,12 +470,6 @@ namespace IceRpc.Internal
                 {
                     // Cancel pending invocations immediately. Wait for dispatches to complete however.
                     CancelInvocations(new OperationCanceledException(message));
-
-                    // If shutdown was canceled and CancelInvocationsAndDispatch was called, cancel dispatches.
-                    if (_shutdownCanceled)
-                    {
-                        CancelDispatches();
-                    }
                 }
 
                 // Wait for dispatches to complete.
@@ -498,19 +491,7 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public void ShutdownCanceled()
         {
-            lock (_mutex)
-            {
-                // If ShutdownAsync wasn't called yet, delay the cancellation of the dispatches until ShutdownAsync is
-                // called (this can occur if the application cancels ShutdownAsync immediately or before ShutdownAsync
-                // is called on the protocol connection).
-                if (!_shutdown)
-                {
-                    _shutdownCanceled = true;
-                    return;
-                }
-            }
-
-            // There's no need to cancel invocations since ShutdownAsync takes care of it, only cancel dispatches.
+            Debug.Assert(_shutdown);
             CancelDispatches();
         }
 
