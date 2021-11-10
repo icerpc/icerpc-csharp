@@ -37,7 +37,7 @@ namespace IceRpc.Transports.Internal
         public ValueTask DisposeAsync()
         {
             _socket.Dispose();
-            return new();
+            return default;
         }
 
         public override string ToString() => Endpoint.ToString();

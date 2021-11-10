@@ -27,7 +27,7 @@ namespace IceRpc.Transports.Internal
         ValueTask IAsyncDisposable.DisposeAsync()
         {
             _writer.TryComplete();
-            return new();
+            return default;
         }
 
         bool INetworkConnection.HasCompatibleParams(Endpoint remoteEndpoint)

@@ -673,17 +673,17 @@ namespace IceRpc
                     Debug.Assert(false, $"unexpected protocol close exception\n{ex}");
                 }
 
-                try
+                if (_networkConnection is INetworkConnection networkConnection)
                 {
-                    if (_networkConnection is INetworkConnection networkConnection)
+                    try
                     {
                         await networkConnection.DisposeAsync().ConfigureAwait(false);
                     }
-                }
-                catch (Exception ex)
-                {
-                    // The protocol or transport aren't supposed to raise.
-                    Debug.Assert(false, $"unexpected transport close exception\n{ex}");
+                    catch (Exception ex)
+                    {
+                        // The protocol or transport aren't supposed to raise.
+                        Debug.Assert(false, $"unexpected transport close exception\n{ex}");
+                    }
                 }
 
                 if (_timer != null)

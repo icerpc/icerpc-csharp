@@ -35,7 +35,7 @@ namespace IceRpc.Transports.Internal
         {
             _channel.Writer.Complete();
             _colocListenerDictionary.Remove(Endpoint);
-            return new();
+            return default;
         }
 
         internal ColocListener(Endpoint endpoint)

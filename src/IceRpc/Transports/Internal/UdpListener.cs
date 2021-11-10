@@ -33,7 +33,6 @@ namespace IceRpc.Transports.Internal
             // Dispose the server connection if AcceptAsync didn't already consume it.
             if (Interlocked.Exchange(ref _serverConnection, null) is INetworkConnection serverConnection)
             {
-                // We know that the implementation of UdpNetworkConnection
                 await serverConnection.DisposeAsync().ConfigureAwait(false);
             }
             _acceptTask.SetException(new ObjectDisposedException(nameof(UdpListener)));

@@ -22,7 +22,7 @@ namespace IceRpc.Transports.Internal
         public ValueTask DisposeAsync()
         {
             Socket.Close();
-            return new();
+            return default;
         }
 
         public abstract bool HasCompatibleParams(Endpoint remoteEndpoint);
