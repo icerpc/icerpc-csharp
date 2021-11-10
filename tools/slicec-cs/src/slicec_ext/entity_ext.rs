@@ -79,14 +79,13 @@ where
         }
     }
 
-    /// The helper name for this NamedSymbol
+    /// The helper name for this Entity
     fn helper_name(&self, namespace: &str) -> String {
         self.escape_scoped_identifier_with_suffix("Helper", namespace)
     }
 
-    /// The C# namespace of this NamedSymbol
+    /// The C# namespace of this Entity
     fn namespace(&self) -> String {
-        // TODO: check metadata
         self.raw_scope()
             .module_scope
             .iter()
