@@ -106,11 +106,11 @@ namespace IceRpc.Internal
                 {
                     lock (_mutex)
                     {
-                        // The connection was gracefully shutdown, raise ConnectionClosedException here to ensure
+                        // The connection was gracefully shut down, raise ConnectionClosedException here to ensure
                         // that the ClosedEvent will report this exception instead of the transport failure.
                         if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
                         {
-                            throw new ConnectionClosedException("connection gracefully shutdown");
+                            throw new ConnectionClosedException("connection gracefully shut down");
                         }
                         else
                         {
@@ -344,7 +344,7 @@ namespace IceRpc.Internal
             {
                 // If the network connection has been disposed, we raise ConnectionLostException to ensure the
                 // request is retried by the retry interceptor.
-                // TODO: this is clunky but required for retries to work because the retry interceptor only retry
+                // TODO: this is clunky but required for retries to work because the retry interceptor only retries
                 // a request if the exception is a transport exception.
                 throw new ConnectionLostException(exception);
             }
@@ -555,7 +555,6 @@ namespace IceRpc.Internal
         private void CancelDispatches()
         {
             IEnumerable<IncomingRequest> dispatches = Enumerable.Empty<IncomingRequest>();
-
             lock (_mutex)
             {
                 if (_dispatches.Count > 0)
