@@ -17,6 +17,10 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: '6.0.x'
+    - name: Install SSH key
+      uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.ICERPC_DEPLOY_KEY }}
     - name: Setup Rust
       uses: actions-rs/toolchain@v1
       with:
@@ -25,7 +29,7 @@ jobs:
     - name: Build Slice Compiler
       run: cd tools/slicec-cs && cargo build
     - name: Add github NuGet respository
-      run: dotnet nuget add source "https://nuget.pkg.github.com/zeroc-ice/index.json" -n GitHub -u pepone --store-password-in-clear-text -p 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
+      run: dotnet nuget add source "https://nuget.pkg.github.com/zeroc-ice/index.json" -n GitHub -u pepone --store-password-in-clear-text -p ${{ secrets.NUGET_API_KEY }}
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
