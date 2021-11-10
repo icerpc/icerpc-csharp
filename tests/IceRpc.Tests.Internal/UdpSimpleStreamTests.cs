@@ -36,7 +36,7 @@ namespace IceRpc.Tests.Internal
         {
             _isIPv6 = addressFamily == AddressFamily.InterNetworkV6;
             string host = _isIPv6 ? "\"::1\"" : "127.0.0.1";
-            _listener = _serverTransport.Listen($"udp -h {host} -p 0", LogAttributeLoggerFactory.Instance.Server);
+            _listener = _serverTransport.Listen($"udp -h {host} -p 0", LogAttributeLoggerFactory.Instance.Logger);
         }
 
         [OneTimeSetUp]
@@ -45,7 +45,7 @@ namespace IceRpc.Tests.Internal
             Task<ISimpleNetworkConnection> acceptTask = _listener.AcceptAsync();
 
             _clientConnection =
-                _clientTransport.CreateConnection(_listener.Endpoint, LogAttributeLoggerFactory.Instance.Client);
+                _clientTransport.CreateConnection(_listener.Endpoint, LogAttributeLoggerFactory.Instance.Logger);
             Task<(ISimpleStream, NetworkConnectionInformation)> connectTask = _clientConnection.ConnectAsync(default);
 
             _serverConnection = await acceptTask;
@@ -87,7 +87,7 @@ namespace IceRpc.Tests.Internal
             for (int i = 0; i < clientConnectionCount; ++i)
             {
                 ISimpleNetworkConnection clientConnection =
-                    _clientTransport.CreateConnection(_listener.Endpoint, LogAttributeLoggerFactory.Instance.Client);
+                    _clientTransport.CreateConnection(_listener.Endpoint, LogAttributeLoggerFactory.Instance.Logger);
 
                 clientConnectionList.Add(clientConnection);
                 (ISimpleStream clientStream, _) = await clientConnection.ConnectAsync(default);

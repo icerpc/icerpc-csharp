@@ -29,8 +29,7 @@ namespace IceRpc.Tests
     {
         public static LogAttributeLoggerFactory Instance = new();
 
-        public ILogger Client => CreateLogger("IceRpc.Client");
-        public ILogger Server => CreateLogger("IceRpc.Server");
+        public ILogger Logger => CreateLogger("Test");
 
         private readonly List<ILoggerProvider> _providers = new();
 

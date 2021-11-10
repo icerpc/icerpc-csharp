@@ -13,14 +13,10 @@ namespace IceRpc.Tests.Api
     {
         [TestCase(ProtocolCode.Ice1)]
         [TestCase(ProtocolCode.Ice2)]
-       // [Log(LogAttributeLevel.Trace)]
         public async Task Proxy_ServiceAsync(ProtocolCode protocol)
         {
             // Tests the IceRpc::Service interface implemented by all typed proxies.
-            Endpoint serverEndpoint = protocol == ProtocolCode.Ice1 ? "tcp -h 127.0.0.1 -p 0" :
-                "ice+tcp://127.0.0.1:0?tls=false";
-
-    //        TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
+            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
             await using var server = new Server
             {
                 Dispatcher = new Greeter(),

@@ -38,7 +38,7 @@ namespace IceRpc.Tests.Internal
             var serverStreamList = new List<ISimpleStream>();
 
             IListener<ISimpleNetworkConnection> listener =
-                _serverTransport.Listen(serverEndpoint, LogAttributeLoggerFactory.Instance.Server);
+                _serverTransport.Listen(serverEndpoint, LogAttributeLoggerFactory.Instance.Logger);
             listenerList.Add(listener);
 
             serverEndpoint.Port = listener.Endpoint.Port;
@@ -48,7 +48,7 @@ namespace IceRpc.Tests.Internal
             {
                 if (i > 0)
                 {
-                    listener = _serverTransport.Listen(serverEndpoint, LogAttributeLoggerFactory.Instance.Server);
+                    listener = _serverTransport.Listen(serverEndpoint, LogAttributeLoggerFactory.Instance.Logger);
                 }
 
                 ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
@@ -61,7 +61,7 @@ namespace IceRpc.Tests.Internal
             string clientEndpoint = GetEndpoint(host, port: serverEndpoint.Port, _ipv6, client: true);
 
             await using ISimpleNetworkConnection clientConnection =
-                _clientTransport.CreateConnection(clientEndpoint, LogAttributeLoggerFactory.Instance.Client);
+                _clientTransport.CreateConnection(clientEndpoint, LogAttributeLoggerFactory.Instance.Logger);
 
             (ISimpleStream clientStream, _) = await clientConnection.ConnectAsync(default);
 

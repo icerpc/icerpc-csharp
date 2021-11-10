@@ -19,6 +19,11 @@ namespace IceRpc.Transports.Internal
                 T connection = await _decoratee.AcceptAsync().ConfigureAwait(false);
                 return _logDecoratorFactory(connection, isServer: true, _decoratee.Endpoint, _logger);
             }
+            catch (ObjectDisposedException)
+            {
+                // We assume the decoratee is shut down which should not result in an error message.
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.LogListenerAcceptFailed(_decoratee.Endpoint, ex);

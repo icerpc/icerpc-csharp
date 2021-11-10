@@ -45,7 +45,7 @@ namespace IceRpc.Transports.Internal
         [LoggerMessage(
             EventId = (int)TransportEventIds.ListenerDisposed,
             EventName = nameof(TransportEventIds.ListenerDisposed),
-            Level = LogLevel.Debug,
+            Level = LogLevel.Information,
             Message = "listener '{endpoint}' shut down")]
         internal static partial void LogListenerDispose(this ILogger logger, Endpoint endpoint);
 
