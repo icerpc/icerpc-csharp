@@ -17,11 +17,12 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: '6.0.x'
-    - name: Build Slice Compiler
+    - name: Setup Rust
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
         components: clippy
+    - name: Build Slice Compiler
       run: cd tools/slicec-cs && cargo build
     - name: Add github NuGet respository
       run: dotnet nuget add source "https://nuget.pkg.github.com/zeroc-ice/index.json" -n GitHub -u pepone --store-password-in-clear-text -p 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
