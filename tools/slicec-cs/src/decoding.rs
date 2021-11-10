@@ -60,11 +60,7 @@ pub fn decode_member(
         match data_type.concrete_type() {
             Types::Interface(_) => {
                 // does not use bit sequence
-                writeln!(
-                    code,
-                    "IceRpc.IceDecoderPrxExtensions.DecodeNullablePrx<{}>(decoder);",
-                    type_string
-                );
+                writeln!(code, "decoder.DecodeNullablePrx<{}>();", type_string);
                 return code;
             }
             Types::Class(_) => {
