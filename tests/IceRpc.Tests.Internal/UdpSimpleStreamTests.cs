@@ -57,11 +57,17 @@ namespace IceRpc.Tests.Internal
         }
 
         [OneTimeTearDown]
-        public void Shutdown()
+        public async Task ShutdownAsync()
         {
-            _clientConnection?.Dispose();
-            _serverConnection?.Dispose();
-            _listener.Dispose();
+            if (_clientConnection is INetworkConnection clientConnection)
+            {
+                await clientConnection.DisposeAsync();
+            }
+            if (_serverConnection is INetworkConnection serverConnection)
+            {
+                await serverConnection.DisposeAsync();
+            }
+            await _listener.DisposeAsync();
         }
 
         [TestCase(1, 1)]
@@ -140,7 +146,7 @@ namespace IceRpc.Tests.Internal
             }
             Assert.AreNotEqual(0, count);
 
-            clientConnectionList.ForEach(connection => connection.Dispose());
+            await Task.WhenAll(clientConnectionList.Select(connection => connection.DisposeAsync().AsTask()));
         }
 
         [Test]
@@ -154,9 +160,9 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void UdpSimpleStream_ReadAsync_Dispose()
+        public async Task UdpSimpleStream_ReadAsync_DisposeAsync()
         {
-            _clientConnection!.Dispose();
+            await _clientConnection!.DisposeAsync();
             Assert.CatchAsync<ObjectDisposedException>(async () => await ClientStream.ReadAsync(new byte[256], default));
         }
 
@@ -171,9 +177,9 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void UdpSimpleStream_WriteAsync_Dispose()
+        public async Task UdpSimpleStream_WriteAsync_DisposeAsync()
         {
-            _clientConnection!.Dispose();
+            await _clientConnection!.DisposeAsync();
             Assert.CatchAsync<ObjectDisposedException>(async () => await ClientStream.WriteAsync(_oneBWriteBuffer, default));
         }
 

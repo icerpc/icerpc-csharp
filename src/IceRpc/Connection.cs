@@ -675,7 +675,10 @@ namespace IceRpc
 
                 try
                 {
-                    _networkConnection?.Dispose();
+                    if (_networkConnection is INetworkConnection networkConnection)
+                    {
+                        await networkConnection.DisposeAsync().ConfigureAwait(false);
+                    }
                 }
                 catch (Exception ex)
                 {

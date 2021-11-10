@@ -25,9 +25,14 @@ namespace IceRpc.Transports.Internal
 
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
 
-        public void Dispose()
+        public abstract Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel);
+
+        public async ValueTask DisposeAsync()
         {
-            SslStream?.Dispose();
+            if (SslStream is SslStream sslStream)
+            {
+                await sslStream.DisposeAsync().ConfigureAwait(false);
+            }
 
             // TODO: Write a test case to check why this is necessary to prevent a hang with the Retry_GracefulClose
             // test. Calling Close should be sufficient but for some reasons with this test the peer doesn't detect the
@@ -45,8 +50,6 @@ namespace IceRpc.Transports.Internal
                 Socket.Close();
             }
         }
-
-        public abstract Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel);
 
         public abstract bool HasCompatibleParams(Endpoint remoteEndpoint);
 

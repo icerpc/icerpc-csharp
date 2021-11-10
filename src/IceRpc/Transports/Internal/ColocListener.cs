@@ -31,10 +31,11 @@ namespace IceRpc.Transports.Internal
             [NotNullWhen(returnValue: true)] out ColocListener? listener) =>
             _colocListenerDictionary.TryGetValue(endpoint, out listener);
 
-        public void Dispose()
+        public ValueTask DisposeAsync()
         {
             _channel.Writer.Complete();
             _colocListenerDictionary.Remove(Endpoint);
+            return new();
         }
 
         internal ColocListener(Endpoint endpoint)

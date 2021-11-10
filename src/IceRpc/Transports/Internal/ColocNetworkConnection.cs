@@ -24,7 +24,11 @@ namespace IceRpc.Transports.Internal
             Task.FromResult<(ISimpleStream, NetworkConnectionInformation)>(
                 (this, new NetworkConnectionInformation(_endpoint, _endpoint, TimeSpan.MaxValue, null)));
 
-        void IDisposable.Dispose() => _writer.TryComplete();
+        ValueTask IAsyncDisposable.DisposeAsync()
+        {
+            _writer.TryComplete();
+            return new();
+        }
 
         bool INetworkConnection.HasCompatibleParams(Endpoint remoteEndpoint)
         {

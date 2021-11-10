@@ -24,13 +24,14 @@ namespace IceRpc.Transports
         {
             // This is the composition root of the tcp server transport, where we install log decorators when logging
             // is enabled.
-
+#pragma warning disable CA2000 // the caller will Dispose the connection
             var udpServerConnection = new UdpServerNetworkConnection(endpoint, _options);
 
             ISimpleNetworkConnection serverConnection =
                 loggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger &&
                     logger.IsEnabled(UdpLoggerExtensions.MaxLogLevel) ?
                         new LogUdpNetworkConnectionDecorator(udpServerConnection, logger) : udpServerConnection;
+#pragma warning restore CA2000
 
             return new UdpListener(udpServerConnection.LocalEndpoint, serverConnection);
         }

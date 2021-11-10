@@ -207,7 +207,10 @@ namespace IceRpc
                 try
                 {
                     // Stop accepting new connections by disposing of the listener.
-                    _listener?.Dispose();
+                    if (_listener is IListener listener)
+                    {
+                        await listener.DisposeAsync().ConfigureAwait(false);
+                    }
 
                     // Shuts down the connections to stop accepting new incoming requests. This ensures that
                     // once ShutdownAsync returns, no new requests will be dispatched. ShutdownAsync on each

@@ -17,9 +17,13 @@ namespace IceRpc.Transports.Internal
 
         public abstract TimeSpan LastActivity { get; }
 
-        public void Dispose() => Socket.Close();
-
         public abstract Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel);
+
+        public ValueTask DisposeAsync()
+        {
+            Socket.Close();
+            return new();
+        }
 
         public abstract bool HasCompatibleParams(Endpoint remoteEndpoint);
 

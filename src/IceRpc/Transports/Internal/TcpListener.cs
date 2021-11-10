@@ -34,7 +34,11 @@ namespace IceRpc.Transports.Internal
                     _authenticationOptions));
 #pragma warning restore CA2000
 
-        public void Dispose() => _socket.Dispose();
+        public ValueTask DisposeAsync()
+        {
+            _socket.Dispose();
+            return new();
+        }
 
         public override string ToString() => Endpoint.ToString();
 
