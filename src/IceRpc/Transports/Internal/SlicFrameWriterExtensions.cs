@@ -7,6 +7,11 @@ namespace IceRpc.Transports.Internal
 {
     internal static class SlicFrameWriterExtensions
     {
+        internal static ValueTask WriteCloseAsync(
+            this ISlicFrameWriter writer,
+            CancellationToken cancel) =>
+            WriteFrameAsync(writer, FrameType.Close, null, null, cancel);
+
         internal static ValueTask WriteInitializeAsync(
             this ISlicFrameWriter writer,
             uint version,
@@ -58,7 +63,7 @@ namespace IceRpc.Transports.Internal
             ISlicFrameWriter writer,
             FrameType type,
             SlicMultiplexedStream? stream,
-            Action<IceEncoder> encode,
+            Action<IceEncoder>? encode,
             CancellationToken cancel)
         {
             var bufferWriter = new BufferWriter();
@@ -69,7 +74,10 @@ namespace IceRpc.Transports.Internal
             {
                 encoder.EncodeVarULong((ulong)stream.Id);
             }
-            encode(encoder);
+            if (encode != null)
+            {
+                encode.Invoke(encoder);
+            }
             encoder.EndFixedLengthSize(sizePos);
             return writer.WriteFrameAsync(stream, bufferWriter.Finish(), cancel);
         }

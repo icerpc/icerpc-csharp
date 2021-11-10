@@ -58,6 +58,15 @@ namespace IceRpc.Transports.Internal
             FrameType frameType,
             int frameSize);
 
+        [LoggerMessage(
+            EventId = (int)SlicEventIds.ReceivedCloseFrame,
+            EventName = nameof(SlicEventIds.ReceivedCloseFrame),
+            Level = LogLevel.Debug,
+            Message = "receiving Slic Close frame (FrameSize={FrameSize})")]
+        internal static partial void LogReceivedSlicCloseFrame(
+            this ILogger logger,
+            int frameSize);
+
         internal static void LogReceivedSlicInitializeAckFrame(
             this ILogger logger,
             int frameSize,
@@ -111,6 +120,13 @@ namespace IceRpc.Transports.Internal
             this ILogger logger,
             FrameType frameType,
             Exception exception);
+
+        [LoggerMessage(
+            EventId = (int)SlicEventIds.SentCloseFrame,
+            EventName = nameof(SlicEventIds.SentCloseFrame),
+            Level = LogLevel.Debug,
+            Message = "sent Slic Close frame (FrameSize={FrameSize})")]
+        internal static partial void LogSentSlicCloseFrame(this ILogger logger, int frameSize);
 
         [LoggerMessage(
             EventId = (int)SlicEventIds.SentConsumedFrame,

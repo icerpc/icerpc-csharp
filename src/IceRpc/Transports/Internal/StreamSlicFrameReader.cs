@@ -15,22 +15,20 @@ namespace IceRpc.Transports.Internal
         public ValueTask ReadFrameDataAsync(Memory<byte> buffer, CancellationToken cancel) =>
             _receiver.ReceiveAsync(buffer, cancel);
 
-        public async ValueTask<(FrameType, int)> ReadFrameHeaderAsync(CancellationToken cancel)
+        public async ValueTask<(FrameType, int, long?)> ReadFrameHeaderAsync(CancellationToken cancel)
         {
             var frameType = (FrameType)await _receiver.ReceiveByteAsync(cancel).ConfigureAwait(false);
             int frameSize = await _receiver.ReceiveSizeAsync(cancel).ConfigureAwait(false);
-            return (frameType, frameSize);
-        }
 
-        public async ValueTask<(FrameType, int, long)> ReadStreamFrameHeaderAsync(CancellationToken cancel)
-        {
-            (FrameType frameType, int frameSize) = await ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
-            if (frameType < FrameType.Stream)
+            if (frameType >= FrameType.Stream)
             {
-                throw new InvalidDataException($"unexpected Slic frame '{frameType}'");
+                (ulong id, int idLength) = await _receiver.ReceiveVarULongAsync(cancel).ConfigureAwait(false);
+                return (frameType, frameSize - idLength, (long)id);
             }
-            (ulong id, int idLength) = await _receiver.ReceiveVarULongAsync(cancel).ConfigureAwait(false);
-            return (frameType, frameSize - idLength, (long)id);
+            else
+            {
+                return (frameType, frameSize, null);
+            }
         }
 
         internal BufferedReceiverSlicFrameReader(BufferedReceiver receiver) => _receiver = receiver;

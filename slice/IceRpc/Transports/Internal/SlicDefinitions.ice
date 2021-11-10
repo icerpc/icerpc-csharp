@@ -19,6 +19,8 @@ module IceRpc::Transports::Internal
         /// The initialize acknowledgment is sent by the server-side Slic connection after receiving
         /// an initialize frame.
         InitializeAck,
+        /// The close frame is sent when the Slic connection is closed.
+        Close,
         /// The Slic versions supported by the server if the version from the Initialize frame is
         /// not supported.
         Version,

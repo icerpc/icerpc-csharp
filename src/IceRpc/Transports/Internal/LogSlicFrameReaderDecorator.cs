@@ -35,23 +35,23 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public async ValueTask<(FrameType, int)> ReadFrameHeaderAsync(CancellationToken cancel)
-        {
-            (_frameType, _frameDataSize) = await _decoratee.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
-            _frameStreamId = null;
-            return (_frameType, _frameDataSize);
-        }
-
-        public async ValueTask<(FrameType, int, long)> ReadStreamFrameHeaderAsync(CancellationToken cancel)
+        public async ValueTask<(FrameType, int, long?)> ReadFrameHeaderAsync(CancellationToken cancel)
         {
             (_frameType, _frameDataSize, _frameStreamId) =
-                await _decoratee.ReadStreamFrameHeaderAsync(cancel).ConfigureAwait(false);
-            using IDisposable? scope = _logger.StartStreamScope(_frameStreamId.Value);
+                 await _decoratee.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
+
             if (_frameType == FrameType.Stream || _frameType == FrameType.StreamLast)
             {
+                using IDisposable? scope = _logger.StartStreamScope(_frameStreamId!.Value);
                 _logger.LogReceivingSlicDataFrame(_frameType, _frameDataSize);
             }
-            return (_frameType, _frameDataSize, _frameStreamId.Value);
+            else if (_frameType == FrameType.Close)
+            {
+                // The Close frame doesn't have any data, log it now because ReadFrameDataAsync won't be called.
+                _logger.LogReceivedSlicCloseFrame(_frameDataSize);
+            }
+
+            return (_frameType, _frameDataSize, _frameStreamId);
         }
 
         internal LogSlicFrameReaderDecorator(ISlicFrameReader decoratee, ILogger logger)
@@ -62,24 +62,6 @@ namespace IceRpc.Transports.Internal
 
         private void LogReadFrame(FrameType type, int dataSize, long? streamId, ReadOnlyMemory<byte> buffer)
         {
-            // If the frame is not a stream frame, we need to re-encode the frame with the header and data because
-            // Slice Read reader extension methods read the header.
-            int frameSize;
-            if (streamId == null)
-            {
-                var bufferWriter = new BufferWriter();
-                var encoder = new Ice20Encoder(bufferWriter);
-                encoder.EncodeByte((byte)type);
-                BufferWriter.Position sizePos = encoder.StartFixedLengthSize();
-                bufferWriter.WriteByteSpan(buffer.Span);
-                frameSize = encoder.EndFixedLengthSize(sizePos);
-                buffer = bufferWriter.Finish().Span[0];
-            }
-            else
-            {
-                frameSize = dataSize + IceEncoder.GetVarULongEncodedSize((ulong)streamId.Value);
-            }
-
             // Create a reader to read again the frame from the memory buffer.
             using var reader = new BufferedReceiverSlicFrameReader(new BufferedReceiver(buffer));
 
@@ -88,14 +70,14 @@ namespace IceRpc.Transports.Internal
                 case FrameType.Initialize:
                 {
                     (uint version, InitializeBody? initializeBody) =
-                        ReadFrame(() => reader.ReadInitializeAsync(default));
+                        ReadFrame(() => reader.ReadInitializeAsync(type, dataSize, default));
                     if (initializeBody == null)
                     {
-                        _logger.LogReceivedSlicUnsupportedInitializeFrame(frameSize, version);
+                        _logger.LogReceivedSlicUnsupportedInitializeFrame(dataSize, version);
                     }
                     else
                     {
-                        _logger.LogReceivedSlicInitializeFrame(frameSize, version, initializeBody.Value);
+                        _logger.LogReceivedSlicInitializeFrame(dataSize, version, initializeBody.Value);
                     }
                     break;
                 }
@@ -103,14 +85,14 @@ namespace IceRpc.Transports.Internal
                 case FrameType.Version:
                 {
                     (InitializeAckBody? initializeAckBody, VersionBody? versionBody) =
-                        ReadFrame(() => reader.ReadInitializeAckOrVersionAsync(default));
+                        ReadFrame(() => reader.ReadInitializeAckOrVersionAsync(type, dataSize, default));
                     if (initializeAckBody != null)
                     {
-                        _logger.LogReceivedSlicInitializeAckFrame(frameSize, initializeAckBody.Value);
+                        _logger.LogReceivedSlicInitializeAckFrame(dataSize, initializeAckBody.Value);
                     }
                     else
                     {
-                        _logger.LogReceivedSlicVersionFrame(frameSize, versionBody!.Value);
+                        _logger.LogReceivedSlicVersionFrame(dataSize, versionBody!.Value);
                     }
                     break;
                 }

@@ -7,18 +7,32 @@ namespace IceRpc.Transports.Internal
 {
     internal static class SlicFrameReaderExtensions
     {
-        internal static async ValueTask<(uint, InitializeBody?)> ReadInitializeAsync(
+        internal static ValueTask ReadCloseAsync(
             this ISlicFrameReader reader,
+            int dataSize,
             CancellationToken cancel)
         {
-            using SlicFrame frame = await ReadFrameAsync(reader, cancel).ConfigureAwait(false);
-            if (frame.Type != FrameType.Initialize)
+            if (dataSize > 0)
+            {
+                throw new InvalidDataException($"unexpected data for Slic frame {FrameType.Close}");
+            }
+            return new();
+        }
+
+        internal static async ValueTask<(uint, InitializeBody?)> ReadInitializeAsync(
+            this ISlicFrameReader reader,
+            FrameType type,
+            int dataSize,
+            CancellationToken cancel)
+        {
+            if (type != FrameType.Initialize)
             {
                 throw new InvalidDataException(
-                    $"unexpected Slic frame type {frame.Type}, expected {FrameType.Initialize}");
+                    $"unexpected Slic frame type {type}, expected {FrameType.Initialize}");
             }
 
-            var decoder = new Ice20Decoder(frame.Buffer);
+            using IMemoryOwner<byte> owner = await ReadFrameDataAsync(reader, dataSize, cancel).ConfigureAwait(false);
+            var decoder = new Ice20Decoder(owner.Memory[..dataSize]);
             uint version = decoder.DecodeVarUInt();
             if (version == SlicDefinitions.V1)
             {
@@ -32,14 +46,17 @@ namespace IceRpc.Transports.Internal
 
         internal static async ValueTask<(InitializeAckBody?, VersionBody?)> ReadInitializeAckOrVersionAsync(
             this ISlicFrameReader reader,
+            FrameType type,
+            int dataSize,
             CancellationToken cancel)
         {
-            using SlicFrame frame = await ReadFrameAsync(reader, cancel).ConfigureAwait(false);
-            return frame.Type switch
+            using IMemoryOwner<byte> owner = await ReadFrameDataAsync(reader, dataSize, cancel).ConfigureAwait(false);
+            Memory<byte> buffer = owner.Memory[..dataSize];
+            return type switch
             {
-                FrameType.InitializeAck => (new InitializeAckBody(new Ice20Decoder(frame.Buffer)), null),
-                FrameType.Version => (null, new VersionBody(new Ice20Decoder(frame.Buffer))),
-                _ => throw new InvalidDataException($"unexpected Slic frame '{frame.Type}'")
+                FrameType.InitializeAck => (new InitializeAckBody(new Ice20Decoder(buffer)), null),
+                FrameType.Version => (null, new VersionBody(new Ice20Decoder(buffer))),
+                _ => throw new InvalidDataException($"unexpected Slic frame '{type}'")
             };
         }
 
@@ -66,23 +83,6 @@ namespace IceRpc.Transports.Internal
             int dataSize,
             CancellationToken cancel) =>
             (await ReadFrameDataAsync(reader, dataSize, cancel).ConfigureAwait(false)).Dispose();
-
-        private static async ValueTask<SlicFrame> ReadFrameAsync(ISlicFrameReader reader, CancellationToken cancel)
-        {
-            (FrameType frameType, int frameSize) = await reader.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
-            IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.Rent(frameSize);
-            try
-            {
-                Memory<byte> buffer = owner.Memory[0..frameSize];
-                await reader.ReadFrameDataAsync(buffer, cancel).ConfigureAwait(false);
-                return new SlicFrame { Type = frameType, Size = frameSize, MemoryOwner = owner };
-            }
-            catch
-            {
-                owner.Dispose();
-                throw;
-            }
-        }
 
         private static async ValueTask<IMemoryOwner<byte>> ReadFrameDataAsync(
             ISlicFrameReader reader,
@@ -111,16 +111,6 @@ namespace IceRpc.Transports.Internal
         {
             using IMemoryOwner<byte> data = await ReadFrameDataAsync(reader, size, cancel).ConfigureAwait(false);
             return decodeFunc(new Ice20Decoder(data.Memory[0..size]));
-        }
-
-        private readonly struct SlicFrame : IDisposable
-        {
-            public ReadOnlyMemory<byte> Buffer => MemoryOwner.Memory[0..Size];
-            public IMemoryOwner<byte> MemoryOwner { get; init; }
-            public int Size { get; init; }
-            public FrameType Type { get; init; }
-
-            public void Dispose() => MemoryOwner.Dispose();
         }
     }
 }
