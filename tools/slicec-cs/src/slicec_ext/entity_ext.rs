@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use crate::cs_util::escape_keyword;
-use slice::grammar::NamedSymbol;
 use slice::code_gen_util::{fix_case, CaseStyle};
+use slice::grammar::Entity;
 
-pub trait NamedSymbolExt: NamedSymbol {
+pub trait EntityExt: Entity {
     /// Escapes and returns the definition's identifier, without any scoping.
     /// If the identifier is a C# keyword, a '@' prefix is appended to it.
     fn escape_identifier(&self) -> String;
@@ -30,9 +30,9 @@ pub trait NamedSymbolExt: NamedSymbol {
     fn type_id_attribute(&self) -> String;
 }
 
-impl<T> NamedSymbolExt for T
+impl<T> EntityExt for T
 where
-    T: NamedSymbol + ?Sized,
+    T: Entity + ?Sized,
 {
     /// Escapes and returns the definition's identifier, without any scoping.
     /// If the identifier is a C# keyword, a '@' prefix is appended to it.
@@ -87,13 +87,27 @@ where
     /// The C# namespace of this NamedSymbol
     fn namespace(&self) -> String {
         // TODO: check metadata
-        self.raw_scope().module_scope.iter()
-            .map(|segment| escape_keyword(&fix_case(segment, CaseStyle::Pascal)))
+        self.raw_scope()
+            .module_scope
+            .iter()
+            .enumerate()
+            .map(|(i, segment)| {
+                let mut escaped_module = escape_keyword(&fix_case(segment, CaseStyle::Pascal));
+                if i == 0 {
+                    if let Some(attribute) = self.get_attribute("cs:namespace", true) {
+                        escaped_module = attribute.first().unwrap().to_owned();
+                    }
+                }
+                escaped_module
+            })
             .collect::<Vec<_>>()
             .join(".")
     }
 
     fn type_id_attribute(&self) -> String {
-        format!(r#"IceRpc.Slice.TypeId("{}")"#, self.module_scoped_identifier())
+        format!(
+            r#"IceRpc.Slice.TypeId("{}")"#,
+            self.module_scoped_identifier()
+        )
     }
 }

@@ -13,7 +13,8 @@ pub struct ModuleVisitor<'a> {
 
 impl Visitor for ModuleVisitor<'_> {
     fn visit_file_start(&mut self, slice_file: &SliceFile) {
-        let mut top_level_modules = slice_file.contents
+        let mut top_level_modules = slice_file
+            .contents
             .iter()
             .map(|module_ptr| module_ptr.borrow())
             .collect::<Vec<_>>();
@@ -30,17 +31,16 @@ impl Visitor for ModuleVisitor<'_> {
 }
 
 impl ModuleVisitor<'_> {
-    fn module_code_block(
-        &mut self,
-        module: &Module,
-        module_prefix: Option<String>,
-    ) -> CodeBlock {
+    fn module_code_block(&mut self, module: &Module, module_prefix: Option<String>) -> CodeBlock {
         let submodules = module.submodules();
         let code_blocks = self.generated_code.remove_scoped(module);
 
         let module_identifier = match &module_prefix {
             Some(prefix) => format!("{}.{}", prefix, module.identifier()),
-            None => module.identifier().to_owned(),
+            None => match module.get_attribute("cs:namespace", false) {
+                Some(attribute) if module.is_top_level() => attribute.first().unwrap().to_owned(),
+                _ => module.identifier().to_owned(),
+            },
         };
 
         let submodule_prefix = match &module_prefix {

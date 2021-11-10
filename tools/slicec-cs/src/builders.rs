@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use slice::code_gen_util::TypeContext;
-use slice::grammar::{Attributable, Class, NamedSymbol, Operation};
+use slice::grammar::{Attributable, Class, Entity, NamedSymbol, Operation};
 
 use crate::code_block::CodeBlock;
 use crate::comments::{operation_parameter_doc_comment, CommentTag};
@@ -16,8 +16,8 @@ trait Builder {
 pub trait AttributeBuilder {
     fn add_attribute(&mut self, attributes: &str) -> &mut Self;
 
-    fn add_type_id_attribute(&mut self, named_symbol: &dyn NamedSymbol) -> &mut Self {
-        self.add_attribute(&named_symbol.type_id_attribute());
+    fn add_type_id_attribute(&mut self, entity: &dyn Entity) -> &mut Self {
+        self.add_attribute(&entity.type_id_attribute());
         self
     }
 

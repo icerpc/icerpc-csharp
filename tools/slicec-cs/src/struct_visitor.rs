@@ -8,10 +8,10 @@ use crate::decoding::*;
 use crate::encoding::*;
 use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
-use crate::slicec_ext::{MemberExt, NamedSymbolExt, TypeRefExt};
+use crate::slicec_ext::{EntityExt, MemberExt, TypeRefExt};
 
-use slice::grammar::*;
 use slice::code_gen_util::*;
+use slice::grammar::*;
 use slice::visitor::Visitor;
 
 #[derive(Debug)]
@@ -29,7 +29,11 @@ impl<'a> Visitor for StructVisitor<'a> {
         let mut builder = ContainerBuilder::new(
             &format!(
                 "{access} partial record struct",
-                access = if readonly { "public readonly" } else { "public" },
+                access = if readonly {
+                    "public readonly"
+                } else {
+                    "public"
+                },
             ),
             &escaped_identifier,
         );

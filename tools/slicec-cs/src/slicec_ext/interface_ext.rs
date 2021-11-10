@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use super::named_symbol_ext::NamedSymbolExt;
-use slice::grammar::{Interface, NamedSymbol};
+use super::entity_ext::EntityExt;
 use slice::code_gen_util::{fix_case, CaseStyle};
+use slice::grammar::{Interface, NamedSymbol};
 
-pub trait InterfaceExt: NamedSymbolExt {
+pub trait InterfaceExt: EntityExt {
     /// The name of the generated C# interface for this Slice interface.
     /// eg. If the slice interface is `Foo`, the C# interface is `IFoo`.
     /// The name is always prefixed with `I` and the first letter is always
