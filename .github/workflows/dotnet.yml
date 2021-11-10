@@ -21,6 +21,7 @@ jobs:
       uses: shimataro/ssh-key-action@v2
       with:
         key: ${{ secrets.ICERPC_DEPLOY_KEY }}
+        known_hosts: unnecessary
     - name: Setup Rust
       uses: actions-rs/toolchain@v1
       with:
