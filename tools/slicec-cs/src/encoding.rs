@@ -504,7 +504,7 @@ pub fn encode_operation(operation: &Operation, return_type: bool) -> CodeBlock {
         code.writeln(&encode_type(
             member.data_type(),
             &mut bit_sequence_index,
-            true,
+            false,
             namespace,
             &match members.as_slice() {
                 [_] => "value".to_owned(),
