@@ -2,15 +2,20 @@
 
 ![.github/workflows/dotnet.yml](https://github.com/zeroc-ice/icerpc-csharp/workflows/.NET/badge.svg?branch=main)
 
-## Building
+- [Build Requirements](#build-requirements)
+- [Building](#building)
+- [Testing](#testing)
+- [Building Example Programs](#building-example-programs)
 
-The build depends on NuGet packages that are not publicly available, for accessing this packages you must create a
-`nuget.config` file with the following contents.
+## Build Requirements
 
-You must replace:
-* USERNAME with the name of your user account on GitHub
-* TOKEN with your personal access token. Create your token from https://github.com/settings/tokens and give it the
-  `read:packages` permission.
+Building IceRpc requires Rust and .NET development environments:
+
+ - A Rust development environment
+ - The .NET 6.0 SDK
+
+The build depends on `icerpc.builder.msbuild` NuGet package that is not publicly available, for accessing this package you must create a
+`nuget.config` file with the following contents:
 
 ```
 <?xml version="1.0" encoding="utf-8"?>
@@ -29,6 +34,31 @@ You must replace:
 ```
 
 You can create the `nuget.config` in the source folder or any folder up to the drive root.
+
+You must replace:
+
+* USERNAME with the name of your user account on GitHub
+* TOKEN with your personal access token. Create your token from https://github.com/settings/tokens and give it the
+  `read:packages` permission.
+
+## Building
+
+IceRpc can be build from a regular command prompt, using the following command
+
+For Linux and macOS
+
+```
+./build.sh
+```
+
+For Windows
+
+```
+./build.ps1
+```
+
+This builds the [slicec-cs](./tools/slicec-cs) compiler, the IceRpc runtime assemblies and the IceRpc tests in the
+default debug configuration.
 
 ## Testing
 
@@ -61,12 +91,6 @@ Generate the test report
 
 ```
 reportgenerator "-reports:tests/*/TestResults/*/coverage.cobertura.xml" "-targetdir:tests/TestRerport"
-```
-
-For convenience you can do the same using "CodeCoverageReport" msbuild target:
-
-```
-dotnet msbuild build/build.proj /t:CodeCoverageReport
 ```
 
 ## Building Example Programs
