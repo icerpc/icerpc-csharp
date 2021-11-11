@@ -16,7 +16,6 @@ usage()
     echo "  --help   | -h             Print help and exit."
 }
 
-
 build_compiler()
 {
     arguments=("build")
@@ -167,4 +166,3 @@ case $action in
         doc
         ;;
 esac
-
