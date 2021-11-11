@@ -52,14 +52,14 @@ clean_icerpc()
 
 build()
 {
-    build_compiler $1
-    build_icerpc $1
+    build_compiler "$1"
+    build_icerpc "$1"
 }
 
 rebuild()
 {
     clean
-    build $1
+    build "$1"
 }
 
 clean()
