@@ -5,6 +5,7 @@
 module IceRpc::Transports::Internal
 {
     /// The Slic frame types
+    [cs:internal]
     enum FrameType : byte
     {
         /// The initialization frame is sent by the client-side Slic connection on connection
@@ -55,6 +56,7 @@ module IceRpc::Transports::Internal
 
     /// The Slic initialize frame body.
     [cs:readonly]
+    [cs:internal]
     struct InitializeBody
     {
         /// The application protocol name.

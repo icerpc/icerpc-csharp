@@ -5,8 +5,8 @@ use crate::cs_util::*;
 use crate::generated_code::GeneratedCode;
 use crate::slicec_ext::*;
 
-use slice::grammar::*;
 use slice::code_gen_util::*;
+use slice::grammar::*;
 use slice::visitor::Visitor;
 
 #[derive(Debug)]
@@ -24,8 +24,13 @@ impl<'a> Visitor for EnumVisitor<'a> {
 }
 
 fn enum_declaration(enum_def: &Enum) -> CodeBlock {
+    let access = if enum_def.has_attribute("cs:internal", true) {
+        "internal"
+    } else {
+        "public"
+    };
     let escaped_identifier = escape_keyword(enum_def.identifier());
-    ContainerBuilder::new("public enum", &escaped_identifier)
+    ContainerBuilder::new(&format!("{} enum", access), &escaped_identifier)
         .add_comment("summary", &doc_comment_message(enum_def))
         .add_container_attributes(enum_def)
         .add_base(underlying_type(enum_def))
@@ -49,10 +54,17 @@ fn enum_values(enum_def: &Enum) -> CodeBlock {
 }
 
 fn enum_helper(enum_def: &Enum) -> CodeBlock {
+    let access = if enum_def.has_attribute("cs:internal", true) {
+        "internal"
+    } else {
+        "public"
+    };
     let escaped_identifier = escape_keyword(enum_def.identifier());
     let namespace = &enum_def.namespace();
-    let mut builder =
-        ContainerBuilder::new("public static class", &enum_def.helper_name(namespace));
+    let mut builder = ContainerBuilder::new(
+        format!("{} static class", access),
+        &enum_def.helper_name(namespace),
+    );
 
     builder.add_comment(
         "summary",
@@ -81,8 +93,9 @@ fn enum_helper(enum_def: &Enum) -> CodeBlock {
         builder.add_block(
             format!(
                 "\
-public static readonly global::System.Collections.Generic.HashSet<{underlying}> EnumeratorValues =
+{access} static readonly global::System.Collections.Generic.HashSet<{underlying}> EnumeratorValues =
     new global::System.Collections.Generic.HashSet<{underlying}> {{ {enum_values} }};",
+                access = access,
                 underlying = underlying_type,
                 enum_values = enum_def
                     .enumerators()
@@ -120,8 +133,9 @@ public static readonly global::System.Collections.Generic.HashSet<{underlying}> 
     builder.add_block(
         format!(
             r#"
-public static {escaped_identifier} As{identifier}(this {underlying_type} value) =>
+{access} static {escaped_identifier} As{identifier}(this {underlying_type} value) =>
     {as_enum};"#,
+            access = access,
             identifier = enum_def.identifier(),
             escaped_identifier = escaped_identifier,
             underlying_type = underlying_type,
@@ -134,15 +148,14 @@ public static {escaped_identifier} As{identifier}(this {underlying_type} value) 
     builder.add_block(
         format!(
             r#"
-public static {escaped_identifier} Decode{identifier}(this IceDecoder decoder) =>
+{access} static {escaped_identifier} Decode{identifier}(this IceDecoder decoder) =>
     As{identifier}({decode_enum});"#,
+            access = access,
             identifier = enum_def.identifier(),
             escaped_identifier = escaped_identifier,
             decode_enum = match &enum_def.underlying {
-                Some(underlying) => format!(
-                    "decoder.Decode{}()",
-                    underlying.definition().type_suffix()
-                ),
+                Some(underlying) =>
+                    format!("decoder.Decode{}()", underlying.definition().type_suffix()),
                 _ => "decoder.DecodeSize()".to_owned(),
             }
         )
@@ -153,15 +166,14 @@ public static {escaped_identifier} Decode{identifier}(this IceDecoder decoder) =
     builder.add_block(
         format!(
             r#"
-public static void Encode{identifier}(this IceEncoder encoder, {escaped_identifier} value) =>
+{access} static void Encode{identifier}(this IceEncoder encoder, {escaped_identifier} value) =>
     {encode_enum}(({underlying_type})value);"#,
+            access = access,
             identifier = enum_def.identifier(),
             escaped_identifier = escaped_identifier,
             encode_enum = match &enum_def.underlying {
-                Some(underlying) => format!(
-                    "encoder.Encode{}",
-                    underlying.definition().type_suffix()
-                ),
+                Some(underlying) =>
+                    format!("encoder.Encode{}", underlying.definition().type_suffix()),
                 None => "encoder.EncodeSize".to_owned(),
             },
             underlying_type = underlying_type
@@ -175,6 +187,10 @@ public static void Encode{identifier}(this IceEncoder encoder, {escaped_identifi
 fn underlying_type(enum_def: &Enum) -> String {
     match &enum_def.underlying {
         Some(typeref) => typeref.to_type_string(&enum_def.namespace(), TypeContext::Nested),
-        _ => slice::borrow_ast().lookup_primitive("int").borrow().cs_keyword().to_owned()
+        _ => slice::borrow_ast()
+            .lookup_primitive("int")
+            .borrow()
+            .cs_keyword()
+            .to_owned(),
     }
 }

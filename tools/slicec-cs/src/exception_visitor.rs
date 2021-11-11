@@ -11,8 +11,8 @@ use crate::encoding::encode_data_members;
 use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
-use slice::grammar::Exception;
 use slice::code_gen_util::TypeContext;
+use slice::grammar::{Attributable, Exception};
 use slice::visitor::Visitor;
 
 pub struct ExceptionVisitor<'a> {
@@ -32,9 +32,14 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
             .all_members()
             .iter()
             .all(|m| m.is_default_initialized());
+        let access = if exception_def.has_attribute("cs:internal", true) {
+            "internal"
+        } else {
+            "public"
+        };
 
         let mut exception_class_builder =
-            ContainerBuilder::new("public partial class", &exception_name);
+            ContainerBuilder::new(&format!("{} partial class", access), &exception_name);
 
         exception_class_builder
             .add_comment("summary", &doc_comment_message(exception_def))
@@ -71,7 +76,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
         // public parameter-less constructor
         if has_public_parameter_constructor {
             exception_class_builder.add_block(
-                FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody)
+                FunctionBuilder::new(access, "", &exception_name, FunctionType::BlockBody)
                     .add_parameter(
                         "IceRpc.RetryPolicy?",
                         "retryPolicy",
@@ -84,7 +89,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
         }
 
         exception_class_builder.add_block(
-            FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody)
+            FunctionBuilder::new(access, "", &exception_name, FunctionType::BlockBody)
                 .add_parameter("Ice11Decoder", "decoder", None, None)
                 .add_base_parameter("decoder")
                 .set_body(initialize_non_nullable_fields(
@@ -98,7 +103,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
         if !has_base && !exception_def.uses_classes() {
             // public constructor used for Ice 2.0 decoding
             exception_class_builder.add_block(
-                FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody)
+                FunctionBuilder::new(access, "", &exception_name, FunctionType::BlockBody)
                     .add_parameter("Ice20Decoder", "decoder", None, None)
                     .add_base_parameter("decoder")
                     .set_body(decode_data_members(
@@ -199,6 +204,11 @@ fn one_shot_constructor(
     exception_def: &Exception,
     add_message_and_exception_parameters: bool,
 ) -> CodeBlock {
+    let access = if exception_def.has_attribute("cs:internal", true) {
+        "internal"
+    } else {
+        "public"
+    };
     let exception_name = exception_def.escape_identifier();
 
     let namespace = &exception_def.namespace();
@@ -234,7 +244,7 @@ fn one_shot_constructor(
     };
 
     let mut ctor_builder =
-        FunctionBuilder::new("public", "", &exception_name, FunctionType::BlockBody);
+        FunctionBuilder::new(access, "", &exception_name, FunctionType::BlockBody);
 
     ctor_builder.add_comment(
         "summary",
