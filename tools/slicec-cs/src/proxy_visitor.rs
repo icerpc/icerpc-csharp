@@ -81,7 +81,7 @@ impl<'a> Visitor for ProxyVisitor<'_> {
             .add_block(response_class(interface_def))
             .add_block(format!(r#"
 /// <summary>The default path for services that implement Slice interface <c>{interface_name}</c>.</summary>
-public static readonly string DefaultPath = typeof({prx_impl}).GetDefaultPath();
+{access} static readonly string DefaultPath = typeof({prx_impl}).GetDefaultPath();
 
 private static readonly DefaultIceDecoderFactories _defaultIceDecoderFactories = new (typeof({prx_impl}).Assembly);
 
@@ -456,14 +456,14 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         return "".into();
     }
 
-    let mut class_builder = ContainerBuilder::new("public static class", "Request");
+    let access = interface_def.get_access_modifier();
+    let mut class_builder = ContainerBuilder::new(&format!("{} static class", access), "Request");
 
     class_builder.add_comment(
         "summary",
         "Converts the arguments of each operation that takes arguments into a request payload.",
     );
 
-    let access = interface_def.get_access_modifier();
     for operation in operations {
         let params: Vec<&Parameter> = operation.nonstreamed_parameters();
 
@@ -564,10 +564,9 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         return "".into();
     }
 
-    let mut class_builder = ContainerBuilder::new(
-        &format!("{} static class", interface_def.get_access_modifier()),
-        "Response",
-    );
+    let access = interface_def.get_access_modifier();
+
+    let mut class_builder = ContainerBuilder::new(&format!("{} static class", access), "Response");
 
     class_builder.add_comment(
         "summary",
@@ -589,12 +588,13 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         class_builder.add_block(format!(
             r#"
 /// <summary>The <see cref="ResponseDecodeFunc{{T}}"/> for the return value type of operation {name}.</summary>
-public static {return_type} {escaped_name}(IceRpc.IncomingResponse response, IceRpc.IInvoker? invoker, IceRpc.Slice.StreamParamReceiver? streamParamReceiver) =>
+{access} static {return_type} {escaped_name}(IceRpc.IncomingResponse response, IceRpc.IInvoker? invoker, IceRpc.Slice.StreamParamReceiver? streamParamReceiver) =>
     response.ToReturnValue(
         invoker,
         {decoder},
         {response_decode_func});"#,
             name = operation.identifier(),
+            access = access,
             escaped_name = operation.escape_identifier(),
             return_type = members.to_tuple_type( namespace, TypeContext::Incoming),
             decoder = decoder,

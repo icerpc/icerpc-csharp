@@ -78,10 +78,10 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
     let access = interface_def.get_access_modifier();
     let mut class_builder = ContainerBuilder::new(
-        if bases.is_empty() {
-            &format!("{} static class", access)
+        &if bases.is_empty() {
+            format!("{} static class", access)
         } else {
-            &format!("{} static new class", access)
+            format!("{} static new class", access)
         },
         "Request",
     );
@@ -141,10 +141,10 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 
     let access = interface_def.get_access_modifier();
     let mut class_builder = ContainerBuilder::new(
-        if bases.is_empty() {
-            &format!("{} static class", access)
+        &if bases.is_empty() {
+            format!("{} static class", access)
         } else {
-            &format!("{} static new class", access)
+            format!("{} static new class", access)
         },
         "Response",
     );
@@ -292,7 +292,7 @@ pub fn response_encode_action(operation: &Operation) -> CodeBlock {
 fn operation_declaration(operation: &Operation) -> CodeBlock {
     // TODO: operation obsolete deprecation
     FunctionBuilder::new(
-        "public",
+        &operation.parent().unwrap().get_access_modifier(),
         &operation.return_task(true),
         &(operation.escape_identifier_with_suffix("Async")),
         FunctionType::Declaration,
