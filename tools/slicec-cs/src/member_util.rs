@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use slice::code_gen_util::TypeContext;
-use slice::grammar::{AsTypes, Attributable, DataMember, Member, Primitive, Types};
+use slice::grammar::{AsTypes, DataMember, Member, Primitive, Types};
 
 use crate::code_block::CodeBlock;
 use crate::comments::{doc_comment_message, CommentTag};
@@ -40,11 +40,7 @@ pub fn data_member_declaration(
         prelude.writeln(&format!("[{}]", obsolete));
     }
 
-    let access = if data_member.has_attribute("cs:internal", true) {
-        "internal"
-    } else {
-        "public"
-    };
+    let access = data_member.get_access_modifier();
 
     format!(
         "\

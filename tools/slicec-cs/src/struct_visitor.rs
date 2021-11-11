@@ -25,11 +25,7 @@ impl<'a> Visitor for StructVisitor<'a> {
         let escaped_identifier = struct_def.escape_identifier();
         let members = struct_def.members();
         let namespace = struct_def.namespace();
-        let access = if struct_def.has_attribute("cs:internal", true) {
-            "internal"
-        } else {
-            "public"
-        };
+        let access = struct_def.get_access_modifier();
 
         let mut builder = ContainerBuilder::new(
             &format!(
@@ -57,7 +53,7 @@ impl<'a> Visitor for StructVisitor<'a> {
         );
 
         let mut main_constructor =
-            FunctionBuilder::new(access, "", &escaped_identifier, FunctionType::BlockBody);
+            FunctionBuilder::new(&access, "", &escaped_identifier, FunctionType::BlockBody);
         main_constructor.add_comment(
             "summary",
             &format!(
@@ -92,7 +88,7 @@ impl<'a> Visitor for StructVisitor<'a> {
 
         // Decode constructor
         builder.add_block(
-            FunctionBuilder::new(access, "", &escaped_identifier, FunctionType::BlockBody)
+            FunctionBuilder::new(&access, "", &escaped_identifier, FunctionType::BlockBody)
                 .add_comment(
                     "summary",
                     &format!(

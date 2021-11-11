@@ -24,11 +24,7 @@ impl<'a> Visitor for EnumVisitor<'a> {
 }
 
 fn enum_declaration(enum_def: &Enum) -> CodeBlock {
-    let access = if enum_def.has_attribute("cs:internal", true) {
-        "internal"
-    } else {
-        "public"
-    };
+    let access = enum_def.get_access_modifier();
     let escaped_identifier = escape_keyword(enum_def.identifier());
     ContainerBuilder::new(&format!("{} enum", access), &escaped_identifier)
         .add_comment("summary", &doc_comment_message(enum_def))
@@ -54,15 +50,11 @@ fn enum_values(enum_def: &Enum) -> CodeBlock {
 }
 
 fn enum_helper(enum_def: &Enum) -> CodeBlock {
-    let access = if enum_def.has_attribute("cs:internal", true) {
-        "internal"
-    } else {
-        "public"
-    };
+    let access = enum_def.get_access_modifier();
     let escaped_identifier = escape_keyword(enum_def.identifier());
     let namespace = &enum_def.namespace();
     let mut builder = ContainerBuilder::new(
-        format!("{} static class", access),
+        &format!("{} static class", access),
         &enum_def.helper_name(namespace),
     );
 

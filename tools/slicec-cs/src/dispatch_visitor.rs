@@ -1,5 +1,5 @@
-use slice::grammar::*;
 use slice::code_gen_util::*;
+use slice::grammar::*;
 use slice::visitor::Visitor;
 
 use crate::builders::{
@@ -22,9 +22,9 @@ impl<'a> Visitor for DispatchVisitor<'_> {
     fn visit_interface_start(&mut self, interface_def: &Interface) {
         let bases = interface_def.base_interfaces();
         let interface_name = interface_def.interface_name();
-
+        let access = interface_def.get_access_modifier();
         let mut interface_builder =
-            ContainerBuilder::new("public partial interface", &interface_name);
+            ContainerBuilder::new(&format!("{} partial interface", access), &interface_name);
 
         let summary_comment = format!(
             r#"Interface used to implement services for Slice interface {}. <seealso cref="{}"/>.
@@ -76,11 +76,12 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         return "".into();
     }
 
+    let access = interface_def.get_access_modifier();
     let mut class_builder = ContainerBuilder::new(
         if bases.is_empty() {
-            "public static class"
+            &format!("{} static class", access)
         } else {
-            "public static new class"
+            &format!("{} static new class", access)
         },
         "Request",
     );
@@ -106,10 +107,11 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         let code = format!(
             "\
 ///<summary>Decodes the argument{s} of operation {operation_name}.</summary>
-public static {return_type} {operation_name}(IceRpc.IncomingRequest request) =>
+{access} static {return_type} {operation_name}(IceRpc.IncomingRequest request) =>
     request.ToArgs(
         {decoder_factory},
         {decode_func});",
+            access = access,
             s = if parameters.len() == 1 { "" } else { "s" },
             return_type = parameters.to_tuple_type(namespace, TypeContext::Incoming),
             operation_name = operation_name,
@@ -137,11 +139,12 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         return "".into();
     }
 
+    let access = interface_def.get_access_modifier();
     let mut class_builder = ContainerBuilder::new(
         if bases.is_empty() {
-            "public static class"
+            &format!("{} static class", access)
         } else {
-            "public static new class"
+            &format!("{} static new class", access)
         },
         "Response",
     );
@@ -157,11 +160,10 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         let namespace = &operation.namespace();
         let operation_name = &operation.escape_identifier();
         let returns_classes = operation.returns_classes();
-        let return_type =
-            &non_streamed_returns.to_tuple_type(namespace, TypeContext::Outgoing);
+        let return_type = &non_streamed_returns.to_tuple_type(namespace, TypeContext::Outgoing);
 
         let mut builder = FunctionBuilder::new(
-            "public static",
+            &format!("{} static", access),
             "global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>",
             operation_name,
             FunctionType::ExpressionBody,
@@ -268,12 +270,7 @@ pub fn response_encode_action(operation: &Operation) -> CodeBlock {
         && returns.first().unwrap().tag.is_none();
 
     if use_default_encode_action {
-        encode_action(
-            returns.first().unwrap().data_type(),
-            namespace,
-            true,
-            true,
-        )
+        encode_action(returns.first().unwrap().data_type(), namespace, true, true)
     } else {
         let encoder_class = if operation.returns_classes() {
             "Ice11Encoder"
@@ -380,8 +377,7 @@ IceRpc.Slice.StreamParamReceiver.ToAsyncEnumerable<{stream_type}>(
     request.GetIceDecoderFactory(_defaultIceDecoderFactories),
     {decode_func})
     ",
-                        stream_type =
-                            stream_type.to_type_string(namespace, TypeContext::Outgoing),
+                        stream_type = stream_type.to_type_string(namespace, TypeContext::Outgoing),
                         decode_func = decode_func(stream_type, namespace)
                     )
                 }

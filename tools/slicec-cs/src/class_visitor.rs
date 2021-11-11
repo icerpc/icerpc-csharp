@@ -12,7 +12,7 @@ use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
 use slice::code_gen_util::TypeContext;
-use slice::grammar::{Attributable, Class, DataMember};
+use slice::grammar::{Class, DataMember};
 use slice::visitor::Visitor;
 
 pub struct ClassVisitor<'a> {
@@ -31,11 +31,7 @@ impl<'a> Visitor for ClassVisitor<'_> {
         } else {
             vec![]
         };
-        let access = if class_def.has_attribute("cs:internal", true) {
-            "internal"
-        } else {
-            "public"
-        };
+        let access = class_def.get_access_modifier();
 
         let non_default_members = members
             .iter()
@@ -78,7 +74,7 @@ impl<'a> Visitor for ClassVisitor<'_> {
         class_builder.add_block(
             format!(
                 "{} static{} readonly string IceTypeId = typeof({}).GetIceTypeId()!;",
-                access,
+                &access,
                 if has_base_class { " new" } else { "" },
                 class_name,
             )
@@ -127,7 +123,7 @@ impl<'a> Visitor for ClassVisitor<'_> {
         // the decoder parameter is used to distinguish this ctor from the parameterless ctor that
         // users may want to add to the partial class. It's not used otherwise.
         let mut decode_constructor =
-            FunctionBuilder::new(access, "", &class_name, FunctionType::BlockBody);
+            FunctionBuilder::new(&access, "", &class_name, FunctionType::BlockBody);
 
         if !has_base_class {
             decode_constructor.add_attribute(
