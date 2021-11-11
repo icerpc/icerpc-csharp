@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-[[suppress-warning(reserved-identifier)]]
-
 module IceRpc::Tests::Slice
 {
     // builtin types
@@ -28,7 +26,7 @@ module IceRpc::Tests::Slice
     typealias ByteSeqA = ByteSeq;
     typealias StringListA = StringList;
     typealias MyEnumDictA = MyEnumDict;
-    typealais MyEnumDict2 = dictionary<MyEnumA, MyEnumA>;
+    typealias MyEnumDict2 = dictionary<MyEnumA, MyEnumA>;
 
     interface AliasOperations
     {

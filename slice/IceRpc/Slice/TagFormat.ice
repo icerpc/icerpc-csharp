@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-[[suppress-warning(reserved-identifier)]]
-
 module IceRpc::Slice
 {
     /// With encoding 1.1, each tagged parameter has a specific tag format. This tag format describes how the data is

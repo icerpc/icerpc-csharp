@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-[[suppress-warning(reserved-identifier)]]
-
 // These definitions help with the encoding of Slic frames.
 // TODO: use generated internal types once supported
 module IceRpc::Transports::Internal

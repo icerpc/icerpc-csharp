@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-[[suppress-warning(reserved-identifier)]]
+// Copyright (c) ZeroC, Inc. All rights reserved.
 
 module IceRpc
 {
