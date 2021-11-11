@@ -32,7 +32,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
             .all_members()
             .iter()
             .all(|m| m.is_default_initialized());
-        let access = exception_def.get_access_modifier();
+        let access = exception_def.access_modifier();
 
         let mut exception_class_builder =
             ContainerBuilder::new(&format!("{} partial class", access), &exception_name);
@@ -200,7 +200,7 @@ fn one_shot_constructor(
     exception_def: &Exception,
     add_message_and_exception_parameters: bool,
 ) -> CodeBlock {
-    let access = exception_def.get_access_modifier();
+    let access = exception_def.access_modifier();
     let exception_name = exception_def.escape_identifier();
 
     let namespace = &exception_def.namespace();

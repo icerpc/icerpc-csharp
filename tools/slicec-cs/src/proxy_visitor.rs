@@ -23,7 +23,7 @@ impl<'a> Visitor for ProxyVisitor<'_> {
         let namespace = interface_def.namespace();
         let prx_interface = interface_def.proxy_name(); // IFooPrx
         let prx_impl: String = interface_def.proxy_implementation_name(); // FooPrx
-        let access = interface_def.get_access_modifier();
+        let access = interface_def.access_modifier();
         let all_bases: Vec<&Interface> = interface_def.all_base_interfaces();
         let bases: Vec<&Interface> = interface_def.base_interfaces();
 
@@ -157,7 +157,7 @@ private static readonly DefaultIceDecoderFactories _defaultIceDecoderFactories =
 }
 
 fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
-    let access = interface_def.get_access_modifier();
+    let access = interface_def.access_modifier();
     format!(
         r#"/// <summary>Creates a new <see cref="{prx_impl}"/> from the give connection and path.</summary>
 /// <param name="connection">The connection. If it's an outgoing connection, the endpoint of the new proxy is
@@ -233,7 +233,7 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
 
     let sends_classes = operation.sends_classes();
     let void_return = !operation.has_nonstreamed_return_members();
-    let access = operation.parent().unwrap().get_access_modifier();
+    let access = operation.parent().unwrap().access_modifier();
 
     let mut builder = FunctionBuilder::new(
         &access,
@@ -398,7 +398,7 @@ fn proxy_base_operation_impl(interface_def: &Interface, operation: &Operation) -
         .unwrap();
 
     let mut builder = FunctionBuilder::new(
-        &operation.parent().unwrap().get_access_modifier(),
+        &operation.parent().unwrap().access_modifier(),
         &return_task,
         &async_name,
         FunctionType::ExpressionBody,
@@ -456,7 +456,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         return "".into();
     }
 
-    let access = interface_def.get_access_modifier();
+    let access = interface_def.access_modifier();
     let mut class_builder = ContainerBuilder::new(&format!("{} static class", access), "Request");
 
     class_builder.add_comment(
@@ -564,7 +564,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         return "".into();
     }
 
-    let access = interface_def.get_access_modifier();
+    let access = interface_def.access_modifier();
 
     let mut class_builder = ContainerBuilder::new(&format!("{} static class", access), "Response");
 

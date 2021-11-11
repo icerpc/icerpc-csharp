@@ -31,7 +31,7 @@ impl<'a> Visitor for ClassVisitor<'_> {
         } else {
             vec![]
         };
-        let access = class_def.get_access_modifier();
+        let access = class_def.access_modifier();
 
         let non_default_members = members
             .iter()

@@ -30,7 +30,7 @@ pub trait EntityExt: Entity {
     fn type_id_attribute(&self) -> String;
 
     /// The C# access modifier to use
-    fn get_access_modifier(&self) -> String;
+    fn access_modifier(&self) -> String;
 }
 
 impl<T> EntityExt for T
@@ -113,7 +113,7 @@ where
         )
     }
 
-    fn get_access_modifier(&self) -> String {
+    fn access_modifier(&self) -> String {
         if self.has_attribute("cs:internal", self.kind() == "data member") {
             "internal".to_owned()
         } else {

@@ -22,7 +22,7 @@ impl<'a> Visitor for DispatchVisitor<'_> {
     fn visit_interface_start(&mut self, interface_def: &Interface) {
         let bases = interface_def.base_interfaces();
         let interface_name = interface_def.interface_name();
-        let access = interface_def.get_access_modifier();
+        let access = interface_def.access_modifier();
         let mut interface_builder =
             ContainerBuilder::new(&format!("{} partial interface", access), &interface_name);
 
@@ -76,7 +76,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         return "".into();
     }
 
-    let access = interface_def.get_access_modifier();
+    let access = interface_def.access_modifier();
     let mut class_builder = ContainerBuilder::new(
         &if bases.is_empty() {
             format!("{} static class", access)
@@ -139,7 +139,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         return "".into();
     }
 
-    let access = interface_def.get_access_modifier();
+    let access = interface_def.access_modifier();
     let mut class_builder = ContainerBuilder::new(
         &if bases.is_empty() {
             format!("{} static class", access)
@@ -292,7 +292,7 @@ pub fn response_encode_action(operation: &Operation) -> CodeBlock {
 fn operation_declaration(operation: &Operation) -> CodeBlock {
     // TODO: operation obsolete deprecation
     FunctionBuilder::new(
-        &operation.parent().unwrap().get_access_modifier(),
+        &operation.parent().unwrap().access_modifier(),
         &operation.return_task(true),
         &(operation.escape_identifier_with_suffix("Async")),
         FunctionType::Declaration,

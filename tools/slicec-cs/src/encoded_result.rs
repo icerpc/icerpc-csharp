@@ -21,7 +21,7 @@ pub fn encoded_result_struct(operation: &Operation) -> CodeBlock {
         return "".into();
     }
 
-    let access = operation.parent().unwrap().get_access_modifier();
+    let access = operation.parent().unwrap().access_modifier();
 
     let parameters = operation.return_members();
 

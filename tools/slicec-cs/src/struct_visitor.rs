@@ -25,7 +25,7 @@ impl<'a> Visitor for StructVisitor<'a> {
         let escaped_identifier = struct_def.escape_identifier();
         let members = struct_def.members();
         let namespace = struct_def.namespace();
-        let access = struct_def.get_access_modifier();
+        let access = struct_def.access_modifier();
 
         let mut builder = ContainerBuilder::new(
             &format!(

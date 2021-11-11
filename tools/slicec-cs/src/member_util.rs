@@ -40,7 +40,7 @@ pub fn data_member_declaration(
         prelude.writeln(&format!("[{}]", obsolete));
     }
 
-    let access = data_member.get_access_modifier();
+    let access = data_member.access_modifier();
 
     format!(
         "\
