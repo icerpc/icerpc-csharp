@@ -208,6 +208,8 @@ namespace IceRpc.Transports.Internal
 
         private readonly EndPoint _addr;
         private readonly SslClientAuthenticationOptions? _authenticationOptions;
+
+        private bool _connected;
         private readonly TimeSpan _idleTimeout;
 
         private readonly Endpoint _remoteEndpoint;
@@ -215,6 +217,12 @@ namespace IceRpc.Transports.Internal
 
         public override async Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel)
         {
+            if (_connected)
+            {
+                throw new InvalidOperationException("ConnectAsync can only be called once");
+            }
+            _connected = true;
+
             bool? tls = _remoteEndpoint.ParseTcpParams().Tls;
 
             Endpoint remoteEndpoint = _remoteEndpoint;

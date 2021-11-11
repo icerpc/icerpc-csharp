@@ -11,12 +11,14 @@ namespace IceRpc.Tests.Api
     [Log(LogAttributeLevel.Information)]
     public class ProxyTests
     {
-        [TestCase(ProtocolCode.Ice1)]
+       // [TestCase(ProtocolCode.Ice1)]
         [TestCase(ProtocolCode.Ice2)]
         public async Task Proxy_ServiceAsync(ProtocolCode protocol)
         {
             // Tests the IceRpc::Service interface implemented by all typed proxies.
             Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
+               // protocol == ProtocolCode.Ice1 ? "tcp -h 127.0.0.1 -p 0" : "ice+tcp://127.0.0.1:0?tls=false";
+
             await using var server = new Server
             {
                 Dispatcher = new Greeter(),
@@ -29,10 +31,8 @@ namespace IceRpc.Tests.Api
                 RemoteEndpoint = server.Endpoint,
                 LoggerFactory = LogAttributeLoggerFactory.Instance
             };
-            await connection.ConnectAsync();
 
             var prx = GreeterPrx.FromConnection(connection);
-
             await prx.IcePingAsync();
 
             string[] ids = new string[]
@@ -74,6 +74,9 @@ namespace IceRpc.Tests.Api
             await prx.IceIdsAsync(invocation);
             await prx.IceIsAAsync("::IceRpc::Tests::Api::Greeter", invocation);
             await prx.AsAsync<GreeterPrx>(invocation);
+
+            await connection.ShutdownAsync();
+            await server.ShutdownAsync();
         }
 
         [TestCase("ice+tcp://localhost:10000/test")]

@@ -11,11 +11,8 @@ namespace IceRpc.Transports.Internal
 
         private readonly ISimpleNetworkConnection _decoratee;
 
-        private readonly Endpoint _endpoint;
-
         public virtual async Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel)
         {
-            using IDisposable scope = Logger.StartConnectionScope(_endpoint, IsServer);
             ISimpleStream simpleStream;
             try
             {
@@ -34,20 +31,14 @@ namespace IceRpc.Transports.Internal
         internal static ISimpleNetworkConnection Decorate(
             ISimpleNetworkConnection decoratee,
             bool isServer,
-            Endpoint endpoint,
             ILogger logger) =>
-            new LogSimpleNetworkConnectionDecorator(decoratee, isServer, endpoint, logger);
+            new LogSimpleNetworkConnectionDecorator(decoratee, isServer, logger);
 
         internal LogSimpleNetworkConnectionDecorator(
             ISimpleNetworkConnection decoratee,
             bool isServer,
-            Endpoint endpoint,
             ILogger logger)
-            : base(isServer, logger)
-            {
-                _decoratee = decoratee;
-                _endpoint = endpoint;
-            }
+            : base(isServer, logger) => _decoratee = decoratee;
     }
 
     internal sealed class LogSimpleStreamDecorator : ISimpleStream

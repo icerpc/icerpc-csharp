@@ -14,13 +14,9 @@ namespace IceRpc.Transports.Internal
 
         private readonly IMultiplexedNetworkConnection _decoratee;
 
-        private readonly Endpoint _endpoint;
-
         public async Task<(IMultiplexedStreamFactory, NetworkConnectionInformation)> ConnectAsync(
             CancellationToken cancel)
         {
-            using IDisposable scope = Logger.StartConnectionScope(_endpoint, IsServer);
-
             IMultiplexedStreamFactory multiplexedStreamFactory;
             try
             {
@@ -39,20 +35,14 @@ namespace IceRpc.Transports.Internal
         internal static IMultiplexedNetworkConnection Decorate(
             IMultiplexedNetworkConnection decoratee,
             bool isServer,
-            Endpoint endpoint,
             ILogger logger) =>
-            new LogMultiplexedNetworkConnectionDecorator(decoratee, isServer, endpoint, logger);
+            new LogMultiplexedNetworkConnectionDecorator(decoratee, isServer, logger);
 
         private LogMultiplexedNetworkConnectionDecorator(
             IMultiplexedNetworkConnection decoratee,
             bool isServer,
-            Endpoint endpoint,
             ILogger logger)
-            : base(isServer, logger)
-            {
-                _decoratee = decoratee;
-                _endpoint = endpoint;
-            }
+            : base(isServer, logger) =>  _decoratee = decoratee;
     }
 
     internal sealed class LogMultiplexedStreamFactoryDecorator : IMultiplexedStreamFactory

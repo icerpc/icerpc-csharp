@@ -9,7 +9,6 @@ namespace IceRpc.Transports.Internal
     internal delegate T LogNetworkConnectionDecoratorFactory<T>(
         T decoratee,
         bool isServer,
-        Endpoint endpoint,
         ILogger logger) where T : INetworkConnection;
 
     internal abstract class LogNetworkConnectionDecorator : INetworkConnection
@@ -31,6 +30,8 @@ namespace IceRpc.Transports.Internal
 
             if (Information is NetworkConnectionInformation connectionInformation)
             {
+                // TODO: we start the scope here because DisposeAsync is called directly by Connection, and not
+                // through a higher-level interface method such as IProtocolConnection.DisposeAsync.
                 using IDisposable scope = Logger.StartConnectionScope(connectionInformation, IsServer);
                 Logger.LogConnectionDispose();
             }

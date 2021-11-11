@@ -225,13 +225,10 @@ namespace IceRpc
 
                 if (logger.IsEnabled(LogLevel.Error)) // TODO: log level
                 {
-                    networkConnection = logDecoratorFactory(networkConnection,
-                                                            isServer: false,
-                                                            RemoteEndpoint,
-                                                            logger);
+                    networkConnection = logDecoratorFactory(networkConnection, isServer: false, logger);
 
                     protocolConnectionFactory =
-                        new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, logger);
+                        new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, RemoteEndpoint, logger);
 
                     closedEventHandler = (sender, args) =>
                     {
