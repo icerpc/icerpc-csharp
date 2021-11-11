@@ -105,7 +105,7 @@ where
 
     fn type_id_attribute(&self) -> String {
         format!(
-            r#"IceRpc.Slice.TypeId("{}")"#,
+            r#"IceRpc.Slice.TypeId("::{}")"#,
             self.module_scoped_identifier()
         )
     }
