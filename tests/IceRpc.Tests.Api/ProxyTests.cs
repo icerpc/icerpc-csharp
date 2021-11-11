@@ -11,7 +11,7 @@ namespace IceRpc.Tests.Api
     [Log(LogAttributeLevel.Information)]
     public class ProxyTests
     {
-       // [TestCase(ProtocolCode.Ice1)]
+        [TestCase(ProtocolCode.Ice1)]
         [TestCase(ProtocolCode.Ice2)]
         public async Task Proxy_ServiceAsync(ProtocolCode protocol)
         {
