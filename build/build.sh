@@ -37,7 +37,7 @@ clean_compiler()
 build_icerpc()
 {
     arguments=("build")
-    if [ $1 == "release" ]; then
+    if [ "$1" == "release" ]; then
         arguments+=("--configuration" "Release")
     else
         arguments+=("--configuration" "Debug")
