@@ -34,6 +34,13 @@ namespace IceRpc.Internal
         internal static partial void LogConnectionClosedReason(this ILogger logger, Exception exception);
 
         [LoggerMessage(
+            EventId = (int)ConnectionEventIds.CreateProtocolConnection,
+            EventName = nameof(ConnectionEventIds.CreateProtocolConnection),
+            Level = LogLevel.Debug,
+            Message = "{Protocol} connection established")]
+        internal static partial void LogCreateProtocolConnection(this ILogger logger, Protocol protocol);
+
+        [LoggerMessage(
             EventId = (int)ConnectionEventIds.Ping,
             EventName = nameof(ConnectionEventIds.Ping),
             Level = LogLevel.Debug,

@@ -2,6 +2,7 @@
 
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
+using IceRpc.Transports;
 
 namespace IceRpc.Internal
 {
@@ -14,6 +15,9 @@ namespace IceRpc.Internal
         internal override IceEncoding? IceEncoding => Encoding.Ice20;
 
         internal override bool HasFieldSupport => true;
+
+        internal IProtocolConnectionFactory<IMultiplexedNetworkConnection> ProtocolConnectionFactory { get; } =
+            new Ice2ProtocolConnectionFactory();
 
         internal override OutgoingResponse CreateResponseFromException(Exception exception, IncomingRequest request)
         {
