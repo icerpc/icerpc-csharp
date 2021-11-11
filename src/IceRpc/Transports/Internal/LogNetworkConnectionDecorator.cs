@@ -79,6 +79,7 @@ namespace IceRpc.Transports.Internal
                 if (size > 32)
                 {
                     _ = sb.Append("...");
+                    break;
                 }
             }
             return sb.ToString().Trim();
