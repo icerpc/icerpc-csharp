@@ -19,13 +19,8 @@ pub trait OperationExt {
 }
 
 impl OperationExt for Operation {
-    // TODO: should this move to slice library that and take a language prefix parameter?
-    // parameter
     fn has_encoded_result(&self) -> bool {
-        let attribute = "cs:encoded-result";
-
-        self.has_attribute(attribute, false)
-            || self.parent().unwrap().has_attribute(attribute, false)
+        self.has_attribute("cs:encoded-result", true)
     }
 
     fn encoded_result_struct(&self) -> String {
@@ -37,9 +32,14 @@ impl OperationExt for Operation {
     }
 
     fn format_type(&self) -> String {
-        // TODO: Austin - Implement this :)
-        // I don't even know what this is though!
-        "default".to_owned()
+        match self.get_attribute("format", true) {
+            Some(format) if format.len() == 1 => match format.first().unwrap().as_str() {
+                "sliced" => "IceRpc.Slice.FormatType.Sliced".to_owned(),
+                "compact" => "default".to_owned(), // compact is the default value
+                _ => panic!("unexpected format type"),
+            },
+            _ => "default".to_owned(),
+        }
     }
 
     fn return_task(&self, is_dispatch: bool) -> String {
