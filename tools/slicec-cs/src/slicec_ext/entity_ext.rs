@@ -28,6 +28,9 @@ pub trait EntityExt: Entity {
 
     /// The C# Type Id attribute.
     fn type_id_attribute(&self) -> String;
+
+    /// The C# access modifier to use
+    fn access_modifier(&self) -> String;
 }
 
 impl<T> EntityExt for T
@@ -108,5 +111,13 @@ where
             r#"IceRpc.Slice.TypeId("::{}")"#,
             self.module_scoped_identifier()
         )
+    }
+
+    fn access_modifier(&self) -> String {
+        if self.has_attribute("cs:internal", self.kind() == "data member") {
+            "internal".to_owned()
+        } else {
+            "public".to_owned()
+        }
     }
 }

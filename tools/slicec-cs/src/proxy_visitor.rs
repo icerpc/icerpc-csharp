@@ -10,8 +10,8 @@ use crate::encoding::*;
 use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
-use slice::grammar::*;
 use slice::code_gen_util::*;
+use slice::grammar::*;
 use slice::visitor::Visitor;
 
 pub struct ProxyVisitor<'a> {
@@ -23,7 +23,7 @@ impl<'a> Visitor for ProxyVisitor<'_> {
         let namespace = interface_def.namespace();
         let prx_interface = interface_def.proxy_name(); // IFooPrx
         let prx_impl: String = interface_def.proxy_implementation_name(); // FooPrx
-
+        let access = interface_def.access_modifier();
         let all_bases: Vec<&Interface> = interface_def.all_base_interfaces();
         let bases: Vec<&Interface> = interface_def.base_interfaces();
 
@@ -35,7 +35,9 @@ impl<'a> Visitor for ProxyVisitor<'_> {
             .collect();
 
         let mut add_service_prx = false;
-        if !all_bases.iter().any(|b| b.module_scope() == "IceRpc::Service")
+        if !all_bases
+            .iter()
+            .any(|b| b.module_scope() == "IceRpc::Service")
             && interface_def.module_scoped_identifier() != "IceRpc::Service"
         {
             prx_impl_bases.push("IceRpc.IServicePrx".to_owned());
@@ -57,16 +59,19 @@ impl<'a> Visitor for ProxyVisitor<'_> {
             doc_comment_message(interface_def)
         );
 
-        let proxy_interface = ContainerBuilder::new("public partial interface", &prx_interface)
-            .add_comment("summary", &summary_message)
-            .add_type_id_attribute(interface_def)
-            .add_container_attributes(interface_def)
-            .add_bases(&prx_bases)
-            .add_block(proxy_interface_operations(interface_def))
-            .build();
+        let proxy_interface =
+            ContainerBuilder::new(&format!("{} partial interface", access), &prx_interface)
+                .add_comment("summary", &summary_message)
+                .add_type_id_attribute(interface_def)
+                .add_container_attributes(interface_def)
+                .add_bases(&prx_bases)
+                .add_block(proxy_interface_operations(interface_def))
+                .build();
 
-        let mut proxy_impl_builder =
-            ContainerBuilder::new("public readonly partial record struct", &prx_impl);
+        let mut proxy_impl_builder = ContainerBuilder::new(
+            &format!("{} readonly partial record struct", access),
+            &prx_impl,
+        );
 
         proxy_impl_builder.add_bases(&prx_impl_bases)
             .add_comment("summary", &format!(r#"Typed proxy record struct. It implements <see cref="{}"/> by sending requests to a remote IceRPC service."#, prx_interface))
@@ -76,22 +81,24 @@ impl<'a> Visitor for ProxyVisitor<'_> {
             .add_block(response_class(interface_def))
             .add_block(format!(r#"
 /// <summary>The default path for services that implement Slice interface <c>{interface_name}</c>.</summary>
-public static readonly string DefaultPath = typeof({prx_impl}).GetDefaultPath();
+{access} static readonly string DefaultPath = typeof({prx_impl}).GetDefaultPath();
 
 private static readonly DefaultIceDecoderFactories _defaultIceDecoderFactories = new (typeof({prx_impl}).Assembly);
 
 /// <summary>The proxy to the remote service.</summary>
-public IceRpc.Proxy Proxy {{ get; init; }}"#,
-            interface_name = interface_def.identifier(),
-            prx_impl = prx_impl
-        ).into());
+{access} IceRpc.Proxy Proxy {{ get; init; }}"#,
+                               access = access,
+                               interface_name = interface_def.identifier(),
+                               prx_impl = prx_impl
+            ).into());
 
         for base_impl in all_base_impl {
             proxy_impl_builder.add_block(
                 format!(
                     r#"
 /// <summary>Implicit conversion to <see cref="{base_impl}"/>.</summary>
-public static implicit operator {base_impl}({prx_impl} prx) => new(prx.Proxy);"#,
+{access} static implicit operator {base_impl}({prx_impl} prx) => new(prx.Proxy);"#,
+                    access = access,
                     base_impl = base_impl,
                     prx_impl = prx_impl
                 )
@@ -103,26 +110,29 @@ public static implicit operator {base_impl}({prx_impl} prx) => new(prx.Proxy);"#
 
         if add_service_prx {
             proxy_impl_builder.add_block(
-                "\
+                format!(
+                    "\
 /// <inheritdoc/>
-public global::System.Threading.Tasks.Task<string[]> IceIdsAsync(
+{access} global::System.Threading.Tasks.Task<string[]> IceIdsAsync(
     IceRpc.Invocation? invocation = null,
     global::System.Threading.CancellationToken cancel = default) =>
     new IceRpc.ServicePrx(Proxy).IceIdsAsync(invocation, cancel);
 
 /// <inheritdoc/>
-public global::System.Threading.Tasks.Task<bool> IceIsAAsync(
+{access} global::System.Threading.Tasks.Task<bool> IceIsAAsync(
     string id,
     IceRpc.Invocation? invocation = null,
     global::System.Threading.CancellationToken cancel = default) =>
     new IceRpc.ServicePrx(Proxy).IceIsAAsync(id, invocation, cancel);
 
 /// <inheritdoc/>
-public global::System.Threading.Tasks.Task IcePingAsync(
+{access} global::System.Threading.Tasks.Task IcePingAsync(
     IceRpc.Invocation? invocation = null,
     global::System.Threading.CancellationToken cancel = default) =>
-    new IceRpc.ServicePrx(Proxy).IcePingAsync(invocation, cancel);"
-                    .into(),
+    new IceRpc.ServicePrx(Proxy).IcePingAsync(invocation, cancel);",
+                    access = access
+                )
+                .into(),
             );
         }
 
@@ -147,6 +157,7 @@ public global::System.Threading.Tasks.Task IcePingAsync(
 }
 
 fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
+    let access = interface_def.access_modifier();
     format!(
         r#"/// <summary>Creates a new <see cref="{prx_impl}"/> from the give connection and path.</summary>
 /// <param name="connection">The connection. If it's an outgoing connection, the endpoint of the new proxy is
@@ -155,7 +166,7 @@ fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
 /// <param name="invoker">The invoker. If null and connection is an incoming connection, the invoker is set to
 /// the server's invoker.</param>
 /// <returns>The new proxy.</returns>
-public static {prx_impl} FromConnection(
+{access} static {prx_impl} FromConnection(
     IceRpc.Connection connection,
     string? path = null,
     IceRpc.IInvoker? invoker = null) =>
@@ -165,7 +176,7 @@ public static {prx_impl} FromConnection(
 /// <param name="path">The path for the proxy.</param>
 /// <param name="protocol">The proxy protocol.</param>
 /// <returns>The new proxy.</returns>
-public static {prx_impl} FromPath(string path, IceRpc.Protocol? protocol = null) =>
+{access} static {prx_impl} FromPath(string path, IceRpc.Protocol? protocol = null) =>
     new(IceRpc.Proxy.FromPath(path, protocol ?? IceRpc.Protocol.Ice2));
 
 /// <summary>Creates a new <see cref="{prx_impl}"/> from a string and invoker.</summary>
@@ -174,14 +185,14 @@ public static {prx_impl} FromPath(string path, IceRpc.Protocol? protocol = null)
 /// <returns>The new proxy</returns>
 /// <exception cref="global::System.FormatException"><c>s</c> does not contain a valid string representation of a proxy.
 /// </exception>
-public static {prx_impl} Parse(string s, IceRpc.IInvoker? invoker = null) => new(IceRpc.Proxy.Parse(s, invoker));
+{access} static {prx_impl} Parse(string s, IceRpc.IInvoker? invoker = null) => new(IceRpc.Proxy.Parse(s, invoker));
 
 /// <summary>Creates a new <see cref="{prx_impl}"/> from a string and invoker.</summary>
 /// <param name="s">The proxy string representation.</param>
 /// <param name="invoker">The invoker of the new proxy.</param>
 /// <param name="prx">The new proxy.</param>
 /// <returns><c>true</c> if the s parameter was parsed successfully; otherwise, <c>false</c>.</returns>
-public static bool TryParse(string s, IceRpc.IInvoker? invoker, out {prx_impl} prx)
+{access} static bool TryParse(string s, IceRpc.IInvoker? invoker, out {prx_impl} prx)
 {{
     if (IceRpc.Proxy.TryParse(s, invoker, out IceRpc.Proxy? proxy))
     {{
@@ -197,11 +208,12 @@ public static bool TryParse(string s, IceRpc.IInvoker? invoker, out {prx_impl} p
 
 /// <summary>Constructs an instance of <see cref="{prx_impl}"/>.</summary>
 /// <param name="proxy">The proxy to the remote service.</param>
-public {prx_impl}(IceRpc.Proxy proxy) => Proxy = proxy;
+{access} {prx_impl}(IceRpc.Proxy proxy) => Proxy = proxy;
 
 /// <inheritdoc/>
-public override string ToString() => Proxy.ToString();"#,
-        prx_impl = interface_def.proxy_implementation_name()
+{access} override string ToString() => Proxy.ToString();"#,
+        prx_impl = interface_def.proxy_implementation_name(),
+        access = access
     ).into()
 }
 
@@ -221,9 +233,10 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
 
     let sends_classes = operation.sends_classes();
     let void_return = !operation.has_nonstreamed_return_members();
+    let access = operation.parent().unwrap().access_modifier();
 
     let mut builder = FunctionBuilder::new(
-        "public",
+        &access,
         &return_task,
         &async_operation_name,
         FunctionType::BlockBody,
@@ -253,8 +266,10 @@ if ({invocation}?.RequestFeatures.Get<IceRpc.Features.CompressPayload>() == null
         "payloadEncoding".to_owned()
     };
 
-    let mut invoke_args =
-        vec![format!(r#""{}""#, operation.identifier()), payload_encoding.clone()];
+    let mut invoke_args = vec![
+        format!(r#""{}""#, operation.identifier()),
+        payload_encoding.clone(),
+    ];
 
     // The payload argument
     if parameters.is_empty() {
@@ -359,10 +374,7 @@ return Proxy.InvokeAsync(
     builder.build()
 }
 
-fn proxy_base_operation_impl(
-    interface_def: &Interface,
-    operation: &Operation,
-) -> CodeBlock {
+fn proxy_base_operation_impl(interface_def: &Interface, operation: &Operation) -> CodeBlock {
     let async_name = operation.escape_identifier_with_suffix("Async");
     let return_task = operation.return_task(false);
     let mut operation_params = operation
@@ -371,10 +383,7 @@ fn proxy_base_operation_impl(
         .map(|p| p.parameter_name())
         .collect::<Vec<_>>();
 
-    operation_params.push(escape_parameter_name(
-        &operation.parameters(),
-        "invocation",
-    ));
+    operation_params.push(escape_parameter_name(&operation.parameters(), "invocation"));
     operation_params.push(escape_parameter_name(&operation.parameters(), "cancel"));
 
     let base_interface = interface_def
@@ -389,7 +398,7 @@ fn proxy_base_operation_impl(
         .unwrap();
 
     let mut builder = FunctionBuilder::new(
-        "public",
+        &operation.parent().unwrap().access_modifier(),
         &return_task,
         &async_name,
         FunctionType::ExpressionBody,
@@ -447,7 +456,8 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         return "".into();
     }
 
-    let mut class_builder = ContainerBuilder::new("public static class", "Request");
+    let access = interface_def.access_modifier();
+    let mut class_builder = ContainerBuilder::new(&format!("{} static class", access), "Request");
 
     class_builder.add_comment(
         "summary",
@@ -464,7 +474,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         let sends_classes = operation.sends_classes();
 
         let mut builder = FunctionBuilder::new(
-            "public static",
+            &format!("{} static", access),
             "global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>",
             &operation.escape_identifier(),
             FunctionType::ExpressionBody,
@@ -554,7 +564,9 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         return "".into();
     }
 
-    let mut class_builder = ContainerBuilder::new("public static class", "Response");
+    let access = interface_def.access_modifier();
+
+    let mut class_builder = ContainerBuilder::new(&format!("{} static class", access), "Response");
 
     class_builder.add_comment(
         "summary",
@@ -576,12 +588,13 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         class_builder.add_block(format!(
             r#"
 /// <summary>The <see cref="ResponseDecodeFunc{{T}}"/> for the return value type of operation {name}.</summary>
-public static {return_type} {escaped_name}(IceRpc.IncomingResponse response, IceRpc.IInvoker? invoker, IceRpc.Slice.StreamParamReceiver? streamParamReceiver) =>
+{access} static {return_type} {escaped_name}(IceRpc.IncomingResponse response, IceRpc.IInvoker? invoker, IceRpc.Slice.StreamParamReceiver? streamParamReceiver) =>
     response.ToReturnValue(
         invoker,
         {decoder},
         {response_decode_func});"#,
             name = operation.identifier(),
+            access = access,
             escaped_name = operation.escape_identifier(),
             return_type = members.to_tuple_type( namespace, TypeContext::Incoming),
             decoder = decoder,
@@ -605,12 +618,7 @@ fn request_encode_action(operation: &Operation) -> CodeBlock {
         && get_bit_sequence_size(&params) == 0
         && params.first().unwrap().tag.is_none()
     {
-        encode_action(
-            params.first().unwrap().data_type(),
-            namespace,
-            true,
-            true,
-        )
+        encode_action(params.first().unwrap().data_type(), namespace, true, true)
     } else {
         format!(
             "\
@@ -631,10 +639,7 @@ fn response_decode_func(operation: &Operation) -> CodeBlock {
     // vec of members
     let members = operation.return_members();
 
-    assert!(
-        !members.is_empty()
-            && (members.len() > 1 || !members.last().unwrap().is_streamed)
-    );
+    assert!(!members.is_empty() && (members.len() > 1 || !members.last().unwrap().is_streamed));
 
     if members.len() == 1
         && get_bit_sequence_size(&members) == 0

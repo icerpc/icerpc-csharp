@@ -25,14 +25,15 @@ impl<'a> Visitor for StructVisitor<'a> {
         let escaped_identifier = struct_def.escape_identifier();
         let members = struct_def.members();
         let namespace = struct_def.namespace();
+        let access = struct_def.access_modifier();
 
         let mut builder = ContainerBuilder::new(
             &format!(
                 "{access} partial record struct",
                 access = if readonly {
-                    "public readonly"
+                    format!("{} readonly", access)
                 } else {
-                    "public"
+                    access.to_owned()
                 },
             ),
             &escaped_identifier,
@@ -52,7 +53,7 @@ impl<'a> Visitor for StructVisitor<'a> {
         );
 
         let mut main_constructor =
-            FunctionBuilder::new("public", "", &escaped_identifier, FunctionType::BlockBody);
+            FunctionBuilder::new(&access, "", &escaped_identifier, FunctionType::BlockBody);
         main_constructor.add_comment(
             "summary",
             &format!(
@@ -87,7 +88,7 @@ impl<'a> Visitor for StructVisitor<'a> {
 
         // Decode constructor
         builder.add_block(
-            FunctionBuilder::new("public", "", &escaped_identifier, FunctionType::BlockBody)
+            FunctionBuilder::new(&access, "", &escaped_identifier, FunctionType::BlockBody)
                 .add_comment(
                     "summary",
                     &format!(
@@ -106,15 +107,20 @@ impl<'a> Visitor for StructVisitor<'a> {
 
         // Encode method
         builder.add_block(
-            FunctionBuilder::new("public readonly", "void", "Encode", FunctionType::BlockBody)
-                .add_comment("summary", "Encodes the fields of this struct.")
-                .add_parameter("IceEncoder", "encoder", None, Some("The encoder."))
-                .set_body(encode_data_members(
-                    &members,
-                    &namespace,
-                    FieldType::NonMangled,
-                ))
-                .build(),
+            FunctionBuilder::new(
+                &format!("{} readonly", access),
+                "void",
+                "Encode",
+                FunctionType::BlockBody,
+            )
+            .add_comment("summary", "Encodes the fields of this struct.")
+            .add_parameter("IceEncoder", "encoder", None, Some("The encoder."))
+            .set_body(encode_data_members(
+                &members,
+                &namespace,
+                FieldType::NonMangled,
+            ))
+            .build(),
         );
 
         self.generated_code

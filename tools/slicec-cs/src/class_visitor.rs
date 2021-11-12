@@ -11,8 +11,8 @@ use crate::encoding::encode_data_members;
 use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
-use slice::grammar::{Class, DataMember};
 use slice::code_gen_util::TypeContext;
+use slice::grammar::{Class, DataMember};
 use slice::visitor::Visitor;
 
 pub struct ClassVisitor<'a> {
@@ -31,6 +31,7 @@ impl<'a> Visitor for ClassVisitor<'_> {
         } else {
             vec![]
         };
+        let access = class_def.access_modifier();
 
         let non_default_members = members
             .iter()
@@ -44,7 +45,8 @@ impl<'a> Visitor for ClassVisitor<'_> {
             .filter(|m| !m.is_default_initialized())
             .collect::<Vec<_>>();
 
-        let mut class_builder = ContainerBuilder::new("public partial class", &class_name);
+        let mut class_builder =
+            ContainerBuilder::new(&format!("{} partial class", access), &class_name);
 
         class_builder
             .add_comment("summary", &doc_comment_message(class_def))
@@ -71,7 +73,8 @@ impl<'a> Visitor for ClassVisitor<'_> {
         // Class static TypeId string
         class_builder.add_block(
             format!(
-                "public static{} readonly string IceTypeId = typeof({}).GetIceTypeId()!;",
+                "{} static{} readonly string IceTypeId = typeof({}).GetIceTypeId()!;",
+                &access,
                 if has_base_class { " new" } else { "" },
                 class_name,
             )
@@ -94,6 +97,7 @@ impl<'a> Visitor for ClassVisitor<'_> {
         // One-shot ctor (may be parameterless)
         class_builder.add_block(constructor(
             &class_name,
+            &access,
             &constructor_summary,
             &namespace,
             &members,
@@ -107,6 +111,7 @@ impl<'a> Visitor for ClassVisitor<'_> {
         {
             class_builder.add_block(constructor(
                 &class_name,
+                &access,
                 &constructor_summary,
                 &namespace,
                 &non_default_members,
@@ -118,7 +123,7 @@ impl<'a> Visitor for ClassVisitor<'_> {
         // the decoder parameter is used to distinguish this ctor from the parameterless ctor that
         // users may want to add to the partial class. It's not used otherwise.
         let mut decode_constructor =
-            FunctionBuilder::new("public", "", &class_name, FunctionType::BlockBody);
+            FunctionBuilder::new(&access, "", &class_name, FunctionType::BlockBody);
 
         if !has_base_class {
             decode_constructor.add_attribute(
@@ -134,10 +139,7 @@ impl<'a> Visitor for ClassVisitor<'_> {
             decode_constructor.add_base_parameter("decoder");
         }
         decode_constructor
-            .set_body(initialize_non_nullable_fields(
-                &members,
-                FieldType::Class,
-            ))
+            .set_body(initialize_non_nullable_fields(&members, FieldType::Class))
             .add_never_editor_browsable_attribute();
 
         class_builder.add_block(decode_constructor.build());
@@ -151,6 +153,7 @@ impl<'a> Visitor for ClassVisitor<'_> {
 
 fn constructor(
     escaped_name: &str,
+    access: &str,
     summary_comment: &str,
     namespace: &str,
     members: &[&DataMember],
@@ -158,7 +161,7 @@ fn constructor(
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
 
-    let mut builder = FunctionBuilder::new("public", "", escaped_name, FunctionType::BlockBody);
+    let mut builder = FunctionBuilder::new(access, "", escaped_name, FunctionType::BlockBody);
 
     builder.add_comment("summary", summary_comment);
 
@@ -171,10 +174,9 @@ fn constructor(
     );
 
     for member in members.iter().chain(base_members.iter()) {
-        let parameter_type =
-            member
-                .data_type
-                .to_type_string(namespace, TypeContext::DataMember);
+        let parameter_type = member
+            .data_type
+            .to_type_string(namespace, TypeContext::DataMember);
         let parameter_name = member.parameter_name();
 
         builder.add_parameter(
@@ -245,11 +247,7 @@ protected override global::System.Collections.Immutable.ImmutableList<IceRpc.Sli
             start_slice_args.join(", ")
         );
 
-        code.writeln(&encode_data_members(
-            &members,
-            namespace,
-            FieldType::Class,
-        ));
+        code.writeln(&encode_data_members(&members, namespace, FieldType::Class));
 
         if has_base_class {
             code.writeln("encoder.IceEndSlice(false);");
@@ -272,11 +270,7 @@ protected override global::System.Collections.Immutable.ImmutableList<IceRpc.Sli
     .set_body({
         let mut code = CodeBlock::new();
         code.writeln("decoder.IceStartSlice();");
-        code.writeln(&decode_data_members(
-            &members,
-            namespace,
-            FieldType::Class,
-        ));
+        code.writeln(&decode_data_members(&members, namespace, FieldType::Class));
         code.writeln("decoder.IceEndSlice();");
         if has_base_class {
             code.writeln("base.IceDecode(decoder);");

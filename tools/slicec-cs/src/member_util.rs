@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use slice::grammar::{AsTypes, DataMember, Member, Primitive, Types};
 use slice::code_gen_util::TypeContext;
+use slice::grammar::{AsTypes, DataMember, Member, Primitive, Types};
 
 use crate::code_block::CodeBlock;
 use crate::comments::{doc_comment_message, CommentTag};
@@ -21,8 +21,9 @@ pub fn data_member_declaration(
     is_readonly: bool,
     field_type: FieldType,
 ) -> String {
-    let type_string =
-        data_member.data_type().to_type_string(&data_member.namespace(), TypeContext::DataMember);
+    let type_string = data_member
+        .data_type()
+        .to_type_string(&data_member.namespace(), TypeContext::DataMember);
     let mut prelude = CodeBlock::new();
 
     prelude.writeln(&CommentTag::new(
@@ -39,11 +40,14 @@ pub fn data_member_declaration(
         prelude.writeln(&format!("[{}]", obsolete));
     }
 
+    let access = data_member.access_modifier();
+
     format!(
         "\
 {prelude}
-public {readonly}{type_string} {name};",
+{access} {readonly}{type_string} {name};",
         prelude = prelude,
+        access = access,
         readonly = if is_readonly { "readonly " } else { "" },
         type_string = type_string,
         name = data_member.field_name(field_type)

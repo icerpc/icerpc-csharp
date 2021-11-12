@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use slice::grammar::Operation;
 use slice::code_gen_util::TypeContext;
+use slice::grammar::*;
 
 use crate::builders::{CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType};
 use crate::code_block::CodeBlock;
@@ -21,10 +21,12 @@ pub fn encoded_result_struct(operation: &Operation) -> CodeBlock {
         return "".into();
     }
 
+    let access = operation.parent().unwrap().access_modifier();
+
     let parameters = operation.return_members();
 
     let mut container_builder = ContainerBuilder::new(
-        "public readonly record struct",
+        &format!("{} readonly record struct", access),
         &format!(
             "{}(global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>> Payload)",
             struct_name
@@ -40,7 +42,7 @@ pub fn encoded_result_struct(operation: &Operation) -> CodeBlock {
     );
 
     let mut constructor_builder =
-        FunctionBuilder::new("public", "", &struct_name, FunctionType::BlockBody);
+        FunctionBuilder::new(&access, "", &struct_name, FunctionType::BlockBody);
 
     constructor_builder.add_comment(
         "summary",
