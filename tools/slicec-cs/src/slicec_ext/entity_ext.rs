@@ -29,8 +29,8 @@ pub trait EntityExt: Entity {
     /// The C# Type Id attribute.
     fn type_id_attribute(&self) -> String;
 
-    /// The C# access modifier to use.
-    /// Returns "internal" if this entity has the cs:internal attribute otherwise returns "public".
+    /// The C# access modifier to use. Returns "internal" if this entity has the cs:internal attribute otherwise
+    /// returns "public".
     fn access_modifier(&self) -> String;
 
     /// Returns the C# readonly modifier if this entity has the cs:readonly attribute otherwise returns None.
