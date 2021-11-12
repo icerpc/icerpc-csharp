@@ -27,7 +27,11 @@ jobs:
         toolchain: stable
         components: clippy
     - name: Build Slice Compiler
-      run: cd tools/slicec-cs && cargo build
+      working-directory: tools/slicec-cs
+      run: cargo build
+    - uses: actions-rs/clippy@master
+      with:
+        args: --all-features --all-targets --manifest-path tools/slicec-cs/Cargo.toml
     - name: Add github NuGet respository
       run: dotnet nuget add source "https://nuget.pkg.github.com/zeroc-ice/index.json" -n GitHub -u ci --store-password-in-clear-text -p ${{ secrets.NUGET_API_TOKEN }}
     - name: Restore dependencies
