@@ -606,8 +606,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 }
 
 fn request_encode_action(operation: &Operation) -> CodeBlock {
-    // TODO: scope
-    let namespace = &operation.namespace();
+    let namespace = operation.namespace();
 
     // We only want the non-streamed params
     let params: Vec<&Parameter> = operation.nonstreamed_parameters();
@@ -618,7 +617,7 @@ fn request_encode_action(operation: &Operation) -> CodeBlock {
         && get_bit_sequence_size(&params) == 0
         && params.first().unwrap().tag.is_none()
     {
-        encode_action(params.first().unwrap().data_type(), namespace, true, true)
+        encode_action(params.first().unwrap().data_type(), &namespace, true, true)
     } else {
         format!(
             "\
@@ -627,7 +626,7 @@ fn request_encode_action(operation: &Operation) -> CodeBlock {
     {encode}
 }}",
             _in = if params.len() == 1 { "" } else { "in " },
-            param_type = params.to_tuple_type(namespace, TypeContext::Outgoing),
+            param_type = params.to_tuple_type(&namespace, TypeContext::Outgoing),
             encode = encode_operation(operation, false).indent()
         )
         .into()

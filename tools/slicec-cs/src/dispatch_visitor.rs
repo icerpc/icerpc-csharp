@@ -352,18 +352,14 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
         code.writeln("dispatch.ResponseFeatures = IceRpc.FeatureCollectionExtensions.CompressPayload(dispatch.ResponseFeatures);");
     }
 
-    // Even when the parameters are empty, we verify the payload is indeed empty (can contain
-    // tagged params
-    // that we skip).
-    if parameters.is_empty() {
-        code.writeln(
-            "request.CheckEmptyArgs(request.GetIceDecoderFactory(_defaultIceDecoderFactories));",
-        );
-    }
-
     // TODO: cleanup stream logic
     match parameters.as_slice() {
-        [] => {}
+        [] => {
+            // Verify the payload is indeed empty (it can contain tagged params that we have to skip).
+            code.writeln(
+                "request.CheckEmptyArgs(request.GetIceDecoderFactory(_defaultIceDecoderFactories));",
+            );
+        }
         [_] if stream_parameter.is_some() => {
             let stream_parameter = stream_parameter.unwrap();
             let stream_type = stream_parameter.data_type();
@@ -407,7 +403,6 @@ IceRpc.Slice.StreamParamReceiver.ToAsyncEnumerable<{stream_type}>(
 
     if operation.has_encoded_result() {
         // TODO: support for stream param with encoded result?
-
         let mut args = vec![];
 
         match parameters.as_slice() {
