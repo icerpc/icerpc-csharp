@@ -37,7 +37,7 @@ namespace IceRpc.Internal
         [LoggerMessage(
             EventId = (int)ConnectionEventIds.ConnectionClosedReason,
             EventName = nameof(ConnectionEventIds.ConnectionClosedReason),
-            Level = LogLevel.Debug,
+            Level = LogLevel.Information,
             Message = "connection closed due to exception")]
         internal static partial void LogConnectionClosedReason(this ILogger logger, Exception exception);
 

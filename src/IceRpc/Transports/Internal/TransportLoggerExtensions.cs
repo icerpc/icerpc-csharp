@@ -23,7 +23,7 @@ namespace IceRpc.Transports.Internal
             EventName = nameof(TransportEventIds.ConnectFailed),
             Level = LogLevel.Debug,
             Message = "connect failed")]
-        internal static partial void LogConnectFailed(this ILogger logger, Exception? exception);
+        internal static partial void LogConnectFailed(this ILogger logger, Exception exception);
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.ListenerAcceptFailed,
