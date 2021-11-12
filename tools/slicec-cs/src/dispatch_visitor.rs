@@ -50,7 +50,9 @@ private static readonly DefaultIceDecoderFactories _defaultIceDecoderFactories =
 ", interface_name).into());
 
         for operation in interface_def.operations() {
-            interface_builder.add_block(encoded_result_struct(operation));
+            if operation.has_encoded_result() {
+                interface_builder.add_block(encoded_result_struct(operation));
+            }
             interface_builder.add_block(operation_declaration(operation));
         }
 
