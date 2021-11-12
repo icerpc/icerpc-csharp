@@ -16,11 +16,7 @@ pub fn escape_parameter_name(parameters: &[&impl Member], name: &str) -> String 
     }
 }
 
-pub fn data_member_declaration(
-    data_member: &DataMember,
-    is_readonly: bool,
-    field_type: FieldType,
-) -> String {
+pub fn data_member_declaration(data_member: &DataMember, field_type: FieldType) -> String {
     let type_string = data_member
         .data_type()
         .to_type_string(&data_member.namespace(), TypeContext::DataMember);
@@ -40,15 +36,12 @@ pub fn data_member_declaration(
         prelude.writeln(&format!("[{}]", obsolete));
     }
 
-    let access = data_member.access_modifier();
-
     format!(
         "\
 {prelude}
-{access} {readonly}{type_string} {name};",
+{modifiers} {type_string} {name};",
         prelude = prelude,
-        access = access,
-        readonly = if is_readonly { "readonly " } else { "" },
+        modifiers = data_member.modifiers(),
         type_string = type_string,
         name = data_member.field_name(field_type)
     )

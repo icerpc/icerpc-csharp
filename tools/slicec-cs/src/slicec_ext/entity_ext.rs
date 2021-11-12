@@ -29,8 +29,15 @@ pub trait EntityExt: Entity {
     /// The C# Type Id attribute.
     fn type_id_attribute(&self) -> String;
 
-    /// The C# access modifier to use
+    /// The C# access modifier to use. Returns "internal" if this entity has the cs:internal attribute otherwise
+    /// returns "public".
     fn access_modifier(&self) -> String;
+
+    /// Returns the C# readonly modifier if this entity has the cs:readonly attribute otherwise returns None.
+    fn readonly_modifier(&self) -> Option<String>;
+
+    /// Returns the C# modifiers for this entity.
+    fn modifiers(&self) -> String;
 }
 
 impl<T> EntityExt for T
@@ -119,5 +126,21 @@ where
         } else {
             "public".to_owned()
         }
+    }
+
+    fn readonly_modifier(&self) -> Option<String> {
+        if self.has_attribute("cs:readonly", self.kind() == "data member") {
+            Some("readonly".to_owned())
+        } else {
+            None
+        }
+    }
+
+    fn modifiers(&self) -> String {
+        vec![
+            self.access_modifier(),
+            self.readonly_modifier().unwrap_or_else(|| "".to_owned()),
+        ]
+        .join(" ")
     }
 }
