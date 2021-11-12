@@ -36,7 +36,7 @@ pub trait EntityExt: Entity {
     /// Returns the C# readonly modifier if this entity has the cs:readonly attribute otherwise returns None.
     fn readonly_modifier(&self) -> Option<String>;
 
-    /// Returns the C# modifiers for this entity
+    /// Returns the C# modifiers for this entity.
     fn modifiers(&self) -> String;
 }
 
