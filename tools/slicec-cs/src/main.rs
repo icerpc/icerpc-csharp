@@ -126,7 +126,7 @@ fn try_main() -> Result<(), ()> {
                     Ok(_) => (),
                     Err(err) => {
                         slice::report_error(
-                            format!("failed to write to file {}: {}", &path.display(), err).into(),
+                            format!("failed to write to file {}: {}", &path.display(), err),
                             None,
                         );
 

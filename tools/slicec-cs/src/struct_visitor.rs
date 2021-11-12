@@ -21,21 +21,12 @@ pub struct StructVisitor<'a> {
 
 impl<'a> Visitor for StructVisitor<'a> {
     fn visit_struct_start(&mut self, struct_def: &Struct) {
-        let readonly = struct_def.has_attribute("cs:readonly", false);
         let escaped_identifier = struct_def.escape_identifier();
         let members = struct_def.members();
         let namespace = struct_def.namespace();
-        let access = struct_def.access_modifier();
 
         let mut builder = ContainerBuilder::new(
-            &format!(
-                "{access} partial record struct",
-                access = if readonly {
-                    format!("{} readonly", access)
-                } else {
-                    access.to_owned()
-                },
-            ),
+            &format!("{} partial record struct", struct_def.modifiers()),
             &escaped_identifier,
         );
 
@@ -46,14 +37,18 @@ impl<'a> Visitor for StructVisitor<'a> {
         builder.add_block(
             members
                 .iter()
-                .map(|m| data_member_declaration(m, readonly, FieldType::NonMangled))
+                .map(|m| data_member_declaration(m, FieldType::NonMangled))
                 .collect::<Vec<_>>()
                 .join("\n")
                 .into(),
         );
 
-        let mut main_constructor =
-            FunctionBuilder::new(&access, "", &escaped_identifier, FunctionType::BlockBody);
+        let mut main_constructor = FunctionBuilder::new(
+            &struct_def.access_modifier(),
+            "",
+            &escaped_identifier,
+            FunctionType::BlockBody,
+        );
         main_constructor.add_comment(
             "summary",
             &format!(
@@ -88,27 +83,32 @@ impl<'a> Visitor for StructVisitor<'a> {
 
         // Decode constructor
         builder.add_block(
-            FunctionBuilder::new(&access, "", &escaped_identifier, FunctionType::BlockBody)
-                .add_comment(
-                    "summary",
-                    &format!(
-                        r#"Constructs a new instance of <see cref="{}"/> from a decoder."#,
-                        &escaped_identifier
-                    ),
-                )
-                .add_parameter("IceDecoder", "decoder", None, Some("The decoder."))
-                .set_body(decode_data_members(
-                    &members,
-                    &namespace,
-                    FieldType::NonMangled,
-                ))
-                .build(),
+            FunctionBuilder::new(
+                &struct_def.access_modifier(),
+                "",
+                &escaped_identifier,
+                FunctionType::BlockBody,
+            )
+            .add_comment(
+                "summary",
+                &format!(
+                    r#"Constructs a new instance of <see cref="{}"/> from a decoder."#,
+                    &escaped_identifier
+                ),
+            )
+            .add_parameter("IceDecoder", "decoder", None, Some("The decoder."))
+            .set_body(decode_data_members(
+                &members,
+                &namespace,
+                FieldType::NonMangled,
+            ))
+            .build(),
         );
 
         // Encode method
         builder.add_block(
             FunctionBuilder::new(
-                &format!("{} readonly", access),
+                &struct_def.modifiers(),
                 "void",
                 "Encode",
                 FunctionType::BlockBody,
