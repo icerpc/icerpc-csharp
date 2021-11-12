@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use slice::grammar::*;
 use slice::code_gen_util::*;
+use slice::grammar::*;
 
 use crate::code_block::CodeBlock;
 use crate::cs_util::*;
@@ -116,13 +116,7 @@ pub fn encode_type(
     }
 
     if type_ref.is_optional {
-        code = encode_as_optional(
-            type_ref,
-            bit_sequence_index,
-            for_nested_type,
-            param,
-            &code,
-        );
+        code = encode_as_optional(type_ref, bit_sequence_index, for_nested_type, param, &code);
     }
 
     code
@@ -228,23 +222,12 @@ pub fn encode_tagged_type(
     let mut args = vec![];
     args.push(tag.to_string());
 
-    args.push(format!(
-        "IceRpc.Slice.TagFormat.{}",
-        data_type.tag_format()
-    ));
+    args.push(format!("IceRpc.Slice.TagFormat.{}", data_type.tag_format()));
     if !size_parameter.is_empty() {
         args.push("size: ".to_owned() + &size_parameter);
     }
     args.push(value);
-    args.push(
-        encode_action(
-            data_type,
-            namespace,
-            !is_data_member,
-            !is_data_member,
-        )
-        .to_string(),
-    );
+    args.push(encode_action(data_type, namespace, !is_data_member, !is_data_member).to_string());
 
     writeln!(
         code,
@@ -313,11 +296,7 @@ pub fn encode_sequence(
     code
 }
 
-pub fn encode_dictionary(
-    dictionary_def: &Dictionary,
-    namespace: &str,
-    param: &str,
-) -> CodeBlock {
+pub fn encode_dictionary(dictionary_def: &Dictionary, namespace: &str, param: &str) -> CodeBlock {
     let mut code = CodeBlock::new();
 
     let mut args = vec![param.to_owned()];

@@ -85,7 +85,13 @@ pub fn escape_keyword(identifier: &str) -> String {
     ];
 
     // Add a '@' prefix if the identifier matched a C# keyword.
-    (if CS_KEYWORDS.contains(&identifier) { "@" } else { "" }.to_owned()) + identifier
+    (if CS_KEYWORDS.contains(&identifier) {
+        "@"
+    } else {
+        ""
+    }
+    .to_owned())
+        + identifier
 }
 
 // TODOAUSTIN comment

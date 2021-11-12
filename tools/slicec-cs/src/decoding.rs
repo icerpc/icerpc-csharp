@@ -2,8 +2,8 @@
 use crate::code_block::CodeBlock;
 use crate::cs_util::*;
 use crate::slicec_ext::*;
-use slice::grammar::*;
 use slice::code_gen_util::*;
+use slice::grammar::*;
 
 pub fn decode_data_members(
     members: &[&DataMember],
@@ -99,9 +99,7 @@ pub fn decode_member(
         Types::Dictionary(dictionary) => {
             code.write(&decode_dictionary(data_type, dictionary, namespace))
         }
-        Types::Sequence(sequence) => {
-            code.write(&decode_sequence(data_type, sequence, namespace))
-        }
+        Types::Sequence(sequence) => code.write(&decode_sequence(data_type, sequence, namespace)),
         Types::Enum(enum_def) => {
             write!(
                 code,
@@ -140,7 +138,10 @@ pub fn decode_dictionary(
     let value_type = &dictionary_def.value_type;
     let with_bit_sequence = value_type.is_bit_sequence_encodable();
 
-    let mut args = vec![format!("minKeySize: {}", dictionary_def.key_type.min_wire_size())];
+    let mut args = vec![format!(
+        "minKeySize: {}",
+        dictionary_def.key_type.min_wire_size()
+    )];
 
     if !with_bit_sequence {
         args.push(format!("minValueSize: {}", value_type.min_wire_size()));
@@ -155,7 +156,10 @@ pub fn decode_dictionary(
 
     // decode value
     let mut decode_value = decode_func(value_type, namespace);
-    if matches!(value_type.concrete_type(), Types::Sequence(_) | Types::Dictionary(_)) {
+    if matches!(
+        value_type.concrete_type(),
+        Types::Sequence(_) | Types::Dictionary(_)
+    ) {
         write!(
             decode_value,
             " as {}",
@@ -178,11 +182,7 @@ pub fn decode_dictionary(
     code
 }
 
-pub fn decode_sequence(
-    type_ref: &TypeRef,
-    sequence: &Sequence,
-    namespace: &str,
-) -> CodeBlock {
+pub fn decode_sequence(type_ref: &TypeRef, sequence: &Sequence, namespace: &str) -> CodeBlock {
     let mut code = CodeBlock::new();
     let element_type = &sequence.element_type;
 

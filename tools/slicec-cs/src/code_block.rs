@@ -9,7 +9,9 @@ pub struct CodeBlock {
 
 impl CodeBlock {
     pub fn new() -> CodeBlock {
-        CodeBlock { content: String::new() }
+        CodeBlock {
+            content: String::new(),
+        }
     }
 
     pub fn write<T: fmt::Display + ?Sized>(&mut self, s: &T) {
@@ -111,6 +113,8 @@ impl From<String> for CodeBlock {
 /// eg. let code_block: CodeBlock = "Hello, World!".into();
 impl From<&str> for CodeBlock {
     fn from(s: &str) -> Self {
-        CodeBlock { content: s.to_owned() }
+        CodeBlock {
+            content: s.to_owned(),
+        }
     }
 }

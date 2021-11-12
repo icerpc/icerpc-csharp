@@ -14,7 +14,10 @@ pub struct GeneratedCode {
 
 impl GeneratedCode {
     pub fn new() -> GeneratedCode {
-        GeneratedCode { scoped_code_blocks: HashMap::new(), code_blocks: Vec::new() }
+        GeneratedCode {
+            scoped_code_blocks: HashMap::new(),
+            code_blocks: Vec::new(),
+        }
     }
 
     pub fn insert_scoped(&mut self, symbol: &dyn ScopedSymbol, code: CodeBlock) {
@@ -29,6 +32,7 @@ impl GeneratedCode {
 
     /// Removes (and returns) the code blocks for the given module.
     pub fn remove_scoped(&mut self, module: &Module) -> Option<Vec<CodeBlock>> {
-        self.scoped_code_blocks.remove(&module.module_scoped_identifier())
+        self.scoped_code_blocks
+            .remove(&module.module_scoped_identifier())
     }
 }
