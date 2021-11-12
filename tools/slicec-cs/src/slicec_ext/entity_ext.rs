@@ -33,7 +33,7 @@ pub trait EntityExt: Entity {
     /// Returns "internal" if this entity has the cs:internal attribute otherwise returns "public".
     fn access_modifier(&self) -> String;
 
-    /// Returns the C# readonly modifier in this entity has the cs:readonly attribute otherwise None.
+    /// Returns the C# readonly modifier if this entity has the cs:readonly attribute otherwise returns None.
     fn readonly_modifier(&self) -> Option<String>;
 
     /// Returns the C# modifiers for this entity
