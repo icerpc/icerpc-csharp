@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
+using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
 
@@ -25,9 +26,16 @@ namespace IceRpc
         /// <summary>Create an outgoing response from this incoming response. The response is constructed to be
         /// forwarded using the given target protocol.</summary>
         /// <param name="targetProtocol">The protocol used to send to the outgoing response.</param>
+        /// <param name="cancel">The cancellation token.</param>
         /// <returns>The outgoing response to be forwarded.</returns>
-        public OutgoingResponse ToOutgoingResponse(Protocol targetProtocol)
+        public async ValueTask<OutgoingResponse> ToOutgoingResponseAsync(
+            Protocol targetProtocol,
+            CancellationToken cancel)
         {
+            // TODO: we should only retrieve it when converting exceptions
+            int payloadSize = Features.GetPrincipalPayloadSize();
+            Memory<byte> payloadBuffer; // temporary
+
             if (ResultType == ResultType.Failure && Protocol != targetProtocol)
             {
                 if (Protocol == Protocol.Ice2 && PayloadEncoding == Encoding.Ice20)
@@ -37,7 +45,16 @@ namespace IceRpc
                     // ice1 system exceptions must be encoded with 1.1 when forwarded from ice2 to ice1, so we check if
                     // we have a system exception.
 
-                    var decoder = new Ice20Decoder(Payload);
+                    if (payloadSize == 0)
+                    {
+                        throw new InvalidDataException("received 2.0-encoded exception with empty payload");
+                    }
+
+                    using IMemoryOwner<byte> payloadBufferOwner = MemoryPool<byte>.Shared.Rent(payloadSize);
+                    payloadBuffer = payloadBufferOwner.Memory[0..payloadSize];
+                    await PayloadStream.ReadUntilFullAsync(payloadBuffer, cancel).ConfigureAwait(false);
+
+                    var decoder = new Ice20Decoder(payloadBuffer);
 
                     string typeId = decoder.DecodeString();
                     if (typeId.IsIce1SystemExceptionTypeId())
@@ -62,8 +79,14 @@ namespace IceRpc
 
                     if (replyStatus > ReplyStatus.UserException)
                     {
-                        RemoteException systemException =
-                            new Ice11Decoder(Payload).DecodeIce1SystemException(replyStatus);
+                        Debug.Assert(payloadSize > 0);
+
+                        using IMemoryOwner<byte> payloadBufferOwner = MemoryPool<byte>.Shared.Rent(payloadSize);
+                        payloadBuffer = payloadBufferOwner.Memory[0..payloadSize];
+                        await PayloadStream.ReadUntilFullAsync(payloadBuffer, cancel).ConfigureAwait(false);
+
+                        RemoteException systemException = new Ice11Decoder(payloadBuffer).
+                            DecodeIce1SystemException(replyStatus);
 
                         return targetProtocol.CreateResponseFromRemoteException(systemException, Encoding.Ice20);
                     }
@@ -79,12 +102,19 @@ namespace IceRpc
                 features.Set(Protocol == Protocol.Ice1 ? Features.Get<ReplyStatus>() : ReplyStatus.UserException);
             }
 
+            // TODO: the payload conversion is temporary
+            payloadBuffer = new byte[payloadSize];
+            if (payloadSize > 0)
+            {
+                await PayloadStream.ReadUntilFullAsync(payloadBuffer, cancel).ConfigureAwait(false);
+            }
+
             return new OutgoingResponse(targetProtocol, ResultType)
             {
                 Features = features,
                 // Don't forward RetryPolicy
                 FieldsDefaults = Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
-                Payload = new ReadOnlyMemory<byte>[] { Payload },
+                Payload = new ReadOnlyMemory<byte>[] { payloadBuffer },
                 PayloadEncoding = PayloadEncoding,
             };
         }

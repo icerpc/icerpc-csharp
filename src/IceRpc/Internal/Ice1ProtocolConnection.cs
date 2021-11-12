@@ -97,7 +97,7 @@ namespace IceRpc.Internal
             {
                 // Wait for a request frame to be received.
                 int requestId;
-                ReadOnlyMemory<byte> buffer;
+                ArraySegment<byte> buffer; // use array segment for MemoryStream conversion
                 try
                 {
                     (requestId, buffer) = await ReceiveFrameAsync().ConfigureAwait(false);
@@ -152,7 +152,7 @@ namespace IceRpc.Internal
                         requestHeader.PayloadEncodingMajor,
                         requestHeader.PayloadEncodingMinor),
                     Deadline = DateTime.MaxValue,
-                    Payload = payload,
+                    PayloadStream = new MemoryStream(buffer.Array!, buffer.Offset + decoder.Pos, payloadSize)
                 };
                 request.Features = request.Features.With(new Ice1Request(requestId, outgoing: false));
                 if (requestHeader.Context.Count > 0)
@@ -593,7 +593,7 @@ namespace IceRpc.Internal
             }
         }
 
-        private async ValueTask<(int, ReadOnlyMemory<byte>)> ReceiveFrameAsync()
+        private async ValueTask<(int, ArraySegment<byte>)> ReceiveFrameAsync()
         {
             // Reads are not cancellable. This method returns once a frame is read or when the connection is disposed.
             CancellationToken cancel = CancellationToken.None;
@@ -601,7 +601,7 @@ namespace IceRpc.Internal
             while (true)
             {
                 // Receive the Ice1 frame header.
-                Memory<byte> buffer;
+                ArraySegment<byte> buffer;
                 if (_isUdp)
                 {
                     buffer = new byte[_incomingFrameMaxSize];
@@ -622,9 +622,9 @@ namespace IceRpc.Internal
                 }
 
                 // Check the header
-                Ice1Definitions.CheckHeader(buffer.Span[0..Ice1Definitions.HeaderSize]);
-                int frameSize = IceDecoder.DecodeInt(buffer.AsReadOnlySpan().Slice(10, 4));
-                if (_isUdp && frameSize != buffer.Length)
+                Ice1Definitions.CheckHeader(buffer[0..Ice1Definitions.HeaderSize]);
+                int frameSize = IceDecoder.DecodeInt(buffer.Slice(10, 4));
+                if (_isUdp && frameSize != buffer.Count)
                 {
                     // TODO: implement protocol logging with decorators
                     // _logger.LogReceivedInvalidDatagram(frameSize);
@@ -646,8 +646,8 @@ namespace IceRpc.Internal
                 }
 
                 // The magic and version fields have already been checked.
-                var frameType = (Ice1FrameType)buffer.Span[8];
-                byte compressionStatus = buffer.Span[9];
+                var frameType = (Ice1FrameType)buffer[8];
+                byte compressionStatus = buffer[9];
                 if (compressionStatus == 2)
                 {
                     throw new NotSupportedException("cannot decompress ice1 frame");
@@ -656,18 +656,18 @@ namespace IceRpc.Internal
                 // Read the remainder of the frame if needed.
                 if (_isUdp)
                 {
-                    Debug.Assert(frameSize == buffer.Length);
+                    Debug.Assert(frameSize == buffer.Count);
                     buffer = buffer[Ice1Definitions.HeaderSize..];
                 }
                 else if (frameSize == Ice1Definitions.HeaderSize)
                 {
-                    buffer = Memory<byte>.Empty;
+                    buffer = ArraySegment<byte>.Empty;
                 }
                 else
                 {
                     int remainingSize = frameSize - Ice1Definitions.HeaderSize;
                     // TODO: rent buffer from memory pool
-                    buffer = buffer.Length < remainingSize ? new byte[remainingSize] : buffer[0..remainingSize];
+                    buffer = buffer.Count < remainingSize ? new byte[remainingSize] : buffer[0..remainingSize];
                     await ReceiveUntilFullAsync(buffer, cancel).ConfigureAwait(false);
                 }
 
@@ -675,7 +675,7 @@ namespace IceRpc.Internal
                 {
                     case Ice1FrameType.CloseConnection:
                     {
-                        if (buffer.Length > 0)
+                        if (buffer.Count > 0)
                         {
                             throw new InvalidDataException(
                                 $"unexpected data for {nameof(Ice1FrameType.CloseConnection)}");
@@ -721,13 +721,13 @@ namespace IceRpc.Internal
 
                     case Ice1FrameType.Request:
                     {
-                        int requestId = IceDecoder.DecodeInt(buffer.Span[0..4]);
+                        int requestId = IceDecoder.DecodeInt(buffer[0..4]);
                         return (requestId, buffer[4..]);
                     }
 
                     case Ice1FrameType.RequestBatch:
                     {
-                        int invokeNum = IceDecoder.DecodeInt(buffer.Span[0..4]);
+                        int invokeNum = IceDecoder.DecodeInt(buffer[0..4]);
                         // TODO: implement protocol logging with decorators
                         // _logger.LogReceivedIce1RequestBatchFrame(invokeNum);
 
@@ -741,7 +741,7 @@ namespace IceRpc.Internal
 
                     case Ice1FrameType.Reply:
                     {
-                        int requestId = IceDecoder.DecodeInt(buffer.Span[0..4]);
+                        int requestId = IceDecoder.DecodeInt(buffer[0..4]);
                         lock (_mutex)
                         {
                             if (_invocations.TryGetValue(requestId, out OutgoingRequest? request))
@@ -759,7 +759,7 @@ namespace IceRpc.Internal
                     case Ice1FrameType.ValidateConnection:
                     {
                         // Notify the control stream of the reception of a Ping frame.
-                        if (buffer.Length > 0)
+                        if (buffer.Count > 0)
                         {
                             throw new InvalidDataException(
                                 $"unexpected data for {nameof(Ice1FrameType.ValidateConnection)}");

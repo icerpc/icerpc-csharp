@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Collections.Immutable;
+using System.IO;
 
 namespace IceRpc
 {
@@ -22,38 +23,16 @@ namespace IceRpc
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <summary>The payload of this frame.</summary>
-        public ReadOnlyMemory<byte> Payload
-        {
-            get =>
-                _payload is ReadOnlyMemory<byte> value ? value : throw new InvalidOperationException("payload not set");
-
-            set
-            {
-                _payload = value;
-                PayloadSize = value.Length;
-            }
-        }
+        public Stream PayloadStream { get; set; } = Stream.Null;
 
         /// <summary>Returns the encoding of the payload of this frame.</summary>
         /// <remarks>The header of the frame is always encoded using the frame protocol's encoding.</remarks>
         public Encoding PayloadEncoding { get; init; } = Encoding.Unknown;
 
-        /// <summary>Returns the number of bytes in the payload.</summary>
-        public int PayloadSize { get; private set; }
-
         /// <summary>The Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }
 
-        private protected bool IsPayloadSet => _payload != null;
-
         private Connection? _connection;
-        private ReadOnlyMemory<byte>? _payload;
-
-        /// <summary>Retrieves the payload of this frame.</summary>
-        /// <param name="cancel">The cancellation token.</param>
-        /// <returns>The payload.</returns>
-        public virtual ValueTask<ReadOnlyMemory<byte>> GetPayloadAsync(CancellationToken cancel = default) =>
-            IsPayloadSet ? new(Payload) : throw new NotImplementedException();
 
         /// <summary>Constructs an incoming frame.</summary>
         /// <param name="protocol">The protocol used to receive the frame.</param>

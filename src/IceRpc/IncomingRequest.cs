@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Transports;
 using System.Collections.Immutable;
 
@@ -56,21 +57,26 @@ namespace IceRpc
         /// constructed to be forwarded with the given proxy. The <see cref="OutgoingRequest.Path"/> is set to
         /// the target <see cref="Proxy.Path"/>.</summary>
         /// <param name="targetProxy">The proxy used to send to the outgoing request.</param>
+        /// <param name="cancel">The cancellation token.</param>
         /// <returns>The outgoing request to be forwarded.</returns>
-        public OutgoingRequest ToOutgoingRequest(Proxy targetProxy) =>
-            ToOutgoingRequest(targetConnection: null, targetProxy: targetProxy);
+        public ValueTask<OutgoingRequest> ToOutgoingRequestAsync(Proxy targetProxy, CancellationToken cancel) =>
+            ToOutgoingRequestAsync(targetConnection: null, targetProxy: targetProxy, cancel);
 
         /// <summary>Create an outgoing request from this incoming request. The outgoing request is
         /// constructed to be forwarded with the given connection. The <see cref="OutgoingRequest.Path"/> is
         /// set to <see cref="Path"/>.</summary>
         /// <param name="targetConnection">The target connection.</param>
+        /// <param name="cancel">The cancellation token.</param>
         /// <returns>The outgoing request to be forwarded.</returns>
-        public OutgoingRequest ToOutgoingRequest(Connection targetConnection) =>
-            ToOutgoingRequest(targetConnection: targetConnection, targetProxy: null);
+        public ValueTask<OutgoingRequest> ToOutgoingRequestAsync(
+            Connection targetConnection,
+            CancellationToken cancel) =>
+            ToOutgoingRequestAsync(targetConnection: targetConnection, targetProxy: null, cancel);
 
-        private OutgoingRequest ToOutgoingRequest(
+        private async ValueTask<OutgoingRequest> ToOutgoingRequestAsync(
             Connection? targetConnection,
-            Proxy? targetProxy)
+            Proxy? targetProxy,
+            CancellationToken cancel)
         {
             Protocol targetProtocol = targetConnection?.Protocol ?? targetProxy!.Protocol;
 
@@ -90,6 +96,14 @@ namespace IceRpc
                 features = features.WithContext(Features.GetContext());
             }
 
+            // TODO: the payload conversion is temporary
+            int payloadSize = Features.GetPrincipalPayloadSize();
+            Memory<byte> payloadBuffer = new byte[payloadSize];
+            if (payloadSize > 0)
+            {
+                await PayloadStream.ReadUntilFullAsync(payloadBuffer, cancel).ConfigureAwait(false);
+            }
+
             // TODO: forward stream parameters
 
             return new OutgoingRequest(
@@ -107,7 +121,7 @@ namespace IceRpc
                 IsIdempotent = IsIdempotent,
                 Proxy = targetProxy,
                 PayloadEncoding = PayloadEncoding,
-                Payload = new ReadOnlyMemory<byte>[] { Payload }
+                Payload = new ReadOnlyMemory<byte>[] { payloadBuffer }
             };
         }
 

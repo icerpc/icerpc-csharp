@@ -307,7 +307,7 @@ namespace IceRpc
                     response = new IncomingResponse(Protocol, ResultType.Success)
                     {
                         PayloadEncoding = request.PayloadEncoding,
-                        Payload = default
+                       // PayloadStream = emptyStream
                     };
                 }
                 else
