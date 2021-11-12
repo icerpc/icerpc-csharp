@@ -11,18 +11,11 @@ use crate::slicec_ext::*;
 use crate::dispatch_visitor::response_encode_action;
 
 pub fn encoded_result_struct(operation: &Operation) -> CodeBlock {
+    assert!(operation.has_encoded_result());
     let operation_name = operation.escape_identifier();
     let struct_name = format!("{}EncodedReturnValue", operation_name);
-    // TODO: this should really be the parent interface (we just don't have access to it yet)
     let namespace = operation.namespace();
-
-    // Should we assert instead?
-    if !operation.has_encoded_result() {
-        return "".into();
-    }
-
-    let access = operation.parent().unwrap().access_modifier();
-
+    let access = operation.access_modifier();
     let parameters = operation.return_members();
 
     let mut container_builder = ContainerBuilder::new(
