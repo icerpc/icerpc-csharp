@@ -242,9 +242,10 @@ fn request_decode_func(operation: &Operation) -> CodeBlock {
         && parameters.first().unwrap().tag.is_none();
 
     if use_default_decode_func {
-        // TODO is it possible for the first parameter to be streamed here?
-        // because if it is, then this is broken.
-        decode_func(parameters.first().unwrap().data_type(), namespace)
+        let param = parameters.first().unwrap();
+        // request_decode_func should not be called when the operation has a single parameter that is streamed.
+        assert!(!param.is_streamed);
+        decode_func(param.data_type(), namespace)
     } else {
         format!(
             "decoder =>
