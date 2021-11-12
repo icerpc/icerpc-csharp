@@ -16,18 +16,16 @@ namespace IceRpc.Internal
         /// otherwise.</summary>
         bool HasInvocationsInProgress { get; }
 
-        /// <summary>Cancels all pending invocations and dispatches. This is called when the application cancels the
-        /// <see cref="Connection.ShutdownAsync(string, CancellationToken)"/> call to speed up the shutdown.</summary>
-        void CancelInvocationsAndDispatches();
+        /// <summary>This event is raised when the protocol connection is notified of the peer shutdown.</summary>
+        event Action? PeerShutdownInitiated;
 
         /// <summary>Sends a ping frame to defer the idle timeout.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         Task PingAsync(CancellationToken cancel);
 
         /// <summary>Receives a request.</summary>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The incoming request or null if the connection is shutdown.</returns>
-        Task<IncomingRequest> ReceiveRequestAsync(CancellationToken cancel);
+        /// <returns>The incoming request.</returns>
+        Task<IncomingRequest> ReceiveRequestAsync();
 
         /// <summary>Receives a response for a given request.</summary>
         /// <param name="request">The outgoing request associated to the response to receive.</param>
@@ -47,15 +45,14 @@ namespace IceRpc.Internal
         Task SendResponseAsync(OutgoingResponse response, IncomingRequest request, CancellationToken cancel);
 
         /// <summary>Shutdowns gracefully the connection.</summary>
-        /// <param name="shutdownByPeer"><c>true</c> if the shutdown is from the peer, <c>false</c> otherwise.</param>
         /// <param name="message">The reason of the connection shutdown.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        Task ShutdownAsync(bool shutdownByPeer, string message, CancellationToken cancel);
+        Task ShutdownAsync(string message, CancellationToken cancel);
 
-        /// <summary>Waits for graceful shutdown of the connection by the peer.</summary>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The reason of the peer shutdown.</returns>
-        Task<string> WaitForShutdownAsync(CancellationToken cancel);
+        /// <summary>The <see cref="Connection.ShutdownAsync(CancellationToken)"/> call has been canceled. The protocol
+        /// implementation should take action to speed-up the shutdown when notified of the cancellation by this
+        /// method.</summary>
+        void ShutdownCanceled();
     }
 
     /// <summary>Creates a protocol connection from a network connection.</summary>

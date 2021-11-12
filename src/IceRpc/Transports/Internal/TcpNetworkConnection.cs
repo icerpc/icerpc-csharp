@@ -25,13 +25,31 @@ namespace IceRpc.Transports.Internal
 
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
 
-        public void Dispose()
-        {
-            SslStream?.Dispose();
-            Socket.Dispose();
-        }
-
         public abstract Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel);
+
+        public async ValueTask DisposeAsync()
+        {
+            if (SslStream is SslStream sslStream)
+            {
+                await sslStream.DisposeAsync().ConfigureAwait(false);
+            }
+
+            // TODO: Write a test case to check why this is necessary to prevent a hang with the Retry_GracefulClose
+            // test. Calling Close should be sufficient but for some reasons with this test the peer doesn't detect the
+            // socket closure and hangs.
+            try
+            {
+                Socket.Shutdown(SocketShutdown.Both);
+            }
+            catch
+            {
+                // Ignore, the socket might already be disposed or it might not be connected.
+            }
+            finally
+            {
+                Socket.Close();
+            }
+        }
 
         public abstract bool HasCompatibleParams(Endpoint remoteEndpoint);
 

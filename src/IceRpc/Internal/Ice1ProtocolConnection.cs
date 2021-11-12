@@ -5,8 +5,6 @@ using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using System.Diagnostics;
 
 namespace IceRpc.Internal
@@ -37,21 +35,21 @@ namespace IceRpc.Internal
             }
         }
 
+        /// <inheritdoc/>
+        public event Action? PeerShutdownInitiated;
+
         // TODO: XXX, add back configuration to limit the number of concurrent dispatch.
         // private readonly AsyncSemaphore? _bidirectionalStreamSemaphore;
-        private bool _cancelDispatches;
+        private bool _shutdownCanceled;
         private readonly TaskCompletionSource _dispatchAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly HashSet<IncomingRequest> _dispatches = new();
         private readonly int _incomingFrameMaxSize;
         private readonly Dictionary<int, OutgoingRequest> _invocations = new();
         private readonly bool _isUdp;
-        private readonly ILogger _logger;
         private readonly object _mutex = new();
         private readonly ISimpleStream _simpleStream;
         private int _nextRequestId;
-        private readonly TaskCompletionSource _pendingCloseConnectionFrameReceive =
-            new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly AsyncSemaphore _sendSemaphore = new(1);
         // TODO: XXX, add back configuration to limit the number of concurrent dispatch.
@@ -59,85 +57,23 @@ namespace IceRpc.Internal
         private bool _shutdown;
 
         /// <inheritdoc/>
-        public void CancelInvocationsAndDispatches()
-        {
-            // We don't need to cancel invocations with Ice1 since invocations are always canceled immediately
-            // when ShutdownAsync is called.
-
-            IEnumerable<IncomingRequest> dispatches = Enumerable.Empty<IncomingRequest>();
-
-            lock (_mutex)
-            {
-                _cancelDispatches = true;
-
-                // If shutdown wasn't called yet, delay the cancellation of the dispatches until ShutdownAsync is called
-                // (this can occur if the application cancels ShutdownAsync immediately or before ShutdownAsync is
-                // called on the protocol connection).
-                if (_shutdown)
-                {
-                    dispatches = _dispatches.ToArray();
-                }
-            }
-
-            foreach (IncomingRequest request in dispatches)
-            {
-                try
-                {
-                    request.CancelDispatchSource!.Cancel();
-                }
-                catch (ObjectDisposedException)
-                {
-                    // Ignore, the dispatch completed concurrently.
-                }
-            }
-        }
-
-        /// <inheritdoc/>
         public void Dispose()
         {
-            // The connection is disposed, if there's sill pending invocations, they will raise ConnectionLostException.
+            // The connection is disposed, if there are sill pending invocations, it indicates a non-graceful shutdown,
+            // we raise ConnectionLostException.
             var exception = new ConnectionLostException();
 
-            IEnumerable<IncomingRequest> dispatches = Enumerable.Empty<IncomingRequest>();
-            IEnumerable<OutgoingRequest> invocations = Enumerable.Empty<OutgoingRequest>();
+            // Unblock ShutdownAsync which might be waiting for the connection to be disposed.
+            _pendingClose.TrySetResult();
 
-            lock (_mutex)
-            {
-                // Unblock ShutdownAsync which might be waiting to the connection to be disposed.
-                _pendingClose.TrySetResult();
+            // Unblock invocations which are waiting to be sent.
+            _sendSemaphore.Complete(exception);
 
-                // Unblock WaitForShutdownAsync which is waiting to receive the CloseConnection frame.
-                _pendingCloseConnectionFrameReceive.TrySetResult();
+            // Unblock ShutdownAsync if it's waiting for invocations and dispatches to complete.
+            _dispatchAndInvocationsCompleted.TrySetException(exception);
 
-                // Unblock invocations which are waiting to be sent.
-                _sendSemaphore.Complete(exception);
-
-                // Cancel remaining pending invocations and dispatch.
-                if (_invocations.Count > 0)
-                {
-                    invocations = _invocations.Values.ToArray();
-                }
-                if (_dispatches.Count > 0)
-                {
-                    dispatches = _dispatches.ToArray();
-                }
-            }
-
-            foreach (OutgoingRequest request in invocations)
-            {
-                request.Features.Get<Ice1Request>()!.ResponseCompletionSource!.TrySetException(exception);
-            }
-            foreach (IncomingRequest request in dispatches)
-            {
-                try
-                {
-                    request.CancelDispatchSource!.Cancel();
-                }
-                catch (ObjectDisposedException)
-                {
-                    // Ignore, the dispatch completed concurrently.
-                }
-            }
+            CancelInvocations(exception);
+            CancelDispatches();
         }
 
         /// <inheritdoc/>
@@ -146,24 +82,42 @@ namespace IceRpc.Internal
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
             try
             {
-                await _simpleStream.WriteAsync(
-                    Ice1Definitions.ValidateConnectionFrame,
-                    cancel).ConfigureAwait(false);
+                await _simpleStream.WriteAsync(Ice1Definitions.ValidateConnectionFrame, cancel).ConfigureAwait(false);
             }
             finally
             {
                 _sendSemaphore.Release();
             }
-
-            _logger.LogSentIce1ValidateConnectionFrame();
         }
 
         /// <inheritdoc/>
-        public async Task<IncomingRequest> ReceiveRequestAsync(CancellationToken cancel)
+        public async Task<IncomingRequest> ReceiveRequestAsync()
         {
             while (true)
             {
-                (int requestId, ReadOnlyMemory<byte> buffer) = await ReceiveFrameAsync(cancel).ConfigureAwait(false);
+                // Wait for a request frame to be received.
+                int requestId;
+                ReadOnlyMemory<byte> buffer;
+                try
+                {
+                    (requestId, buffer) = await ReceiveFrameAsync().ConfigureAwait(false);
+                }
+                catch (ConnectionLostException)
+                {
+                    lock (_mutex)
+                    {
+                        // The connection was gracefully shut down, raise ConnectionClosedException here to ensure
+                        // that the ClosedEvent will report this exception instead of the transport failure.
+                        if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
+                        {
+                            throw new ConnectionClosedException("connection gracefully shut down");
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
+                }
 
                 var decoder = new Ice11Decoder(buffer);
 
@@ -249,7 +203,7 @@ namespace IceRpc.Internal
                         // If no more invocations or dispatches and shutting down, shutdown can complete.
                         if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
                         {
-                            _dispatchAndInvocationsCompleted.SetResult();
+                            _dispatchAndInvocationsCompleted.TrySetResult();
                         }
                     }
                 }
@@ -386,20 +340,13 @@ namespace IceRpc.Internal
                 // Mark the request as sent and, if it's a twoway request, keep track of it.
                 request.IsSent = true;
             }
-            catch
+            catch (ObjectDisposedException exception)
             {
-                lock (_mutex)
-                {
-                    if (_invocations.Remove(requestId))
-                    {
-                        // If no more invocations or dispatches and shutting down, shutdown can complete.
-                        if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
-                        {
-                            _dispatchAndInvocationsCompleted.SetResult();
-                        }
-                    }
-                }
-                throw;
+                // If the network connection has been disposed, we raise ConnectionLostException to ensure the
+                // request is retried by the retry interceptor.
+                // TODO: this is clunky but required for retries to work because the retry interceptor only retries
+                // a request if the exception is a transport exception.
+                throw new ConnectionLostException(exception);
             }
             finally
             {
@@ -483,15 +430,14 @@ namespace IceRpc.Internal
                         // If no more invocations or dispatches and shutting down, shutdown can complete.
                         if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
                         {
-                            _dispatchAndInvocationsCompleted.SetResult();
+                            _dispatchAndInvocationsCompleted.TrySetResult();
                         }
                     }
                 }
             }
         }
 
-        /// <inheritdoc/>
-        public async Task ShutdownAsync(bool shutdownByPeer, string message, CancellationToken cancel)
+        public async Task ShutdownAsync(string message, CancellationToken cancel)
         {
             var exception = new ConnectionClosedException(message);
             if (_isUdp)
@@ -504,80 +450,68 @@ namespace IceRpc.Internal
             }
             else
             {
-                IEnumerable<OutgoingRequest> invocations = Enumerable.Empty<OutgoingRequest>();
-                IEnumerable<IncomingRequest> dispatches = Enumerable.Empty<IncomingRequest>();
-
+                bool alreadyShuttingDown = false;
                 lock (_mutex)
                 {
-                    if (_shutdown && shutdownByPeer)
+                    if (_shutdown)
                     {
-                        // If shutdown is already in progress and the peer sent the CloseConnection frame, we can cancel
-                        // the dispatches in progress since the peer is no longer interested by the responses.
-                        dispatches = _dispatches.ToArray();
+                        alreadyShuttingDown = true;
                     }
-                    else if (!_shutdown)
+                    else
                     {
                         _shutdown = true;
-
                         if (_dispatches.Count == 0 && _invocations.Count == 0)
                         {
-                            _dispatchAndInvocationsCompleted.SetResult();
-                        }
-
-                        // Cancel pending invocations in progress if shutdown is not initiated by the peer.
-                        if (_invocations.Count > 0)
-                        {
-                            invocations = _invocations.Values.ToArray();
-                        }
-
-                        if (_cancelDispatches && _dispatches.Count > 0)
-                        {
-                            Debug.Assert(!shutdownByPeer);
-                            dispatches = _dispatches.ToArray();
+                            _dispatchAndInvocationsCompleted.TrySetResult();
                         }
                     }
                 }
 
-                foreach (IncomingRequest request in dispatches)
+                if (!alreadyShuttingDown)
                 {
-                    try
+                    // Cancel pending invocations immediately. Wait for dispatches to complete however.
+                    CancelInvocations(new OperationCanceledException(message));
+
+                    // If shutdown was canceled and CancelInvocationsAndDispatch was called, cancel dispatches.
+                    if (_shutdownCanceled)
                     {
-                        request.CancelDispatchSource!.Cancel();
-                    }
-                    catch (ObjectDisposedException)
-                    {
-                        // Ignore, the dispatch completed concurrently.
+                        CancelDispatches();
                     }
                 }
 
-                Exception closeEx = shutdownByPeer ? exception : new OperationCanceledException(message);
-                foreach (OutgoingRequest request in invocations)
-                {
-                    request.Features.Get<Ice1Request>()!.ResponseCompletionSource!.TrySetException(closeEx);
-                }
+                // Wait for dispatches to complete.
+                await _dispatchAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
 
-                if (!shutdownByPeer)
-                {
-                    // Wait for dispatches to complete.
-                    await _dispatchAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
+                // Cancel any pending requests waiting for sending.
+                _sendSemaphore.Complete(exception);
 
-                    _sendSemaphore.Complete(exception);
+                // Send the CloseConnection frame once all the dispatches are done.
+                await _simpleStream.WriteAsync(Ice1Definitions.CloseConnectionFrame, cancel).ConfigureAwait(false);
 
-                    // Send the CloseConnection frame once all the dispatches are done.
-                    await _simpleStream.WriteAsync(Ice1Definitions.CloseConnectionFrame, cancel).ConfigureAwait(false);
-
-                    // Wait for the peer to close the connection. When the peer receives the CloseConnection
-                    // frame the peer closes the connection. This will cause ReceiveRequestAsync to throw and
-                    // the connection will call Dispose to terminate the protocol connection.
-                    await _pendingClose.Task.WaitAsync(cancel).ConfigureAwait(false);
-                }
+                // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the
+                // connection closure here. We can't just return and close the underlying transport since this could
+                // kill the sending of the dispatch responses and of the close connection frame.
+                await _pendingClose.Task.WaitAsync(cancel).ConfigureAwait(false);
             }
         }
 
-        public async Task<string> WaitForShutdownAsync(CancellationToken cancel)
+        /// <inheritdoc/>
+        public void ShutdownCanceled()
         {
-            await _pendingCloseConnectionFrameReceive.Task.WaitAsync(cancel).ConfigureAwait(false);
-            return "connection graceful shutdown";
+            lock (_mutex)
+            {
+                // If ShutdownAsync wasn't called yet, delay the cancellation of the dispatches until ShutdownAsync is
+                // called (this can occur if the application cancels ShutdownAsync immediately or before ShutdownAsync
+                // is called on the protocol connection).
+                if (!_shutdown)
+                {
+                    _shutdownCanceled = true;
+                    return;
+                }
+            }
+
+            // There's no need to cancel invocations since ShutdownAsync takes care of it, only cancel dispatches.
+            CancelDispatches();
         }
 
         internal Ice1ProtocolConnection(ISimpleStream simpleStream, int incomingFrameMaxSize, bool isUdp)
@@ -585,9 +519,6 @@ namespace IceRpc.Internal
             _isUdp = isUdp;
             _incomingFrameMaxSize = incomingFrameMaxSize;
             _simpleStream = simpleStream;
-
-            // TODO: temporary, this will be removed once we add a log protocol connection decorator
-            _logger = NullLogger.Instance;
         }
 
         internal async Task InitializeAsync(bool isServer, CancellationToken cancel)
@@ -621,8 +552,52 @@ namespace IceRpc.Internal
             }
         }
 
-        private async ValueTask<(int, ReadOnlyMemory<byte>)> ReceiveFrameAsync(CancellationToken cancel)
+        private void CancelDispatches()
         {
+            IEnumerable<IncomingRequest> dispatches = Enumerable.Empty<IncomingRequest>();
+            lock (_mutex)
+            {
+                if (_dispatches.Count > 0)
+                {
+                    dispatches = _dispatches.ToArray();
+                }
+            }
+
+            foreach (IncomingRequest request in dispatches)
+            {
+                try
+                {
+                    request.CancelDispatchSource!.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Ignore, the dispatch completed concurrently.
+                }
+            }
+        }
+
+        private void CancelInvocations(Exception exception)
+        {
+            IEnumerable<OutgoingRequest> invocations = Enumerable.Empty<OutgoingRequest>();
+            lock (_mutex)
+            {
+                if (_invocations.Count > 0)
+                {
+                    invocations = _invocations.Values.ToArray();
+                }
+            }
+
+            foreach (OutgoingRequest request in invocations)
+            {
+                request.Features.Get<Ice1Request>()!.ResponseCompletionSource!.TrySetException(exception);
+            }
+        }
+
+        private async ValueTask<(int, ReadOnlyMemory<byte>)> ReceiveFrameAsync()
+        {
+            // Reads are not cancellable. This method returns once a frame is read or when the connection is disposed.
+            CancellationToken cancel = CancellationToken.None;
+
             while (true)
             {
                 // Receive the Ice1 frame header.
@@ -633,7 +608,8 @@ namespace IceRpc.Internal
                     int received = await _simpleStream.ReadAsync(buffer, cancel).ConfigureAwait(false);
                     if (received < Ice1Definitions.HeaderSize)
                     {
-                        _logger.LogReceivedInvalidDatagram(received);
+                        // TODO: implement protocol logging with decorators
+                        //_logger.LogReceivedInvalidDatagram(received);
                         continue; // while
                     }
                     buffer = buffer[0..received];
@@ -650,14 +626,16 @@ namespace IceRpc.Internal
                 int frameSize = IceDecoder.DecodeInt(buffer.AsReadOnlySpan().Slice(10, 4));
                 if (_isUdp && frameSize != buffer.Length)
                 {
-                    _logger.LogReceivedInvalidDatagram(frameSize);
+                    // TODO: implement protocol logging with decorators
+                    // _logger.LogReceivedInvalidDatagram(frameSize);
                     continue; // while
                 }
                 else if (frameSize > _incomingFrameMaxSize)
                 {
                     if (_isUdp)
                     {
-                        _logger.LogDatagramSizeExceededIncomingFrameMaxSize(frameSize);
+                        // TODO: implement protocol logging with decorators
+                        // _logger.LogDatagramSizeExceededIncomingFrameMaxSize(frameSize);
                         continue;
                     }
                     else
@@ -702,8 +680,43 @@ namespace IceRpc.Internal
                             throw new InvalidDataException(
                                 $"unexpected data for {nameof(Ice1FrameType.CloseConnection)}");
                         }
-                        _pendingCloseConnectionFrameReceive.TrySetResult();
-                        break;
+                        if (_isUdp)
+                        {
+                            throw new InvalidDataException(
+                                $"unexpected {nameof(Ice1FrameType.CloseConnection)} frame for udp connection");
+                        }
+
+                        lock (_mutex)
+                        {
+                            // If local shutdown is in progress, shutdown from peer prevails. The local shutdown
+                            // will return once the connection disposes this protocol connection.
+                            _shutdown = true;
+                        }
+
+                        // Raise the peer shutdown initiated event.
+                        try
+                        {
+                            PeerShutdownInitiated?.Invoke();
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.Assert(false, $"{nameof(PeerShutdownInitiated)} raised unexpected exception\n{ex}");
+                        }
+
+                        var exception = new ConnectionClosedException("connection shutdown by peer");
+
+                        // The peer cancels its invocations on shutdown so we can cancel the dispatches.
+                        CancelDispatches();
+
+                        // The peer didn't dispatch invocations which are still in progress, these invocations can
+                        // therefore be retried (completing the invocation here ensures that the invocations won't get
+                        // ConnectionLostException from Dispose).
+                        CancelInvocations(exception);
+
+                        // New requests will complete with ConnectionClosedException.
+                        _sendSemaphore.Complete(exception);
+
+                        throw exception;
                     }
 
                     case Ice1FrameType.Request:
@@ -715,7 +728,8 @@ namespace IceRpc.Internal
                     case Ice1FrameType.RequestBatch:
                     {
                         int invokeNum = IceDecoder.DecodeInt(buffer.Span[0..4]);
-                        _logger.LogReceivedIce1RequestBatchFrame(invokeNum);
+                        // TODO: implement protocol logging with decorators
+                        // _logger.LogReceivedIce1RequestBatchFrame(invokeNum);
 
                         if (invokeNum < 0)
                         {
@@ -750,7 +764,8 @@ namespace IceRpc.Internal
                             throw new InvalidDataException(
                                 $"unexpected data for {nameof(Ice1FrameType.ValidateConnection)}");
                         }
-                        _logger.LogReceivedIce1ValidateConnectionFrame();
+                        // TODO: implement protocol logging with decorators
+                        // _logger.LogReceivedIce1ValidateConnectionFrame();
                         break;
                     }
 

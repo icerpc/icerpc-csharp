@@ -3,7 +3,7 @@
 namespace IceRpc.Transports
 {
     /// <summary>A network connection represents a transport-level connection used to exchange data as bytes.</summary>
-    public interface INetworkConnection : IDisposable
+    public interface INetworkConnection : IAsyncDisposable
     {
         /// <summary>Indicates whether or not this network connection is secure.</summary>
         /// <value><c>true</c> means the network connection is secure. <c>false</c> means the network connection is not

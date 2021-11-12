@@ -16,7 +16,7 @@ namespace IceRpc.Transports.Internal
         private readonly Action<ILogger, int, int> _logSuccess;
         private readonly ILogger _logger;
 
-        void IDisposable.Dispose() => _decoratee.Dispose();
+        ValueTask IAsyncDisposable.DisposeAsync() => _decoratee.DisposeAsync();
 
         async Task<(ISimpleStream, NetworkConnectionInformation)> ISimpleNetworkConnection.ConnectAsync(
             CancellationToken cancel)
@@ -65,7 +65,6 @@ namespace IceRpc.Transports.Internal
             _logger = logger;
             _logSuccess = server ? TcpLoggerExtensions.LogTcpNetworkConnectionAccepted :
                 TcpLoggerExtensions.LogTcpNetworkConnectionEstablished;
-
         }
     }
 }

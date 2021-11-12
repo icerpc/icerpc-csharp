@@ -94,10 +94,10 @@ namespace IceRpc.Tests.Internal
         }
 
         [TestCase]
-        public void SimpleStream_Dispose()
+        public async Task SimpleStream_DisposeAsync()
         {
-            _clientConnection!.Dispose();
-            _serverConnection!.Dispose();
+            await _clientConnection!.DisposeAsync();
+            await _serverConnection!.DisposeAsync();
 
             Memory<byte> buffer = new byte[1];
             var buffers = new ReadOnlyMemory<byte>[] { buffer };
@@ -113,7 +113,7 @@ namespace IceRpc.Tests.Internal
         public async Task SetUp()
         {
             Endpoint endpoint = TestHelper.GetTestEndpoint(transport: _transport, protocol: Protocol.Ice1);
-            using IListener<ISimpleNetworkConnection> listener =
+            await using IListener<ISimpleNetworkConnection> listener =
                 TestHelper.CreateSimpleServerTransport(_transport).Listen(endpoint, LogAttributeLoggerFactory.Instance);
 
             IClientTransport<ISimpleNetworkConnection> clientTransport =
@@ -129,10 +129,16 @@ namespace IceRpc.Tests.Internal
         }
 
         [TearDown]
-        public void TearDown()
+        public async Task TearDown()
         {
-            _clientConnection?.Dispose();
-            _serverConnection?.Dispose();
+            if (_clientConnection is INetworkConnection clientConnection)
+            {
+                await clientConnection.DisposeAsync();
+            }
+            if (_serverConnection is INetworkConnection serverConnection)
+            {
+                await serverConnection.DisposeAsync();
+            }
         }
     }
 }

@@ -38,7 +38,7 @@ namespace IceRpc.Slice
             _encoder(stream);
 
         private static async Task SendAsync(
-            IMultiplexedStream rpcStream,
+            IMultiplexedStream multiplexedStream,
             IAsyncEnumerable<T> asyncEnumerable,
             IceEncoding encoding,
             Action<IceEncoder, T> encodeAction)
@@ -96,10 +96,10 @@ namespace IceRpc.Slice
                 while (true);
 
                 // Write end of stream (TODO: this might not work with Quic)
-                await rpcStream.WriteAsync(
-                    rpcStream.TransportHeader.Length == 0 ?
+                await multiplexedStream.WriteAsync(
+                    multiplexedStream.TransportHeader.Length == 0 ?
                         ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty :
-                        new ReadOnlyMemory<byte>[1] { rpcStream.TransportHeader.ToArray() },
+                        new ReadOnlyMemory<byte>[1] { multiplexedStream.TransportHeader.ToArray() },
                     true,
                     default).ConfigureAwait(false);
             }
@@ -109,7 +109,7 @@ namespace IceRpc.Slice
             }
             catch
             {
-                rpcStream.AbortWrite(StreamError.StreamingCanceledByWriter);
+                multiplexedStream.AbortWrite(StreamError.StreamingCanceledByWriter);
                 throw;
             }
             finally
@@ -124,7 +124,7 @@ namespace IceRpc.Slice
             {
                 var bufferWriter = new BufferWriter();
                 IceEncoder encoder = encoding.CreateIceEncoder(bufferWriter);
-                bufferWriter.WriteByteSpan(rpcStream.TransportHeader.Span);
+                bufferWriter.WriteByteSpan(multiplexedStream.TransportHeader.Span);
                 encoder.EncodeByte((byte)Ice2FrameType.BoundedData);
                 BufferWriter.Position sizeStart = encoder.StartFixedLengthSize();
                 return (encoder, sizeStart, encoder.BufferWriter.Tail);
@@ -134,7 +134,7 @@ namespace IceRpc.Slice
             {
                 encoder.EndFixedLengthSize(start);
                 ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = encoder.BufferWriter.Finish();
-                await rpcStream.WriteAsync(buffers, false, default).ConfigureAwait(false);
+                await multiplexedStream.WriteAsync(buffers, false, default).ConfigureAwait(false);
             }
         }
     }

@@ -28,10 +28,13 @@ namespace IceRpc.Transports.Internal
 
         public override string ToString() => Endpoint.ToString();
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
             // Dispose the server connection if AcceptAsync didn't already consume it.
-            Interlocked.Exchange(ref _serverConnection, null)?.Dispose();
+            if (Interlocked.Exchange(ref _serverConnection, null) is INetworkConnection serverConnection)
+            {
+                await serverConnection.DisposeAsync().ConfigureAwait(false);
+            }
             _acceptTask.SetException(new ObjectDisposedException(nameof(UdpListener)));
         }
 
