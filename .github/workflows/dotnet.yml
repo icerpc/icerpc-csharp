@@ -30,9 +30,8 @@ jobs:
       working-directory: tools/slicec-cs
       run: cargo build
     - uses: actions-rs/clippy@master
-      working-directory: tools/slicec-cs
       with:
-        args: --all-features --all-targets
+        args: --all-features --all-targets -p tools/slicec-cs
     - name: Add github NuGet respository
       run: dotnet nuget add source "https://nuget.pkg.github.com/zeroc-ice/index.json" -n GitHub -u ci --store-password-in-clear-text -p ${{ secrets.NUGET_API_TOKEN }}
     - name: Restore dependencies
