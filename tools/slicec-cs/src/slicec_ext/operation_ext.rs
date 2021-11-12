@@ -35,7 +35,7 @@ impl OperationExt for Operation {
         match self.get_attribute("format", true) {
             Some(format) if format.len() == 1 => match format.first().unwrap().as_str() {
                 "sliced" => "IceRpc.Slice.FormatType.Sliced".to_owned(),
-                "compact" => "default".to_owned(),
+                "compact" => "default".to_owned(), // compact is the default value
                 _ => panic!("unexpected format type"),
             },
             _ => "default".to_owned(),
