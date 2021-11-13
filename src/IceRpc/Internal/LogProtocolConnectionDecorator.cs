@@ -29,7 +29,6 @@ namespace IceRpc.Internal
             IncomingRequest request = await _decoratee.ReceiveRequestAsync().ConfigureAwait(false);
             _logger.LogReceivedRequestFrame(request.Path,
                                             request.Operation,
-                                            request.PayloadSize,
                                             request.PayloadEncoding);
             return request;
         }
@@ -42,7 +41,6 @@ namespace IceRpc.Internal
 
             _logger.LogReceivedResponseFrame(request.Path,
                                              request.Operation,
-                                             response.PayloadSize,
                                              response.PayloadEncoding,
                                              response.ResultType);
             return response;

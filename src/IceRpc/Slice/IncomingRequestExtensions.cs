@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Transports;
+using System.Buffers;
 
 namespace IceRpc.Slice
 {
@@ -11,11 +13,24 @@ namespace IceRpc.Slice
         /// <summary>Verifies that a request payload carries no argument or only unknown tagged arguments.</summary>
         /// <param name="request">The incoming request.</param>
         /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
-        public static void CheckEmptyArgs(
+        /// <param name="cancel">The cancellation token.</param>
+        public static async ValueTask CheckEmptyArgsAsync(
             this IncomingRequest request,
-            IIceDecoderFactory<IceDecoder> iceDecoderFactory) =>
-            iceDecoderFactory.CreateIceDecoder(request.Payload, request.Connection, request.ProxyInvoker).
+            IIceDecoderFactory<IceDecoder> iceDecoderFactory,
+            CancellationToken cancel)
+        {
+            int payloadSize = request.Features.GetPrincipalPayloadSize();
+
+            if (payloadSize > 0)
+            {
+                using IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.Rent(payloadSize);
+                Memory<byte> payload = owner.Memory[0..payloadSize];
+                await request.PayloadStream.ReadUntilFullAsync(payload, cancel).ConfigureAwait(false);
+
+                iceDecoderFactory.CreateIceDecoder(payload, request.Connection, request.ProxyInvoker).
                     CheckEndOfBuffer(skipTaggedParams: true);
+            }
+        }
 
         /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared
         /// idempotent, the request is not marked idempotent. If the request is marked idempotent, it means the caller
@@ -47,11 +62,13 @@ namespace IceRpc.Slice
         /// <param name="request">The incoming request.</param>
         /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
         /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
+        /// <param name="cancel">The cancellation token.</param>
         /// <returns>The request arguments.</returns>
-        public static T ToArgs<TDecoder, T>(
+        public static async ValueTask<T> ToArgsAsync<TDecoder, T>(
             this IncomingRequest request,
             IIceDecoderFactory<TDecoder> iceDecoderFactory,
-            DecodeFunc<TDecoder, T> decodeFunc) where TDecoder : IceDecoder
+            DecodeFunc<TDecoder, T> decodeFunc,
+            CancellationToken cancel) where TDecoder : IceDecoder
         {
             if (request.PayloadEncoding != iceDecoderFactory.Encoding)
             {
@@ -60,8 +77,19 @@ namespace IceRpc.Slice
                     }; expected a payload encoded with {iceDecoderFactory.Encoding}");
             }
 
+            int payloadSize = request.Features.GetPrincipalPayloadSize();
+
+            if (payloadSize == 0)
+            {
+                throw new InvalidDataException("received request with empty payload for operation with parameters");
+            }
+
+            using IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.Rent(payloadSize);
+            Memory<byte> payload = owner.Memory[0..payloadSize];
+            await request.PayloadStream.ReadUntilFullAsync(payload, cancel).ConfigureAwait(false);
+
             TDecoder decoder = iceDecoderFactory.CreateIceDecoder(
-                request.Payload,
+                payload,
                 request.Connection,
                 request.ProxyInvoker);
             T result = decodeFunc(decoder);

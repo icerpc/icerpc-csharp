@@ -20,6 +20,7 @@ namespace IceRpc.Internal
                     throw new InvalidDataException(
                         $"reached end of stream while expecting {buffer.Length - read} more bytes");
                 }
+                read += count;
             }
         }
     }

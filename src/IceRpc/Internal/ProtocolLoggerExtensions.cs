@@ -40,26 +40,23 @@ namespace IceRpc.Internal
             EventId = (int)ProtocolEventIds.ReceivedRequestFrame,
             EventName = nameof(ProtocolEventIds.ReceivedRequestFrame),
             Level = LogLevel.Debug,
-            Message = "received request frame (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
-                      "PayloadEncoding={PayloadEncoding})")]
+            Message = "received request frame (Path={Path}, Operation={Operation}, PayloadEncoding={PayloadEncoding})")]
         internal static partial void LogReceivedRequestFrame(
             this ILogger logger,
             string path,
             string operation,
-            int payloadSize,
             Encoding payloadEncoding);
 
         [LoggerMessage(
             EventId = (int)ProtocolEventIds.ReceivedResponseFrame,
             EventName = nameof(ProtocolEventIds.ReceivedResponseFrame),
             Level = LogLevel.Debug,
-            Message = "received response frame (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
+            Message = "received response frame (Path={Path}, Operation={Operation}, " +
                       "PayloadEncoding={PayloadEncoding}, ResultType={ResultType})")]
         internal static partial void LogReceivedResponseFrame(
             this ILogger logger,
             string path,
             string operation,
-            int payloadSize,
             Encoding payloadEncoding,
             ResultType resultType);
 

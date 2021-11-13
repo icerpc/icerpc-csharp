@@ -277,9 +277,10 @@ namespace IceRpc.Tests.Api
             (IncomingResponse response, StreamParamReceiver? _) =
                 await proxy.InvokeAsync("SayHello", proxy.Encoding, requestPayload: default);
 
-            Assert.DoesNotThrow(() => response.CheckVoidReturnValue(
+            Assert.DoesNotThrowAsync(async () => await response.CheckVoidReturnValueAsync(
                 proxy.Invoker,
-                response.GetIceDecoderFactory(new DefaultIceDecoderFactories(typeof(ProxyTests).Assembly))));
+                response.GetIceDecoderFactory(new DefaultIceDecoderFactories(typeof(ProxyTests).Assembly)),
+                cancel: default));
         }
 
         [Test]

@@ -2073,14 +2073,14 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
             if (returns.size() > 0 && (returns.size() > 1 || !returns.back()->stream()))
             {
                 _out << sp;
-                string opName = fixId(operationName(operation));
+                string methodName = fixId(operationName(operation) + "Async");
                 _out << nl << "/// <summary>The <see cref=\"ResponseDecodeFunc{T}\"/> for the return value "
                         << "type of operation " << operation->name() << ".</summary>";
-                _out << nl << "public static " << toTupleType(returns, ns, false) << ' ' << opName;
+                _out << nl << "public static ValueTask<" << toTupleType(returns, ns, false) << "> " << methodName;
                 _out << "(IceRpc.IncomingResponse response, IceRpc.IInvoker? invoker, ";
-                _out << "IceRpc.Slice.StreamParamReceiver? streamParamReceiver) =>";
+                _out << "IceRpc.Slice.StreamParamReceiver? streamParamReceiver, CancellationToken cancel) =>";
                 _out.inc();
-                _out << nl << "response.ToReturnValue(";
+                _out << nl << "response.ToReturnValueAsync(";
                 _out.inc();
                 _out << nl << "invoker,";
                  if (operation->returnsClasses(true))
@@ -2093,7 +2093,8 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 }
                 _out << nl;
                 writeIncomingResponseDecodeFunc(operation);
-                _out << ");";
+                _out << ",";
+                _out << nl << "cancel);";
                 _out.dec();
                 _out.dec();
             }
@@ -2397,7 +2398,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     }
     if (!voidOp)
     {
-        _out << nl << "Response." << name << ",";
+        _out << nl << "Response." << asyncName << ",";
     }
     else if (streamReturnParam)
     {
@@ -2580,15 +2581,15 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
             auto params = operation->params();
             if (params.size() > 0 && (params.size() > 1 || !params.back()->stream()))
             {
-                string propertyName = fixId(operationName(operation));
+                string methodName = fixId(operationName(operation) + "Async");
                 _out << sp;
                 _out << nl << "/// <summary>Decodes the argument" << (params.size() > 1 ? "s " : " ")
-                     << "of operation " << propertyName << ".</summary>";
+                     << "of operation " << operation->name() << ".</summary>";
 
-                _out << nl << "public static " << toTupleType(params, ns, false) << ' ' << fixId(operationName(operation));
-                _out << "(IceRpc.IncomingRequest request) =>";
+                _out << nl << "public static ValueTask<" << toTupleType(params, ns, false) << "> "
+                    << methodName << "(IceRpc.IncomingRequest request, CancellationToken cancel) =>";
                 _out.inc();
-                _out << nl << "request.ToArgs(";
+                _out << nl << "request.ToArgsAsync(";
                 _out.inc();
                 if (operation->sendsClasses(true))
                 {
@@ -2600,7 +2601,8 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 }
                 _out << nl;
                 writeIncomingRequestDecodeFunc(operation);
-                _out << ");";
+                _out << ",";
+                _out << nl << "cancel);";
                 _out.dec();
                 _out.dec();
             }
@@ -2857,7 +2859,8 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     // that we skip).
     if (params.empty())
     {
-        _out << nl << "request.CheckEmptyArgs(request.GetIceDecoderFactory(_defaultIceDecoderFactories));";
+        _out << nl << "await request.CheckEmptyArgsAsync("
+            << "request.GetIceDecoderFactory(_defaultIceDecoderFactories), cancel).ConfigureAwait(false);";
     }
 
     if (params.size() == 1 && streamParam)
@@ -2881,7 +2884,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     else if (params.size() >= 1)
     {
         _out << nl << "var " << (params.size() == 1 ? paramName(params.front(), "iceP_") : "args")
-             << " = Request." << fixId(opName) << "(request);";
+             << " = await Request." << name << "(request, cancel).ConfigureAwait(false);";
     }
 
     string encoding;

@@ -7,12 +7,14 @@ namespace IceRpc.Slice
     /// <param name="response">The incoming response.</param>
     /// <param name="invoker">The invoker of the proxy used to send this request.</param>
     /// <param name="streamParamReceiver">The stream param receiver from the response.</param>
+    /// <param name="cancel">The cancellation token.</param>
     /// <returns>The response return value.</returns>
     /// <exception cref="RemoteException">Thrown when the response payload carries a failure.</exception>
-    public delegate T ResponseDecodeFunc<T>(
+    public delegate ValueTask<T> ResponseDecodeFunc<T>(
         IncomingResponse response,
         IInvoker? invoker,
-        StreamParamReceiver? streamParamReceiver);
+        StreamParamReceiver? streamParamReceiver,
+        CancellationToken cancel);
 
     /// <summary>Provides extension methods for class Proxy.</summary>
     public static class ProxyExtensions
@@ -69,7 +71,8 @@ namespace IceRpc.Slice
                 (IncomingResponse response, StreamParamReceiver? streamParamReceiver) =
                     await responseTask.ConfigureAwait(false);
 
-                return responseDecodeFunc(response, proxy.Invoker, streamParamReceiver);
+                return await
+                    responseDecodeFunc(response, proxy.Invoker, streamParamReceiver, cancel).ConfigureAwait(false);
             }
         }
 
@@ -119,7 +122,10 @@ namespace IceRpc.Slice
             {
                 (IncomingResponse response, StreamParamReceiver? _) = await responseTask.ConfigureAwait(false);
 
-                response.CheckVoidReturnValue(proxy.Invoker, response.GetIceDecoderFactory(defaultIceDecoderFactories));
+                await response.CheckVoidReturnValueAsync(
+                    proxy.Invoker,
+                    response.GetIceDecoderFactory(defaultIceDecoderFactories),
+                    cancel).ConfigureAwait(false);
             }
         }
     }

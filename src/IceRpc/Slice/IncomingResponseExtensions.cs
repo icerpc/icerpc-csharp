@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using System.Buffers;
 
 namespace IceRpc.Slice
 {
@@ -12,20 +13,31 @@ namespace IceRpc.Slice
         /// <param name="response">The incoming response.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
-        public static void CheckVoidReturnValue(
+        /// <param name="cancel">The cancellation token.</param>
+        public static async ValueTask CheckVoidReturnValueAsync(
             this IncomingResponse response,
             IInvoker? invoker,
-            IIceDecoderFactory<IceDecoder> iceDecoderFactory)
+            IIceDecoderFactory<IceDecoder> iceDecoderFactory,
+            CancellationToken cancel)
         {
-            IceDecoder decoder = iceDecoderFactory.CreateIceDecoder(response.Payload, response.Connection, invoker);
+            int payloadSize = response.Features.GetPrincipalPayloadSize();
 
-            if (response.ResultType == ResultType.Failure)
+            if (payloadSize > 0)
             {
-                throw response.ToRemoteException(decoder);
-            }
-            else
-            {
-                decoder.CheckEndOfBuffer(skipTaggedParams: true);
+                using IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.Rent(payloadSize);
+                Memory<byte> payload = owner.Memory[0..payloadSize];
+                await response.PayloadStream.ReadUntilFullAsync(payload, cancel).ConfigureAwait(false);
+
+                IceDecoder decoder = iceDecoderFactory.CreateIceDecoder(payload, response.Connection, invoker);
+
+                if (response.ResultType == ResultType.Failure)
+                {
+                    throw response.ToRemoteException(decoder);
+                }
+                else
+                {
+                    decoder.CheckEndOfBuffer(skipTaggedParams: true);
+                }
             }
         }
 
@@ -36,12 +48,14 @@ namespace IceRpc.Slice
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
         /// <param name="decodeFunc">The decode function for the return value.</param>
+        /// <param name="cancel">The cancellation token.</param>
         /// <returns>The return value.</returns>
-        public static T ToReturnValue<TDecoder, T>(
+        public static async ValueTask<T> ToReturnValueAsync<TDecoder, T>(
             this IncomingResponse response,
             IInvoker? invoker,
             IIceDecoderFactory<TDecoder> iceDecoderFactory,
-            DecodeFunc<TDecoder, T> decodeFunc) where TDecoder : IceDecoder
+            DecodeFunc<TDecoder, T> decodeFunc,
+            CancellationToken cancel) where TDecoder : IceDecoder
         {
             if (response.PayloadEncoding != iceDecoderFactory.Encoding)
             {
@@ -49,7 +63,18 @@ namespace IceRpc.Slice
                     }; expected a payload encoded with {iceDecoderFactory.Encoding}");
             }
 
-            TDecoder decoder = iceDecoderFactory.CreateIceDecoder(response.Payload, response.Connection, invoker);
+            int payloadSize = response.Features.GetPrincipalPayloadSize();
+
+            if (payloadSize == 0)
+            {
+                throw new InvalidDataException("received response with empty payload for non-void operation");
+            }
+
+            using IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.Rent(payloadSize);
+            Memory<byte> payload = owner.Memory[0..payloadSize];
+            await response.PayloadStream.ReadUntilFullAsync(payload, cancel).ConfigureAwait(false);
+
+            TDecoder decoder = iceDecoderFactory.CreateIceDecoder(payload, response.Connection, invoker);
 
             if (response.ResultType == ResultType.Failure)
             {

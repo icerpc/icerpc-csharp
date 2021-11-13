@@ -107,6 +107,11 @@ namespace IceRpc.Tests.Api
                 {
                     response = await next.InvokeAsync(request, cancel);
                 }
+                else
+                {
+                    // reset payload stream position
+                    response.PayloadStream.Seek(0, SeekOrigin.Begin);
+                }
                 return response;
             }));
 

@@ -36,7 +36,6 @@ namespace IceRpc
                                                 request.Path,
                                                 request.Operation,
                                                 response.ResultType,
-                                                response.PayloadSize,
                                                 response.PayloadEncoding);
                 }
                 return response;
@@ -76,7 +75,6 @@ namespace IceRpc
             string path,
             string operation,
             ResultType resultType,
-            int payloadSize,
             Encoding payloadEncoding)
         {
             if (logger.IsEnabled(LogLevel.Information))
@@ -87,7 +85,6 @@ namespace IceRpc
                     path,
                     operation,
                     resultType,
-                    payloadSize,
                     payloadEncoding);
             }
         }
@@ -131,7 +128,7 @@ namespace IceRpc
             EventName = nameof(LoggerInterceptorEventIds.ReceivedResponse),
             Level = LogLevel.Information,
             Message = "received response (LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint}, " +
-                      "Path={Path}, Operation={Operation}, ResultType={ResultType}, PayloadSize={PayloadSize}, " +
+                      "Path={Path}, Operation={Operation}, ResultType={ResultType}, " +
                       "PayloadEncoding={PayloadEncoding})")]
         private static partial void LogReceivedResponse(
             this ILogger logger,
@@ -140,7 +137,6 @@ namespace IceRpc
             string path,
             string operation,
             ResultType resultType,
-            int payloadSize,
             Encoding payloadEncoding);
 
         [LoggerMessage(

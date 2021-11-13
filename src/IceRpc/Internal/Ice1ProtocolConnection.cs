@@ -141,11 +141,18 @@ namespace IceRpc.Internal
                         $"request payload size mismatch: expected {payloadSize} bytes, read {payload.Length} bytes");
                 }
 
+                var features = FeatureCollection.Empty;
+                if (payloadSize > 0)
+                {
+                    features = features.WithPrincipalPayloadSize(payloadSize);
+                }
+
                 var request = new IncomingRequest(
                     Protocol.Ice1,
                     path: requestHeader.IdentityAndFacet.ToPath(),
                     operation: requestHeader.Operation)
                 {
+                    Features = features,
                     IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
                     IsOneway = requestId == 0,
                     PayloadEncoding = Encoding.FromMajorMinor(
@@ -189,7 +196,7 @@ namespace IceRpc.Internal
             }
 
             // Wait for the response.
-            ReadOnlyMemory<byte> buffer;
+            ArraySegment<byte> buffer;
             try
             {
                 buffer = await requestFeature.ResponseCompletionSource.Task.WaitAsync(cancel).ConfigureAwait(false);
@@ -246,13 +253,21 @@ namespace IceRpc.Internal
                     @$"response payload size mismatch: expected {payloadSize} bytes, read {payload.Length} bytes");
             }
 
+            Stream payloadStream = Stream.Null;
+
+            if (payload.Length > 0)
+            {
+                features = features.WithPrincipalPayloadSize(payload.Length);
+                payloadStream = new MemoryStream(buffer.Array!, buffer.Offset + decoder.Pos, payload.Length);
+            }
+
             return new IncomingResponse(
                 Protocol.Ice1,
                 replyStatus == ReplyStatus.OK ? ResultType.Success : ResultType.Failure)
             {
                 Features = features,
                 PayloadEncoding = payloadEncoding,
-                Payload = payload
+                PayloadStream = payloadStream
             };
         }
 
