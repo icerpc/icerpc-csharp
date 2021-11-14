@@ -120,7 +120,7 @@ namespace IceRpc.Internal
                 int payloadSize = decoder.DecodeSize();
                 if (payloadSize > 0)
                 {
-                    features = features.WithPrincipalPayloadSize(payloadSize);
+                    features = features.WithPayloadSize(payloadSize);
                 }
 
                 // Decode Context from Fields and set corresponding feature.
@@ -226,7 +226,7 @@ namespace IceRpc.Internal
                 int payloadSize = decoder.DecodeSize(); // TODO: move to fields
                 if (payloadSize > 0)
                 {
-                    features = features.WithPrincipalPayloadSize(payloadSize);
+                    features = features.WithPayloadSize(payloadSize);
                 }
 
                 Encoding payloadEncoding = responseHeaderBody.PayloadEncoding is string encoding ?

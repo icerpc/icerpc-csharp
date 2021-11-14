@@ -144,7 +144,7 @@ namespace IceRpc.Internal
                 FeatureCollection features = FeatureCollection.Empty;
                 if (payloadSize > 0)
                 {
-                    features = features.WithPrincipalPayloadSize(payloadSize);
+                    features = features.WithPayloadSize(payloadSize);
                 }
 
                 var request = new IncomingRequest(
@@ -257,7 +257,7 @@ namespace IceRpc.Internal
 
             if (payload.Length > 0)
             {
-                features = features.WithPrincipalPayloadSize(payload.Length);
+                features = features.WithPayloadSize(payload.Length);
                 payloadStream = new MemoryStream(buffer.Array!, buffer.Offset + decoder.Pos, payload.Length);
             }
 

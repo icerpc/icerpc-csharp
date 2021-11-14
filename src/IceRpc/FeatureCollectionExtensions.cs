@@ -24,11 +24,11 @@ namespace IceRpc
         public static IDictionary<string, string> GetContext(this FeatureCollection features) =>
             features.Get<Context>()?.Value ?? ImmutableSortedDictionary<string, string>.Empty;
 
-        /// <summary>Returns the principal payload size from this feature collection.</summary>
+        /// <summary>Returns the payload size from this feature collection.</summary>
         /// <param name="features">This feature collection.</param>
-        /// <returns>The value of the principal payload size if found, and otherwise 0.</returns>
-        public static int GetPrincipalPayloadSize(this FeatureCollection features) =>
-            features.Get<PrincipalPayloadSize>()?.Value ?? 0;
+        /// <returns>The value of the payload size if found; otherwise 0.</returns>
+        public static int GetPayloadSize(this FeatureCollection features) =>
+            features.Get<PayloadSize>()?.Value ?? 0;
 
         /// <summary>Returns the request ID value from this feature collection.</summary>
         /// <param name="features">This feature collection.</param>
@@ -61,25 +61,25 @@ namespace IceRpc
             IDictionary<string, string> value) => features.With(new Context(value));
 
         /// <summary>Updates this feature collection (if read-write) or creates a new feature collection (if read-only)
-        /// and sets the principal payload size.</summary>
+        /// and sets the payload size.</summary>
         /// <param name="features">This feature collection.</param>
-        /// <param name="value">The new value for the principal payload size.</param>
+        /// <param name="value">The new value for the payload size.</param>
         /// <returns>The updated feature collection.</returns>
-        public static FeatureCollection WithPrincipalPayloadSize(this FeatureCollection features, int value)
+        public static FeatureCollection WithPayloadSize(this FeatureCollection features, int value)
         {
             if (value == 0)
             {
-                if (features.GetPrincipalPayloadSize() != 0)
+                if (features.GetPayloadSize() != 0)
                 {
                     // Remove entry
                     Debug.Assert(!features.IsReadOnly);
-                    features[typeof(PrincipalPayloadSize)] = null;
+                    features[typeof(PayloadSize)] = null;
                 }
                 return features;
             }
             else
             {
-                return features.With(new PrincipalPayloadSize(value));
+                return features.With(new PayloadSize(value));
             }
         }
     }

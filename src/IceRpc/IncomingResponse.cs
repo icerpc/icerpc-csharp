@@ -33,7 +33,7 @@ namespace IceRpc
             CancellationToken cancel)
         {
             // TODO: we should only retrieve it when converting exceptions
-            int payloadSize = Features.GetPrincipalPayloadSize();
+            int payloadSize = Features.GetPayloadSize();
             Memory<byte> payloadBuffer; // temporary
 
             if (ResultType == ResultType.Failure && Protocol != targetProtocol)

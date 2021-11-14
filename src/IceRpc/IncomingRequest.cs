@@ -97,7 +97,7 @@ namespace IceRpc
             }
 
             // TODO: the payload conversion is temporary
-            int payloadSize = Features.GetPrincipalPayloadSize();
+            int payloadSize = Features.GetPayloadSize();
             Memory<byte> payloadBuffer = new byte[payloadSize];
             if (payloadSize > 0)
             {
