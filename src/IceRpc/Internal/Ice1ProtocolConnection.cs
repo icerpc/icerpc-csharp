@@ -141,7 +141,7 @@ namespace IceRpc.Internal
                         $"request payload size mismatch: expected {payloadSize} bytes, read {payload.Length} bytes");
                 }
 
-                var features = FeatureCollection.Empty;
+                FeatureCollection features = FeatureCollection.Empty;
                 if (payloadSize > 0)
                 {
                     features = features.WithPrincipalPayloadSize(payloadSize);
@@ -260,6 +260,15 @@ namespace IceRpc.Internal
                 features = features.WithPrincipalPayloadSize(payload.Length);
                 payloadStream = new MemoryStream(buffer.Array!, buffer.Offset + decoder.Pos, payload.Length);
             }
+
+            // In theory, we could receive the incoming response payload piecemeal because the response header has a
+            // fixed size.
+            // But this would have several downsides:
+            // - the simple transports are not multiplexed and as a result we could not receive anything else on that
+            // connection until the incoming response payload stream is fully read
+            // - the only way to discard a response we're not interesting in is by reading it entirely
+            // - it would be harder to check that the number of bytes in the payload stream corresponds to the
+            // payload size read from the response header
 
             return new IncomingResponse(
                 Protocol.Ice1,
