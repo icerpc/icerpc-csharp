@@ -104,56 +104,47 @@ namespace IceRpc
                 if (Protocol == Protocol.Ice1)
                 {
                     PerformListen(SimpleServerTransport,
-                                  Connection.CreateProtocolConnectionAsync,
+                                  Ice1Protocol.Instance.ProtocolConnectionFactory,
                                   LogSimpleNetworkConnectionDecorator.Decorate);
                 }
                 else
                 {
                     PerformListen(MultiplexedServerTransport,
-                                  Connection.CreateProtocolConnectionAsync,
+                                  Ice2Protocol.Instance.ProtocolConnectionFactory,
                                   LogMultiplexedNetworkConnectionDecorator.Decorate);
                 }
             }
 
             void PerformListen<T>(
                 IServerTransport<T> serverTransport,
-                ProtocolConnectionFactory<T> protocolConnectionFactory,
+                IProtocolConnectionFactory<T> protocolConnectionFactory,
                 LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory) where T : INetworkConnection
             {
-                IListener<T> listener = serverTransport.Listen(_endpoint, LoggerFactory);
+                // This is the composition root of Server, where we install log decorators when logging is enabled.
+
+                ILogger logger = LoggerFactory.CreateLogger("IceRpc.Server");
+
+                IListener<T> listener = serverTransport.Listen(_endpoint, logger);
                 _listener = listener;
                 _endpoint = listener.Endpoint;
 
-                // This is the composition root of Server, where we install log decorators when logging is enabled.
-
                 EventHandler<ClosedEventArgs>? closedEventHandler = null;
 
-                if (LoggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger &&
-                    logger.IsEnabled(LogLevel.Error))
+                if (logger.IsEnabled(LogLevel.Error)) // TODO: log level
                 {
                     listener = new LogListenerDecorator<T>(listener, logger, logDecoratorFactory);
+                    _listener = listener;
 
-                    ProtocolConnectionFactory<T> createProtocolConnectionAsync = protocolConnectionFactory;
-
-                    protocolConnectionFactory = async (networkConnection, incomingFrameMaxSize, isServer, cancel) =>
-                    {
-                        (IProtocolConnection protocolConnection, NetworkConnectionInformation connectionInformation) =
-                            await createProtocolConnectionAsync(networkConnection,
-                                                                incomingFrameMaxSize,
-                                                                isServer,
-                                                                cancel).ConfigureAwait(false);
-
-                        return (new LogProtocolConnectionDecorator(protocolConnection, logger), connectionInformation);
-                    };
+                    protocolConnectionFactory =
+                        new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, _endpoint, logger);
 
                     closedEventHandler = (sender, args) =>
                     {
                         if (sender is Connection connection && args.Exception is Exception exception)
                         {
                             // This event handler is added/executed after NetworkConnectionInformation is set.
-                            using IDisposable? scope =
-                               logger.StartConnectionScope(connection.NetworkConnectionInformation!.Value,
-                                                           isServer: true);
+                            using IDisposable scope =
+                               logger.StartServerConnectionScope(connection.NetworkConnectionInformation!.Value);
                             logger.LogConnectionClosedReason(exception);
                         }
                     };
@@ -241,7 +232,7 @@ namespace IceRpc
 
         private async Task AcceptAsync<T>(
             IListener<T> listener,
-            ProtocolConnectionFactory<T> protocolConnectionFactory,
+            IProtocolConnectionFactory<T> protocolConnectionFactory,
             EventHandler<ClosedEventArgs>? closedEventHandler) where T : INetworkConnection
         {
             while (true)

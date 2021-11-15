@@ -208,6 +208,8 @@ namespace IceRpc.Transports.Internal
 
         private readonly EndPoint _addr;
         private readonly SslClientAuthenticationOptions? _authenticationOptions;
+
+        private bool _connected;
         private readonly TimeSpan _idleTimeout;
 
         private readonly Endpoint _remoteEndpoint;
@@ -215,6 +217,9 @@ namespace IceRpc.Transports.Internal
 
         public override async Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel)
         {
+            Debug.Assert(!_connected);
+            _connected = true;
+
             bool? tls = _remoteEndpoint.ParseTcpParams().Tls;
 
             Endpoint remoteEndpoint = _remoteEndpoint;
@@ -353,7 +358,7 @@ namespace IceRpc.Transports.Internal
         // See https://tools.ietf.org/html/rfc5246#appendix-A.4
         private const byte TlsHandshakeRecord = 0x16;
         private readonly SslServerAuthenticationOptions? _authenticationOptions;
-
+        private bool _connected;
         private readonly TimeSpan _idleTimeout;
         private readonly Endpoint _localEndpoint;
         private SslStream? _sslStream;
@@ -362,6 +367,9 @@ namespace IceRpc.Transports.Internal
 
         public override async Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel)
         {
+            Debug.Assert(!_connected);
+            _connected = true;
+
             try
             {
                 bool secure;

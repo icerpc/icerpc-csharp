@@ -232,9 +232,9 @@ namespace IceRpc.Tests.Internal
             IClientTransport<ISimpleNetworkConnection> clientTransport =
                 new TcpClientTransport(tcpOptions ?? new TcpClientOptions());
 
-            // We pass the null logger factory to avoid decoration of the resulting connection.
+            // We pass the null logger to avoid decoration of the resulting connection.
             ISimpleNetworkConnection clientConnection =
-                clientTransport.CreateConnection(endpoint, NullLoggerFactory.Instance);
+                clientTransport.CreateConnection(endpoint, NullLogger.Instance);
 
             return (TcpClientNetworkConnection)clientConnection;
         }
@@ -252,8 +252,8 @@ namespace IceRpc.Tests.Internal
             host ??= _isIPv6 ? "[::1]" : "127.0.0.1";
             Endpoint endpoint = $"ice+tcp://{host}:0?tls=false";
 
-            // We pass the null logger factory to avoid decoration of the listener.
-            return serverTransport.Listen(endpoint, NullLoggerFactory.Instance);
+            // We pass the null logger to avoid decoration of the listener.
+            return serverTransport.Listen(endpoint, NullLogger.Instance);
         }
     }
 }

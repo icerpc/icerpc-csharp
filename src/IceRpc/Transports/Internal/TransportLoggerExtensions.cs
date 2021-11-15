@@ -4,185 +4,99 @@ using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>This class contains ILogger extension methods for logging transport messages.</summary>
+    /// <summary>This class contains ILogger extension methods for logging calls to the transport APIs.</summary>
     internal static partial class TransportLoggerExtensions
     {
-        private static readonly Func<ILogger, string, IDisposable> _listenerScope =
-            LoggerMessage.DefineScope<string>("server(Endpoint={Server})");
-
-        private static readonly Func<ILogger, bool, string, string, IDisposable> _connectionScope =
-            LoggerMessage.DefineScope<bool, string, string>(
-                "connection(IsServer={IsServer}, LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint})");
-
-        private static readonly Func<ILogger, long, string, string, IDisposable> _streamScope =
-            LoggerMessage.DefineScope<long, string, string>("stream(ID={ID}, InitiatedBy={InitiatedBy}, Kind={Kind})");
+        private static readonly Func<ILogger, long, string, string, IDisposable> _multiplexedStreamScope =
+            LoggerMessage.DefineScope<long, string, string>(
+                "MultiplexedStream(ID={ID}, InitiatedBy={InitiatedBy}, Kind={Kind})");
 
         [LoggerMessage(
-            EventId = (int)TransportEventIds.ClientConnectionClosed,
-            EventName = nameof(TransportEventIds.ClientConnectionClosed),
+            EventId = (int)TransportEventIds.Connect,
+            EventName = nameof(TransportEventIds.Connect),
             Level = LogLevel.Debug,
-            Message = "closed client connection")]
-        internal static partial void LogClientConnectionClosed(this ILogger logger);
+            Message = "network connection established: LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint}")]
+        internal static partial void LogConnect(this ILogger logger, Endpoint localEndpoint, Endpoint remoteEndpoint);
 
         [LoggerMessage(
-            EventId = (int)TransportEventIds.ConnectionAccepted,
-            EventName = nameof(TransportEventIds.ConnectionAccepted),
+            EventId = (int)TransportEventIds.ConnectFailed,
+            EventName = nameof(TransportEventIds.ConnectFailed),
             Level = LogLevel.Debug,
-            Message = "accepted connection")]
-        internal static partial void LogConnectionAccepted(this ILogger logger);
+            Message = "connect failed")]
+        internal static partial void LogConnectFailed(this ILogger logger, Exception exception);
 
         [LoggerMessage(
-            EventId = (int)TransportEventIds.ConnectionAcceptFailed,
-            EventName = nameof(TransportEventIds.ConnectionAcceptFailed),
-            Level = LogLevel.Debug,
-            Message = "failed to accept connection")]
-        internal static partial void LogConnectionAcceptFailed(this ILogger logger, Exception? exception);
-
-        [LoggerMessage(
-            EventId = (int)TransportEventIds.ConnectionClosedReason,
-            EventName = nameof(TransportEventIds.ConnectionClosedReason),
-            Level = LogLevel.Debug,
-            Message = "connection closed due to exception")]
-        internal static partial void LogConnectionClosedReason(this ILogger logger, Exception exception);
-
-        [LoggerMessage(
-            EventId = (int)TransportEventIds.ConnectionConnectFailed,
-            EventName = nameof(TransportEventIds.ConnectionConnectFailed),
-            Level = LogLevel.Debug,
-            Message = "connection establishment failed")]
-        internal static partial void LogConnectionConnectFailed(this ILogger logger, Exception? exception);
-
-        [LoggerMessage(
-            EventId = (int)TransportEventIds.ConnectionEstablished,
-            EventName = nameof(TransportEventIds.ConnectionEstablished),
-            Level = LogLevel.Debug,
-            Message = "established connection")]
-        internal static partial void LogConnectionEstablished(this ILogger logger);
-
-        [LoggerMessage(
-            EventId = (int)TransportEventIds.ListenerAcceptConnectionFailed,
-            EventName = nameof(TransportEventIds.ListenerAcceptConnectionFailed),
+            EventId = (int)TransportEventIds.ListenerAcceptFailed,
+            EventName = nameof(TransportEventIds.ListenerAcceptFailed),
             Level = LogLevel.Error,
-            Message = "server `{endpoint}' failed to accept a new connection")]
-        internal static partial void LogListenerAcceptingConnectionFailed(
+            Message = "listener '{endpoint}' failed to accept a new connection")]
+        internal static partial void LogListenerAcceptFailed(
             this ILogger logger,
             Endpoint endpoint,
             Exception ex);
 
         [LoggerMessage(
-            EventId = (int)TransportEventIds.ListenerListening,
-            EventName = nameof(TransportEventIds.ListenerListening),
+            EventId = (int)TransportEventIds.ListenerCreated,
+            EventName = nameof(TransportEventIds.ListenerCreated),
             Level = LogLevel.Information,
-            Message = "server '{endpoint}' is listening")]
-        internal static partial void LogListenerListening(this ILogger logger, Endpoint endpoint);
+            Message = "listener '{endpoint}' started")]
+        internal static partial void LogListenerCreated(this ILogger logger, Endpoint endpoint);
 
         [LoggerMessage(
-            EventId = (int)TransportEventIds.ListenerShutDown,
-            EventName = nameof(TransportEventIds.ListenerShutDown),
-            Level = LogLevel.Debug,
-            Message = "server '{endpoint}' is no longer accepting connections")]
-        internal static partial void LogListenerShutDown(this ILogger logger, Endpoint endpoint);
+            EventId = (int)TransportEventIds.ListenerDisposed,
+            EventName = nameof(TransportEventIds.ListenerDisposed),
+            Level = LogLevel.Information,
+            Message = "listener '{endpoint}' shut down")]
+        internal static partial void LogListenerDispose(this ILogger logger, Endpoint endpoint);
 
         [LoggerMessage(
-            EventId = (int)TransportEventIds.ConnectionEventHandlerException,
-            EventName = nameof(TransportEventIds.ConnectionEventHandlerException),
-            Level = LogLevel.Warning,
-            Message = "{Name} event handler raised exception")]
-        internal static partial void LogConnectionEventHandlerException(this ILogger logger, string name, Exception ex);
-
-        [LoggerMessage(
-            EventId = (int)TransportEventIds.ReceivedData,
-            EventName = nameof(TransportEventIds.ReceivedData),
+            EventId = (int)TransportEventIds.MultiplexedStreamRead,
+            EventName = nameof(TransportEventIds.MultiplexedStreamRead),
             Level = LogLevel.Trace,
-            Message = "received {Size} bytes ({Data})")]
-        internal static partial void LogReceivedData(this ILogger logger, int size, string data);
+            Message = "read {Size} bytes from multiplexed stream ({Data})")]
+        internal static partial void LogMultiplexedStreamRead(
+            this ILogger logger,
+            int size,
+            string data);
 
         [LoggerMessage(
-            EventId = (int)TransportEventIds.ReceivedInvalidDatagram,
-            EventName = nameof(TransportEventIds.ReceivedInvalidDatagram),
-            Level = LogLevel.Debug,
-            Message = "received invalid {Bytes} bytes datagram")]
-        internal static partial void LogReceivedInvalidDatagram(this ILogger logger, int bytes);
-
-        [LoggerMessage(
-            EventId = (int)TransportEventIds.SentData,
-            EventName = nameof(TransportEventIds.SentData),
+            EventId = (int)TransportEventIds.MultiplexedStreamWrite,
+            EventName = nameof(TransportEventIds.MultiplexedStreamWrite),
             Level = LogLevel.Trace,
-            Message = "sent {Size} bytes ({Data})")]
-        internal static partial void LogSentData(this ILogger logger, int size, string data);
-
-        [LoggerMessage(
-            EventId = (int)TransportEventIds.ServerConnectionClosed,
-            EventName = nameof(TransportEventIds.ServerConnectionClosed),
-            Level = LogLevel.Debug,
-            Message = "closed server connection")]
-        internal static partial void LogServerConnectionClosed(this ILogger logger);
-
-        [LoggerMessage(
-            EventId = (int)TransportEventIds.StartReceivingDatagrams,
-            EventName = nameof(TransportEventIds.StartReceivingDatagrams),
-            Level = LogLevel.Information,
-            Message = "starting to receive datagrams")]
-        internal static partial void LogStartReceivingDatagrams(this ILogger logger);
-
-        [LoggerMessage(
-            EventId = (int)TransportEventIds.StartReceivingDatagramsFailed,
-            EventName = nameof(TransportEventIds.StartReceivingDatagramsFailed),
-            Level = LogLevel.Information,
-            Message = "starting receiving datagrams failed")]
-        internal static partial void LogStartReceivingDatagramsFailed(this ILogger logger, Exception? exception);
-
-        [LoggerMessage(
-            EventId = (int)TransportEventIds.StartSendingDatagrams,
-            EventName = nameof(TransportEventIds.StartSendingDatagrams),
-            Level = LogLevel.Debug,
-            Message = "starting to send datagrams")]
-        internal static partial void LogStartSendingDatagrams(this ILogger logger);
-
-        [LoggerMessage(
-            EventId = (int)TransportEventIds.StartSendingDatagramsFailed,
-            EventName = nameof(TransportEventIds.StartSendingDatagramsFailed),
-            Level = LogLevel.Debug,
-            Message = "starting sending datagrams failed")]
-        internal static partial void LogStartSendingDatagramsFailed(this ILogger logger, Exception? exception);
-
-        [LoggerMessage(
-            EventId = (int)TransportEventIds.StopReceivingDatagrams,
-            EventName = nameof(TransportEventIds.StopReceivingDatagrams),
-            Level = LogLevel.Information,
-            Message = "stopping to receive datagrams")]
-        internal static partial void LogStopReceivingDatagrams(this ILogger logger);
-
-        internal static IDisposable? StartListenerScope(this ILogger logger, IListener listener) =>
-            logger.IsEnabled(LogLevel.Error) ? _listenerScope(logger, listener.Endpoint.ToString()) : null;
-
-        internal static IDisposable? StartConnectionScope(
+            Message = "wrote {Size} bytes to multiplexed stream ({Data})")]
+        internal static partial void LogMultiplexedStreamWrite(
             this ILogger logger,
-            NetworkConnectionInformation information,
-            bool isServer) =>
-            _connectionScope(
-                logger,
-                isServer,
-                information.LocalEndpoint.ToString(),
-                information.RemoteEndpoint.ToString());
+            int size,
+            string data);
 
-        internal static IDisposable? StartConnectionScope(
-            this ILogger logger,
-            Endpoint endpoint,
-            bool isServer) =>
-            _connectionScope(
-                logger,
-                isServer,
-                isServer ? endpoint.ToString() : "undefined",
-                isServer ? "undefined" : endpoint.ToString());
+        [LoggerMessage(
+            EventId = (int)TransportEventIds.SimpleStreamRead,
+            EventName = nameof(TransportEventIds.SimpleStreamRead),
+            Level = LogLevel.Trace,
+            Message = "read {Size} bytes from simple stream ({Data})")]
+        internal static partial void LogSimpleStreamRead(this ILogger logger, int size, string data);
 
-        internal static IDisposable? StartStreamScope(this ILogger logger, long id) =>
+        [LoggerMessage(
+            EventId = (int)TransportEventIds.SimpleStreamWrite,
+            EventName = nameof(TransportEventIds.SimpleStreamWrite),
+            Level = LogLevel.Trace,
+            Message = "wrote {Size} bytes to simple stream ({Data})")]
+        internal static partial void LogSimpleStreamWrite(this ILogger logger, int size, string data);
+
+        [LoggerMessage(
+            EventId = (int)TransportEventIds.ConnectionDispose,
+            EventName = nameof(TransportEventIds.ConnectionDispose),
+            Level = LogLevel.Debug,
+            Message = "connection closed")]
+        internal static partial void LogConnectionDispose(this ILogger logger);
+
+        internal static IDisposable StartMultiplexedStreamScope(this ILogger logger, long id) =>
             (id % 4) switch
             {
-                0 => _streamScope(logger, id, "Client", "Bidirectional"),
-                1 => _streamScope(logger, id, "Server", "Bidirectional"),
-                2 => _streamScope(logger, id, "Client", "Unidirectional"),
-                _ => _streamScope(logger, id, "Server", "Unidirectional")
+                0 => _multiplexedStreamScope(logger, id, "Client", "Bidirectional"),
+                1 => _multiplexedStreamScope(logger, id, "Server", "Bidirectional"),
+                2 => _multiplexedStreamScope(logger, id, "Client", "Unidirectional"),
+                _ => _multiplexedStreamScope(logger, id, "Server", "Unidirectional")
             };
     }
 }

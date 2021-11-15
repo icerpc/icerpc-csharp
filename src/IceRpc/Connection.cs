@@ -196,10 +196,10 @@ namespace IceRpc
 
                     _connectTask = Protocol == Protocol.Ice1 ?
                         PerformConnectAsync(SimpleClientTransport,
-                                            CreateProtocolConnectionAsync,
+                                            Ice1Protocol.Instance.ProtocolConnectionFactory,
                                             LogSimpleNetworkConnectionDecorator.Decorate) :
                         PerformConnectAsync(MultiplexedClientTransport,
-                                            CreateProtocolConnectionAsync,
+                                            Ice2Protocol.Instance.ProtocolConnectionFactory,
                                             LogMultiplexedNetworkConnectionDecorator.Decorate);
                 }
 
@@ -211,45 +211,32 @@ namespace IceRpc
 
             Task PerformConnectAsync<T>(
                 IClientTransport<T> clientTransport,
-                ProtocolConnectionFactory<T> protocolConnectionFactory,
+                IProtocolConnectionFactory<T> protocolConnectionFactory,
                 LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory) where T : INetworkConnection
             {
                 // This is the composition root of client Connections, where we install log decorators when logging is
                 // enabled.
 
-                T networkConnection = clientTransport.CreateConnection(RemoteEndpoint, LoggerFactory);
+                ILogger logger = LoggerFactory.CreateLogger("IceRpc.Client");
+
+                T networkConnection = clientTransport.CreateConnection(RemoteEndpoint, logger);
 
                 EventHandler<ClosedEventArgs>? closedEventHandler = null;
 
-                if (LoggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger &&
-                    logger.IsEnabled(LogLevel.Error)) // TODO: log level
+                if (logger.IsEnabled(LogLevel.Error)) // TODO: log level
                 {
-                    networkConnection = logDecoratorFactory(networkConnection,
-                                                            isServer: false,
-                                                            RemoteEndpoint,
-                                                            logger);
+                    networkConnection = logDecoratorFactory(networkConnection, isServer: false, logger);
 
-                    ProtocolConnectionFactory<T> createProtocolConnectionAsync = protocolConnectionFactory;
-
-                    protocolConnectionFactory = async (networkConnection, incomingFrameMaxSize, isServer, cancel) =>
-                    {
-                        (IProtocolConnection protocolConnection, NetworkConnectionInformation connectionInformation) =
-                            await createProtocolConnectionAsync(networkConnection,
-                                                                incomingFrameMaxSize,
-                                                                isServer,
-                                                                cancel).ConfigureAwait(false);
-
-                        return (new LogProtocolConnectionDecorator(protocolConnection, logger),
-                                connectionInformation);
-                    };
+                    protocolConnectionFactory =
+                        new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, RemoteEndpoint, logger);
 
                     closedEventHandler = (sender, args) =>
                     {
                         if (args.Exception is Exception exception)
                         {
                             // This event handler is added/executed after NetworkConnectionInformation is set.
-                            using IDisposable? scope =
-                                logger.StartConnectionScope(NetworkConnectionInformation!.Value, isServer: false);
+                            using IDisposable scope =
+                                logger.StartClientConnectionScope(NetworkConnectionInformation!.Value);
                             logger.LogConnectionClosedReason(exception);
                         }
                     };
@@ -398,61 +385,6 @@ namespace IceRpc
         /// <inheritdoc/>
         public override string ToString() => _networkConnection?.ToString() ?? "";
 
-        /// <summary>The main implementation of <see cref="ProtocolConnectionFactory{IMultiplexedNetworkConnection}"/>.
-        /// </summary>
-        internal static async Task<(IProtocolConnection, NetworkConnectionInformation)> CreateProtocolConnectionAsync(
-            IMultiplexedNetworkConnection networkConnection,
-            int incomingFrameMaxSize,
-            bool _,
-            CancellationToken cancel)
-        {
-            (IMultiplexedStreamFactory streamFactory, NetworkConnectionInformation connectionInfo) =
-                await networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
-
-            var protocolConnection = new Ice2ProtocolConnection(streamFactory, incomingFrameMaxSize);
-            try
-            {
-                await protocolConnection.InitializeAsync(cancel).ConfigureAwait(false);
-            }
-            catch
-            {
-                protocolConnection.Dispose();
-                throw;
-            }
-            return (protocolConnection, connectionInfo);
-        }
-
-        /// <summary>The main implementation of <see cref="ProtocolConnectionFactory{ISimpleNetworkConnection}"/>.
-        /// </summary>
-        internal static async Task<(IProtocolConnection, NetworkConnectionInformation)> CreateProtocolConnectionAsync(
-            ISimpleNetworkConnection networkConnection,
-            int incomingFrameMaxSize,
-            bool isServer,
-            CancellationToken cancel)
-        {
-            (ISimpleStream simpleStream, NetworkConnectionInformation connectionInfo) =
-                await networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
-
-            // Check if we're using the special udp transport for ice1
-            bool isUdp = connectionInfo.LocalEndpoint.Transport == TransportNames.Udp;
-            if (isUdp)
-            {
-                incomingFrameMaxSize = Math.Min(incomingFrameMaxSize, UdpUtils.MaxPacketSize);
-            }
-
-            var protocolConnection = new Ice1ProtocolConnection(simpleStream, incomingFrameMaxSize, isUdp);
-            try
-            {
-                await protocolConnection.InitializeAsync(isServer, cancel).ConfigureAwait(false);
-            }
-            catch
-            {
-                protocolConnection.Dispose();
-                throw;
-            }
-            return (protocolConnection, connectionInfo);
-        }
-
         /// <summary>Constructs a server connection from an accepted network connection.</summary>
         internal Connection(INetworkConnection connection, Protocol protocol)
         {
@@ -463,13 +395,12 @@ namespace IceRpc
 
         /// <summary>Establishes a connection. This method is used for both client and server connections.</summary>
         /// <param name="networkConnection">The underlying network connection.</param>
-        /// <param name="protocolConnectionFactory">A factory function that creates a protocol connection from a
-        /// a network connection.</param>
+        /// <param name="protocolConnectionFactory">The protocol connection factory.</param>
         /// <param name="closedEventHandler">A closed event handler added to the connection once the connection is
         /// active.</param>
         internal async Task ConnectAsync<T>(
             T networkConnection,
-            ProtocolConnectionFactory<T> protocolConnectionFactory,
+            IProtocolConnectionFactory<T> protocolConnectionFactory,
             EventHandler<ClosedEventArgs>? closedEventHandler) where T : INetworkConnection
         {
             using var connectCancellationSource = new CancellationTokenSource(Options.ConnectTimeout);
@@ -479,10 +410,11 @@ namespace IceRpc
                 await Task.Yield();
 
                 (_protocolConnection, NetworkConnectionInformation) =
-                    await protocolConnectionFactory(networkConnection,
-                                                    Options.IncomingFrameMaxSize,
-                                                    IsServer,
-                                                    connectCancellationSource.Token).ConfigureAwait(false);
+                    await protocolConnectionFactory.CreateProtocolConnectionAsync(
+                        networkConnection,
+                        Options.IncomingFrameMaxSize,
+                        IsServer,
+                        connectCancellationSource.Token).ConfigureAwait(false);
 
                 lock (_mutex)
                 {

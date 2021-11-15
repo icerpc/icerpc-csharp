@@ -70,19 +70,19 @@ namespace IceRpc.Tests.Internal
                         TestHelper.CreateSimpleServerTransport(
                             Endpoint.Transport,
                             options: _serverTransportOptions),
-                            Connection.CreateProtocolConnectionAsync) :
+                        Ice1Protocol.Instance.ProtocolConnectionFactory) :
                     PerformAcceptAndConnectAsync(
                         TestHelper.CreateMultiplexedServerTransport(
                             Endpoint.Transport,
                             options: _serverTransportOptions as TcpServerOptions),
-                        Connection.CreateProtocolConnectionAsync);
+                        Ice2Protocol.Instance.ProtocolConnectionFactory);
 
                 async Task<(Connection, Connection)> PerformAcceptAndConnectAsync<T>(
                     IServerTransport<T> serverTransport,
-                    ProtocolConnectionFactory<T> protocolConnectionFactory) where T : INetworkConnection
+                    IProtocolConnectionFactory<T> protocolConnectionFactory) where T : INetworkConnection
                 {
                     await using IListener<T> listener =
-                        serverTransport.Listen(Endpoint, LogAttributeLoggerFactory.Instance);
+                        serverTransport.Listen(Endpoint, LogAttributeLoggerFactory.Instance.Logger);
                     Task<Connection> serverTask = AcceptAsync(listener, protocolConnectionFactory);
                     Task<Connection> clientTask = ConnectAsync(listener.Endpoint);
                     return (await serverTask, await clientTask);
@@ -90,7 +90,7 @@ namespace IceRpc.Tests.Internal
 
                 async Task<Connection> AcceptAsync<T>(
                     IListener<T> listener,
-                    ProtocolConnectionFactory<T> protocolConnectionFactory) where T : INetworkConnection
+                    IProtocolConnectionFactory<T> protocolConnectionFactory) where T : INetworkConnection
                 {
                     T networkConnection = await listener.AcceptAsync();
 
@@ -307,9 +307,9 @@ namespace IceRpc.Tests.Internal
                 new TcpServerTransport(new TcpServerOptions { ListenerBackLog = 1 });
 
             await using IListener listener = protocol == ProtocolCode.Ice1 ?
-                tcpServerTransport.Listen(endpoint, LogAttributeLoggerFactory.Instance) :
+                tcpServerTransport.Listen(endpoint, LogAttributeLoggerFactory.Instance.Logger) :
                 (new SlicServerTransport(tcpServerTransport) as IServerTransport<IMultiplexedNetworkConnection>).
-                    Listen(endpoint, LogAttributeLoggerFactory.Instance);
+                    Listen(endpoint, LogAttributeLoggerFactory.Instance.Logger);
 
             await using var connection = new Connection
             {

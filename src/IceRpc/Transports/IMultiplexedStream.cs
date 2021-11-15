@@ -50,11 +50,11 @@ namespace IceRpc.Transports
         /// <summary>Sets the action which is called when the stream is reset.</summary>
         Action? ShutdownAction { get; set; }
 
-        /// <summary>The transport header sentinel. Transport implementations that need to add an additional header to
-        /// transmit data over the stream can provide the header data here. This can improve performance by reducing the
-        /// number of allocations since the protocol implementation  will allocate buffer space for both the transport
-        /// header and the protocol header. If a header is returned here, the implementation of the <see
-        /// cref="WriteAsync"/> method should expect this header to be set at the start of the first buffer.</summary>
+        /// <summary>The transport header sentinel. Transport implementations that need an additional header to transmit
+        /// data over the stream can provide the header data here. This can improve performance by reducing the number
+        /// of allocations since the protocol implementation will allocate buffer space for both the transport header
+        /// and the protocol header. If a header is returned here, the implementation of <see cref="WriteAsync"/> can
+        /// expect this header to be set at the start of the first buffer.</summary>
         ReadOnlyMemory<byte> TransportHeader { get; }
 
         /// <summary>Aborts the stream read side.</summary>

@@ -19,7 +19,6 @@ namespace IceRpc.Transports.Internal
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             CancellationToken cancel)
         {
-            using IDisposable? scope = stream == null ? null : _logger.StartStreamScope(stream.Id);
             try
             {
                 await _decoratee.WriteFrameAsync(stream, buffers, cancel).ConfigureAwait(false);
@@ -38,7 +37,6 @@ namespace IceRpc.Transports.Internal
             bool endStream,
             CancellationToken cancel)
         {
-            using IDisposable? scope = _logger.StartStreamScope(stream.Id);
             int frameSize = buffers.GetByteCount() - SlicDefinitions.FrameHeader.Length;
             _logger.LogSendingSlicFrame(endStream ? FrameType.StreamLast : FrameType.Stream, frameSize);
             try
