@@ -62,6 +62,13 @@ fn validate_collection_attributes<T: Attributable>(attributable: &T) {
     }
 }
 
+fn validate_data_type_attributes(data_type: &TypeRef) {
+    match data_type.concrete_type() {
+        Types::Sequence(_) | Types::Dictionary(_) => validate_collection_attributes(data_type),
+        _ => report_typeref_unexpected_attributes(data_type),
+    }
+}
+
 fn report_typeref_unexpected_attributes<T: Attributable>(attributable: &T) {
     for attribute in &cs_attributes(attributable.attributes()) {
         report_unexpected_attribute(attribute);
@@ -159,38 +166,18 @@ impl Visitor for CsValidator {
     }
 
     fn visit_type_alias(&mut self, type_alias: &TypeAlias) {
-        match type_alias.underlying.concrete_type() {
-            Types::Sequence(_) | Types::Dictionary(_) => {
-                validate_collection_attributes(&type_alias.underlying)
-            }
-            _ => report_typeref_unexpected_attributes(&type_alias.underlying),
-        }
+        validate_data_type_attributes(&type_alias.underlying);
     }
 
     fn visit_data_member(&mut self, data_member: &DataMember) {
-        match data_member.data_type.concrete_type() {
-            Types::Sequence(_) | Types::Dictionary(_) => {
-                validate_collection_attributes(&data_member.data_type)
-            }
-            _ => report_typeref_unexpected_attributes(&data_member.data_type),
-        }
+        validate_data_type_attributes(&data_member.data_type);
     }
 
     fn visit_parameter(&mut self, parameter: &Parameter) {
-        match parameter.data_type.concrete_type() {
-            Types::Sequence(_) | Types::Dictionary(_) => {
-                validate_collection_attributes(&parameter.data_type)
-            }
-            _ => report_typeref_unexpected_attributes(&parameter.data_type),
-        }
+        validate_data_type_attributes(&parameter.data_type);
     }
 
     fn visit_return_member(&mut self, parameter: &Parameter) {
-        match parameter.data_type.concrete_type() {
-            Types::Sequence(_) | Types::Dictionary(_) => {
-                validate_collection_attributes(&parameter.data_type)
-            }
-            _ => report_typeref_unexpected_attributes(&parameter.data_type),
-        }
+        validate_data_type_attributes(&parameter.data_type);
     }
 }
