@@ -12,7 +12,7 @@ namespace IceRpc.Transports
         /// <inheritdoc/>
         ISimpleNetworkConnection IClientTransport<ISimpleNetworkConnection>.CreateConnection(
             Endpoint remoteEndpoint,
-            ILoggerFactory loggerFactory)
+            ILogger logger)
         {
             if (remoteEndpoint.Params.Count > 0)
             {

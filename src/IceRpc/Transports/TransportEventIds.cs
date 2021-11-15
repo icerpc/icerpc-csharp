@@ -5,67 +5,34 @@ namespace IceRpc.Transports
     /// <summary>This enum contains event ID constants used for transport logging.</summary>
     public enum TransportEventIds
     {
-        /// <summary>A client connection was closed.</summary>
-        ClientConnectionClosed = IceRpc.Internal.BaseEventIds.Transport,
+        /// <summary>Connect on a network connection succeeded.</summary>
+        Connect = IceRpc.Internal.BaseEventIds.Transport,
 
-        /// <summary>The transport accepted a new connection.</summary>
-        ConnectionAccepted,
+        /// <summary>Connect on a network connection failed.</summary>
+        ConnectFailed,
 
-        /// <summary>The transport failed to accept a connection.</summary>
-        ConnectionAcceptFailed,
-
-        /// <summary>The exception that triggered the closure of a connection.</summary>
-        ConnectionClosedReason,
-
-        /// <summary>A connection event handler threw an exception.</summary>
-        ConnectionEventHandlerException,
-
-        /// <summary>The ConnectAsync operation failed.</summary>
-        ConnectionConnectFailed,
-
-        /// <summary>The connection connect operation succeed.</summary>
-        ConnectionEstablished,
-
-        /// <summary>The transport failed to accept a connection.</summary>
-        ListenerAcceptConnectionFailed,
+        /// <summary>The listener failed to accept a connection.</summary>
+        ListenerAcceptFailed,
 
         /// <summary>The listener starts listening for new connections.</summary>
-        ListenerListening,
+        ListenerCreated,
 
-        /// <summary>The listener is shutdown and no longer accepts connections.</summary>
-        ListenerShutDown,
+        /// <summary>The listener is disposed and no longer accepts connections.</summary>
+        ListenerDisposed,
 
-        /// <summary>The transport received data.</summary>
-        ReceivedData,
+         /// <summary>Successfully read data from a multiplexed stream.</summary>
+        MultiplexedStreamRead,
 
-        /// <summary>The transport received an invalid datagram message.</summary>
-        ReceivedInvalidDatagram,
+        /// <summary>Wrote data to a multiplexed stream.</summary>
+        MultiplexedStreamWrite,
 
-        /// <summary>The transport sent data.</summary>
-        SentData,
+        /// <summary>Successfully read data from a simple stream.</summary>
+        SimpleStreamRead,
 
-        /// <summary>A server connection was closed.</summary>
-        ServerConnectionClosed,
+        /// <summary>Wrote data to a simple stream.</summary>
+        SimpleStreamWrite,
 
-        /// <summary>The transport starts accepting connections.</summary>
-        StartAcceptingConnections,
-
-        /// <summary>The transport starts receiving datagram messages.</summary>
-        StartReceivingDatagrams,
-
-        /// <summary>The transport failed to start receiving datagram messages.</summary>
-        StartReceivingDatagramsFailed,
-
-        /// <summary>The transport starts sending datagram messages.</summary>
-        StartSendingDatagrams,
-
-        /// <summary>The transport failed to start sending datagram messages.</summary>
-        StartSendingDatagramsFailed,
-
-        /// <summary>The transport stops accepting connections.</summary>
-        StopAcceptingConnections,
-
-        /// <summary>The transport stops receiving datagram messages.</summary>
-        StopReceivingDatagrams,
+        /// <summary>A network connection was disposed.</summary>
+        ConnectionDispose,
     }
 }

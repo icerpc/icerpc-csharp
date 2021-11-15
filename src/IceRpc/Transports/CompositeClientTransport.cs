@@ -25,13 +25,13 @@ namespace IceRpc.Transports
             return this;
         }
 
-        T IClientTransport<T>.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
+        T IClientTransport<T>.CreateConnection(Endpoint remoteEndpoint, ILogger logger)
         {
             _transports ??= _builder;
             if (_transports.TryGetValue(remoteEndpoint.Transport,
                                         out IClientTransport<T>? clientTransport))
             {
-                return clientTransport.CreateConnection(remoteEndpoint, loggerFactory);
+                return clientTransport.CreateConnection(remoteEndpoint, logger);
             }
             else
             {

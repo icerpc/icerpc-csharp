@@ -23,22 +23,14 @@ namespace IceRpc.Transports.Internal
             await _decoratee.ReadFrameDataAsync(buffer, cancel).ConfigureAwait(false);
             if (_frameType != FrameType.Stream && _frameType != FrameType.StreamLast)
             {
-                if (_frameStreamId == null)
-                {
-                    LogReadFrame(_frameType, _frameDataSize, null, buffer);
-                }
-                else
-                {
-                    using IDisposable? scope = _logger.StartStreamScope(_frameStreamId.Value);
-                    LogReadFrame(_frameType, _frameDataSize, _frameStreamId, buffer);
-                }
+                LogReadFrame(_frameType, _frameDataSize, null, buffer);
             }
         }
 
         public async ValueTask<(FrameType, int, long?)> ReadFrameHeaderAsync(CancellationToken cancel)
         {
             (_frameType, _frameDataSize, _frameStreamId) =
-                 await _decoratee.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
+                await _decoratee.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
 
             if (_frameType == FrameType.Stream || _frameType == FrameType.StreamLast)
             {

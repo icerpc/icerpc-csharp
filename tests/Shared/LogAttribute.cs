@@ -27,13 +27,15 @@ namespace IceRpc.Tests
     /// is set on the test context. A null logger is return otherwise.</summary>
     public sealed class LogAttributeLoggerFactory : ILoggerFactory
     {
-        public static ILoggerFactory Instance = new LogAttributeLoggerFactory();
+        public static LogAttributeLoggerFactory Instance = new();
+
+        public ILogger Logger => CreateLogger("Test");
 
         private readonly List<ILoggerProvider> _providers = new();
 
         void ILoggerFactory.AddProvider(ILoggerProvider provider) => _providers.Add(provider);
 
-        ILogger ILoggerFactory.CreateLogger(string categoryName)
+        public ILogger CreateLogger(string categoryName)
         {
             // The Log attribute can either be applied on the test method or test fixture. Using the NUnit.Internal
             // TestExecutionContext is unfortunately the only way to check the test fixture properties (instead of

@@ -9,12 +9,13 @@ namespace IceRpc.Transports
     {
         /// <summary>Starts listening on an endpoint.</summary>
         /// <param name="endpoint">The endpoint.</param>
-        /// <param name="loggerFactory">A logger factory that the new listener can use to create a logger that logs
-        /// internal activities. IceRpc already logs calls to all the Transports interfaces.</param>
+        /// <param name="logger">The logger created by IceRPC. IceRPC uses this logger to log calls to all Transport
+        /// APIs it calls. The transport implementation can use this logger to log implementation-specific details
+        /// within the log scopes created by IceRPC.</param>
         /// <returns>The new network connection. This connection is not yet connected.</returns>
         /// <returns>The new listener.</returns>
         /// <exception name="UnknownTransportException">Thrown if this server transport does not support the
         /// endpoint's transport.</exception>
-        IListener<T> Listen(Endpoint endpoint, ILoggerFactory loggerFactory);
+        IListener<T> Listen(Endpoint endpoint, ILogger logger);
     }
 }

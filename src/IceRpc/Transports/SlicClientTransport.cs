@@ -34,25 +34,20 @@ namespace IceRpc.Transports
 
         IMultiplexedNetworkConnection IClientTransport<IMultiplexedNetworkConnection>.CreateConnection(
             Endpoint remoteEndpoint,
-            ILoggerFactory loggerFactory)
+            ILogger logger)
         {
             // This is the composition root of the Slic client transport, where we install log decorators when logging
             // is enabled.
 
             ISimpleNetworkConnection simpleNetworkConnection =
-                _simpleClientTransport.CreateConnection(remoteEndpoint, loggerFactory);
+                _simpleClientTransport.CreateConnection(remoteEndpoint, logger);
 
             Func<ISlicFrameReader, ISlicFrameReader> slicFrameReaderDecorator = _slicFrameReaderDecorator;
             Func<ISlicFrameWriter, ISlicFrameWriter> slicFrameWriterDecorator = _slicFrameWriterDecorator;
 
-            if (loggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger && logger.IsEnabled(LogLevel.Error))
+            if (logger.IsEnabled(LogLevel.Error))
             {
-                // TODO: reusing the main LogSimpleNetworkConnectionDecorator results in redundant log messages. Slic
-                // should provide its own log decorator to avoid this issue.
-                simpleNetworkConnection = new LogSimpleNetworkConnectionDecorator(simpleNetworkConnection,
-                                                                                  isServer: false,
-                                                                                  remoteEndpoint,
-                                                                                  logger);
+                // TODO: should we add a log decorator over simple network connection too?
 
                 slicFrameReaderDecorator = reader => new LogSlicFrameReaderDecorator(reader, logger);
                 slicFrameWriterDecorator = writer => new LogSlicFrameWriterDecorator(writer, logger);

@@ -11,7 +11,7 @@ namespace IceRpc.Transports
         /// <inheritdoc/>
         IListener<ISimpleNetworkConnection> IServerTransport<ISimpleNetworkConnection>.Listen(
             Endpoint endpoint,
-            ILoggerFactory loggerFactory) =>
+            ILogger logger) =>
             new ColocListener(endpoint);
     }
 }

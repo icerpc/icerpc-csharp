@@ -11,17 +11,10 @@ namespace IceRpc.Transports.Internal
         internal const LogLevel MaxLogLevel = LogLevel.Debug;
 
         [LoggerMessage(
-            EventId = (int)UdpEventIds.StartReceivingDatagrams,
-            EventName = nameof(UdpEventIds.StartReceivingDatagrams),
+            EventId = (int)UdpEventIds.Connect,
+            EventName = nameof(UdpEventIds.Connect),
             Level = LogLevel.Debug,
-            Message = "starting to receive udp datagrams (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize}")]
-        internal static partial void LogUdpStartReceivingDatagrams(this ILogger logger, int rcvSize, int sndSize);
-
-        [LoggerMessage(
-            EventId = (int)UdpEventIds.StartSendingDatagrams,
-            EventName = nameof(UdpEventIds.StartSendingDatagrams),
-            Level = LogLevel.Debug,
-            Message = "starting to send udp datagrams (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize}")]
-        internal static partial void LogUdpStartSendingDatagrams(this ILogger logger, int rcvSize, int sndSize);
+            Message = "udp connect completed successfully (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize}")]
+        internal static partial void LogUdpConnect(this ILogger logger, int rcvSize, int sndSize);
     }
 }

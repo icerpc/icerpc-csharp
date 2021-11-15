@@ -20,19 +20,32 @@ namespace IceRpc.Transports.Internal
         // tls parsed from endpoint
         private readonly bool? _tls;
 
-        public async Task<ISimpleNetworkConnection> AcceptAsync() =>
-            _serverConnectionDecorator(
+        public async Task<ISimpleNetworkConnection> AcceptAsync()
+        {
+            Socket acceptedSocket;
+
+            try
+            {
+                acceptedSocket = await _socket.AcceptAsync().ConfigureAwait(false);
+            }
+            catch (SocketException ex) when (ex.ErrorCode == (int)SocketError.OperationAborted)
+            {
+                // We translate this expected error into an ObjectDisposedException that the caller can safely catch and
+                // ignore.
+                throw new ObjectDisposedException(nameof(TcpListener), ex);
+            }
+            // We don't translate other exceptions since they are unexpected and the application code has no opportunity
+            // to catch and handle them. They are only useful for the log decorator.
+
+            return _serverConnectionDecorator(
 #pragma warning disable CA2000 // the caller will Dispose the connection and _serverConnectionDecorator never throws
-                new TcpServerNetworkConnection(
-                    // We don't catch and wrap SocketException thrown by _socket.AcceptAsync() because the caller is
-                    // class Server and the application code has no opportunity to catch and handle exceptions thrown by
-                    // AcceptAsync.
-                    await _socket.AcceptAsync().ConfigureAwait(false),
-                    Endpoint,
-                    _tls,
-                    _idleTimeout,
-                    _authenticationOptions));
+                new TcpServerNetworkConnection(acceptedSocket,
+                                               Endpoint,
+                                               _tls,
+                                               _idleTimeout,
+                                               _authenticationOptions));
 #pragma warning restore CA2000
+        }
 
         public ValueTask DisposeAsync()
         {
