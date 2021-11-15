@@ -12,7 +12,7 @@ use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
 use slice::code_gen_util::TypeContext;
-use slice::grammar::{Class, DataMember};
+use slice::grammar::{Class, DataMember, Attributable};
 use slice::visitor::Visitor;
 
 pub struct ClassVisitor<'a> {

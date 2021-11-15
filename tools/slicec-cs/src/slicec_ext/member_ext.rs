@@ -3,7 +3,7 @@
 use super::{EntityExt, TypeRefExt};
 use crate::cs_util::{escape_keyword, mangle_name, FieldType};
 use slice::code_gen_util::{fix_case, CaseStyle, TypeContext};
-use slice::grammar::{AsTypes, Member, Parameter, Types};
+use slice::grammar::{Member, Parameter, Types};
 
 pub trait MemberExt {
     fn parameter_name(&self) -> String;
@@ -24,7 +24,7 @@ impl<T: Member> MemberExt for T {
 
     fn field_name(&self, field_type: FieldType) -> String {
         mangle_name(
-            &fix_case(self.escape_identifier(), CaseStyle::Pascal),
+            &fix_case(&self.escape_identifier(), CaseStyle::Pascal),
             field_type,
         )
     }
