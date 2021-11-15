@@ -94,7 +94,8 @@ pub fn escape_keyword(identifier: &str) -> String {
         + identifier
 }
 
-// TODOAUSTIN comment
+/// The field container type, Class, Exception or NonMangled (currently used for structs),
+/// `mangle_name` operation use this enum to decide what names needs mangling.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FieldType {
     NonMangled,
@@ -102,12 +103,8 @@ pub enum FieldType {
     Exception,
 }
 
-// TODOAUSTIN WE NEED TO HANDLE NAME MANGLING FOR CLASSES AND EXCEPTIONS!
 /// Checks if the provided identifier would shadow a base method in an object or exception, and
 /// escapes it if necessary by appending an 'Ice' prefix to the identifier.
-///
-/// `kind` is the stringified C# type. Escaping is only performed on `object`es and `exception`s.
-/// TODOAUSTIN write a better comment
 pub fn mangle_name(identifier: &str, field_type: FieldType) -> String {
     // The names of all the methods defined on the Object base class.
     const OBJECT_BASE_NAMES: [&str; 7] = [
