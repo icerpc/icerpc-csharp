@@ -23,7 +23,10 @@ impl<T: Member> MemberExt for T {
     }
 
     fn field_name(&self, field_type: FieldType) -> String {
-        mangle_name(&self.escape_identifier(), field_type)
+        mangle_name(
+            &fix_case(self.escape_identifier(), CaseStyle::Pascal),
+            field_type,
+        )
     }
 
     fn is_default_initialized(&self) -> bool {
