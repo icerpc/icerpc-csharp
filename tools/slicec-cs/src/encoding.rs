@@ -155,75 +155,61 @@ pub fn encode_tagged_type(
 
     // For types with a known size, we provide a size parameter with the size of the tagged
     // param/member:
-    let mut size_parameter = String::new();
-
-    match data_type.concrete_type() {
-        Types::Primitive(primitive_def) => {
-            if primitive_def.is_fixed_size() {
-                size_parameter = primitive_def.min_wire_size().to_string();
-            } else if !matches!(primitive_def, Primitive::String) {
-                if primitive_def.is_unsigned_numeric() {
-                    size_parameter = format!("IceEncoder.GetVarULongEncodedSize({})", value)
-                } else {
-                    size_parameter = format!("IceEncoder.GetVarLongEncodedSize({})", value)
-                }
-            }
-            // else no size
+    let size_parameter = match data_type.concrete_type() {
+        Types::Primitive(primitive_def) if primitive_def.is_fixed_size() => {
+            Some(primitive_def.min_wire_size().to_string())
         }
-        Types::Struct(struct_def) => {
-            if struct_def.is_fixed_size() {
-                size_parameter = struct_def.min_wire_size().to_string();
+        Types::Primitive(primitive_def) if !matches!(primitive_def, Primitive::String) => {
+            if primitive_def.is_unsigned_numeric() {
+                Some(format!("IceEncoder.GetVarULongEncodedSize({})", value))
+            } else {
+                Some(format!("IceEncoder.GetVarLongEncodedSize({})", value))
             }
+        }
+        Types::Struct(struct_def) if struct_def.is_fixed_size() => {
+            Some(struct_def.min_wire_size().to_string())
         }
         Types::Enum(enum_def) => {
             if let Some(underlying) = &enum_def.underlying {
-                size_parameter = underlying.min_wire_size().to_string();
+                Some(underlying.min_wire_size().to_string())
             } else {
-                size_parameter = format!("encoder.GetSizeLength((int){})", value);
+                Some(format!("encoder.GetSizeLength((int){})", value))
             }
         }
-        Types::Sequence(sequence_def) => {
-            let element_type = &sequence_def.element_type;
-
-            if element_type.is_fixed_size() {
-                if read_only_memory {
-                    size_parameter = format!(
-                        "encoder.GetSizeLength({value}) + {element_min_wire_size} * {value}.Length",
-                        value = value,
-                        element_min_wire_size = element_type.min_wire_size()
-                    );
-                } else {
-                    writeln!(code, "int count = {}.Count();", value);
-                    size_parameter = format!(
-                        "encoder.GetSizeLength(count) + {} * count",
-                        element_type.min_wire_size()
-                    )
-                }
-            }
-        }
-        Types::Dictionary(dictionary_def) => {
-            let key_type = &dictionary_def.key_type;
-            let value_type = &dictionary_def.value_type;
-
-            if key_type.is_fixed_size() && value_type.is_fixed_size() {
+        Types::Sequence(sequence_def) if sequence_def.element_type.is_fixed_size() => {
+            if read_only_memory {
+                Some(format!(
+                    "encoder.GetSizeLength({value}) + {element_min_wire_size} * {value}.Length",
+                    value = value,
+                    element_min_wire_size = sequence_def.element_type.min_wire_size()
+                ))
+            } else {
                 writeln!(code, "int count = {}.Count();", value);
-                size_parameter = format!(
-                    "encoder.GetSizeLength(count) + {min_wire_size} * count",
-                    min_wire_size = key_type.min_wire_size() + value_type.min_wire_size()
-                );
+                Some(format!(
+                    "encoder.GetSizeLength(count) + {} * count",
+                    sequence_def.element_type.min_wire_size()
+                ))
             }
         }
-        Types::Interface(_) => {}
-        Types::Class(_) => {
-            panic!("TODO: Tagged classes are not allowed!");
+        Types::Dictionary(dictionary_def)
+            if dictionary_def.key_type.is_fixed_size()
+                && dictionary_def.value_type.is_fixed_size() =>
+        {
+            writeln!(code, "int count = {}.Count();", value);
+            Some(format!(
+                "encoder.GetSizeLength(count) + {min_wire_size} * count",
+                min_wire_size = dictionary_def.key_type.min_wire_size()
+                    + dictionary_def.value_type.min_wire_size()
+            ))
         }
-    }
+        _ => None,
+    };
 
     let mut args = vec![];
     args.push(tag.to_string());
 
     args.push(format!("IceRpc.Slice.TagFormat.{}", data_type.tag_format()));
-    if !size_parameter.is_empty() {
+    if let Some(size_parameter) = size_parameter {
         args.push("size: ".to_owned() + &size_parameter);
     }
     args.push(value);
