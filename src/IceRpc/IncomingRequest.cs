@@ -98,10 +98,12 @@ namespace IceRpc
             }
 
             // TODO: the payload conversion is temporary
-            int payloadSize = Features.GetPayloadSize();
-            Memory<byte> payloadBuffer = new byte[payloadSize];
+            IceEncoding payloadEncoding = (IceEncoding)PayloadEncoding;
+            int payloadSize = await payloadEncoding.ReadPayloadSizeAsync(PayloadStream, cancel).ConfigureAwait(false);
+            Memory<byte> payloadBuffer = default;
             if (payloadSize > 0)
             {
+                payloadBuffer = new byte[payloadSize];
                 await PayloadStream.ReadUntilFullAsync(payloadBuffer, cancel).ConfigureAwait(false);
             }
 

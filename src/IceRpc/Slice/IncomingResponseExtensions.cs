@@ -20,7 +20,9 @@ namespace IceRpc.Slice
             IIceDecoderFactory<IceDecoder> iceDecoderFactory,
             CancellationToken cancel)
         {
-            int payloadSize = response.Features.GetPayloadSize();
+            int payloadSize = await iceDecoderFactory.Encoding.ReadPayloadSizeAsync(
+                response.PayloadStream,
+                cancel).ConfigureAwait(false);
 
             if (payloadSize > 0)
             {
@@ -63,7 +65,9 @@ namespace IceRpc.Slice
                     }; expected a payload encoded with {iceDecoderFactory.Encoding}");
             }
 
-            int payloadSize = response.Features.GetPayloadSize();
+            int payloadSize = await iceDecoderFactory.Encoding.ReadPayloadSizeAsync(
+                response.PayloadStream,
+                cancel).ConfigureAwait(false);
 
             if (payloadSize == 0)
             {

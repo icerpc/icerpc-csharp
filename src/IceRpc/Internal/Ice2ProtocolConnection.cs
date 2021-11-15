@@ -73,7 +73,7 @@ namespace IceRpc.Internal
             {
                 IMultiplexedStream multiplexedStream;
                 ReadOnlyMemory<byte> header;
-                Stream? payloadStream;
+                ArraySegment<byte> payload;
 
                 try
                 {
@@ -81,12 +81,9 @@ namespace IceRpc.Internal
                     multiplexedStream = await _streamFactory!.AcceptStreamAsync(cancel).ConfigureAwait(false);
 
                     // Receives the request frame from the stream.
-                    (header, payloadStream) = await ReceiveFrameAsync(
-                        multiplexedStream,
-                        Ice2FrameType.Request,
-                        cancel).ConfigureAwait(false);
-
-                    Debug.Assert(payloadStream != null);
+                    (header, payload) = await ReceiveFrameAsync(multiplexedStream,
+                                                                Ice2FrameType.Request,
+                                                                cancel).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -116,13 +113,6 @@ namespace IceRpc.Internal
 
                 FeatureCollection features = FeatureCollection.Empty;
 
-                // Temporary: move to Fields
-                int payloadSize = decoder.DecodeSize();
-                if (payloadSize > 0)
-                {
-                    features = features.WithPayloadSize(payloadSize);
-                }
-
                 // Decode Context from Fields and set corresponding feature.
                 if (fields.Get(
                     (int)FieldKey.Context,
@@ -140,6 +130,9 @@ namespace IceRpc.Internal
                     throw new InvalidDataException("received request with empty operation name");
                 }
 
+                // TODO: temporary. We steal the payload size from the header!
+                int payloadSizeLength = header.Length - decoder.Pos;
+
                 var request = new IncomingRequest(
                     Protocol.Ice2,
                     path: requestHeaderBody.Path,
@@ -154,7 +147,9 @@ namespace IceRpc.Internal
                     PayloadEncoding = requestHeaderBody.PayloadEncoding is string payloadEncoding ?
                         Encoding.FromString(payloadEncoding) : Ice2Definitions.Encoding,
                     Fields = fields,
-                    PayloadStream = payloadStream,
+                    PayloadStream = new MemoryStream(payload.Array!,
+                                                     payload.Offset - payloadSizeLength,
+                                                     payloadSizeLength + payload.Count),
                     Stream = multiplexedStream
                 };
 
@@ -212,38 +207,35 @@ namespace IceRpc.Internal
 
             try
             {
-                (ReadOnlyMemory<byte> header, Stream? payloadStream) =
+                (ReadOnlyMemory<byte> header, ArraySegment<byte> payload) =
                     await ReceiveFrameAsync(request.Stream, Ice2FrameType.Response, cancel).ConfigureAwait(false);
-
-                Debug.Assert(payloadStream != null);
 
                 var decoder = new Ice20Decoder(header);
 
                 var responseHeaderBody = new Ice2ResponseHeaderBody(decoder);
                 IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields = decoder.DecodeFieldDictionary();
 
-                FeatureCollection features = FeatureCollection.Empty;
-                int payloadSize = decoder.DecodeSize(); // TODO: move to fields
-                if (payloadSize > 0)
-                {
-                    features = features.WithPayloadSize(payloadSize);
-                }
-
                 Encoding payloadEncoding = responseHeaderBody.PayloadEncoding is string encoding ?
                     Encoding.FromString(encoding) : Ice2Definitions.Encoding;
 
+                FeatureCollection features = FeatureCollection.Empty;
                 RetryPolicy? retryPolicy = fields.Get((int)FieldKey.RetryPolicy, decoder => new RetryPolicy(decoder));
                 if (retryPolicy != null)
                 {
                     features = features.With(retryPolicy);
                 }
 
+                // TODO: temporary. We steal the payload size from the header!
+                int payloadSizeLength = header.Length - decoder.Pos;
+
                 var response = new IncomingResponse(Protocol.Ice2, responseHeaderBody.ResultType)
                 {
                     Features = features,
                     Fields = fields,
                     PayloadEncoding = payloadEncoding,
-                    PayloadStream = payloadStream,
+                    PayloadStream = new MemoryStream(payload.Array!,
+                                                     payload.Offset - payloadSizeLength,
+                                                     payloadSizeLength + payload.Count)
                 };
 
                 return response;
@@ -642,8 +634,8 @@ namespace IceRpc.Internal
             }
         }
 
-        // TODO: split into ReceiveControlFrameAsync (with no stream) and ReceiveRpcFrameAsync (with a non-null stream)
-        private async ValueTask<(ReadOnlyMemory<byte>, Stream?)> ReceiveFrameAsync(
+        // TODO: split into ReceiveControlFrameAsync (with no stream) and ReceiveFrameAsync (with a non-null stream)
+        private async ValueTask<(ReadOnlyMemory<byte>, ArraySegment<byte>)> ReceiveFrameAsync(
             IMultiplexedStream stream,
             Ice2FrameType expectedFrameType,
             CancellationToken cancel)
@@ -652,35 +644,34 @@ namespace IceRpc.Internal
 
             while (true)
             {
-                var buffer = new Memory<byte>(bufferArray);
+                var buffer = new ArraySegment<byte>(bufferArray);
 
                 // Read the frame type and first byte of the size.
                 await stream.ReadUntilFullAsync(buffer[0..2], cancel).ConfigureAwait(false);
-                var frameType = (Ice2FrameType)buffer.Span[0];
+                var frameType = (Ice2FrameType)buffer[0];
                 if (frameType > Ice2FrameType.GoAwayCompleted)
                 {
                     throw new InvalidDataException($"invalid Ice2 frame type {frameType}");
                 }
 
                 // Read the remainder of the size if needed.
-                int sizeLength = Ice20Decoder.DecodeSizeLength(buffer.Span[1]);
+                int sizeLength = Ice20Decoder.DecodeSizeLength(buffer[1]);
                 if (sizeLength > 1)
                 {
                     await stream.ReadUntilFullAsync(buffer.Slice(2, sizeLength - 1), cancel).ConfigureAwait(false);
                 }
 
-                int frameSize = Ice20Decoder.DecodeSize(buffer[1..].AsReadOnlySpan()).Size;
+                int frameSize = Ice20Decoder.DecodeSize(buffer[1..].AsSpan()).Size;
                 if (frameSize > _incomingFrameMaxSize)
                 {
                     throw new InvalidDataException(
                         $"frame with {frameSize} bytes exceeds IncomingFrameMaxSize connection option value");
                 }
 
-                // TODO: we shouldn't always read everything in one go
+                // TODO: we should not always read everything in one go
                 if (frameSize > 0)
                 {
-                    // TODO: rent buffer from Memory pool
-                    if (frameSize > buffer.Length)
+                    if (frameSize > buffer.Count)
                     {
                         bufferArray = new byte[frameSize];
                         buffer = bufferArray;
@@ -694,7 +685,7 @@ namespace IceRpc.Internal
                 }
                 else
                 {
-                    buffer = Memory<byte>.Empty;
+                    buffer = default;
                 }
 
                 if (frameType == Ice2FrameType.Ping)
@@ -713,18 +704,16 @@ namespace IceRpc.Internal
                 {
                     Debug.Assert(frameSize > 0); // TODO: better check
 
-                    (int headerSize, int headerSizeLength) = Ice20Decoder.DecodeSize(buffer.Span);
+                    (int headerSize, int headerSizeLength) = Ice20Decoder.DecodeSize(buffer.AsSpan());
 
                     buffer = buffer[headerSizeLength..]; // remove size length
                     ReadOnlyMemory<byte> header = buffer[..headerSize]; // split buffer
                     buffer = buffer[headerSize..];
-
-                    // MemoryStream requires a byte[] - not very convenient
-                    return (header, new MemoryStream(bufferArray, headerSize + headerSizeLength, buffer.Length));
+                    return (header, buffer);
                 }
                 else
                 {
-                    return (buffer, null);
+                    return (buffer, default);
                 }
             }
         }

@@ -141,25 +141,22 @@ namespace IceRpc.Internal
                         $"request payload size mismatch: expected {payloadSize} bytes, read {payload.Length} bytes");
                 }
 
-                FeatureCollection features = FeatureCollection.Empty;
-                if (payloadSize > 0)
-                {
-                    features = features.WithPayloadSize(payloadSize);
-                }
+                // The payload stream consists of the payload size (an int) followed by the payload bytes. We encode
+                // this size (can be 0) in the buffer just before the payload.
+                IceEncoder.EncodeInt(payloadSize, buffer[(decoder.Pos - 4)..].AsSpan());
 
                 var request = new IncomingRequest(
                     Protocol.Ice1,
                     path: requestHeader.IdentityAndFacet.ToPath(),
                     operation: requestHeader.Operation)
                 {
-                    Features = features,
                     IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
                     IsOneway = requestId == 0,
                     PayloadEncoding = Encoding.FromMajorMinor(
                         requestHeader.PayloadEncodingMajor,
                         requestHeader.PayloadEncodingMinor),
                     Deadline = DateTime.MaxValue,
-                    PayloadStream = new MemoryStream(buffer.Array!, buffer.Offset + decoder.Pos, payloadSize)
+                    PayloadStream = new MemoryStream(buffer.Array!, buffer.Offset + decoder.Pos - 4, payloadSize + 4)
                 };
                 request.Features = request.Features.With(new Ice1Request(requestId, outgoing: false));
                 if (requestHeader.Context.Count > 0)
@@ -253,13 +250,9 @@ namespace IceRpc.Internal
                     @$"response payload size mismatch: expected {payloadSize} bytes, read {payload.Length} bytes");
             }
 
-            Stream payloadStream = Stream.Null;
-
-            if (payload.Length > 0)
-            {
-                features = features.WithPayloadSize(payload.Length);
-                payloadStream = new MemoryStream(buffer.Array!, buffer.Offset + decoder.Pos, payload.Length);
-            }
+            // The payload stream consists of the payload size (an int) followed by the payload bytes. We encode this
+            // size (can be 0) in the buffer just before the payload.
+            IceEncoder.EncodeInt(payload.Length, buffer[(decoder.Pos - 4)..].AsSpan());
 
             // In theory, we could receive the incoming response payload piecemeal because the response header has a
             // fixed size.
@@ -276,7 +269,7 @@ namespace IceRpc.Internal
             {
                 Features = features,
                 PayloadEncoding = payloadEncoding,
-                PayloadStream = payloadStream
+                PayloadStream = new MemoryStream(buffer.Array!, buffer.Offset + decoder.Pos - 4, 4 + payload.Length)
             };
         }
 
