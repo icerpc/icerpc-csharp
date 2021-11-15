@@ -348,7 +348,7 @@ dependencies = [
 [[package]]
 name = "slicec"
 version = "0.1.0"
-source = "git+ssh://git@github.com/zeroc-ice/icerpc#32799c7058e10e746cae5ca5ffcefbcfd45a0f84"
+source = "git+ssh://git@github.com/zeroc-ice/icerpc#57bda0dfd5854090ca1e920a85629f7d27bbb6b1"
 dependencies = [
  "once_cell",
  "pest",
