@@ -85,7 +85,7 @@ namespace IceRpc.Tests.Internal
         {
             await using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
             Assert.Throws<TransportException>(
-                () => _serverTransport.Listen(listener.Endpoint, LogAttributeLoggerFactory.Instance));
+                () => _serverTransport.Listen(listener.Endpoint, LogAttributeLoggerFactory.Instance.Logger));
         }
 
         [Test]
@@ -240,10 +240,10 @@ namespace IceRpc.Tests.Internal
         }
 
         private ISimpleNetworkConnection CreateClientConnection(Endpoint endpoint) =>
-            _clientTransport.CreateConnection(endpoint, LogAttributeLoggerFactory.Instance);
+            _clientTransport.CreateConnection(endpoint, LogAttributeLoggerFactory.Instance.Logger);
 
         private IListener<ISimpleNetworkConnection> CreateListener(Endpoint endpoint) =>
-            _serverTransport.Listen(endpoint, LogAttributeLoggerFactory.Instance);
+            _serverTransport.Listen(endpoint, LogAttributeLoggerFactory.Instance.Logger);
 
     }
 }

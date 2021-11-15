@@ -25,12 +25,12 @@ namespace IceRpc.Transports
             return this;
         }
 
-        IListener<T> IServerTransport<T>.Listen(Endpoint endpoint, ILoggerFactory loggerFactory)
+        IListener<T> IServerTransport<T>.Listen(Endpoint endpoint, ILogger logger)
         {
             _transports ??= _builder;
             if (_transports.TryGetValue(endpoint.Transport, out IServerTransport<T>? serverTransport))
             {
-                return serverTransport.Listen(endpoint, loggerFactory);
+                return serverTransport.Listen(endpoint, logger);
             }
             else
             {

@@ -6,15 +6,16 @@ namespace IceRpc.Internal
     /// values.</summary>
     internal static class BaseEventIds
     {
-        internal const int Protocol = 1 * EventIdRange;
-        internal const int Transport = 2 * EventIdRange;
-        internal const int Slic = 3 * EventIdRange;
-        internal const int Tcp = 4 * EventIdRange;
-        internal const int Udp = 5 * EventIdRange;
-        internal const int Location = 6 * EventIdRange;
-        internal const int LoggerInterceptor = 7 * EventIdRange;
-        internal const int LoggerMiddleware = 8 * EventIdRange;
-        internal const int Retry = 9 * EventIdRange;
+        internal const int Connection = 1 * EventIdRange;
+        internal const int Protocol = 2 * EventIdRange;
+        internal const int Transport = 3 * EventIdRange;
+        internal const int Slic = 4 * EventIdRange;
+        internal const int Tcp = 5 * EventIdRange;
+        internal const int Udp = 6 * EventIdRange;
+        internal const int Location = 7 * EventIdRange;
+        internal const int LoggerInterceptor = 8 * EventIdRange;
+        internal const int LoggerMiddleware = 9 * EventIdRange;
+        internal const int Retry = 10 * EventIdRange;
         private const int EventIdRange = 128;
     }
 }

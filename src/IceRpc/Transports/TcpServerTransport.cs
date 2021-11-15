@@ -24,16 +24,14 @@ namespace IceRpc.Transports
         /// <inheritdoc/>
         IListener<ISimpleNetworkConnection> IServerTransport<ISimpleNetworkConnection>.Listen(
             Endpoint endpoint,
-            ILoggerFactory loggerFactory)
+            ILogger logger)
         {
             // This is the composition root of the tcp server transport, where we install log decorators when logging
             // is enabled.
 
             Func<TcpServerNetworkConnection, ISimpleNetworkConnection> serverConnectionDecorator =
-                loggerFactory.CreateLogger("IceRpc.Transports") is ILogger logger &&
-                    logger.IsEnabled(TcpLoggerExtensions.MaxLogLevel) ?
-                        connection => new LogTcpNetworkConnectionDecorator(connection, logger) :
-                            connection => connection;
+                logger.IsEnabled(TcpLoggerExtensions.MaxLogLevel) ?
+                    connection => new LogTcpNetworkConnectionDecorator(connection, logger) : connection => connection;
 
             return new TcpListener(endpoint, _options, serverConnectionDecorator);
         }

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Internal
@@ -16,21 +17,31 @@ namespace IceRpc.Internal
         }
 
         private readonly IProtocolConnection _decoratee;
+        private readonly NetworkConnectionInformation _information;
+        private readonly bool _isServer;
         private readonly ILogger _logger;
 
         void IProtocolConnection.ShutdownCanceled() => _decoratee.ShutdownCanceled();
 
-        void IDisposable.Dispose() => _decoratee.Dispose();
+        void IDisposable.Dispose()
+        {
+            using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
+            _decoratee.Dispose();
+            _logger.LogProtocolConnectionDispose(_information.LocalEndpoint.Protocol);
+        }
 
-        Task IProtocolConnection.PingAsync(CancellationToken cancel) => _decoratee.PingAsync(cancel);
+        async Task IProtocolConnection.PingAsync(CancellationToken cancel)
+        {
+            using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
+            await _decoratee.PingAsync(cancel).ConfigureAwait(false);
+            _logger.LogPing();
+        }
 
         async Task<IncomingRequest> IProtocolConnection.ReceiveRequestAsync()
         {
+            using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             IncomingRequest request = await _decoratee.ReceiveRequestAsync().ConfigureAwait(false);
-            _logger.LogReceivedRequestFrame(request.Path,
-                                            request.Operation,
-                                            request.PayloadSize,
-                                            request.PayloadEncoding);
+            _logger.LogReceiveRequest(request.Path, request.Operation, request.PayloadSize, request.PayloadEncoding);
             return request;
         }
 
@@ -38,20 +49,20 @@ namespace IceRpc.Internal
             OutgoingRequest request,
             CancellationToken cancel)
         {
+            using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
+            using IDisposable _ = _logger.StartReceiveResponseScope(request);
             IncomingResponse response = await _decoratee.ReceiveResponseAsync(request, cancel).ConfigureAwait(false);
 
-            _logger.LogReceivedResponseFrame(request.Path,
-                                             request.Operation,
-                                             response.PayloadSize,
-                                             response.PayloadEncoding,
-                                             response.ResultType);
+            _logger.LogReceiveResponse(response.PayloadSize, response.PayloadEncoding, response.ResultType);
             return response;
         }
 
         async Task IProtocolConnection.SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
+            using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
+            using IDisposable _ = _logger.StartSendRequestScope(request);
             await _decoratee.SendRequestAsync(request, cancel).ConfigureAwait(false);
-            _logger.LogSentRequestFrame(request.Path, request.Operation, request.PayloadSize, request.PayloadEncoding);
+            _logger.LogSendRequest(request.PayloadSize, request.PayloadEncoding);
         }
 
         async Task IProtocolConnection.SendResponseAsync(
@@ -59,20 +70,28 @@ namespace IceRpc.Internal
             IncomingRequest request,
             CancellationToken cancel)
         {
+            using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
+            using IDisposable _ = _logger.StartSendResponseScope(response, request);
             await _decoratee.SendResponseAsync(response, request, cancel).ConfigureAwait(false);
-            _logger.LogSentResponseFrame(request.Path,
-                                         request.Operation,
-                                         response.PayloadSize,
-                                         response.PayloadEncoding,
-                                         response.ResultType);
+            _logger.LogSendResponse(response.PayloadSize, response.PayloadEncoding);
         }
 
-        Task IProtocolConnection.ShutdownAsync(string message, CancellationToken cancel) =>
-            _decoratee.ShutdownAsync(message, cancel);
+        async Task IProtocolConnection.ShutdownAsync(string message, CancellationToken cancel)
+        {
+            using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
+            await _decoratee.ShutdownAsync(message, cancel).ConfigureAwait(false);
+            _logger.LogProtocolConnectionShutdown(_information.LocalEndpoint.Protocol, message);
+        }
 
-        internal LogProtocolConnectionDecorator(IProtocolConnection decoratee, ILogger logger)
+        internal LogProtocolConnectionDecorator(
+            IProtocolConnection decoratee,
+            NetworkConnectionInformation connectionInformation,
+            bool isServer,
+            ILogger logger)
         {
             _decoratee = decoratee;
+            _information = connectionInformation;
+            _isServer = isServer;
             _logger = logger;
         }
     }

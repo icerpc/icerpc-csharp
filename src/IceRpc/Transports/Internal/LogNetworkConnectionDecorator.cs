@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System.Text;
 
@@ -8,7 +9,6 @@ namespace IceRpc.Transports.Internal
     internal delegate T LogNetworkConnectionDecoratorFactory<T>(
         T decoratee,
         bool isServer,
-        Endpoint endpoint,
         ILogger logger) where T : INetworkConnection;
 
     internal abstract class LogNetworkConnectionDecorator : INetworkConnection
@@ -16,14 +16,13 @@ namespace IceRpc.Transports.Internal
         public bool IsSecure => Decoratee.IsSecure;
         public TimeSpan LastActivity => Decoratee.LastActivity;
 
-        protected NetworkConnectionInformation? Information { get; set; }
+        internal ILogger Logger { get; }
 
         private protected abstract INetworkConnection Decoratee { get; }
 
         private protected bool IsServer { get; }
-        private protected ILogger Logger { get; }
 
-        private readonly Endpoint _endpoint;
+        private protected NetworkConnectionInformation? Information { get; set; }
 
         public async ValueTask DisposeAsync()
         {
@@ -31,36 +30,25 @@ namespace IceRpc.Transports.Internal
 
             if (Information is NetworkConnectionInformation connectionInformation)
             {
-                using IDisposable? scope = Logger.StartConnectionScope(connectionInformation, IsServer);
-
-                if (IsServer)
-                {
-                    Logger.LogServerConnectionClosed();
-                }
-                else
-                {
-                    Logger.LogClientConnectionClosed();
-                }
+                // TODO: we start the scope here because DisposeAsync is called directly by Connection, and not
+                // through a higher-level interface method such as IProtocolConnection.DisposeAsync.
+                using IDisposable scope = Logger.StartConnectionScope(connectionInformation, IsServer);
+                Logger.LogConnectionDispose();
             }
             // We don't emit a log when closing a connection that was not connected.
-
         }
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) => Decoratee.HasCompatibleParams(remoteEndpoint);
 
         public override string? ToString() => Decoratee.ToString();
 
-        internal LogNetworkConnectionDecorator(
-            bool isServer,
-            Endpoint endpoint,
-            ILogger logger)
+        internal LogNetworkConnectionDecorator(bool isServer, ILogger logger)
         {
-            _endpoint = endpoint;
             IsServer = isServer;
             Logger = logger;
         }
 
-        internal void LogReceivedData(Memory<byte> buffer)
+        internal static string ToHexString(Memory<byte> buffer)
         {
             var sb = new StringBuilder();
             for (int i = 0; i < Math.Min(buffer.Length, 32); ++i)
@@ -71,11 +59,10 @@ namespace IceRpc.Transports.Internal
             {
                 _ = sb.Append("...");
             }
-            using IDisposable? scope = Logger.StartConnectionScope(Information!.Value, IsServer);
-            Logger.LogReceivedData(buffer.Length, sb.ToString().Trim());
+            return sb.ToString().Trim();
         }
 
-        internal void LogSentData(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
+        internal static string ToHexString(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
         {
             int size = 0;
             var sb = new StringBuilder();
@@ -90,42 +77,13 @@ namespace IceRpc.Transports.Internal
                     }
                 }
                 size += buffer.Length;
-                if (size == 32 && i != buffers.Length)
+                if (size > 32)
                 {
                     _ = sb.Append("...");
+                    break;
                 }
             }
-            using IDisposable? scope = Logger.StartConnectionScope(Information!.Value, IsServer);
-            Logger.LogSentData(size, sb.ToString().Trim());
-        }
-
-        private protected void LogConnected()
-        {
-            using IDisposable? scope = Logger.StartConnectionScope(Information!.Value, IsServer);
-
-            if (IsServer)
-            {
-                Logger.LogConnectionAccepted();
-            }
-            else
-            {
-                Logger.LogConnectionEstablished();
-            }
-        }
-
-        private protected void LogConnectFailed(Exception ex)
-        {
-            using IDisposable? scope = Logger.StartConnectionScope(_endpoint, IsServer);
-
-            // TODO: different log messages for UDP?
-            if (IsServer)
-            {
-                Logger.LogConnectionAcceptFailed(ex);
-            }
-            else
-            {
-                Logger.LogConnectionConnectFailed(ex);
-            }
+            return sb.ToString().Trim();
         }
     }
 }

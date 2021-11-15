@@ -19,8 +19,17 @@ namespace IceRpc.Transports.Internal
 
         public async Task<ISimpleNetworkConnection> AcceptAsync()
         {
-            (ChannelWriter<ReadOnlyMemory<byte>> writer, ChannelReader<ReadOnlyMemory<byte>> reader) =
-                await _channel.Reader.ReadAsync().ConfigureAwait(false);
+            ChannelReader<ReadOnlyMemory<byte>> reader;
+            ChannelWriter<ReadOnlyMemory<byte>> writer;
+
+            try
+            {
+                (writer, reader) = await _channel.Reader.ReadAsync().ConfigureAwait(false);
+            }
+            catch (ChannelClosedException ex)
+            {
+                throw new ObjectDisposedException(nameof(ColocListener), ex);
+            }
             return new ColocNetworkConnection(Endpoint, isServer: true, writer, reader);
         }
 

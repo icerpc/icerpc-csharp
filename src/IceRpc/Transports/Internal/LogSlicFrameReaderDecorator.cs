@@ -23,15 +23,7 @@ namespace IceRpc.Transports.Internal
             await _decoratee.ReadFrameDataAsync(buffer, cancel).ConfigureAwait(false);
             if (_frameType != FrameType.Stream && _frameType != FrameType.StreamLast)
             {
-                if (_frameStreamId == null)
-                {
-                    LogReadFrame(_frameType, _frameDataSize, null, buffer);
-                }
-                else
-                {
-                    using IDisposable? scope = _logger.StartStreamScope(_frameStreamId.Value);
-                    LogReadFrame(_frameType, _frameDataSize, _frameStreamId, buffer);
-                }
+                LogReadFrame(_frameType, _frameDataSize, null, buffer);
             }
         }
 
@@ -46,7 +38,7 @@ namespace IceRpc.Transports.Internal
         {
             (_frameType, _frameDataSize, _frameStreamId) =
                 await _decoratee.ReadStreamFrameHeaderAsync(cancel).ConfigureAwait(false);
-            using IDisposable? scope = _logger.StartStreamScope(_frameStreamId.Value);
+
             if (_frameType == FrameType.Stream || _frameType == FrameType.StreamLast)
             {
                 _logger.LogReceivingSlicDataFrame(_frameType, _frameDataSize);

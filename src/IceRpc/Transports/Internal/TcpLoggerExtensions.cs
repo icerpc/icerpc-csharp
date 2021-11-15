@@ -10,42 +10,27 @@ namespace IceRpc.Transports.Internal
         /// <summary>The maximum (least verbose) log level used for TCP logging.</summary>
         internal const LogLevel MaxLogLevel = LogLevel.Debug;
 
-        private static readonly Action<ILogger, Dictionary<string, string>, Exception> _tlsAuthenticationSucceeded =
+        private static readonly Action<ILogger, Dictionary<string, string>, Exception> _tlsAuthentication =
             LoggerMessage.Define<Dictionary<string, string>>(
                 LogLevel.Debug,
-                new EventId((int)TcpEventIds.TlsAuthenticationSucceeded,
-                             nameof(TcpEventIds.TlsAuthenticationSucceeded)),
+                new EventId((int)TcpEventIds.TlsAuthentication,
+                             nameof(TcpEventIds.TlsAuthentication)),
                 "Tls authentication succeeded ({TlsInfo})");
 
         [LoggerMessage(
-            EventId = (int)TcpEventIds.ConnectionAccepted,
-            EventName = nameof(TcpEventIds.ConnectionAccepted),
+            EventId = (int)TcpEventIds.Connect,
+            EventName = nameof(TcpEventIds.Connect),
             Level = LogLevel.Debug,
-            Message = "accepted tcp connection (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize})")]
-        internal static partial void LogTcpNetworkConnectionAccepted(this ILogger logger, int rcvSize, int sndSize);
+            Message = "tcp connection established (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize})")]
+        internal static partial void LogTcpConnect(this ILogger logger, int rcvSize, int sndSize);
 
-        [LoggerMessage(
-            EventId = (int)TcpEventIds.ConnectionEstablished,
-            EventName = nameof(TcpEventIds.ConnectionEstablished),
-            Level = LogLevel.Debug,
-            Message = "established tcp connection (ReceiveBufferSize={RcvSize}, SendBufferSize={SndSize})")]
-        internal static partial void LogTcpNetworkConnectionEstablished(this ILogger logger, int rcvSize, int sndSize);
-
-        // TODO: log SslStream properties
-        [LoggerMessage(
-            EventId = (int)TcpEventIds.TlsAuthenticationFailed,
-            EventName = nameof(TcpEventIds.TlsAuthenticationFailed),
-            Level = LogLevel.Debug,
-            Message = "Tls authentication failed")]
-        internal static partial void LogTlsAuthenticationFailed(this ILogger logger, Exception exception);
-
-        internal static void LogTlsAuthenticationSucceeded(
+        internal static void LogTlsAuthentication(
             this ILogger logger,
             System.Net.Security.SslStream sslStream)
         {
             if (logger.IsEnabled(LogLevel.Debug))
             {
-                _tlsAuthenticationSucceeded(
+                _tlsAuthentication(
                     logger,
                     new Dictionary<string, string>()
                     {
@@ -59,5 +44,13 @@ namespace IceRpc.Transports.Internal
                     null!);
             }
         }
+
+        // TODO: log SslStream properties
+        [LoggerMessage(
+            EventId = (int)TcpEventIds.TlsAuthenticationFailed,
+            EventName = nameof(TcpEventIds.TlsAuthenticationFailed),
+            Level = LogLevel.Debug,
+            Message = "Tls authentication failed")]
+        internal static partial void LogTlsAuthenticationFailed(this ILogger logger, Exception exception);
     }
 }

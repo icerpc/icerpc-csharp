@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 
 namespace IceRpc.Transports.Internal
@@ -19,40 +20,36 @@ namespace IceRpc.Transports.Internal
             }
             catch (Exception ex)
             {
-                LogConnectFailed(ex);
+                Logger.LogConnectFailed(ex);
                 throw;
             }
 
-            simpleStream = new LogSimpleStreamDecorator(this, simpleStream);
-
-            LogConnected();
-            return (simpleStream, Information.Value);
+            Logger.LogConnect(Information.Value.LocalEndpoint, Information.Value.RemoteEndpoint);
+            return (new LogSimpleStreamDecorator(simpleStream, Logger), Information.Value);
         }
 
         internal static ISimpleNetworkConnection Decorate(
             ISimpleNetworkConnection decoratee,
             bool isServer,
-            Endpoint endpoint,
             ILogger logger) =>
-            new LogSimpleNetworkConnectionDecorator(decoratee, isServer, endpoint, logger);
+            new LogSimpleNetworkConnectionDecorator(decoratee, isServer, logger);
 
         internal LogSimpleNetworkConnectionDecorator(
             ISimpleNetworkConnection decoratee,
             bool isServer,
-            Endpoint endpoint,
             ILogger logger)
-            : base(isServer, endpoint, logger) => _decoratee = decoratee;
+            : base(isServer, logger) => _decoratee = decoratee;
     }
 
     internal sealed class LogSimpleStreamDecorator : ISimpleStream
     {
         private readonly ISimpleStream _decoratee;
-        private readonly LogNetworkConnectionDecorator _parent;
+        private readonly ILogger _logger;
 
         public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             int received = await _decoratee.ReadAsync(buffer, cancel).ConfigureAwait(false);
-            _parent.LogReceivedData(buffer[0..received]);
+            _logger.LogSimpleStreamRead(received, LogNetworkConnectionDecorator.ToHexString(buffer[0..received]));
             return received;
         }
 
@@ -61,15 +58,13 @@ namespace IceRpc.Transports.Internal
         public async ValueTask WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
         {
             await _decoratee.WriteAsync(buffers, cancel).ConfigureAwait(false);
-            _parent.LogSentData(buffers);
+            _logger.LogSimpleStreamWrite(buffers.GetByteCount(), LogNetworkConnectionDecorator.ToHexString(buffers));
         }
 
-        internal LogSimpleStreamDecorator(
-            LogNetworkConnectionDecorator parent,
-            ISimpleStream decoratee)
+        internal LogSimpleStreamDecorator(ISimpleStream decoratee, ILogger logger)
         {
-            _parent = parent;
             _decoratee = decoratee;
+            _logger = logger;
         }
     }
 }

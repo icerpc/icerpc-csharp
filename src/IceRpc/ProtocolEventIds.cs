@@ -3,6 +3,8 @@
 namespace IceRpc
 {
     /// <summary>This class contains event ID constants used for protocol logging.</summary>
+    // TODO: split into Ice1EventIds and Ice2EventIds
+    // The protocol-neutral event IDs are in ConnectionEventIds.
     public enum ProtocolEventIds
     {
         /// <summary>A datagram connection received a close connection frame.</summary>
@@ -22,10 +24,10 @@ namespace IceRpc
         ReceivedGoAwayFrame,
         /// <summary>Received an ice2 initialize frame.</summary>
         ReceivedInitializeFrame,
-        /// <summary>Received a request frame.</summary>
-        ReceivedRequestFrame,
-        /// <summary>Received a response frame.</summary>
-        ReceivedResponseFrame,
+
+        /// <summary>Received an invalid datagram message (ice1).</summary>
+        ReceivedInvalidDatagram,
+
         /// <summary>An ice1 validate connection frame was sent.</summary>
         SentIce1ValidateConnectionFrame,
         /// <summary>An ice1 close connection frame was sent.</summary>
@@ -34,9 +36,5 @@ namespace IceRpc
         SentGoAwayFrame,
         /// <summary>An ice2 initialize frame was sent.</summary>
         SentInitializeFrame,
-        /// <summary>A request frame was sent.</summary>
-        SentRequestFrame,
-        /// <summary>A response frame was sent.</summary>
-        SentResponseFrame
     }
 }

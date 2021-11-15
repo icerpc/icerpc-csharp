@@ -17,11 +17,16 @@ namespace IceRpc.Transports.Internal
             try
             {
                 T connection = await _decoratee.AcceptAsync().ConfigureAwait(false);
-                return _logDecoratorFactory(connection, isServer: true, _decoratee.Endpoint, _logger);
+                return _logDecoratorFactory(connection, isServer: true, _logger);
+            }
+            catch (ObjectDisposedException)
+            {
+                // We assume the decoratee is shut down which should not result in an error message.
+                throw;
             }
             catch (Exception ex)
             {
-                _logger.LogListenerAcceptingConnectionFailed(_decoratee.Endpoint, ex);
+                _logger.LogListenerAcceptFailed(_decoratee.Endpoint, ex);
                 throw;
             }
         }
@@ -34,7 +39,7 @@ namespace IceRpc.Transports.Internal
             }
             finally
             {
-                _logger.LogListenerShutDown(_decoratee.Endpoint);
+                _logger.LogListenerDispose(_decoratee.Endpoint);
             }
         }
 
@@ -48,7 +53,7 @@ namespace IceRpc.Transports.Internal
             _decoratee = decoratee;
             _logDecoratorFactory = logDecoratorFactory;
             _logger = logger;
-            _logger.LogListenerListening(_decoratee.Endpoint);
+            _logger.LogListenerCreated(_decoratee.Endpoint);
         }
     }
 }
