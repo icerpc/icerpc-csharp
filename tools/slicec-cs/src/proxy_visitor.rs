@@ -424,8 +424,7 @@ fn proxy_interface_operations(interface_def: &Interface) -> CodeBlock {
     let operations = interface_def.operations();
 
     for operation in operations {
-        // TODO: add returns doc comments (see C++) and obsolete attribute
-
+        // TODO: add returns doc comments (see C++)
         code.add_block(
             &FunctionBuilder::new(
                 "",
@@ -433,7 +432,7 @@ fn proxy_interface_operations(interface_def: &Interface) -> CodeBlock {
                 &operation.escape_identifier_with_suffix("Async"),
                 FunctionType::Declaration,
             )
-            .add_container_attributes(interface_def)
+            .add_container_attributes(operation)
             .add_comment("summary", &doc_comment_message(operation))
             .add_operation_parameters(operation, TypeContext::Outgoing)
             .build(),
