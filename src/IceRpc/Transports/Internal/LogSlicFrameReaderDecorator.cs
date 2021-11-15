@@ -34,7 +34,6 @@ namespace IceRpc.Transports.Internal
 
             if (_frameType == FrameType.Stream || _frameType == FrameType.StreamLast)
             {
-                using IDisposable? scope = _logger.StartStreamScope(_frameStreamId!.Value);
                 _logger.LogReceivingSlicDataFrame(_frameType, _frameDataSize);
             }
 
