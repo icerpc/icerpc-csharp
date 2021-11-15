@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Slice.Internal;
+using System.Buffers;
 
 namespace IceRpc.Slice
 {
@@ -87,6 +89,16 @@ namespace IceRpc.Slice
 
         /// <inheritdoc/>
         public override ReadOnlyMemory<ReadOnlyMemory<byte>> CreateEmptyPayload() => default;
+
+        /// <inheritdoc/>
+        public override async ValueTask<int> ReadPayloadSizeAsync(Stream payloadStream, CancellationToken cancel)
+        {
+            using IMemoryOwner<byte> owner = MemoryPool<byte>.Shared.Rent(4);
+            Memory<byte> buffer = owner.Memory[0..4];
+            await payloadStream.ReadUntilFullAsync(buffer, cancel).ConfigureAwait(false);
+
+            return Ice11Decoder.DecodeInt(buffer.Span);
+        }
 
         internal override IceEncoder CreateIceEncoder(BufferWriter bufferWriter) => new Ice11Encoder(bufferWriter);
 

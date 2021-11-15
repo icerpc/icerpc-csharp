@@ -90,6 +90,12 @@ namespace IceRpc.Slice
             return bufferWriter.Finish();
         }
 
+        /// <summary>Reads a payload size from the payload stream.</summary>
+        /// <param name="payloadStream">The payload stream.</param>
+        /// <param name="cancel">The cancellation token.</param>
+        /// <returns>The payload size read from the stream.</returns>
+        public abstract ValueTask<int> ReadPayloadSizeAsync(Stream payloadStream, CancellationToken cancel);
+
         internal abstract IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
             FeatureCollection features,
             DefaultIceDecoderFactories defaultIceDecoderFactories);
