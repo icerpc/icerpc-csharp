@@ -70,14 +70,34 @@ namespace IceRpc.Internal
 
             while (true)
             {
-                // Accepts a new stream.
-                IMultiplexedStream stream = await _streamFactory!.AcceptStreamAsync(cancel).ConfigureAwait(false);
+                IMultiplexedStream stream;
 
-                // Receives the request frame from the stream. TODO: delayed payload receive.
-                ReadOnlyMemory<byte> buffer = await ReceiveFrameAsync(
-                    stream,
-                    Ice2FrameType.Request,
-                    cancel).ConfigureAwait(false);
+                ReadOnlyMemory<byte> buffer;
+
+                try
+                {
+                    // Accepts a new stream.
+                    stream = await _streamFactory!.AcceptStreamAsync(cancel).ConfigureAwait(false);
+
+                    // Receives the request frame from the stream. TODO: delayed payload receive.
+                    buffer = await ReceiveFrameAsync(
+                        stream,
+                        Ice2FrameType.Request,
+                        cancel).ConfigureAwait(false);
+                }
+                catch
+                {
+                    lock (_mutex)
+                    {
+                        if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
+                        {
+                            // The connection was gracefully shut down, raise ConnectionClosedException here to ensure
+                            // that the ClosedEvent will report this exception instead of the transport failure.
+                            throw new ConnectionClosedException("connection gracefully shut down");
+                        }
+                    }
+                    throw;
+                }
 
                 var decoder = new Ice20Decoder(buffer);
                 int headerSize = decoder.DecodeSize();
@@ -795,9 +815,6 @@ namespace IceRpc.Internal
             {
                 throw new InvalidDataException($"{nameof(Ice2FrameType.GoAwayCompleted)} frame is not empty");
             }
-
-            // Close the transport, this will unblock AcceptStreamAsync
-            await _streamFactory.CloseAsync(cancel).ConfigureAwait(false);
         }
     }
 }

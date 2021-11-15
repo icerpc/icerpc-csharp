@@ -76,11 +76,6 @@ namespace IceRpc.Transports.Internal
             // Log the received frame.
             switch (type)
             {
-                case FrameType.Close:
-                {
-                    _logger.LogSentSlicCloseFrame(dataSize);
-                    break;
-                }
                 case FrameType.Initialize:
                 {
                     (uint version, InitializeBody? initializeBody) =

@@ -48,11 +48,6 @@ namespace IceRpc.Transports.Internal
 
                 switch (type)
                 {
-                    case FrameType.Close:
-                    {
-                        await _reader.ReadCloseAsync(dataSize, cancel).ConfigureAwait(false);
-                        throw new ConnectionClosedException("connection closed by peer");
-                    }
                     case FrameType.Stream:
                     case FrameType.StreamLast:
                     {
@@ -209,8 +204,6 @@ namespace IceRpc.Transports.Internal
                 }
             }
         }
-
-        public ValueTask CloseAsync(CancellationToken cancel) => _writer.WriteCloseAsync(cancel);
 
         public IMultiplexedStream CreateStream(bool bidirectional) =>
             new SlicMultiplexedStream(this, bidirectional, remote: false, _reader, _writer);

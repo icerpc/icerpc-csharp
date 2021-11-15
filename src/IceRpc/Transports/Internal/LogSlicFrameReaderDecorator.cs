@@ -45,11 +45,6 @@ namespace IceRpc.Transports.Internal
                 using IDisposable? scope = _logger.StartStreamScope(_frameStreamId!.Value);
                 _logger.LogReceivingSlicDataFrame(_frameType, _frameDataSize);
             }
-            else if (_frameType == FrameType.Close)
-            {
-                // The Close frame doesn't have any data, log it now because ReadFrameDataAsync won't be called.
-                _logger.LogReceivedSlicCloseFrame(_frameDataSize);
-            }
 
             return (_frameType, _frameDataSize, _frameStreamId);
         }

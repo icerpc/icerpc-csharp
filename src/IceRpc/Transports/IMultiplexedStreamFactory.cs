@@ -10,10 +10,6 @@ namespace IceRpc.Transports
         /// <return>The remote stream.</return>
         ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel);
 
-        /// <summary>Closes the underlying multiplexed network connection.</summary>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        ValueTask CloseAsync(CancellationToken cancel);
-
         /// <summary>Creates a local stream.</summary>
         /// <param name="bidirectional"><c>True</c> to create a bidirectional stream, <c>false</c>
         /// otherwise.</param>

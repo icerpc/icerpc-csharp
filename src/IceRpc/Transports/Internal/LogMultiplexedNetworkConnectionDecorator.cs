@@ -56,8 +56,6 @@ namespace IceRpc.Transports.Internal
                 _parent,
                 await _decoratee.AcceptStreamAsync(cancel).ConfigureAwait(false));
 
-        public ValueTask CloseAsync(CancellationToken cancel) => _decoratee.CloseAsync(cancel);
-
         public IMultiplexedStream CreateStream(bool bidirectional) =>
             new LogMultiplexedStreamDecorator(_parent, _decoratee.CreateStream(bidirectional));
 

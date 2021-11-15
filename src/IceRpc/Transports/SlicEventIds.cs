@@ -5,8 +5,6 @@ namespace IceRpc.Transports
     /// <summary>This enum contains event ID constants used for Slic transport logging.</summary>
     public enum SlicEventIds
     {
-        /// <summary>Received Slic close frame.</summary>
-        ReceivedCloseFrame,
         /// <summary>Received Slic stream consumed frame.</summary>
         ReceivedConsumedFrame,
         /// <summary>Receiving Slic initialize frame.</summary>
@@ -27,8 +25,6 @@ namespace IceRpc.Transports
         SendingStreamFrame,
         /// <summary>Sending Slic frame failed.</summary>
         SendFailure,
-        /// <summary>Sent Slic close frame.</summary>
-        SentCloseFrame,
         /// <summary>Sent Slic stream consumed frame.</summary>
         SentConsumedFrame,
         /// <summary>Sent Slic initialize frame.</summary>

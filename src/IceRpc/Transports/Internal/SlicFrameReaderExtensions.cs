@@ -7,18 +7,6 @@ namespace IceRpc.Transports.Internal
 {
     internal static class SlicFrameReaderExtensions
     {
-        internal static ValueTask ReadCloseAsync(
-            this ISlicFrameReader reader,
-            int dataSize,
-            CancellationToken cancel)
-        {
-            if (dataSize > 0)
-            {
-                throw new InvalidDataException($"unexpected data for Slic frame {FrameType.Close}");
-            }
-            return new();
-        }
-
         internal static async ValueTask<(uint, InitializeBody?)> ReadInitializeAsync(
             this ISlicFrameReader reader,
             FrameType type,
