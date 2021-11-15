@@ -293,7 +293,6 @@ pub fn response_encode_action(operation: &Operation) -> CodeBlock {
 }
 
 fn operation_declaration(operation: &Operation) -> CodeBlock {
-    // TODO: operation obsolete deprecation
     FunctionBuilder::new(
         &operation.parent().unwrap().access_modifier(),
         &operation.return_task(true),
@@ -302,6 +301,7 @@ fn operation_declaration(operation: &Operation) -> CodeBlock {
     )
     .add_comment("summary", &doc_comment_message(operation))
     .add_operation_parameters(operation, TypeContext::Incoming)
+    .add_container_attributes(operation)
     .build()
 }
 
