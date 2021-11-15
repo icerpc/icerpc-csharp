@@ -212,12 +212,12 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
     let members = class_def.members();
     let has_base_class = class_def.base_class().is_some();
 
-    // TODO check preserve-slice metadata
-    // const bool basePreserved = p->inheritsMetadata("preserve-slice");
-    // const bool preserved = p->hasMetadata("preserve-slice");
-
-    let is_base_preserved = false;
-    let is_preserved = false;
+    let is_preserved = class_def.has_attribute("preserve-slice", false);
+    let is_base_preserved = has_base_class
+        && class_def
+            .base_class()
+            .unwrap()
+            .has_attribute("preserve-slice", true);
 
     if is_preserved && !is_base_preserved {
         code.add_block("\

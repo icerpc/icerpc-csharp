@@ -122,7 +122,6 @@ pub fn encode_type(
     code
 }
 
-// TODO: should is_data_member be TypeContext instead of bool?
 pub fn encode_tagged_type(
     member: &impl Member,
     namespace: &str,
