@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use slice::code_gen_util::TypeContext;
-use slice::grammar::{DataMember, Member, Primitive, Types};
+use slice::grammar::{AsTypes, DataMember, Member, Primitive, Types};
 
 use crate::code_block::CodeBlock;
 use crate::comments::{doc_comment_message, CommentTag};
