@@ -45,8 +45,8 @@ namespace IceRpc.Internal
             EventId = (int)ConnectionEventIds.CreateProtocolConnection,
             EventName = nameof(ConnectionEventIds.CreateProtocolConnection),
             Level = LogLevel.Information,
-            Message = "{Protocol} connection established: " +
-                "LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint}")]
+            Message = "{Protocol} connection established " +
+                "(LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint})")]
         internal static partial void LogCreateProtocolConnection(
             this ILogger logger,
             Protocol protocol,
@@ -71,7 +71,7 @@ namespace IceRpc.Internal
             EventId = (int)ConnectionEventIds.ProtocolConnectionShutdown,
             EventName = nameof(ConnectionEventIds.ProtocolConnectionShutdown),
             Level = LogLevel.Debug,
-            Message = "{Protocol} connection shut down: {Message}")]
+            Message = "{Protocol} connection shut down (Message={Message})")]
         internal static partial void LogProtocolConnectionShutdown(
             this ILogger logger,
             Protocol protocol,
