@@ -85,7 +85,7 @@ namespace IceRpc.Transports.Internal
                 case FrameType.StreamReset:
                 {
                     StreamResetBody body = ReadFrame(() => reader.ReadStreamResetAsync(dataSize, default));
-                    _logger.LogReceivedSlicResetFrame(dataSize, (StreamError)body.ApplicationProtocolErrorCode);
+                    _logger.LogReceivedSlicResetFrame(dataSize, (byte)body.ApplicationProtocolErrorCode);
                     break;
                 }
                 case FrameType.StreamConsumed:
@@ -97,7 +97,7 @@ namespace IceRpc.Transports.Internal
                 case FrameType.StreamStopSending:
                 {
                     StreamStopSendingBody body = ReadFrame(() => reader.ReadStreamStopSendingAsync(dataSize, default));
-                    _logger.LogReceivedSlicStopSendingFrame(dataSize, (StreamError)body.ApplicationProtocolErrorCode);
+                    _logger.LogReceivedSlicStopSendingFrame(dataSize, (byte)body.ApplicationProtocolErrorCode);
                     break;
                 }
                 default:

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Transports;
 using NUnit.Framework;
 
@@ -40,7 +41,7 @@ namespace IceRpc.Tests.Internal
             // Stream is aborted
             ex = Assert.ThrowsAsync<StreamAbortedException>(
                 async () => await clientStream.ReadAsync(CreateReceivePayload(), default));
-            Assert.That(ex!.ErrorCode, Is.EqualTo(StreamError.ConnectionAborted));
+            Assert.That(ex!.ErrorCode, Is.EqualTo((byte)StreamError.ConnectionAborted));
 
             // Can't create new stream
             clientStream = ClientMultiplexedStreamFactory.CreateStream(true);

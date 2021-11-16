@@ -80,9 +80,17 @@ namespace IceRpc.Slice
                     // Write end of stream (TODO: this might not work with Quic)
                     await ioStream.WriteAsync(Array.Empty<byte>()).ConfigureAwait(false);
                 }
+                catch (StreamAbortedException ex) when (ex.ErrorCode == (byte)StreamError.StreamingCanceledByReader)
+                {
+                    throw new IOException("streaming canceled by the reader", ex);
+                }
+                catch (StreamAbortedException ex)
+                {
+                    throw new IOException($"unexpected streaming error {ex.ErrorCode}", ex);
+                }
                 catch
                 {
-                    multiplexedStream.AbortWrite(StreamError.StreamingCanceledByWriter);
+                    multiplexedStream.AbortWrite((byte)StreamError.StreamingCanceledByWriter);
                     throw;
                 }
             }

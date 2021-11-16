@@ -71,9 +71,7 @@ namespace IceRpc.Internal
             while (true)
             {
                 IMultiplexedStream stream;
-
                 ReadOnlyMemory<byte> buffer;
-
                 try
                 {
                     // Accepts a new stream.
@@ -267,7 +265,7 @@ namespace IceRpc.Internal
             }
             catch (StreamAbortedException ex)
             {
-                switch (ex.ErrorCode)
+                switch ((StreamError)ex.ErrorCode)
                 {
                     case StreamError.ConnectionAborted:
                         throw new ConnectionLostException(ex);
@@ -300,7 +298,7 @@ namespace IceRpc.Internal
                     if (_shutdown)
                     {
                         request.Features = request.Features.With(RetryPolicy.Immediately);
-                        request.Stream.Abort(StreamError.ConnectionShutdown);
+                        request.Stream.Abort((byte)StreamError.ConnectionShutdown);
                         throw new ConnectionClosedException("connection shutdown");
                     }
                     _invocations.Add(request);
@@ -394,7 +392,7 @@ namespace IceRpc.Internal
             }
             catch (StreamAbortedException ex)
             {
-                switch (ex.ErrorCode)
+                switch ((StreamError)ex.ErrorCode)
                 {
                     case StreamError.ConnectionAborted:
                     case StreamError.StreamAborted:
@@ -655,7 +653,7 @@ namespace IceRpc.Internal
 
             foreach (OutgoingRequest request in invocations)
             {
-                request.Stream!.Abort(streamError);
+                request.Stream!.Abort((byte)streamError);
             }
         }
 
@@ -782,7 +780,7 @@ namespace IceRpc.Internal
 
             foreach (OutgoingRequest request in invocations)
             {
-                request.Stream!.Abort(StreamError.ConnectionShutdownByPeer);
+                request.Stream!.Abort((byte)StreamError.ConnectionShutdownByPeer);
             }
 
             if (!alreadyShuttingDown)

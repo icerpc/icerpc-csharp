@@ -2,37 +2,6 @@
 
 namespace IceRpc.Transports
 {
-    /// <summary>Error codes for stream errors.</summary>
-    public enum StreamError : byte
-    {
-        /// <summary>The stream was aborted because the invocation was canceled.</summary>
-        InvocationCanceled,
-
-        /// <summary>The stream was aborted because the dispatch was canceled.</summary>
-        DispatchCanceled,
-
-        /// <summary>Streaming was canceled by the reader.</summary>
-        StreamingCanceledByReader,
-
-        /// <summary>Streaming was canceled by the writer.</summary>
-        StreamingCanceledByWriter,
-
-        /// <summary>The stream was aborted because the connection was shutdown.</summary>
-        ConnectionShutdown,
-
-        /// <summary>The stream was aborted because the connection was shutdown by the peer.</summary>
-        ConnectionShutdownByPeer,
-
-        /// <summary>The stream was aborted because the connection was aborted.</summary>
-        ConnectionAborted,
-
-        /// <summary>Stream data is not expected.</summary>
-        UnexpectedStreamData,
-
-        /// <summary>The stream was aborted.</summary>
-        StreamAborted
-    }
-
     /// <summary>A multiplexed stream enables byte data exchange over a multiplexed transport.</summary>
     public interface IMultiplexedStream
     {
@@ -51,19 +20,19 @@ namespace IceRpc.Transports
         Action? ShutdownAction { get; set; }
 
         /// <summary>The transport header sentinel. Transport implementations that need an additional header to transmit
-        /// data over the stream can provide the header data here. This can improve performance by reducing the number
-        /// of allocations since the protocol implementation will allocate buffer space for both the transport header
-        /// and the protocol header. If a header is returned here, the implementation of <see cref="WriteAsync"/> can
-        /// expect this header to be set at the start of the first buffer.</summary>
+        /// data over the stream can provide a sample header here. The caller of <see cref="WriteAsync"/> is responsible
+        /// for appending this header to the buffers provided to <see cref="WriteAsync"/>. The implementation of <see
+        /// cref="WriteAsync"/> expects this header to be present at the start of the <see cref="WriteAsync"/>
+        /// buffers.</summary>
         ReadOnlyMemory<byte> TransportHeader { get; }
 
         /// <summary>Aborts the stream read side.</summary>
         /// <param name="errorCode">The reason of the abort.</param>
-        void AbortRead(StreamError errorCode);
+        void AbortRead(byte errorCode);
 
         /// <summary>Aborts the stream write side.</summary>
         /// <param name="errorCode">The reason of the abort.</param>
-        void AbortWrite(StreamError errorCode);
+        void AbortWrite(byte errorCode);
 
         /// <summary>Gets a <see cref="System.IO.Stream"/> to allow using this stream using a <see
         /// cref="System.IO.Stream"/></summary>

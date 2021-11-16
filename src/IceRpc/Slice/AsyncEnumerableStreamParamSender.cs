@@ -109,7 +109,7 @@ namespace IceRpc.Slice
             }
             catch
             {
-                multiplexedStream.AbortWrite(StreamError.StreamingCanceledByWriter);
+                multiplexedStream.AbortWrite((byte)StreamError.StreamingCanceledByWriter);
                 throw;
             }
             finally
