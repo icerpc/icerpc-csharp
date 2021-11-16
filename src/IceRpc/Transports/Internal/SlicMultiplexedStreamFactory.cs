@@ -46,13 +46,18 @@ namespace IceRpc.Transports.Internal
                 (FrameType type, int dataSize, long? streamId) =
                     await _reader.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
 
+                // Only stream frames are expected at this point. Non stream frames are only exchanged at the
+                // initialization step.
+                if (streamId == null)
+                {
+                    throw new InvalidDataException($"unexpected Slic frame with frame type '{type}'");
+                }
+
                 switch (type)
                 {
                     case FrameType.Stream:
                     case FrameType.StreamLast:
                     {
-                        Debug.Assert(streamId != null); // The frame reader ensures that ID is set for stream frames.
-
                         bool endStream = type == FrameType.StreamLast;
                         if (dataSize == 0 && type == FrameType.Stream)
                         {
@@ -133,8 +138,6 @@ namespace IceRpc.Transports.Internal
                     }
                     case FrameType.StreamConsumed:
                     {
-                        Debug.Assert(streamId != null); // The frame reader ensures that ID is set for stream frames.
-
                         if (dataSize > 8)
                         {
                             throw new InvalidDataException("stream consumed frame too large");
@@ -150,8 +153,6 @@ namespace IceRpc.Transports.Internal
                     }
                     case FrameType.StreamReset:
                     {
-                        Debug.Assert(streamId != null); // The frame reader ensures that ID is set for stream frames.
-
                         if (dataSize > 8)
                         {
                             throw new InvalidDataException("stream reset frame too large");
@@ -167,8 +168,6 @@ namespace IceRpc.Transports.Internal
                     }
                     case FrameType.StreamStopSending:
                     {
-                        Debug.Assert(streamId != null); // The frame reader ensures that ID is set for stream frames.
-
                         if (dataSize > 8)
                         {
                             throw new InvalidDataException("stream stop sending frame too large");
