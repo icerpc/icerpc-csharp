@@ -43,8 +43,15 @@ namespace IceRpc.Transports.Internal
         {
             while (true)
             {
-                (FrameType type, int dataSize, long streamId) =
-                    await _reader.ReadStreamFrameHeaderAsync(cancel).ConfigureAwait(false);
+                (FrameType type, int dataSize, long? streamId) =
+                    await _reader.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
+
+                // Only stream frames are expected at this point. Non stream frames are only exchanged at the
+                // initialization step.
+                if (streamId == null)
+                {
+                    throw new InvalidDataException($"unexpected Slic frame with frame type '{type}'");
+                }
 
                 switch (type)
                 {
@@ -59,12 +66,12 @@ namespace IceRpc.Transports.Internal
 
                         bool isRemote = streamId % 2 == (IsServer ? 0 : 1);
                         bool isBidirectional = streamId % 4 < 2;
-                        if (TryGetStream(streamId, out SlicMultiplexedStream? stream))
+                        if (TryGetStream(streamId.Value, out SlicMultiplexedStream? stream))
                         {
                             // Let the stream receive the data.
                             await stream.ReceivedFrameAsync(dataSize, endStream).ConfigureAwait(false);
                         }
-                        else if (isRemote && !IsKnownRemoteStream(streamId, isBidirectional))
+                        else if (isRemote && !IsKnownRemoteStream(streamId.Value, isBidirectional))
                         {
                             // Create a new stream if the incoming stream is unknown (the client could be
                             // sending frames for old canceled incoming streams, these are ignored).
@@ -83,7 +90,7 @@ namespace IceRpc.Transports.Internal
                                     remote: true,
                                     _reader,
                                     _writer);
-                                AddStream(streamId, stream);
+                                AddStream(streamId.Value, stream);
                             }
                             catch
                             {
@@ -138,7 +145,7 @@ namespace IceRpc.Transports.Internal
 
                         StreamConsumedBody streamConsumed =
                             await _reader.ReadStreamConsumedAsync(dataSize, cancel).ConfigureAwait(false);
-                        if (TryGetStream(streamId, out SlicMultiplexedStream? stream))
+                        if (TryGetStream(streamId.Value, out SlicMultiplexedStream? stream))
                         {
                             stream.ReceivedConsumed((int)streamConsumed.Size);
                         }
@@ -153,7 +160,7 @@ namespace IceRpc.Transports.Internal
 
                         StreamResetBody streamReset =
                             await _reader.ReadStreamResetAsync(dataSize, cancel).ConfigureAwait(false);
-                        if (TryGetStream(streamId, out SlicMultiplexedStream? stream))
+                        if (TryGetStream(streamId.Value, out SlicMultiplexedStream? stream))
                         {
                             stream.ReceivedReset((StreamError)streamReset.ApplicationProtocolErrorCode);
                         }
@@ -168,7 +175,7 @@ namespace IceRpc.Transports.Internal
 
                         StreamStopSendingBody _ =
                             await _reader.ReadStreamStopSendingAsync(dataSize, cancel).ConfigureAwait(false);
-                        if (TryGetStream(streamId, out SlicMultiplexedStream? stream))
+                        if (TryGetStream(streamId.Value, out SlicMultiplexedStream? stream))
                         {
                             stream.TrySetWriteCompleted();
                         }
@@ -287,18 +294,31 @@ namespace IceRpc.Transports.Internal
 
         internal async ValueTask InitializeAsync(CancellationToken cancel)
         {
+            FrameType type;
+            int dataSize;
+
             if (IsServer)
             {
                 // Read the Initialize frame sent by the client.
-                (uint version, InitializeBody? initializeBody) =
-                    await _reader.ReadInitializeAsync(cancel).ConfigureAwait(false);
+                (type, dataSize, _) = await _reader.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
+                (uint version, InitializeBody? initializeBody) = await _reader.ReadInitializeAsync(
+                    type,
+                    dataSize,
+                    cancel).ConfigureAwait(false);
+
                 if (version != 1)
                 {
                     // Unsupported version, try to negotiate another version by sending a Version frame with
                     // the Slic versions supported by this server.
                     var versionBody = new VersionBody(new uint[] { SlicDefinitions.V1 });
                     await _writer.WriteVersionAsync(versionBody, cancel).ConfigureAwait(false);
-                    (version, initializeBody) = await _reader.ReadInitializeAsync(cancel).ConfigureAwait(false);
+
+                    // Read again the Initialize frame sent by the client.
+                    (type, dataSize, _) = await _reader.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
+                    (version, initializeBody) = await _reader.ReadInitializeAsync(
+                        type,
+                        dataSize,
+                        cancel).ConfigureAwait(false);
                 }
 
                 if (initializeBody == null)
@@ -333,8 +353,9 @@ namespace IceRpc.Transports.Internal
                 await _writer.WriteInitializeAsync(SlicDefinitions.V1, initializeBody, cancel).ConfigureAwait(false);
 
                 // Read back either the InitializeAck or Version frame.
+                (type, dataSize, _) = await _reader.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
                 (InitializeAckBody? initializeAckBody, VersionBody? versionBody) =
-                    await _reader.ReadInitializeAckOrVersionAsync(cancel).ConfigureAwait(false);
+                    await _reader.ReadInitializeAckOrVersionAsync(type, dataSize, cancel).ConfigureAwait(false);
 
                 if (initializeAckBody != null)
                 {
