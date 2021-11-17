@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-
 // TODO: use generated internal types once supported
 module IceRpc::Slice::Internal
 {
