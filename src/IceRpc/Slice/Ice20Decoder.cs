@@ -196,13 +196,6 @@ namespace IceRpc.Slice
             return (key, value);
         }
 
-        /// <inheritdoc/>
-        internal override RemoteException DecodeIce1SystemException(ReplyStatus replyStatus)
-        {
-            Debug.Assert(replyStatus > ReplyStatus.UserException);
-            return DecodeException();
-        }
-
         // TODO: the current version is for paramaters, return values and exception data members. It relies on the
         // end of buffer to detect the end of the tag "dictionary", and does not use TagEndMarker.
         private protected override void SkipTaggedParams()

@@ -29,9 +29,10 @@ namespace IceRpc
             if (ResultType == ResultType.Failure && targetProtocol == Protocol.Ice1)
             {
                 features = new FeatureCollection();
-                ReplyStatus replyStatus = Features.Get<ReplyStatus>();
+                ReplyStatus replyStatus = Features.Get<ReplyStatus>(); // returns OK when not set
                 features.Set(replyStatus > ReplyStatus.OK ? replyStatus : ReplyStatus.UserException);
             }
+            // if we're forwarding from ice2 to ice2, the reply status field (if set) is just forwarded as is
 
             return new OutgoingResponse(targetProtocol, ResultType)
             {

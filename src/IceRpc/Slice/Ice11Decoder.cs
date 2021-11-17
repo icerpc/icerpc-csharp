@@ -368,8 +368,10 @@ namespace IceRpc.Slice
             _classGraphMaxDepth = classGraphMaxDepth;
         }
 
-        /// <inheritdoc/>
-        internal override RemoteException DecodeIce1SystemException(ReplyStatus replyStatus)
+        /// <summary>Decodes an ice1 system exception.</summary>
+        /// <param name="replyStatus">The reply status.</param>
+        /// <returns>The exception decoded using the decoder.</returns>
+        internal RemoteException DecodeIce1SystemException(ReplyStatus replyStatus)
         {
             Debug.Assert(replyStatus > ReplyStatus.UserException);
 

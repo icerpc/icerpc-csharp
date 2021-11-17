@@ -37,9 +37,9 @@ namespace IceRpc.Internal
             IceEncoder encoder = payloadEncoding.CreateIceEncoder(bufferWriter);
 
             ReplyStatus replyStatus = ReplyStatus.UserException;
-            if (payloadEncoding == Encoding.Ice11 && remoteException.IsIce1SystemException())
+            if (encoder is Ice11Encoder encoder11 && remoteException.IsIce1SystemException())
             {
-                replyStatus = encoder.EncodeIce1SystemException(remoteException);
+                replyStatus = encoder11.EncodeIce1SystemException(remoteException);
             }
             else
             {

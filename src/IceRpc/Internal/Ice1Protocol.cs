@@ -36,9 +36,9 @@ namespace IceRpc.Internal
 
             // Set the reply status feature. It's used when the response header is encoded.
             var features = new FeatureCollection();
-            if (exception.IsIce1SystemException())
+            if (encoder is Ice11Encoder encoder11 && exception.IsIce1SystemException())
             {
-                features.Set(encoder.EncodeIce1SystemException(exception));
+                features.Set(encoder11.EncodeIce1SystemException(exception));
             }
             else
             {

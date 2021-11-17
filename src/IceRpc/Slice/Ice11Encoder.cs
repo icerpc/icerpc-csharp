@@ -326,8 +326,11 @@ namespace IceRpc.Slice
             : base(bufferWriter) =>
             _classFormat = classFormat;
 
-        /// <inheritdoc/>
-        internal override ReplyStatus EncodeIce1SystemException(RemoteException v)
+        /// <summary>Encodes an ice1 system exception.</summary>
+        /// <param name="v">The ice1 system exception to encode.</param>
+        /// <returns>The reply status that corresponds to this exception.</returns>
+
+        internal ReplyStatus EncodeIce1SystemException(RemoteException v)
         {
             Debug.Assert(v.IsIce1SystemException());
 

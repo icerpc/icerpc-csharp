@@ -156,13 +156,6 @@ namespace IceRpc.Slice
             return size;
         }
 
-        /// <inheritdoc/>
-        internal override ReplyStatus EncodeIce1SystemException(RemoteException v)
-        {
-            EncodeException(v);
-            return ReplyStatus.UserException;
-        }
-
         /// <summary>Returns the current position and writes placeholder for a fixed-length size value. The
         /// position must be used to rewrite the size later.</summary>
         /// <param name="sizeLength">The number of bytes reserved to encode the fixed-length size.</param>

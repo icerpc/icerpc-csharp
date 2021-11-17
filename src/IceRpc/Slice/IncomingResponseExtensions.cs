@@ -66,9 +66,10 @@ namespace IceRpc.Slice
         /// <summary>Decodes a remote exception carried by a response.</summary>
         private static RemoteException ToRemoteException(this IncomingResponse response, IceDecoder decoder)
         {
-            RemoteException exception = response.Features.Get<ReplyStatus>() is ReplyStatus replyStatus &&
+            RemoteException exception = decoder is Ice11Decoder decoder11 &&
+                response.Features.Get<ReplyStatus>() is ReplyStatus replyStatus &&
                 replyStatus > ReplyStatus.UserException ?
-                    decoder.DecodeIce1SystemException(replyStatus) : decoder.DecodeException();
+                    decoder11.DecodeIce1SystemException(replyStatus) : decoder.DecodeException();
 
             if (exception is not UnknownSlicedRemoteException)
             {
