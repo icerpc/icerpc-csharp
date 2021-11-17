@@ -173,15 +173,11 @@ fn constructor(
     );
 
     for member in base_members.iter().chain(members.iter()) {
-        let parameter_type =
-            member
-                .data_type
-                .to_type_string(namespace, TypeContext::DataMember, false);
-        let parameter_name = member.parameter_name();
-
         builder.add_parameter(
-            &parameter_type,
-            &parameter_name,
+            &member
+                .data_type
+                .to_type_string(namespace, TypeContext::DataMember, false),
+            &member.parameter_name(),
             None,
             Some(&doc_comment_message(*member)),
         );
