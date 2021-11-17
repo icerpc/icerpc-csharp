@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -303,6 +304,11 @@ namespace IceRpc.Slice
                 throw new InvalidDataException($"{_buffer.Length - Pos} bytes remaining in the buffer");
             }
         }
+
+        /// <summary>Decodes an ice1 system exception.</summary>
+        /// <param name="replyStatus">The reply status.</param>
+        /// <returns>The exception decoded using the decoder.</returns>
+        internal abstract RemoteException DecodeIce1SystemException(ReplyStatus replyStatus);
 
         /// <summary>Reads size bytes from the underlying buffer.</summary>
         internal ReadOnlyMemory<byte> ReadBytes(int size)

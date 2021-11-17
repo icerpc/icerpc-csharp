@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -222,6 +223,11 @@ namespace IceRpc.Slice
         /// <param name="size">The size.</param>
         /// <returns>The minimum number of bytes.</returns>
         public abstract int GetSizeLength(int size);
+
+        /// <summary>Encodes an ice1 system exception.</summary>
+        /// <param name="v">The ice1 system exception to encode.</param>
+        /// <returns>The reply status that corresponds to this exception.</returns>
+        internal abstract ReplyStatus EncodeIce1SystemException(RemoteException v);
 
         internal static void EncodeInt(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
 

@@ -63,15 +63,10 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Decodes a remote exception carried by a response. This decoding is special for 1.1-encoded ice1
-        /// responses, because the response can carry an ice1 system exception; for other responses, it simply calls
-        /// <see cref="IceDecoder.DecodeException"/>.</summary>
+        /// <summary>Decodes a remote exception carried by a response.</summary>
         private static RemoteException ToRemoteException(this IncomingResponse response, IceDecoder decoder)
         {
-            RemoteException exception =
-                response.Protocol == Protocol.Ice1 &&
-                response.PayloadEncoding == Encoding.Ice11 &&
-                response.Features.Get<ReplyStatus>() is ReplyStatus replyStatus &&
+            RemoteException exception = response.Features.Get<ReplyStatus>() is ReplyStatus replyStatus &&
                 replyStatus > ReplyStatus.UserException ?
                     decoder.DecodeIce1SystemException(replyStatus) : decoder.DecodeException();
 

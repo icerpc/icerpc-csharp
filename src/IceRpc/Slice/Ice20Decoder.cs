@@ -1,7 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Reflection;
 
 namespace IceRpc.Slice
@@ -192,6 +194,13 @@ namespace IceRpc.Slice
             ReadOnlyMemory<byte> value = _buffer.Slice(Pos, entrySize);
             Pos += entrySize;
             return (key, value);
+        }
+
+        /// <inheritdoc/>
+        internal override RemoteException DecodeIce1SystemException(ReplyStatus replyStatus)
+        {
+            Debug.Assert(replyStatus > ReplyStatus.UserException);
+            return DecodeException();
         }
 
         // TODO: the current version is for paramaters, return values and exception data members. It relies on the

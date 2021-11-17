@@ -368,6 +368,42 @@ namespace IceRpc.Slice
             _classGraphMaxDepth = classGraphMaxDepth;
         }
 
+        /// <inheritdoc/>
+        internal override RemoteException DecodeIce1SystemException(ReplyStatus replyStatus)
+        {
+            Debug.Assert(replyStatus > ReplyStatus.UserException);
+
+            RemoteException systemException;
+
+            switch (replyStatus)
+            {
+                case ReplyStatus.FacetNotExistException:
+                case ReplyStatus.ObjectNotExistException:
+                case ReplyStatus.OperationNotExistException:
+
+                    var requestFailed = new Ice1RequestFailedExceptionData(this);
+
+                    if (requestFailed.IdentityAndFacet.OptionalFacet.Count > 1)
+                    {
+                        throw new InvalidDataException("received ice1 optionalFacet with too many elements");
+                    }
+
+                    systemException = replyStatus == ReplyStatus.OperationNotExistException ?
+                        new OperationNotFoundException() : new ServiceNotFoundException();
+
+                    systemException.Origin = new RemoteExceptionOrigin(requestFailed.IdentityAndFacet.ToPath(),
+                                                                       requestFailed.Operation);
+                    break;
+
+                default:
+                    systemException = new UnhandledException(DecodeString());
+                    break;
+            }
+
+            systemException.ConvertToUnhandled = true;
+            return systemException;
+        }
+
         /// <summary>Skips the remaining tagged parameters, return value _or_ data members.</summary>
         private protected override void SkipTaggedParams()
         {

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports.Internal;
 using System.Diagnostics;
@@ -153,6 +154,13 @@ namespace IceRpc.Slice
             int size = BufferWriter.Distance(start) - sizeLength;
             EncodeFixedLengthSize(size, start, sizeLength);
             return size;
+        }
+
+        /// <inheritdoc/>
+        internal override ReplyStatus EncodeIce1SystemException(RemoteException v)
+        {
+            EncodeException(v);
+            return ReplyStatus.UserException;
         }
 
         /// <summary>Returns the current position and writes placeholder for a fixed-length size value. The

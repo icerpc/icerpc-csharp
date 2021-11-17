@@ -34,12 +34,11 @@ namespace IceRpc.Internal
             var bufferWriter = new BufferWriter();
             IceEncoder encoder = payloadEncoding.CreateIceEncoder(bufferWriter);
 
+            // Set the reply status feature. It's used when the response header is encoded.
             var features = new FeatureCollection();
-            if (payloadEncoding == Encoding.Ice11 && exception.IsIce1SystemException())
+            if (exception.IsIce1SystemException())
             {
-                ReplyStatus replyStatus = encoder.EncodeIce1SystemException(exception);
-                // Set the reply status feature. It's used when the response header is encoded.
-                features.Set(replyStatus);
+                features.Set(encoder.EncodeIce1SystemException(exception));
             }
             else
             {
