@@ -27,11 +27,16 @@ fn report_unexpected_attribute(attribute: &Attribute) {
 }
 
 fn validate_cs_attribute(attribute: &Attribute) {
-    if attribute.arguments.len() > 1 {
-        slice::report_error(
-            r#"too many arguments expected 'cs:attribute("<value>")'"#.to_owned(),
+    match attribute.arguments.len() {
+        1 => (), // Expected 1 argument
+        0 => slice::report_error(
+            r#"missing required argument, expected 'cs:attribute("<attribute-value>")'"#.to_owned(),
             Some(attribute.location.clone()),
-        );
+        ),
+        _ => slice::report_error(
+            r#"too many arguments expected 'cs:attribute("<attribute-value>")'"#.to_owned(),
+            Some(attribute.location.clone()),
+        ),
     }
 }
 
@@ -54,11 +59,16 @@ fn validate_cs_encoded_result(attribute: &Attribute) {
 }
 
 fn validate_cs_generic(attribute: &Attribute) {
-    if attribute.arguments.len() > 1 {
-        slice::report_error(
-            r#"too many arguments expected 'cs:generic("<value>")'"#.to_owned(),
+    match attribute.arguments.len() {
+        1 => (), // Expected 1 argument
+        0 => slice::report_error(
+            r#"missing required argument, expected 'cs:generic("<generic-type>")'"#.to_owned(),
             Some(attribute.location.clone()),
-        );
+        ),
+        _ => slice::report_error(
+            r#"too many arguments expected 'cs:generic("<generic-type>")'"#.to_owned(),
+            Some(attribute.location.clone()),
+        ),
     }
 }
 
@@ -97,12 +107,18 @@ impl Visitor for CsValidator {
         for attribute in &cs_attributes(module_def.attributes()) {
             match attribute.directive.as_ref() {
                 "namespace" => {
-                    if attribute.arguments.len() > 1 {
-                        slice::report_error(
+                    match attribute.arguments.len() {
+                        1 => (), // Expected 1 argumnet
+                        0 => slice::report_error(
+                            r#"missing required argument, expected 'cs:namespace("<namespace>")'"#
+                                .to_owned(),
+                            Some(attribute.location.clone()),
+                        ),
+                        _ => slice::report_error(
                             r#"too many arguments expected 'cs:namespace("<namespace>")'"#
                                 .to_owned(),
                             Some(attribute.location.clone()),
-                        );
+                        ),
                     }
                     if !module_def.is_top_level() {
                         slice::report_error(
