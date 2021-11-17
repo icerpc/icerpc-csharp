@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-// TODO: use generated internal types once supported
+[cs:internal]
 module IceRpc::Slice::Internal
 {
     // These definitions help with the encoding of proxies with the Ice 1.1 encoding.

@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 // These definitions help with the encoding of Slic frames.
-// TODO: use generated internal types once supported
+[cs:internal]
 module IceRpc::Transports::Internal
 {
     /// The Slic frame types
