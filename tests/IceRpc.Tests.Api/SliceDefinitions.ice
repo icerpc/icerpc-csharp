@@ -1,9 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-[[suppress-warning(reserved-identifier)]]
-
-#include <IceRpc/Context.ice>
-
 module IceRpc::Tests::Api
 {
     interface Greeter

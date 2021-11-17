@@ -1,9 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-[[suppress-warning(reserved-identifier)]]
-
-#pragma once
-
 module IceRpc::Tests::Slice
 {
     enum MyEnum
@@ -36,7 +32,7 @@ module IceRpc::Tests::Slice
         senum11 = 32766
     }
 
-    [cs:attribute(System.Flags)] unchecked enum MyUncheckedEnum : uint
+    [cs:attribute("System.Flags")] unchecked enum MyUncheckedEnum : uint
     {
         E0 = 1,
         E1 = 2,

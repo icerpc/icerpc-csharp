@@ -1,10 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-#pragma once
-#include <IceRpc/Service.ice>
-
-[[suppress-warning(reserved-identifier)]]
-
 module IceRpc::Tests::Slice
 {
     exception SomeException {}

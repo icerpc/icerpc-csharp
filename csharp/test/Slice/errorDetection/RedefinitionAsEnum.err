@@ -1,2 +1,0 @@
-RedefinitionAsEnum.ice:9: enumeration 'C' was previously defined as a class
-RedefinitionAsEnum.ice:8: note: class 'C' was originally defined here

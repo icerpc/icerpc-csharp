@@ -1,9 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-#pragma once
-
-[[suppress-warning(reserved-identifier)]]
-
 module IceRpc
 {
     /// The RetryAbility is carried by remote exceptions to indicate the ability for retrying

@@ -1,14 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-[[suppress-warning(reserved-identifier)]]
-
 module IceRpc::Tests::ClientServer
 {
     exception RetrySystemFailure
     {
     }
-
-    sequence<byte> RetryByteSeq;
 
     interface RetryBidirTest
     {
@@ -20,7 +16,7 @@ module IceRpc::Tests::ClientServer
     {
         idempotent void opIdempotent(int failedAttempts, bool killConnection);
         void opNotIdempotent(int failedAttempts, bool killConnection);
-        void opWithData(int failedAttempts, int delay, RetryByteSeq data);
+        void opWithData(int failedAttempts, int delay, sequence<byte> data); // TODO rename this parameter to 'retryData'.
         void opRetryAfterDelay(int failedAttempts, int delay);
         void opRetryNo();
     }

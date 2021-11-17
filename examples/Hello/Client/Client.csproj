@@ -31,7 +31,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="6.0.0" />
-    <PackageReference Include="zeroc.icebuilder.msbuild" Version="5.0.7" />
+    <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview1" PrivateAssets="All" />
     <PackageReference Include="zeroc.ice.net" Version="4.0.0-alpha.0" />
     <Compile Update="generated\Hello.cs">
       <SliceCompileSource>../Hello.ice</SliceCompileSource>

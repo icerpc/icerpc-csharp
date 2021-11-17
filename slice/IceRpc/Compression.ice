@@ -1,9 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-#pragma once
-
-[[suppress-warning(reserved-identifier)]]
-
 module IceRpc
 {
     /// The compression format of the Request or "Success" Response frame payload.

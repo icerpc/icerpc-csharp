@@ -2,9 +2,9 @@ name: .NET
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "new-compiler"]
   pull_request:
-    branches: ["main"]
+    branches: ["main", "new-compiler"]
 
 jobs:
   build:
@@ -12,15 +12,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Setup .NET
-      run:  mkdir $HOME/dotnet_install && cd $HOME/dotnet_install && curl -L https://aka.ms/install-dotnet-preview -o install-dotnet-preview.sh && sudo bash install-dotnet-preview.sh
-    - name: Install Slice compiler dependencies
-      run: sudo apt-get install libmcpp-dev
     - uses: actions/checkout@v2
-    - name: Build Slice compiler
-      run: make -j8 V=1 -C ./cpp
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '6.0.x'
+    - name: Start Ssh Agent
+      uses: webfactory/ssh-agent@v0.5.3
+      with:
+        ssh-private-key: ${{ secrets.ICERPC_DEPLOY_KEY }}
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        components: clippy
+    - name: Build Slice Compiler
+      working-directory: tools/slicec-cs
+      run: cargo build
+    - uses: actions-rs/clippy@master
+      with:
+        args: --all-features --all-targets --manifest-path tools/slicec-cs/Cargo.toml
     - name: Add github NuGet respository
-      run: dotnet nuget add source "https://nuget.pkg.github.com/zeroc-ice/index.json" -n GitHub -u pepone --store-password-in-clear-text -p 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
+      run: dotnet nuget add source "https://nuget.pkg.github.com/zeroc-ice/index.json" -n GitHub -u ci --store-password-in-clear-text -p ${{ secrets.NUGET_API_TOKEN }}
     - name: Restore dependencies
       run: dotnet restore
     - name: Build

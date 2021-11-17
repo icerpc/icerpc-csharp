@@ -1,11 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-#pragma once
-
-[[suppress-warning(reserved-identifier)]]
-
-#include <IceRpc/BuiltinSequences.ice>
-
 // TODO: use generated internal types once supported
 module IceRpc::Slice::Internal
 {
@@ -42,11 +36,11 @@ module IceRpc::Slice::Internal
     [cs:readonly]
     struct ProxyData11
     {
-        StringSeq optionalFacet;       // has 0 or 1 element
+        sequence<string> optionalFacet;       // has 0 or 1 element
         InvocationMode invocationMode;
-        bool secure = false;           // ignored
+        bool secure;
         byte protocolMajor;
-        byte protocolMinor = 0;        // always 0
+        byte protocolMinor;
         byte encodingMajor;
         byte encodingMinor;
     }

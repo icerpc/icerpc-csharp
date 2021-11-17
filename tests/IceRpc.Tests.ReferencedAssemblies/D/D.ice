@@ -1,9 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-[[suppress-warning(reserved-identifier)]]
-
-#include <C.ice>
-
 module IceRpc::Tests::ReferencedAssemblies
 {
     class ClassD : ClassC

@@ -1,14 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-[[suppress-warning(reserved-identifier)]]
-
-#include <StructTests.ice>
-
 module IceRpc::Tests::Slice
 {
-    class MyClassB;
-    class MyClassC;
-
     class MyClassA
     {
         MyClassB? theB;
@@ -89,14 +82,12 @@ module IceRpc::Tests::Slice
         string data;
     }
 
-    sequence<AnyClass?> ClassSeq;
-    dictionary<string, AnyClass?> ClassMap;
-
-    dictionary<MyStruct, MyClassL> MyClassLMap;
+    typealias ClassSeq = sequence<AnyClass?>;
+    typealias ClassMap = dictionary<string, AnyClass?>;
 
     class MyClassM
     {
-        MyClassLMap v;
+        dictionary<MyStruct, MyClassL> v;
     }
 
     class MyBaseClass1

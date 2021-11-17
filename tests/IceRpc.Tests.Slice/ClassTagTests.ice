@@ -1,12 +1,4 @@
-[[suppress-warning(reserved-identifier)]]
-
-#pragma once
-
-#include <EnumTests.ice>
-#include <StructTests.ice>
-#include <SequenceTests.ice>
-#include <ClassTests.ice>
-#include <DictionaryTests.ice>
+// Copyright (c) ZeroC, Inc. All rights reserved.
 
 module IceRpc::Tests::Slice
 {

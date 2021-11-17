@@ -1,12 +1,4 @@
-[[suppress-warning(reserved-identifier)]]
-
-#pragma once
-
-#include <OperationsTests.ice>
-#include <EnumTests.ice>
-#include <StructTests.ice>
-#include <SequenceTests.ice>
-#include <DictionaryTests.ice>
+// Copyright (c) ZeroC, Inc. All rights reserved.
 
 module IceRpc::Tests::Slice
 {
@@ -110,9 +102,9 @@ module IceRpc::Tests::Slice
 
     interface OperationTagMarshaledResult
     {
-        [marshaled-result] tag(1) MyStruct? opMyStructMarshaledResult(tag(1) MyStruct? p1);
-        [marshaled-result] tag(1) StringSeq? opStringSeqMarshaledResult(tag(1) StringSeq? p1);
-        [marshaled-result] tag(1) IntDict? opIntDictMarshaledResult(tag(1) IntDict? p1);
+        [cs:encoded-result] tag(1) MyStruct? opMyStructMarshaledResult(tag(1) MyStruct? p1);
+        [cs:encoded-result] tag(1) StringSeq? opStringSeqMarshaledResult(tag(1) StringSeq? p1);
+        [cs:encoded-result] tag(1) IntDict? opIntDictMarshaledResult(tag(1) IntDict? p1);
     }
 
     interface OperationTag

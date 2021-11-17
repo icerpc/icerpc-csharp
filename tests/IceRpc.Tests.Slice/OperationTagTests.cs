@@ -1003,20 +1003,20 @@ namespace IceRpc.Tests.Slice
 
     public class OperationTagMarshaledResult : Service, IOperationTagMarshaledResult
     {
-        public ValueTask<IOperationTagMarshaledResult.OpIntDictMarshaledResultMarshaledReturnValue> OpIntDictMarshaledResultAsync(
+        public ValueTask<IOperationTagMarshaledResult.OpIntDictMarshaledResultEncodedReturnValue> OpIntDictMarshaledResultAsync(
             Dictionary<int, int>? p1,
             Dispatch dispatch,
-            CancellationToken cancel) => new(new IOperationTagMarshaledResult.OpIntDictMarshaledResultMarshaledReturnValue(p1, dispatch));
+            CancellationToken cancel) => new(new IOperationTagMarshaledResult.OpIntDictMarshaledResultEncodedReturnValue(p1, dispatch));
 
-        public ValueTask<IOperationTagMarshaledResult.OpStringSeqMarshaledResultMarshaledReturnValue> OpStringSeqMarshaledResultAsync(
+        public ValueTask<IOperationTagMarshaledResult.OpStringSeqMarshaledResultEncodedReturnValue> OpStringSeqMarshaledResultAsync(
             string[]? p1,
             Dispatch dispatch,
-            CancellationToken cancel) => new(new IOperationTagMarshaledResult.OpStringSeqMarshaledResultMarshaledReturnValue(p1, dispatch));
-        public ValueTask<IOperationTagMarshaledResult.OpMyStructMarshaledResultMarshaledReturnValue> OpMyStructMarshaledResultAsync(
+            CancellationToken cancel) => new(new IOperationTagMarshaledResult.OpStringSeqMarshaledResultEncodedReturnValue(p1, dispatch));
+        public ValueTask<IOperationTagMarshaledResult.OpMyStructMarshaledResultEncodedReturnValue> OpMyStructMarshaledResultAsync(
             MyStruct? p1,
             Dispatch dispatch,
             CancellationToken cancel) =>
-            new(new IOperationTagMarshaledResult.OpMyStructMarshaledResultMarshaledReturnValue(p1, dispatch));
+            new(new IOperationTagMarshaledResult.OpMyStructMarshaledResultEncodedReturnValue(p1, dispatch));
     }
 
     public class OperationTag : Service, IOperationTag

@@ -1,11 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-#pragma once
-
-[[suppress-warning(reserved-identifier)]]
-
-#include <IceRpc/BuiltinSequences.ice>
-
 // These definitions help with the encoding of Slic frames.
 // TODO: use generated internal types once supported
 module IceRpc::Transports::Internal
@@ -57,7 +51,7 @@ module IceRpc::Transports::Internal
         StreamBufferMaxSize = 4,
     }
 
-    dictionary<varint, ByteSeq> ParameterFields;
+    typealias ParameterFields = dictionary<varint, sequence<byte>>;
 
     /// The Slic initialize frame body.
     [cs:readonly]
@@ -78,8 +72,6 @@ module IceRpc::Transports::Internal
         ParameterFields parameters;
     }
 
-    sequence<varuint> VersionSeq;
-
     /// The body of a Slic version frame. This frame is sent in response to an initialize frame if the Slic version
     /// from the initialize frame is not supported by the receiver. Upon receiving the Version frame the receiver
     /// should send back a new Initialize frame with a version matching one of the versions provided by the Version
@@ -88,7 +80,7 @@ module IceRpc::Transports::Internal
     struct VersionBody
     {
         /// The supported Slic versions.
-        VersionSeq versions;
+        sequence<varuint> versions;
     }
 
     /// The body of the Stream reset frame. This frame is sent to notify the peer that sender is no longer

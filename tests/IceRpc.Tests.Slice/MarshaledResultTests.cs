@@ -86,47 +86,47 @@ namespace IceRpc.Tests.Slice
         public class MarshaledResultOperations : Service, IMarshaledResultOperations
         {
             // Marshalled result
-            public ValueTask<IMarshaledResultOperations.OpAnotherStruct1MarshaledReturnValue> OpAnotherStruct1Async(
+            public ValueTask<IMarshaledResultOperations.OpAnotherStruct1EncodedReturnValue> OpAnotherStruct1Async(
                 AnotherStruct p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IMarshaledResultOperations.OpAnotherStruct1MarshaledReturnValue(p1, dispatch));
+                new(new IMarshaledResultOperations.OpAnotherStruct1EncodedReturnValue(p1, dispatch));
 
-            public ValueTask<IMarshaledResultOperations.OpAnotherStruct2MarshaledReturnValue> OpAnotherStruct2Async(
+            public ValueTask<IMarshaledResultOperations.OpAnotherStruct2EncodedReturnValue> OpAnotherStruct2Async(
                 AnotherStruct p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IMarshaledResultOperations.OpAnotherStruct2MarshaledReturnValue(p1, p1, dispatch));
+                new(new IMarshaledResultOperations.OpAnotherStruct2EncodedReturnValue(p1, p1, dispatch));
 
-            public ValueTask<IMarshaledResultOperations.OpStringSeq1MarshaledReturnValue> OpStringSeq1Async(
+            public ValueTask<IMarshaledResultOperations.OpStringSeq1EncodedReturnValue> OpStringSeq1Async(
                 string[] p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IMarshaledResultOperations.OpStringSeq1MarshaledReturnValue(p1, dispatch));
+                new(new IMarshaledResultOperations.OpStringSeq1EncodedReturnValue(p1, dispatch));
 
-            public ValueTask<IMarshaledResultOperations.OpStringSeq2MarshaledReturnValue> OpStringSeq2Async(
+            public ValueTask<IMarshaledResultOperations.OpStringSeq2EncodedReturnValue> OpStringSeq2Async(
                 string[] p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IMarshaledResultOperations.OpStringSeq2MarshaledReturnValue(p1, p1, dispatch));
+                new(new IMarshaledResultOperations.OpStringSeq2EncodedReturnValue(p1, p1, dispatch));
 
-            public ValueTask<IMarshaledResultOperations.OpStringDict1MarshaledReturnValue> OpStringDict1Async(
+            public ValueTask<IMarshaledResultOperations.OpStringDict1EncodedReturnValue> OpStringDict1Async(
                 Dictionary<string, string> p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IMarshaledResultOperations.OpStringDict1MarshaledReturnValue(p1, dispatch));
+                new(new IMarshaledResultOperations.OpStringDict1EncodedReturnValue(p1, dispatch));
 
-            public ValueTask<IMarshaledResultOperations.OpStringDict2MarshaledReturnValue> OpStringDict2Async(
+            public ValueTask<IMarshaledResultOperations.OpStringDict2EncodedReturnValue> OpStringDict2Async(
                 Dictionary<string, string> p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IMarshaledResultOperations.OpStringDict2MarshaledReturnValue(p1, p1, dispatch));
+                new(new IMarshaledResultOperations.OpStringDict2EncodedReturnValue(p1, p1, dispatch));
 
-            public ValueTask<IMarshaledResultOperations.OpMyClassAMarshaledReturnValue> OpMyClassAAsync(
+            public ValueTask<IMarshaledResultOperations.OpMyClassAEncodedReturnValue> OpMyClassAAsync(
                 MyClassA p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IMarshaledResultOperations.OpMyClassAMarshaledReturnValue(p1));
+                new(new IMarshaledResultOperations.OpMyClassAEncodedReturnValue(p1));
         }
     }
 }

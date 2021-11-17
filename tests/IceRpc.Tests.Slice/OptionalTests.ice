@@ -1,15 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-[[suppress-warning(reserved-identifier)]]
-
-#pragma once
-
-#include <OperationsTests.ice>
-#include <EnumTests.ice>
-#include <StructTests.ice>
-#include <SequenceTests.ice>
-#include <DictionaryTests.ice>
-
 module IceRpc::Tests::Slice
 {
     struct OneOptional
@@ -117,8 +107,8 @@ module IceRpc::Tests::Slice
         (IntDict? r1, IntDict? r2) opIntDict(IntDict? p1);
         (StringDict? r1, StringDict? r2) opStringDict(StringDict? p1);
 
-        [marshaled-result] MyStruct? opMyStructMarshaledResult(MyStruct? p1);
-        [marshaled-result] StringSeq? opStringSeqMarshaledResult(StringSeq? p1);
-        [marshaled-result] IntDict? opIntDictMarshaledResult(IntDict? p1);
+        [cs:encoded-result] MyStruct? opMyStructMarshaledResult(MyStruct? p1);
+        [cs:encoded-result] StringSeq? opStringSeqMarshaledResult(StringSeq? p1);
+        [cs:encoded-result] IntDict? opIntDictMarshaledResult(IntDict? p1);
     }
 }

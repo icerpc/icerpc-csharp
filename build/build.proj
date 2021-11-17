@@ -1,23 +1,20 @@
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
     <PropertyGroup>
-        <PackageVersion>4.0.0-alpha.0</PackageVersion>
+        <PackageVersion>0.1.0-preview1</PackageVersion>
         <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
     </PropertyGroup>
 
     <ItemGroup>
-        <SliceCompilers Include="slice2cs"/>
         <DistSolution Include="$(MSBuildThisFileDirectory)../IceRpc.sln">
             <Properties>Configuration=$(Configuration);Platform=Any CPU;CppPlatform=$(CppPlatform)</Properties>
         </DistSolution>
         <ExampleSolution Include="$(MSBuildThisFileDirectory)../examples/**/*.sln">
             <Properties>Configuration=$(Configuration);Platform=Any CPU</Properties>
         </ExampleSolution>
-        <PackageName Include="zeroc.ice.net" />
     </ItemGroup>
 
     <Target Name="Build">
-
         <MSBuild Projects="@(DistSolution)"
                  BuildInParallel="true"
                  Properties="%(Properties)"/>
@@ -38,7 +35,6 @@
 
         <!-- Run the distribution build and pack targets to ensure packages are up to date, restore is run separately,
              see Restore target bellow. -->
-
         <MSBuild Projects="@(DistSolution)" Targets="build"/>
         <Exec Command="dotnet pack @(DistSolution)" />
         <RemoveDir Directories="@(Package)" Condition="Exists('@(Package)')"/>
@@ -66,9 +62,5 @@
             Properties="PostBuildEvent="
             Targets="Restore"
             BuildInParallel="true" />
-    </Target>
-
-    <Target Name="BuildDoc" DependsOnTargets="Build">
-        <Exec Command="docfx" WorkingDirectory="$(MSBuildThisFileDirectory)..\doc"/>
     </Target>
 </Project>

@@ -1,16 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-#pragma once
-
-[[suppress-warning(reserved-identifier)]]
-
-#include <IceRpc/Service.ice>
-
 module IceRpc::Tests::Slice::InterfaceInheritance
 {
     // Classic diamond-shaped inheritance
-
-    interface D;
 
     interface A
     {

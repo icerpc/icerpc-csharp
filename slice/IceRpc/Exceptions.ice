@@ -1,9 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-#pragma once
-
-[[suppress-warning(reserved-identifier)]]
-
 module IceRpc
 {
     /// Represents the origin of a remote exception. With the Ice 2.0 encoding, all remote exceptions have an implicit

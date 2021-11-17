@@ -1,12 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-[[suppress-warning(reserved-identifier)]]
-
-#pragma once
-
-#include <OperationsTests.ice>
-#include <EnumTests.ice>
-
 module IceRpc::Tests::Slice
 {
     struct MyStruct

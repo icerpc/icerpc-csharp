@@ -1,6 +1,4 @@
-[[suppress-warning(reserved-identifier)]]
-
-#pragma once
+// Copyright (c) ZeroC, Inc. All rights reserved.
 
 module IceRpc::Tests::Slice
 {

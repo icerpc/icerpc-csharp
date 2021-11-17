@@ -1,11 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-#pragma once
-
-[[suppress-warning(reserved-identifier)]]
-
-#include <StructTests.ice>
-
 module IceRpc::Tests::Slice
 {
     interface StreamParamOperations

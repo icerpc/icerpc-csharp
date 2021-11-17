@@ -8,9 +8,9 @@
 
   <ItemDefinitionGroup>
     <SliceCompile>
-        <IncludeDirectories>../A;../B;../C</IncludeDirectories>
+      <ReferencedFiles>../A;../B;../C</ReferencedFiles>
     </SliceCompile>
-</ItemDefinitionGroup>
+  </ItemDefinitionGroup>
 
   <ItemGroup>
     <Compile Update="generated\D.cs">
@@ -23,7 +23,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="zeroc.icebuilder.msbuild" Version="5.0.7" />
+    <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview1" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>

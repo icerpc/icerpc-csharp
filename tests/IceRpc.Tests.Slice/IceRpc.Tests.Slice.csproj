@@ -9,19 +9,13 @@
 
   <ItemDefinitionGroup>
     <SliceCompile>
-      <IncludeDirectories>.;$(MSBuildThisFileDirectory)..\IceRpc.Tests.ReferencedAssemblies\A</IncludeDirectories>
+      <ReferencedFiles>.;$(MSBuildThisFileDirectory)..\IceRpc.Tests.ReferencedAssemblies\A</ReferencedFiles>
     </SliceCompile>
   </ItemDefinitionGroup>
 
   <ItemGroup>
     <Compile Include="..\Shared\TestHelper.cs" Link="TestHelper.cs" />
     <Compile Include="..\Shared\LogAttribute.cs" Link="LogAttribute.cs" />
-    <Compile Update="generated\SequenceMappingTests.cs">
-      <SliceCompileSource>SequenceMappingTests.ice</SliceCompileSource>
-    </Compile>
-    <Compile Update="generated\TaggedTests.cs">
-      <SliceCompileSource>TaggedTests.ice</SliceCompileSource>
-    </Compile>
   </ItemGroup>
 
   <ItemGroup>
@@ -35,7 +29,7 @@
     <PackageReference Include="NUnit" Version="3.13.2" />
     <PackageReference Include="NUnit.Analyzers" Version="3.2.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.1.0" />
-    <PackageReference Include="zeroc.icebuilder.msbuild" Version="5.0.7" />
+    <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview1" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>

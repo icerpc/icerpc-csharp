@@ -1,10 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-#pragma once
-
-[[suppress-warning(reserved-identifier)]]
-[cs:namespace(IceRpc.Tests.Slice.NamespaceMD.WithNamespace)]
-
+[cs:namespace("IceRpc.Tests.Slice.NamespaceMD.WithNamespace")]
 module WithNamespace
 {
     module N1::N2
@@ -37,12 +33,15 @@ module WithNamespace
 }
 
 // Verify that a top level module which contains __only__ submodules works
-[cs:namespace(IceRpc.Tests.Slice.NamespaceMD.M1)]
-module M0::M2::M3
+[cs:namespace("IceRpc.Tests.Slice.NamespaceMD.M1")]
+module M0
 {
-    struct S2
+    module M2::M3
     {
-        int i;
+        struct S2
+        {
+            int i;
+        }
     }
 }
 
