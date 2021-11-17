@@ -14,13 +14,14 @@ usage()
     echo "Arguments:"
     echo "  --config | -c             Build configuration: debug or release, the default is debug."
     echo "  --coverage                Collect code coverage from test runs."
+    echo "                            Requires reportgeneratool from https://github.com/danielpalme/ReportGenerator"
     echo "  --help   | -h             Print help and exit."
 }
 
 build_compiler()
 {
     arguments=("build")
-    if [ $1 == "release" ]; then
+    if [ "$1" == "release" ]; then
         arguments+=("--release")
     fi
     pushd tools/slicec-cs
@@ -85,7 +86,7 @@ run_test()
 
     if [ "$2" == "yes" ]; then
         arguments=("-reports:tests/*/TestResults/*/coverage.cobertura.xml" "-targetdir:tests/CodeCoverageRerport")
-        run_command reportgenerator ${arguments[@]}
+        run_command reportgenerator "${arguments[@]}"
     fi
 }
 
@@ -98,7 +99,7 @@ doc()
 
 run_command()
 {
-    echo $@
+    echo "$@"
     "$@"
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
@@ -131,7 +132,7 @@ while [[ $# -gt 0 ]]; do
             then
                 action=$1
             else
-                echo "too many arguments " $1
+                echo "too many arguments " "$1"
                 usage
                 exit 1
             fi
