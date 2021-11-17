@@ -71,9 +71,7 @@ namespace IceRpc.Internal
             while (true)
             {
                 IMultiplexedStream stream;
-
                 ReadOnlyMemory<byte> buffer;
-
                 try
                 {
                     // Accepts a new stream.
@@ -265,20 +263,20 @@ namespace IceRpc.Internal
 
                 return response;
             }
-            catch (StreamAbortedException ex)
+            catch (MultiplexedStreamAbortedException ex)
             {
-                switch (ex.ErrorCode)
+                switch ((MultiplexedStreamError)ex.ErrorCode)
                 {
-                    case StreamError.ConnectionAborted:
+                    case MultiplexedStreamError.ConnectionAborted:
                         throw new ConnectionLostException(ex);
 
-                    case StreamError.ConnectionShutdown:
+                    case MultiplexedStreamError.ConnectionShutdown:
                         throw new OperationCanceledException("connection shutdown", ex);
 
-                    case StreamError.ConnectionShutdownByPeer:
+                    case MultiplexedStreamError.ConnectionShutdownByPeer:
                         throw new ConnectionClosedException("connection shutdown by peer", ex);
 
-                    case StreamError.DispatchCanceled:
+                    case MultiplexedStreamError.DispatchCanceled:
                         throw new OperationCanceledException("dispatch canceled by peer", ex);
 
                     default:
@@ -300,7 +298,7 @@ namespace IceRpc.Internal
                     if (_shutdown)
                     {
                         request.Features = request.Features.With(RetryPolicy.Immediately);
-                        request.Stream.Abort(StreamError.ConnectionShutdown);
+                        request.Stream.Abort(MultiplexedStreamError.ConnectionShutdown);
                         throw new ConnectionClosedException("connection shutdown");
                     }
                     _invocations.Add(request);
@@ -392,15 +390,14 @@ namespace IceRpc.Internal
                 // Mark the request as sent.
                 request.IsSent = true;
             }
-            catch (StreamAbortedException ex)
+            catch (MultiplexedStreamAbortedException ex)
             {
-                switch (ex.ErrorCode)
+                switch ((MultiplexedStreamError)ex.ErrorCode)
                 {
-                    case StreamError.ConnectionAborted:
-                    case StreamError.StreamAborted:
+                    case MultiplexedStreamError.ConnectionAborted:
                         throw new ConnectionLostException(ex);
 
-                    case StreamError.ConnectionShutdown:
+                    case MultiplexedStreamError.ConnectionShutdown:
                         throw new OperationCanceledException("connection shutdown", ex);
 
                     default:
@@ -504,7 +501,7 @@ namespace IceRpc.Internal
             if (_shutdownCanceled)
             {
                 // If shutdown has been canceled, cancel invocations and dispatch now.
-                CancelInvocationsAndDispatch(StreamError.ConnectionShutdown);
+                CancelInvocationsAndDispatch(MultiplexedStreamError.ConnectionShutdown);
             }
 
             if (!alreadyShuttingDown)
@@ -540,7 +537,7 @@ namespace IceRpc.Internal
                 }
             }
 
-            CancelInvocationsAndDispatch(StreamError.ConnectionShutdown);
+            CancelInvocationsAndDispatch(MultiplexedStreamError.ConnectionShutdown);
         }
 
         internal Ice2ProtocolConnection(IMultiplexedStreamFactory streamFactory, int incomingFrameMaxSize)
@@ -624,7 +621,7 @@ namespace IceRpc.Internal
                 _shutdownCancellationTokenSource.Token);
         }
 
-        private void CancelInvocationsAndDispatch(StreamError streamError)
+        private void CancelInvocationsAndDispatch(MultiplexedStreamError streamError)
         {
             IEnumerable<OutgoingRequest> invocations = Enumerable.Empty<OutgoingRequest>();
             IEnumerable<IncomingRequest> dispatches = Enumerable.Empty<IncomingRequest>();
@@ -782,7 +779,7 @@ namespace IceRpc.Internal
 
             foreach (OutgoingRequest request in invocations)
             {
-                request.Stream!.Abort(StreamError.ConnectionShutdownByPeer);
+                request.Stream!.Abort(MultiplexedStreamError.ConnectionShutdownByPeer);
             }
 
             if (!alreadyShuttingDown)

@@ -140,8 +140,8 @@ namespace IceRpc.Slice
             }
             else
             {
-                throw new InvalidDataException(@$"decoded instance of type '{obj.GetType().FullName
-                    }' but expected instance of type '{typeof(T).FullName}'");
+                throw new InvalidDataException(@$"decoded instance of type '{obj.GetType()
+                    }' but expected instance of type '{typeof(T)}'");
             }
         }
 

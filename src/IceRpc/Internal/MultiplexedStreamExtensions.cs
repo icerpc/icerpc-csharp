@@ -1,18 +1,20 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc.Transports.Internal
+using IceRpc.Transports;
+
+namespace IceRpc.Internal
 {
     internal static class MultiplexedStreamExtensions
     {
         /// <summary>Aborts the stream.</summary>
         /// <param name="stream">The stream to abort.</param>
         /// <param name="errorCode">The reason of the abort.</param>
-        internal static void Abort(this IMultiplexedStream stream, StreamError errorCode)
+        internal static void Abort(this IMultiplexedStream stream, MultiplexedStreamError errorCode)
         {
             // TODO: XXX: Aborting both read/write triggers the sending of two frames: StopSending frame for AbortRead
             // and Reset frame for AbortWrite
-            stream.AbortRead(errorCode);
-            stream.AbortWrite(errorCode);
+            stream.AbortRead((byte)errorCode);
+            stream.AbortWrite((byte)errorCode);
         }
 
         /// <summary>Reads data from the stream until the given buffer is full.</summary>

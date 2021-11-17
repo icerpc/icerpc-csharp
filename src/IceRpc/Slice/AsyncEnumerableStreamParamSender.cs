@@ -103,13 +103,13 @@ namespace IceRpc.Slice
                     true,
                     default).ConfigureAwait(false);
             }
-            catch (StreamAbortedException)
+            catch (MultiplexedStreamAbortedException)
             {
                 cancelationSource.Cancel();
             }
             catch
             {
-                multiplexedStream.AbortWrite(StreamError.StreamingCanceledByWriter);
+                multiplexedStream.AbortWrite((byte)MultiplexedStreamError.StreamingCanceledByWriter);
                 throw;
             }
             finally

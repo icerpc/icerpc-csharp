@@ -162,7 +162,7 @@ namespace IceRpc.Transports.Internal
                             await _reader.ReadStreamResetAsync(dataSize, cancel).ConfigureAwait(false);
                         if (TryGetStream(streamId.Value, out SlicMultiplexedStream? stream))
                         {
-                            stream.ReceivedReset((StreamError)streamReset.ApplicationProtocolErrorCode);
+                            stream.ReceivedReset((byte)streamReset.ApplicationProtocolErrorCode);
                         }
                         break;
                     }
@@ -215,11 +215,13 @@ namespace IceRpc.Transports.Internal
             _unidirectionalStreamSemaphore?.Complete(exception);
 
             // Abort streams.
-            foreach (SlicMultiplexedStream stream in _streams.Values)
+            foreach (IMultiplexedStream stream in _streams.Values)
             {
                 try
                 {
-                    ((IMultiplexedStream)stream).Abort(StreamError.ConnectionAborted);
+                    // It's not ideal to use the Ice protocol stream error here. Another option would be to add
+                    // a Close(byte errorCode) method.
+                    stream.Abort(MultiplexedStreamError.ConnectionAborted);
                 }
                 catch (Exception ex)
                 {

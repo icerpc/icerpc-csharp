@@ -68,7 +68,7 @@ namespace IceRpc
             Interlocked.Increment(ref _failedRequests);
             if (IsEnabled(EventLevel.Informational, EventKeywords.None))
             {
-                RequestFailed(request.Path, request.Operation, exception?.GetType().FullName ?? "");
+                RequestFailed(request.Path, request.Operation, exception?.GetType().ToString() ?? "");
             }
         }
 

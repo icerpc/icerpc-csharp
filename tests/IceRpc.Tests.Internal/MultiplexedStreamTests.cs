@@ -17,10 +17,9 @@ namespace IceRpc.Tests.Internal
         [TearDown]
         public Task TearDown() => TearDownConnectionsAsync();
 
-        [TestCase(StreamError.DispatchCanceled)]
-        [TestCase(StreamError.InvocationCanceled)]
-        [TestCase((StreamError)10)]
-        public async Task MultiplexedStream_Abort(StreamError errorCode)
+        [TestCase(1)]
+        [TestCase(4)]
+        public async Task MultiplexedStream_Abort(byte errorCode)
         {
             Task<(int, IMultiplexedStream)> serverTask = ReceiveAsync();
 
@@ -35,10 +34,11 @@ namespace IceRpc.Tests.Internal
             serverStream.ShutdownAction = () => dispatchCanceled.SetResult();
 
             // Abort the stream
-            clientStream.Abort(errorCode);
+            clientStream.AbortRead(errorCode);
+            clientStream.AbortWrite(errorCode);
 
             // Ensure that receive on the server connection raises RpcStreamAbortedException
-            StreamAbortedException? ex = Assert.CatchAsync<StreamAbortedException>(
+            MultiplexedStreamAbortedException? ex = Assert.CatchAsync<MultiplexedStreamAbortedException>(
                 async () => await serverStream.ReadAsync(new byte[1], default));
             Assert.That(ex!.ErrorCode, Is.EqualTo(errorCode));
 
@@ -186,7 +186,7 @@ namespace IceRpc.Tests.Internal
             ValueTask<int> receiveTask = stream.ReadAsync(CreateReceivePayload(), source.Token);
             source.Cancel();
             Assert.CatchAsync<OperationCanceledException>(async () => await receiveTask);
-            stream.AbortRead(StreamError.InvocationCanceled);
+            stream.AbortRead(0);
             Assert.DoesNotThrowAsync(async () => await dispatchCanceled.Task);
         }
 
@@ -277,15 +277,15 @@ namespace IceRpc.Tests.Internal
                 await receiveStream.DisposeAsync();
             }
 
-            // Make sure that the read fails with an IOException, the send stream should be disposed as well.
-            IOException? ex = Assert.ThrowsAsync<IOException>(async () => await readTask2);
             if (cancelClientSide)
             {
+                // Make sure that the read fails with an IOException.
+                IOException? ex = Assert.ThrowsAsync<IOException>(async () => await readTask2);
                 Assert.That(ex!.Message, Is.EqualTo("streaming canceled by the writer"));
             }
             else
             {
-                Assert.That(ex!.Message, Is.EqualTo("streaming canceled by the reader"));
+                Assert.ThrowsAsync<ObjectDisposedException>(async () => await readTask2);
 
                 // Release the semaphore, the stream should be disposed once the stop sending frame is received.
                 sendStream.Semaphore.Release(10000);

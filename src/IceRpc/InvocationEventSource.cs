@@ -64,7 +64,7 @@ namespace IceRpc
 
         [NonEvent]
         internal void RequestFailed(OutgoingRequest request, Exception exception) =>
-            RequestFailed(request, exception?.GetType().FullName ?? "");
+            RequestFailed(request, exception?.GetType().ToString() ?? "");
 
         [NonEvent]
         internal void RequestFailed(OutgoingRequest request, string exception)
