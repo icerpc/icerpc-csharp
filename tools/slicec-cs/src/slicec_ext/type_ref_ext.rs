@@ -72,7 +72,7 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
     }
 }
 
-/// Helper method to convert a sequence type into a strings
+/// Helper method to convert a sequence type into a string
 fn sequence_type_to_string(
     sequence_ref: &TypeRef<Sequence>,
     namespace: &str,
