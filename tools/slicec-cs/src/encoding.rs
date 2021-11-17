@@ -67,49 +67,48 @@ pub fn encode_type(
         param.to_owned()
     };
 
-    match type_ref.concrete_type() {
-        Types::Interface(_) => {
+    match &type_ref.concrete_typeref() {
+        TypeRefs::Interface(_) => {
             writeln!(code, "encoder.EncodeProxy({}.Proxy);", value)
         }
-        Types::Class(_) => {
+        TypeRefs::Class(_) => {
             writeln!(code, "encoder.EncodeClass({});", value)
         }
-        Types::Primitive(primitive) => {
+        TypeRefs::Primitive(primitive_ref) => {
             writeln!(
                 code,
                 "encoder.Encode{}({});",
-                primitive.type_suffix(),
+                primitive_ref.type_suffix(),
                 value
             )
         }
-        Types::Struct(_) => {
+        TypeRefs::Struct(_) => {
             writeln!(code, "{}.Encode(encoder);", value)
         }
-        Types::Sequence(sequence_def) => writeln!(
+        TypeRefs::Sequence(sequence_ref) => writeln!(
             code,
             "{};",
             encode_sequence(
-                type_ref,
-                sequence_def,
+                sequence_ref,
                 namespace,
                 param,
                 !for_nested_type,
                 !for_nested_type,
             ),
         ),
-        Types::Dictionary(dictionary_def) => {
+        TypeRefs::Dictionary(dictionary_ref) => {
             writeln!(
                 code,
                 "{};",
-                encode_dictionary(dictionary_def, namespace, param)
+                encode_dictionary(dictionary_ref, namespace, param)
             )
         }
-        Types::Enum(enum_def) => {
+        TypeRefs::Enum(enum_ref) => {
             writeln!(
                 code,
                 "{helper}.Encode{name}(encoder, {param});",
-                helper = enum_def.helper_name(namespace),
-                name = enum_def.identifier(),
+                helper = enum_ref.helper_name(namespace),
+                name = enum_ref.identifier(),
                 param = value,
             );
         }
@@ -267,8 +266,7 @@ if ({param} != null)
 }
 
 pub fn encode_sequence(
-    type_ref: &TypeRef,
-    sequence_def: &Sequence,
+    sequence_ref: &TypeRef<Sequence>,
     namespace: &str,
     value: &str,
     is_param: bool,
@@ -276,12 +274,12 @@ pub fn encode_sequence(
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
 
-    let has_custom_type = matches!(type_ref.get_attribute("cs:generic", false), Some(_));
+    let has_custom_type = matches!(sequence_ref.get_attribute("cs:generic", false), Some(_));
     let mut args = Vec::new();
 
     let mut with_bit_sequence = "";
 
-    if sequence_def.has_fixed_size_numeric_elements() && (is_read_only || !has_custom_type) {
+    if sequence_ref.has_fixed_size_numeric_elements() && (is_read_only || !has_custom_type) {
         if is_param && is_read_only && !has_custom_type {
             args.push(format!("{}.Span", value));
         } else {
@@ -290,13 +288,13 @@ pub fn encode_sequence(
     } else {
         args.push(value.to_owned());
 
-        if sequence_def.element_type.is_bit_sequence_encodable() {
+        if sequence_ref.element_type.is_bit_sequence_encodable() {
             with_bit_sequence = "WithBitSequence";
         }
 
         args.push(
             encode_action(
-                &sequence_def.element_type,
+                &sequence_ref.element_type,
                 namespace,
                 is_read_only,
                 is_param,
@@ -408,8 +406,8 @@ pub fn encode_action(
         _ => "value",
     };
 
-    match type_ref.concrete_type() {
-        Types::Interface(_) => {
+    match &type_ref.concrete_typeref() {
+        TypeRefs::Interface(_) => {
             if is_optional {
                 write!(
                     code,
@@ -419,7 +417,7 @@ pub fn encode_action(
                 write!(code, "(encoder, value) => encoder.EncodeProxy(value.Proxy)");
             }
         }
-        Types::Class(_) => {
+        TypeRefs::Class(_) => {
             if is_optional {
                 write!(
                     code,
@@ -429,39 +427,38 @@ pub fn encode_action(
                 write!(code, "(encoder, value) => encoder.EncodeClass(value)");
             }
         }
-        Types::Primitive(primitive) => {
+        TypeRefs::Primitive(primitive_ref) => {
             write!(
                 code,
                 "(encoder, value) => encoder.Encode{builtin_type}({value})",
-                builtin_type = primitive.type_suffix(),
+                builtin_type = primitive_ref.type_suffix(),
                 value = value
             )
         }
-        Types::Enum(enum_def) => {
+        TypeRefs::Enum(enum_ref) => {
             write!(
                 code,
                 "(encoder, value) => {helper}.Encode{name}(encoder, {value})",
-                helper = enum_def.helper_name(namespace),
-                name = enum_def.identifier(),
+                helper = enum_ref.helper_name(namespace),
+                name = enum_ref.identifier(),
                 value = value
             )
         }
-        Types::Dictionary(dictionary_def) => {
+        TypeRefs::Dictionary(dictionary_ref) => {
             write!(
                 code,
                 "(encoder, value) => {}",
-                encode_dictionary(dictionary_def, namespace, "value")
+                encode_dictionary(dictionary_ref, namespace, "value")
             );
         }
-        Types::Sequence(sequence_def) => {
+        TypeRefs::Sequence(sequence_ref) => {
             // We generate the sequence encoder inline, so this function must not be called when
             // the top-level object is not cached.
             write!(
                 code,
                 "(encoder, value) => {}",
                 encode_sequence(
-                    type_ref,
-                    sequence_def,
+                    sequence_ref,
                     namespace,
                     "value",
                     is_read_only,
@@ -469,7 +466,7 @@ pub fn encode_action(
                 )
             )
         }
-        Types::Struct(_) => {
+        TypeRefs::Struct(_) => {
             write!(code, "(encoder, value) => {}.Encode(encoder)", value)
         }
     }

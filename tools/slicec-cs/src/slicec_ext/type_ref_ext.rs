@@ -37,20 +37,20 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
         context: TypeContext,
         mut ignore_optional: bool,
     ) -> String {
-        let type_str = match self.concrete_type() {
-            Types::Struct(struct_def) => struct_def.escape_scoped_identifier(namespace),
-            Types::Class(class_def) => class_def.escape_scoped_identifier(namespace),
-            Types::Enum(enum_def) => enum_def.escape_scoped_identifier(namespace),
-            Types::Interface(interface_def) => {
-                interface_def.scoped_proxy_implementation_name(namespace)
+        let type_str = match &self.concrete_typeref() {
+            TypeRefs::Struct(struct_ref) => struct_ref.escape_scoped_identifier(namespace),
+            TypeRefs::Class(class_ref) => class_ref.escape_scoped_identifier(namespace),
+            TypeRefs::Enum(enum_ref) => enum_ref.escape_scoped_identifier(namespace),
+            TypeRefs::Interface(interface_ref) => {
+                interface_ref.scoped_proxy_implementation_name(namespace)
             }
-            Types::Sequence(sequence) => {
-                sequence_type_to_string(self, sequence, namespace, context)
+            TypeRefs::Sequence(sequence_ref) => {
+                sequence_type_to_string(sequence_ref, namespace, context)
             }
-            Types::Dictionary(dictionary) => {
-                dictionary_type_to_string(self, dictionary, namespace, context)
+            TypeRefs::Dictionary(dictionary_ref) => {
+                dictionary_type_to_string(dictionary_ref, namespace, context)
             }
-            Types::Primitive(primitive) => primitive.cs_keyword().to_owned(),
+            TypeRefs::Primitive(primitive_ref) => primitive_ref.cs_keyword().to_owned(),
         };
 
         // For readonly sequences of fixed size numeric elements the mapping is the
@@ -74,12 +74,11 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
 
 /// Helper method to convert a sequence type into a string
 fn sequence_type_to_string(
-    type_ref: &TypeRef<impl Type + ?Sized>, // TODO change this to Sequence
-    sequence: &Sequence,
+    sequence_ref: &TypeRef<Sequence>,
     namespace: &str,
     context: TypeContext,
 ) -> String {
-    let element_type = sequence
+    let element_type = sequence_ref
         .element_type
         .to_type_string(namespace, TypeContext::Nested, false);
 
@@ -87,7 +86,7 @@ fn sequence_type_to_string(
         TypeContext::DataMember | TypeContext::Nested => {
             format!("global::System.Collections.Generic.IList<{}>", element_type)
         }
-        TypeContext::Incoming => match type_ref.get_attribute("cs:generic", false) {
+        TypeContext::Incoming => match sequence_ref.get_attribute("cs:generic", false) {
             Some(args) => match args.first().unwrap().as_str() {
                 value @ "List" | value @ "LinkedList" | value @ "Queue" | value @ "Stack" => {
                     format!(
@@ -101,8 +100,8 @@ fn sequence_type_to_string(
         },
         TypeContext::Outgoing => {
             // If the underlying type is of fixed size, we map to `ReadOnlyMemory` instead.
-            if sequence.has_fixed_size_numeric_elements()
-                && !type_ref.has_attribute("cs:generic", false)
+            if sequence_ref.has_fixed_size_numeric_elements()
+                && !sequence_ref.has_attribute("cs:generic", false)
             {
                 format!("global::System.ReadOnlyMemory<{}>", element_type)
             } else {
@@ -117,15 +116,14 @@ fn sequence_type_to_string(
 
 /// Helper method to convert a dictionary type into a string
 fn dictionary_type_to_string(
-    type_ref: &TypeRef<impl Type + ?Sized>, // TODO change this to Dictionary
-    dictionary: &Dictionary,
+    dictionary_ref: &TypeRef<Dictionary>,
     namespace: &str,
     context: TypeContext,
 ) -> String {
-    let key_type = dictionary
+    let key_type = dictionary_ref
         .key_type
         .to_type_string(namespace, TypeContext::Nested, false);
-    let value_type = dictionary
+    let value_type = dictionary_ref
         .value_type
         .to_type_string(namespace, TypeContext::Nested, false);
 
@@ -136,7 +134,7 @@ fn dictionary_type_to_string(
                 key_type, value_type,
             )
         }
-        TypeContext::Incoming => match type_ref.get_attribute("cs:generic", false) {
+        TypeContext::Incoming => match dictionary_ref.get_attribute("cs:generic", false) {
             Some(args) => {
                 let prefix = match args.first().unwrap().as_str() {
                     "SortedDictionary" => "global::System.Collections.Generic.",

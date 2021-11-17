@@ -176,6 +176,7 @@ fn enum_helper(enum_def: &Enum) -> CodeBlock {
     builder.build().into()
 }
 
+// TODO is there any reason this can't just use `enum_def.underlying()`?
 fn underlying_type(enum_def: &Enum) -> String {
     match &enum_def.underlying {
         Some(typeref) => typeref.to_type_string(&enum_def.namespace(), TypeContext::Nested, false),
