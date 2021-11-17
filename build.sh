@@ -13,6 +13,7 @@ usage()
     echo "  doc                       Generate documentation"
     echo "Arguments:"
     echo "  --config | -c             Build configuration: debug or release, the default is debug."
+    echo "  --coverage                Collect code coverage from test runs."
     echo "  --help   | -h             Print help and exit."
 }
 
@@ -76,7 +77,16 @@ run_test()
     else
         arguments+=("--configuration" "Debug")
     fi
-    run_command dotnet ${arguments[@]}
+
+    if [ "$2" == "yes" ]; then
+        arguments+=("--collect:\"XPlat Code Coverage\"")
+    fi
+    run_command dotnet "${arguments[@]}"
+
+    if [ "$2" == "yes" ]; then
+        arguments=("-reports:tests/*/TestResults/*/coverage.cobertura.xml" "-targetdir:tests/CodeCoverageRerport")
+        run_command reportgenerator ${arguments[@]}
+    fi
 }
 
 doc()
@@ -89,7 +99,7 @@ doc()
 run_command()
 {
     echo $@
-    $@
+    "$@"
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         echo "Error $exit_code"
@@ -99,6 +109,7 @@ run_command()
 
 action=""
 config=""
+coverage=""
 while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
@@ -109,6 +120,10 @@ while [[ $# -gt 0 ]]; do
         -c|--config)
             config=$2
             shift
+            shift
+            ;;
+        --coverage)
+            coverage="yes"
             shift
             ;;
         *)
@@ -160,7 +175,7 @@ case $action in
         clean $config
         ;;
     "test")
-        run_test $config
+        run_test $config $coverage
         ;;
     "doc")
         doc
