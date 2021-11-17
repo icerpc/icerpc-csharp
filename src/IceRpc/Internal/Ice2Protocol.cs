@@ -33,14 +33,18 @@ namespace IceRpc.Internal
             IceEncoding payloadEncoding)
         {
             var bufferWriter = new BufferWriter();
-            if (payloadEncoding == Encoding.Ice11 && remoteException.IsIce1SystemException())
-            {
-                // We switch to the 2.0 encoding because the 1.1 encoding is lossy for system exceptions.
-                payloadEncoding = Encoding.Ice20;
-            }
 
             IceEncoder encoder = payloadEncoding.CreateIceEncoder(bufferWriter);
-            encoder.EncodeException(remoteException);
+
+            ReplyStatus replyStatus = ReplyStatus.UserException;
+            if (payloadEncoding == Encoding.Ice11 && remoteException.IsIce1SystemException())
+            {
+                replyStatus = encoder.EncodeIce1SystemException(remoteException);
+            }
+            else
+            {
+                encoder.EncodeException(remoteException);
+            }
 
             var response = new OutgoingResponse(this, ResultType.Failure)
             {
@@ -52,6 +56,12 @@ namespace IceRpc.Internal
             {
                 RetryPolicy retryPolicy = remoteException.RetryPolicy;
                 response.Fields.Add((int)FieldKey.RetryPolicy, encoder => retryPolicy.Encode(encoder));
+            }
+
+            // We add the reply status field for ice1 system exceptions encoded with 1.1
+            if (replyStatus > ReplyStatus.UserException)
+            {
+                response.Fields.Add((int)FieldKey.ReplyStatus, encoder => encoder.EncodeReplyStatus(replyStatus));
             }
 
             return response;
