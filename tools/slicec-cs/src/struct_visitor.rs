@@ -81,12 +81,13 @@ impl<'a> Visitor for StructVisitor<'a> {
         });
         builder.add_block(main_constructor.build());
 
-        // Decode constructor
-        let decoder = if struct_def.uses_classes() {
-            "Ice11Decoder"
+        let (encoder, decoder) = if struct_def.uses_classes() {
+            ("Ice11Encoder", "Ice11Decoder")
         } else {
-            "IceDecoder"
+            ("IceEncoder", "IceDecoder")
         };
+
+        // Decode constructor
         builder.add_block(
             FunctionBuilder::new(
                 &struct_def.access_modifier(),
@@ -111,11 +112,6 @@ impl<'a> Visitor for StructVisitor<'a> {
         );
 
         // Encode method
-        let encoder = if struct_def.uses_classes() {
-            "Ice11Encoder"
-        } else {
-            "IceEncoder"
-        };
         builder.add_block(
             FunctionBuilder::new(
                 &struct_def.modifiers(),
