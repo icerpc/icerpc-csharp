@@ -1,6 +1,6 @@
  // Copyright (c) ZeroC, Inc. All rights reserved.
 
-// TODO: use generated internal types once supported
+[cs:internal]
 module IceRpc::Slice::Internal
 {
     /// TransportCode is used by the Ice 1.1 encoding to encode a transport name (such as "tcp") as a short value.

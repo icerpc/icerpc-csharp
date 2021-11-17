@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-// TODO: use generated internal types once supported
+[cs:internal]
 module IceRpc::Internal
 {
     // These definitions help with the encoding of ice2 frames.
