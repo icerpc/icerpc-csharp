@@ -1,14 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-#pragma once
-
-[[suppress-warning(reserved-identifier)]]
-
-#include <IceRpc/BuiltinSequences.ice>
-
 module IceRpc
 {
-    dictionary<varint, ByteSeq> Fields;
+    typealias Fields = dictionary<varint, sequence<byte>>;
 
     /// Keys of fields reserved for IceRPC request and response headers.
     unchecked enum FieldKey : int

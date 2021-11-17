@@ -1,9 +1,5 @@
  // Copyright (c) ZeroC, Inc. All rights reserved.
 
-#pragma once
-
-[[suppress-warning(reserved-identifier)]]
-
 // TODO: use generated internal types once supported
 module IceRpc::Slice::Internal
 {

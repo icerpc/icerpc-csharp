@@ -1,13 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-#pragma once
-
-[[suppress-warning(reserved-identifier)]]
-
-#include <IceRpc/Service.ice>
-#include <Ice/Identity.ice>
-#include <Ice/Process.ice>
-
 [cs:namespace(IceRpc)]
 module Ice
 {
@@ -35,8 +27,6 @@ module Ice
     exception ServerNotFoundException
     {
     }
-
-    interface LocatorRegistry;
 
     /// Client applications use Locator to resolve locations and well-known proxies. The Locator object also allows
     /// server applications to retrieve a proxy to the LocatorRegistry object.

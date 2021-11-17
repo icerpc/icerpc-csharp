@@ -1,13 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-#pragma once
-
-[[suppress-warning(reserved-identifier)]]
-
-#include <Ice/Identity.ice>
-#include <IceRpc/BuiltinSequences.ice>
-#include <IceRpc/Context.ice>
-
 // TODO: use generated internal types once supported
 module IceRpc::Internal
 {
