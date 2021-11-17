@@ -121,7 +121,7 @@ where
     }
 
     fn access_modifier(&self) -> String {
-        if self.has_attribute("cs:internal", self.kind() == "data member") {
+        if self.has_attribute("cs:internal", true) {
             "internal".to_owned()
         } else {
             "public".to_owned()

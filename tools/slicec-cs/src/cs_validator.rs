@@ -35,10 +35,19 @@ fn validate_cs_attribute(attribute: &Attribute) {
     }
 }
 
-fn validate_cs_marshaled_result(attribute: &Attribute) {
+fn validate_cs_internal(attribute: &Attribute) {
     if !attribute.arguments.is_empty() {
         slice::report_error(
-            "too many arguments expected 'cs:marshaled-result'".to_owned(),
+            "too many arguments expected 'cs:internal'".to_owned(),
+            Some(attribute.location.clone()),
+        );
+    }
+}
+
+fn validate_cs_encoded_result(attribute: &Attribute) {
+    if !attribute.arguments.is_empty() {
+        slice::report_error(
+            "too many arguments expected 'cs:encoded-result'".to_owned(),
             Some(attribute.location.clone()),
         );
     }
@@ -59,6 +68,14 @@ fn validate_collection_attributes<T: Attributable>(attributable: &T) {
             "generic" => validate_cs_generic(attribute),
             _ => report_unexpected_attribute(attribute),
         }
+    }
+}
+
+fn validate_common_attributes(attribute: &Attribute) {
+    match attribute.directive.as_ref() {
+        "attribute" => validate_cs_attribute(attribute),
+        "internal" => validate_cs_internal(attribute),
+        _ => report_unexpected_attribute(attribute),
     }
 }
 
@@ -95,8 +112,7 @@ impl Visitor for CsValidator {
                         );
                     }
                 }
-                "attribute" => validate_cs_attribute(attribute),
-                _ => report_unexpected_attribute(attribute),
+                _ => validate_common_attributes(attribute),
             }
         }
     }
@@ -112,18 +128,14 @@ impl Visitor for CsValidator {
                         );
                     }
                 }
-                "attribute" => validate_cs_attribute(attribute),
-                _ => report_unexpected_attribute(attribute),
+                _ => validate_common_attributes(attribute),
             }
         }
     }
 
     fn visit_class_start(&mut self, class_def: &Class) {
         for attribute in &cs_attributes(class_def.attributes()) {
-            match attribute.directive.as_ref() {
-                "attribute" => validate_cs_attribute(attribute),
-                _ => report_unexpected_attribute(attribute),
-            }
+            validate_common_attributes(attribute);
         }
     }
 
@@ -139,28 +151,23 @@ impl Visitor for CsValidator {
     fn visit_interface_start(&mut self, interface_def: &Interface) {
         for attribute in &cs_attributes(interface_def.attributes()) {
             match attribute.directive.as_ref() {
-                "encoded-result" => validate_cs_marshaled_result(attribute),
-                "attribute" => validate_cs_attribute(attribute),
-                _ => report_unexpected_attribute(attribute),
+                "encoded-result" => validate_cs_encoded_result(attribute),
+                _ => validate_common_attributes(attribute),
             }
         }
     }
 
     fn visit_enum_start(&mut self, enum_def: &Enum) {
         for attribute in &cs_attributes(enum_def.attributes()) {
-            match attribute.directive.as_ref() {
-                "attribute" => validate_cs_attribute(attribute),
-                _ => report_unexpected_attribute(attribute),
-            }
+            validate_common_attributes(attribute);
         }
     }
 
     fn visit_operation_start(&mut self, operation: &Operation) {
         for attribute in &cs_attributes(operation.attributes()) {
             match attribute.directive.as_ref() {
-                "encoded-result" => validate_cs_marshaled_result(attribute),
-                "attribute" => validate_cs_attribute(attribute),
-                _ => report_unexpected_attribute(attribute),
+                "encoded-result" => validate_cs_encoded_result(attribute),
+                _ => validate_common_attributes(attribute),
             }
         }
     }
