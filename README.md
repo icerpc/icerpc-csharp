@@ -21,7 +21,6 @@ The build depends on `icerpc.builder.msbuild` NuGet package that is not publicly
 <?xml version="1.0" encoding="utf-8"?>
 <configuration>
     <packageSources>
-        <clear />
         <add key="github" value="https://nuget.pkg.github.com/zeroc-ice/index.json" />
     </packageSources>
     <packageSourceCredentials>
