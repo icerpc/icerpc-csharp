@@ -247,13 +247,11 @@ namespace IceRpc.Internal
 
                 if (responseHeaderBody.ResultType == ResultType.Failure && payloadEncoding == Encoding.Ice11)
                 {
+                    // returns OK when not set
                     ReplyStatus replyStatus = fields.Get((int)FieldKey.ReplyStatus,
                                                          decoder => decoder.DecodeReplyStatus());
 
-                    if (replyStatus > ReplyStatus.UserException)
-                    {
-                        features = features.With(replyStatus);
-                    }
+                    features = features.With(replyStatus == ReplyStatus.OK ? ReplyStatus.UserException : replyStatus);
                 }
 
                 var response = new IncomingResponse(Protocol.Ice2, responseHeaderBody.ResultType)

@@ -30,7 +30,7 @@ namespace IceRpc
             {
                 features = new FeatureCollection();
                 ReplyStatus replyStatus = Features.Get<ReplyStatus>(); // returns OK when not set
-                features.Set(replyStatus > ReplyStatus.OK ? replyStatus : ReplyStatus.UserException);
+                features.Set(replyStatus == ReplyStatus.OK ? ReplyStatus.UserException : replyStatus);
             }
             // if we're forwarding from ice2 to ice2, the reply status field (if set) is just forwarded as is
 
