@@ -13,20 +13,35 @@ namespace IceRpc.Transports.Internal
 
     internal abstract class LogNetworkConnectionDecorator : INetworkConnection
     {
-        public bool IsSecure => Decoratee.IsSecure;
-        public TimeSpan LastActivity => Decoratee.LastActivity;
+        public bool IsSecure => _decoratee.IsSecure;
+        public TimeSpan LastActivity => _decoratee.LastActivity;
+        private readonly INetworkConnection _decoratee;
 
         internal ILogger Logger { get; }
-
-        private protected abstract INetworkConnection Decoratee { get; }
 
         private protected bool IsServer { get; }
 
         private protected NetworkConnectionInformation? Information { get; set; }
 
+        public virtual async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
+        {
+            try
+            {
+                Information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogConnectFailed(ex);
+                throw;
+            }
+
+            Logger.LogConnect(Information.Value.LocalEndpoint, Information.Value.RemoteEndpoint);
+            return Information.Value;
+        }
+
         public async ValueTask DisposeAsync()
         {
-            await Decoratee.DisposeAsync().ConfigureAwait(false);
+            await _decoratee.DisposeAsync().ConfigureAwait(false);
 
             if (Information is NetworkConnectionInformation connectionInformation)
             {
@@ -38,12 +53,13 @@ namespace IceRpc.Transports.Internal
             // We don't emit a log when closing a connection that was not connected.
         }
 
-        public bool HasCompatibleParams(Endpoint remoteEndpoint) => Decoratee.HasCompatibleParams(remoteEndpoint);
+        public bool HasCompatibleParams(Endpoint remoteEndpoint) => _decoratee.HasCompatibleParams(remoteEndpoint);
 
-        public override string? ToString() => Decoratee.ToString();
+        public override string? ToString() => _decoratee.ToString();
 
-        internal LogNetworkConnectionDecorator(bool isServer, ILogger logger)
+        internal LogNetworkConnectionDecorator(INetworkConnection decoratee, bool isServer, ILogger logger)
         {
+            _decoratee = decoratee;
             IsServer = isServer;
             Logger = logger;
         }

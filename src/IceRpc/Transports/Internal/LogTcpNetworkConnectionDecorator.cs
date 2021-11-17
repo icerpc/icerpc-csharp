@@ -17,13 +17,11 @@ namespace IceRpc.Transports.Internal
 
         ValueTask IAsyncDisposable.DisposeAsync() => _decoratee.DisposeAsync();
 
-        async Task<(ISimpleStream, NetworkConnectionInformation)> ISimpleNetworkConnection.ConnectAsync(
-            CancellationToken cancel)
+        public async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
         {
             try
             {
-                (ISimpleStream, NetworkConnectionInformation) result =
-                    await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
+                NetworkConnectionInformation result = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
 
                 if (_decoratee.SslStream is SslStream sslStream)
                 {
@@ -41,10 +39,16 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        bool INetworkConnection.HasCompatibleParams(Endpoint remoteEndpoint) =>
+        public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             _decoratee.HasCompatibleParams(remoteEndpoint);
 
+        public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel) =>
+            _decoratee.ReadAsync(buffer, cancel);
+
         public override string? ToString() => _decoratee.ToString();
+
+        public ValueTask WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
+            _decoratee.WriteAsync(buffers, cancel);
 
         internal LogTcpNetworkConnectionDecorator(TcpNetworkConnection decoratee, ILogger logger)
         {

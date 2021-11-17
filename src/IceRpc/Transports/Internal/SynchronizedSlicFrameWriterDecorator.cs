@@ -13,7 +13,7 @@ namespace IceRpc.Transports.Internal
         private long _nextBidirectionalId;
         private long _nextUnidirectionalId;
         private readonly AsyncSemaphore _sendSemaphore = new(1);
-        private readonly SlicMultiplexedStreamFactory _streamFactory;
+        private readonly SlicNetworkConnection _connection;
 
         public void Dispose() => _sendSemaphore.Complete(new ConnectionClosedException());
 
@@ -56,12 +56,12 @@ namespace IceRpc.Transports.Internal
                 {
                     if (stream.IsBidirectional)
                     {
-                        _streamFactory.AddStream(_nextBidirectionalId, stream);
+                        _connection.AddStream(_nextBidirectionalId, stream);
                         _nextBidirectionalId += 4;
                     }
                     else
                     {
-                        _streamFactory.AddStream(_nextUnidirectionalId, stream);
+                        _connection.AddStream(_nextUnidirectionalId, stream);
                         _nextUnidirectionalId += 4;
                     }
                 }
@@ -82,13 +82,13 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal SynchronizedSlicFrameWriterDecorator(ISlicFrameWriter decoratee, SlicMultiplexedStreamFactory factory)
+        internal SynchronizedSlicFrameWriterDecorator(ISlicFrameWriter decoratee, SlicNetworkConnection connection)
         {
             _decoratee = decoratee;
-            _streamFactory = factory;
+            _connection = connection;
 
             // We use the same stream ID numbering scheme as Quic
-            if (factory.IsServer)
+            if (connection.IsServer)
             {
                 _nextBidirectionalId = 1;
                 _nextUnidirectionalId = 3;

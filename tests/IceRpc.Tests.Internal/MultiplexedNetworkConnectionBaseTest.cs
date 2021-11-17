@@ -4,23 +4,19 @@ using IceRpc.Transports;
 
 namespace IceRpc.Tests.Internal
 {
-    public class MultiplexedStreamFactoryBaseTest
+    public class MultiplexedNetworkConnectionBaseTest
     {
         protected IMultiplexedNetworkConnection ClientConnection => _clientConnection!;
-        protected IMultiplexedStreamFactory ClientMultiplexedStreamFactory => _clientMultiplexedStreamFactory!;
         protected IMultiplexedNetworkConnection ServerConnection => _serverConnection!;
-        protected IMultiplexedStreamFactory ServerMultiplexedStreamFactory => _serverMultiplexedStreamFactory!;
 
         private IMultiplexedNetworkConnection? _clientConnection;
         private readonly Endpoint _clientEndpoint;
-        private IMultiplexedStreamFactory? _clientMultiplexedStreamFactory;
         private readonly object? _clientOptions;
         private IMultiplexedNetworkConnection? _serverConnection;
         private readonly Endpoint _serverEndpoint;
-        private IMultiplexedStreamFactory? _serverMultiplexedStreamFactory;
         private readonly object? _serverOptions;
 
-        public MultiplexedStreamFactoryBaseTest(
+        public MultiplexedNetworkConnectionBaseTest(
             string clientEndpoint = "ice+coloc://127.0.0.1",
             object? clientOptions = null,
             string serverEndpoint = "ice+coloc://127.0.0.1",
@@ -38,10 +34,9 @@ namespace IceRpc.Tests.Internal
             _clientConnection = Connect();
             _serverConnection = await acceptTask;
 
-            Task<(IMultiplexedStreamFactory, NetworkConnectionInformation)> multiStreamTask =
-                 _clientConnection.ConnectAsync(default);
-            (_serverMultiplexedStreamFactory, _) = await _serverConnection.ConnectAsync(default);
-            (_clientMultiplexedStreamFactory, _) = await multiStreamTask;
+            Task<NetworkConnectionInformation> connectTask = _clientConnection.ConnectAsync(default);
+            _ = await _serverConnection.ConnectAsync(default);
+            _ = await connectTask;
         }
 
         protected async Task TearDownConnectionsAsync()

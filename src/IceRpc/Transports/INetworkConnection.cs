@@ -13,6 +13,11 @@ namespace IceRpc.Transports
         /// <summary>The time elapsed since the last activity of the connection.</summary>
         TimeSpan LastActivity { get; }
 
+        /// <summary>Connects this network connection.</summary>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        /// <returns>The <see cref="NetworkConnectionInformation"/>.</returns>
+        Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel);
+
         /// <summary>Checks if the parameters of the provided endpoint are compatible with this network connection.
         /// Compatible means a client could reuse this network connection instead of establishing a new network
         /// connection.</summary>

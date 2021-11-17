@@ -16,8 +16,9 @@ namespace IceRpc.Transports.Internal
         public bool IsSecure => false;
 
         public abstract TimeSpan LastActivity { get; }
+        internal abstract Socket Socket { get; }
 
-        public abstract Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel);
+        public abstract Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel);
 
         public ValueTask DisposeAsync()
         {
@@ -26,6 +27,8 @@ namespace IceRpc.Transports.Internal
         }
 
         public abstract bool HasCompatibleParams(Endpoint remoteEndpoint);
+
+        public abstract ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel);
 
         /// <inheritdoc/>
         public override string ToString()
@@ -41,7 +44,7 @@ namespace IceRpc.Transports.Internal
             return builder.ToString();
         }
 
-        internal abstract Socket Socket { get; }
+        public abstract ValueTask WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel);
 
         /// <summary>Prints the fields/properties of this class using the Records format.</summary>
         /// <param name="builder">The string builder.</param>
@@ -49,7 +52,7 @@ namespace IceRpc.Transports.Internal
         private protected abstract bool PrintMembers(StringBuilder builder);
     }
 
-    internal class UdpClientNetworkConnection : UdpNetworkConnection, ISimpleStream
+    internal class UdpClientNetworkConnection : UdpNetworkConnection
     {
         public override TimeSpan LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
 
@@ -62,23 +65,22 @@ namespace IceRpc.Transports.Internal
         private readonly string? _multicastInterface;
         private readonly int _ttl;
 
-        public override async Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel)
+        public override async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
         {
             try
             {
                 await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
                 var ipEndPoint = (IPEndPoint)Socket.LocalEndPoint!;
 
-                return (this,
-                        new NetworkConnectionInformation(
-                            localEndpoint: _remoteEndpoint with
-                            {
-                                Host = ipEndPoint.Address.ToString(),
-                                Port = checked((ushort)ipEndPoint.Port)
-                            },
-                            remoteEndpoint: _remoteEndpoint,
-                            _idleTimeout,
-                            remoteCertificate: null));
+                return new NetworkConnectionInformation(
+                    localEndpoint: _remoteEndpoint with
+                    {
+                        Host = ipEndPoint.Address.ToString(),
+                        Port = checked((ushort)ipEndPoint.Port)
+                    },
+                    remoteEndpoint: _remoteEndpoint,
+                    _idleTimeout,
+                    remoteCertificate: null);
             }
             catch (Exception ex)
             {
@@ -97,7 +99,7 @@ namespace IceRpc.Transports.Internal
             return ttl == _ttl && multicastInterface == _multicastInterface;
         }
 
-        async ValueTask<int> ISimpleStream.ReadAsync(Memory<byte> buffer, CancellationToken cancel)
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             try
             {
@@ -111,7 +113,9 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        async ValueTask ISimpleStream.WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
+        public override async ValueTask WriteAsync(
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            CancellationToken cancel)
         {
             try
             {
@@ -225,7 +229,7 @@ namespace IceRpc.Transports.Internal
         }
     }
 
-    internal class UdpServerNetworkConnection : UdpNetworkConnection, ISimpleStream
+    internal class UdpServerNetworkConnection : UdpNetworkConnection
     {
         public override TimeSpan LastActivity => TimeSpan.Zero;
 
@@ -237,24 +241,24 @@ namespace IceRpc.Transports.Internal
 
         private readonly EndPoint _remoteAddress;
 
-        public override Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel) =>
+        public override Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel) =>
             // The remote endpoint is set to an empty endpoint for a UDP server connection because the
             // socket accepts datagrams from "any" client since it's not connected to a specific client.
-            Task.FromResult((this as ISimpleStream,
-                             new NetworkConnectionInformation(localEndpoint: LocalEndpoint,
-                                                              remoteEndpoint: LocalEndpoint with
-                                                              {
-                                                                  Host = "::0",
-                                                                  Port = 0
-                                                              },
-                                                              Timeout.InfiniteTimeSpan,
-                                                              remoteCertificate: null)));
+            Task.FromResult(new NetworkConnectionInformation(
+                localEndpoint: LocalEndpoint,
+                remoteEndpoint: LocalEndpoint with
+                {
+                    Host = "::0",
+                    Port = 0
+                },
+                Timeout.InfiniteTimeSpan,
+                remoteCertificate: null));
 
         public override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             throw new NotSupportedException(
                 $"{nameof(INetworkConnection.HasCompatibleParams)} is only supported by client connections.");
 
-        async ValueTask<int> ISimpleStream.ReadAsync(Memory<byte> buffer, CancellationToken cancel)
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             try
             {
@@ -270,7 +274,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        ValueTask ISimpleStream.WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
+        public override ValueTask WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
             throw new InvalidOperationException("cannot write to a UDP server stream");
 
         internal UdpServerNetworkConnection(Endpoint endpoint, UdpServerOptions options)

@@ -48,7 +48,7 @@ namespace IceRpc.Internal
         private readonly Dictionary<int, OutgoingRequest> _invocations = new();
         private readonly bool _isUdp;
         private readonly object _mutex = new();
-        private readonly ISimpleStream _simpleStream;
+        private readonly ISimpleNetworkConnection _networkConnection;
         private int _nextRequestId;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly AsyncSemaphore _sendSemaphore = new(1);
@@ -82,7 +82,7 @@ namespace IceRpc.Internal
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
             try
             {
-                await _simpleStream.WriteAsync(Ice1Definitions.ValidateConnectionFrame, cancel).ConfigureAwait(false);
+                await _networkConnection.WriteAsync(Ice1Definitions.ValidateConnectionFrame, cancel).ConfigureAwait(false);
             }
             finally
             {
@@ -335,7 +335,7 @@ namespace IceRpc.Internal
                 // connection), we need to send the entire frame even when cancel gets canceled since the
                 // recipient cannot read a partial frame and then keep going.
                 ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
-                await _simpleStream.WriteAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+                await _networkConnection.WriteAsync(buffers, CancellationToken.None).ConfigureAwait(false);
 
                 // Mark the request as sent and, if it's a twoway request, keep track of it.
                 request.IsSent = true;
@@ -410,7 +410,7 @@ namespace IceRpc.Internal
 
                         // Send the response frame.
                         ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
-                        await _simpleStream.WriteAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+                        await _networkConnection.WriteAsync(buffers, CancellationToken.None).ConfigureAwait(false);
                     }
                     finally
                     {
@@ -486,7 +486,7 @@ namespace IceRpc.Internal
                 _sendSemaphore.Complete(exception);
 
                 // Send the CloseConnection frame once all the dispatches are done.
-                await _simpleStream.WriteAsync(Ice1Definitions.CloseConnectionFrame, cancel).ConfigureAwait(false);
+                await _networkConnection.WriteAsync(Ice1Definitions.CloseConnectionFrame, cancel).ConfigureAwait(false);
 
                 // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the
                 // connection closure here. We can't just return and close the underlying transport since this could
@@ -514,11 +514,14 @@ namespace IceRpc.Internal
             CancelDispatches();
         }
 
-        internal Ice1ProtocolConnection(ISimpleStream simpleStream, int incomingFrameMaxSize, bool isUdp)
+        internal Ice1ProtocolConnection(
+            ISimpleNetworkConnection simpleNetworkConnection,
+            int incomingFrameMaxSize,
+            bool isUdp)
         {
             _isUdp = isUdp;
             _incomingFrameMaxSize = incomingFrameMaxSize;
-            _simpleStream = simpleStream;
+            _networkConnection = simpleNetworkConnection;
         }
 
         internal async Task InitializeAsync(bool isServer, CancellationToken cancel)
@@ -527,7 +530,7 @@ namespace IceRpc.Internal
             {
                 if (isServer)
                 {
-                    await _simpleStream.WriteAsync(
+                    await _networkConnection.WriteAsync(
                         Ice1Definitions.ValidateConnectionFrame,
                         cancel).ConfigureAwait(false);
                 }
@@ -605,7 +608,7 @@ namespace IceRpc.Internal
                 if (_isUdp)
                 {
                     buffer = new byte[_incomingFrameMaxSize];
-                    int received = await _simpleStream.ReadAsync(buffer, cancel).ConfigureAwait(false);
+                    int received = await _networkConnection.ReadAsync(buffer, cancel).ConfigureAwait(false);
                     if (received < Ice1Definitions.HeaderSize)
                     {
                         // TODO: implement protocol logging with decorators
@@ -782,7 +785,7 @@ namespace IceRpc.Internal
             int offset = 0;
             while (offset != buffer.Length)
             {
-                offset += await _simpleStream.ReadAsync(buffer[offset..], cancel).ConfigureAwait(false);
+                offset += await _networkConnection.ReadAsync(buffer[offset..], cancel).ConfigureAwait(false);
             }
         }
     }

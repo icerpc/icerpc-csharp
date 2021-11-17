@@ -21,16 +21,16 @@ namespace IceRpc.Transports
         ListenerDisposed,
 
          /// <summary>Successfully read data from a multiplexed stream.</summary>
-        MultiplexedStreamRead,
+        MultiplexedNetworkConnectionRead,
 
         /// <summary>Wrote data to a multiplexed stream.</summary>
-        MultiplexedStreamWrite,
+        MultiplexedNetworkConnectionWrite,
 
         /// <summary>Successfully read data from a simple stream.</summary>
-        SimpleStreamRead,
+        SimpleNetworkConnectionRead,
 
         /// <summary>Wrote data to a simple stream.</summary>
-        SimpleStreamWrite,
+        SimpleNetworkConnectionWrite,
 
         /// <summary>A network connection was disposed.</summary>
         ConnectionDispose,

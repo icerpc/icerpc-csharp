@@ -90,7 +90,7 @@ namespace IceRpc.Transports.Internal
         public ReadOnlyMemory<byte> TransportHeader => SlicDefinitions.FrameHeader;
 
         /// <summary>Specifies whether or not this is a stream initiated by the peer.</summary>
-        internal bool IsRemote => _id != -1 && _id % 2 == (_streamFactory.IsServer ? 0 : 1);
+        internal bool IsRemote => _id != -1 && _id % 2 == (_connection.IsServer ? 0 : 1);
 
         /// <summary>The stream reset error code is set if the stream is reset by the peer or locally. It's used to set
         /// the correct error code for <see cref="MultiplexedStreamAbortedException"/> raised by the stream.</summary>
@@ -103,7 +103,7 @@ namespace IceRpc.Transports.Internal
 
         private bool ReadsCompleted => ((State)Thread.VolatileRead(ref _state)).HasFlag(State.ReadCompleted);
 
-        private readonly SlicMultiplexedStreamFactory _streamFactory;
+        private readonly SlicNetworkConnection _connection;
         private long _id = -1;
         private SpinLock _lock;
 
@@ -247,7 +247,7 @@ namespace IceRpc.Transports.Internal
             // more data to be sent.
             // TODO: is 75% a good setting?
             int consumed = Interlocked.Add(ref _receiveCredit, size);
-            if (consumed >= _streamFactory.StreamBufferMaxSize * 0.75)
+            if (consumed >= _connection.StreamBufferMaxSize * 0.75)
             {
                 // Reset _receiveCredit before notifying the peer.
                 Interlocked.Exchange(ref _receiveCredit, 0);
@@ -279,16 +279,16 @@ namespace IceRpc.Transports.Internal
                 // Send an empty last stream frame if there's no data to send. There's no need to check send flow
                 // control credit if there's no data to send.
                 Debug.Assert(endStream);
-                await _streamFactory.SendStreamFrameAsync(this, buffers, true, cancel).ConfigureAwait(false);
+                await _connection.SendStreamFrameAsync(this, buffers, true, cancel).ConfigureAwait(false);
                 return;
             }
 
             // If we are about to send data which is larger than what the peer allows or if there's more data to
             // come, we enable flow control.
-            if (_sendSemaphore == null && (!endStream || size > _streamFactory.PeerStreamBufferMaxSize))
+            if (_sendSemaphore == null && (!endStream || size > _connection.PeerStreamBufferMaxSize))
             {
                 // Assign the initial send credit based on the peer's stream buffer max size.
-                _sendCredit = _streamFactory.PeerStreamBufferMaxSize;
+                _sendCredit = _connection.PeerStreamBufferMaxSize;
 
                 // Create send semaphore for flow control. The send semaphore ensures that the stream doesn't send more
                 // data to the peer than its send credit.
@@ -334,7 +334,7 @@ namespace IceRpc.Transports.Internal
 
                 // The maximum packet size to send, it can't be larger than the flow control credit left or
                 // the peer's packet max size.
-                int maxPacketSize = Math.Min(_sendCredit, _streamFactory.PeerPacketMaxSize);
+                int maxPacketSize = Math.Min(_sendCredit, _connection.PeerPacketMaxSize);
 
                 int sendSize = 0;
                 bool lastBuffer;
@@ -387,7 +387,7 @@ namespace IceRpc.Transports.Internal
                 offset += sendSize;
                 if (_sendSemaphore == null)
                 {
-                    await _streamFactory.SendStreamFrameAsync(
+                    await _connection.SendStreamFrameAsync(
                         this,
                         sendBuffer?.ToArray() ?? buffers,
                         lastBuffer && endStream,
@@ -405,7 +405,7 @@ namespace IceRpc.Transports.Internal
                         // it.
                         int value = Interlocked.Add(ref _sendCredit, -sendSize);
 
-                        await _streamFactory.SendStreamFrameAsync(
+                        await _connection.SendStreamFrameAsync(
                             this,
                             sendBuffer?.ToArray() ?? buffers,
                             lastBuffer && endStream,
@@ -452,16 +452,16 @@ namespace IceRpc.Transports.Internal
         public override string ToString() => $"{base.ToString()} (ID={Id})";
 
         internal SlicMultiplexedStream(
-            SlicMultiplexedStreamFactory streamFactory,
+            SlicNetworkConnection connection,
             bool bidirectional,
             bool remote,
             ISlicFrameReader reader,
             ISlicFrameWriter writer)
         {
-            _streamFactory = streamFactory;
+            _connection = connection;
             _reader = reader;
             _writer = writer;
-            _receiveBuffer = new CircularBuffer(_streamFactory.StreamBufferMaxSize);
+            _receiveBuffer = new CircularBuffer(_connection.StreamBufferMaxSize);
 
             IsBidirectional = bidirectional;
             if (!IsBidirectional)
@@ -492,7 +492,7 @@ namespace IceRpc.Transports.Internal
                 Debug.Assert(_sendSemaphore.Count == 0);
                 _sendSemaphore.Release();
             }
-            else if (newValue > 2 * _streamFactory.PeerPacketMaxSize)
+            else if (newValue > 2 * _connection.PeerPacketMaxSize)
             {
                 // The peer is trying to increase the credit to a value which is larger than what it is allowed to.
                 throw new InvalidDataException("invalid flow control credit increase");
@@ -594,7 +594,7 @@ namespace IceRpc.Transports.Internal
             if (IsStarted)
             {
                 // Release connection stream count or semaphore for this stream and remove it from the factory.
-                _streamFactory.ReleaseStream(this);
+                _connection.ReleaseStream(this);
 
                 // Local streams are released from the connection when the StreamLast or StreamReset frame is received.
                 // Since a remote unidirectional stream doesn't send stream frames, we have to send a stream last frame
