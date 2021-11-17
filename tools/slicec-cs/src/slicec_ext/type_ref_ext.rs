@@ -8,9 +8,6 @@ use super::interface_ext::InterfaceExt;
 use super::primitive_ext::PrimitiveExt;
 
 pub trait TypeRefExt {
-    /// Is the type a reference type (eg. Class)
-    fn is_reference_type(&self) -> bool;
-
     /// Is the type a value type (eg. Struct)
     fn is_value_type(&self) -> bool;
 
@@ -24,10 +21,6 @@ pub trait TypeRefExt {
 }
 
 impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
-    fn is_reference_type(&self) -> bool {
-        !self.is_value_type()
-    }
-
     fn is_value_type(&self) -> bool {
         match self.concrete_type() {
             Types::Primitive(primitive) => {

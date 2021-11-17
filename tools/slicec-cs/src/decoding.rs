@@ -230,12 +230,7 @@ pub fn decode_sequence(type_ref: &TypeRef, sequence: &Sequence, namespace: &str)
             _ => {
                 if element_type.is_bit_sequence_encodable() {
                     args = format!(
-                        "decoder.DecodeSequence({}{})",
-                        if element_type.is_reference_type() {
-                            "withBitSequence: true, "
-                        } else {
-                            ""
-                        },
+                        "decoder.DecodeSequenceWithBitSequence({})",
                         decode_func(element_type, namespace)
                     );
                 } else {
