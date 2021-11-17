@@ -195,66 +195,58 @@ pub fn decode_sequence(type_ref: &TypeRef, sequence: &Sequence, namespace: &str)
     let element_type = &sequence.element_type;
 
     if let Some(generic_attribute) = type_ref.get_attribute("cs:generic", false) {
-        let args: String;
-        assert!(!generic_attribute.is_empty());
-
-        match element_type.concrete_type() {
+        let arg = match element_type.concrete_type() {
             Types::Primitive(primitive)
                 if primitive.is_numeric_or_bool() && primitive.is_fixed_size() =>
             {
                 // We always read an array even when mapped to a collection, as it's expected to be
                 // faster than unmarshaling the collection elements one by one.
-                args = format!(
+                format!(
                     "decoder.DecodeArray<{}>()",
                     element_type.to_type_string(namespace, TypeContext::Incoming, true)
-                );
+                )
             }
             Types::Enum(enum_def) if enum_def.underlying.is_some() => {
                 // We always read an array even when mapped to a collection, as it's expected to be
                 // faster than unmarshaling the collection elements one by one.
                 if enum_def.is_unchecked {
-                    args = format!(
+                    format!(
                         "decoder.DecodeArray<{}>()",
                         element_type.to_type_string(namespace, TypeContext::Incoming, true)
-                    );
+                    )
                 } else {
-                    args = format!(
+                    format!(
                         "decoder.DecodeArray(({enum_type_name} e) => _ = {helper}.As{name}(({underlying_type})e))",
                         enum_type_name = element_type.to_type_string(namespace, TypeContext::Incoming, false),
                         helper = enum_def.helper_name(namespace),
                         name = enum_def.identifier(),
                         underlying_type = enum_def.underlying_type().cs_keyword()
-                    );
+                    )
                 }
             }
             _ => {
                 if element_type.is_bit_sequence_encodable() {
-                    args = format!(
-                        "decoder.DecodeSequence({}{})",
-                        if element_type.is_reference_type() {
-                            "withBitSequence: true, "
-                        } else {
-                            ""
-                        },
+                    format!(
+                        "decoder.DecodeSequenceWithBitSequence({})",
                         decode_func(element_type, namespace)
-                    );
+                    )
                 } else {
-                    args = format!(
+                    format!(
                         "decoder.DecodeSequence(minElementSize: {}, {})",
                         element_type.min_wire_size(),
                         decode_func(element_type, namespace)
-                    );
+                    )
                 }
             }
-        }
+        };
 
         write!(
             code,
             "new {}({})",
             type_ref.to_type_string(namespace, TypeContext::Incoming, true),
             match generic_attribute.first().unwrap().as_str() {
-                "Stack" => format!("global::System.Linq.Enumerable.Reverse({})", args),
-                _ => args,
+                "Stack" => format!("global::System.Linq.Enumerable.Reverse({})", arg),
+                _ => arg,
             }
         );
     } else if element_type.is_bit_sequence_encodable() {
