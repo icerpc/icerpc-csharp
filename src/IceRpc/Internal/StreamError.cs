@@ -3,7 +3,7 @@
 namespace IceRpc.Internal
 {
     /// <summary>Error codes for stream errors.</summary>
-    public enum StreamError : byte
+    internal enum MultiplexedStreamError : byte
     {
         /// <summary>The stream was aborted because the invocation was canceled.</summary>
         InvocationCanceled,
@@ -28,8 +28,5 @@ namespace IceRpc.Internal
 
         /// <summary>Stream data is not expected.</summary>
         UnexpectedStreamData,
-
-        /// <summary>The stream was aborted.</summary>
-        StreamAborted
     }
 }

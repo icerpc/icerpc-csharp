@@ -118,8 +118,7 @@ namespace IceRpc.Slice
             }
             else
             {
-                throw new ArgumentException($"{type.FullName} doesn't have an IceRpc.TypeId attribute",
-                                            nameof(type));
+                throw new ArgumentException($"{type} doesn't have an IceRpc.TypeId attribute", nameof(type));
             }
         }
     }

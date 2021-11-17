@@ -38,7 +38,7 @@ namespace IceRpc.Tests.Internal
             clientStream.AbortWrite(errorCode);
 
             // Ensure that receive on the server connection raises RpcStreamAbortedException
-            StreamAbortedException? ex = Assert.CatchAsync<StreamAbortedException>(
+            MultiplexedStreamAbortedException? ex = Assert.CatchAsync<MultiplexedStreamAbortedException>(
                 async () => await serverStream.ReadAsync(new byte[1], default));
             Assert.That(ex!.ErrorCode, Is.EqualTo(errorCode));
 

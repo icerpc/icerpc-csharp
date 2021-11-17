@@ -98,7 +98,7 @@ namespace IceRpc
 
                 if (_shutdownTask != null)
                 {
-                    throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
+                    throw new ObjectDisposedException($"{typeof(Server)}:{this}");
                 }
 
                 if (Protocol == Protocol.Ice1)

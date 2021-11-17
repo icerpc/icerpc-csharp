@@ -215,13 +215,13 @@ namespace IceRpc.Transports.Internal
             _unidirectionalStreamSemaphore?.Complete(exception);
 
             // Abort streams.
-            foreach (SlicMultiplexedStream stream in _streams.Values)
+            foreach (IMultiplexedStream stream in _streams.Values)
             {
                 try
                 {
                     // It's not ideal to use the Ice protocol stream error here. Another option would be to add
                     // a Close(byte errorCode) method.
-                    ((IMultiplexedStream)stream).Abort((byte)StreamError.ConnectionAborted);
+                    stream.Abort(MultiplexedStreamError.ConnectionAborted);
                 }
                 catch (Exception ex)
                 {

@@ -143,16 +143,18 @@ namespace IceRpc.Slice
                 {
                     return await _ioStream.ReadAsync(buffer, cancel).ConfigureAwait(false);
                 }
-                catch (StreamAbortedException ex) when (ex.ErrorCode == (byte)StreamError.StreamingCanceledByWriter)
+                catch (MultiplexedStreamAbortedException ex) when (
+                    ex.ErrorCode == (byte)MultiplexedStreamError.StreamingCanceledByWriter)
                 {
                     throw new IOException("streaming canceled by the writer", ex);
                 }
-                catch (StreamAbortedException ex) when (ex.ErrorCode == (byte)StreamError.StreamingCanceledByReader)
+                catch (MultiplexedStreamAbortedException ex) when (
+                    ex.ErrorCode == (byte)MultiplexedStreamError.StreamingCanceledByReader)
                 {
                     // This error code is set by the Dispose method below.
-                    throw new ObjectDisposedException($"{typeof(Stream).FullName}");
+                    throw new ObjectDisposedException($"{typeof(Stream)}");
                 }
-                catch (StreamAbortedException ex)
+                catch (MultiplexedStreamAbortedException ex)
                 {
                     throw new IOException($"unexpected streaming error {ex.ErrorCode}", ex);
                 }
@@ -174,7 +176,7 @@ namespace IceRpc.Slice
                 if (disposing)
                 {
                     _ioStream?.Dispose();
-                    _multiplexedStream?.AbortRead((byte)StreamError.StreamingCanceledByReader);
+                    _multiplexedStream?.AbortRead((byte)MultiplexedStreamError.StreamingCanceledByReader);
                 }
             }
 
@@ -219,7 +221,7 @@ namespace IceRpc.Slice
                     yield break; // finish iteration
                 }
 
-                cancel.Register(() => _multiplexedStream.AbortRead((byte)StreamError.StreamingCanceledByReader));
+                cancel.Register(() => _multiplexedStream.AbortRead((byte)MultiplexedStreamError.StreamingCanceledByReader));
 
                 while (true)
                 {
@@ -266,13 +268,13 @@ namespace IceRpc.Slice
 
                         await _multiplexedStream.ReadUntilFullAsync(buffer, cancel).ConfigureAwait(false);
                     }
-                    catch (StreamAbortedException)
+                    catch (MultiplexedStreamAbortedException)
                     {
                         yield break; // finish iteration
                     }
                     catch
                     {
-                        _multiplexedStream.AbortRead((byte)StreamError.UnexpectedStreamData);
+                        _multiplexedStream.AbortRead((byte)MultiplexedStreamError.UnexpectedStreamData);
                         yield break; // finish iteration
                     }
 
@@ -286,7 +288,7 @@ namespace IceRpc.Slice
                         }
                         catch
                         {
-                            _multiplexedStream.AbortRead((byte)StreamError.UnexpectedStreamData);
+                            _multiplexedStream.AbortRead((byte)MultiplexedStreamError.UnexpectedStreamData);
                             yield break; // finish iteration
                         }
                         yield return value;

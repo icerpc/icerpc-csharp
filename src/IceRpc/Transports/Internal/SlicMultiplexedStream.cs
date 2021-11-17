@@ -89,8 +89,13 @@ namespace IceRpc.Transports.Internal
 
         public ReadOnlyMemory<byte> TransportHeader => SlicDefinitions.FrameHeader;
 
+        /// <summary>Specifies whether or not this is a stream initiated by the peer.</summary>
         internal bool IsRemote => _id != -1 && _id % 2 == (_streamFactory.IsServer ? 0 : 1);
+
+        /// <summary>The stream reset error code is set if the stream is reset by the peer or locally. It's used to set
+        /// the correct error code for <see cref="MultiplexedStreamAbortedException"/> raised by the stream.</summary>
         internal byte? ResetErrorCode { get; private set; }
+
         internal bool WritesCompleted => ((State)Thread.VolatileRead(ref _state)).HasFlag(State.WriteCompleted);
 
         private bool IsShutdown =>
@@ -206,7 +211,7 @@ namespace IceRpc.Transports.Internal
             if (ReadsCompleted)
             {
                 Debug.Assert(ResetErrorCode != null);
-                throw new StreamAbortedException(ResetErrorCode.Value);
+                throw new MultiplexedStreamAbortedException(ResetErrorCode.Value);
             }
 
             if (_receivedSize == _receivedOffset)
@@ -225,7 +230,7 @@ namespace IceRpc.Transports.Internal
                     }
                     if (ResetErrorCode is byte streamError)
                     {
-                        throw new StreamAbortedException(streamError);
+                        throw new MultiplexedStreamAbortedException(streamError);
                     }
                     TrySetReadCompleted();
                     return 0;
@@ -306,7 +311,7 @@ namespace IceRpc.Transports.Internal
                     if (ResetErrorCode is byte resetErrorCode)
                     {
                         // If the stream has been aborted by a reset, raise StreamAbortedException
-                        throw new StreamAbortedException(resetErrorCode);
+                        throw new MultiplexedStreamAbortedException(resetErrorCode);
                     }
                     else
                     {

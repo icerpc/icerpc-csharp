@@ -21,7 +21,7 @@ namespace IceRpc.Transports
 
         /// <summary>The transport header sentinel. Transport implementations that need an additional header to transmit
         /// data over the stream can provide a sample header here. The caller of <see cref="WriteAsync"/> is responsible
-        /// for appending this header to the buffers provided to <see cref="WriteAsync"/>. The implementation of <see
+        /// for prepending this header to the buffers provided to <see cref="WriteAsync"/>. The implementation of <see
         /// cref="WriteAsync"/> expects this header to be present at the start of the <see cref="WriteAsync"/>
         /// buffers.</summary>
         ReadOnlyMemory<byte> TransportHeader { get; }

@@ -306,7 +306,7 @@ namespace IceRpc
             }
             catch (OperationCanceledException)
             {
-                request.Stream?.Abort((byte)StreamError.InvocationCanceled);
+                request.Stream?.Abort(MultiplexedStreamError.InvocationCanceled);
                 throw;
             }
         }
@@ -556,9 +556,9 @@ namespace IceRpc
             }
             catch (OperationCanceledException)
             {
-                request.Stream?.Abort((byte)StreamError.DispatchCanceled);
+                request.Stream?.Abort(MultiplexedStreamError.DispatchCanceled);
             }
-            catch (StreamAbortedException)
+            catch (MultiplexedStreamAbortedException)
             {
             }
             catch (Exception exception)

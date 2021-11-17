@@ -47,7 +47,7 @@ namespace IceRpc.Transports.Internal
                 // stream releases the unidirectional semaphore.
                 if (stream.WritesCompleted && (!stream.IsRemote || stream.IsBidirectional))
                 {
-                    throw new StreamAbortedException(stream.ResetErrorCode!.Value);
+                    throw new MultiplexedStreamAbortedException(stream.ResetErrorCode!.Value);
                 }
 
                 // Allocate stream ID if the stream isn't started. Thread-safety is provided by the send

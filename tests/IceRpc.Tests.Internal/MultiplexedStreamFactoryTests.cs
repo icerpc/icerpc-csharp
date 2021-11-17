@@ -37,11 +37,11 @@ namespace IceRpc.Tests.Internal
 
             await ClientConnection.DisposeAsync();
 
-            StreamAbortedException? ex;
+            MultiplexedStreamAbortedException? ex;
             // Stream is aborted
-            ex = Assert.ThrowsAsync<StreamAbortedException>(
+            ex = Assert.ThrowsAsync<MultiplexedStreamAbortedException>(
                 async () => await clientStream.ReadAsync(CreateReceivePayload(), default));
-            Assert.That(ex!.ErrorCode, Is.EqualTo((byte)StreamError.ConnectionAborted));
+            Assert.That(ex!.ErrorCode, Is.EqualTo((byte)MultiplexedStreamError.ConnectionAborted));
 
             // Can't create new stream
             clientStream = ClientMultiplexedStreamFactory.CreateStream(true);
@@ -251,7 +251,7 @@ namespace IceRpc.Tests.Internal
             IMultiplexedStream serverStream = await ServerMultiplexedStreamFactory.AcceptStreamAsync(default);
             await serverStream.ReadAsync(CreateReceivePayload(), default);
             await ServerConnection.DisposeAsync();
-            Assert.CatchAsync<StreamAbortedException>(
+            Assert.CatchAsync<MultiplexedStreamAbortedException>(
                 async () => await serverStream.WriteAsync(CreateSendPayload(serverStream), true, default));
         }
 

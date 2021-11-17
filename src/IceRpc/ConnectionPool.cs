@@ -199,7 +199,7 @@ namespace IceRpc
             {
                 if (_shutdownTask != null)
                 {
-                    throw new ObjectDisposedException($"{typeof(ConnectionPool).FullName}");
+                    throw new ObjectDisposedException($"{typeof(ConnectionPool)}");
                 }
 
                 // Check if there is an active or pending connection that we can use according to the endpoint
