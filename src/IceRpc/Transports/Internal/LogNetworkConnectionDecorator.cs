@@ -15,13 +15,14 @@ namespace IceRpc.Transports.Internal
     {
         public bool IsSecure => _decoratee.IsSecure;
         public TimeSpan LastActivity => _decoratee.LastActivity;
-        private readonly INetworkConnection _decoratee;
 
         internal ILogger Logger { get; }
 
         private protected bool IsServer { get; }
 
         private protected NetworkConnectionInformation? Information { get; set; }
+
+        private readonly INetworkConnection _decoratee;
 
         public virtual async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
         {

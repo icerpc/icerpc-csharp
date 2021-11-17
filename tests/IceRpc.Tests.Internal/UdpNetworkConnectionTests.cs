@@ -36,15 +36,12 @@ namespace IceRpc.Tests.Internal
         [OneTimeSetUp]
         public async Task OneTimeSetupAsync()
         {
-            Task<ISimpleNetworkConnection> acceptTask = _listener.AcceptAsync();
+            _serverConnection = await _listener.AcceptAsync();
 
             _clientConnection =
                 _clientTransport.CreateConnection(_listener.Endpoint, LogAttributeLoggerFactory.Instance.Logger);
-            Task<NetworkConnectionInformation> connectTask = _clientConnection.ConnectAsync(default);
-
-            _serverConnection = await acceptTask;
             _ = await _serverConnection.ConnectAsync(default);
-            _ = await connectTask;
+            _ = await _clientConnection.ConnectAsync(default);
         }
 
         [OneTimeTearDown]
@@ -73,7 +70,6 @@ namespace IceRpc.Tests.Internal
             ReadOnlyMemory<ReadOnlyMemory<byte>> writeBuffers = new ReadOnlyMemory<byte>[] { writeBuffer };
 
             var clientConnectionList = new List<ISimpleNetworkConnection>();
-            clientConnectionList.Add(ClientConnection);
             for (int i = 0; i < clientConnectionCount; ++i)
             {
                 ISimpleNetworkConnection clientConnection =
