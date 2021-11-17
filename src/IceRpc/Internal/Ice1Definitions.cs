@@ -59,13 +59,6 @@ namespace IceRpc.Internal
                 }
             };
 
-        private static readonly HashSet<string> _systemExceptionTypeIds = new()
-        {
-            typeof(ServiceNotFoundException).GetIceTypeId()!,
-            typeof(OperationNotFoundException).GetIceTypeId()!,
-            typeof(UnhandledException).GetIceTypeId()!
-        };
-
         // Verify that the first 8 bytes correspond to Magic + ProtocolBytes
         internal static void CheckHeader(ReadOnlySpan<byte> header)
         {
@@ -90,14 +83,6 @@ namespace IceRpc.Internal
                     $"received ice1 protocol frame with protocol encoding set to {header[2]}.{header[3]}");
             }
         }
-
-        internal static bool IsIce1SystemException(this RemoteException remoteException) =>
-            remoteException is ServiceNotFoundException ||
-            remoteException is OperationNotFoundException ||
-            remoteException is UnhandledException;
-
-        internal static bool IsIce1SystemExceptionTypeId(this string typeId) =>
-            _systemExceptionTypeIds.Contains(typeId);
 
         private static string BytesToString(ReadOnlySpan<byte> bytes) => BitConverter.ToString(bytes.ToArray());
     }
