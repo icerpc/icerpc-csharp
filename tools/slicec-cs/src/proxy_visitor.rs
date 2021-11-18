@@ -136,7 +136,7 @@ private static readonly DefaultIceDecoderFactories _defaultIceDecoderFactories =
         }
 
         for operation in interface_def.all_inherited_operations() {
-            proxy_impl_builder.add_block(proxy_base_operation_impl(interface_def, operation));
+            proxy_impl_builder.add_block(proxy_base_operation_impl(operation));
         }
 
         for operation in interface_def.operations() {
@@ -374,7 +374,7 @@ return Proxy.InvokeAsync(
     builder.build()
 }
 
-fn proxy_base_operation_impl(interface_def: &Interface, operation: &Operation) -> CodeBlock {
+fn proxy_base_operation_impl(operation: &Operation) -> CodeBlock {
     let async_name = operation.escape_identifier_with_suffix("Async");
     let return_task = operation.return_task(false);
     let mut operation_params = operation
@@ -385,17 +385,6 @@ fn proxy_base_operation_impl(interface_def: &Interface, operation: &Operation) -
 
     operation_params.push(escape_parameter_name(&operation.parameters(), "invocation"));
     operation_params.push(escape_parameter_name(&operation.parameters(), "cancel"));
-
-    let base_interface = interface_def
-        .all_base_interfaces()
-        .iter()
-        .find(|base| {
-            base.operations()
-                .iter()
-                .any(|op| op.parser_scope() == operation.parser_scope())
-        })
-        .cloned()
-        .unwrap();
 
     let mut builder = FunctionBuilder::new(
         &operation.parent().unwrap().access_modifier(),
@@ -409,7 +398,7 @@ fn proxy_base_operation_impl(interface_def: &Interface, operation: &Operation) -
     builder.set_body(
         format!(
             "new {base_prx_impl}(Proxy).{async_name}({operation_params})",
-            base_prx_impl = base_interface.proxy_implementation_name(),
+            base_prx_impl = operation.parent().unwrap().proxy_implementation_name(),
             async_name = async_name,
             operation_params = operation_params.join(", ")
         )
@@ -466,9 +455,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
     for operation in operations {
         let params: Vec<&Parameter> = operation.nonstreamed_parameters();
 
-        if params.is_empty() {
-            continue;
-        }
+        assert!(!params.is_empty());
 
         let sends_classes = operation.sends_classes();
 
@@ -585,10 +572,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 
     for operation in operations {
         let members = operation.return_members();
-
-        if members.is_empty() {
-            continue;
-        }
+        assert!(!members.is_empty());
 
         let decoder = if operation.returns_classes() {
             "response.GetIceDecoderFactory(_defaultIceDecoderFactories.Ice11DecoderFactory)"
