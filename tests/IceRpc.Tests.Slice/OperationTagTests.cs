@@ -677,9 +677,10 @@ namespace IceRpc.Tests.Slice
             (IncomingResponse response, StreamParamReceiver? _) =
                 await prx.Proxy.InvokeAsync("opVoid", prx.Proxy.Encoding, requestPayload);
 
-            Assert.DoesNotThrow(() => response.CheckVoidReturnValue(
+            Assert.DoesNotThrowAsync(async () => await response.CheckVoidReturnValueAsync(
                 prx.Proxy.Invoker,
-                response.GetIceDecoderFactory(new DefaultIceDecoderFactories(typeof(OperationTagTests).Assembly))));
+                response.GetIceDecoderFactory(new DefaultIceDecoderFactories(typeof(OperationTagTests).Assembly)),
+                default));
         }
 
         [TestCase("1.1")]

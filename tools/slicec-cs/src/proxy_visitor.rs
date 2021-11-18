@@ -318,7 +318,7 @@ new IceRpc.Slice.AsyncEnumerableStreamParamSender<{stream_type}>(
     }
 
     if !void_return {
-        invoke_args.push("Response.".to_owned() + &operation_name);
+        invoke_args.push("Response.".to_owned() + &operation_name + "Async");
     } else if let Some(stream_return) = stream_return {
         let stream_type = stream_return.data_type();
         let stream_return_func = match stream_type.concrete_type() {
@@ -341,8 +341,9 @@ response.GetIceDecoderFactory(_defaultIceDecoderFactories),
         };
 
         invoke_args.push(format!(
-            "(response, invoker, streamParamReceiver) => {}",
-            stream_return_func,
+            "(response, invoker, streamParamReceiver, cancel) => new global::System.Threading.Tasks.ValueTask<{stream_return}>({stream_return_func})",
+            stream_return = stream_return.to_type_string(namespace, TypeContext::Incoming, false),
+            stream_return_func = stream_return_func
         ));
     }
 
@@ -583,11 +584,16 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         class_builder.add_block(format!(
             r#"
 /// <summary>The <see cref="ResponseDecodeFunc{{T}}"/> for the return value type of operation {name}.</summary>
-{access} static {return_type} {escaped_name}(IceRpc.IncomingResponse response, IceRpc.IInvoker? invoker, IceRpc.Slice.StreamParamReceiver? streamParamReceiver) =>
-    response.ToReturnValue(
+{access} static async global::System.Threading.Tasks.ValueTask<{return_type}> {escaped_name}Async(
+    IceRpc.IncomingResponse response,
+    IceRpc.IInvoker? invoker,
+    IceRpc.Slice.StreamParamReceiver? streamParamReceiver,
+    global::System.Threading.CancellationToken cancel) =>
+    await response.ToReturnValueAsync(
         invoker,
         {decoder},
-        {response_decode_func});"#,
+        {response_decode_func},
+        cancel).ConfigureAwait(false);"#,
             name = operation.identifier(),
             access = access,
             escaped_name = operation.escape_identifier(),

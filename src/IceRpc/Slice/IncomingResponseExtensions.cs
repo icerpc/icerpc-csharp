@@ -12,11 +12,16 @@ namespace IceRpc.Slice
         /// <param name="response">The incoming response.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
-        public static void CheckVoidReturnValue(
+        /// <param name="_">The cancellation token.</param>
+        public static ValueTask CheckVoidReturnValueAsync(
             this IncomingResponse response,
             IInvoker? invoker,
-            IIceDecoderFactory<IceDecoder> iceDecoderFactory)
+            IIceDecoderFactory<IceDecoder> iceDecoderFactory,
+            CancellationToken _)
         {
+            // In the future, we'll read the return size (usually 0) from the payload stream, allocate a buffer then
+            // ReadAsync the payload stream into this buffer.
+
             IceDecoder decoder = iceDecoderFactory.CreateIceDecoder(response.Payload, response.Connection, invoker);
 
             if (response.ResultType == ResultType.Failure)
@@ -27,6 +32,7 @@ namespace IceRpc.Slice
             {
                 decoder.CheckEndOfBuffer(skipTaggedParams: true);
             }
+            return default;
         }
 
         /// <summary>Decodes a response; only a specific Ice encoding is expected/supported.</summary>
@@ -36,12 +42,14 @@ namespace IceRpc.Slice
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
         /// <param name="decodeFunc">The decode function for the return value.</param>
+        /// <param name="_">The cancellation token.</param>
         /// <returns>The return value.</returns>
-        public static T ToReturnValue<TDecoder, T>(
+        public static ValueTask<T> ToReturnValueAsync<TDecoder, T>(
             this IncomingResponse response,
             IInvoker? invoker,
             IIceDecoderFactory<TDecoder> iceDecoderFactory,
-            DecodeFunc<TDecoder, T> decodeFunc) where TDecoder : IceDecoder
+            DecodeFunc<TDecoder, T> decodeFunc,
+            CancellationToken _) where TDecoder : IceDecoder
         {
             if (response.PayloadEncoding != iceDecoderFactory.Encoding)
             {
@@ -59,7 +67,7 @@ namespace IceRpc.Slice
             {
                 T result = decodeFunc(decoder);
                 decoder.CheckEndOfBuffer(skipTaggedParams: true);
-                return result;
+                return new(result);
             }
         }
 
