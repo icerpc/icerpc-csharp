@@ -108,11 +108,14 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
         let code = format!(
             "\
-///<summary>Decodes the argument{s} of operation {operation_name}.</summary>
-{access} static {return_type} {operation_name}(IceRpc.IncomingRequest request) =>
-    request.ToArgs(
+/// <summary>Decodes the argument{s} of operation {operation_name}.</summary>
+{access} static async global::System.Threading.Tasks.ValueTask<{return_type}> {operation_name}Async(
+    IceRpc.IncomingRequest request,
+    global::System.Threading.CancellationToken cancel) =>
+    await request.ToArgsAsync(
         {decoder_factory},
-        {decode_func});",
+        {decode_func},
+        cancel).ConfigureAwait(false);",
             access = access,
             s = if parameters.len() == 1 { "" } else { "s" },
             return_type = parameters.to_tuple_type(namespace, TypeContext::Incoming, false),
@@ -374,7 +377,7 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
         [] => {
             // Verify the payload is indeed empty (it can contain tagged params that we have to skip).
             code.writeln(
-                "request.CheckEmptyArgs(request.GetIceDecoderFactory(_defaultIceDecoderFactories));",
+                "await request.CheckEmptyArgsAsync(request.GetIceDecoderFactory(_defaultIceDecoderFactories), cancel).ConfigureAwait(false);",
             );
         }
         [_] if stream_parameter.is_some() => {
@@ -404,7 +407,7 @@ IceRpc.Slice.StreamParamReceiver.ToAsyncEnumerable<{stream_type}>(
         [parameter] => {
             writeln!(
                 code,
-                "var {var_name} = Request.{operation_name}(request);",
+                "var {var_name} = await Request.{operation_name}Async(request, cancel).ConfigureAwait(false);",
                 var_name = parameter.parameter_name_with_prefix("iceP_"),
                 operation_name = operation_name,
             )
@@ -413,7 +416,7 @@ IceRpc.Slice.StreamParamReceiver.ToAsyncEnumerable<{stream_type}>(
             // > 1 parameter
             writeln!(
                 code,
-                "var args = Request.{operation_name}(request);",
+                "var args = await Request.{operation_name}Async(request, cancel).ConfigureAwait(false);",
                 operation_name = operation_name,
             )
         }
