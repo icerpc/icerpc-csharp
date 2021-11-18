@@ -75,7 +75,7 @@ namespace IceRpc.Internal
                 try
                 {
                     // Accepts a new stream.
-                    stream = await _networkConnection!.AcceptStreamAsync(cancel).ConfigureAwait(false);
+                    stream = await _networkConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
 
                     // Receives the request frame from the stream. TODO: delayed payload receive.
                     buffer = await ReceiveFrameAsync(
@@ -289,7 +289,7 @@ namespace IceRpc.Internal
         public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
             // Create the stream.
-            request.Stream = _networkConnection!.CreateStream(!request.IsOneway);
+            request.Stream = _networkConnection.CreateStream(!request.IsOneway);
 
             if (!request.IsOneway || request.StreamParamSender != null)
             {

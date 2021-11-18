@@ -21,10 +21,10 @@ namespace IceRpc.Transports
         ListenerDisposed,
 
          /// <summary>Successfully read data from a multiplexed stream.</summary>
-        MultiplexedNetworkConnectionRead,
+        MultiplexedStreamRead,
 
         /// <summary>Wrote data to a multiplexed stream.</summary>
-        MultiplexedNetworkConnectionWrite,
+        MultiplexedStreamWrite,
 
         /// <summary>Successfully read data from a simple stream.</summary>
         SimpleNetworkConnectionRead,

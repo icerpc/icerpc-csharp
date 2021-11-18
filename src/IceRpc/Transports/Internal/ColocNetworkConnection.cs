@@ -19,10 +19,8 @@ namespace IceRpc.Transports.Internal
         private ReadOnlyMemory<byte> _receivedBuffer;
         private readonly ChannelWriter<ReadOnlyMemory<byte>> _writer;
 
-        public Task<NetworkConnectionInformation> ConnectAsync(
-            CancellationToken cancel) =>
-            Task.FromResult<NetworkConnectionInformation>(
-                new NetworkConnectionInformation(_endpoint, _endpoint, TimeSpan.MaxValue, null));
+        public Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel) =>
+            Task.FromResult(new NetworkConnectionInformation(_endpoint, _endpoint, TimeSpan.MaxValue, null));
 
         public ValueTask DisposeAsync()
         {

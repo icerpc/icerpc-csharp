@@ -61,7 +61,7 @@ namespace IceRpc.Transports.Internal
             Debug.Assert(IsStarted);
             using IDisposable _ = _logger.StartMultiplexedStreamScope(Id);
             int received = await _decoratee.ReadAsync(buffer, cancel).ConfigureAwait(false);
-            _logger.LogMultiplexedNetworkConnectionRead(
+            _logger.LogMultiplexedStreamRead(
                 received,
                 LogNetworkConnectionDecorator.ToHexString(buffer[0..received]));
             return received;
@@ -78,7 +78,7 @@ namespace IceRpc.Transports.Internal
             // If the scope is null, we start it now:
             using IDisposable? _ = scope == null ? _logger.StartMultiplexedStreamScope(Id) : null;
 
-            _logger.LogMultiplexedNetworkConnectionWrite(
+            _logger.LogMultiplexedStreamWrite(
                 buffers.GetByteCount(),
                 LogNetworkConnectionDecorator.ToHexString(buffers));
         }

@@ -50,21 +50,21 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogListenerDispose(this ILogger logger, Endpoint endpoint);
 
         [LoggerMessage(
-            EventId = (int)TransportEventIds.MultiplexedNetworkConnectionRead,
-            EventName = nameof(TransportEventIds.MultiplexedNetworkConnectionRead),
+            EventId = (int)TransportEventIds.MultiplexedStreamRead,
+            EventName = nameof(TransportEventIds.MultiplexedStreamRead),
             Level = LogLevel.Trace,
             Message = "read {Size} bytes from multiplexed stream ({Data})")]
-        internal static partial void LogMultiplexedNetworkConnectionRead(
+        internal static partial void LogMultiplexedStreamRead(
             this ILogger logger,
             int size,
             string data);
 
         [LoggerMessage(
-            EventId = (int)TransportEventIds.MultiplexedNetworkConnectionWrite,
-            EventName = nameof(TransportEventIds.MultiplexedNetworkConnectionWrite),
+            EventId = (int)TransportEventIds.MultiplexedStreamWrite,
+            EventName = nameof(TransportEventIds.MultiplexedStreamWrite),
             Level = LogLevel.Trace,
             Message = "wrote {Size} bytes to multiplexed stream ({Data})")]
-        internal static partial void LogMultiplexedNetworkConnectionWrite(
+        internal static partial void LogMultiplexedStreamWrite(
             this ILogger logger,
             int size,
             string data);
