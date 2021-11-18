@@ -1,11 +1,9 @@
 use crate::builders::{AttributeBuilder, CommentBuilder, ContainerBuilder};
 use crate::code_block::CodeBlock;
 use crate::comments::{doc_comment_message, CommentTag};
-use crate::cs_util::*;
 use crate::generated_code::GeneratedCode;
 use crate::slicec_ext::*;
 
-use slice::code_gen_util::*;
 use slice::grammar::*;
 use slice::visitor::Visitor;
 
@@ -30,7 +28,7 @@ fn enum_declaration(enum_def: &Enum) -> CodeBlock {
     )
     .add_comment("summary", &doc_comment_message(enum_def))
     .add_container_attributes(enum_def)
-    .add_base(underlying_type(enum_def))
+    .add_base(enum_def.underlying_type().cs_keyword().to_owned())
     .add_block(enum_values(enum_def))
     .build()
     .into()
@@ -52,7 +50,7 @@ fn enum_values(enum_def: &Enum) -> CodeBlock {
 
 fn enum_helper(enum_def: &Enum) -> CodeBlock {
     let access = enum_def.access_modifier();
-    let escaped_identifier = escape_keyword(enum_def.identifier());
+    let escaped_identifier = enum_def.escape_identifier();
     let namespace = &enum_def.namespace();
     let mut builder = ContainerBuilder::new(
         &format!("{} static class", access),
@@ -80,8 +78,6 @@ fn enum_helper(enum_def: &Enum) -> CodeBlock {
         true
     };
 
-    let underlying_type = underlying_type(enum_def);
-
     if use_set {
         builder.add_block(
             format!(
@@ -89,7 +85,7 @@ fn enum_helper(enum_def: &Enum) -> CodeBlock {
 {access} static readonly global::System.Collections.Generic.HashSet<{underlying}> EnumeratorValues =
     new global::System.Collections.Generic.HashSet<{underlying}> {{ {enum_values} }};",
                 access = access,
-                underlying = underlying_type,
+                underlying = enum_def.underlying_type().cs_keyword(),
                 enum_values = enum_def
                     .enumerators()
                     .iter()
@@ -131,7 +127,7 @@ fn enum_helper(enum_def: &Enum) -> CodeBlock {
             access = access,
             identifier = enum_def.identifier(),
             escaped_identifier = escaped_identifier,
-            underlying_type = underlying_type,
+            underlying_type = enum_def.underlying_type().cs_keyword(),
             as_enum = as_enum.indent()
         )
         .into(),
@@ -169,22 +165,10 @@ fn enum_helper(enum_def: &Enum) -> CodeBlock {
                     format!("encoder.Encode{}", underlying.definition().type_suffix()),
                 None => "encoder.EncodeSize".to_owned(),
             },
-            underlying_type = underlying_type
+            underlying_type = enum_def.underlying_type().cs_keyword()
         )
         .into(),
     );
 
     builder.build().into()
-}
-
-// TODO is there any reason this can't just use `enum_def.underlying()`?
-fn underlying_type(enum_def: &Enum) -> String {
-    match &enum_def.underlying {
-        Some(typeref) => typeref.to_type_string(&enum_def.namespace(), TypeContext::Nested, false),
-        _ => slice::borrow_ast()
-            .lookup_primitive("int")
-            .borrow()
-            .cs_keyword()
-            .to_owned(),
-    }
 }
