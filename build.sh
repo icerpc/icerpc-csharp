@@ -13,13 +13,15 @@ usage()
     echo "  doc                       Generate documentation"
     echo "Arguments:"
     echo "  --config | -c             Build configuration: debug or release, the default is debug."
+    echo "  --coverage                Collect code coverage from test runs."
+    echo "                            Requires reportgeneratool from https://github.com/danielpalme/ReportGenerator"
     echo "  --help   | -h             Print help and exit."
 }
 
 build_compiler()
 {
     arguments=("build")
-    if [ $1 == "release" ]; then
+    if [ "$1" == "release" ]; then
         arguments+=("--release")
     fi
     pushd tools/slicec-cs
@@ -76,7 +78,16 @@ run_test()
     else
         arguments+=("--configuration" "Debug")
     fi
-    run_command dotnet ${arguments[@]}
+
+    if [ "$2" == "yes" ]; then
+        arguments+=("--collect:\"XPlat Code Coverage\"")
+    fi
+    run_command dotnet "${arguments[@]}"
+
+    if [ "$2" == "yes" ]; then
+        arguments=("-reports:tests/*/TestResults/*/coverage.cobertura.xml" "-targetdir:tests/CodeCoverageRerport")
+        run_command reportgenerator "${arguments[@]}"
+    fi
 }
 
 doc()
@@ -88,8 +99,8 @@ doc()
 
 run_command()
 {
-    echo $@
-    $@
+    echo "$@"
+    "$@"
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         echo "Error $exit_code"
@@ -99,6 +110,7 @@ run_command()
 
 action=""
 config=""
+coverage=""
 while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
@@ -111,12 +123,16 @@ while [[ $# -gt 0 ]]; do
             shift
             shift
             ;;
+        --coverage)
+            coverage="yes"
+            shift
+            ;;
         *)
             if [ -z "$action" ]
             then
                 action=$1
             else
-                echo "too many arguments " $1
+                echo "too many arguments " "$1"
                 usage
                 exit 1
             fi
@@ -160,7 +176,7 @@ case $action in
         clean $config
         ;;
     "test")
-        run_test $config
+        run_test $config $coverage
         ;;
     "doc")
         doc
