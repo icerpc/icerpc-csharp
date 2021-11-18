@@ -45,6 +45,14 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
                 interface_ref.scoped_proxy_implementation_name(namespace)
             }
             TypeRefs::Sequence(sequence_ref) => {
+                // For readonly sequences of fixed size numeric elements the mapping is the
+                // same for optional an non optional types.
+                if context == TypeContext::Outgoing
+                    && sequence_ref.has_fixed_size_numeric_elements()
+                    && !self.has_attribute("cs:generic", false)
+                {
+                    ignore_optional = true;
+                }
                 sequence_type_to_string(sequence_ref, namespace, context)
             }
             TypeRefs::Dictionary(dictionary_ref) => {
@@ -52,17 +60,6 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
             }
             TypeRefs::Primitive(primitive_ref) => primitive_ref.cs_keyword().to_owned(),
         };
-
-        // For readonly sequences of fixed size numeric elements the mapping is the
-        // same for optional an non optional types.
-        if let Types::Sequence(sequence) = self.concrete_type() {
-            if context == TypeContext::Outgoing
-                && sequence.has_fixed_size_numeric_elements()
-                && !self.has_attribute("cs:generic", false)
-            {
-                ignore_optional = true;
-            }
-        }
 
         if self.is_optional && !ignore_optional {
             type_str + "?"

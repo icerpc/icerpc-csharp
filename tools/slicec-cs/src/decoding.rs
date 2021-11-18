@@ -63,12 +63,7 @@ pub fn decode_member(
                 writeln!(code, "decoder.DecodeNullablePrx<{}>();", type_string);
                 return code;
             }
-            Types::Class(_) => {
-                // does not use bit sequence
-                writeln!(code, "decoder.DecodeNullableClass<{}>();", type_string);
-                return code;
-            }
-            Types::Primitive(primitive) if matches!(primitive, Primitive::AnyClass) => {
+            _ if data_type.is_class_type() => {
                 // does not use bit sequence
                 writeln!(code, "decoder.DecodeNullableClass<{}>();", type_string);
                 return code;
@@ -126,7 +121,11 @@ pub fn decode_member(
 pub fn decode_tagged_member(member: &impl Member, namespace: &str, param: &str) -> CodeBlock {
     assert!(member.data_type().is_optional && member.tag().is_some());
     format!(
-        "{param} = decoder.DecodeTagged({tag}, IceRpc.Slice.TagFormat.{tag_format}, {decode_func});",
+        "\
+{param} = decoder.DecodeTagged(
+    {tag},
+    IceRpc.Slice.TagFormat.{tag_format},
+    {decode_func});",
         param = param,
         tag = member.tag().unwrap(),
         tag_format = member.data_type().tag_format(),
@@ -311,34 +310,23 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
                 write!(code, "decoder => new {}(decoder.DecodeProxy())", type_name);
             }
         }
-        TypeRefs::Class(_) => {
+        _ if type_ref.is_class_type() => {
             if type_ref.is_optional {
                 write!(
                     code,
                     "decoder => decoder.DecodeNullableClass<{}>()",
-                    type_name
+                    type_ref.to_type_string(namespace, TypeContext::Incoming, true)
                 );
             } else {
                 write!(code, "decoder => decoder.DecodeClass<{}>()", type_name);
             }
         }
         TypeRefs::Primitive(primitive_ref) => {
-            if primitive_ref.is_class_type() {
-                if type_ref.is_optional {
-                    write!(
-                        code,
-                        "decoder => decoder.DecodeNullableClass<IceRpc.AnyClass>()"
-                    );
-                } else {
-                    write!(code, "decoder => decoder.DecodeClass<IceRpc.AnyClass>()");
-                }
-            } else {
-                write!(
-                    code,
-                    "decoder => decoder.Decode{}()",
-                    primitive_ref.type_suffix()
-                );
-            }
+            write!(
+                code,
+                "decoder => decoder.Decode{}()",
+                primitive_ref.type_suffix()
+            )
         }
         TypeRefs::Sequence(sequence_ref) => {
             write!(
@@ -365,6 +353,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
         TypeRefs::Struct(_) => {
             write!(code, "decoder => new {}(decoder)", type_name);
         }
+        TypeRefs::Class(_) => panic!("unexpected, see is_cass_type above"),
     }
 
     if type_ref.is_optional && type_ref.is_value_type() {
