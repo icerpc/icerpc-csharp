@@ -106,6 +106,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
         let namespace = &operation.namespace();
 
+        // We need the async/await for proper tuples with nullable elements like string?.
         let code = format!(
             "\
 /// <summary>Decodes the argument{s} of operation {operation_name}.</summary>
