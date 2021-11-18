@@ -24,15 +24,16 @@ impl<'a> Visitor for EnumVisitor<'a> {
 }
 
 fn enum_declaration(enum_def: &Enum) -> CodeBlock {
-    let access = enum_def.access_modifier();
-    let escaped_identifier = escape_keyword(enum_def.identifier());
-    ContainerBuilder::new(&format!("{} enum", access), &escaped_identifier)
-        .add_comment("summary", &doc_comment_message(enum_def))
-        .add_container_attributes(enum_def)
-        .add_base(underlying_type(enum_def))
-        .add_block(enum_values(enum_def))
-        .build()
-        .into()
+    ContainerBuilder::new(
+        &format!("{} enum", enum_def.access_modifier()),
+        &enum_def.escape_identifier(),
+    )
+    .add_comment("summary", &doc_comment_message(enum_def))
+    .add_container_attributes(enum_def)
+    .add_base(underlying_type(enum_def))
+    .add_block(enum_values(enum_def))
+    .build()
+    .into()
 }
 
 fn enum_values(enum_def: &Enum) -> CodeBlock {
