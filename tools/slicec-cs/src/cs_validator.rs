@@ -22,7 +22,7 @@ fn cs_attributes(attributes: &[Attribute]) -> Vec<Attribute> {
 fn report_unexpected_attribute(attribute: &Attribute) {
     slice::report_error(
         format!("unexpected attribute cs:{}", attribute.directive),
-        Some(attribute.location.clone()),
+        Some(&attribute.location),
     );
 }
 
@@ -31,11 +31,11 @@ fn validate_cs_attribute(attribute: &Attribute) {
         1 => (), // Expected 1 argument
         0 => slice::report_error(
             r#"missing required argument, expected 'cs:attribute("<attribute-value>")'"#.to_owned(),
-            Some(attribute.location.clone()),
+            Some(&attribute.location),
         ),
         _ => slice::report_error(
             r#"too many arguments expected 'cs:attribute("<attribute-value>")'"#.to_owned(),
-            Some(attribute.location.clone()),
+            Some(&attribute.location),
         ),
     }
 }
@@ -44,7 +44,7 @@ fn validate_cs_internal(attribute: &Attribute) {
     if !attribute.arguments.is_empty() {
         slice::report_error(
             "too many arguments expected 'cs:internal'".to_owned(),
-            Some(attribute.location.clone()),
+            Some(&attribute.location),
         );
     }
 }
@@ -53,7 +53,7 @@ fn validate_cs_encoded_result(attribute: &Attribute) {
     if !attribute.arguments.is_empty() {
         slice::report_error(
             "too many arguments expected 'cs:encoded-result'".to_owned(),
-            Some(attribute.location.clone()),
+            Some(&attribute.location),
         );
     }
 }
@@ -63,11 +63,11 @@ fn validate_cs_generic(attribute: &Attribute) {
         1 => (), // Expected 1 argument
         0 => slice::report_error(
             r#"missing required argument, expected 'cs:generic("<generic-type>")'"#.to_owned(),
-            Some(attribute.location.clone()),
+            Some(&attribute.location),
         ),
         _ => slice::report_error(
             r#"too many arguments expected 'cs:generic("<generic-type>")'"#.to_owned(),
-            Some(attribute.location.clone()),
+            Some(&attribute.location),
         ),
     }
 }
@@ -112,19 +112,19 @@ impl Visitor for CsValidator {
                         0 => slice::report_error(
                             r#"missing required argument, expected 'cs:namespace("<namespace>")'"#
                                 .to_owned(),
-                            Some(attribute.location.clone()),
+                            Some(&attribute.location),
                         ),
                         _ => slice::report_error(
                             r#"too many arguments expected 'cs:namespace("<namespace>")'"#
                                 .to_owned(),
-                            Some(attribute.location.clone()),
+                            Some(&attribute.location),
                         ),
                     }
                     if !module_def.is_top_level() {
                         slice::report_error(
                             "The 'cs:namespace' attribute is only valid for top-level modules"
                                 .to_owned(),
-                            Some(attribute.location.clone()),
+                            Some(&attribute.location),
                         );
                     }
                 }
@@ -140,7 +140,7 @@ impl Visitor for CsValidator {
                     if !attribute.arguments.is_empty() {
                         slice::report_error(
                             "too many arguments expected 'cs:readonly'".to_owned(),
-                            Some(attribute.location.clone()),
+                            Some(&attribute.location),
                         );
                     }
                 }
