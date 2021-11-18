@@ -78,9 +78,10 @@ fn sequence_type_to_string(
     namespace: &str,
     context: TypeContext,
 ) -> String {
-    let element_type = sequence_ref
-        .element_type
-        .to_type_string(namespace, TypeContext::Nested, false);
+    let element_type =
+        sequence_ref
+            .element_type
+            .to_type_string(namespace, TypeContext::Nested, false);
 
     match context {
         TypeContext::DataMember | TypeContext::Nested => {
@@ -123,9 +124,10 @@ fn dictionary_type_to_string(
     let key_type = dictionary_ref
         .key_type
         .to_type_string(namespace, TypeContext::Nested, false);
-    let value_type = dictionary_ref
-        .value_type
-        .to_type_string(namespace, TypeContext::Nested, false);
+    let value_type =
+        dictionary_ref
+            .value_type
+            .to_type_string(namespace, TypeContext::Nested, false);
 
     match context {
         TypeContext::DataMember | TypeContext::Nested => {

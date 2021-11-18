@@ -140,10 +140,7 @@ pub fn decode_dictionary(dictionary_ref: &TypeRef<Dictionary>, namespace: &str) 
     let value_type = &dictionary_ref.value_type;
     let with_bit_sequence = value_type.is_bit_sequence_encodable();
 
-    let mut args = vec![format!(
-        "minKeySize: {}",
-        key_type.min_wire_size()
-    )];
+    let mut args = vec![format!("minKeySize: {}", key_type.min_wire_size())];
 
     if !with_bit_sequence {
         args.push(format!("minValueSize: {}", value_type.min_wire_size()));
@@ -342,7 +339,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
                     primitive_ref.type_suffix()
                 );
             }
-        },
+        }
         TypeRefs::Sequence(sequence_ref) => {
             write!(
                 code,

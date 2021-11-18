@@ -457,13 +457,7 @@ pub fn encode_action(
             write!(
                 code,
                 "(encoder, value) => {}",
-                encode_sequence(
-                    sequence_ref,
-                    namespace,
-                    "value",
-                    is_read_only,
-                    is_param,
-                )
+                encode_sequence(sequence_ref, namespace, "value", is_read_only, is_param)
             )
         }
         TypeRefs::Struct(_) => {
