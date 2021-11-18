@@ -55,14 +55,22 @@ function Clean($config) {
     Clean-IceRpc($config)
 }
 
-function Test($config) {
+function Test($config, $coverage) {
     $args = @('test', '--no-build')
     if ($config -eq 'release') {
         $args += @('--configuration', 'Release')
     } elseif ($config -eq 'debug') {
         $args += @('--configuration', 'Debug')
     }
+
+    if ($coverage) {
+       $args += @('--collect:"XPlat Code Coverage"')
+    }
     RunCommand "dotnet" $args
+    if ($coverage) {
+        $args = @('-reports:tests/*/TestResults/*/coverage.cobertura.xml', '-targetdir:tests/CodeCoverageRerport')
+        RunCommand "reportgenerator" $args
+    }
 }
 
 function Doc() {
@@ -90,6 +98,8 @@ function Get-Help() {
     Write-Host "  doc                       Generate documentation"
     Write-Host "Arguments:"
     Write-Host "  -config                   Build configuration: debug or release, the default is debug."
+    Write-Host "  -coverage                 Collect code coverage from test runs."
+    Write-Host "                            Requires reportgeneratool from https://github.com/danielpalme/ReportGenerator"
     Write-Host "  -help                     Print help and exit."
 }
 
@@ -115,7 +125,7 @@ switch ( $action ) {
         Clean $config
     }
     "test" {
-       Test $config
+       Test $config $coverage
     }
     "doc" {
         Doc
