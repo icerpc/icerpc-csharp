@@ -311,6 +311,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
             }
         }
         _ if type_ref.is_class_type() => {
+            // is_class_type is either Typeref::Class or Primitive::AnyClass
             if type_ref.is_optional {
                 write!(
                     code,
@@ -322,6 +323,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
             }
         }
         TypeRefs::Primitive(primitive_ref) => {
+            // Primitive::AnyClass is handled above by is_clas_type branch
             write!(
                 code,
                 "decoder => decoder.Decode{}()",
