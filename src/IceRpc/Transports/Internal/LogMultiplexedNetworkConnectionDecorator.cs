@@ -10,27 +10,15 @@ namespace IceRpc.Transports.Internal
         LogNetworkConnectionDecorator,
         IMultiplexedNetworkConnection
     {
-        private protected override INetworkConnection Decoratee => _decoratee;
-
         private readonly IMultiplexedNetworkConnection _decoratee;
 
-        public async Task<(IMultiplexedStreamFactory, NetworkConnectionInformation)> ConnectAsync(
-            CancellationToken cancel)
-        {
-            IMultiplexedStreamFactory multiplexedStreamFactory;
-            try
-            {
-                (multiplexedStreamFactory, Information) = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                Logger.LogConnectFailed(ex);
-                throw;
-            }
+        public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel) =>
+            new LogMultiplexedStreamDecorator(
+                await _decoratee.AcceptStreamAsync(cancel).ConfigureAwait(false),
+                Logger);
 
-            Logger.LogConnect(Information.Value.LocalEndpoint, Information.Value.RemoteEndpoint);
-            return (new LogMultiplexedStreamFactoryDecorator(multiplexedStreamFactory, Logger), Information.Value);
-        }
+        public IMultiplexedStream CreateStream(bool bidirectional) =>
+            new LogMultiplexedStreamDecorator(_decoratee.CreateStream(bidirectional), Logger);
 
         internal static IMultiplexedNetworkConnection Decorate(
             IMultiplexedNetworkConnection decoratee,
@@ -42,29 +30,7 @@ namespace IceRpc.Transports.Internal
             IMultiplexedNetworkConnection decoratee,
             bool isServer,
             ILogger logger)
-            : base(isServer, logger) =>  _decoratee = decoratee;
-    }
-
-    internal sealed class LogMultiplexedStreamFactoryDecorator : IMultiplexedStreamFactory
-    {
-        private readonly IMultiplexedStreamFactory _decoratee;
-        private readonly ILogger _logger;
-
-        public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel) =>
-            new LogMultiplexedStreamDecorator(
-                await _decoratee.AcceptStreamAsync(cancel).ConfigureAwait(false),
-                _logger);
-
-        public IMultiplexedStream CreateStream(bool bidirectional) =>
-            new LogMultiplexedStreamDecorator(_decoratee.CreateStream(bidirectional), _logger);
-
-        public override string? ToString() => _decoratee.ToString();
-
-        internal LogMultiplexedStreamFactoryDecorator(IMultiplexedStreamFactory decoratee, ILogger logger)
-        {
-            _decoratee = decoratee;
-            _logger = logger;
-        }
+            : base(decoratee, isServer, logger) =>  _decoratee = decoratee;
     }
 
     internal sealed class LogMultiplexedStreamDecorator : IMultiplexedStream
@@ -95,8 +61,9 @@ namespace IceRpc.Transports.Internal
             Debug.Assert(IsStarted);
             using IDisposable _ = _logger.StartMultiplexedStreamScope(Id);
             int received = await _decoratee.ReadAsync(buffer, cancel).ConfigureAwait(false);
-            _logger.LogMultiplexedStreamRead(received,
-                                             LogNetworkConnectionDecorator.ToHexString(buffer[0..received]));
+            _logger.LogMultiplexedStreamRead(
+                received,
+                LogNetworkConnectionDecorator.ToHexString(buffer[0..received]));
             return received;
         }
 
@@ -111,8 +78,9 @@ namespace IceRpc.Transports.Internal
             // If the scope is null, we start it now:
             using IDisposable? _ = scope == null ? _logger.StartMultiplexedStreamScope(Id) : null;
 
-            _logger.LogMultiplexedStreamWrite(buffers.GetByteCount(),
-                                              LogNetworkConnectionDecorator.ToHexString(buffers));
+            _logger.LogMultiplexedStreamWrite(
+                buffers.GetByteCount(),
+                LogNetworkConnectionDecorator.ToHexString(buffers));
         }
 
         public Task WaitForShutdownAsync(CancellationToken cancel) => _decoratee.WaitForShutdownAsync(cancel);

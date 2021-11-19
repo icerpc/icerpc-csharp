@@ -14,27 +14,23 @@ namespace IceRpc.Tests.Internal
     [TestFixture(true, AddressFamily.InterNetwork)]
     [TestFixture(false, AddressFamily.InterNetworkV6)]
     [Timeout(5000)]
-    public class TcpSimpleStreamTests
+    public class TcpNetworkConnectionReadWriteTests
     {
         private static readonly ReadOnlyMemory<ReadOnlyMemory<byte>> _oneBWriteBuffer =
             new ReadOnlyMemory<byte>[] { new byte[1] };
         private static readonly ReadOnlyMemory<ReadOnlyMemory<byte>> _oneMBWriteBuffer =
             new ReadOnlyMemory<byte>[] { new byte[1024 * 1024] };
 
-        private ISimpleStream ClientStream => _clientStream!;
-        private ISimpleStream ServerStream => _serverStream!;
+        private ISimpleNetworkConnection ClientConnection => _clientConnection!;
+        private ISimpleNetworkConnection ServerConnection => _serverConnection!;
 
         private ISimpleNetworkConnection? _clientConnection;
-        private ISimpleStream? _clientStream;
         private readonly IListener<ISimpleNetworkConnection> _listener;
-
         private readonly bool _isIPv6;
-        private ISimpleStream? _serverStream;
         private ISimpleNetworkConnection? _serverConnection;
-
         private readonly bool _tls;
 
-        public TcpSimpleStreamTests(bool tls, AddressFamily addressFamily)
+        public TcpNetworkConnectionReadWriteTests(bool tls, AddressFamily addressFamily)
         {
             _isIPv6 = addressFamily == AddressFamily.InterNetworkV6;
             _tls = tls;
@@ -70,19 +66,17 @@ namespace IceRpc.Tests.Internal
                 TargetHost = _isIPv6 ? "[::1]" : "127.0.0.1"
             };
 
-            IClientTransport<ISimpleNetworkConnection> clientTransport =
-                new TcpClientTransport(new TcpClientOptions { AuthenticationOptions = clientAuthenticationOptions });
+            IClientTransport<ISimpleNetworkConnection> clientTransport = new TcpClientTransport(
+                new TcpClientOptions { AuthenticationOptions = clientAuthenticationOptions });
 
-            _clientConnection =
-                clientTransport.CreateConnection(_listener.Endpoint, LogAttributeLoggerFactory.Instance.Logger);
-            Task<(ISimpleStream, NetworkConnectionInformation)> connectTask = _clientConnection.ConnectAsync(default);
+            _clientConnection = clientTransport.CreateConnection(
+                _listener.Endpoint,
+                LogAttributeLoggerFactory.Instance.Logger);
+            Task<NetworkConnectionInformation> connectTask = _clientConnection.ConnectAsync(default);
 
             _serverConnection = await acceptTask;
-            Task<(ISimpleStream, NetworkConnectionInformation)> serverConnectTask =
-                _serverConnection.ConnectAsync(default);
-
-            (_serverStream, _) = await serverConnectTask;
-            (_clientStream, _) = await connectTask;
+            _ = await _serverConnection.ConnectAsync(default);
+            _ = await connectTask;
         }
 
         [TearDown]
@@ -102,58 +96,58 @@ namespace IceRpc.Tests.Internal
         public Task Shutdown() => _listener.DisposeAsync().AsTask();
 
         [Test]
-        public async Task TcpSimpleStream_LastActivity()
+        public async Task TcpNetworkConnectionReadWrite_LastActivity()
         {
             TimeSpan lastActivity = _clientConnection!.LastActivity;
             await Task.Delay(2);
-            await ClientStream.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
+            await ClientConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
             Assert.That(_clientConnection!.LastActivity, Is.GreaterThan(lastActivity));
 
             lastActivity = _serverConnection!.LastActivity;
             await Task.Delay(2);
-            await ServerStream.ReadAsync(new byte[1], default);
+            await ServerConnection.ReadAsync(new byte[1], default);
             Assert.That(_serverConnection!.LastActivity, Is.GreaterThan(lastActivity));
         }
 
         [Test]
-        public void TcpSimpleStream_ReadAsync_Cancellation()
+        public void TcpNetworkConnectionReadWrite_ReadAsync_Cancellation()
         {
             using var canceled = new CancellationTokenSource();
-            ValueTask<int> readTask = ClientStream.ReadAsync(new byte[1], canceled.Token);
+            ValueTask<int> readTask = ClientConnection.ReadAsync(new byte[1], canceled.Token);
             Assert.That(readTask.IsCompleted, Is.False);
             canceled.Cancel();
             Assert.CatchAsync<OperationCanceledException>(async () => await readTask);
         }
 
         [Test]
-        public async Task TcpSimpleStream_ReadAsync_ConnectionLostException()
+        public async Task TcpNetworkConnectionReadWrite_ReadAsync_ConnectionLostException()
         {
             await _serverConnection!.DisposeAsync();
             Assert.CatchAsync<ConnectionLostException>(
-                async () => await ClientStream.ReadAsync(new byte[1], default));
+                async () => await ClientConnection.ReadAsync(new byte[1], default));
         }
 
         [Test]
-        public async Task TcpSimpleStream_ReadAsync_DisposeAsync()
+        public async Task TcpNetworkConnectionReadWrite_ReadAsync_DisposeAsync()
         {
             await _clientConnection!.DisposeAsync();
-            Assert.CatchAsync<ObjectDisposedException>(async () => await ClientStream.ReadAsync(new byte[1], default));
+            Assert.CatchAsync<ObjectDisposedException>(async () => await ClientConnection.ReadAsync(new byte[1], default));
         }
 
         [Test]
-        public void TcpSimpleStream_ReadAsync_Exception()
+        public void TcpNetworkConnectionReadWrite_ReadAsync_Exception()
         {
             Assert.ThrowsAsync<ArgumentException>(
-                async () => await ClientStream.ReadAsync(Array.Empty<byte>(), default));
+                async () => await ClientConnection.ReadAsync(Array.Empty<byte>(), default));
 
             using var canceled = new CancellationTokenSource();
             canceled.Cancel();
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await ClientStream.ReadAsync(new byte[1], canceled.Token));
+                async () => await ClientConnection.ReadAsync(new byte[1], canceled.Token));
         }
 
         [Test]
-        public async Task TcpSimpleStream_WriteAsync_CancellationAsync()
+        public async Task TcpNetworkConnectionReadWrite_WriteAsync_CancellationAsync()
         {
             Socket serverSocket = ((TcpNetworkConnection?)_serverConnection)!.Socket;
             Socket clientSocket = ((TcpNetworkConnection?)_clientConnection)!.Socket;
@@ -172,7 +166,7 @@ namespace IceRpc.Tests.Internal
             Task writeTask;
             do
             {
-                writeTask = ClientStream.WriteAsync(_oneMBWriteBuffer, canceled.Token).AsTask();
+                writeTask = ClientConnection.WriteAsync(_oneMBWriteBuffer, canceled.Token).AsTask();
                 await Task.WhenAny(Task.Delay(500), writeTask);
             }
             while (writeTask.IsCompleted);
@@ -183,7 +177,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task TcpSimpleStream_WriteAsync_ConnectionLostException()
+        public async Task TcpNetworkConnectionReadWrite_WriteAsync_ConnectionLostException()
         {
             await _serverConnection!.DisposeAsync();
             Assert.CatchAsync<ConnectionLostException>(
@@ -191,49 +185,49 @@ namespace IceRpc.Tests.Internal
                 {
                     while (true)
                     {
-                        await ClientStream.WriteAsync(_oneMBWriteBuffer, default);
+                        await ClientConnection.WriteAsync(_oneMBWriteBuffer, default);
                     }
                 });
         }
 
         [Test]
-        public async Task TcpSimpleStream_WriteAsync_DisposeAsync()
+        public async Task TcpNetworkConnectionReadWrite_WriteAsync_DisposeAsync()
         {
             await _clientConnection!.DisposeAsync();
-            Assert.CatchAsync<ObjectDisposedException>(async () => await ClientStream.WriteAsync(_oneBWriteBuffer, default));
+            Assert.CatchAsync<ObjectDisposedException>(async () => await ClientConnection.WriteAsync(_oneBWriteBuffer, default));
         }
 
         [Test]
-        public void TcpSimpleStream_WriteAsync_Exception()
+        public void TcpNetworkConnectionReadWrite_WriteAsync_Exception()
         {
             using var canceled = new CancellationTokenSource();
             canceled.Cancel();
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await ClientStream.WriteAsync(_oneBWriteBuffer, canceled.Token));
+                async () => await ClientConnection.WriteAsync(_oneBWriteBuffer, canceled.Token));
         }
 
         [TestCase(1)]
         [TestCase(1024)]
         [TestCase(16 * 1024)]
         [TestCase(512 * 1024)]
-        public async Task TcpSimpleStream_ReadWriteAsync(int size)
+        public async Task TcpNetworkConnectionReadWrite_ReadWriteAsync(int size)
         {
             byte[] writeBuffer = new byte[size];
 
-            ValueTask test1 = Test(ClientStream, ServerStream);
-            ValueTask test2 = Test(ServerStream, ClientStream);
+            ValueTask test1 = Test(ClientConnection, ServerConnection);
+            ValueTask test2 = Test(ServerConnection, ClientConnection);
 
             await test1;
             await test2;
 
-            async ValueTask Test(ISimpleStream stream1, ISimpleStream stream2)
+            async ValueTask Test(ISimpleNetworkConnection connection1, ISimpleNetworkConnection connection2)
             {
-                ValueTask writeTask = stream1.WriteAsync(new ReadOnlyMemory<byte>[] { writeBuffer }, default);
+                ValueTask writeTask = connection1.WriteAsync(new ReadOnlyMemory<byte>[] { writeBuffer }, default);
                 Memory<byte> readBuffer = new byte[size];
                 int offset = 0;
                 while (offset < size)
                 {
-                    offset += await stream2.ReadAsync(readBuffer[offset..], default);
+                    offset += await connection2.ReadAsync(readBuffer[offset..], default);
                 }
             }
         }

@@ -11,28 +11,22 @@ namespace IceRpc.Tests.Internal
     [TestFixture(AddressFamily.InterNetwork)]
     [TestFixture(AddressFamily.InterNetworkV6)]
     [Timeout(5000)]
-    public class UdpSimpleStreamTests
+    public class UdpNetworkConnectionTests
     {
         private static readonly ReadOnlyMemory<ReadOnlyMemory<byte>> _oneBWriteBuffer =
             new ReadOnlyMemory<byte>[] { new byte[1] };
 
-        private ISimpleStream ClientStream => _clientStream!;
-        private ISimpleStream ServerStream => _serverStream!;
+        private ISimpleNetworkConnection ClientConnection => _clientConnection!;
+        private ISimpleNetworkConnection ServerConnection => _serverConnection!;
 
         private ISimpleNetworkConnection? _clientConnection;
-        private ISimpleStream? _clientStream;
-
         private readonly IClientTransport<ISimpleNetworkConnection> _clientTransport = new UdpClientTransport();
-
         private readonly IListener<ISimpleNetworkConnection> _listener;
         private ISimpleNetworkConnection? _serverConnection;
-        private ISimpleStream? _serverStream;
-
         private readonly IServerTransport<ISimpleNetworkConnection> _serverTransport = new UdpServerTransport();
-
         private readonly bool _isIPv6;
 
-        public UdpSimpleStreamTests(AddressFamily addressFamily)
+        public UdpNetworkConnectionTests(AddressFamily addressFamily)
         {
             _isIPv6 = addressFamily == AddressFamily.InterNetworkV6;
             string host = _isIPv6 ? "\"::1\"" : "127.0.0.1";
@@ -42,18 +36,12 @@ namespace IceRpc.Tests.Internal
         [OneTimeSetUp]
         public async Task OneTimeSetupAsync()
         {
-            Task<ISimpleNetworkConnection> acceptTask = _listener.AcceptAsync();
+            _serverConnection = await _listener.AcceptAsync();
 
             _clientConnection =
                 _clientTransport.CreateConnection(_listener.Endpoint, LogAttributeLoggerFactory.Instance.Logger);
-            Task<(ISimpleStream, NetworkConnectionInformation)> connectTask = _clientConnection.ConnectAsync(default);
-
-            _serverConnection = await acceptTask;
-            Task<(ISimpleStream, NetworkConnectionInformation)> serverConnectTask =
-                _serverConnection.ConnectAsync(default);
-
-            (_serverStream, _) = await serverConnectTask;
-            (_clientStream, _) = await connectTask;
+            _ = await _serverConnection.ConnectAsync(default);
+            _ = await _clientConnection.ConnectAsync(default);
         }
 
         [OneTimeTearDown]
@@ -75,23 +63,20 @@ namespace IceRpc.Tests.Internal
         [TestCase(1, 4096)]
         [TestCase(2, 1024)]
         [TestCase(10, 1024)]
-        public async Task UdpSimpleStream_MultipleReadWriteAsync(int clientConnectionCount, int size)
+        public async Task UdpNetworkConnection_MultipleReadWriteAsync(int clientConnectionCount, int size)
         {
             byte[] writeBuffer = new byte[size];
             new Random().NextBytes(writeBuffer);
             ReadOnlyMemory<ReadOnlyMemory<byte>> writeBuffers = new ReadOnlyMemory<byte>[] { writeBuffer };
 
             var clientConnectionList = new List<ISimpleNetworkConnection>();
-            var clientStreamList = new List<ISimpleStream>();
-            clientStreamList.Add(ClientStream);
             for (int i = 0; i < clientConnectionCount; ++i)
             {
                 ISimpleNetworkConnection clientConnection =
                     _clientTransport.CreateConnection(_listener.Endpoint, LogAttributeLoggerFactory.Instance.Logger);
 
                 clientConnectionList.Add(clientConnection);
-                (ISimpleStream clientStream, _) = await clientConnection.ConnectAsync(default);
-                clientStreamList.Add(clientStream);
+                _ = await clientConnection.ConnectAsync(default);
             }
 
             // Datagrams aren't reliable, try up to 5 times in case the datagram is lost.
@@ -100,13 +85,13 @@ namespace IceRpc.Tests.Internal
             {
                 try
                 {
-                    foreach (ISimpleStream stream in clientStreamList)
+                    foreach (ISimpleNetworkConnection clientConnection in clientConnectionList)
                     {
                         using var source = new CancellationTokenSource(1000);
-                        ValueTask writeTask = stream.WriteAsync(writeBuffers, default);
+                        ValueTask writeTask = clientConnection.WriteAsync(writeBuffers, default);
 
                         Memory<byte> readBuffer = new byte[UdpUtils.MaxPacketSize];
-                        int received = await ServerStream.ReadAsync(readBuffer, source.Token);
+                        int received = await ServerConnection.ReadAsync(readBuffer, source.Token);
 
                         Assert.AreEqual(writeBuffer.Length, received);
                         for (int i = 0; i < received; ++i)
@@ -127,15 +112,15 @@ namespace IceRpc.Tests.Internal
             {
                 try
                 {
-                    foreach (ISimpleStream stream in clientStreamList)
+                    foreach (ISimpleNetworkConnection clientConnection in clientConnectionList)
                     {
-                        await stream.WriteAsync(writeBuffers, default);
+                        await clientConnection.WriteAsync(writeBuffers, default);
                     }
-                    foreach (ISimpleStream stream in clientStreamList)
+                    foreach (ISimpleNetworkConnection clientConnection in clientConnectionList)
                     {
                         using var source = new CancellationTokenSource(1000);
                         Memory<byte> readBuffer = new byte[UdpUtils.MaxPacketSize];
-                        int received = await ServerStream.ReadAsync(readBuffer, source.Token);
+                        int received = await ServerConnection.ReadAsync(readBuffer, source.Token);
                         Assert.AreEqual(writeBuffer.Length, received);
                     }
                     break;
@@ -150,52 +135,53 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void UdpSimpleStream_ReadAsync_Cancellation()
+        public void UdpNetworkConnection_ReadAsync_Cancellation()
         {
             using var canceled = new CancellationTokenSource();
             Memory<byte> readBuffer = new byte[UdpUtils.MaxPacketSize];
-            ValueTask<int> readTask = ClientStream.ReadAsync(readBuffer, canceled.Token);
+            ValueTask<int> readTask = ClientConnection.ReadAsync(readBuffer, canceled.Token);
             canceled.Cancel();
             Assert.CatchAsync<OperationCanceledException>(async () => await readTask);
         }
 
         [Test]
-        public async Task UdpSimpleStream_ReadAsync_DisposeAsync()
+        public async Task UdpNetworkConnection_ReadAsync_DisposeAsync()
         {
             await _clientConnection!.DisposeAsync();
-            Assert.CatchAsync<ObjectDisposedException>(async () => await ClientStream.ReadAsync(new byte[256], default));
+            Assert.CatchAsync<ObjectDisposedException>(async () => await ClientConnection.ReadAsync(new byte[256], default));
         }
 
         [Test]
-        public void UdpSimpleStream_WriteAsync_Cancellation()
+        public void UdpNetworkConnection_WriteAsync_Cancellation()
         {
             using var canceled = new CancellationTokenSource();
             canceled.Cancel();
             byte[] buffer = new byte[1];
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await ClientStream.WriteAsync(new ReadOnlyMemory<byte>[] { buffer }, canceled.Token));
+                async () => await ClientConnection.WriteAsync(new ReadOnlyMemory<byte>[] { buffer }, canceled.Token));
         }
 
         [Test]
-        public async Task UdpSimpleStream_WriteAsync_DisposeAsync()
+        public async Task UdpNetworkConnection_WriteAsync_DisposeAsync()
         {
             await _clientConnection!.DisposeAsync();
-            Assert.CatchAsync<ObjectDisposedException>(async () => await ClientStream.WriteAsync(_oneBWriteBuffer, default));
+            Assert.CatchAsync<ObjectDisposedException>(async () => await ClientConnection.WriteAsync(_oneBWriteBuffer, default));
         }
 
         [Test]
-        public void UdpSimpleStream_SendAsync_Exception()
+        public void UdpNetworkConnection_SendAsync_Exception()
         {
             using var canceled = new CancellationTokenSource();
             canceled.Cancel();
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await ClientStream.WriteAsync(_oneBWriteBuffer, canceled.Token));
+                async () => await ClientConnection.WriteAsync(_oneBWriteBuffer, canceled.Token));
         }
 
         [TestCase(1)]
         [TestCase(1024)]
         [TestCase(4096)]
-        public async Task UdpSimpleStream_ReadWriteAsync(int size)
+        [Log(LogAttributeLevel.Trace)]
+        public async Task UdpNetworkConnection_ReadWriteAsync(int size)
         {
             byte[] writeBuffer = new byte[size];
             new Random().NextBytes(writeBuffer);
@@ -208,9 +194,9 @@ namespace IceRpc.Tests.Internal
                 try
                 {
                     using var source = new CancellationTokenSource(1000);
-                    ValueTask writeTask = ClientStream.WriteAsync(writeBuffers, default);
+                    ValueTask writeTask = ClientConnection.WriteAsync(writeBuffers, default);
                     Memory<byte> readBuffer = new byte[UdpUtils.MaxPacketSize];
-                    int received = await ServerStream.ReadAsync(readBuffer, source.Token);
+                    int received = await ServerConnection.ReadAsync(readBuffer, source.Token);
                     Assert.AreEqual(writeBuffer.Length, received);
                     for (int i = 0; i < received; ++i)
                     {

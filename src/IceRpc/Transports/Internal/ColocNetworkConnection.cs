@@ -7,7 +7,7 @@ namespace IceRpc.Transports.Internal
 {
     /// <summary>The colocated network connection class to exchange data within the same process. The implementation
     /// copies the send buffer into the receive buffer.</summary>
-    internal class ColocNetworkConnection : ISimpleNetworkConnection, ISimpleStream
+    internal class ColocNetworkConnection : ISimpleNetworkConnection
     {
         bool INetworkConnection.IsSecure => true;
 
@@ -19,18 +19,16 @@ namespace IceRpc.Transports.Internal
         private ReadOnlyMemory<byte> _receivedBuffer;
         private readonly ChannelWriter<ReadOnlyMemory<byte>> _writer;
 
-        Task<(ISimpleStream, NetworkConnectionInformation)> ISimpleNetworkConnection.ConnectAsync(
-            CancellationToken cancel) =>
-            Task.FromResult<(ISimpleStream, NetworkConnectionInformation)>(
-                (this, new NetworkConnectionInformation(_endpoint, _endpoint, TimeSpan.MaxValue, null)));
+        public Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel) =>
+            Task.FromResult(new NetworkConnectionInformation(_endpoint, _endpoint, TimeSpan.MaxValue, null));
 
-        ValueTask IAsyncDisposable.DisposeAsync()
+        public ValueTask DisposeAsync()
         {
             _writer.TryComplete();
             return default;
         }
 
-        bool INetworkConnection.HasCompatibleParams(Endpoint remoteEndpoint)
+        public bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
             if (remoteEndpoint.Params.Count > 0)
             {
@@ -40,7 +38,7 @@ namespace IceRpc.Transports.Internal
             return !_isServer;
         }
 
-        async ValueTask<int> ISimpleStream.ReadAsync(Memory<byte> buffer, CancellationToken cancel)
+        public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             if (_receivedBuffer.Length == 0)
             {
@@ -69,7 +67,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        async ValueTask ISimpleStream.WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
+        public async ValueTask WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
         {
             try
             {

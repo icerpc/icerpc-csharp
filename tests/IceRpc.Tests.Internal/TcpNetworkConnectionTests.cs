@@ -97,18 +97,17 @@ namespace IceRpc.Tests.Internal
 
             await using ISimpleNetworkConnection clientConnection = CreateClientConnection(listener.Endpoint);
 
-            Task<(ISimpleStream, NetworkConnectionInformation)> connectTask = clientConnection.ConnectAsync(default);
+            Task<NetworkConnectionInformation> connectTask = clientConnection.ConnectAsync(default);
 
             await using ISimpleNetworkConnection serverConnection = await acceptTask;
 
-            Task<(ISimpleStream, NetworkConnectionInformation)> serverConnectTask =
-                serverConnection.ConnectAsync(default);
+            Task<NetworkConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
 
-            (ISimpleStream clientStream, _) = await connectTask;
+            _ = await connectTask;
 
             if (_tls == null)
             {
-                await clientStream.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
+                await clientConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
             }
 
             _ = await serverConnectTask;
@@ -136,10 +135,10 @@ namespace IceRpc.Tests.Internal
             if (_tls == false)
             {
                 // Server side ConnectAsync is a no-op for non secure TCP connections so it won't throw.
-                (ISimpleStream serverStream, _) = await serverConnection.ConnectAsync(default);
+                _ = await serverConnection.ConnectAsync(default);
 
                 Assert.ThrowsAsync<ConnectionLostException>(
-                    async () => await serverStream.ReadAsync(new byte[1], default));
+                    async () => await serverConnection.ReadAsync(new byte[1], default));
             }
             else
             {

@@ -11,7 +11,7 @@ using System.Text;
 
 namespace IceRpc.Transports.Internal
 {
-    internal abstract class TcpNetworkConnection : ISimpleNetworkConnection, ISimpleStream
+    internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
     {
         public bool IsSecure => SslStream != null;
 
@@ -25,7 +25,7 @@ namespace IceRpc.Transports.Internal
 
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
 
-        public abstract Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel);
+        public abstract Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel);
 
         public async ValueTask DisposeAsync()
         {
@@ -53,7 +53,7 @@ namespace IceRpc.Transports.Internal
 
         public abstract bool HasCompatibleParams(Endpoint remoteEndpoint);
 
-        async ValueTask<int> ISimpleStream.ReadAsync(Memory<byte> buffer, CancellationToken cancel)
+        public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             if (buffer.Length == 0)
             {
@@ -104,7 +104,7 @@ namespace IceRpc.Transports.Internal
             return builder.ToString();
         }
 
-        async ValueTask ISimpleStream.WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
+        public async ValueTask WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
         {
             Debug.Assert(buffers.Length > 0);
 
@@ -215,7 +215,7 @@ namespace IceRpc.Transports.Internal
         private readonly Endpoint _remoteEndpoint;
         private SslStream? _sslStream;
 
-        public override async Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel)
+        public override async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
         {
             Debug.Assert(!_connected);
             _connected = true;
@@ -266,16 +266,15 @@ namespace IceRpc.Transports.Internal
 
                 var ipEndPoint = (IPEndPoint)Socket.LocalEndPoint!;
 
-                return (this,
-                        new NetworkConnectionInformation(
-                            localEndpoint: remoteEndpoint with
-                            {
-                                Host = ipEndPoint.Address.ToString(),
-                                Port = checked((ushort)ipEndPoint.Port)
-                            },
-                            remoteEndpoint: remoteEndpoint,
-                            _idleTimeout,
-                            _sslStream?.RemoteCertificate));
+                return new NetworkConnectionInformation(
+                    localEndpoint: remoteEndpoint with
+                    {
+                        Host = ipEndPoint.Address.ToString(),
+                        Port = checked((ushort)ipEndPoint.Port)
+                    },
+                    remoteEndpoint: remoteEndpoint,
+                    _idleTimeout,
+                    _sslStream?.RemoteCertificate);
             }
             catch (SocketException ex)
             {
@@ -365,7 +364,7 @@ namespace IceRpc.Transports.Internal
 
         private readonly bool? _tls;
 
-        public override async Task<(ISimpleStream, NetworkConnectionInformation)> ConnectAsync(CancellationToken cancel)
+        public override async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
         {
             Debug.Assert(!_connected);
             _connected = true;
@@ -426,17 +425,16 @@ namespace IceRpc.Transports.Internal
 
                 var ipEndPoint = (IPEndPoint)Socket.RemoteEndPoint!;
 
-                return (this,
-                        new NetworkConnectionInformation(
-                            localEndpoint: _localEndpoint,
-                            remoteEndpoint: _localEndpoint with
-                            {
-                                Host = ipEndPoint.Address.ToString(),
-                                Port = checked((ushort)ipEndPoint.Port),
-                                Params = endpointParams
-                            },
-                            _idleTimeout,
-                            _sslStream?.RemoteCertificate));
+                return new NetworkConnectionInformation(
+                    localEndpoint: _localEndpoint,
+                    remoteEndpoint: _localEndpoint with
+                    {
+                        Host = ipEndPoint.Address.ToString(),
+                        Port = checked((ushort)ipEndPoint.Port),
+                        Params = endpointParams
+                    },
+                    _idleTimeout,
+                    _sslStream?.RemoteCertificate);
             }
             catch (SocketException ex)
             {
