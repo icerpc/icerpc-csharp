@@ -73,14 +73,14 @@ namespace IceRpc.Transports.Internal
             EventId = (int)TransportEventIds.SimpleNetworkConnectionRead,
             EventName = nameof(TransportEventIds.SimpleNetworkConnectionRead),
             Level = LogLevel.Trace,
-            Message = "read {Size} bytes from simple stream ({Data})")]
+            Message = "read {Size} bytes from simple network connection ({Data})")]
         internal static partial void LogSimpleNetworkConnectionRead(this ILogger logger, int size, string data);
 
         [LoggerMessage(
             EventId = (int)TransportEventIds.SimpleNetworkConnectionWrite,
             EventName = nameof(TransportEventIds.SimpleNetworkConnectionWrite),
             Level = LogLevel.Trace,
-            Message = "wrote {Size} bytes to simple stream ({Data})")]
+            Message = "wrote {Size} bytes to simple network connection ({Data})")]
         internal static partial void LogSimpleNetworkConnectionWrite(this ILogger logger, int size, string data);
 
         [LoggerMessage(
