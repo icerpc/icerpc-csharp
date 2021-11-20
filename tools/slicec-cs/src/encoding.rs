@@ -85,9 +85,7 @@ pub fn encode_type(
                 TypeRefs::Primitive(primitive_ref) => {
                     format!("encoder.Encode{}({});", primitive_ref.type_suffix(), value)
                 }
-                TypeRefs::Struct(_) => {
-                    format!("{}.Encode(encoder);", value)
-                }
+                TypeRefs::Struct(_) => format!("{}.Encode(encoder);", value),
                 TypeRefs::Sequence(sequence_ref) => format!(
                     "{};",
                     encode_sequence(
@@ -101,17 +99,13 @@ pub fn encode_type(
                 TypeRefs::Dictionary(dictionary_ref) => {
                     format!("{};", encode_dictionary(dictionary_ref, namespace, param))
                 }
-                TypeRefs::Enum(enum_ref) => {
-                    format!(
-                        "{helper}.Encode{name}(encoder, {param});",
-                        helper = enum_ref.helper_name(namespace),
-                        name = enum_ref.identifier(),
-                        param = value,
-                    )
-                }
-                _ => {
-                    panic!("class and proxy types are handled in the outer match")
-                }
+                TypeRefs::Enum(enum_ref) => format!(
+                    "{helper}.Encode{name}(encoder, {param});",
+                    helper = enum_ref.helper_name(namespace),
+                    name = enum_ref.identifier(),
+                    param = value,
+                ),
+                _ => panic!("class and proxy types are handled in the outer match"),
             };
 
             if type_ref.is_optional {
