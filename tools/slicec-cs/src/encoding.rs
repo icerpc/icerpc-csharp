@@ -32,15 +32,13 @@ pub fn encode_data_members(
 
     for member in required_members {
         let param = format!("this.{}", member.field_name(field_type));
-
-        let encode_member = encode_type(
+        code.writeln(&encode_type(
             member.data_type(),
             &mut bit_sequence_index,
             true,
             namespace,
             &param,
-        );
-        code.writeln(&encode_member);
+        ));
     }
 
     // Encode tagged
@@ -69,55 +67,89 @@ pub fn encode_type(
 
     match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) => {
-            writeln!(code, "encoder.EncodeProxy({}.Proxy);", value)
+            if type_ref.is_optional {
+                writeln!(code, "encoder.EncodeNullableProxy({}?.Proxy);", value)
+            } else {
+                writeln!(code, "encoder.EncodeProxy({}.Proxy);", value)
+            }
         }
-        TypeRefs::Class(_) => {
-            writeln!(code, "encoder.EncodeClass({});", value)
+        _ if type_ref.is_class_type() => {
+            if type_ref.is_optional {
+                writeln!(code, "encoder.EncodeNullableClass({});", value)
+            } else {
+                writeln!(code, "encoder.EncodeClass({});", value)
+            }
         }
-        TypeRefs::Primitive(primitive_ref) => {
-            writeln!(
-                code,
-                "encoder.Encode{}({});",
-                primitive_ref.type_suffix(),
-                value
-            )
-        }
-        TypeRefs::Struct(_) => {
-            writeln!(code, "{}.Encode(encoder);", value)
-        }
-        TypeRefs::Sequence(sequence_ref) => writeln!(
-            code,
-            "{};",
-            encode_sequence(
-                sequence_ref,
-                namespace,
-                param,
-                !for_nested_type,
-                !for_nested_type,
-            ),
-        ),
-        TypeRefs::Dictionary(dictionary_ref) => {
-            writeln!(
-                code,
-                "{};",
-                encode_dictionary(dictionary_ref, namespace, param)
-            )
-        }
-        TypeRefs::Enum(enum_ref) => {
-            writeln!(
-                code,
-                "{helper}.Encode{name}(encoder, {param});",
-                helper = enum_ref.helper_name(namespace),
-                name = enum_ref.identifier(),
-                param = value,
-            );
+        concrete_typeref => {
+            let encode_type = match concrete_typeref {
+                TypeRefs::Primitive(primitive_ref) => {
+                    format!("encoder.Encode{}({});", primitive_ref.type_suffix(), value)
+                }
+                TypeRefs::Struct(_) => {
+                    format!("{}.Encode(encoder);", value)
+                }
+                TypeRefs::Sequence(sequence_ref) => format!(
+                    "{};",
+                    encode_sequence(
+                        sequence_ref,
+                        namespace,
+                        param,
+                        !for_nested_type,
+                        !for_nested_type,
+                    ),
+                ),
+                TypeRefs::Dictionary(dictionary_ref) => {
+                    format!("{};", encode_dictionary(dictionary_ref, namespace, param))
+                }
+                TypeRefs::Enum(enum_ref) => {
+                    format!(
+                        "{helper}.Encode{name}(encoder, {param});",
+                        helper = enum_ref.helper_name(namespace),
+                        name = enum_ref.identifier(),
+                        param = value,
+                    )
+                }
+                _ => {
+                    panic!("class and proxy types are handled in the outer match")
+                }
+            };
+
+            if type_ref.is_optional {
+                assert!(*bit_sequence_index >= 0);
+                // A null T[]? or List<T>? is implicitly converted into a default aka null
+                // ReadOnlyMemory<T> or ReadOnlySpan<T>. Furthermore, the span of a default
+                // ReadOnlyMemory<T> is a default ReadOnlySpan<T>, which is distinct from
+                // the span of an empty sequence. This is why the "value.Span != null" below
+                // works correctly.
+                writeln!(
+                    code,
+                    "\
+if ({param} != null)
+{{
+    {encode_type}
+}}
+else
+{{
+    bitSequence[{bit_sequence_index}] = false;
+}}
+",
+                    param = match concrete_typeref {
+                        TypeRefs::Sequence(sequence_def)
+                            if sequence_def.has_fixed_size_numeric_elements()
+                                && !sequence_def.has_attribute("cs:generic", false)
+                                && !for_nested_type =>
+                            format!("{}.Span", value),
+                        _ => param.to_owned(),
+                    },
+                    encode_type = encode_type,
+                    bit_sequence_index = *bit_sequence_index
+                );
+                *bit_sequence_index += 1;
+            } else {
+                code.writeln(&encode_type)
+            }
         }
     }
-
-    if type_ref.is_optional {
-        code = encode_as_optional(type_ref, bit_sequence_index, for_nested_type, param, &code);
-    }
-
     code
 }
 
@@ -331,62 +363,6 @@ pub fn encode_dictionary(dictionary_def: &Dictionary, namespace: &str, param: &s
         },
         args = args.join(", ")
     );
-
-    code
-}
-
-pub fn encode_as_optional(
-    type_ref: &TypeRef,
-    bit_sequence_index: &mut i64,
-    for_nested_type: bool,
-    param: &str,
-    encode_type: &CodeBlock,
-) -> CodeBlock {
-    let mut code = CodeBlock::new();
-
-    match type_ref.concrete_type() {
-        Types::Interface(_) => {
-            writeln!(code, "encoder.EncodeNullableProxy({}?.Proxy);", param)
-        }
-        Types::Class(_) => {
-            writeln!(code, "encoder.EncodeNullableClass({});", param)
-        }
-        Types::Primitive(primitive) if matches!(primitive, Primitive::AnyClass) => {
-            writeln!(code, "encoder.EncodeNullableClass({});", param)
-        }
-        _ => {
-            assert!(*bit_sequence_index >= 0);
-            // A null T[]? or List<T>? is implicitly converted into a default aka null
-            // ReadOnlyMemory<T> or ReadOnlySpan<T>. Furthermore, the span of a default
-            // ReadOnlyMemory<T> is a default ReadOnlySpan<T>, which is distinct from
-            // the span of an empty sequence. This is why the "value.Span != null" below
-            // works correctly.
-            writeln!(
-                code,
-                "\
-if ({param} != null)
-{{
-    {encode_type}
-}}
-else
-{{
-    bitSequence[{bit_sequence_index}] = false;
-}}
-",
-                param = match type_ref.concrete_type() {
-                    Types::Sequence(sequence_def)
-                        if sequence_def.has_fixed_size_numeric_elements()
-                            && !type_ref.has_attribute("cs:generic", false)
-                            && !for_nested_type =>
-                        format!("{}.Span", param),
-                    _ => param.to_owned(),
-                },
-                encode_type = encode_type,
-                bit_sequence_index = *bit_sequence_index
-            );
-            *bit_sequence_index += 1;
-        }
-    }
 
     code
 }
