@@ -57,30 +57,27 @@ pub fn encode_type(
     namespace: &str,
     param: &str,
 ) -> CodeBlock {
-    let mut code = CodeBlock::new();
-
-    let value = if type_ref.is_optional && type_ref.is_value_type() {
-        format!("{}.Value", param)
-    } else {
-        param.to_owned()
-    };
-
     match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) => {
             if type_ref.is_optional {
-                writeln!(code, "encoder.EncodeNullableProxy({}?.Proxy);", value)
+                format!("encoder.EncodeNullableProxy({}?.Proxy);", param)
             } else {
-                writeln!(code, "encoder.EncodeProxy({}.Proxy);", value)
+                format!("encoder.EncodeProxy({}.Proxy);", param)
             }
         }
         _ if type_ref.is_class_type() => {
             if type_ref.is_optional {
-                writeln!(code, "encoder.EncodeNullableClass({});", value)
+                format!("encoder.EncodeNullableClass({});", param)
             } else {
-                writeln!(code, "encoder.EncodeClass({});", value)
+                format!("encoder.EncodeClass({});", param)
             }
         }
         concrete_typeref => {
+            let value = if type_ref.is_optional && type_ref.is_value_type() {
+                format!("{}.Value", param)
+            } else {
+                param.to_owned()
+            };
             let encode_type = match concrete_typeref {
                 TypeRefs::Primitive(primitive_ref) => {
                     format!("encoder.Encode{}({});", primitive_ref.type_suffix(), value)
@@ -115,8 +112,9 @@ pub fn encode_type(
                 // ReadOnlyMemory<T> is a default ReadOnlySpan<T>, which is distinct from
                 // the span of an empty sequence. This is why the "value.Span != null" below
                 // works correctly.
-                writeln!(
-                    code,
+                let index = *bit_sequence_index;
+                *bit_sequence_index += 1;
+                format!(
                     "\
 if ({param} != null)
 {{
@@ -132,19 +130,18 @@ else
                             if sequence_def.has_fixed_size_numeric_elements()
                                 && !sequence_def.has_attribute("cs:generic", false)
                                 && !for_nested_type =>
-                            format!("{}.Span", value),
+                            format!("{}.Span", param),
                         _ => param.to_owned(),
                     },
                     encode_type = encode_type,
-                    bit_sequence_index = *bit_sequence_index
-                );
-                *bit_sequence_index += 1;
+                    bit_sequence_index = index
+                )
             } else {
-                code.writeln(&encode_type)
+                encode_type
             }
         }
     }
-    code
+    .into()
 }
 
 pub fn encode_tagged_type(
@@ -291,7 +288,7 @@ if ({param} != null)
     code
 }
 
-pub fn encode_sequence(
+fn encode_sequence(
     sequence_ref: &TypeRef<Sequence>,
     namespace: &str,
     value: &str,
@@ -300,7 +297,7 @@ pub fn encode_sequence(
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
 
-    let has_custom_type = matches!(sequence_ref.get_attribute("cs:generic", false), Some(_));
+    let has_custom_type = sequence_ref.has_attribute("cs:generic", false);
     let mut args = Vec::new();
 
     let mut with_bit_sequence = "";
@@ -339,7 +336,7 @@ pub fn encode_sequence(
     code
 }
 
-pub fn encode_dictionary(dictionary_def: &Dictionary, namespace: &str, param: &str) -> CodeBlock {
+fn encode_dictionary(dictionary_def: &Dictionary, namespace: &str, param: &str) -> CodeBlock {
     let mut code = CodeBlock::new();
 
     let mut args = vec![param.to_owned()];
