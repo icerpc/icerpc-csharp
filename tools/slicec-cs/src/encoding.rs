@@ -50,7 +50,7 @@ pub fn encode_data_members(
     code
 }
 
-pub fn encode_type(
+fn encode_type(
     type_ref: &TypeRef,
     bit_sequence_index: &mut i64,
     for_nested_type: bool,
@@ -144,7 +144,7 @@ else
     .into()
 }
 
-pub fn encode_tagged_type(
+fn encode_tagged_type(
     member: &impl Member,
     namespace: &str,
     param: &str,
@@ -295,8 +295,6 @@ fn encode_sequence(
     is_param: bool,
     is_read_only: bool,
 ) -> CodeBlock {
-    let mut code = CodeBlock::new();
-
     let has_custom_type = sequence_ref.has_attribute("cs:generic", false);
     let mut args = Vec::new();
 
@@ -326,26 +324,21 @@ fn encode_sequence(
         );
     }
 
-    write!(
-        code,
+    format!(
         "encoder.EncodeSequence{with_bit_sequence}({args})",
         args = args.join(", "),
         with_bit_sequence = with_bit_sequence
-    );
-
-    code
+    )
+    .into()
 }
 
 fn encode_dictionary(dictionary_def: &Dictionary, namespace: &str, param: &str) -> CodeBlock {
-    let mut code = CodeBlock::new();
-
     let mut args = vec![param.to_owned()];
     args.push(encode_action(&dictionary_def.key_type, namespace, false, false).to_string());
     args.push(encode_action(&dictionary_def.value_type, namespace, false, false).to_string());
 
     let with_bit_sequence = dictionary_def.value_type.is_bit_sequence_encodable();
-    write!(
-        code,
+    format!(
         "encoder.{method}({args})",
         method = if with_bit_sequence && dictionary_def.value_type.is_optional {
             "EncodeDictionaryWithBitSequence"
@@ -353,9 +346,8 @@ fn encode_dictionary(dictionary_def: &Dictionary, namespace: &str, param: &str) 
             "EncodeDictionary"
         },
         args = args.join(", ")
-    );
-
-    code
+    )
+    .into()
 }
 
 pub fn encode_action(
