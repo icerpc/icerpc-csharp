@@ -709,11 +709,11 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
-            public ValueTask<IOptionalOperations.OpIntDictMarshaledResultEncodedReturnValue> OpIntDictMarshaledResultAsync(
+            public ValueTask<IOptionalOperations.OpIntDictMarshaledResultEncodedResult> OpIntDictMarshaledResultAsync(
                 Dictionary<int, int>? p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IOptionalOperations.OpIntDictMarshaledResultEncodedReturnValue(p1, dispatch));
+                new(new IOptionalOperations.OpIntDictMarshaledResultEncodedResult(p1, dispatch));
 
             public ValueTask<(IEnumerable<int>? R1, IEnumerable<int>? R2)> OpIntListAsync(
                 List<int>? p1,
@@ -755,11 +755,11 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
-            public ValueTask<IOptionalOperations.OpMyStructMarshaledResultEncodedReturnValue> OpMyStructMarshaledResultAsync(
+            public ValueTask<IOptionalOperations.OpMyStructMarshaledResultEncodedResult> OpMyStructMarshaledResultAsync(
                 MyStruct? p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IOptionalOperations.OpMyStructMarshaledResultEncodedReturnValue(p1, dispatch));
+                new(new IOptionalOperations.OpMyStructMarshaledResultEncodedResult(p1, dispatch));
 
             public ValueTask<(IEnumerable<MyStruct>? R1, IEnumerable<MyStruct>? R2)> OpMyStructSeqAsync(
                 MyStruct[]? p1,
@@ -801,10 +801,10 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
-            public ValueTask<IOptionalOperations.OpStringSeqMarshaledResultEncodedReturnValue> OpStringSeqMarshaledResultAsync(
+            public ValueTask<IOptionalOperations.OpStringSeqMarshaledResultEncodedResult> OpStringSeqMarshaledResultAsync(
                 string[]? p1,
                 Dispatch dispatch,
-                CancellationToken cancel) => new(new IOptionalOperations.OpStringSeqMarshaledResultEncodedReturnValue(p1, dispatch));
+                CancellationToken cancel) => new(new IOptionalOperations.OpStringSeqMarshaledResultEncodedResult(p1, dispatch));
 
             public ValueTask<OneOptional?> PingPongOneAsync(OneOptional? o, Dispatch dispatch, CancellationToken cancel) =>
                 new(o);

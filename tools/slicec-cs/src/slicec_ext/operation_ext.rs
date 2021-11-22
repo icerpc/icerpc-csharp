@@ -25,7 +25,7 @@ impl OperationExt for Operation {
 
     fn encoded_result_struct(&self) -> String {
         format!(
-            "{}.{}EncodedReturnValue",
+            "{}.{}EncodedResult",
             self.parent().unwrap().interface_name(),
             self.escape_identifier()
         )

@@ -59,13 +59,6 @@ namespace IceRpc.Internal
                 }
             };
 
-        private static readonly HashSet<string> _systemExceptionTypeIds = new()
-        {
-            typeof(ServiceNotFoundException).GetIceTypeId()!,
-            typeof(OperationNotFoundException).GetIceTypeId()!,
-            typeof(UnhandledException).GetIceTypeId()!
-        };
-
         // Verify that the first 8 bytes correspond to Magic + ProtocolBytes
         internal static void CheckHeader(ReadOnlySpan<byte> header)
         {
@@ -90,94 +83,6 @@ namespace IceRpc.Internal
                     $"received ice1 protocol frame with protocol encoding set to {header[2]}.{header[3]}");
             }
         }
-
-        /// <summary>Decodes an ice1 system exception.</summary>
-        /// <param name="decoder">The decoder.</param>
-        /// <param name="replyStatus">The reply status.</param>
-        /// <returns>The exception decoded using the decoder.</returns>
-        internal static RemoteException DecodeIce1SystemException(this IceDecoder decoder, ReplyStatus replyStatus)
-        {
-            Debug.Assert(decoder is Ice11Decoder);
-            Debug.Assert(replyStatus > ReplyStatus.UserException);
-
-            RemoteException systemException;
-
-            switch (replyStatus)
-            {
-                case ReplyStatus.FacetNotExistException:
-                case ReplyStatus.ObjectNotExistException:
-                case ReplyStatus.OperationNotExistException:
-
-                    var requestFailed = new Ice1RequestFailedExceptionData(decoder);
-
-                    if (requestFailed.IdentityAndFacet.OptionalFacet.Count > 1)
-                    {
-                        throw new InvalidDataException("received ice1 optionalFacet with too many elements");
-                    }
-
-                    systemException = replyStatus == ReplyStatus.OperationNotExistException ?
-                        new OperationNotFoundException() : new ServiceNotFoundException();
-
-                    systemException.Origin = new RemoteExceptionOrigin(requestFailed.IdentityAndFacet.ToPath(),
-                                                                       requestFailed.Operation);
-                    break;
-
-                default:
-                    systemException = new UnhandledException(decoder.DecodeString());
-                    break;
-            }
-
-            systemException.ConvertToUnhandled = true;
-            return systemException;
-        }
-
-        /// <summary>Encodes an ice1 system exception.</summary>
-        /// <param name="encoder">This Ice encoder.</param>
-        /// <param name="exception">The exception.</param>
-        internal static ReplyStatus EncodeIce1SystemException(this IceEncoder encoder, Exception exception)
-        {
-            ReplyStatus replyStatus = exception switch
-            {
-                ServiceNotFoundException => ReplyStatus.ObjectNotExistException,
-                OperationNotFoundException => ReplyStatus.OperationNotExistException,
-                _ => ReplyStatus.UnknownLocalException,
-            };
-
-            switch (replyStatus)
-            {
-                case ReplyStatus.ObjectNotExistException:
-                case ReplyStatus.OperationNotExistException:
-                    var remoteException = (RemoteException)exception;
-                    IdentityAndFacet identityAndFacet;
-                    try
-                    {
-                        identityAndFacet = IdentityAndFacet.FromPath(remoteException.Origin.Path);
-                    }
-                    catch
-                    {
-                        // ignored, i.e. we'll encode an empty identity + facet
-                        identityAndFacet = new IdentityAndFacet(Identity.Empty, "");
-                    }
-                    var requestFailed = new Ice1RequestFailedExceptionData(
-                        identityAndFacet,
-                        remoteException.Origin.Operation);
-                    requestFailed.Encode(encoder);
-                    break;
-
-                default:
-                    encoder.EncodeString(exception.Message);
-                    break;
-            }
-            return replyStatus;
-        }
-
-        internal static bool IsIce1SystemException(this RemoteException remoteException) =>
-            remoteException is ServiceNotFoundException ||
-            remoteException is OperationNotFoundException ||
-            remoteException is UnhandledException;
-
-        internal static bool IsIce1SystemExceptionTypeId(this string typeId) =>
-            _systemExceptionTypeIds.Contains(typeId);
 
         private static string BytesToString(ReadOnlySpan<byte> bytes) => BitConverter.ToString(bytes.ToArray());
     }

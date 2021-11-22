@@ -242,8 +242,16 @@ namespace IceRpc.Internal
                 RetryPolicy? retryPolicy = fields.Get((int)FieldKey.RetryPolicy, decoder => new RetryPolicy(decoder));
                 if (retryPolicy != null)
                 {
-                    features = new();
-                    features.Set(retryPolicy);
+                    features = features.With(retryPolicy);
+                }
+
+                if (responseHeaderBody.ResultType == ResultType.Failure && payloadEncoding == Encoding.Ice11)
+                {
+                    // returns OK when not set
+                    ReplyStatus replyStatus = fields.Get((int)FieldKey.ReplyStatus,
+                                                         decoder => decoder.DecodeReplyStatus());
+
+                    features = features.With(replyStatus == ReplyStatus.OK ? ReplyStatus.UserException : replyStatus);
                 }
 
                 var response = new IncomingResponse(Protocol.Ice2, responseHeaderBody.ResultType)
