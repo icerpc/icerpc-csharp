@@ -303,10 +303,9 @@ if ({invocation}?.RequestFeatures.Get<IceRpc.Features.CompressPayload>() == null
             _ => invoke_args.push(format!(
                 "\
 new IceRpc.Slice.AsyncEnumerableStreamParamSender<{stream_type}>(
-{stream_parameter},
-{payload_encoding},
-{encode_action}
-)",
+    {stream_parameter},
+    {payload_encoding},
+    {encode_action})",
                 stream_type = stream_type.to_type_string(namespace, TypeContext::Outgoing, false),
                 stream_parameter = stream_parameter_name,
                 payload_encoding = payload_encoding,
@@ -329,10 +328,10 @@ new IceRpc.Slice.AsyncEnumerableStreamParamSender<{stream_type}>(
                 format!(
                     "\
 streamParamReceiver!.ToAsyncEnumerable<{stream_type}>(
-response,
-invoker,
-response.GetIceDecoderFactory(_defaultIceDecoderFactories),
-{decode_func})",
+    response,
+    invoker,
+    response.GetIceDecoderFactory(_defaultIceDecoderFactories),
+    {decode_func})",
                     stream_type =
                         stream_type.to_type_string(namespace, TypeContext::Incoming, false),
                     decode_func = decode_func(stream_type, namespace).indent()
@@ -596,7 +595,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             escaped_name = operation.escape_identifier(),
             return_type = members.to_tuple_type( namespace, TypeContext::Incoming, false),
             decoder = decoder,
-            response_decode_func = response_decode_func(operation).indent()
+            response_decode_func = response_decode_func(operation).indent().indent()
         ).into());
     }
     class_builder.build().into()
@@ -618,7 +617,8 @@ fn request_encode_action(operation: &Operation) -> CodeBlock {
     } else {
         format!(
             "\
-({encoder} encoder, {_in}{param_type} value) =>
+({encoder} encoder,
+ {_in}{param_type} value) =>
 {{
     {encode}
 }}",
