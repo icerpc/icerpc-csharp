@@ -32,7 +32,6 @@ namespace IceRpc.Transports
         /// <summary>Sent Slic unidirectional stream released frame.</summary>
         SentUnidirectionalStreamReleased,
         /// <summary>Sent Slic initialize frame.</summary>
-
         SentInitializeFrame,
         /// <summary>Sent Slic initialize ack frame.</summary>
         SentInitializeAckFrame,

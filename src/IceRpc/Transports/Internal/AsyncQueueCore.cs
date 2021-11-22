@@ -7,8 +7,8 @@ using System.Threading.Tasks.Sources;
 namespace IceRpc.Transports.Internal
 {
     /// <summary>This interface is required because AsyncQueueCore is a struct and we can't reference a struct from a
-    /// lambda expression. The struct would be copied. This is necessary for the implementation of the cancellation of
-    /// DequeueAsync.</summary>
+    /// lambda expression. The struct would be copied. This is necessary for the implementation of the DequeueAsync
+    /// cancellation.</summary>
     internal interface IAsyncQueueValueTaskSource<T> : IValueTaskSource<T>
     {
         void Cancel();

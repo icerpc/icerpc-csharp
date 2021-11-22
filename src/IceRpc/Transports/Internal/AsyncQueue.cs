@@ -6,7 +6,7 @@ using System.Threading.Tasks.Sources;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The AsyncQueue provides queuing functionality with asynchronous Dequeue</summary>
+    /// <summary>The AsyncQueue provides queuing functionality with an asynchronous dequeue function.</summary>
     internal class AsyncQueue<T> : IAsyncQueueValueTaskSource<T>
     {
         // TODO: remove pragma warning disable/restore once analyser is fixed.

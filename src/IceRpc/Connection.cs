@@ -409,9 +409,11 @@ namespace IceRpc
                 // Make sure we establish the connection asynchronously without holding any mutex lock from the caller.
                 await Task.Yield();
 
+                // Establish the network connection.
                 NetworkConnectionInformation = await networkConnection.ConnectAsync(
                     connectCancellationSource.Token).ConfigureAwait(false);
 
+                // Create the protocol connection.
                 _protocolConnection = await protocolConnectionFactory.CreateProtocolConnectionAsync(
                     networkConnection,
                     NetworkConnectionInformation.Value,
