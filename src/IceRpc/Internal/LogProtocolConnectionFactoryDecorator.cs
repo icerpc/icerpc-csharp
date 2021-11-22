@@ -21,10 +21,10 @@ namespace IceRpc.Internal
             using IDisposable scope = _logger.StartNewConnectionScope(_endpoint, isServer);
 
             (IProtocolConnection protocolConnection, NetworkConnectionInformation connectionInformation) =
-            await _decoratee.CreateProtocolConnectionAsync(networkConnection,
-                                                           incomingFrameMaxSize,
-                                                           isServer,
-                                                           cancel).ConfigureAwait(false);
+                await _decoratee.CreateProtocolConnectionAsync(networkConnection,
+                                                            incomingFrameMaxSize,
+                                                            isServer,
+                                                            cancel).ConfigureAwait(false);
 
             _logger.LogCreateProtocolConnection(connectionInformation.LocalEndpoint.Protocol,
                                                 connectionInformation.LocalEndpoint,

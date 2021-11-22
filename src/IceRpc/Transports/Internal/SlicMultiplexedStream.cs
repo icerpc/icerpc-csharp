@@ -220,7 +220,7 @@ namespace IceRpc.Transports.Internal
                 _receivedSize = 0;
 
                 // Wait to be signaled for the reception of a new stream frame for this stream.
-                (_receivedSize, _receivedEndStream) = await _queue.WaitAsync(this, cancel).ConfigureAwait(false);
+                (_receivedSize, _receivedEndStream) = await _queue.DequeueAsync(this, cancel).ConfigureAwait(false);
 
                 if (_receivedSize == 0)
                 {
@@ -501,8 +501,7 @@ namespace IceRpc.Transports.Internal
 
         internal async ValueTask ReceivedFrameAsync(int size, bool endStream)
         {
-            // Receiving a 0-byte StreamLast frame is expected on a local unidirectional stream.
-            if (!IsBidirectional && !IsRemote && (size > 0 || !endStream))
+            if (!IsBidirectional && !IsRemote)
             {
                 throw new InvalidDataException($"received stream frame on local unidirectional stream");
             }
@@ -560,7 +559,7 @@ namespace IceRpc.Transports.Internal
             short token,
             ValueTaskSourceOnCompletedFlags flags) => _queue.OnCompleted(continuation, state, token, flags);
 
-        void IAsyncQueueValueTaskSource<(int, bool)>.Cancel() => _queue.Cancel();
+        void IAsyncQueueValueTaskSource<(int, bool)>.Cancel() => _queue.Complete(new OperationCanceledException());
 
         private void Shutdown()
         {
@@ -601,15 +600,12 @@ namespace IceRpc.Transports.Internal
                 // here to ensure the local stream is released from the connection.
                 if (IsRemote && !IsBidirectional)
                 {
-                    // It's important to decrement the stream count before sending the StreamLast frame to prevent a
-                    // race where the peer could start a new stream before the counter is decremented.
+                    // It's important to decrement the stream count before sending the UnidirectionalStreamReleased
+                    // frame to prevent a race where the peer could start a new stream before the counter is
+                    // decremented.
                     try
                     {
-                        _writer.WriteStreamFrameAsync(
-                            this,
-                            new ReadOnlyMemory<byte>[] { SlicDefinitions.FrameHeader.ToArray() },
-                            true,
-                            default).AsTask();
+                        _ = _writer.WriteUnidirectionalStreamReleasedAsync(this, default).AsTask();
                     }
                     catch
                     {

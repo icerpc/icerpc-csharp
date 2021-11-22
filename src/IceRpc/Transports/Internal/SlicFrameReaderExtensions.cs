@@ -66,6 +66,11 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel) =>
             ReadFrameDataAsync(reader, dataSize, decoder => new StreamStopSendingBody(decoder), cancel);
 
+        internal static ValueTask ReadUnidirectionalStreamReleasedAsync(
+            this ISlicFrameReader reader,
+            CancellationToken cancel) =>
+           reader.ReadFrameDataAsync(Memory<byte>.Empty, cancel);
+
         internal static async ValueTask SkipStreamDataAsync(
             this ISlicFrameReader reader,
             int dataSize,

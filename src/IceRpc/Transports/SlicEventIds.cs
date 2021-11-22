@@ -15,6 +15,8 @@ namespace IceRpc.Transports
         ReceivedResetFrame = IceRpc.Internal.BaseEventIds.Slic,
         /// <summary>Received Slic stream stop sending frame.</summary>
         ReceivedStopSendingFrame,
+        /// <summary>Received Slic unidirectional stream released frame.</summary>
+        ReceivedUnidirectionalStreamReleased,
         /// <summary>Received Slic Initialize frame with unsupported version.</summary>
         ReceivedUnsupportedInitializeFrame,
         /// <summary>Receiving Slic version frame.</summary>
@@ -27,7 +29,10 @@ namespace IceRpc.Transports
         SendFailure,
         /// <summary>Sent Slic stream consumed frame.</summary>
         SentConsumedFrame,
+        /// <summary>Sent Slic unidirectional stream released frame.</summary>
+        SentUnidirectionalStreamReleased,
         /// <summary>Sent Slic initialize frame.</summary>
+
         SentInitializeFrame,
         /// <summary>Sent Slic initialize ack frame.</summary>
         SentInitializeAckFrame,

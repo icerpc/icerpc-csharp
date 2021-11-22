@@ -26,6 +26,7 @@ namespace IceRpc.Internal
                 protocolConnection.Dispose();
                 throw;
             }
+
             return (protocolConnection, connectionInfo);
         }
     }

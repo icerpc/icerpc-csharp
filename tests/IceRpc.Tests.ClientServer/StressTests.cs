@@ -8,7 +8,7 @@ namespace IceRpc.Tests.ClientServer
     [TestFixture(ProtocolCode.Ice1, "tcp")]
     [TestFixture(ProtocolCode.Ice2, "tcp")]
     [Parallelizable(ParallelScope.All)]
-    [Timeout(30000)]
+    [Timeout(5000)]
     public class StressTests : ClientServerBaseTest
     {
         private Connection Connection { get; }
@@ -27,11 +27,15 @@ namespace IceRpc.Tests.ClientServer
             Server = new Server
             {
                 Dispatcher = Servant,
-                Endpoint = serverEndpoint
+                Endpoint = serverEndpoint,
+                LoggerFactory = LogAttributeLoggerFactory.Instance,
+                ConnectionOptions = new Configure.ConnectionOptions { IncomingFrameMaxSize = 2048 * 1024 }
             };
             Connection = new Connection
             {
-                RemoteEndpoint = serverEndpoint
+                RemoteEndpoint = serverEndpoint,
+                LoggerFactory = LogAttributeLoggerFactory.Instance,
+                ConnectionOptions = new Configure.ConnectionOptions { IncomingFrameMaxSize = 2048 * 1024 }
             };
             Prx = StressTestPrx.FromConnection(Connection);
             Server.Listen();
@@ -44,16 +48,24 @@ namespace IceRpc.Tests.ClientServer
             await Connection.ShutdownAsync();
         }
 
-        [Test]
-        public async Task Stress_Send_ByteSeq([Range(0, 2048, 1024)] int size)
+        [TestCase(0)]
+        [TestCase(1024)]
+        [TestCase(32 * 1024)]
+        [TestCase(64 * 1024)]
+        [TestCase(1024 * 1024)]
+        public async Task Stress_Send_ByteSeq(int size)
         {
-            var data = Enumerable.Range(0, size).Select(x => (byte)x).ToArray();
+            byte[] data = new byte[size];
             await Prx.OpSendByteSeqAsync(data);
             CollectionAssert.AreEqual(data, Servant.OpSendByteSeqData);
         }
 
-        [Test]
-        public async Task Stress_Receive_ByteSeq([Range(0, 2048, 1024)] int size)
+        [TestCase(0)]
+        [TestCase(1024)]
+        [TestCase(32 * 1024)]
+        [TestCase(64 * 1024)]
+        [TestCase(1024 * 1024)]
+        public async Task Stress_Receive_ByteSeq(int size)
         {
             var data = await Prx.OpReceiveByteSeqAsync(size);
             CollectionAssert.AreEqual(Servant.OpReceiveByteSeqData, data);

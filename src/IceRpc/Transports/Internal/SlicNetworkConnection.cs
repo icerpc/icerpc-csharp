@@ -23,6 +23,7 @@ namespace IceRpc.Transports.Internal
         internal int PeerStreamBufferMaxSize { get; private set; }
         internal int StreamBufferMaxSize { get; }
 
+        private readonly AsyncQueue<IMultiplexedStream> _acceptedStreamQueue = new();
         private int _bidirectionalStreamCount;
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly int _bidirectionalMaxStreams;
@@ -44,170 +45,8 @@ namespace IceRpc.Transports.Internal
         private AsyncSemaphore? _unidirectionalStreamSemaphore;
         private readonly ISlicFrameWriter _writer;
 
-        public async ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel)
-        {
-            while (true)
-            {
-                (FrameType type, int dataSize, long? streamId) =
-                    await _reader.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
-
-                // Only stream frames are expected at this point. Non stream frames are only exchanged at the
-                // initialization step.
-                if (streamId == null)
-                {
-                    throw new InvalidDataException($"unexpected Slic frame with frame type '{type}'");
-                }
-
-                switch (type)
-                {
-                    case FrameType.Stream:
-                    case FrameType.StreamLast:
-                    {
-                        bool endStream = type == FrameType.StreamLast;
-                        if (dataSize == 0 && type == FrameType.Stream)
-                        {
-                            throw new InvalidDataException("received empty stream frame");
-                        }
-
-                        bool isRemote = streamId % 2 == (IsServer ? 0 : 1);
-                        bool isBidirectional = streamId % 4 < 2;
-                        if (TryGetStream(streamId.Value, out SlicMultiplexedStream? stream))
-                        {
-                            // Let the stream receive the data.
-                            await stream.ReceivedFrameAsync(dataSize, endStream).ConfigureAwait(false);
-                        }
-                        else if (isRemote && !IsKnownRemoteStream(streamId.Value, isBidirectional))
-                        {
-                            // Create a new stream if the incoming stream is unknown (the client could be
-                            // sending frames for old canceled incoming streams, these are ignored).
-
-                            if (dataSize == 0)
-                            {
-                                throw new InvalidDataException("received empty stream frame on new stream");
-                            }
-
-                            // Accept the new incoming stream and notify the stream that data is available.
-                            try
-                            {
-                                stream = new SlicMultiplexedStream(
-                                    this,
-                                    isBidirectional,
-                                    remote: true,
-                                    _reader,
-                                    _writer);
-                                AddStream(streamId.Value, stream);
-                            }
-                            catch
-                            {
-                                // The stream factory is being closed, we make sure to receive the frame data. When the
-                                // factory is being closed gracefully, the factory waits from the single stream to be
-                                // closed by the peer so it's important to receive and skip all the data until the
-                                // single stream is closed.
-                                await _reader.SkipStreamDataAsync(dataSize, cancel).ConfigureAwait(false);
-                                continue;
-                            }
-
-                            if (isBidirectional)
-                            {
-                                if (_bidirectionalStreamCount == _bidirectionalMaxStreams)
-                                {
-                                    throw new InvalidDataException(
-                                        $"maximum bidirectional stream count {_bidirectionalMaxStreams} reached");
-                                }
-                                Interlocked.Increment(ref _bidirectionalStreamCount);
-                            }
-                            else
-                            {
-                                if (_unidirectionalStreamCount == _unidirectionalMaxStreams)
-                                {
-                                    throw new InvalidDataException(
-                                        $"maximum unidirectional stream count {_unidirectionalMaxStreams} reached");
-                                }
-                                Interlocked.Increment(ref _unidirectionalStreamCount);
-                            }
-
-                            // Let the stream receive the data.
-                            await stream.ReceivedFrameAsync(dataSize, endStream).ConfigureAwait(false);
-                            return stream;
-                        }
-                        else if (!isBidirectional && endStream)
-                        {
-                            // Release the stream count for the unidirectional stream.
-                            _unidirectionalStreamSemaphore!.Release();
-                        }
-                        else
-                        {
-                            throw new InvalidDataException($"received stream frame for unknown stream ID={streamId}");
-                        }
-                        break;
-                    }
-                    case FrameType.StreamConsumed:
-                    {
-                        if (dataSize > 8)
-                        {
-                            throw new InvalidDataException("stream consumed frame too large");
-                        }
-
-                        StreamConsumedBody streamConsumed =
-                            await _reader.ReadStreamConsumedAsync(dataSize, cancel).ConfigureAwait(false);
-                        if (TryGetStream(streamId.Value, out SlicMultiplexedStream? stream))
-                        {
-                            stream.ReceivedConsumed((int)streamConsumed.Size);
-                        }
-                        break;
-                    }
-                    case FrameType.StreamReset:
-                    {
-                        if (dataSize > 8)
-                        {
-                            throw new InvalidDataException("stream reset frame too large");
-                        }
-
-                        StreamResetBody streamReset =
-                            await _reader.ReadStreamResetAsync(dataSize, cancel).ConfigureAwait(false);
-                        if (TryGetStream(streamId.Value, out SlicMultiplexedStream? stream))
-                        {
-                            stream.ReceivedReset((byte)streamReset.ApplicationProtocolErrorCode);
-                        }
-                        break;
-                    }
-                    case FrameType.StreamStopSending:
-                    {
-                        if (dataSize > 8)
-                        {
-                            throw new InvalidDataException("stream stop sending frame too large");
-                        }
-
-                        StreamStopSendingBody _ =
-                            await _reader.ReadStreamStopSendingAsync(dataSize, cancel).ConfigureAwait(false);
-                        if (TryGetStream(streamId.Value, out SlicMultiplexedStream? stream))
-                        {
-                            stream.TrySetWriteCompleted();
-                        }
-                        break;
-                    }
-                    default:
-                    {
-                        throw new InvalidDataException($"unexpected Slic frame with frame type '{type}'");
-                    }
-                }
-            }
-
-            bool IsKnownRemoteStream(long streamId, bool bidirectional)
-            {
-                lock (_mutex)
-                {
-                    if (bidirectional)
-                    {
-                        return streamId <= _lastRemoteBidirectionalStreamId;
-                    }
-                    else
-                    {
-                        return streamId <= _lastRemoteUnidirectionalStreamId;
-                    }
-                }
-            }
-        }
+        public ValueTask<IMultiplexedStream> AcceptStreamAsync(CancellationToken cancel) =>
+            _acceptedStreamQueue.DequeueAsync(cancel);
 
         public async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
         {
@@ -294,6 +133,21 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
+            // Start a task to read frames from the network connection.
+            _ = Task.Run(
+                async () =>
+                {
+                    try
+                    {
+                        await ReadFramesAsync(CancellationToken.None).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        _acceptedStreamQueue.Complete(ex);
+                    }
+                },
+                CancellationToken.None);
+
             return information with { IdleTimeout = IdleTimeout };
         }
 
@@ -323,6 +177,9 @@ namespace IceRpc.Transports.Internal
                     Debug.Assert(false, $"unexpected exception on Stream.Abort: {ex}");
                 }
             }
+
+            // Unblock task blocked on AcceptStreamAsync
+            _acceptedStreamQueue.Complete(exception);
 
             _disposableReader.Dispose();
             _disposableWriter.Dispose();
@@ -471,6 +328,181 @@ namespace IceRpc.Transports.Internal
                 var encoder = new Ice20Encoder(bufferWriter);
                 encoder.EncodeVarULong(value);
                 return new((int)key, bufferWriter.Finish().ToSingleBuffer().ToArray());
+            }
+        }
+
+        private async Task ReadFramesAsync(CancellationToken cancel)
+        {
+            while (true)
+            {
+                (FrameType type, int dataSize, long? streamId) =
+                    await _reader.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
+
+                // Only stream frames are expected at this point. Non stream frames are only exchanged at the
+                // initialization step.
+                if (streamId == null)
+                {
+                    throw new InvalidDataException($"unexpected Slic frame with frame type '{type}'");
+                }
+
+                switch (type)
+                {
+                    case FrameType.Stream:
+                    case FrameType.StreamLast:
+                    {
+                        bool endStream = type == FrameType.StreamLast;
+                        if (dataSize == 0 && type == FrameType.Stream)
+                        {
+                            throw new InvalidDataException("received empty stream frame");
+                        }
+
+                        bool isRemote = streamId % 2 == (IsServer ? 0 : 1);
+                        bool isBidirectional = streamId % 4 < 2;
+                        if (TryGetStream(streamId.Value, out SlicMultiplexedStream? stream))
+                        {
+                            // Let the stream receive the data.
+                            await stream.ReceivedFrameAsync(dataSize, endStream).ConfigureAwait(false);
+                        }
+                        else if (isRemote && !IsKnownRemoteStream(streamId.Value, isBidirectional))
+                        {
+                            // Create a new stream if the incoming stream is unknown (the client could be
+                            // sending frames for old canceled incoming streams, these are ignored).
+
+                            if (dataSize == 0)
+                            {
+                                throw new InvalidDataException("received empty stream frame on new stream");
+                            }
+
+                            // Accept the new incoming stream and notify the stream that data is available.
+                            try
+                            {
+                                stream = new SlicMultiplexedStream(
+                                    this,
+                                    isBidirectional,
+                                    remote: true,
+                                    _reader,
+                                    _writer);
+                                AddStream(streamId.Value, stream);
+                            }
+                            catch
+                            {
+                                // The stream factory is being closed, we make sure to receive the frame data. When the
+                                // factory is being closed gracefully, the factory waits from the single stream to be
+                                // closed by the peer so it's important to receive and skip all the data until the
+                                // single stream is closed.
+                                await _reader.SkipStreamDataAsync(dataSize, cancel).ConfigureAwait(false);
+                                continue;
+                            }
+
+                            if (isBidirectional)
+                            {
+                                if (_bidirectionalStreamCount == _bidirectionalMaxStreams)
+                                {
+                                    throw new InvalidDataException(
+                                        $"maximum bidirectional stream count {_bidirectionalMaxStreams} reached");
+                                }
+                                Interlocked.Increment(ref _bidirectionalStreamCount);
+                            }
+                            else
+                            {
+                                if (_unidirectionalStreamCount == _unidirectionalMaxStreams)
+                                {
+                                    throw new InvalidDataException(
+                                        $"maximum unidirectional stream count {_unidirectionalMaxStreams} reached");
+                                }
+                                Interlocked.Increment(ref _unidirectionalStreamCount);
+                            }
+
+                            // Let the stream receive the data.
+                            await stream.ReceivedFrameAsync(dataSize, endStream).ConfigureAwait(false);
+
+                            // Queue the new stream.
+                            _acceptedStreamQueue.Enqueue(stream);
+                        }
+                        else
+                        {
+                            throw new InvalidDataException($"received stream frame for unknown stream ID={streamId}");
+                        }
+                        break;
+                    }
+                    case FrameType.StreamConsumed:
+                    {
+                        if (dataSize > 8)
+                        {
+                            throw new InvalidDataException("stream consumed frame too large");
+                        }
+
+                        StreamConsumedBody streamConsumed =
+                            await _reader.ReadStreamConsumedAsync(dataSize, cancel).ConfigureAwait(false);
+                        if (TryGetStream(streamId.Value, out SlicMultiplexedStream? stream))
+                        {
+                            stream.ReceivedConsumed((int)streamConsumed.Size);
+                        }
+                        break;
+                    }
+                    case FrameType.StreamReset:
+                    {
+                        if (dataSize > 8)
+                        {
+                            throw new InvalidDataException("stream reset frame too large");
+                        }
+
+                        StreamResetBody streamReset =
+                            await _reader.ReadStreamResetAsync(dataSize, cancel).ConfigureAwait(false);
+                        if (TryGetStream(streamId.Value, out SlicMultiplexedStream? stream))
+                        {
+                            stream.ReceivedReset((byte)streamReset.ApplicationProtocolErrorCode);
+                        }
+                        break;
+                    }
+                    case FrameType.StreamStopSending:
+                    {
+                        if (dataSize > 8)
+                        {
+                            throw new InvalidDataException("stream stop sending frame too large");
+                        }
+
+                        StreamStopSendingBody _ =
+                            await _reader.ReadStreamStopSendingAsync(dataSize, cancel).ConfigureAwait(false);
+                        if (TryGetStream(streamId.Value, out SlicMultiplexedStream? stream))
+                        {
+                            stream.TrySetWriteCompleted();
+                        }
+                        break;
+                    }
+                    case FrameType.UnidirectionalStreamReleased:
+                    {
+                        if (dataSize > 0)
+                        {
+                            throw new InvalidDataException("unidirectional stream released frame too large");
+                        }
+
+                        await _reader.ReadUnidirectionalStreamReleasedAsync(cancel).ConfigureAwait(false);
+
+                        // Release the unidirectional stream semaphore for the unidirectional stream.
+                        _unidirectionalStreamSemaphore!.Release();
+                        break;
+                    }
+                    default:
+                    {
+                        throw new InvalidDataException($"unexpected Slic frame with frame type '{type}'");
+                    }
+                }
+            }
+
+            bool IsKnownRemoteStream(long streamId, bool bidirectional)
+            {
+                lock (_mutex)
+                {
+                    if (bidirectional)
+                    {
+                        return streamId <= _lastRemoteBidirectionalStreamId;
+                    }
+                    else
+                    {
+                        return streamId <= _lastRemoteUnidirectionalStreamId;
+                    }
+                }
             }
         }
 

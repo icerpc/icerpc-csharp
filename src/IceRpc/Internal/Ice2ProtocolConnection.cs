@@ -729,7 +729,10 @@ namespace IceRpc.Internal
             BufferWriter.Position sizePos = encoder.StartFixedLengthSize();
             frameEncodeAction?.Invoke(encoder);
             encoder.EndFixedLengthSize(sizePos);
-            await _controlStream!.WriteAsync(bufferWriter.Finish(), false, cancel).ConfigureAwait(false);
+            await _controlStream!.WriteAsync(
+                bufferWriter.Finish(),
+                frameType == Ice2FrameType.GoAwayCompleted,
+                cancel).ConfigureAwait(false);
         }
 
         private async Task WaitForShutdownAsync(CancellationToken cancel)
