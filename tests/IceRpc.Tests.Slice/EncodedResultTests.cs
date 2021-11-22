@@ -9,18 +9,18 @@ namespace IceRpc.Tests.Slice
     [Parallelizable(ParallelScope.All)]
     [TestFixture(ProtocolCode.Ice1)]
     [TestFixture(ProtocolCode.Ice2)]
-    public sealed class MarshaledResultTests : IAsyncDisposable
+    public sealed class EncodedResultTests : IAsyncDisposable
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly MarshaledResultOperationsPrx _prx;
+        private readonly EncodedResultOperationsPrx _prx;
 
-        public MarshaledResultTests(ProtocolCode protocol)
+        public EncodedResultTests(ProtocolCode protocol)
         {
             Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
             _server = new Server
             {
-                Dispatcher = new MarshaledResultOperations(),
+                Dispatcher = new EncodedResultOperations(),
                 Endpoint = serverEndpoint
             };
             _server.Listen();
@@ -28,7 +28,7 @@ namespace IceRpc.Tests.Slice
             {
                 RemoteEndpoint = serverEndpoint
             };
-            _prx = MarshaledResultOperationsPrx.FromConnection(_connection);
+            _prx = EncodedResultOperationsPrx.FromConnection(_connection);
             Assert.AreEqual(protocol, _prx.Proxy.Protocol.Code);
         }
 
@@ -40,7 +40,7 @@ namespace IceRpc.Tests.Slice
         }
 
         [Test]
-        public async Task Invocation_MarshalledResultAsync()
+        public async Task Invocation_EncodedResultAsync()
         {
             // TODO Parse below should not use a connection with a different endpoint
             await Test1Async(p1 => _prx.OpAnotherStruct1Async(p1),
@@ -83,50 +83,50 @@ namespace IceRpc.Tests.Slice
             }
         }
 
-        public class MarshaledResultOperations : Service, IMarshaledResultOperations
+        public class EncodedResultOperations : Service, IEncodedResultOperations
         {
-            // Marshalled result
-            public ValueTask<IMarshaledResultOperations.OpAnotherStruct1EncodedReturnValue> OpAnotherStruct1Async(
+            // Encoded result
+            public ValueTask<IEncodedResultOperations.OpAnotherStruct1EncodedResult> OpAnotherStruct1Async(
                 AnotherStruct p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IMarshaledResultOperations.OpAnotherStruct1EncodedReturnValue(p1, dispatch));
+                new(new IEncodedResultOperations.OpAnotherStruct1EncodedResult(p1, dispatch));
 
-            public ValueTask<IMarshaledResultOperations.OpAnotherStruct2EncodedReturnValue> OpAnotherStruct2Async(
+            public ValueTask<IEncodedResultOperations.OpAnotherStruct2EncodedResult> OpAnotherStruct2Async(
                 AnotherStruct p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IMarshaledResultOperations.OpAnotherStruct2EncodedReturnValue(p1, p1, dispatch));
+                new(new IEncodedResultOperations.OpAnotherStruct2EncodedResult(p1, p1, dispatch));
 
-            public ValueTask<IMarshaledResultOperations.OpStringSeq1EncodedReturnValue> OpStringSeq1Async(
+            public ValueTask<IEncodedResultOperations.OpStringSeq1EncodedResult> OpStringSeq1Async(
                 string[] p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IMarshaledResultOperations.OpStringSeq1EncodedReturnValue(p1, dispatch));
+                new(new IEncodedResultOperations.OpStringSeq1EncodedResult(p1, dispatch));
 
-            public ValueTask<IMarshaledResultOperations.OpStringSeq2EncodedReturnValue> OpStringSeq2Async(
+            public ValueTask<IEncodedResultOperations.OpStringSeq2EncodedResult> OpStringSeq2Async(
                 string[] p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IMarshaledResultOperations.OpStringSeq2EncodedReturnValue(p1, p1, dispatch));
+                new(new IEncodedResultOperations.OpStringSeq2EncodedResult(p1, p1, dispatch));
 
-            public ValueTask<IMarshaledResultOperations.OpStringDict1EncodedReturnValue> OpStringDict1Async(
+            public ValueTask<IEncodedResultOperations.OpStringDict1EncodedResult> OpStringDict1Async(
                 Dictionary<string, string> p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IMarshaledResultOperations.OpStringDict1EncodedReturnValue(p1, dispatch));
+                new(new IEncodedResultOperations.OpStringDict1EncodedResult(p1, dispatch));
 
-            public ValueTask<IMarshaledResultOperations.OpStringDict2EncodedReturnValue> OpStringDict2Async(
+            public ValueTask<IEncodedResultOperations.OpStringDict2EncodedResult> OpStringDict2Async(
                 Dictionary<string, string> p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IMarshaledResultOperations.OpStringDict2EncodedReturnValue(p1, p1, dispatch));
+                new(new IEncodedResultOperations.OpStringDict2EncodedResult(p1, p1, dispatch));
 
-            public ValueTask<IMarshaledResultOperations.OpMyClassAEncodedReturnValue> OpMyClassAAsync(
+            public ValueTask<IEncodedResultOperations.OpMyClassAEncodedResult> OpMyClassAAsync(
                 MyClassA p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IMarshaledResultOperations.OpMyClassAEncodedReturnValue(p1));
+                new(new IEncodedResultOperations.OpMyClassAEncodedResult(p1));
         }
     }
 }
