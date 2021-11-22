@@ -137,16 +137,9 @@ pub fn decode_tagged_member(member: &impl Member, namespace: &str, param: &str) 
 pub fn decode_dictionary(dictionary_ref: &TypeRef<Dictionary>, namespace: &str) -> CodeBlock {
     let key_type = &dictionary_ref.key_type;
     let value_type = &dictionary_ref.value_type;
-    let with_bit_sequence = value_type.is_bit_sequence_encodable();
-
-    let mut args = vec![format!("minKeySize: {}", key_type.min_wire_size())];
-
-    if !with_bit_sequence {
-        args.push(format!("minValueSize: {}", value_type.min_wire_size()));
-    }
 
     // decode key
-    args.push(decode_func(key_type, namespace).to_string());
+    let mut decode_key = decode_func(key_type, namespace);
 
     // decode value
     let mut decode_value = decode_func(value_type, namespace);
@@ -160,27 +153,42 @@ pub fn decode_dictionary(dictionary_ref: &TypeRef<Dictionary>, namespace: &str) 
             value_type.to_type_string(namespace, TypeContext::Nested, false)
         );
     }
-    args.push(decode_value.to_string());
 
-    let mut method = match dictionary_ref.get_attribute("cs:generic", false) {
+    let method = match dictionary_ref.get_attribute("cs:generic", false) {
         Some(attributes) if attributes.first().unwrap() == "SortedDictionary" => {
             String::from("DecodeSortedDictionary")
         }
         _ => String::from("DecodeDictionary"),
     };
 
-    if with_bit_sequence {
-        method += "WithBitSequence";
+    if value_type.is_bit_sequence_encodable() {
+        format!(
+            "\
+decoder.{method}WithBitSequence(
+    minKeySize: {min_key_size},
+    {decode_key},
+    {decode_value})",
+            method = method,
+            min_key_size = key_type.min_wire_size(),
+            decode_key = decode_key.indent(),
+            decode_value = decode_value.indent()
+        )
+    } else {
+        format!(
+            "\
+decoder.{method}(
+    minKeySize: {min_key_size},
+    minValueSize: {min_value_size},
+    {decode_key},
+    {decode_value})",
+            method = method,
+            min_key_size = key_type.min_wire_size(),
+            min_value_size = value_type.min_wire_size(),
+            decode_key = decode_key.indent(),
+            decode_value = decode_value.indent()
+        )
     }
-
-    let mut code = CodeBlock::new();
-    write!(
-        code,
-        "decoder.{method}({args})",
-        method = method,
-        args = args.join(", ")
-    );
-    code
+    .into()
 }
 
 pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str) -> CodeBlock {
@@ -209,8 +217,11 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str) -> Cod
                     )
                 } else {
                     format!(
-                        "decoder.DecodeArray(({enum_type_name} e) => _ = {helper}.As{name}(({underlying_type})e))",
-                        enum_type_name = element_type.to_type_string(namespace, TypeContext::Incoming, false),
+                        "\
+decoder.DecodeArray(
+    ({enum_type_name} e) => _ = {helper}.As{name}(({underlying_type})e))",
+                        enum_type_name =
+                            element_type.to_type_string(namespace, TypeContext::Incoming, false),
                         helper = enum_def.helper_name(namespace),
                         name = enum_def.identifier(),
                         underlying_type = enum_def.underlying_type().cs_keyword()
@@ -220,12 +231,17 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str) -> Cod
             _ => {
                 if element_type.is_bit_sequence_encodable() {
                     format!(
-                        "decoder.DecodeSequenceWithBitSequence({})",
+                        "\
+decoder.DecodeSequenceWithBitSequence(
+    {})",
                         decode_func(element_type, namespace)
                     )
                 } else {
                     format!(
-                        "decoder.DecodeSequence(minElementSize: {}, {})",
+                        "\
+decoder.DecodeSequence(
+    minElementSize: {},
+    {})",
                         element_type.min_wire_size(),
                         decode_func(element_type, namespace)
                     )
@@ -245,7 +261,9 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str) -> Cod
     } else if element_type.is_bit_sequence_encodable() {
         write!(
             code,
-            "decoder.DecodeSequenceWithBitSequence({}).ToArray()",
+            "\
+decoder.DecodeSequenceWithBitSequence(
+    {}).ToArray()",
             decode_func(element_type, namespace)
         )
     } else {
@@ -267,17 +285,24 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str) -> Cod
                 } else {
                     write!(
                         code,
-                        "decoder.DecodeArray(({enum_type} e) => _ = {helper}.As{name}(({underlying_type})e))",
-                        enum_type = element_type.to_type_string(namespace, TypeContext::Incoming, false),
+                        "\
+decoder.DecodeArray(
+    ({enum_type} e) => _ = {helper}.As{name}(({underlying_type})e))",
+                        enum_type =
+                            element_type.to_type_string(namespace, TypeContext::Incoming, false),
                         helper = enum_def.helper_name(namespace),
                         name = enum_def.identifier(),
-                        underlying_type = enum_def.underlying_type().cs_keyword());
+                        underlying_type = enum_def.underlying_type().cs_keyword()
+                    );
                 }
             }
             _ => {
                 write!(
                     code,
-                    "decoder.DecodeSequence(minElementSize: {}, {}).ToArray()",
+                    "\
+decoder.DecodeSequence(
+    minElementSize: {},
+    {}).ToArray()",
                     element_type.min_wire_size(),
                     decode_func(element_type, namespace)
                 )
