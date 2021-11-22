@@ -35,7 +35,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 RemoteEndpoint = serverEndpoint,
                 LoggerFactory = LogAttributeLoggerFactory.Instance,
-                ConnectionOptions = new Configure.ConnectionOptions { IncomingFrameMaxSize = 2048 * 1024 }
+                Options = new Configure.ConnectionOptions { IncomingFrameMaxSize = 2048 * 1024 }
             };
             Prx = StressTestPrx.FromConnection(Connection);
             Server.Listen();
