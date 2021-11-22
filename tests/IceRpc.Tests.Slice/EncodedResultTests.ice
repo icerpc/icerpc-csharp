@@ -2,7 +2,7 @@
 
 module IceRpc::Tests::Slice
 {
-    interface  MarshaledResultOperations
+    interface EncodedResultOperations
     {
         [cs:encoded-result] AnotherStruct opAnotherStruct1(AnotherStruct p1);
         [cs:encoded-result] (AnotherStruct r1, AnotherStruct r2) opAnotherStruct2(AnotherStruct p1);

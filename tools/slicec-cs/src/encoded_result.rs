@@ -13,7 +13,7 @@ use crate::dispatch_visitor::response_encode_action;
 pub fn encoded_result_struct(operation: &Operation) -> CodeBlock {
     assert!(operation.has_encoded_result());
     let operation_name = operation.escape_identifier();
-    let struct_name = format!("{}EncodedReturnValue", operation_name);
+    let struct_name = format!("{}EncodedResult", operation_name);
     let namespace = operation.namespace();
     let access = operation.access_modifier();
     let parameters = operation.return_members();

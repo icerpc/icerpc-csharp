@@ -100,11 +100,11 @@ module IceRpc::Tests::Slice
         (tag(1) OptionalStringDict? r1, tag(2) OptionalStringDict? r2) opOptionalStringDict(tag(1) OptionalStringDict? p1);
     }
 
-    interface OperationTagMarshaledResult
+    interface OperationTagEncodedResult
     {
-        [cs:encoded-result] tag(1) MyStruct? opMyStructMarshaledResult(tag(1) MyStruct? p1);
-        [cs:encoded-result] tag(1) StringSeq? opStringSeqMarshaledResult(tag(1) StringSeq? p1);
-        [cs:encoded-result] tag(1) IntDict? opIntDictMarshaledResult(tag(1) IntDict? p1);
+        [cs:encoded-result] tag(1) MyStruct? opMyStruct(tag(1) MyStruct? p1);
+        [cs:encoded-result] tag(1) StringSeq? opStringSeq(tag(1) StringSeq? p1);
+        [cs:encoded-result] tag(1) IntDict? opIntDict(tag(1) IntDict? p1);
     }
 
     interface OperationTag
