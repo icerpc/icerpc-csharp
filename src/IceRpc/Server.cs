@@ -136,7 +136,7 @@ namespace IceRpc
                     _listener = listener;
 
                     protocolConnectionFactory =
-                        new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, _endpoint, logger);
+                        new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, logger);
 
                     closedEventHandler = (sender, args) =>
                     {

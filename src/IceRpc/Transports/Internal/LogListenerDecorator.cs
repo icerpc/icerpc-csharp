@@ -17,7 +17,7 @@ namespace IceRpc.Transports.Internal
             try
             {
                 T connection = await _decoratee.AcceptAsync().ConfigureAwait(false);
-                return _logDecoratorFactory(connection, isServer: true, _logger);
+                return _logDecoratorFactory(connection, _decoratee.Endpoint, isServer: true, _logger);
             }
             catch (ObjectDisposedException)
             {

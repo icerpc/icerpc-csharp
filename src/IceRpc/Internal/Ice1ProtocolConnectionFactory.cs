@@ -8,15 +8,13 @@ namespace IceRpc.Internal
     /// <summary>Creates an ice1 protocol connection from a simple network connection.</summary>
     internal class Ice1ProtocolConnectionFactory : IProtocolConnectionFactory<ISimpleNetworkConnection>
     {
-        public async Task<(IProtocolConnection, NetworkConnectionInformation)> CreateProtocolConnectionAsync(
+        public async Task<IProtocolConnection> CreateProtocolConnectionAsync(
             ISimpleNetworkConnection networkConnection,
+            NetworkConnectionInformation connectionInfo,
             int incomingFrameMaxSize,
             bool isServer,
             CancellationToken cancel)
         {
-            NetworkConnectionInformation connectionInfo =
-                await networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
-
             // Check if we're using the special udp transport for ice1
             bool isUdp = connectionInfo.LocalEndpoint.Transport == TransportNames.Udp;
             if (isUdp)
@@ -34,7 +32,7 @@ namespace IceRpc.Internal
                 protocolConnection.Dispose();
                 throw;
             }
-            return (protocolConnection, connectionInfo);
+            return protocolConnection;
         }
     }
 }

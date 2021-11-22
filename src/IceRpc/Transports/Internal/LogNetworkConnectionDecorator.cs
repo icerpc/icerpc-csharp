@@ -8,6 +8,7 @@ namespace IceRpc.Transports.Internal
 {
     internal delegate T LogNetworkConnectionDecoratorFactory<T>(
         T decoratee,
+        Endpoint endpoint,
         bool isServer,
         ILogger logger) where T : INetworkConnection;
 
@@ -20,12 +21,16 @@ namespace IceRpc.Transports.Internal
 
         private protected bool IsServer { get; }
 
+        private readonly Endpoint _endpoint;
+
         private protected NetworkConnectionInformation? Information { get; set; }
 
         private readonly INetworkConnection _decoratee;
 
         public virtual async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
         {
+            using IDisposable scope = Logger.StartNewConnectionScope(_endpoint, IsServer);
+
             try
             {
                 Information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
@@ -58,9 +63,14 @@ namespace IceRpc.Transports.Internal
 
         public override string? ToString() => _decoratee.ToString();
 
-        internal LogNetworkConnectionDecorator(INetworkConnection decoratee, bool isServer, ILogger logger)
+        internal LogNetworkConnectionDecorator(
+            INetworkConnection decoratee,
+            Endpoint endpoint,
+            bool isServer,
+            ILogger logger)
         {
             _decoratee = decoratee;
+            _endpoint = endpoint;
             IsServer = isServer;
             Logger = logger;
         }
