@@ -94,7 +94,12 @@ namespace IceRpc.Tests.ClientServer
 
                 Assert.ThrowsAsync<ProtocolBridgingException>(async () => await prx.OpExceptionAsync());
 
-                Assert.ThrowsAsync<ServiceNotFoundException>(async () => await prx.OpServiceNotFoundExceptionAsync());
+                ServiceNotFoundException exception = Assert.ThrowsAsync<ServiceNotFoundException>(
+                    async () => await prx.OpServiceNotFoundExceptionAsync());
+
+                // Verifies the exception is correctly populated:
+                Assert.AreEqual("/target", exception.Origin.Path);
+                Assert.AreEqual("opServiceNotFoundException", exception.Origin.Operation);
 
                 ProtocolBridgingTestPrx newProxy = await prx.OpNewProxyAsync();
                 return newProxy;
