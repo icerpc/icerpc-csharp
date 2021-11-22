@@ -583,7 +583,10 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         class_builder.add_block(format!(
             r#"
 /// <summary>The <see cref="ResponseDecodeFunc{{T}}"/> for the return value type of operation {name}.</summary>
-{access} static {return_type} {escaped_name}(IceRpc.IncomingResponse response, IceRpc.IInvoker? invoker, IceRpc.Slice.StreamParamReceiver? streamParamReceiver) =>
+{access} static {return_type} {escaped_name}(
+    IceRpc.IncomingResponse response,
+    IceRpc.IInvoker? invoker,
+    IceRpc.Slice.StreamParamReceiver? streamParamReceiver) =>
     response.ToReturnValue(
         invoker,
         {decoder},
@@ -596,7 +599,6 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             response_decode_func = response_decode_func(operation).indent()
         ).into());
     }
-
     class_builder.build().into()
 }
 
@@ -647,7 +649,11 @@ fn response_decode_func(operation: &Operation) -> CodeBlock {
         decode_func(members.first().unwrap().data_type(), namespace)
     } else {
         format!(
-            "decoder => {{ {decode} }}",
+            "\
+decoder =>
+{{
+    {decode}
+}}",
             decode = decode_operation(operation, false).indent()
         )
         .into()
