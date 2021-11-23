@@ -42,11 +42,6 @@ build_icerpc()
     run_command dotnet "build" "-c" "$dotnet_config"
 }
 
-build_examples()
-{
-    run_command dotnet "build" "-c" "$dotnet_config" examples/**/*.sln
-}
-
 pack()
 {
     run_command dotnet "pack" "-c" "$dotnet_config"
@@ -71,7 +66,7 @@ build()
             run_command rm "-rf" "$global_packages/icerpc" "$global_packages/icerpc.interop"
             run_command dotnet "nuget" "push" "lib/*.nupkg" "--source" "$global_packages"
         fi
-        build_examples
+        run_command dotnet "build" "-c" "$dotnet_config" examples/**/*.sln
     fi
 }
 
