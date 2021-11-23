@@ -470,7 +470,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
         // Call to_type_string on the parameter itself to get its stream qualifier.
         let stream_type_str = stream_member.to_type_string(namespace, TypeContext::Incoming, false);
 
-        let mut create_stream_param: CodeBlock = match param_type.concrete_type() {
+        let create_stream_param: CodeBlock = match param_type.concrete_type() {
             Types::Primitive(primitive) if matches!(primitive, Primitive::Byte) => {
                 if dispatch {
                     "IceRpc.Slice.StreamParamReceiver.ToByteStream(request);".into()
@@ -487,7 +487,7 @@ IceRpc.Slice.StreamParamReceiver.ToAsyncEnumerable<{param_type}>(
     request.GetIceDecoderFactory(_defaultIceDecoderFactories),
     {decode_func});",
                         param_type = param_type_str,
-                        decode_func = decode_func(param_type, namespace)
+                        decode_func = decode_func(param_type, namespace).indent()
                     )
                     .into()
                 } else {
@@ -499,7 +499,7 @@ streamParamReceiver!.ToAsyncEnumerable<{param_type}>(
     response.GetIceDecoderFactory(_defaultIceDecoderFactories),
     {decode_func});",
                         param_type = param_type_str,
-                        decode_func = decode_func(param_type, namespace)
+                        decode_func = decode_func(param_type, namespace).indent()
                     )
                     .into()
                 }
@@ -511,7 +511,7 @@ streamParamReceiver!.ToAsyncEnumerable<{param_type}>(
             "{stream_param_type} {param_name} = {create_stream_param}",
             stream_param_type = stream_type_str,
             param_name = stream_member.parameter_name_with_prefix("iceP_"),
-            create_stream_param = create_stream_param.indent()
+            create_stream_param = create_stream_param
         );
     }
 

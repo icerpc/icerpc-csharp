@@ -320,28 +320,26 @@ new IceRpc.Slice.AsyncEnumerableStreamParamSender<{stream_type}>(
         invoke_args.push("Response.".to_owned() + &operation_name);
     } else if let Some(stream_return) = stream_return {
         let stream_type = stream_return.data_type();
-        let stream_return_func = match stream_type.concrete_type() {
+        let mut stream_return_func: CodeBlock = match stream_type.concrete_type() {
             Types::Primitive(primitive) if matches!(primitive, Primitive::Byte) => {
-                "streamParamReceiver!.ToByteStream()".to_owned()
+                "streamParamReceiver!.ToByteStream()".into()
             }
-            _ => {
-                format!(
-                    "\
+            _ => format!(
+                "\
 streamParamReceiver!.ToAsyncEnumerable<{stream_type}>(
     response,
     invoker,
     response.GetIceDecoderFactory(_defaultIceDecoderFactories),
     {decode_func})",
-                    stream_type =
-                        stream_type.to_type_string(namespace, TypeContext::Incoming, false),
-                    decode_func = decode_func(stream_type, namespace).indent()
-                )
-            }
+                stream_type = stream_type.to_type_string(namespace, TypeContext::Incoming, false),
+                decode_func = decode_func(stream_type, namespace).indent()
+            )
+            .into(),
         };
 
         invoke_args.push(format!(
             "(response, invoker, streamParamReceiver) => {}",
-            stream_return_func,
+            stream_return_func.indent(),
         ));
     }
 
@@ -361,12 +359,17 @@ streamParamReceiver!.ToAsyncEnumerable<{stream_type}>(
 
     invoke_args.push(format!("cancel: {}", cancel_parameter));
 
-    body.writeln(&format!(
+    writeln!(
+        body,
         "\
 return Proxy.InvokeAsync(
     {});",
-        args = invoke_args.join(",\n    ")
-    ));
+        invoke_args
+            .iter()
+            .map(|arg| CodeBlock::from(arg.clone()).indent().to_string())
+            .collect::<Vec<_>>()
+            .join(",")
+    );
 
     builder.set_body(body);
 
