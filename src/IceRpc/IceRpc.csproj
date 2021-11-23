@@ -5,13 +5,10 @@
         <Title>IceRpc .NET library</Title>
         <OutputPath>../../lib</OutputPath>
         <TargetFramework>net6.0</TargetFramework>
-
         <AnalysisMode>AllEnabledByDefault</AnalysisMode>
-
-        <PackageVersion>4.0.0-alpha.0</PackageVersion>
-
+        <PackageVersion>0.1.0-preview1</PackageVersion>
         <Authors>ZeroC</Authors>
-        <PackageId>zeroc.ice.net</PackageId>
+        <PackageId>icerpc</PackageId>
         <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
         <PackageProjectUrl>https://github.com/zeroc-ice/icerpc-csharp</PackageProjectUrl>
         <PackageIcon>logo.png</PackageIcon>
@@ -35,9 +32,9 @@
         <PackagePath></PackagePath>
         <Pack>true</Pack>
       </Content>
-      <Content Include="..\..\build\zeroc.ice.net.props">
+      <Content Include="..\..\tools\slicec-cs\target\$(RustConfiguration)\$(SliceCompilerExe)">
+          <PackagePath>tools</PackagePath>
           <Pack>true</Pack>
-          <PackagePath>build</PackagePath>
       </Content>
       <None Include="..\..\build\logo.png">
           <Pack>True</Pack>
@@ -46,6 +43,10 @@
       <Content Include="$(IceToolsPath)\slice2cs*">
           <Pack>true</Pack>
           <PackagePath>tools</PackagePath>
+      </Content>
+      <Content Include="icerpc.props">
+          <Pack>true</Pack>
+          <PackagePath>build</PackagePath>
       </Content>
       <Content Include="..\..\slice\**\*.ice">
         <Pack>true</Pack>

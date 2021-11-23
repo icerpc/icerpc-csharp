@@ -32,7 +32,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="6.0.0" />
     <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview1" PrivateAssets="All" />
-    <PackageReference Include="zeroc.ice.net" Version="4.0.0-alpha.0" />
+    <PackageReference Include="icerpc" Version="0.1.0-preview1" />
     <Compile Update="generated\Hello.cs">
       <SliceCompileSource>../Hello.ice</SliceCompileSource>
     </Compile>
