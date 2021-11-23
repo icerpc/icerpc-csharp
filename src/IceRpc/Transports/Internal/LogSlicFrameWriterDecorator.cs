@@ -115,6 +115,11 @@ namespace IceRpc.Transports.Internal
                     _logger.LogSentSlicStopSendingFrame(dataSize, (byte)stopSendingBody.ApplicationProtocolErrorCode);
                     break;
                 }
+                case FrameType.UnidirectionalStreamReleased:
+                {
+                    _logger.LogSentSlicUnidirectionalStreamReleasedFrame();
+                    break;
+                }
                 default:
                 {
                     Debug.Assert(false, $"unexpected Slic frame {type}");

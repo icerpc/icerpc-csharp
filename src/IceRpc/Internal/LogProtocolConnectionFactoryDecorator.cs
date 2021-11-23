@@ -9,38 +9,34 @@ namespace IceRpc.Internal
     internal class LogProtocolConnectionFactoryDecorator<T> : IProtocolConnectionFactory<T> where T : INetworkConnection
     {
         private readonly IProtocolConnectionFactory<T> _decoratee;
-        private readonly Endpoint _endpoint;
         private readonly ILogger _logger;
 
-        async Task<(IProtocolConnection, NetworkConnectionInformation)> IProtocolConnectionFactory<T>.CreateProtocolConnectionAsync(
+        async Task<IProtocolConnection> IProtocolConnectionFactory<T>.CreateProtocolConnectionAsync(
             T networkConnection,
+            NetworkConnectionInformation connectionInformation,
             int incomingFrameMaxSize,
             bool isServer,
             CancellationToken cancel)
         {
-            using IDisposable scope = _logger.StartNewConnectionScope(_endpoint, isServer);
+            using IDisposable scope = _logger.StartConnectionScope(connectionInformation, isServer);
 
-            (IProtocolConnection protocolConnection, NetworkConnectionInformation connectionInformation) =
-            await _decoratee.CreateProtocolConnectionAsync(networkConnection,
-                                                           incomingFrameMaxSize,
-                                                           isServer,
-                                                           cancel).ConfigureAwait(false);
+            IProtocolConnection protocolConnection = await _decoratee.CreateProtocolConnectionAsync(
+                networkConnection,
+                connectionInformation,
+                incomingFrameMaxSize,
+                isServer,
+                cancel).ConfigureAwait(false);
 
             _logger.LogCreateProtocolConnection(connectionInformation.LocalEndpoint.Protocol,
                                                 connectionInformation.LocalEndpoint,
                                                 connectionInformation.RemoteEndpoint);
 
-            return (new LogProtocolConnectionDecorator(protocolConnection, connectionInformation, isServer, _logger),
-                    connectionInformation);
+            return new LogProtocolConnectionDecorator(protocolConnection, connectionInformation, isServer, _logger);
         }
 
-        internal LogProtocolConnectionFactoryDecorator(
-            IProtocolConnectionFactory<T> decoratee,
-            Endpoint endpoint,
-            ILogger logger)
+        internal LogProtocolConnectionFactoryDecorator(IProtocolConnectionFactory<T> decoratee, ILogger logger)
         {
             _decoratee = decoratee;
-            _endpoint = endpoint;
             _logger = logger;
         }
     }

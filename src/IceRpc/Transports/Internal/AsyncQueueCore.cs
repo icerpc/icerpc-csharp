@@ -7,7 +7,8 @@ using System.Threading.Tasks.Sources;
 namespace IceRpc.Transports.Internal
 {
     /// <summary>This interface is required because AsyncQueueCore is a struct and we can't reference a struct from a
-    /// lambda expression. The struct would be copied. This is necessary for the implementation of WaitAsync.</summary>
+    /// lambda expression. The struct would be copied. This is necessary for the implementation of the DequeueAsync
+    /// cancellation.</summary>
     internal interface IAsyncQueueValueTaskSource<T> : IValueTaskSource<T>
     {
         void Cancel();
@@ -29,8 +30,8 @@ namespace IceRpc.Transports.Internal
         private ManualResetValueTaskSourceCore<T> _source = new() { RunContinuationsAsynchronously = true };
         private CancellationTokenRegistration _tokenRegistration;
 
-        /// <summary>Cancel the pending <see cref="WaitAsync"/> and discard queued items.</summary>
-        internal void Cancel()
+        /// <summary>Complete the pending <see cref="DequeueAsync"/> and discard queued items.</summary>
+        internal void Complete(Exception exception)
         {
             bool lockTaken = false;
             try
@@ -45,7 +46,7 @@ namespace IceRpc.Transports.Internal
                 // exception is consumed.
                 if (_source.GetStatus(_source.Version) == ValueTaskSourceStatus.Pending)
                 {
-                    _source.SetException(new OperationCanceledException());
+                    _source.SetException(exception);
                 }
             }
             finally
@@ -57,7 +58,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal void Enqueue(T result)
+        internal void Enqueue(T value)
         {
             bool lockTaken = false;
             try
@@ -70,14 +71,14 @@ namespace IceRpc.Transports.Internal
                         // If the source is pending, set the result on the source result. The  queue should be empty if
                         // the source is pending.
                         Debug.Assert(_queue == null || _queue.Count == 0);
-                        _source.SetResult(result);
+                        _source.SetResult(value);
                     }
                     else
                     {
-                        // Create the queue if needed and queue the result. If will be consumed once the source's result is
-                        // consumed.
+                        // Create the queue if needed and queue the result. If will be consumed once the source's result
+                        // is consumed.
                         _queue ??= new();
-                        _queue.Enqueue(result);
+                        _queue.Enqueue(value);
                     }
                 }
             }
@@ -155,7 +156,7 @@ namespace IceRpc.Transports.Internal
             _source.OnCompleted(continuation, state, token, flags);
         }
 
-        internal ValueTask<T> WaitAsync(IAsyncQueueValueTaskSource<T> valueTaskSource, CancellationToken cancel)
+        internal ValueTask<T> DequeueAsync(IAsyncQueueValueTaskSource<T> valueTaskSource, CancellationToken cancel)
         {
             if (cancel.CanBeCanceled)
             {

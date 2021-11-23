@@ -13,7 +13,7 @@ namespace IceRpc.Transports.Internal
         public void Dispose() => _receiver.Dispose();
 
         public ValueTask ReadFrameDataAsync(Memory<byte> buffer, CancellationToken cancel) =>
-            _receiver.ReceiveAsync(buffer, cancel);
+            buffer.IsEmpty ? default : _receiver.ReceiveAsync(buffer, cancel);
 
         public async ValueTask<(FrameType, int, long?)> ReadFrameHeaderAsync(CancellationToken cancel)
         {

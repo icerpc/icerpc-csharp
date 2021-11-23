@@ -77,8 +77,7 @@ namespace IceRpc.Tests.Internal
         public async Task MultiplexedNetworkConnection_AcceptStream_DisposeAsync()
         {
             await ClientConnection.DisposeAsync();
-            Assert.CatchAsync<ObjectDisposedException>(
-                async () => await ServerConnection.AcceptStreamAsync(default));
+            Assert.CatchAsync<ObjectDisposedException>(async () => await ServerConnection.AcceptStreamAsync(default));
         }
 
         [TestCase(false)]
@@ -109,9 +108,6 @@ namespace IceRpc.Tests.Internal
                 await serverStreams.Last().ReadAsync(CreateReceivePayload(), default);
             }
 
-            // Ensure the client side accepts streams to receive data.
-            ValueTask<IMultiplexedStream> acceptClientStream = ClientConnection.AcceptStreamAsync(default);
-
             IMultiplexedStream clientStream = ClientConnection.CreateStream(true);
             ValueTask sendTask = clientStream.WriteAsync(CreateSendPayload(clientStream), true, default);
             ValueTask<IMultiplexedStream> acceptTask = ServerConnection.AcceptStreamAsync(default);
@@ -127,7 +123,6 @@ namespace IceRpc.Tests.Internal
             // Close one stream by sending EOS after receiving the payload.
             await serverStreams.Last().WriteAsync(CreateSendPayload(serverStreams.Last()), true, default);
             await clientStreams.Last().ReadAsync(CreateReceivePayload(), default);
-            Assert.That(acceptClientStream.IsCompleted, Is.False);
 
             // Now it should be possible to accept the new stream on the server side.
             await sendTask;
@@ -142,9 +137,6 @@ namespace IceRpc.Tests.Internal
                 _serverSlicOptions!.BidirectionalStreamMaxCount :
                 _serverSlicOptions!.UnidirectionalStreamMaxCount;
             int streamCount = 0;
-
-            // Ensure the client side accepts streams to receive payloads.
-            _ = ClientConnection.AcceptStreamAsync(default).AsTask();
 
             // Send many payloads and receive the payloads.
             for (int i = 0; i < 10 * maxCount; ++i)
@@ -207,9 +199,6 @@ namespace IceRpc.Tests.Internal
                 await stream.WriteAsync(CreateSendPayload(stream), true, default);
             }
 
-            // Ensure the client side accepts streams to receive acknowledgement of stream completion.
-            ValueTask<IMultiplexedStream> acceptClientStream = ClientConnection.AcceptStreamAsync(default);
-
             IMultiplexedStream clientStream = ClientConnection.CreateStream(false);
             ValueTask sendTask = clientStream.WriteAsync(CreateSendPayload(clientStream), true, default);
 
@@ -226,8 +215,6 @@ namespace IceRpc.Tests.Internal
 
             // Close the server-side stream by receiving the payload from the stream.
             await serverStream.ReadAsync(CreateReceivePayload(), default);
-
-            Assert.That(acceptClientStream.IsCompleted, Is.False);
 
             // The send task of the new stream should now succeed.
             await sendTask;

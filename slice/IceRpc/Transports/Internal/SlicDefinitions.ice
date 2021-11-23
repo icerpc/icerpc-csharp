@@ -26,7 +26,10 @@ module IceRpc::Transports::Internal
         /// peer can send additional data after receiving this frame.
         StreamConsumed,
         /// The stream stop sending frame is sent to notify the peer it should stop sending data.
-        StreamStopSending
+        StreamStopSending,
+        /// The unidirectional stream released frame notifies the stream initiator that the remote side released
+        /// the stream.
+        UnidirectionalStreamReleased,
     }
 
     /// The keys for supported Slic connection parameters exchanged with the Initialize and

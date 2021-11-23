@@ -24,14 +24,16 @@ namespace IceRpc.Transports.Internal
 
         internal static ISimpleNetworkConnection Decorate(
             ISimpleNetworkConnection decoratee,
+            Endpoint endpoint,
             bool isServer,
             ILogger logger) =>
-            new LogSimpleNetworkConnectionDecorator(decoratee, isServer, logger);
+            new LogSimpleNetworkConnectionDecorator(decoratee, endpoint, isServer, logger);
 
         internal LogSimpleNetworkConnectionDecorator(
             ISimpleNetworkConnection decoratee,
+            Endpoint endpoint,
             bool isServer,
             ILogger logger)
-            : base(decoratee, isServer, logger) => _decoratee = decoratee;
+            : base(decoratee, endpoint, isServer, logger) => _decoratee = decoratee;
     }
 }

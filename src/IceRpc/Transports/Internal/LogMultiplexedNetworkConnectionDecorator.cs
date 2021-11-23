@@ -22,15 +22,17 @@ namespace IceRpc.Transports.Internal
 
         internal static IMultiplexedNetworkConnection Decorate(
             IMultiplexedNetworkConnection decoratee,
+            Endpoint endpoint,
             bool isServer,
             ILogger logger) =>
-            new LogMultiplexedNetworkConnectionDecorator(decoratee, isServer, logger);
+            new LogMultiplexedNetworkConnectionDecorator(decoratee, endpoint, isServer, logger);
 
         private LogMultiplexedNetworkConnectionDecorator(
             IMultiplexedNetworkConnection decoratee,
+            Endpoint endpoint,
             bool isServer,
             ILogger logger)
-            : base(decoratee, isServer, logger) =>  _decoratee = decoratee;
+            : base(decoratee, endpoint, isServer, logger) =>  _decoratee = decoratee;
     }
 
     internal sealed class LogMultiplexedStreamDecorator : IMultiplexedStream
