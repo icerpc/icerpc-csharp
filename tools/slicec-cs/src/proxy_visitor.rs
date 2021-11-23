@@ -586,16 +586,16 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
     IceRpc.IncomingResponse response,
     IceRpc.IInvoker? invoker,
     IceRpc.Slice.StreamParamReceiver? streamParamReceiver) =>
-    response.ToReturnValue(
-        invoker,
-        {decoder},
-        {response_decode_func});"#,
+        response.ToReturnValue(
+            invoker,
+            {decoder},
+            {response_decode_func});"#,
             name = operation.identifier(),
             access = access,
             escaped_name = operation.escape_identifier(),
             return_type = members.to_tuple_type( namespace, TypeContext::Incoming, false),
             decoder = decoder,
-            response_decode_func = response_decode_func(operation).indent().indent()
+            response_decode_func = response_decode_func(operation).indent().indent().indent()
         ).into());
     }
     class_builder.build().into()
