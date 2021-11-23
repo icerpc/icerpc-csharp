@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using IceRpc.Configure;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Api
@@ -88,6 +89,22 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(100, options.UnidirectionalStreamMaxCount);
             // Can't be less than 1
             Assert.Throws<ArgumentException>(() => options.UnidirectionalStreamMaxCount = 0);
+        }
+
+        [Test]
+        public void TransportOptions_CompositeSimpleServerTransport()
+        {
+            var transport = new CompositeSimpleServerTransport();
+            // AuthenticationOptions must be set for ssl transport
+            Assert.Throws<ArgumentException>(() => transport.UseSsl(new TcpServerOptions()));
+        }
+
+        [Test]
+        public void TransportOptions_CompositeSimpleClientTransport()
+        {
+            var transport = new CompositeSimpleClientTransport();
+            // AuthenticationOptions must be set for ssl transport
+            Assert.Throws<ArgumentException>(() => transport.UseSsl(new TcpClientOptions()));
         }
     }
 }

@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using IceRpc.Configure;
 using NUnit.Framework;
 using System.Net.Security;
 using System.Security.Authentication;
@@ -56,6 +57,62 @@ namespace IceRpc.Tests.ClientServer
             };
             var prx = ServicePrx.FromConnection(connection);
 
+            Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
+            Assert.That(connection.IsSecure, Is.True);
+        }
+
+        [TestCase("c_rsa_ca1.p12", "s_rsa_ca1.p12", "cacert1.der")]
+        public async Task TlsConfiguration_With_CompositeSimpleTransport(
+            string clientCertFile,
+            string serverCertFile,
+            string caFile)
+        {
+            await using var server = new Server
+            {
+                Dispatcher = new Greeter(),
+                Endpoint = GetTestEndpoint("127.0.0.1", transport: "ssl", protocol: IceRpc.Protocol.Ice1),
+                SimpleServerTransport = new CompositeSimpleServerTransport().UseSsl(
+                    new TcpServerOptions()
+                    {
+                        AuthenticationOptions = new()
+                        {
+                            ServerCertificate = new X509Certificate2(
+                                GetCertificatePath(serverCertFile),
+                                "password"),
+                            ClientCertificateRequired = true,
+                            RemoteCertificateValidationCallback =
+                                CertificateValidaton.GetServerCertificateValidationCallback(
+                                    certificateAuthorities: new X509Certificate2Collection
+                                    {
+                                        new X509Certificate2(GetCertificatePath(caFile))
+                                    })
+                        }
+                    })
+            };
+            server.Listen();
+
+            await using var connection = new Connection
+            {
+                SimpleClientTransport = new CompositeSimpleClientTransport().UseSsl(
+                    new TcpClientOptions
+                    {
+                        AuthenticationOptions = new()
+                        {
+                            ClientCertificates = new X509Certificate2Collection
+                                {
+                                    new X509Certificate2(GetCertificatePath(clientCertFile), "password")
+                                },
+                            RemoteCertificateValidationCallback =
+                                CertificateValidaton.GetServerCertificateValidationCallback(
+                                    certificateAuthorities: new X509Certificate2Collection
+                                    {
+                                        new X509Certificate2(GetCertificatePath(caFile))
+                                    })
+                        }
+                    }),
+                RemoteEndpoint = server.Endpoint
+            };
+            var prx = ServicePrx.FromConnection(connection);
             Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
             Assert.That(connection.IsSecure, Is.True);
         }
