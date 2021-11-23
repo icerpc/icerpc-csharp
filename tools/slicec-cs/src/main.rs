@@ -116,7 +116,7 @@ fn try_main() -> Result<(), ()> {
                     .collect::<CodeBlock>()
                     .into_string();
 
-                // If the file already exits and the has of its contents match the generated code,
+                // If the file already exits and the hash of its contents match the generated code,
                 // we don't need to write it.
                 if file_is_up_to_date(&code_string, &path) {
                     continue;
