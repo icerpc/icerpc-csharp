@@ -596,13 +596,12 @@ namespace IceRpc.Transports.Internal
                 _connection.ReleaseStream(this);
 
                 // Local streams are released from the connection when the StreamLast or StreamReset frame is received.
-                // Since a remote unidirectional stream doesn't send stream frames, we have to send a stream last frame
-                // here to ensure the local stream is released from the connection.
+                // Since a remote unidirectional stream doesn't send stream frames, we have to send a
+                // UnidirectionalStreamReleased frame here to ensure the local stream is released from the connection by
+                // the peer. It's important to decrement the stream count with the ReleaseStream call above to prevent a
+                // race where the peer could start a new stream before the counter is decreased
                 if (IsRemote && !IsBidirectional)
                 {
-                    // It's important to decrement the stream count before sending the UnidirectionalStreamReleased
-                    // frame to prevent a race where the peer could start a new stream before the counter is
-                    // decremented.
                     try
                     {
                         _ = _writer.WriteUnidirectionalStreamReleasedAsync(this, default).AsTask();

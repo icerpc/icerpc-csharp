@@ -351,13 +351,9 @@ namespace IceRpc.Transports.Internal
                     case FrameType.StreamLast:
                     {
                         bool endStream = type == FrameType.StreamLast;
-                        if (dataSize == 0 && type == FrameType.Stream)
-                        {
-                            throw new InvalidDataException("received empty stream frame");
-                        }
-
                         bool isRemote = streamId % 2 == (IsServer ? 0 : 1);
                         bool isBidirectional = streamId % 4 < 2;
+
                         if (TryGetStream(streamId.Value, out SlicMultiplexedStream? stream))
                         {
                             // Let the stream receive the data.
@@ -371,27 +367,6 @@ namespace IceRpc.Transports.Internal
                             if (dataSize == 0)
                             {
                                 throw new InvalidDataException("received empty stream frame on new stream");
-                            }
-
-                            // Accept the new incoming stream and notify the stream that data is available.
-                            try
-                            {
-                                stream = new SlicMultiplexedStream(
-                                    this,
-                                    isBidirectional,
-                                    remote: true,
-                                    _reader,
-                                    _writer);
-                                AddStream(streamId.Value, stream);
-                            }
-                            catch
-                            {
-                                // The stream factory is being closed, we make sure to receive the frame data. When the
-                                // factory is being closed gracefully, the factory waits from the single stream to be
-                                // closed by the peer so it's important to receive and skip all the data until the
-                                // single stream is closed.
-                                await _reader.SkipStreamDataAsync(dataSize, cancel).ConfigureAwait(false);
-                                continue;
                             }
 
                             if (isBidirectional)
@@ -412,6 +387,10 @@ namespace IceRpc.Transports.Internal
                                 }
                                 Interlocked.Increment(ref _unidirectionalStreamCount);
                             }
+
+                            // Accept the new incoming stream.
+                            stream = new SlicMultiplexedStream(this, isBidirectional, remote: true, _reader, _writer);
+                            AddStream(streamId.Value, stream);
 
                             // Let the stream receive the data.
                             await stream.ReceivedFrameAsync(dataSize, endStream).ConfigureAwait(false);

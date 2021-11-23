@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
-using System.Diagnostics;
 using System.Threading.Tasks.Sources;
 
 namespace IceRpc.Transports.Internal
@@ -28,7 +26,10 @@ namespace IceRpc.Transports.Internal
 
         ValueTaskSourceStatus IValueTaskSource<T>.GetStatus(short token) => _queue.GetStatus(token);
 
-        void IValueTaskSource<T>.OnCompleted(Action<object?> continuation, object? state, short token, ValueTaskSourceOnCompletedFlags flags) =>
+        void IValueTaskSource<T>.OnCompleted(
+                Action<object?> continuation,
+                object? state, short token,
+                ValueTaskSourceOnCompletedFlags flags) =>
             _queue.OnCompleted(continuation, state, token, flags);
     }
 }

@@ -71,12 +71,6 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel) =>
            reader.ReadFrameDataAsync(Memory<byte>.Empty, cancel);
 
-        internal static async ValueTask SkipStreamDataAsync(
-            this ISlicFrameReader reader,
-            int dataSize,
-            CancellationToken cancel) =>
-            (await ReadFrameDataAsync(reader, dataSize, cancel).ConfigureAwait(false)).Dispose();
-
         private static async ValueTask<IMemoryOwner<byte>> ReadFrameDataAsync(
             ISlicFrameReader reader,
             int dataSize,
