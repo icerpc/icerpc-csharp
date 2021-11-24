@@ -2,7 +2,7 @@
 
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
-using System.Threading.Channels;
+using System.IO.Pipelines;
 
 namespace IceRpc.Transports
 {
@@ -22,10 +22,8 @@ namespace IceRpc.Transports
 
             if (ColocListener.TryGetValue(remoteEndpoint, out ColocListener? listener))
             {
-                ChannelReader<ReadOnlyMemory<byte>> reader;
-                ChannelWriter<ReadOnlyMemory<byte>> writer;
-                (reader, writer) = listener.NewClientConnection();
-                return new ColocNetworkConnection(remoteEndpoint, isServer: false, writer, reader);
+                (PipeReader reader, PipeWriter writer) = listener.NewClientConnection();
+                return new ColocNetworkConnection(remoteEndpoint, isServer: false, reader, writer);
             }
             else
             {

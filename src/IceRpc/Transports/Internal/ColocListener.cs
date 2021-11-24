@@ -2,7 +2,7 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
-using System.Threading.Channels;
+using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {
@@ -15,22 +15,12 @@ namespace IceRpc.Transports.Internal
         private static readonly IDictionary<Endpoint, ColocListener> _colocListenerDictionary =
             new ConcurrentDictionary<Endpoint, ColocListener>();
 
-        private readonly Channel<(ChannelWriter<ReadOnlyMemory<byte>>, ChannelReader<ReadOnlyMemory<byte>>)> _channel;
+        private readonly AsyncQueue<(PipeReader, PipeWriter)> _queue = new();
 
         public async Task<ISimpleNetworkConnection> AcceptAsync()
         {
-            ChannelReader<ReadOnlyMemory<byte>> reader;
-            ChannelWriter<ReadOnlyMemory<byte>> writer;
-
-            try
-            {
-                (writer, reader) = await _channel.Reader.ReadAsync().ConfigureAwait(false);
-            }
-            catch (ChannelClosedException ex)
-            {
-                throw new ObjectDisposedException(nameof(ColocListener), ex);
-            }
-            return new ColocNetworkConnection(Endpoint, isServer: true, writer, reader);
+            (PipeReader reader, PipeWriter writer) = await _queue.DequeueAsync(default).ConfigureAwait(false);
+            return new ColocNetworkConnection(Endpoint, isServer: true, reader, writer);
         }
 
         public override string ToString() => $"{base.ToString()} {Endpoint}";
@@ -42,7 +32,7 @@ namespace IceRpc.Transports.Internal
 
         public ValueTask DisposeAsync()
         {
-            _channel.Writer.Complete();
+            _queue.Complete(new ObjectDisposedException(nameof(ColocListener)));
             _colocListenerDictionary.Remove(Endpoint);
             return default;
         }
@@ -53,59 +43,28 @@ namespace IceRpc.Transports.Internal
             {
                 throw new FormatException($"unknown parameter '{endpoint.Params[0].Name}' in endpoint '{endpoint}'");
             }
-
-            Endpoint = endpoint;
-
-            // There's always a single reader (the listener) but there might be several writers calling Write
-            // concurrently if there are connection establishment attempts from multiple threads. Not allowing
-            // synchronous continuations is safer as otherwise disposal of the listener could end up running
-            // the continuation of AcceptAsync.
-            _channel = Channel.CreateUnbounded<(ChannelWriter<ReadOnlyMemory<byte>>,
-                                                ChannelReader<ReadOnlyMemory<byte>>)>(
-                new UnboundedChannelOptions
-                {
-                    SingleReader = true,
-                    SingleWriter = false,
-                    AllowSynchronousContinuations = false
-                });
-
-            if (!_colocListenerDictionary.TryAdd(Endpoint, this))
+            if (!_colocListenerDictionary.TryAdd(endpoint, this))
             {
                 throw new TransportException($"endpoint '{endpoint}' is already in use");
             }
+            Endpoint = endpoint;
         }
 
-        internal (ChannelReader<ReadOnlyMemory<byte>>, ChannelWriter<ReadOnlyMemory<byte>>) NewClientConnection()
+        internal (PipeReader, PipeWriter) NewClientConnection()
         {
-            // We use a capacity of 100 buffers for the channels. This is mostly useful for the Ice1 protocol
-            // which doesn't provide any flow control or limits the number of invocations on the client side.
-            // If the Ice1 server can't dispatch more invocations, the colloc transport will eventually
-            // prevent the client to send further requests once the channel is full.
-
-            var reader = Channel.CreateBounded<ReadOnlyMemory<byte>>(
-                new BoundedChannelOptions(capacity: 100)
-                {
-                    FullMode = BoundedChannelFullMode.Wait,
-                    SingleReader = true,
-                    SingleWriter = true,
-                    AllowSynchronousContinuations = false
-                });
-
-            var writer = Channel.CreateBounded<ReadOnlyMemory<byte>>(
-                new BoundedChannelOptions(capacity: 100)
-                {
-                    FullMode = BoundedChannelFullMode.Wait,
-                    SingleReader = true,
-                    SingleWriter = true,
-                    AllowSynchronousContinuations = false
-                });
-
-            if (!_channel.Writer.TryWrite((writer.Writer, reader.Reader)))
+            // By default, the Pipe will pause writes on the PipeWriter when written data is more than 64KB. We could
+            // eventually increase this size by providing a PipeOptions instance to the Pipe construction.
+            var localPipe = new Pipe();
+            var remotePipe = new Pipe();
+            try
+            {
+                _queue.Enqueue((localPipe.Reader, remotePipe.Writer));
+            }
+            catch (ObjectDisposedException)
             {
                 throw new ConnectionRefusedException();
             }
-
-            return (writer.Reader, reader.Writer);
+            return (remotePipe.Reader, localPipe.Writer);
         }
     }
 }

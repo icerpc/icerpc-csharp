@@ -3,7 +3,7 @@
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using NUnit.Framework;
-using System.Threading.Channels;
+using System.IO.Pipelines;
 
 namespace IceRpc.Tests.Internal
 {
@@ -60,19 +60,12 @@ namespace IceRpc.Tests.Internal
 
         private static ISimpleNetworkConnection CreateConnection(bool isServer)
         {
-            var channel = Channel.CreateUnbounded<ReadOnlyMemory<byte>>(
-                new UnboundedChannelOptions
-                {
-                    SingleReader = true,
-                    SingleWriter = true,
-                    AllowSynchronousContinuations = false
-                });
-
+            var pipe = new Pipe();
             return new ColocNetworkConnection(
                 Endpoint.FromString("ice+coloc://host"),
                 isServer: isServer,
-                writer: channel.Writer,
-                reader: channel.Reader);
+                writer: pipe.Writer,
+                reader: pipe.Reader);
         }
     }
 }
