@@ -32,7 +32,7 @@ namespace IceRpc.Transports.Internal
 
         public ValueTask DisposeAsync()
         {
-            _queue.Complete(new ObjectDisposedException(nameof(ColocListener)));
+            _queue.TryComplete(new ObjectDisposedException(nameof(ColocListener)));
             _colocListenerDictionary.Remove(Endpoint);
             return default;
         }

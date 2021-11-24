@@ -573,7 +573,7 @@ namespace IceRpc.Transports.Internal
             short token,
             ValueTaskSourceOnCompletedFlags flags) => _queue.OnCompleted(continuation, state, token, flags);
 
-        void IAsyncQueueValueTaskSource<(int, bool)>.Cancel() => _queue.Complete(new OperationCanceledException());
+        void IAsyncQueueValueTaskSource<(int, bool)>.Cancel() => _queue.TryComplete(new OperationCanceledException());
 
         private void Shutdown()
         {

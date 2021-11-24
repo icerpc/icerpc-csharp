@@ -141,9 +141,9 @@ namespace IceRpc.Transports.Internal
                     {
                         await ReadFramesAsync(CancellationToken.None).ConfigureAwait(false);
                     }
-                    catch (Exception ex)
+                    catch (Exception exception)
                     {
-                        _acceptedStreamQueue.Complete(ex);
+                        _acceptedStreamQueue.TryComplete(exception);
                     }
                 },
                 CancellationToken.None);
@@ -179,7 +179,7 @@ namespace IceRpc.Transports.Internal
             }
 
             // Unblock task blocked on AcceptStreamAsync
-            _acceptedStreamQueue.Complete(exception);
+            _acceptedStreamQueue.TryComplete(exception);
 
             _disposableReader.Dispose();
             _disposableWriter.Dispose();

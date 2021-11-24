@@ -14,13 +14,13 @@ namespace IceRpc.Transports.Internal
         private AsyncQueueCore<T> _queue = new();
 #pragma warning restore CA1805
 
-        internal void Complete(Exception exception) => _queue.Complete(exception);
+        internal bool TryComplete(Exception exception) => _queue.TryComplete(exception);
 
         internal void Enqueue(T value) => _queue.Enqueue(value);
 
         internal ValueTask<T> DequeueAsync(CancellationToken cancel) => _queue.DequeueAsync(this, cancel);
 
-        void IAsyncQueueValueTaskSource<T>.Cancel() => _queue.Complete(new OperationCanceledException());
+        void IAsyncQueueValueTaskSource<T>.Cancel() => _queue.TryComplete(new OperationCanceledException());
 
         T IValueTaskSource<T>.GetResult(short token) => _queue.GetResult(token);
 

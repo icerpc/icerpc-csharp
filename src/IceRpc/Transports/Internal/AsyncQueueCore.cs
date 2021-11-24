@@ -31,12 +31,17 @@ namespace IceRpc.Transports.Internal
         private CancellationTokenRegistration _tokenRegistration;
 
         /// <summary>Complete the pending <see cref="DequeueAsync"/> and discard queued items.</summary>
-        internal void Complete(Exception exception)
+        internal bool TryComplete(Exception exception)
         {
             bool lockTaken = false;
             try
             {
                 _lock.Enter(ref lockTaken);
+                if (_exception != null)
+                {
+                    return false;
+                }
+
                 _exception = exception;
 
                 // If the source isn't already signaled, signal completion by setting the exception. Otherwise if
@@ -48,6 +53,7 @@ namespace IceRpc.Transports.Internal
                 {
                     _source.SetException(exception);
                 }
+                return true;
             }
             finally
             {
