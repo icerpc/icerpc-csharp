@@ -144,7 +144,14 @@ namespace IceRpc.Transports.Internal
 
             // Unblock ReadAsync which is blocked on _queue.WaitAsync()
             ResetErrorCode = errorCode;
-            _queue.Enqueue((0, true));
+            try
+            {
+                _queue.Enqueue((0, true));
+            }
+            catch (OperationCanceledException)
+            {
+                // Ignore.
+            }
 
             if (IsStarted && !IsShutdown)
             {
@@ -525,9 +532,9 @@ namespace IceRpc.Transports.Internal
             {
                 _queue.Enqueue((size, endStream));
             }
-            catch
+            catch (OperationCanceledException)
             {
-                // Ignore exceptions, the stream has been aborted.
+                // Ignore, ReadAsync has been canceled.
             }
         }
 
@@ -540,7 +547,14 @@ namespace IceRpc.Transports.Internal
 
             // Unblock ReadAsync which is blocked on _queue.WaitAsync()
             ResetErrorCode = errorCode;
-            _queue.Enqueue((0, true));
+            try
+            {
+                _queue.Enqueue((0, true));
+            }
+            catch (OperationCanceledException)
+            {
+                // Ignore, ReadAsync has been canceled.
+            }
 
             TrySetReadCompleted();
         }
@@ -559,7 +573,7 @@ namespace IceRpc.Transports.Internal
             short token,
             ValueTaskSourceOnCompletedFlags flags) => _queue.OnCompleted(continuation, state, token, flags);
 
-        void IAsyncQueueValueTaskSource<(int, bool)>.Cancel() => _queue.Complete(new OperationCanceledException());
+        void IAsyncQueueValueTaskSource<(int, bool)>.Cancel() => _queue.TryComplete(new OperationCanceledException());
 
         private void Shutdown()
         {
