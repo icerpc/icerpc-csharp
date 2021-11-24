@@ -45,9 +45,15 @@ impl<'a> Visitor for DispatchVisitor<'_> {
             .add_block(request_class(interface_def))
             .add_block(response_class(interface_def));
 
-        interface_builder.add_block(format!("\
-private static readonly DefaultIceDecoderFactories _defaultIceDecoderFactories = new(typeof({}).Assembly);
-", interface_name).into());
+        interface_builder.add_block(
+            format!(
+                "\
+private static readonly DefaultIceDecoderFactories _defaultIceDecoderFactories =
+    new(typeof({}).Assembly);",
+                interface_name
+            )
+            .into(),
+        );
 
         for operation in interface_def.operations() {
             if operation.has_encoded_result() {
@@ -371,7 +377,9 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
     if operation.compress_return() {
         // At this point, Dispatch is just created and the application had no opportunity to set any
         // response feature.
-        code.writeln("dispatch.ResponseFeatures = IceRpc.FeatureCollectionExtensions.CompressPayload(dispatch.ResponseFeatures);");
+        code.writeln(
+            "dispatch.ResponseFeatures = IceRpc.FeatureCollectionExtensions.CompressPayload(dispatch.ResponseFeatures);"
+        );
     }
 
     // TODO: cleanup stream logic
