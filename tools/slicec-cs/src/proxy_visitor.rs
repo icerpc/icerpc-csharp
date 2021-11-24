@@ -58,14 +58,16 @@ impl<'a> Visitor for ProxyVisitor<'_> {
             doc_comment_message(interface_def)
         );
 
-        let proxy_interface =
-            ContainerBuilder::new(&format!("{} partial interface", access), &prx_interface)
+        let mut code = CodeBlock::new();
+        code.add_block(
+            &ContainerBuilder::new(&format!("{} partial interface", access), &prx_interface)
                 .add_comment("summary", &summary_message)
                 .add_type_id_attribute(interface_def)
                 .add_container_attributes(interface_def)
                 .add_bases(&prx_bases)
                 .add_block(proxy_interface_operations(interface_def))
-                .build();
+                .build(),
+        );
 
         let mut proxy_impl_builder = ContainerBuilder::new(
             &format!("{} readonly partial record struct", access),
@@ -82,7 +84,8 @@ impl<'a> Visitor for ProxyVisitor<'_> {
 /// <summary>The default path for services that implement Slice interface <c>{interface_name}</c>.</summary>
 {access} static readonly string DefaultPath = typeof({prx_impl}).GetDefaultPath();
 
-private static readonly DefaultIceDecoderFactories _defaultIceDecoderFactories = new (typeof({prx_impl}).Assembly);
+private static readonly DefaultIceDecoderFactories _defaultIceDecoderFactories =
+    new (typeof({prx_impl}).Assembly);
 
 /// <summary>The proxy to the remote service.</summary>
 {access} IceRpc.Proxy Proxy {{ get; init; }}"#,
@@ -143,15 +146,9 @@ private static readonly DefaultIceDecoderFactories _defaultIceDecoderFactories =
             proxy_impl_builder.add_block(proxy_operation_impl(operation));
         }
 
-        // Generate abstract methods and documentation
-        let code = format!(
-            "\n{interface}\n\n{proxy_impl}",
-            interface = proxy_interface,
-            proxy_impl = proxy_impl_builder.build()
-        );
+        code.add_block(&proxy_impl_builder.build());
 
-        self.generated_code
-            .insert_scoped(interface_def, code.into())
+        self.generated_code.insert_scoped(interface_def, code)
     }
 }
 
@@ -182,9 +179,10 @@ fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
 /// <param name="s">The string representation of the proxy.</param>
 /// <param name="invoker">The invoker of the new proxy.</param>
 /// <returns>The new proxy</returns>
-/// <exception cref="global::System.FormatException"><c>s</c> does not contain a valid string representation of a proxy.
-/// </exception>
-{access} static {prx_impl} Parse(string s, IceRpc.IInvoker? invoker = null) => new(IceRpc.Proxy.Parse(s, invoker));
+/// <exception cref="global::System.FormatException"><c>s</c> does not contain a valid string representation
+/// of a proxy.</exception>
+{access} static {prx_impl} Parse(string s, IceRpc.IInvoker? invoker = null) =>
+    new(IceRpc.Proxy.Parse(s, invoker));
 
 /// <summary>Creates a new <see cref="{prx_impl}"/> from a string and invoker.</summary>
 /// <param name="s">The proxy string representation.</param>
@@ -251,7 +249,8 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
 if ({invocation}?.RequestFeatures.Get<IceRpc.Features.CompressPayload>() == null)
 {{
     {invocation} ??= new IceRpc.Invocation();
-    {invocation}.RequestFeatures = IceRpc.FeatureCollectionExtensions.CompressPayload({invocation}.RequestFeatures);
+    {invocation}.RequestFeatures = IceRpc.FeatureCollectionExtensions.CompressPayload(
+        {invocation}.RequestFeatures);
 }}
 ",
             invocation = invocation_parameter
@@ -364,11 +363,9 @@ streamParamReceiver!.ToAsyncEnumerable<{stream_type}>(
         "\
 return Proxy.InvokeAsync(
     {});",
-        invoke_args
-            .iter()
-            .map(|arg| CodeBlock::from(arg.clone()).indent().to_string())
-            .collect::<Vec<_>>()
-            .join(",")
+        CodeBlock::from(invoke_args.join(",\n"))
+            .indent()
+            .to_string()
     );
 
     builder.set_body(body);
