@@ -15,7 +15,7 @@ namespace IceRpc.Tests.Slice
         public async Task SliceAssemblies_AssembliesInterceptorAsync()
         {
             Endpoint endpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(ProtocolCode.Ice1));
-               await using var server = new Server
+            await using var server = new Server
             {
                 Dispatcher = new AssembliesOperations(),
                 Endpoint = endpoint,

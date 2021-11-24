@@ -32,7 +32,7 @@ namespace IceRpc.Transports.Internal
             Endpoint endpoint,
             bool isServer,
             ILogger logger)
-            : base(decoratee, endpoint, isServer, logger) =>  _decoratee = decoratee;
+            : base(decoratee, endpoint, isServer, logger) => _decoratee = decoratee;
     }
 
     internal sealed class LogMultiplexedStreamDecorator : IMultiplexedStream

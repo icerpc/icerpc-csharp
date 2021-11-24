@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using NUnit.Framework;
-using IceRpc.Slice;
 
 namespace IceRpc.Tests.Slice
 {

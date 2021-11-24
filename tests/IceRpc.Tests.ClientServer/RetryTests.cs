@@ -469,10 +469,10 @@ namespace IceRpc.Tests.ClientServer
             var pipeline = new Pipeline();
             pipeline.UseLogger(LogAttributeLoggerFactory.Instance);
             pipeline.UseRetry(new RetryOptions
-                {
-                    MaxAttempts = 5,
-                    LoggerFactory = LogAttributeLoggerFactory.Instance
-                });
+            {
+                MaxAttempts = 5,
+                LoggerFactory = LogAttributeLoggerFactory.Instance
+            });
             pipeline.UseBinder(pool);
             return pipeline;
         }

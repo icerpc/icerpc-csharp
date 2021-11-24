@@ -2,7 +2,6 @@
 
 using IceRpc.Slice;
 using IceRpc.Transports;
-using IceRpc.Transports.Internal;
 using NUnit.Framework;
 using System.IO.Compression;
 
