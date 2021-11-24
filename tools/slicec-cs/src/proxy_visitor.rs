@@ -303,10 +303,9 @@ if ({invocation}?.RequestFeatures.Get<IceRpc.Features.CompressPayload>() == null
             _ => invoke_args.push(format!(
                 "\
 new IceRpc.Slice.AsyncEnumerableStreamParamSender<{stream_type}>(
-{stream_parameter},
-{payload_encoding},
-{encode_action}
-)",
+    {stream_parameter},
+    {payload_encoding},
+    {encode_action})",
                 stream_type = stream_type.to_type_string(namespace, TypeContext::Outgoing, false),
                 stream_parameter = stream_parameter_name,
                 payload_encoding = payload_encoding,
@@ -321,28 +320,26 @@ new IceRpc.Slice.AsyncEnumerableStreamParamSender<{stream_type}>(
         invoke_args.push("Response.".to_owned() + &operation_name);
     } else if let Some(stream_return) = stream_return {
         let stream_type = stream_return.data_type();
-        let stream_return_func = match stream_type.concrete_type() {
+        let mut stream_return_func: CodeBlock = match stream_type.concrete_type() {
             Types::Primitive(primitive) if matches!(primitive, Primitive::Byte) => {
-                "streamParamReceiver!.ToByteStream()".to_owned()
+                "streamParamReceiver!.ToByteStream()".into()
             }
-            _ => {
-                format!(
-                    "\
+            _ => format!(
+                "\
 streamParamReceiver!.ToAsyncEnumerable<{stream_type}>(
-response,
-invoker,
-response.GetIceDecoderFactory(_defaultIceDecoderFactories),
-{decode_func})",
-                    stream_type =
-                        stream_type.to_type_string(namespace, TypeContext::Incoming, false),
-                    decode_func = decode_func(stream_type, namespace).indent()
-                )
-            }
+    response,
+    invoker,
+    response.GetIceDecoderFactory(_defaultIceDecoderFactories),
+    {decode_func})",
+                stream_type = stream_type.to_type_string(namespace, TypeContext::Incoming, false),
+                decode_func = decode_func(stream_type, namespace).indent()
+            )
+            .into(),
         };
 
         invoke_args.push(format!(
             "(response, invoker, streamParamReceiver) => {}",
-            stream_return_func,
+            stream_return_func.indent(),
         ));
     }
 
@@ -362,12 +359,17 @@ response.GetIceDecoderFactory(_defaultIceDecoderFactories),
 
     invoke_args.push(format!("cancel: {}", cancel_parameter));
 
-    body.writeln(&format!(
+    writeln!(
+        body,
         "\
 return Proxy.InvokeAsync(
     {});",
-        args = invoke_args.join(",\n    ")
-    ));
+        invoke_args
+            .iter()
+            .map(|arg| CodeBlock::from(arg.clone()).indent().to_string())
+            .collect::<Vec<_>>()
+            .join(",")
+    );
 
     builder.set_body(body);
 
@@ -583,20 +585,22 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         class_builder.add_block(format!(
             r#"
 /// <summary>The <see cref="ResponseDecodeFunc{{T}}"/> for the return value type of operation {name}.</summary>
-{access} static {return_type} {escaped_name}(IceRpc.IncomingResponse response, IceRpc.IInvoker? invoker, IceRpc.Slice.StreamParamReceiver? streamParamReceiver) =>
-    response.ToReturnValue(
-        invoker,
-        {decoder},
-        {response_decode_func});"#,
+{access} static {return_type} {escaped_name}(
+    IceRpc.IncomingResponse response,
+    IceRpc.IInvoker? invoker,
+    IceRpc.Slice.StreamParamReceiver? streamParamReceiver) =>
+        response.ToReturnValue(
+            invoker,
+            {decoder},
+            {response_decode_func});"#,
             name = operation.identifier(),
             access = access,
             escaped_name = operation.escape_identifier(),
             return_type = members.to_tuple_type( namespace, TypeContext::Incoming, false),
             decoder = decoder,
-            response_decode_func = response_decode_func(operation).indent()
+            response_decode_func = response_decode_func(operation).indent().indent().indent()
         ).into());
     }
-
     class_builder.build().into()
 }
 
@@ -616,7 +620,8 @@ fn request_encode_action(operation: &Operation) -> CodeBlock {
     } else {
         format!(
             "\
-({encoder} encoder, {_in}{param_type} value) =>
+({encoder} encoder,
+ {_in}{param_type} value) =>
 {{
     {encode}
 }}",
@@ -647,7 +652,11 @@ fn response_decode_func(operation: &Operation) -> CodeBlock {
         decode_func(members.first().unwrap().data_type(), namespace)
     } else {
         format!(
-            "decoder => {{ {decode} }}",
+            "\
+decoder =>
+{{
+    {decode}
+}}",
             decode = decode_operation(operation, false).indent()
         )
         .into()

@@ -210,7 +210,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         let body = if operation.returns_classes() {
             format!(
                 "\
-                Ice11Encoding.{encoding_operation}(
+Ice11Encoding.{encoding_operation}(
     {return_arg},
     {encode_action},
     {format})",
@@ -222,7 +222,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
                     1 => "returnValue",
                     _ => "returnValueTuple",
                 },
-                encode_action = response_encode_action(operation),
+                encode_action = response_encode_action(operation).indent(),
                 format = operation.format_type()
             )
         } else {
@@ -239,7 +239,7 @@ encoding.{encoding_operation}(
                     1 => "returnValue",
                     _ => "returnValueTuple",
                 },
-                encode_action = response_encode_action(operation),
+                encode_action = response_encode_action(operation).indent(),
             )
         };
 
@@ -299,11 +299,16 @@ pub fn response_encode_action(operation: &Operation) -> CodeBlock {
         };
 
         format!(
-            "({encoder} encoder, {_in}{tuple_type} value) => {{ {encode_action} }}",
+            "\
+({encoder} encoder,
+ {_in}{tuple_type} value) =>
+{{
+    {encode_action}
+}}",
             encoder = encoder_class,
             _in = if returns.len() == 1 { "" } else { "in " },
             tuple_type = returns.to_tuple_type(namespace, TypeContext::Outgoing, false),
-            encode_action = encode_operation(operation, true),
+            encode_action = encode_operation(operation, true).indent(),
         )
         .into()
     }
@@ -395,7 +400,7 @@ IceRpc.Slice.StreamParamReceiver.ToAsyncEnumerable<{stream_type}>(
     ",
                         stream_type =
                             stream_type.to_type_string(namespace, TypeContext::Outgoing, false),
-                        decode_func = decode_func(stream_type, namespace)
+                        decode_func = decode_func(stream_type, namespace).indent()
                     )
                 }
             };
@@ -551,19 +556,19 @@ fn stream_param_sender(operation: &Operation, encoding: &str) -> CodeBlock {
                 Types::Primitive(primitive) if matches!(primitive, Primitive::Byte) => {
                     format!("new IceRpc.Slice.ByteStreamParamSender({})", stream_arg).into()
                 }
-                _ => {
-                    format!("\
-new IceRpc.Slice.AsyncEnumerableStreamParamSender<{stream_type}>({stream_arg}, {encoding}, {encode_action})",
-                             stream_type = stream_type.to_type_string(namespace, TypeContext::Outgoing, false),
-                             stream_arg = stream_arg,
-                             encoding = encoding,
-                             encode_action = encode_action(
-                                 stream_type,
-                                 namespace,
-                                 false,
-                                 false),
-                    ).into()
-                }
+                _ => format!(
+                    "\
+new IceRpc.Slice.AsyncEnumerableStreamParamSender<{stream_type}>(
+    {stream_arg},
+    {encoding},
+    {encode_action})",
+                    stream_type =
+                        stream_type.to_type_string(namespace, TypeContext::Outgoing, false),
+                    stream_arg = stream_arg,
+                    encoding = encoding,
+                    encode_action = encode_action(stream_type, namespace, false, false).indent(),
+                )
+                .into(),
             }
         }
     }
