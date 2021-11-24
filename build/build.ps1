@@ -9,51 +9,46 @@ param (
     [switch]$help
 )
 
-function Build-Compiler($config) {
+function BuildCompiler($config) {
     Push-Location "tools\slicec-cs"
-    $args = @('build')
+    $arguments = @('build')
     if ($config -eq 'release') {
-        $args += '--release'
+        $arguments += '--release'
     }
-    RunCommand 'cargo' $args
+    RunCommand 'cargo' $arguments
     Pop-Location
 }
 
-function Clean-Compiler($config) {
+function CleanCompiler($config) {
     Push-Location "tools\slicec-cs"
     RunCommand "cargo" "clean"
     Pop-Location
 }
 
-function Build-IceRpc($config) {
-    $args = @('build')
-    if ($config -eq 'release') {
-        $args += @('--configuration', 'Release')
-    } else {
-        $args += @('--configuration', 'Debug')
-    }
-    RunCommand "dotnet" $args
+function BuildIceRpc($config) {
+    $dotnetConfiguration = DotnetConfiguration($config)
+    RunCommand "dotnet" @('build', '--configuration', $dotnetConfiguration)
 }
 
-function Build-IceRpcExamples($config) {
-    $args = @('build')
-    if ($config -eq 'release') {
-        $args += @('--configuration', 'Release')
-    } else {
-        $args += @('--configuration', 'Debug')
-    }
-    $args += @("examples\Hello\Hello.sln")
-    RunCommand "dotnet" $args
+function BuildIceRpcExamples($config) {
+    $dotnetConfiguration = DotnetConfiguration($config)
+    RunCommand "dotnet" @('build', '--configuration', $dotnetConfiguration, "examples\Hello\Hello.sln")
 }
 
-function Clean-IceRpc($config) {
-    RunCommand "dotnet" "clean"
+function CleanIceRpc($config) {
+    $dotnetConfiguration = DotnetConfiguration($config)
+    RunCommand "dotnet" @('clean', '--configuration', $dotnetConfiguration)
+}
+
+function CleanIceRpcExamples($config) {
+    $dotnetConfiguration = DotnetConfiguration($config)
+    RunCommand "dotnet" @('clean', '--configuration', $dotnetConfiguration, 'examples\Hello\Hello.sln')
 }
 
 function Build($config, $examples, $srcdist) {
     if ($examples) {
         if ($srcdist) {
-           Build-Compiler $config
+           BuildCompiler $config
            Pack $config
            $global_packages = dotnet nuget locals -l global-packages
            $global_packages = $global_packages.replace("global-packages: ", "")
@@ -61,48 +56,42 @@ function Build($config, $examples, $srcdist) {
            Remove-Item $global_packages"\icerpc.interop" -Recurse -Force -ErrorAction Ignore
            RunCommand "dotnet" @('nuget', 'push', 'lib\*.nupkg', '--source', $global_packages)
         }
-        Build-IceRpcExamples $config
+        BuildIceRpcExamples $config
     } else {
-        Build-Compiler $config
-        Build-IceRpc $config
+        BuildCompiler $config
+        BuildIceRpc $config
     }
 }
 
 function Pack($config) {
-    $args = @('pack')
-    if ($config -eq 'release') {
-        $args += @('--configuration', 'Release')
-    } else {
-        $args += @('--configuration', 'Debug')
+    $dotnetConfiguration = DotnetConfiguration($config)
+    RunCommand "dotnet"  @('pack', '--configuration', $dotnetConfiguration)
+}
+
+function Rebuild($config, $examples, $srcdist) {
+    Clean $config $examples
+    Build $config $examples $srcdist
+}
+
+function Clean($config, $examples) {
+    CleanCompiler($config)
+    CleanIceRpc($config)
+    if ($examples)
+    {
+        CleanIceRpcExamples($config)
     }
-    RunCommand "dotnet" $args
-}
-
-function Rebuild($config) {
-    Clean $config
-    Build $config
-}
-
-function Clean($config) {
-    Clean-Compiler($config)
-    Clean-IceRpc($config)
 }
 
 function Test($config, $coverage) {
-    $args = @('test', '--no-build')
-    if ($config -eq 'release') {
-        $args += @('--configuration', 'Release')
-    } elseif ($config -eq 'debug') {
-        $args += @('--configuration', 'Debug')
-    }
-
+    $dotnetConfiguration = DotnetConfiguration($config)
+    $arguments = @('test', '--no-build', '--configuration', $dotnetConfiguration)
     if ($coverage) {
-       $args += @('--collect:"XPlat Code Coverage"')
+       $arguments += @('--collect:"XPlat Code Coverage"')
     }
-    RunCommand "dotnet" $args
+    RunCommand "dotnet" $arguments
     if ($coverage) {
-        $args = @('-reports:tests/*/TestResults/*/coverage.cobertura.xml', '-targetdir:tests/CodeCoverageRerport')
-        RunCommand "reportgenerator" $args
+        $arguments = @('-reports:tests/*/TestResults/*/coverage.cobertura.xml', '-targetdir:tests/CodeCoverageRerport')
+        RunCommand "reportgenerator" $arguments
     }
 }
 
@@ -118,6 +107,14 @@ function RunCommand($command, $arguments) {
     & $command $arguments
     if ($lastExitCode -ne 0) {
         exit 1
+    }
+}
+
+function DotnetConfiguration($config) {
+    if ($config -eq 'release') {
+        'Release'
+    } else {
+        'Debug'
     }
 }
 
@@ -162,7 +159,7 @@ switch ( $action ) {
         Rebuild $config $examples $srcdist
     }
     "clean" {
-        Clean $config
+        Clean $config $examples
     }
     "test" {
        Test $config $coverage
