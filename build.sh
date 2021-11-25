@@ -66,7 +66,10 @@ build()
             run_command rm "-rf" "$global_packages/icerpc" "$global_packages/icerpc.interop"
             run_command dotnet "nuget" "push" "lib/*.nupkg" "--source" "$global_packages"
         fi
-        run_command dotnet "build" "-c" "$dotnet_config" examples/**/*.sln
+        for solution in examples/*/*.sln
+        do
+            run_command dotnet "build" "-c" "$dotnet_config" "$solution"
+        done
     fi
 }
 

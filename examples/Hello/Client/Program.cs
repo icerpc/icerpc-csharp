@@ -2,45 +2,14 @@
 
 using Demo;
 using IceRpc;
-using IceRpc.Configure;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 
-IConfiguration configuration = new ConfigurationBuilder()
-    .AddJsonFile("appsettings.json", optional: true)
-    .Build();
-
-using ILoggerFactory loggerFactory = LoggerFactory.Create(
-    builder =>
-    {
-        builder.AddConfiguration(configuration.GetSection("Logging"));
-        builder.Configure(factoryOptions =>
-        {
-            factoryOptions.ActivityTrackingOptions = ActivityTrackingOptions.ParentId |
-                                                     ActivityTrackingOptions.SpanId;
-        });
-        builder.AddSimpleConsole(configure =>
-        {
-            configure.IncludeScopes = true;
-            configure.SingleLine = false;
-            configure.UseUtcTimestamp = true;
-        });
-    });
-
-IConfigurationSection section = configuration.GetSection("AppSettings").GetSection("Hello");
 await using var connection = new Connection
 {
-    //LoggerFactory = loggerFactory,
-    RemoteEndpoint = section.GetValue<string>("Endpoint"),
-    Options = section.GetSection("ConnectionOptions").Get<ConnectionOptions>()
+    RemoteEndpoint = "ice+tcp://127.0.0.1:10000?tls=false"
 };
 
-var pipeline = new Pipeline();
-pipeline.UseTelemetry(new TelemetryOptions { LoggerFactory = loggerFactory});
-pipeline.UseLogger(loggerFactory);
-
-IHelloPrx twoway = HelloPrx.FromConnection(connection, invoker: pipeline);
+IHelloPrx twoway = HelloPrx.FromConnection(connection);
 
 Console.Write("Say Hello: ");
 string? greeting = Console.ReadLine();
-Console.Out.WriteLine(await twoway.SayHelloAsync(greeting));
+Console.WriteLine(await twoway.SayHelloAsync(greeting));
