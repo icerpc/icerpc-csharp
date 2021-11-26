@@ -103,8 +103,6 @@ namespace IceRpc.Tests.ClientServer
                 Dispatcher = router,
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
-
-            server.Dispatcher = router;
             server.Listen();
 
             router.Map<ICompressTest>(new CompressTest());
@@ -213,8 +211,6 @@ namespace IceRpc.Tests.ClientServer
                 Dispatcher = router,
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
-
-            server.Dispatcher = router;
             server.Listen();
 
             router.Map<ICompressTest>(new CompressTest());

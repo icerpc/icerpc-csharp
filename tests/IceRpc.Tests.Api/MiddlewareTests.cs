@@ -13,22 +13,20 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task Middleware_Throw_AbortsDispatch()
         {
-            await using var server = new Server
-            {
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-
-            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
-
-            var service = new Greeter();
-
             var router = new Router();
             router.Use(next => new InlineDispatcher((request, cancel) => throw new ArgumentException("message")));
+
+            var service = new Greeter();
             router.Map<IGreeter>(service);
 
-            server.Dispatcher = router;
+            await using var server = new Server
+            {
+                Dispatcher = router,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
+            };
             server.Listen();
 
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
             var prx = GreeterPrx.FromConnection(connection);
 
             Assert.ThrowsAsync<UnhandledException>(() => prx.SayHelloAsync());
@@ -39,11 +37,6 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task Middleware_CallOrder()
         {
-            await using var server = new Server
-            {
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-
             var middlewareCalls = new List<string>();
 
             var router = new Router();
@@ -67,7 +60,13 @@ namespace IceRpc.Tests.Api
                 }));
 
             router.Map<IGreeter>(new Greeter());
-            server.Dispatcher = router;
+
+            await using var server = new Server
+            {
+                Dispatcher = router,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
+            };
+
             server.Listen();
 
             await using var connection = new Connection { RemoteEndpoint = server.Endpoint };

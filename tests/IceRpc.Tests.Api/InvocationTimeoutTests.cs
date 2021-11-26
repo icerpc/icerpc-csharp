@@ -7,22 +7,8 @@ namespace IceRpc.Tests.Api
 {
     [Timeout(5000)]
     [Parallelizable(ParallelScope.All)]
-    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    public sealed class InvocationTimeoutTests : IAsyncDisposable
+    public sealed class InvocationTimeoutTests
     {
-        private readonly Server _server;
-
-        public InvocationTimeoutTests()
-        {
-            _server = new Server
-            {
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-        }
-
-        [TearDown]
-        public async ValueTask DisposeAsync() => await _server.DisposeAsync();
-
         /// <summary>Ensure that a request fails with OperationCanceledException after the invocation timeout expires.
         /// </summary>
         /// <param name="delay">The time in milliseconds to hold the dispatch to simulate an slow server.</param>
@@ -43,10 +29,15 @@ namespace IceRpc.Tests.Api
                     }));
 
             router.Map<IGreeter>(new Greeter());
-            _server.Dispatcher = router;
-            _server.Listen();
 
-            await using var connection = new Connection { RemoteEndpoint = _server.Endpoint };
+            await using var server = new Server
+            {
+                Dispatcher = router,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
+            };
+            server.Listen();
+
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
 
             var pipeline = new Pipeline();
             var prx = ServicePrx.FromConnection(connection, invoker: pipeline);
@@ -91,10 +82,15 @@ namespace IceRpc.Tests.Api
                     }));
 
             router.Map<IGreeter>(new Greeter());
-            _server.Dispatcher = router;
-            _server.Listen();
 
-            await using var connection = new Connection { RemoteEndpoint = _server.Endpoint };
+            await using var server = new Server
+            {
+                Dispatcher = router,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
+            };
+            server.Listen();
+
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
 
             // Setting a timeout with an interceptor
             var pipeline = new Pipeline();
@@ -136,10 +132,15 @@ namespace IceRpc.Tests.Api
                     }));
 
             router.Map<IGreeter>(new Greeter());
-            _server.Dispatcher = router;
-            _server.Listen();
 
-            await using var connection = new Connection { RemoteEndpoint = _server.Endpoint };
+            await using var server = new Server
+            {
+                Dispatcher = router,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
+            };
+            server.Listen();
+
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
 
             var pipeline = new Pipeline();
             var prx = ServicePrx.FromConnection(connection, invoker: pipeline);
