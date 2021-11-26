@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 namespace IceRpc.Internal
 {
     /// <summary>Provides extension methods for byte buffers (such as <c>ReadOnlyMemory{byte}</c>).</summary>
-    internal static class ByteBuffer
+    internal static class MemoryExtensions
     {
         internal static ReadOnlySpan<byte> AsReadOnlySpan(this Memory<byte> buffer) => buffer.Span;
 
