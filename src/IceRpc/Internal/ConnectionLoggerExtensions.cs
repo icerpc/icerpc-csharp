@@ -78,6 +78,13 @@ namespace IceRpc.Internal
             string message);
 
         [LoggerMessage(
+            EventId = (int)ConnectionEventIds.ProtocolConnectionShutdownCanceled,
+            EventName = nameof(ConnectionEventIds.ProtocolConnectionShutdownCanceled),
+            Level = LogLevel.Debug,
+            Message = "{Protocol} connection shut down canceled")]
+        internal static partial void LogProtocolConnectionShutdownCanceled(this ILogger logger, Protocol protocol);
+
+        [LoggerMessage(
             EventId = (int)ConnectionEventIds.ReceiveRequest,
             EventName = nameof(ConnectionEventIds.ReceiveRequest),
             Level = LogLevel.Debug,

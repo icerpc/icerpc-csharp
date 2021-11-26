@@ -144,6 +144,10 @@ namespace IceRpc
 
         private IProtocolConnection? _protocolConnection;
 
+#pragma warning disable CA2213 // _timer is disposed in CloseAsync
+        private readonly CancellationTokenSource _protocolShutdownCancellationSource = new();
+#pragma warning restore CA2213
+
         private ConnectionState _state = ConnectionState.NotConnected;
 
 #pragma warning disable CA2213 // _timer is disposed in CloseAsync
@@ -340,19 +344,20 @@ namespace IceRpc
                 shutdownTask = _closeTask ?? CloseAsync(new ConnectionClosedException(message));
             }
 
-            try
-            {
-                // Wait for the shutdown to complete or for the cancellation of this operation.
-                await shutdownTask.WaitAsync(cancel).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (cancel.IsCancellationRequested)
-            {
-                // Cancel pending invocations and dispatch to speed up the shutdown.
-                _protocolConnection?.ShutdownCanceled();
+            // If the application cancels ShutdownAsync, cancel the protocol ShutdownAsync call.
+            using CancellationTokenRegistration _ = cancel.Register(() =>
+                {
+                    try
+                    {
+                        _protocolShutdownCancellationSource.Cancel();
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                    }
+                });
 
-                // ... and continue waiting for the shutdown to complete.
-                await shutdownTask.ConfigureAwait(false);
-            }
+            // Wait for the shutdown to complete.
+            await shutdownTask.ConfigureAwait(false);
 
             async Task PerformShutdownAsync()
             {
@@ -363,10 +368,11 @@ namespace IceRpc
                 using var closeCancellationSource = new CancellationTokenSource(Options.CloseTimeout);
                 try
                 {
-                    // Shutdown the connection.
-                    await _protocolConnection!.ShutdownAsync(
-                        message,
-                        closeCancellationSource.Token).ConfigureAwait(false);
+                    // Shutdown the connection. The _shutdownCancellationSource is used to speed up the shutdown
+                    // if the application cancels ShutdownAsync.
+                    await _protocolConnection!
+                        .ShutdownAsync(message, _protocolShutdownCancellationSource.Token)
+                        .WaitAsync(closeCancellationSource.Token).ConfigureAwait(false);
 
                     // Close the connection.
                     await CloseAsync(new ConnectionClosedException(message)).ConfigureAwait(false);
