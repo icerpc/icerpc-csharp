@@ -58,15 +58,16 @@ namespace IceRpc.Tests.Internal
             var buffers = new ReadOnlyMemory<byte>[] { buffer };
 
             using var source = new CancellationTokenSource();
-            while (ClientConnection.WriteAsync(buffers, source.Token).AsTask().IsCompleted)
+            Task task;
+            while ((task = ClientConnection.WriteAsync(buffers, source.Token).AsTask()).IsCompleted)
             {
                 // Wait for send to block.
             }
 
-            Task task = ClientConnection.WriteAsync(buffers, source.Token).AsTask();
-            await Task.Delay(500);
-
             Assert.That(task.IsCompleted, Is.False);
+            await Task.Delay(500);
+            Assert.That(task.IsCompleted, Is.False);
+
             source.Cancel();
             Assert.CatchAsync<OperationCanceledException>(async () => await task);
         }

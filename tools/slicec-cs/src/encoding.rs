@@ -296,56 +296,54 @@ fn encode_sequence(
     is_read_only: bool,
 ) -> CodeBlock {
     let has_custom_type = sequence_ref.has_attribute("cs:generic", false);
-    let mut args = Vec::new();
-
-    let mut with_bit_sequence = "";
 
     if sequence_ref.has_fixed_size_numeric_elements() && (is_read_only || !has_custom_type) {
         if is_param && is_read_only && !has_custom_type {
-            args.push(format!("{}.Span", value));
+            format!("encoder.EncodeSequence({}.Span)", value)
         } else {
-            args.push(value.to_owned());
+            format!("encoder.EncodeSequence({})", value)
         }
     } else {
-        args.push(value.to_owned());
-
-        if sequence_ref.element_type.is_bit_sequence_encodable() {
-            with_bit_sequence = "WithBitSequence";
-        }
-
-        args.push(
-            encode_action(
+        format!(
+            "\
+encoder.EncodeSequence{with_bit_sequence}(
+    {param},
+    {encode_action})",
+            with_bit_sequence = if sequence_ref.element_type.is_bit_sequence_encodable() {
+                "WithBitSequence"
+            } else {
+                ""
+            },
+            param = value,
+            encode_action = encode_action(
                 &sequence_ref.element_type,
                 namespace,
                 is_read_only,
                 is_param,
             )
-            .to_string(),
-        );
+            .indent()
+        )
     }
-
-    format!(
-        "encoder.EncodeSequence{with_bit_sequence}({args})",
-        args = args.join(", "),
-        with_bit_sequence = with_bit_sequence
-    )
     .into()
 }
 
 fn encode_dictionary(dictionary_def: &Dictionary, namespace: &str, param: &str) -> CodeBlock {
-    let mut args = vec![param.to_owned()];
-    args.push(encode_action(&dictionary_def.key_type, namespace, false, false).to_string());
-    args.push(encode_action(&dictionary_def.value_type, namespace, false, false).to_string());
-
-    let with_bit_sequence = dictionary_def.value_type.is_bit_sequence_encodable();
     format!(
-        "encoder.{method}({args})",
-        method = if with_bit_sequence && dictionary_def.value_type.is_optional {
+        "\
+encoder.{method}(
+    {param},
+    {encode_key},
+    {encode_value})",
+        method = if dictionary_def.value_type.is_bit_sequence_encodable()
+            && dictionary_def.value_type.is_optional
+        {
             "EncodeDictionaryWithBitSequence"
         } else {
             "EncodeDictionary"
         },
-        args = args.join(", ")
+        param = param,
+        encode_key = encode_action(&dictionary_def.key_type, namespace, false, false).indent(),
+        encode_value = encode_action(&dictionary_def.value_type, namespace, false, false).indent()
     )
     .into()
 }

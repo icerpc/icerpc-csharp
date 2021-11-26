@@ -438,7 +438,7 @@ namespace IceRpc
                     // connection which is being shutdown.
                     _protocolConnection.PeerShutdownInitiated += () =>
                         {
-                            lock(_mutex)
+                            lock (_mutex)
                             {
                                 if (_state == ConnectionState.Active)
                                 {

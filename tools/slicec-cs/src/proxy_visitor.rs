@@ -58,14 +58,16 @@ impl<'a> Visitor for ProxyVisitor<'_> {
             doc_comment_message(interface_def)
         );
 
-        let proxy_interface =
-            ContainerBuilder::new(&format!("{} partial interface", access), &prx_interface)
+        let mut code = CodeBlock::new();
+        code.add_block(
+            &ContainerBuilder::new(&format!("{} partial interface", access), &prx_interface)
                 .add_comment("summary", &summary_message)
                 .add_type_id_attribute(interface_def)
                 .add_container_attributes(interface_def)
                 .add_bases(&prx_bases)
                 .add_block(proxy_interface_operations(interface_def))
-                .build();
+                .build(),
+        );
 
         let mut proxy_impl_builder = ContainerBuilder::new(
             &format!("{} readonly partial record struct", access),
@@ -82,7 +84,8 @@ impl<'a> Visitor for ProxyVisitor<'_> {
 /// <summary>The default path for services that implement Slice interface <c>{interface_name}</c>.</summary>
 {access} static readonly string DefaultPath = typeof({prx_impl}).GetDefaultPath();
 
-private static readonly DefaultIceDecoderFactories _defaultIceDecoderFactories = new (typeof({prx_impl}).Assembly);
+private static readonly DefaultIceDecoderFactories _defaultIceDecoderFactories =
+    new (typeof({prx_impl}).Assembly);
 
 /// <summary>The proxy to the remote service.</summary>
 {access} IceRpc.Proxy Proxy {{ get; init; }}"#,
@@ -143,15 +146,9 @@ private static readonly DefaultIceDecoderFactories _defaultIceDecoderFactories =
             proxy_impl_builder.add_block(proxy_operation_impl(operation));
         }
 
-        // Generate abstract methods and documentation
-        let code = format!(
-            "\n{interface}\n\n{proxy_impl}",
-            interface = proxy_interface,
-            proxy_impl = proxy_impl_builder.build()
-        );
+        code.add_block(&proxy_impl_builder.build());
 
-        self.generated_code
-            .insert_scoped(interface_def, code.into())
+        self.generated_code.insert_scoped(interface_def, code)
     }
 }
 
@@ -182,9 +179,10 @@ fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
 /// <param name="s">The string representation of the proxy.</param>
 /// <param name="invoker">The invoker of the new proxy.</param>
 /// <returns>The new proxy</returns>
-/// <exception cref="global::System.FormatException"><c>s</c> does not contain a valid string representation of a proxy.
-/// </exception>
-{access} static {prx_impl} Parse(string s, IceRpc.IInvoker? invoker = null) => new(IceRpc.Proxy.Parse(s, invoker));
+/// <exception cref="global::System.FormatException"><c>s</c> does not contain a valid string representation
+/// of a proxy.</exception>
+{access} static {prx_impl} Parse(string s, IceRpc.IInvoker? invoker = null) =>
+    new(IceRpc.Proxy.Parse(s, invoker));
 
 /// <summary>Creates a new <see cref="{prx_impl}"/> from a string and invoker.</summary>
 /// <param name="s">The proxy string representation.</param>
@@ -251,7 +249,8 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
 if ({invocation}?.RequestFeatures.Get<IceRpc.Features.CompressPayload>() == null)
 {{
     {invocation} ??= new IceRpc.Invocation();
-    {invocation}.RequestFeatures = IceRpc.FeatureCollectionExtensions.CompressPayload({invocation}.RequestFeatures);
+    {invocation}.RequestFeatures = IceRpc.FeatureCollectionExtensions.CompressPayload(
+        {invocation}.RequestFeatures);
 }}
 ",
             invocation = invocation_parameter
@@ -303,10 +302,9 @@ if ({invocation}?.RequestFeatures.Get<IceRpc.Features.CompressPayload>() == null
             _ => invoke_args.push(format!(
                 "\
 new IceRpc.Slice.AsyncEnumerableStreamParamSender<{stream_type}>(
-{stream_parameter},
-{payload_encoding},
-{encode_action}
-)",
+    {stream_parameter},
+    {payload_encoding},
+    {encode_action})",
                 stream_type = stream_type.to_type_string(namespace, TypeContext::Outgoing, false),
                 stream_parameter = stream_parameter_name,
                 payload_encoding = payload_encoding,
@@ -321,28 +319,26 @@ new IceRpc.Slice.AsyncEnumerableStreamParamSender<{stream_type}>(
         invoke_args.push("Response.".to_owned() + &operation_name);
     } else if let Some(stream_return) = stream_return {
         let stream_type = stream_return.data_type();
-        let stream_return_func = match stream_type.concrete_type() {
+        let mut stream_return_func: CodeBlock = match stream_type.concrete_type() {
             Types::Primitive(primitive) if matches!(primitive, Primitive::Byte) => {
-                "streamParamReceiver!.ToByteStream()".to_owned()
+                "streamParamReceiver!.ToByteStream()".into()
             }
-            _ => {
-                format!(
-                    "\
+            _ => format!(
+                "\
 streamParamReceiver!.ToAsyncEnumerable<{stream_type}>(
-response,
-invoker,
-response.GetIceDecoderFactory(_defaultIceDecoderFactories),
-{decode_func})",
-                    stream_type =
-                        stream_type.to_type_string(namespace, TypeContext::Incoming, false),
-                    decode_func = decode_func(stream_type, namespace).indent()
-                )
-            }
+    response,
+    invoker,
+    response.GetIceDecoderFactory(_defaultIceDecoderFactories),
+    {decode_func})",
+                stream_type = stream_type.to_type_string(namespace, TypeContext::Incoming, false),
+                decode_func = decode_func(stream_type, namespace).indent()
+            )
+            .into(),
         };
 
         invoke_args.push(format!(
             "(response, invoker, streamParamReceiver) => {}",
-            stream_return_func,
+            stream_return_func.indent(),
         ));
     }
 
@@ -362,12 +358,15 @@ response.GetIceDecoderFactory(_defaultIceDecoderFactories),
 
     invoke_args.push(format!("cancel: {}", cancel_parameter));
 
-    body.writeln(&format!(
+    writeln!(
+        body,
         "\
 return Proxy.InvokeAsync(
     {});",
-        args = invoke_args.join(",\n    ")
-    ));
+        CodeBlock::from(invoke_args.join(",\n"))
+            .indent()
+            .to_string()
+    );
 
     builder.set_body(body);
 
@@ -583,20 +582,22 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         class_builder.add_block(format!(
             r#"
 /// <summary>The <see cref="ResponseDecodeFunc{{T}}"/> for the return value type of operation {name}.</summary>
-{access} static {return_type} {escaped_name}(IceRpc.IncomingResponse response, IceRpc.IInvoker? invoker, IceRpc.Slice.StreamParamReceiver? streamParamReceiver) =>
-    response.ToReturnValue(
-        invoker,
-        {decoder},
-        {response_decode_func});"#,
+{access} static {return_type} {escaped_name}(
+    IceRpc.IncomingResponse response,
+    IceRpc.IInvoker? invoker,
+    IceRpc.Slice.StreamParamReceiver? streamParamReceiver) =>
+        response.ToReturnValue(
+            invoker,
+            {decoder},
+            {response_decode_func});"#,
             name = operation.identifier(),
             access = access,
             escaped_name = operation.escape_identifier(),
             return_type = members.to_tuple_type( namespace, TypeContext::Incoming, false),
             decoder = decoder,
-            response_decode_func = response_decode_func(operation).indent()
+            response_decode_func = response_decode_func(operation).indent().indent().indent()
         ).into());
     }
-
     class_builder.build().into()
 }
 
@@ -616,7 +617,8 @@ fn request_encode_action(operation: &Operation) -> CodeBlock {
     } else {
         format!(
             "\
-({encoder} encoder, {_in}{param_type} value) =>
+({encoder} encoder,
+ {_in}{param_type} value) =>
 {{
     {encode}
 }}",
@@ -647,7 +649,11 @@ fn response_decode_func(operation: &Operation) -> CodeBlock {
         decode_func(members.first().unwrap().data_type(), namespace)
     } else {
         format!(
-            "decoder => {{ {decode} }}",
+            "\
+decoder =>
+{{
+    {decode}
+}}",
             decode = decode_operation(operation, false).indent()
         )
         .into()
