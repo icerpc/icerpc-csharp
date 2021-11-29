@@ -102,8 +102,6 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
     for operation in operations {
         let parameters = operation.parameters();
 
-        let operation_name = operation.escape_identifier();
-
         let decoder_factory = if operation.sends_classes() {
             "request.GetIceDecoderFactory(_defaultIceDecoderFactories.Ice11DecoderFactory)"
         } else {
@@ -112,17 +110,22 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
         let namespace = &operation.namespace();
 
+        // We need the async/await for proper type inference when returning tuples with nullable elements like string?.
         let code = format!(
             "\
-///<summary>Decodes the argument{s} of operation {operation_name}.</summary>
-{access} static {return_type} {operation_name}(IceRpc.IncomingRequest request) =>
-    request.ToArgs(
+/// <summary>Decodes the argument{s} of operation {operation_identifier}.</summary>
+{access} static async global::System.Threading.Tasks.ValueTask<{return_type}> {async_operation_name}(
+    IceRpc.IncomingRequest request,
+    global::System.Threading.CancellationToken cancel) =>
+    await request.ToArgsAsync(
         {decoder_factory},
-        {decode_func});",
+        {decode_func},
+        cancel).ConfigureAwait(false);",
             access = access,
             s = if parameters.len() == 1 { "" } else { "s" },
             return_type = parameters.to_tuple_type(namespace, TypeContext::Incoming, false),
-            operation_name = operation_name,
+            operation_identifier = operation.identifier(),
+            async_operation_name = operation.escape_identifier_with_suffix("Async"),
             decoder_factory = decoder_factory,
             decode_func = request_decode_func(operation).indent().indent(),
         );
@@ -359,7 +362,7 @@ protected static async global::System.Threading.Tasks.ValueTask<(IceEncoding, gl
 
 fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
     let namespace = &operation.namespace();
-    let operation_name = &operation.escape_identifier();
+    let async_operation_name = &operation.escape_identifier_with_suffix("Async");
     let parameters = operation.parameters();
     let stream_parameter = operation.streamed_parameter();
     let return_parameters = operation.return_members();
@@ -387,7 +390,10 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
         [] => {
             // Verify the payload is indeed empty (it can contain tagged params that we have to skip).
             code.writeln(
-                "request.CheckEmptyArgs(request.GetIceDecoderFactory(_defaultIceDecoderFactories));",
+                "\
+await request.CheckEmptyArgsAsync(
+    request.GetIceDecoderFactory(_defaultIceDecoderFactories),
+    cancel).ConfigureAwait(false);",
             );
         }
         [_] if stream_parameter.is_some() => {
@@ -417,17 +423,17 @@ IceRpc.Slice.StreamParamReceiver.ToAsyncEnumerable<{stream_type}>(
         [parameter] => {
             writeln!(
                 code,
-                "var {var_name} = Request.{operation_name}(request);",
+                "var {var_name} = await Request.{async_operation_name}(request, cancel).ConfigureAwait(false);",
                 var_name = parameter.parameter_name_with_prefix("iceP_"),
-                operation_name = operation_name,
+                async_operation_name = async_operation_name,
             )
         }
         _ => {
             // > 1 parameter
             writeln!(
                 code,
-                "var args = Request.{operation_name}(request);",
-                operation_name = operation_name,
+                "var args = await Request.{async_operation_name}(request, cancel).ConfigureAwait(false);",
+                async_operation_name = async_operation_name,
             )
         }
     };
@@ -452,8 +458,8 @@ IceRpc.Slice.StreamParamReceiver.ToAsyncEnumerable<{stream_type}>(
 
         writeln!(
             code,
-            "var returnValue = await target.{name}Async({args}).ConfigureAwait(false);",
-            name = operation_name,
+            "var returnValue = await target.{name}({args}).ConfigureAwait(false);",
+            name = async_operation_name,
             args = args.join(", ")
         );
 
@@ -481,13 +487,13 @@ IceRpc.Slice.StreamParamReceiver.ToAsyncEnumerable<{stream_type}>(
 
         writeln!(
             code,
-            "{return_value}await target.{operation_name}Async({args}).ConfigureAwait(false);",
+            "{return_value}await target.{async_operation_name}({args}).ConfigureAwait(false);",
             return_value = if !return_parameters.is_empty() {
                 "var returnValue = "
             } else {
                 ""
             },
-            operation_name = operation_name,
+            async_operation_name = async_operation_name,
             args = args.join(", ")
         );
 
