@@ -7,10 +7,10 @@ using NUnit.Framework;
 namespace IceRpc.Tests.Internal
 {
     [Timeout(5000)]
-    public class SlicMultiplexedStreamFactoryTests
+    public class SlicMultiplexedNetworkConnectionTests
     {
         [TestCase]
-        public async Task SlicMultiplexedStreamFactoryTests_Options()
+        public async Task SlicMultiplexedNetworkConnectionTests_Options()
         {
             var clientOptions = new SlicOptions
             {
@@ -23,7 +23,7 @@ namespace IceRpc.Tests.Internal
                 PacketMaxSize = 2098
             };
 
-            (SlicMultiplexedStreamFactory clientConnection, SlicMultiplexedStreamFactory serverConnection) =
+            (SlicNetworkConnection clientConnection, SlicNetworkConnection serverConnection) =
                 await CreateSlicClientServerConnectionsAsync(clientOptions, serverOptions);
             try
             {
@@ -34,12 +34,12 @@ namespace IceRpc.Tests.Internal
             }
             finally
             {
-                clientConnection.Dispose();
-                serverConnection.Dispose();
+                await clientConnection.DisposeAsync();
+                await serverConnection.DisposeAsync();
             }
         }
 
-        private static async Task<(SlicMultiplexedStreamFactory, SlicMultiplexedStreamFactory)> CreateSlicClientServerConnectionsAsync(
+        private static async Task<(SlicNetworkConnection, SlicNetworkConnection)> CreateSlicClientServerConnectionsAsync(
             SlicOptions clientOptions,
             SlicOptions serverOptions)
         {
@@ -55,12 +55,11 @@ namespace IceRpc.Tests.Internal
                 LogAttributeLoggerFactory.Instance.Logger);
 
             IMultiplexedNetworkConnection serverConnection = await listener.AcceptAsync();
-            Task<(IMultiplexedStreamFactory Factory, NetworkConnectionInformation Information)> clientTask =
-                clientConnection.ConnectAsync(default);
-            Task<(IMultiplexedStreamFactory Factory, NetworkConnectionInformation Information)> serverTask =
-                serverConnection.ConnectAsync(default);
-            return ((SlicMultiplexedStreamFactory)(await clientTask).Factory,
-                    (SlicMultiplexedStreamFactory)(await serverTask).Factory);
+            Task<NetworkConnectionInformation> clientTask = clientConnection.ConnectAsync(default);
+            Task<NetworkConnectionInformation> serverTask = serverConnection.ConnectAsync(default);
+            _ = await clientTask;
+            _ = await serverTask;
+            return ((SlicNetworkConnection)clientConnection, (SlicNetworkConnection)serverConnection);
         }
     }
 }

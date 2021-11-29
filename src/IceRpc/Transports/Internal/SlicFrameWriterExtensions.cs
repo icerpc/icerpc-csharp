@@ -54,11 +54,17 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel) =>
             WriteFrameAsync(writer, FrameType.StreamStopSending, stream, frame.Encode, cancel);
 
+        internal static ValueTask WriteUnidirectionalStreamReleasedAsync(
+            this ISlicFrameWriter writer,
+            SlicMultiplexedStream stream,
+            CancellationToken cancel) =>
+            WriteFrameAsync(writer, FrameType.UnidirectionalStreamReleased, stream, null, cancel);
+
         private static ValueTask WriteFrameAsync(
             ISlicFrameWriter writer,
             FrameType type,
             SlicMultiplexedStream? stream,
-            Action<IceEncoder> encode,
+            Action<IceEncoder>? encode,
             CancellationToken cancel)
         {
             var bufferWriter = new BufferWriter();
@@ -69,7 +75,10 @@ namespace IceRpc.Transports.Internal
             {
                 encoder.EncodeVarULong((ulong)stream.Id);
             }
-            encode(encoder);
+            if (encode != null)
+            {
+                encode?.Invoke(encoder);
+            }
             encoder.EndFixedLengthSize(sizePos);
             return writer.WriteFrameAsync(stream, bufferWriter.Finish(), cancel);
         }

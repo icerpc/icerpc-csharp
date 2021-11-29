@@ -92,6 +92,8 @@ Generate the test report
 reportgenerator "-reports:tests/*/TestResults/*/coverage.cobertura.xml" "-targetdir:tests/TestRerport"
 ```
 
+You can do the same with the `--coverage` argument of the build script.
+
 ## Building Example Programs
 
 You can build each demo by using `dotnet build` command and the corresponding solution or project files, the example
@@ -100,7 +102,7 @@ programs are configured to use IceRCP NuGet packages.
 If you want to build all examples at once run:
 
 ```
-dotnet msbuild build/build.proj /t:BuildExamples /restore
+./build.sh --examples
 ```
 
 If you want to use the IceRPC distribution from this repository instead of IceRPC from a published NuGet package, you need
@@ -108,5 +110,5 @@ to build and install the NuGet package from this repository before building the 
 following command:
 
 ```
-dotnet msbuild build/build.proj /t:InstallLocalPackages /restore
+./build.sh --examples --srcdist
 ```

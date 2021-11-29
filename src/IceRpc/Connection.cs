@@ -144,6 +144,10 @@ namespace IceRpc
 
         private IProtocolConnection? _protocolConnection;
 
+#pragma warning disable CA2213 // _protocolShutdownCancellationSource is disposed in CloseAsync
+        private readonly CancellationTokenSource _protocolShutdownCancellationSource = new();
+#pragma warning restore CA2213
+
         private ConnectionState _state = ConnectionState.NotConnected;
 
 #pragma warning disable CA2213 // _timer is disposed in CloseAsync
@@ -225,10 +229,10 @@ namespace IceRpc
 
                 if (logger.IsEnabled(LogLevel.Error)) // TODO: log level
                 {
-                    networkConnection = logDecoratorFactory(networkConnection, isServer: false, logger);
+                    networkConnection = logDecoratorFactory(networkConnection, RemoteEndpoint, isServer: false, logger);
 
                     protocolConnectionFactory =
-                        new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, RemoteEndpoint, logger);
+                        new LogProtocolConnectionFactoryDecorator<T>(protocolConnectionFactory, logger);
 
                     closedEventHandler = (sender, args) =>
                     {
@@ -340,19 +344,20 @@ namespace IceRpc
                 shutdownTask = _closeTask ?? CloseAsync(new ConnectionClosedException(message));
             }
 
-            try
-            {
-                // Wait for the shutdown to complete or for the cancellation of this operation.
-                await shutdownTask.WaitAsync(cancel).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (cancel.IsCancellationRequested)
-            {
-                // Cancel pending invocations and dispatch to speed up the shutdown.
-                _protocolConnection?.ShutdownCanceled();
+            // If the application cancels ShutdownAsync, cancel the protocol ShutdownAsync call.
+            using CancellationTokenRegistration _ = cancel.Register(() =>
+                {
+                    try
+                    {
+                        _protocolShutdownCancellationSource.Cancel();
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                    }
+                });
 
-                // ... and continue waiting for the shutdown to complete.
-                await shutdownTask.ConfigureAwait(false);
-            }
+            // Wait for the shutdown to complete.
+            await shutdownTask.ConfigureAwait(false);
 
             async Task PerformShutdownAsync()
             {
@@ -363,10 +368,11 @@ namespace IceRpc
                 using var closeCancellationSource = new CancellationTokenSource(Options.CloseTimeout);
                 try
                 {
-                    // Shutdown the connection.
-                    await _protocolConnection!.ShutdownAsync(
-                        message,
-                        closeCancellationSource.Token).ConfigureAwait(false);
+                    // Shutdown the connection. The _shutdownCancellationSource is used to speed up the shutdown
+                    // if the application cancels ShutdownAsync.
+                    await _protocolConnection!
+                        .ShutdownAsync(message, _protocolShutdownCancellationSource.Token)
+                        .WaitAsync(closeCancellationSource.Token).ConfigureAwait(false);
 
                     // Close the connection.
                     await CloseAsync(new ConnectionClosedException(message)).ConfigureAwait(false);
@@ -409,12 +415,17 @@ namespace IceRpc
                 // Make sure we establish the connection asynchronously without holding any mutex lock from the caller.
                 await Task.Yield();
 
-                (_protocolConnection, NetworkConnectionInformation) =
-                    await protocolConnectionFactory.CreateProtocolConnectionAsync(
-                        networkConnection,
-                        Options.IncomingFrameMaxSize,
-                        IsServer,
-                        connectCancellationSource.Token).ConfigureAwait(false);
+                // Establish the network connection.
+                NetworkConnectionInformation = await networkConnection.ConnectAsync(
+                    connectCancellationSource.Token).ConfigureAwait(false);
+
+                // Create the protocol connection.
+                _protocolConnection = await protocolConnectionFactory.CreateProtocolConnectionAsync(
+                    networkConnection,
+                    NetworkConnectionInformation.Value,
+                    Options.IncomingFrameMaxSize,
+                    IsServer,
+                    connectCancellationSource.Token).ConfigureAwait(false);
 
                 lock (_mutex)
                 {
@@ -433,7 +444,7 @@ namespace IceRpc
                     // connection which is being shutdown.
                     _protocolConnection.PeerShutdownInitiated += () =>
                         {
-                            lock(_mutex)
+                            lock (_mutex)
                             {
                                 if (_state == ConnectionState.Active)
                                 {
@@ -621,6 +632,8 @@ namespace IceRpc
                 {
                     await _timer.DisposeAsync().ConfigureAwait(false);
                 }
+
+                _protocolShutdownCancellationSource.Dispose();
 
                 // Raise the Closed event, this will call user code so we shouldn't hold the mutex.
                 try

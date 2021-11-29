@@ -1,13 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
-using System.Threading.Channels;
+using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The colocated network connection class to exchange data within the same process. The implementation
     /// copies the send buffer into the receive buffer.</summary>
-    internal class ColocNetworkConnection : ISimpleNetworkConnection, ISimpleStream
+    internal class ColocNetworkConnection : ISimpleNetworkConnection
     {
         bool INetworkConnection.IsSecure => true;
 
@@ -15,22 +14,15 @@ namespace IceRpc.Transports.Internal
 
         private readonly Endpoint _endpoint;
         private readonly bool _isServer;
-        private readonly ChannelReader<ReadOnlyMemory<byte>> _reader;
-        private ReadOnlyMemory<byte> _receivedBuffer;
-        private readonly ChannelWriter<ReadOnlyMemory<byte>> _writer;
+        private readonly PipeReader _reader;
+        private readonly PipeWriter _writer;
 
-        Task<(ISimpleStream, NetworkConnectionInformation)> ISimpleNetworkConnection.ConnectAsync(
-            CancellationToken cancel) =>
-            Task.FromResult<(ISimpleStream, NetworkConnectionInformation)>(
-                (this, new NetworkConnectionInformation(_endpoint, _endpoint, TimeSpan.MaxValue, null)));
+        public Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel) =>
+            Task.FromResult(new NetworkConnectionInformation(_endpoint, _endpoint, TimeSpan.MaxValue, null));
 
-        ValueTask IAsyncDisposable.DisposeAsync()
-        {
-            _writer.TryComplete();
-            return default;
-        }
+        public ValueTask DisposeAsync() => _writer.CompleteAsync();
 
-        bool INetworkConnection.HasCompatibleParams(Endpoint remoteEndpoint)
+        public bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
             if (remoteEndpoint.Params.Count > 0)
             {
@@ -40,52 +32,78 @@ namespace IceRpc.Transports.Internal
             return !_isServer;
         }
 
-        async ValueTask<int> ISimpleStream.ReadAsync(Memory<byte> buffer, CancellationToken cancel)
+        public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
-            if (_receivedBuffer.Length == 0)
+            ReadResult readResult = await _reader.ReadAsync(cancel).ConfigureAwait(false);
+            if (readResult.IsCompleted)
             {
-                try
-                {
-                    _receivedBuffer = await _reader.ReadAsync(cancel).ConfigureAwait(false);
-                }
-                catch (ChannelClosedException exception)
-                {
-                    throw new ObjectDisposedException(nameof(ColocNetworkConnection), exception);
-                }
+                await _reader.CompleteAsync().ConfigureAwait(false);
+                throw new ObjectDisposedException(nameof(ColocNetworkConnection));
             }
 
-            if (_receivedBuffer.Length > buffer.Length)
+            // We could eventually add a CopyTo(this ReadOnlySequence<byte> src, Memory<byte> dest) extension method
+            // if we need this in other places.
+            int read;
+            if (readResult.Buffer.IsSingleSegment)
             {
-                _receivedBuffer[0..buffer.Length].CopyTo(buffer);
-                _receivedBuffer = _receivedBuffer[buffer.Length..];
-                return buffer.Length;
+                read = CopySegmentToMemory(readResult.Buffer.First, buffer);
             }
             else
             {
-                int received = _receivedBuffer.Length;
-                _receivedBuffer.CopyTo(buffer[0..received]);
-                _receivedBuffer = ReadOnlyMemory<byte>.Empty;
-                return received;
+                read = 0;
+                foreach (ReadOnlyMemory<byte> segment in readResult.Buffer)
+                {
+
+                    read += CopySegmentToMemory(segment, buffer[read..]);
+                    if (read == buffer.Length)
+                    {
+                        break;
+                    }
+                }
+            }
+            _reader.AdvanceTo(readResult.Buffer.GetPosition(read));
+            return read;
+
+            static int CopySegmentToMemory(ReadOnlyMemory<byte> source, Memory<byte> destination)
+            {
+                if (source.Length > destination.Length)
+                {
+                    source[0..destination.Length].CopyTo(destination);
+                    return destination.Length;
+                }
+                else
+                {
+                    source.CopyTo(destination);
+                    return source.Length;
+                }
             }
         }
 
-        async ValueTask ISimpleStream.WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
+        public async ValueTask WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
         {
-            try
+            for (int i = 0; i < buffers.Length; ++i)
             {
-                await _writer.WriteAsync(buffers.ToSingleBuffer(), cancel).ConfigureAwait(false);
-            }
-            catch (ChannelClosedException exception)
-            {
-                throw new ObjectDisposedException(nameof(ColocNetworkConnection), exception);
+                try
+                {
+                    FlushResult result = await _writer.WriteAsync(buffers.Span[i], cancel).ConfigureAwait(false);
+                    if (result.IsCompleted)
+                    {
+                        throw new ObjectDisposedException(nameof(ColocNetworkConnection));
+                    }
+                    else if (result.IsCanceled)
+                    {
+                        throw new OperationCanceledException();
+                    }
+                }
+                catch (InvalidOperationException)
+                {
+                    // Pipe is completed.
+                    throw new ObjectDisposedException(nameof(ColocNetworkConnection));
+                }
             }
         }
 
-        internal ColocNetworkConnection(
-            Endpoint endpoint,
-            bool isServer,
-            ChannelWriter<ReadOnlyMemory<byte>> writer,
-            ChannelReader<ReadOnlyMemory<byte>> reader)
+        internal ColocNetworkConnection(Endpoint endpoint, bool isServer, PipeReader reader, PipeWriter writer)
         {
             _endpoint = endpoint;
             _isServer = isServer;

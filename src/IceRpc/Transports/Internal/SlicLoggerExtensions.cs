@@ -38,6 +38,13 @@ namespace IceRpc.Transports.Internal
             int consumedSize);
 
         [LoggerMessage(
+            EventId = (int)SlicEventIds.ReceivedUnidirectionalStreamReleased,
+            EventName = nameof(SlicEventIds.ReceivedUnidirectionalStreamReleased),
+            Level = LogLevel.Debug,
+            Message = "received Slic ReceivedUnidirectionStreamReleased frame")]
+        internal static partial void LogReceivedSlicUnidirectionalStreamReleased(this ILogger logger);
+
+        [LoggerMessage(
             EventId = (int)SlicEventIds.ReceivedUnsupportedInitializeFrame,
             EventName = nameof(SlicEventIds.ReceivedUnsupportedInitializeFrame),
             Level = LogLevel.Debug,
@@ -121,6 +128,13 @@ namespace IceRpc.Transports.Internal
             this ILogger logger,
             int frameSize,
             int consumedSize);
+
+        [LoggerMessage(
+            EventId = (int)SlicEventIds.SentUnidirectionalStreamReleased,
+            EventName = nameof(SlicEventIds.SentUnidirectionalStreamReleased),
+            Level = LogLevel.Debug,
+            Message = "sent Slic UnidirectionalStreamReleased frame")]
+        internal static partial void LogSentSlicUnidirectionalStreamReleasedFrame(this ILogger logger);
 
         internal static void LogSentSlicInitializeAckFrame(
             this ILogger logger,

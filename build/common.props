@@ -25,10 +25,12 @@
         <DebugType>portable</DebugType>
         <Optimize>false</Optimize>
         <DebugSymbols>true</DebugSymbols>
+        <RustConfiguration>debug</RustConfiguration>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)' == 'Release'">
         <DebugType>portable</DebugType>
         <Optimize>true</Optimize>
+        <RustConfiguration>release</RustConfiguration>
     </PropertyGroup>
 </Project>

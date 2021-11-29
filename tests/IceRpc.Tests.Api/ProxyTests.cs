@@ -17,7 +17,7 @@ namespace IceRpc.Tests.Api
         {
             // Tests the IceRpc::Service interface implemented by all typed proxies.
             Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
-               // protocol == ProtocolCode.Ice1 ? "tcp -h 127.0.0.1 -p 0" : "ice+tcp://127.0.0.1:0?tls=false";
+            // protocol == ProtocolCode.Ice1 ? "tcp -h 127.0.0.1 -p 0" : "ice+tcp://127.0.0.1:0?tls=false";
 
             await using var server = new Server
             {

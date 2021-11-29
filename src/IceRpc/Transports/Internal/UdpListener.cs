@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
-
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The listener implementation for the UDP transport.</summary>

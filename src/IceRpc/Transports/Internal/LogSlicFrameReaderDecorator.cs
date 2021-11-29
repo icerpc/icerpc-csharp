@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Slice;
-using IceRpc.Slice.Internal;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
@@ -15,7 +13,6 @@ namespace IceRpc.Transports.Internal
         private readonly ISlicFrameReader _decoratee;
         private FrameType _frameType;
         private int _frameDataSize;
-        private long? _frameStreamId;
         private readonly ILogger _logger;
 
         public async ValueTask ReadFrameDataAsync(Memory<byte> buffer, CancellationToken cancel)
@@ -23,21 +20,16 @@ namespace IceRpc.Transports.Internal
             await _decoratee.ReadFrameDataAsync(buffer, cancel).ConfigureAwait(false);
             if (_frameType != FrameType.Stream && _frameType != FrameType.StreamLast)
             {
-                LogReadFrame(_frameType, _frameDataSize, null, buffer);
+                LogReadFrame(_frameType, _frameDataSize, buffer);
             }
         }
 
         public async ValueTask<(FrameType, int, long?)> ReadFrameHeaderAsync(CancellationToken cancel)
         {
-            (_frameType, _frameDataSize, _frameStreamId) =
+            long? streamId;
+            (_frameType, _frameDataSize, streamId) =
                 await _decoratee.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
-
-            if (_frameType == FrameType.Stream || _frameType == FrameType.StreamLast)
-            {
-                _logger.LogReceivingSlicDataFrame(_frameType, _frameDataSize);
-            }
-
-            return (_frameType, _frameDataSize, _frameStreamId);
+            return (_frameType, _frameDataSize, streamId);
         }
 
         internal LogSlicFrameReaderDecorator(ISlicFrameReader decoratee, ILogger logger)
@@ -46,7 +38,7 @@ namespace IceRpc.Transports.Internal
             _logger = logger;
         }
 
-        private void LogReadFrame(FrameType type, int dataSize, long? streamId, ReadOnlyMemory<byte> buffer)
+        private void LogReadFrame(FrameType type, int dataSize, ReadOnlyMemory<byte> buffer)
         {
             // Create a reader to read again the frame from the memory buffer.
             using var reader = new BufferedReceiverSlicFrameReader(new BufferedReceiver(buffer));
@@ -82,6 +74,12 @@ namespace IceRpc.Transports.Internal
                     }
                     break;
                 }
+                case FrameType.Stream:
+                case FrameType.StreamLast:
+                {
+                    _logger.LogReceivingSlicDataFrame(type, dataSize);
+                    break;
+                }
                 case FrameType.StreamReset:
                 {
                     StreamResetBody body = ReadFrame(() => reader.ReadStreamResetAsync(dataSize, default));
@@ -98,6 +96,11 @@ namespace IceRpc.Transports.Internal
                 {
                     StreamStopSendingBody body = ReadFrame(() => reader.ReadStreamStopSendingAsync(dataSize, default));
                     _logger.LogReceivedSlicStopSendingFrame(dataSize, (byte)body.ApplicationProtocolErrorCode);
+                    break;
+                }
+                case FrameType.UnidirectionalStreamReleased:
+                {
+                    _logger.LogReceivedSlicUnidirectionalStreamReleased();
                     break;
                 }
                 default:

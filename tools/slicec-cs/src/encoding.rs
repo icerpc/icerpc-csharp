@@ -32,15 +32,13 @@ pub fn encode_data_members(
 
     for member in required_members {
         let param = format!("this.{}", member.field_name(field_type));
-
-        let encode_member = encode_type(
+        code.writeln(&encode_type(
             member.data_type(),
             &mut bit_sequence_index,
             true,
             namespace,
             &param,
-        );
-        code.writeln(&encode_member);
+        ));
     }
 
     // Encode tagged
@@ -52,76 +50,101 @@ pub fn encode_data_members(
     code
 }
 
-pub fn encode_type(
+fn encode_type(
     type_ref: &TypeRef,
     bit_sequence_index: &mut i64,
     for_nested_type: bool,
     namespace: &str,
     param: &str,
 ) -> CodeBlock {
-    let mut code = CodeBlock::new();
-
-    let value = if type_ref.is_optional && type_ref.is_value_type() {
-        format!("{}.Value", param)
-    } else {
-        param.to_owned()
-    };
-
     match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) => {
-            writeln!(code, "encoder.EncodeProxy({}.Proxy);", value)
+            if type_ref.is_optional {
+                format!("encoder.EncodeNullableProxy({}?.Proxy);", param)
+            } else {
+                format!("encoder.EncodeProxy({}.Proxy);", param)
+            }
         }
-        TypeRefs::Class(_) => {
-            writeln!(code, "encoder.EncodeClass({});", value)
+        _ if type_ref.is_class_type() => {
+            if type_ref.is_optional {
+                format!("encoder.EncodeNullableClass({});", param)
+            } else {
+                format!("encoder.EncodeClass({});", param)
+            }
         }
-        TypeRefs::Primitive(primitive_ref) => {
-            writeln!(
-                code,
-                "encoder.Encode{}({});",
-                primitive_ref.type_suffix(),
-                value
-            )
-        }
-        TypeRefs::Struct(_) => {
-            writeln!(code, "{}.Encode(encoder);", value)
-        }
-        TypeRefs::Sequence(sequence_ref) => writeln!(
-            code,
-            "{};",
-            encode_sequence(
-                sequence_ref,
-                namespace,
-                param,
-                !for_nested_type,
-                !for_nested_type,
-            ),
-        ),
-        TypeRefs::Dictionary(dictionary_ref) => {
-            writeln!(
-                code,
-                "{};",
-                encode_dictionary(dictionary_ref, namespace, param)
-            )
-        }
-        TypeRefs::Enum(enum_ref) => {
-            writeln!(
-                code,
-                "{helper}.Encode{name}(encoder, {param});",
-                helper = enum_ref.helper_name(namespace),
-                name = enum_ref.identifier(),
-                param = value,
-            );
+        concrete_typeref => {
+            let value = if type_ref.is_optional && type_ref.is_value_type() {
+                format!("{}.Value", param)
+            } else {
+                param.to_owned()
+            };
+            let encode_type = match concrete_typeref {
+                TypeRefs::Primitive(primitive_ref) => {
+                    format!("encoder.Encode{}({});", primitive_ref.type_suffix(), value)
+                }
+                TypeRefs::Struct(_) => format!("{}.Encode(encoder);", value),
+                TypeRefs::Sequence(sequence_ref) => format!(
+                    "{};",
+                    encode_sequence(
+                        sequence_ref,
+                        namespace,
+                        param,
+                        !for_nested_type,
+                        !for_nested_type,
+                    ),
+                ),
+                TypeRefs::Dictionary(dictionary_ref) => {
+                    format!("{};", encode_dictionary(dictionary_ref, namespace, param))
+                }
+                TypeRefs::Enum(enum_ref) => format!(
+                    "{helper}.Encode{name}(encoder, {param});",
+                    helper = enum_ref.helper_name(namespace),
+                    name = enum_ref.identifier(),
+                    param = value,
+                ),
+                _ => panic!("class and proxy types are handled in the outer match"),
+            };
+
+            if type_ref.is_optional {
+                assert!(*bit_sequence_index >= 0);
+                // A null T[]? or List<T>? is implicitly converted into a default aka null
+                // ReadOnlyMemory<T> or ReadOnlySpan<T>. Furthermore, the span of a default
+                // ReadOnlyMemory<T> is a default ReadOnlySpan<T>, which is distinct from
+                // the span of an empty sequence. This is why the "value.Span != null" below
+                // works correctly.
+                let index = *bit_sequence_index;
+                *bit_sequence_index += 1;
+                format!(
+                    "\
+if ({param} != null)
+{{
+    {encode_type}
+}}
+else
+{{
+    bitSequence[{bit_sequence_index}] = false;
+}}
+",
+                    param = match concrete_typeref {
+                        TypeRefs::Sequence(sequence_def)
+                            if sequence_def.has_fixed_size_numeric_elements()
+                                && !sequence_def.has_attribute("cs:generic", false)
+                                && !for_nested_type =>
+                            format!("{}.Span", param),
+                        _ => param.to_owned(),
+                    },
+                    encode_type = encode_type,
+                    bit_sequence_index = index
+                )
+            } else {
+                encode_type
+            }
         }
     }
-
-    if type_ref.is_optional {
-        code = encode_as_optional(type_ref, bit_sequence_index, for_nested_type, param, &code);
-    }
-
-    code
+    .into()
 }
 
-pub fn encode_tagged_type(
+fn encode_tagged_type(
     member: &impl Member,
     namespace: &str,
     param: &str,
@@ -265,130 +288,64 @@ if ({param} != null)
     code
 }
 
-pub fn encode_sequence(
+fn encode_sequence(
     sequence_ref: &TypeRef<Sequence>,
     namespace: &str,
     value: &str,
     is_param: bool,
     is_read_only: bool,
 ) -> CodeBlock {
-    let mut code = CodeBlock::new();
-
-    let has_custom_type = matches!(sequence_ref.get_attribute("cs:generic", false), Some(_));
-    let mut args = Vec::new();
-
-    let mut with_bit_sequence = "";
+    let has_custom_type = sequence_ref.has_attribute("cs:generic", false);
 
     if sequence_ref.has_fixed_size_numeric_elements() && (is_read_only || !has_custom_type) {
         if is_param && is_read_only && !has_custom_type {
-            args.push(format!("{}.Span", value));
+            format!("encoder.EncodeSequence({}.Span)", value)
         } else {
-            args.push(value.to_owned());
+            format!("encoder.EncodeSequence({})", value)
         }
     } else {
-        args.push(value.to_owned());
-
-        if sequence_ref.element_type.is_bit_sequence_encodable() {
-            with_bit_sequence = "WithBitSequence";
-        }
-
-        args.push(
-            encode_action(
+        format!(
+            "\
+encoder.EncodeSequence{with_bit_sequence}(
+    {param},
+    {encode_action})",
+            with_bit_sequence = if sequence_ref.element_type.is_bit_sequence_encodable() {
+                "WithBitSequence"
+            } else {
+                ""
+            },
+            param = value,
+            encode_action = encode_action(
                 &sequence_ref.element_type,
                 namespace,
                 is_read_only,
                 is_param,
             )
-            .to_string(),
-        );
+            .indent()
+        )
     }
-
-    write!(
-        code,
-        "encoder.EncodeSequence{with_bit_sequence}({args})",
-        args = args.join(", "),
-        with_bit_sequence = with_bit_sequence
-    );
-
-    code
+    .into()
 }
 
-pub fn encode_dictionary(dictionary_def: &Dictionary, namespace: &str, param: &str) -> CodeBlock {
-    let mut code = CodeBlock::new();
-
-    let mut args = vec![param.to_owned()];
-    args.push(encode_action(&dictionary_def.key_type, namespace, false, false).to_string());
-    args.push(encode_action(&dictionary_def.value_type, namespace, false, false).to_string());
-
-    let with_bit_sequence = dictionary_def.value_type.is_bit_sequence_encodable();
-    write!(
-        code,
-        "encoder.{method}({args})",
-        method = if with_bit_sequence && dictionary_def.value_type.is_optional {
+fn encode_dictionary(dictionary_def: &Dictionary, namespace: &str, param: &str) -> CodeBlock {
+    format!(
+        "\
+encoder.{method}(
+    {param},
+    {encode_key},
+    {encode_value})",
+        method = if dictionary_def.value_type.is_bit_sequence_encodable()
+            && dictionary_def.value_type.is_optional
+        {
             "EncodeDictionaryWithBitSequence"
         } else {
             "EncodeDictionary"
         },
-        args = args.join(", ")
-    );
-
-    code
-}
-
-pub fn encode_as_optional(
-    type_ref: &TypeRef,
-    bit_sequence_index: &mut i64,
-    for_nested_type: bool,
-    param: &str,
-    encode_type: &CodeBlock,
-) -> CodeBlock {
-    let mut code = CodeBlock::new();
-
-    match type_ref.concrete_type() {
-        Types::Interface(_) => {
-            writeln!(code, "encoder.EncodeNullableProxy({}?.Proxy);", param)
-        }
-        Types::Class(_) => {
-            writeln!(code, "encoder.EncodeNullableClass({});", param)
-        }
-        Types::Primitive(primitive) if matches!(primitive, Primitive::AnyClass) => {
-            writeln!(code, "encoder.EncodeNullableClass({});", param)
-        }
-        _ => {
-            assert!(*bit_sequence_index >= 0);
-            // A null T[]? or List<T>? is implicitly converted into a default aka null
-            // ReadOnlyMemory<T> or ReadOnlySpan<T>. Furthermore, the span of a default
-            // ReadOnlyMemory<T> is a default ReadOnlySpan<T>, which is distinct from
-            // the span of an empty sequence. This is why the "value.Span != null" below
-            // works correctly.
-            writeln!(
-                code,
-                "\
-if ({param} != null)
-{{
-    {encode_type}
-}}
-else
-{{
-    bitSequence[{bit_sequence_index}] = false;
-}}
-",
-                param = match type_ref.concrete_type() {
-                    Types::Sequence(sequence_def)
-                        if sequence_def.has_fixed_size_numeric_elements()
-                            && !type_ref.has_attribute("cs:generic", false)
-                            && !for_nested_type =>
-                        format!("{}.Span", param),
-                    _ => param.to_owned(),
-                },
-                encode_type = encode_type,
-                bit_sequence_index = *bit_sequence_index
-            );
-            *bit_sequence_index += 1;
-        }
-    }
-
-    code
+        param = param,
+        encode_key = encode_action(&dictionary_def.key_type, namespace, false, false).indent(),
+        encode_value = encode_action(&dictionary_def.value_type, namespace, false, false).indent()
+    )
+    .into()
 }
 
 pub fn encode_action(

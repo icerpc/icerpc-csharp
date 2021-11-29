@@ -7,16 +7,14 @@ namespace IceRpc.Internal
     /// <summary>Creates an ice2 protocol connection from a multiplexed network connection.</summary>
     internal class Ice2ProtocolConnectionFactory : IProtocolConnectionFactory<IMultiplexedNetworkConnection>
     {
-        async Task<(IProtocolConnection, NetworkConnectionInformation)> IProtocolConnectionFactory<IMultiplexedNetworkConnection>.CreateProtocolConnectionAsync(
+        public async Task<IProtocolConnection> CreateProtocolConnectionAsync(
             IMultiplexedNetworkConnection networkConnection,
+            NetworkConnectionInformation connectionInfo,
             int incomingFrameMaxSize,
             bool _,
             CancellationToken cancel)
         {
-            (IMultiplexedStreamFactory streamFactory, NetworkConnectionInformation connectionInfo) =
-                await networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
-
-            var protocolConnection = new Ice2ProtocolConnection(streamFactory, incomingFrameMaxSize);
+            var protocolConnection = new Ice2ProtocolConnection(networkConnection, incomingFrameMaxSize);
             try
             {
                 await protocolConnection.InitializeAsync(cancel).ConfigureAwait(false);
@@ -26,7 +24,8 @@ namespace IceRpc.Internal
                 protocolConnection.Dispose();
                 throw;
             }
-            return (protocolConnection, connectionInfo);
+
+            return protocolConnection;
         }
     }
 }

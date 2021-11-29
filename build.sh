@@ -7,12 +7,16 @@ usage()
     echo "Usage: build [command] [arguments]"
     echo "Commands (defaults to build):"
     echo "  build                     Build IceRpc sources & slice-cs compiler."
+    echo "  pack                      Build the IceRpc NuGet packages."
     echo "  clean                     Clean IceRpc sources & slice-cs compiler."
     echo "  rebuild                   Rebuild IceRpc sources & slice-cs compiler."
     echo "  test                      Runs tests."
     echo "  doc                       Generate documentation"
     echo "Arguments:"
     echo "  --config | -c             Build configuration: debug or release, the default is debug."
+    echo "  --examples                Build examples solutions instead of the source solutions."
+    echo "  --srcdist                 Use NuGet packages from this source distribution when building examples."
+    echo "                            The NuGet packages are installed to the local global-packages source."
     echo "  --coverage                Collect code coverage from test runs."
     echo "                            Requires reportgeneratool from https://github.com/danielpalme/ReportGenerator"
     echo "  --help   | -h             Print help and exit."
@@ -21,7 +25,7 @@ usage()
 build_compiler()
 {
     arguments=("build")
-    if [ "$1" == "release" ]; then
+    if [ "$config" == "release" ]; then
         arguments+=("--release")
     fi
     pushd tools/slicec-cs
@@ -38,13 +42,12 @@ clean_compiler()
 
 build_icerpc()
 {
-    arguments=("build")
-    if [ "$1" == "release" ]; then
-        arguments+=("--configuration" "Release")
-    else
-        arguments+=("--configuration" "Debug")
-    fi
-    run_command dotnet "${arguments[@]}"
+    run_command dotnet "build" "-c" "$dotnet_config"
+}
+
+pack()
+{
+    run_command dotnet "pack" "-c" "$dotnet_config"
 }
 
 clean_icerpc()
@@ -54,14 +57,26 @@ clean_icerpc()
 
 build()
 {
-    build_compiler "$1"
-    build_icerpc "$1"
+    if [ "$examples" == "no" ]; then
+        build_compiler
+        build_icerpc
+    else
+        if [ "$srcdist" == "yes" ]; then
+            build_compiler
+            pack
+            global_packages=$(dotnet nuget locals -l global-packages)
+            global_packages=${global_packages/global-packages: /""}
+            run_command rm "-rf" "$global_packages/icerpc" "$global_packages/icerpc.interop"
+            run_command dotnet "nuget" "push" "lib/*.nupkg" "--source" "$global_packages"
+        fi
+        run_command dotnet "build" "-c" "$dotnet_config" examples/**/*.sln
+    fi
 }
 
 rebuild()
 {
     clean
-    build "$1"
+    build
 }
 
 clean()
@@ -72,19 +87,13 @@ clean()
 
 run_test()
 {
-    arguments=("test" "--no-build")
-    if [ "$1" == "release" ]; then
-        arguments+=("--configuration" "Release")
-    else
-        arguments+=("--configuration" "Debug")
-    fi
-
-    if [ "$2" == "yes" ]; then
+    arguments=()
+    if [ "$coverage" == "yes" ]; then
         arguments+=("--collect:\"XPlat Code Coverage\"")
     fi
-    run_command dotnet "${arguments[@]}"
+    run_command dotnet "test" "--no-build" "-c" "$dotnet_config" "${arguments[@]}"
 
-    if [ "$2" == "yes" ]; then
+    if [ "$coverage" == "yes" ]; then
         arguments=("-reports:tests/*/TestResults/*/coverage.cobertura.xml" "-targetdir:tests/CodeCoverageRerport")
         run_command reportgenerator "${arguments[@]}"
     fi
@@ -111,6 +120,8 @@ run_command()
 action=""
 config=""
 coverage="no"
+examples="no"
+srcdist="no"
 while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
@@ -121,6 +132,14 @@ while [[ $# -gt 0 ]]; do
         -c|--config)
             config=$2
             shift
+            shift
+            ;;
+        --examples)
+            examples="yes"
+            shift
+            ;;
+        --srcdist)
+            srcdist="yes"
             shift
             ;;
         --coverage)
@@ -151,7 +170,7 @@ then
     config="debug"
 fi
 
-actions=("build" "clean" "rebuild" "test" "doc")
+actions=("build" "clean" "pack" "rebuild" "test" "doc")
 if [[ ! " ${actions[*]} " == *" ${action} "* ]]; then
     echo "invalid action: " $action
     usage
@@ -165,18 +184,27 @@ if [[ ! " ${configs[*]} " == *" ${config} "* ]]; then
     exit 1
 fi
 
+if [ "$config" == "release" ]; then
+    dotnet_config="Release"
+else
+    dotnet_config="Debug"
+fi
+
 case $action in
     "build")
-        build $config
+        build
         ;;
     "rebuild")
-        rebuild $config
+        rebuild
+        ;;
+    "pack")
+        pack
         ;;
     "clean")
-        clean $config
+        clean
         ;;
     "test")
-        run_test $config $coverage
+        run_test
         ;;
     "doc")
         doc

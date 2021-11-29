@@ -4,7 +4,6 @@ using IceRpc.Features.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
-using IceRpc.Transports.Internal;
 using System.Diagnostics;
 
 namespace IceRpc.Internal
@@ -38,44 +37,40 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public event Action? PeerShutdownInitiated;
 
-        private readonly CancellationTokenSource _shutdownCancellationTokenSource = new();
-        private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
-            new(TaskCreationOptions.RunContinuationsAsynchronously);
         private IMultiplexedStream? _controlStream;
         private readonly HashSet<IncomingRequest> _dispatches = new();
+        private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly int _incomingFrameMaxSize;
         private readonly HashSet<OutgoingRequest> _invocations = new();
         private long _lastRemoteBidirectionalStreamId = -1;
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
         private long _lastRemoteUnidirectionalStreamId = -1;
         private readonly object _mutex = new();
+        private readonly IMultiplexedNetworkConnection _networkConnection;
         private int? _peerIncomingFrameMaxSize;
+        private CancellationToken _receiveRequestCancellationToken;
         private IMultiplexedStream? _remoteControlStream;
         private bool _shutdown;
-        private bool _shutdownCanceled;
-        private readonly IMultiplexedStreamFactory _streamFactory;
+        private readonly CancellationTokenSource _waitForShutdownCancellationSource = new();
 
-        public void Dispose()
-        {
-            _shutdownCancellationTokenSource.Cancel();
-            _shutdownCancellationTokenSource.Dispose();
-        }
+        public void Dispose() => _waitForShutdownCancellationSource.Dispose();
 
         public Task PingAsync(CancellationToken cancel) => SendControlFrameAsync(Ice2FrameType.Ping, null, cancel);
 
         /// <inheritdoc/>
         public async Task<IncomingRequest> ReceiveRequestAsync()
         {
-            CancellationToken cancel = _shutdownCancellationTokenSource.Token;
-
             while (true)
             {
                 IMultiplexedStream stream;
                 ReadOnlyMemory<byte> buffer;
                 try
                 {
+                    CancellationToken cancel = _receiveRequestCancellationToken;
+
                     // Accepts a new stream.
-                    stream = await _streamFactory!.AcceptStreamAsync(cancel).ConfigureAwait(false);
+                    stream = await _networkConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
 
                     // Receives the request frame from the stream. TODO: delayed payload receive.
                     buffer = await ReceiveFrameAsync(
@@ -242,8 +237,16 @@ namespace IceRpc.Internal
                 RetryPolicy? retryPolicy = fields.Get((int)FieldKey.RetryPolicy, decoder => new RetryPolicy(decoder));
                 if (retryPolicy != null)
                 {
-                    features = new();
-                    features.Set(retryPolicy);
+                    features = features.With(retryPolicy);
+                }
+
+                if (responseHeaderBody.ResultType == ResultType.Failure && payloadEncoding == Encoding.Ice11)
+                {
+                    // returns OK when not set
+                    ReplyStatus replyStatus = fields.Get((int)FieldKey.ReplyStatus,
+                                                         decoder => decoder.DecodeReplyStatus());
+
+                    features = features.With(replyStatus == ReplyStatus.OK ? ReplyStatus.UserException : replyStatus);
                 }
 
                 var response = new IncomingResponse(Protocol.Ice2, responseHeaderBody.ResultType)
@@ -289,7 +292,7 @@ namespace IceRpc.Internal
         public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
             // Create the stream.
-            request.Stream = _streamFactory!.CreateStream(!request.IsOneway);
+            request.Stream = _networkConnection.CreateStream(!request.IsOneway);
 
             if (!request.IsOneway || request.StreamParamSender != null)
             {
@@ -498,11 +501,17 @@ namespace IceRpc.Internal
                 }
             }
 
-            if (_shutdownCanceled)
-            {
-                // If shutdown has been canceled, cancel invocations and dispatch now.
-                CancelInvocationsAndDispatch(MultiplexedStreamError.ConnectionShutdown);
-            }
+            // Canceling WaitForShutdown will cancel dispatches and invocations to speed up shutdown.
+            using CancellationTokenRegistration _ = cancel.Register(() =>
+                {
+                    try
+                    {
+                        _waitForShutdownCancellationSource.Cancel();
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                    }
+                });
 
             if (!alreadyShuttingDown)
             {
@@ -513,43 +522,26 @@ namespace IceRpc.Internal
                         _lastRemoteBidirectionalStreamId,
                         _lastRemoteUnidirectionalStreamId,
                         message).Encode(encoder),
-                    cancel).ConfigureAwait(false);
+                    CancellationToken.None).ConfigureAwait(false);
             }
 
             // Wait for the control streams to complete. The control streams are terminated once the peer closes the
             // the connection.
-            await _controlStream!.WaitForShutdownAsync(cancel).ConfigureAwait(false);
-            await _remoteControlStream!.WaitForShutdownAsync(cancel).ConfigureAwait(false);
+            await _controlStream!.WaitForShutdownAsync(CancellationToken.None).ConfigureAwait(false);
+            await _remoteControlStream!.WaitForShutdownAsync(CancellationToken.None).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
-        public void ShutdownCanceled()
+        internal Ice2ProtocolConnection(IMultiplexedNetworkConnection networkConnection, int incomingFrameMaxSize)
         {
-            lock (_mutex)
-            {
-                // If shutdown wasn't called yet, delay the cancellation until ShutdownAsync is called (this can occur
-                // if the application cancels ShutdownAsync immediately or before ShutdownAsync is called on the
-                // protocol connection). Otherwise, cancel the dispatches and invocations now.
-                if (!_shutdown)
-                {
-                    _shutdownCanceled = true;
-                    return;
-                }
-            }
-
-            CancelInvocationsAndDispatch(MultiplexedStreamError.ConnectionShutdown);
-        }
-
-        internal Ice2ProtocolConnection(IMultiplexedStreamFactory streamFactory, int incomingFrameMaxSize)
-        {
-            _streamFactory = streamFactory;
+            _networkConnection = networkConnection;
             _incomingFrameMaxSize = incomingFrameMaxSize;
         }
 
         internal async Task InitializeAsync(CancellationToken cancel)
         {
             // Create the control stream and send the protocol initialize frame
-            _controlStream = _streamFactory.CreateStream(false);
+            _controlStream = _networkConnection.CreateStream(false);
 
             await SendControlFrameAsync(
                 Ice2FrameType.Initialize,
@@ -566,7 +558,7 @@ namespace IceRpc.Internal
                 cancel).ConfigureAwait(false);
 
             // Wait for the remote control stream to be accepted and read the protocol initialize frame
-            _remoteControlStream = await _streamFactory.AcceptStreamAsync(cancel).ConfigureAwait(false);
+            _remoteControlStream = await _networkConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
 
             ReadOnlyMemory<byte> buffer = await ReceiveFrameAsync(
                 _remoteControlStream,
@@ -607,53 +599,20 @@ namespace IceRpc.Internal
             _ = Task.Run(
                 async () =>
                 {
+                    using var source = new CancellationTokenSource();
+                    _receiveRequestCancellationToken = source.Token;
                     try
                     {
-                        await WaitForShutdownAsync(_shutdownCancellationTokenSource.Token).ConfigureAwait(false);
+                        await WaitForShutdownAsync().ConfigureAwait(false);
                     }
                     finally
                     {
-                        // Unblock ReceiveRequest. The Connection will close the exception upon getting an exception
+                        // Unblock ReceiveRequest. The connection will close the connection upon getting an exception
                         // from ReceiveRequest.
-                        _shutdownCancellationTokenSource.Cancel();
+                        source.Cancel();
                     }
                 },
-                _shutdownCancellationTokenSource.Token);
-        }
-
-        private void CancelInvocationsAndDispatch(MultiplexedStreamError streamError)
-        {
-            IEnumerable<OutgoingRequest> invocations = Enumerable.Empty<OutgoingRequest>();
-            IEnumerable<IncomingRequest> dispatches = Enumerable.Empty<IncomingRequest>();
-
-            lock (_mutex)
-            {
-                if (_invocations.Count > 0)
-                {
-                    invocations = _invocations.ToArray();
-                }
-                if (_dispatches.Count > 0)
-                {
-                    dispatches = _dispatches.ToArray();
-                }
-            }
-
-            foreach (IncomingRequest request in dispatches)
-            {
-                try
-                {
-                    request.CancelDispatchSource!.Cancel();
-                }
-                catch (ObjectDisposedException)
-                {
-                    // Ignore, the dispatch completed concurrently.
-                }
-            }
-
-            foreach (OutgoingRequest request in invocations)
-            {
-                request.Stream!.Abort(streamError);
-            }
+                CancellationToken.None);
         }
 
         private async ValueTask<ReadOnlyMemory<byte>> ReceiveFrameAsync(
@@ -729,16 +688,19 @@ namespace IceRpc.Internal
             BufferWriter.Position sizePos = encoder.StartFixedLengthSize();
             frameEncodeAction?.Invoke(encoder);
             encoder.EndFixedLengthSize(sizePos);
-            await _controlStream!.WriteAsync(bufferWriter.Finish(), false, cancel).ConfigureAwait(false);
+            await _controlStream!.WriteAsync(
+                bufferWriter.Finish(),
+                frameType == Ice2FrameType.GoAwayCompleted,
+                cancel).ConfigureAwait(false);
         }
 
-        private async Task WaitForShutdownAsync(CancellationToken cancel)
+        private async Task WaitForShutdownAsync()
         {
             // Receive and decode GoAway frame
             ReadOnlyMemory<byte> buffer = await ReceiveFrameAsync(
                 _remoteControlStream!,
                 Ice2FrameType.GoAway,
-                cancel).ConfigureAwait(false);
+                CancellationToken.None).ConfigureAwait(false);
             var goAwayFrame = new Ice2GoAwayBody(new Ice20Decoder(buffer));
 
             // Raise the peer shutdown initiated event.
@@ -751,7 +713,7 @@ namespace IceRpc.Internal
                 Debug.Assert(false, $"{nameof(PeerShutdownInitiated)} raised unexpected exception\n{ex}");
             }
 
-            IEnumerable<OutgoingRequest> invocations = Enumerable.Empty<OutgoingRequest>();
+            IEnumerable<OutgoingRequest> invocations;
             bool alreadyShuttingDown = false;
             lock (_mutex)
             {
@@ -791,23 +753,57 @@ namespace IceRpc.Internal
                         _lastRemoteBidirectionalStreamId,
                         _lastRemoteUnidirectionalStreamId,
                         goAwayFrame.Message).Encode(encoder),
-                    cancel).ConfigureAwait(false);
+                    CancellationToken.None).ConfigureAwait(false);
             }
 
-            // Wait for dispatches and invocations to complete.
-            await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
+            try
+            {
+                // Wait for dispatches and invocations to complete.
+                await _dispatchesAndInvocationsCompleted.Task.WaitAsync(
+                    _waitForShutdownCancellationSource.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Cancel invocations and dispatches to speed up the shutdown.
+                IEnumerable<IncomingRequest> dispatches;
+                lock (_mutex)
+                {
+                    invocations = _invocations.ToArray();
+                    dispatches = _dispatches.ToArray();
+                }
+
+                foreach (IncomingRequest request in dispatches)
+                {
+                    try
+                    {
+                        request.CancelDispatchSource!.Cancel();
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // Ignore, the dispatch completed concurrently.
+                    }
+                }
+
+                foreach (OutgoingRequest request in invocations)
+                {
+                    request.Stream!.Abort(MultiplexedStreamError.ConnectionShutdown);
+                }
+
+                // Wait again for dispatches and invocations to complete.
+                await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
+            }
 
             // We are done with the shutdown, notify the peer that shutdown completed on our side.
             await SendControlFrameAsync(
                 Ice2FrameType.GoAwayCompleted,
                 frameEncodeAction: null,
-                cancel).ConfigureAwait(false);
+                CancellationToken.None).ConfigureAwait(false);
 
             // Wait for the peer to complete its side of the shutdown.
             buffer = await ReceiveFrameAsync(
                 _remoteControlStream!,
                 Ice2FrameType.GoAwayCompleted,
-                cancel).ConfigureAwait(false);
+                CancellationToken.None).ConfigureAwait(false);
             if (!buffer.IsEmpty)
             {
                 throw new InvalidDataException($"{nameof(Ice2FrameType.GoAwayCompleted)} frame is not empty");

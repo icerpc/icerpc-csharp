@@ -21,8 +21,6 @@ namespace IceRpc.Internal
         private readonly bool _isServer;
         private readonly ILogger _logger;
 
-        void IProtocolConnection.ShutdownCanceled() => _decoratee.ShutdownCanceled();
-
         void IDisposable.Dispose()
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
@@ -80,6 +78,16 @@ namespace IceRpc.Internal
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             await _decoratee.ShutdownAsync(message, cancel).ConfigureAwait(false);
+            using CancellationTokenRegistration _ = cancel.Register(() =>
+                {
+                    try
+                    {
+                        _logger.LogProtocolConnectionShutdownCanceled(_information.LocalEndpoint.Protocol);
+                    }
+                    catch
+                    {
+                    }
+                });
             _logger.LogProtocolConnectionShutdown(_information.LocalEndpoint.Protocol, message);
         }
 

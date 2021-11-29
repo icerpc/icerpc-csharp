@@ -35,7 +35,6 @@ namespace IceRpc.Tests.Internal
 
             var listenerList = new List<IListener<ISimpleNetworkConnection>>();
             var serverConnectionList = new List<ISimpleNetworkConnection>();
-            var serverStreamList = new List<ISimpleStream>();
 
             IListener<ISimpleNetworkConnection> listener =
                 _serverTransport.Listen(serverEndpoint, LogAttributeLoggerFactory.Instance.Logger);
@@ -53,9 +52,7 @@ namespace IceRpc.Tests.Internal
 
                 ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();
                 serverConnectionList.Add(serverConnection);
-
-                (ISimpleStream serverStream, _) = await serverConnection.ConnectAsync(default);
-                serverStreamList.Add(serverStream);
+                _ = await serverConnection.ConnectAsync(default);
             }
 
             string clientEndpoint = GetEndpoint(host, port: serverEndpoint.Port, _ipv6, client: true);
@@ -63,7 +60,7 @@ namespace IceRpc.Tests.Internal
             await using ISimpleNetworkConnection clientConnection =
                 _clientTransport.CreateConnection(clientEndpoint, LogAttributeLoggerFactory.Instance.Logger);
 
-            (ISimpleStream clientStream, _) = await clientConnection.ConnectAsync(default);
+            _ = await clientConnection.ConnectAsync(default);
 
             // Datagrams aren't reliable, try up to 5 times in case a datagram is lost.
             int count = 5;
@@ -72,12 +69,12 @@ namespace IceRpc.Tests.Internal
                 try
                 {
                     using var source = new CancellationTokenSource(1000);
-                    ValueTask writeTask = clientStream.WriteAsync(sendBuffers, default);
+                    ValueTask writeTask = clientConnection.WriteAsync(sendBuffers, default);
 
-                    foreach (ISimpleStream serverStream in serverStreamList)
+                    foreach (ISimpleNetworkConnection serverConnection in serverConnectionList)
                     {
                         Memory<byte> readBuffer = new byte[UdpUtils.MaxPacketSize];
-                        int received = await serverStream.ReadAsync(readBuffer, source.Token);
+                        int received = await serverConnection.ReadAsync(readBuffer, source.Token);
                         Assert.AreEqual(writeBuffer.Length, received);
                         for (int i = 0; i < received; ++i)
                         {

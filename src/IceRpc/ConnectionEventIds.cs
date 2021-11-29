@@ -20,6 +20,9 @@ namespace IceRpc
         /// <summary>The protocol connection was shut down.</summary>
         ProtocolConnectionShutdown,
 
+        /// <summary>The protocol connection shut down was canceled.</summary>
+        ProtocolConnectionShutdownCanceled,
+
         /// <summary>Received a request.</summary>
         ReceiveRequest,
 

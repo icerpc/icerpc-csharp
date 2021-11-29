@@ -2,7 +2,6 @@
 
 using IceRpc.Internal;
 using IceRpc.Transports;
-using IceRpc.Transports.Internal;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 

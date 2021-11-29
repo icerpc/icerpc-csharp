@@ -8,25 +8,46 @@ namespace IceRpc.Transports.Internal
 {
     internal delegate T LogNetworkConnectionDecoratorFactory<T>(
         T decoratee,
+        Endpoint endpoint,
         bool isServer,
         ILogger logger) where T : INetworkConnection;
 
     internal abstract class LogNetworkConnectionDecorator : INetworkConnection
     {
-        public bool IsSecure => Decoratee.IsSecure;
-        public TimeSpan LastActivity => Decoratee.LastActivity;
+        public bool IsSecure => _decoratee.IsSecure;
+        public TimeSpan LastActivity => _decoratee.LastActivity;
 
         internal ILogger Logger { get; }
 
-        private protected abstract INetworkConnection Decoratee { get; }
-
         private protected bool IsServer { get; }
+
+        private readonly Endpoint _endpoint;
 
         private protected NetworkConnectionInformation? Information { get; set; }
 
+        private readonly INetworkConnection _decoratee;
+
+        public virtual async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
+        {
+            using IDisposable scope = Logger.StartNewConnectionScope(_endpoint, IsServer);
+
+            try
+            {
+                Information = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogConnectFailed(ex);
+                throw;
+            }
+
+            Logger.LogConnect(Information.Value.LocalEndpoint, Information.Value.RemoteEndpoint);
+            return Information.Value;
+        }
+
         public async ValueTask DisposeAsync()
         {
-            await Decoratee.DisposeAsync().ConfigureAwait(false);
+            await _decoratee.DisposeAsync().ConfigureAwait(false);
 
             if (Information is NetworkConnectionInformation connectionInformation)
             {
@@ -38,12 +59,18 @@ namespace IceRpc.Transports.Internal
             // We don't emit a log when closing a connection that was not connected.
         }
 
-        public bool HasCompatibleParams(Endpoint remoteEndpoint) => Decoratee.HasCompatibleParams(remoteEndpoint);
+        public bool HasCompatibleParams(Endpoint remoteEndpoint) => _decoratee.HasCompatibleParams(remoteEndpoint);
 
-        public override string? ToString() => Decoratee.ToString();
+        public override string? ToString() => _decoratee.ToString();
 
-        internal LogNetworkConnectionDecorator(bool isServer, ILogger logger)
+        internal LogNetworkConnectionDecorator(
+            INetworkConnection decoratee,
+            Endpoint endpoint,
+            bool isServer,
+            ILogger logger)
         {
+            _decoratee = decoratee;
+            _endpoint = endpoint;
             IsServer = isServer;
             Logger = logger;
         }

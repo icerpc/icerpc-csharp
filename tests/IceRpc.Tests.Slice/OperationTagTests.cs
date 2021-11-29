@@ -17,7 +17,7 @@ namespace IceRpc.Tests.Slice
         {
             var router = new Router();
             router.Map<IOperationTagDouble>(new OperationTagDouble());
-            router.Map<IOperationTagMarshaledResult>(new OperationTagMarshaledResult());
+            router.Map<IOperationTagEncodedResult>(new OperationTagEncodedResult());
             router.Map<IOperationTag>(new OperationTag());
 
             _server = new Server
@@ -612,35 +612,35 @@ namespace IceRpc.Tests.Slice
 
         [TestCase("1.1")]
         [TestCase("2.0")]
-        public async Task OperationTag_MarshaledResult(string encoding)
+        public async Task OperationTag_EncodedResult(string encoding)
         {
-            var marshaledResultPrx = OperationTagMarshaledResultPrx.FromConnection(_connection);
-            marshaledResultPrx.Proxy.Encoding = Encoding.FromString(encoding);
+            var encodedResultPrx = OperationTagEncodedResultPrx.FromConnection(_connection);
+            encodedResultPrx.Proxy.Encoding = Encoding.FromString(encoding);
 
             {
-                MyStruct? r1 = await marshaledResultPrx.OpMyStructMarshaledResultAsync(null);
+                MyStruct? r1 = await encodedResultPrx.OpMyStructAsync(null);
                 Assert.That(r1, Is.Null);
 
                 var p1 = new MyStruct(1, 1);
-                r1 = await marshaledResultPrx.OpMyStructMarshaledResultAsync(p1);
+                r1 = await encodedResultPrx.OpMyStructAsync(p1);
                 Assert.AreEqual(p1, r1);
             }
 
             {
-                Dictionary<int, int>? r1 = await marshaledResultPrx.OpIntDictMarshaledResultAsync(null);
+                Dictionary<int, int>? r1 = await encodedResultPrx.OpIntDictAsync(null);
                 Assert.That(r1, Is.Null);
 
                 var p1 = new Dictionary<int, int> { { 1, 1 } };
-                r1 = await marshaledResultPrx.OpIntDictMarshaledResultAsync(p1);
+                r1 = await encodedResultPrx.OpIntDictAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
             }
 
             {
-                string[]? r1 = await marshaledResultPrx.OpStringSeqMarshaledResultAsync(null);
+                string[]? r1 = await encodedResultPrx.OpStringSeqAsync(null);
                 Assert.That(r1, Is.Null);
 
                 string[] p1 = new string[] { "hello" };
-                r1 = await marshaledResultPrx.OpStringSeqMarshaledResultAsync(p1);
+                r1 = await encodedResultPrx.OpStringSeqAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
             }
         }
@@ -1002,22 +1002,23 @@ namespace IceRpc.Tests.Slice
             CancellationToken cancel) => new((p1, p1));
     }
 
-    public class OperationTagMarshaledResult : Service, IOperationTagMarshaledResult
+    public class OperationTagEncodedResult : Service, IOperationTagEncodedResult
     {
-        public ValueTask<IOperationTagMarshaledResult.OpIntDictMarshaledResultEncodedReturnValue> OpIntDictMarshaledResultAsync(
+        public ValueTask<IOperationTagEncodedResult.OpIntDictEncodedResult> OpIntDictAsync(
             Dictionary<int, int>? p1,
             Dispatch dispatch,
-            CancellationToken cancel) => new(new IOperationTagMarshaledResult.OpIntDictMarshaledResultEncodedReturnValue(p1, dispatch));
+            CancellationToken cancel) => new(new IOperationTagEncodedResult.OpIntDictEncodedResult(p1, dispatch));
 
-        public ValueTask<IOperationTagMarshaledResult.OpStringSeqMarshaledResultEncodedReturnValue> OpStringSeqMarshaledResultAsync(
+        public ValueTask<IOperationTagEncodedResult.OpStringSeqEncodedResult> OpStringSeqAsync(
             string[]? p1,
             Dispatch dispatch,
-            CancellationToken cancel) => new(new IOperationTagMarshaledResult.OpStringSeqMarshaledResultEncodedReturnValue(p1, dispatch));
-        public ValueTask<IOperationTagMarshaledResult.OpMyStructMarshaledResultEncodedReturnValue> OpMyStructMarshaledResultAsync(
+            CancellationToken cancel) => new(new IOperationTagEncodedResult.OpStringSeqEncodedResult(p1, dispatch));
+
+        public ValueTask<IOperationTagEncodedResult.OpMyStructEncodedResult> OpMyStructAsync(
             MyStruct? p1,
             Dispatch dispatch,
             CancellationToken cancel) =>
-            new(new IOperationTagMarshaledResult.OpMyStructMarshaledResultEncodedReturnValue(p1, dispatch));
+            new(new IOperationTagEncodedResult.OpMyStructEncodedResult(p1, dispatch));
     }
 
     public class OperationTag : Service, IOperationTag

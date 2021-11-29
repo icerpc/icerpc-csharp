@@ -15,21 +15,25 @@ namespace IceRpc.Transports.Internal
 
         ValueTask IAsyncDisposable.DisposeAsync() => _decoratee.DisposeAsync();
 
-        async Task<(ISimpleStream, NetworkConnectionInformation)> ISimpleNetworkConnection.ConnectAsync(
-            CancellationToken cancel)
+        public async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
         {
-            (ISimpleStream, NetworkConnectionInformation) result =
-                await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
+            NetworkConnectionInformation result = await _decoratee.ConnectAsync(cancel).ConfigureAwait(false);
 
             _logger.LogUdpConnect(_decoratee.Socket.ReceiveBufferSize, _decoratee.Socket.SendBufferSize);
 
             return result;
         }
 
-        bool INetworkConnection.HasCompatibleParams(Endpoint remoteEndpoint) =>
+        public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             _decoratee.HasCompatibleParams(remoteEndpoint);
 
+        public ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel) =>
+            _decoratee.ReadAsync(buffer, cancel);
+
         public override string? ToString() => _decoratee.ToString();
+
+        public ValueTask WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
+            _decoratee.WriteAsync(buffers, cancel);
 
         internal LogUdpNetworkConnectionDecorator(UdpNetworkConnection decoratee, ILogger logger)
         {

@@ -7,7 +7,8 @@ using System.Threading.Tasks.Sources;
 namespace IceRpc.Transports.Internal
 {
     /// <summary>This interface is required because AsyncQueueCore is a struct and we can't reference a struct from a
-    /// lambda expression. The struct would be copied. This is necessary for the implementation of WaitAsync.</summary>
+    /// lambda expression. The struct would be copied. This is necessary for the implementation of the DequeueAsync
+    /// cancellation.</summary>
     internal interface IAsyncQueueValueTaskSource<T> : IValueTaskSource<T>
     {
         void Cancel();
@@ -19,7 +20,7 @@ namespace IceRpc.Transports.Internal
     /// </summary>
     internal struct AsyncQueueCore<T>
     {
-        private bool _canceled;
+        private Exception? _exception;
         // Provide thread safety using a spin lock to avoid having to create another object on the heap. The lock is
         // used to protect the setting of the signal value or exception with the manual reset value task source.
         private SpinLock _lock;
@@ -29,14 +30,19 @@ namespace IceRpc.Transports.Internal
         private ManualResetValueTaskSourceCore<T> _source = new() { RunContinuationsAsynchronously = true };
         private CancellationTokenRegistration _tokenRegistration;
 
-        /// <summary>Cancel the pending <see cref="WaitAsync"/> and discard queued items.</summary>
-        internal void Cancel()
+        /// <summary>Complete the pending <see cref="DequeueAsync"/> and discard queued items.</summary>
+        internal bool TryComplete(Exception exception)
         {
             bool lockTaken = false;
             try
             {
                 _lock.Enter(ref lockTaken);
-                _canceled = true;
+                if (_exception != null)
+                {
+                    return false;
+                }
+
+                _exception = exception;
 
                 // If the source isn't already signaled, signal completion by setting the exception. Otherwise if
                 // it's already signaled, a result is pending. In this case, we'll raise the exception the next time
@@ -45,8 +51,9 @@ namespace IceRpc.Transports.Internal
                 // exception is consumed.
                 if (_source.GetStatus(_source.Version) == ValueTaskSourceStatus.Pending)
                 {
-                    _source.SetException(new OperationCanceledException());
+                    _source.SetException(exception);
                 }
+                return true;
             }
             finally
             {
@@ -57,28 +64,32 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal void Enqueue(T result)
+        internal void Enqueue(T value)
         {
             bool lockTaken = false;
             try
             {
                 _lock.Enter(ref lockTaken);
-                if (!_canceled)
+                if (_exception == null)
                 {
                     if (_source.GetStatus(_source.Version) == ValueTaskSourceStatus.Pending)
                     {
                         // If the source is pending, set the result on the source result. The  queue should be empty if
                         // the source is pending.
                         Debug.Assert(_queue == null || _queue.Count == 0);
-                        _source.SetResult(result);
+                        _source.SetResult(value);
                     }
                     else
                     {
-                        // Create the queue if needed and queue the result. If will be consumed once the source's result is
-                        // consumed.
+                        // Create the queue if needed and queue the result. If will be consumed once the source's result
+                        // is consumed.
                         _queue ??= new();
-                        _queue.Enqueue(result);
+                        _queue.Enqueue(value);
                     }
+                }
+                else
+                {
+                    throw _exception;
                 }
             }
             finally
@@ -112,10 +123,9 @@ namespace IceRpc.Transports.Internal
             try
             {
                 _lock.Enter(ref lockTaken);
-                if (_canceled)
+                if (_exception != null)
                 {
-                    throw ExceptionUtil.Throw(new OperationCanceledException());
-
+                    throw ExceptionUtil.Throw(_exception);
                 }
 
                 // Reseting the source must be done with the lock held because other threads are checking the source
@@ -155,7 +165,7 @@ namespace IceRpc.Transports.Internal
             _source.OnCompleted(continuation, state, token, flags);
         }
 
-        internal ValueTask<T> WaitAsync(IAsyncQueueValueTaskSource<T> valueTaskSource, CancellationToken cancel)
+        internal ValueTask<T> DequeueAsync(IAsyncQueueValueTaskSource<T> valueTaskSource, CancellationToken cancel)
         {
             if (cancel.CanBeCanceled)
             {

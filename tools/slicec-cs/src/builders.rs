@@ -348,7 +348,20 @@ impl FunctionBuilder {
         // CodeBlock ignores whitespace only writes so there's no issue of over-padding here.
         write!(code, "{} ", self.access);
         write!(code, "{} ", self.return_type);
-        write!(code, "{}({})", self.name, self.parameters.join(", "));
+        if self.parameters.len() > 1 {
+            write!(
+                code,
+                "\
+                {}(
+    {})",
+                self.name,
+                CodeBlock::from(self.parameters.join(",\n"))
+                    .indent()
+                    .to_string()
+            );
+        } else {
+            write!(code, "{}({})", self.name, self.parameters.join(", "))
+        }
 
         match self.base_arguments.as_slice() {
             [] => {}
