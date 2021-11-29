@@ -492,7 +492,7 @@ namespace IceRpc.Internal
 
                 // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the
                 // connection closure here. We can't just return and close the underlying transport since this could
-                // kill the sending of the dispatch responses and of the close connection frame.
+                // abort the receive of the dispatch responses and close connection frame by the peer.
                 await _pendingClose.Task.ConfigureAwait(false);
             }
         }
@@ -543,7 +543,7 @@ namespace IceRpc.Internal
             IEnumerable<IncomingRequest> dispatches;
             lock (_mutex)
             {
-                dispatches = _dispatches.Count > 0 ? _dispatches.ToArray() : Enumerable.Empty<IncomingRequest>();
+                dispatches = _dispatches.ToArray();
             }
 
             foreach (IncomingRequest request in dispatches)
@@ -564,9 +564,7 @@ namespace IceRpc.Internal
             IEnumerable<OutgoingRequest> invocations;
             lock (_mutex)
             {
-                invocations = _invocations.Count > 0 ?
-                    _invocations.Values.ToArray() :
-                    Enumerable.Empty<OutgoingRequest>();
+                invocations = _invocations.Values.ToArray();
             }
 
             foreach (OutgoingRequest request in invocations)

@@ -607,7 +607,7 @@ namespace IceRpc.Internal
                     }
                     finally
                     {
-                        // Unblock ReceiveRequest. The connection will close the exception upon getting an exception
+                        // Unblock ReceiveRequest. The connection will close the connection upon getting an exception
                         // from ReceiveRequest.
                         source.Cancel();
                     }
@@ -768,8 +768,8 @@ namespace IceRpc.Internal
                 IEnumerable<IncomingRequest> dispatches;
                 lock (_mutex)
                 {
-                    invocations = _invocations.Count > 0 ? _invocations.ToArray() : Enumerable.Empty<OutgoingRequest>();
-                    dispatches = _dispatches.Count > 0 ? _dispatches.ToArray() : Enumerable.Empty<IncomingRequest>();
+                    invocations = _invocations.ToArray();
+                    dispatches = _dispatches.ToArray();
                 }
 
                 foreach (IncomingRequest request in dispatches)

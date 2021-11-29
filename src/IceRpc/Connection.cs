@@ -144,7 +144,7 @@ namespace IceRpc
 
         private IProtocolConnection? _protocolConnection;
 
-#pragma warning disable CA2213 // _timer is disposed in CloseAsync
+#pragma warning disable CA2213 // _protocolShutdownCancellationSource is disposed in CloseAsync
         private readonly CancellationTokenSource _protocolShutdownCancellationSource = new();
 #pragma warning restore CA2213
 
@@ -632,6 +632,8 @@ namespace IceRpc
                 {
                     await _timer.DisposeAsync().ConfigureAwait(false);
                 }
+
+                _protocolShutdownCancellationSource.Dispose();
 
                 // Raise the Closed event, this will call user code so we shouldn't hold the mutex.
                 try
