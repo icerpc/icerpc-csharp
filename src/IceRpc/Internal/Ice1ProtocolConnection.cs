@@ -38,7 +38,7 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public event Action? PeerShutdownInitiated;
 
-        private readonly TaskCompletionSource _dispatchAndInvocationsCompleted =
+        private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly HashSet<IncomingRequest> _dispatches = new();
         private readonly int _incomingFrameMaxSize;
@@ -65,7 +65,7 @@ namespace IceRpc.Internal
             _sendSemaphore.Complete(exception);
 
             // Unblock ShutdownAsync if it's waiting for invocations and dispatches to complete.
-            _dispatchAndInvocationsCompleted.TrySetException(exception);
+            _dispatchesAndInvocationsCompleted.TrySetException(exception);
 
             CancelInvocations(exception);
             CancelDispatches();
@@ -198,7 +198,7 @@ namespace IceRpc.Internal
                         // If no more invocations or dispatches and shutting down, shutdown can complete.
                         if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
                         {
-                            _dispatchAndInvocationsCompleted.TrySetResult();
+                            _dispatchesAndInvocationsCompleted.TrySetResult();
                         }
                     }
                 }
@@ -425,7 +425,7 @@ namespace IceRpc.Internal
                         // If no more invocations or dispatches and shutting down, shutdown can complete.
                         if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
                         {
-                            _dispatchAndInvocationsCompleted.TrySetResult();
+                            _dispatchesAndInvocationsCompleted.TrySetResult();
                         }
                     }
                 }
@@ -457,7 +457,7 @@ namespace IceRpc.Internal
                         _shutdown = true;
                         if (_dispatches.Count == 0 && _invocations.Count == 0)
                         {
-                            _dispatchAndInvocationsCompleted.TrySetResult();
+                            _dispatchesAndInvocationsCompleted.TrySetResult();
                         }
                     }
                 }
@@ -471,7 +471,7 @@ namespace IceRpc.Internal
                 try
                 {
                     // Wait for dispatches to complete.
-                    await _dispatchAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
+                    await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
@@ -479,7 +479,7 @@ namespace IceRpc.Internal
                     CancelDispatches();
 
                     // Wait again for the dispatches to complete.
-                    await _dispatchAndInvocationsCompleted.Task.ConfigureAwait(false);
+                    await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
                 }
 
                 // Cancel any pending requests waiting for sending.
