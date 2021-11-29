@@ -4,7 +4,7 @@ using IceRpc.Internal;
 
 namespace IceRpc.Slice
 {
-    /// <summary>Extension methods to decode the payloads of incoming requests when such payloads are encoded with the
+    /// <summary>Extension methods to decode the payload of an incoming request when this payload is encoded with the
     /// Ice encoding.</summary>
     public static class IncomingRequestExtensions
     {

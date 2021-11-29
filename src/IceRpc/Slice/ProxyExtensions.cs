@@ -71,8 +71,11 @@ namespace IceRpc.Slice
                 (IncomingResponse response, StreamParamReceiver? streamParamReceiver) =
                     await responseTask.ConfigureAwait(false);
 
-                return await
-                    responseDecodeFunc(response, proxy.Invoker, streamParamReceiver, cancel).ConfigureAwait(false);
+                return await responseDecodeFunc(
+                    response,
+                    proxy.Invoker,
+                    streamParamReceiver,
+                    cancel).ConfigureAwait(false);
             }
         }
 

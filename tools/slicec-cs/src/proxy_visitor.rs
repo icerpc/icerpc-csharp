@@ -316,7 +316,7 @@ new IceRpc.Slice.AsyncEnumerableStreamParamSender<{stream_type}>(
     }
 
     if !void_return {
-        invoke_args.push("Response.".to_owned() + &operation_name + "Async");
+        invoke_args.push("Response.".to_owned() + &async_operation_name);
     } else if let Some(stream_return) = stream_return {
         let stream_type = stream_return.data_type();
         let mut stream_return_func: CodeBlock = match stream_type.concrete_type() {
@@ -337,7 +337,9 @@ streamParamReceiver!.ToAsyncEnumerable<{stream_type}>(
         };
 
         invoke_args.push(format!(
-            "(response, invoker, streamParamReceiver, cancel) => new global::System.Threading.Tasks.ValueTask<{stream_return}>({stream_return_func})",
+            "\
+(response, invoker, streamParamReceiver, cancel) =>
+    new global::System.Threading.Tasks.ValueTask<{stream_return}>({stream_return_func})",
             stream_return = stream_return.to_type_string(namespace, TypeContext::Incoming, false),
             stream_return_func = stream_return_func.indent()
         ));
@@ -568,7 +570,9 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 
     class_builder.add_comment(
         "summary",
-    &format!(r#"Holds a <see cref="IceRpc.Slice.ResponseDecodeFunc{{T}}"/> for each non-void remote operation defined in <see cref="{}Prx"/>."#, interface_def.interface_name()));
+        &format!(
+            r#"Holds a <see cref="IceRpc.Slice.ResponseDecodeFunc{{T}}"/> for each non-void remote operation defined in <see cref="{}Prx"/>."#,
+            interface_def.interface_name()));
 
     for operation in operations {
         let members = operation.return_members();
@@ -583,7 +587,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         class_builder.add_block(format!(
             r#"
 /// <summary>The <see cref="ResponseDecodeFunc{{T}}"/> for the return value type of operation {name}.</summary>
-{access} static async global::System.Threading.Tasks.ValueTask<{return_type}> {escaped_name}Async(
+{access} static async global::System.Threading.Tasks.ValueTask<{return_type}> {escaped_name}(
     IceRpc.IncomingResponse response,
     IceRpc.IInvoker? invoker,
     IceRpc.Slice.StreamParamReceiver? streamParamReceiver,
@@ -595,7 +599,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         cancel).ConfigureAwait(false);"#,
             name = operation.identifier(),
             access = access,
-            escaped_name = operation.escape_identifier(),
+            escaped_name = operation.escape_identifier_with_suffix("Async"),
             return_type = members.to_tuple_type( namespace, TypeContext::Incoming, false),
             decoder = decoder,
             response_decode_func = response_decode_func(operation).indent().indent().indent()
