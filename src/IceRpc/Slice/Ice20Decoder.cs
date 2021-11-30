@@ -76,6 +76,9 @@ namespace IceRpc.Slice
         }
 
         /// <inheritdoc/>
+        public override int DecodeFixedLengthSize() => DecodeSize();
+
+        /// <inheritdoc/>
         public override Proxy? DecodeNullableProxy()
         {
             if (Connection == null)

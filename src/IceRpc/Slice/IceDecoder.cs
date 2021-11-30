@@ -46,6 +46,10 @@ namespace IceRpc.Slice
             return value;
         }
 
+        /// <summary>Decodes a size encoded on a fixed number of bytes.</summary>
+        /// <returns>The size decoded by this decoder.</returns>
+        public abstract int DecodeFixedLengthSize();
+
         /// <summary>Decodes a float.</summary>
         /// <returns>The float decoded by this decoder.</returns>
         public float DecodeFloat()

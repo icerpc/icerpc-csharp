@@ -34,6 +34,8 @@ namespace IceRpc.Internal
             var bufferWriter = new BufferWriter();
             IceEncoder encoder = payloadEncoding.CreateIceEncoder(bufferWriter);
 
+            BufferWriter.Position start = encoder.StartFixedLengthSize();
+
             // Set the reply status feature. It's used when the response header is encoded.
             var features = new FeatureCollection();
             if (encoder is Ice11Encoder encoder11 && exception.IsIce1SystemException())
@@ -45,6 +47,8 @@ namespace IceRpc.Internal
                 encoder.EncodeException(exception);
                 features.Set(ReplyStatus.UserException);
             }
+
+            _ = encoder.EndFixedLengthSize(start);
 
             return new OutgoingResponse(this, ResultType.Failure)
             {

@@ -125,6 +125,17 @@ namespace IceRpc.Slice
             return remoteEx;
         }
 
+        /// <inheritdoc/>
+        public override int DecodeFixedLengthSize()
+        {
+            int size = DecodeInt();
+            if (size < 0)
+            {
+                throw new InvalidDataException($"decoded invalid size: {size}");
+            }
+            return size;
+        }
+
         /// <summary>Decodes a nullable class instance.</summary>
         /// <returns>The class instance, or null.</returns>
         public T? DecodeNullableClass<T>() where T : class
@@ -285,12 +296,7 @@ namespace IceRpc.Slice
                 return b;
             }
 
-            int size = DecodeInt();
-            if (size < 0)
-            {
-                throw new InvalidDataException($"decoded invalid size: {size}");
-            }
-            return size;
+            return DecodeFixedLengthSize();
         }
 
         /// <inheritdoc/>
@@ -1076,12 +1082,7 @@ namespace IceRpc.Slice
                     Skip(DecodeSize());
                     break;
                 case TagFormat.FSize:
-                    int size = DecodeInt();
-                    if (size < 0)
-                    {
-                        throw new InvalidDataException("invalid negative fixed-length size");
-                    }
-                    Skip(size);
+                    Skip(DecodeFixedLengthSize());
                     break;
                 default:
                     throw new InvalidDataException(

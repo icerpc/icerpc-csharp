@@ -36,6 +36,8 @@ namespace IceRpc.Internal
 
             IceEncoder encoder = payloadEncoding.CreateIceEncoder(bufferWriter);
 
+            BufferWriter.Position start = encoder.StartFixedLengthSize();
+
             ReplyStatus replyStatus = ReplyStatus.UserException;
             if (encoder is Ice11Encoder encoder11 && remoteException.IsIce1SystemException())
             {
@@ -45,6 +47,8 @@ namespace IceRpc.Internal
             {
                 encoder.EncodeException(remoteException);
             }
+
+            _ = encoder.EndFixedLengthSize(start);
 
             var response = new OutgoingResponse(this, ResultType.Failure)
             {
