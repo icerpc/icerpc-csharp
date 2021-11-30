@@ -126,15 +126,23 @@ namespace IceRpc.Internal
                     throw new InvalidDataException("received request with empty operation name");
                 }
 
-                ReadOnlyMemory<byte> payload = buffer[decoder.Pos..];
+                // The payload plus 4 bytes from the encapsulation header used to store the payload size encoded with
+                // payload encoding.
+                ReadOnlyMemory<byte> payload = buffer[(decoder.Pos - 4)..];
 
                 // The payload size is the encapsulation size less the 6 bytes of the encapsulation header.
                 int payloadSize = requestHeader.EncapsulationSize - 6;
-                if (payloadSize != payload.Length)
+                if (payloadSize != payload.Length - 4)
                 {
                     throw new InvalidDataException(
-                        $"request payload size mismatch: expected {payloadSize} bytes, read {payload.Length} bytes");
+                        $"request payload size mismatch: expected {payloadSize} bytes, read {payload.Length - 4} bytes");
                 }
+
+                Encoding encoding = EncodePayloadSize(
+                    payloadSize,
+                    requestHeader.PayloadEncodingMajor,
+                    requestHeader.PayloadEncodingMinor,
+                    payload.Span[0..4]);
 
                 var request = new IncomingRequest(
                     Protocol.Ice1,
@@ -309,22 +317,23 @@ namespace IceRpc.Internal
 
                 encoder.EncodeInt(requestId);
 
-                (byte encodingMajor, byte encodingMinor) = request.PayloadEncoding.ToMajorMinor();
+                (int payloadSize, int payloadSizeLength, byte encodingMajor, byte encodingMinor) =
+                    DecodePayloadSize(request.Payload, request.PayloadEncoding);
 
                 var requestHeader = new Ice1RequestHeader(
                     IdentityAndFacet.FromPath(request.Path),
                     request.Operation,
                     request.IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
                     request.Features.GetContext(),
-                    encapsulationSize: request.PayloadSize + 6,
+                    encapsulationSize: payloadSize + 6,
                     encodingMajor,
                     encodingMinor);
                 requestHeader.Encode(encoder);
 
-                encoder.EncodeFixedLengthSize(bufferWriter.Size + request.PayloadSize, frameSizeStart);
+                encoder.EncodeFixedLengthSize(bufferWriter.Size + payloadSize, frameSizeStart);
 
                 // Add the payload to the buffer writer.
-                bufferWriter.Add(request.Payload);
+                bufferWriter.Add(request.Payload.Slice(payloadSizeLength));
 
                 // Perform the sending. When an Ice1 frame is sent over a connection (such as a TCP
                 // connection), we need to send the entire frame even when cancel gets canceled since the
@@ -386,22 +395,23 @@ namespace IceRpc.Internal
 
                         encoder.EncodeInt(requestId);
 
+                        (int payloadSize, int payloadSizeLength, byte encodingMajor, byte encodingMinor) =
+                            DecodePayloadSize(response.Payload, request.PayloadEncoding);
+
                         ReplyStatus replyStatus = response.Features.Get<ReplyStatus>();
                         encoder.EncodeReplyStatus(replyStatus);
                         if (replyStatus <= ReplyStatus.UserException)
                         {
-                            (byte encodingMajor, byte encodingMinor) = response.PayloadEncoding.ToMajorMinor();
-
-                            var responseHeader = new Ice1ResponseHeader(encapsulationSize: response.PayloadSize + 6,
+                            var responseHeader = new Ice1ResponseHeader(encapsulationSize: payloadSize + 6,
                                                                         encodingMajor,
                                                                         encodingMinor);
                             responseHeader.Encode(encoder);
                         }
 
-                        encoder.EncodeFixedLengthSize(bufferWriter.Size + response.PayloadSize, frameSizeStart);
+                        encoder.EncodeFixedLengthSize(bufferWriter.Size + payloadSize, frameSizeStart);
 
                         // Add the payload to the buffer writer.
-                        bufferWriter.Add(response.Payload);
+                        bufferWriter.Add(response.Payload.Slice(payloadSizeLength));
 
                         // Send the response frame.
                         ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
@@ -538,6 +548,62 @@ namespace IceRpc.Internal
             }
         }
 
+        /// <summary>Decodes the first byte of the payload to get its size.</summary>
+        private static (int PayloadSize, int PayloadSizeLength, byte EncodingMajor, byte EncodingMinor) DecodePayloadSize(
+            ReadOnlyMemory<ReadOnlyMemory<byte>> payload,
+            Encoding payloadEncoding)
+        {
+            int payloadSize;
+            int payloadSizeLength;
+            byte encodingMajor;
+            byte encodingMinor;
+
+            if (payloadEncoding == Encoding.Ice11)
+            {
+                encodingMajor = 1;
+                encodingMinor = 1;
+                payloadSizeLength = 4;
+                payloadSize = IceDecoder.DecodeInt(payload.Span[0].Span);
+            }
+            else if (payloadEncoding == Encoding.Ice20)
+            {
+                encodingMajor = 2;
+                encodingMinor = 0;
+                (payloadSize, payloadSizeLength) = Ice20Decoder.DecodeSize(payload.Span[0].Span);
+            }
+            else
+            {
+                throw new NotSupportedException("an ice1 payload must be encoded with Slice 1.1 or Slice 2.0");
+            }
+
+            return (payloadSize, payloadSizeLength, encodingMajor, encodingMinor);
+        }
+
+        /// <summary>Encodes a payload size into a buffer with the specified encoding.</summary>
+        private static IceEncoding EncodePayloadSize(
+            int payloadSize,
+            byte encodingMajor,
+            byte encodingMinor,
+            Span<byte> buffer)
+        {
+            Debug.Assert(buffer.Length == 4);
+
+            if (encodingMajor == 1 && encodingMinor == 1)
+            {
+                IceEncoder.EncodeInt(payloadSize, buffer);
+                return Encoding.Ice11;
+            }
+            else if (encodingMajor == 2 && encodingMinor == 0)
+            {
+                Ice20Encoder.EncodeFixedLengthSize(payloadSize, buffer);
+                return Encoding.Ice20;
+            }
+            else
+            {
+                throw new NotSupportedException("an ice1 payload must be encoded with Slice 1.1 or Slice 2.0");
+            }
+        }
+
         private void CancelDispatches()
         {
             IEnumerable<IncomingRequest> dispatches;
@@ -573,7 +639,7 @@ namespace IceRpc.Internal
             }
         }
 
-        private async ValueTask<(int, ReadOnlyMemory<byte>)> ReceiveFrameAsync()
+        private async ValueTask<(int, Memory<byte>)> ReceiveFrameAsync()
         {
             // Reads are not cancellable. This method returns once a frame is read or when the connection is disposed.
             CancellationToken cancel = CancellationToken.None;
