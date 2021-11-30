@@ -146,14 +146,14 @@ namespace IceRpc.Internal
                     path: requestHeaderBody.Path,
                     operation: requestHeaderBody.Operation)
                 {
-                    IsIdempotent = requestHeaderBody.Idempotent ?? false,
+                    IsIdempotent = requestHeaderBody.Idempotent,
                     IsOneway = !stream.IsBidirectional,
                     Features = features,
                     // The infinite deadline is encoded as -1 and converted to DateTime.MaxValue
                     Deadline = requestHeaderBody.Deadline == -1 ?
                         DateTime.MaxValue : DateTime.UnixEpoch + TimeSpan.FromMilliseconds(requestHeaderBody.Deadline),
-                    PayloadEncoding = requestHeaderBody.PayloadEncoding is string payloadEncoding ?
-                        Encoding.FromString(payloadEncoding) : Ice2Definitions.Encoding,
+                    PayloadEncoding = requestHeaderBody.PayloadEncoding.Length > 0 ?
+                        Encoding.FromString(requestHeaderBody.PayloadEncoding) : Ice2Definitions.Encoding,
                     Fields = fields,
                     Payload = payload,
                     Stream = stream
@@ -230,8 +230,8 @@ namespace IceRpc.Internal
                             decoder.Pos - headerStartPos} bytes");
                 }
 
-                Encoding payloadEncoding = responseHeaderBody.PayloadEncoding is string encoding ?
-                    Encoding.FromString(encoding) : Ice2Definitions.Encoding;
+                Encoding payloadEncoding = responseHeaderBody.PayloadEncoding.Length > 0 ?
+                    Encoding.FromString(responseHeaderBody.PayloadEncoding) : Ice2Definitions.Encoding;
 
                 FeatureCollection features = FeatureCollection.Empty;
                 RetryPolicy? retryPolicy = fields.Get((int)FieldKey.RetryPolicy, decoder => new RetryPolicy(decoder));
@@ -344,9 +344,9 @@ namespace IceRpc.Internal
                 var requestHeaderBody = new Ice2RequestHeaderBody(
                     request.Path,
                     request.Operation,
-                    request.IsIdempotent ? true : null,
+                    request.IsIdempotent,
                     deadline,
-                    request.PayloadEncoding == Ice2Definitions.Encoding ? null : request.PayloadEncoding.ToString());
+                    request.PayloadEncoding == Ice2Definitions.Encoding ? "" : request.PayloadEncoding.ToString());
 
                 requestHeaderBody.Encode(encoder);
 
@@ -444,7 +444,7 @@ namespace IceRpc.Internal
 
             new Ice2ResponseHeaderBody(
                 response.ResultType,
-                response.PayloadEncoding == Ice2Definitions.Encoding ? null :
+                response.PayloadEncoding == Ice2Definitions.Encoding ? "" :
                     response.PayloadEncoding.ToString()).Encode(encoder);
 
             encoder.EncodeFields(response.Fields, response.FieldsDefaults);
