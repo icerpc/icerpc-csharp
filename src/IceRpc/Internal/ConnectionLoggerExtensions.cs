@@ -88,24 +88,21 @@ namespace IceRpc.Internal
             EventId = (int)ConnectionEventIds.ReceiveRequest,
             EventName = nameof(ConnectionEventIds.ReceiveRequest),
             Level = LogLevel.Debug,
-            Message = "received request frame (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
+            Message = "received request frame (Path={Path}, Operation={Operation}, " +
                 "PayloadEncoding={PayloadEncoding})")]
         internal static partial void LogReceiveRequest(
             this ILogger logger,
             string path,
             string operation,
-            int payloadSize,
             Encoding payloadEncoding);
 
         [LoggerMessage(
             EventId = (int)ConnectionEventIds.ReceiveResponse,
             EventName = nameof(ConnectionEventIds.ReceiveResponse),
             Level = LogLevel.Debug,
-            Message = "received response frame (PayloadSize={PayloadSize}, PayloadEncoding={PayloadEncoding}, " +
-                "ResultType={ResultType})")]
+            Message = "received response frame (PayloadEncoding={PayloadEncoding}, ResultType={ResultType})")]
         internal static partial void LogReceiveResponse(
             this ILogger logger,
-            int payloadSize,
             Encoding payloadEncoding,
             ResultType resultType);
 
@@ -113,21 +110,15 @@ namespace IceRpc.Internal
             EventId = (int)ConnectionEventIds.SendRequest,
             EventName = nameof(ConnectionEventIds.SendRequest),
             Level = LogLevel.Debug,
-            Message = "sent request frame (PayloadSize={PayloadSize}, PayloadEncoding={PayloadEncoding})")]
-        internal static partial void LogSendRequest(
-            this ILogger logger,
-            int payloadSize,
-            Encoding payloadEncoding);
+            Message = "sent request frame (PayloadEncoding={PayloadEncoding})")]
+        internal static partial void LogSendRequest(this ILogger logger, Encoding payloadEncoding);
 
         [LoggerMessage(
             EventId = (int)ConnectionEventIds.SendResponse,
             EventName = nameof(ConnectionEventIds.SendResponse),
             Level = LogLevel.Debug,
-            Message = "sent response frame (PayloadSize={PayloadSize}, PayloadEncoding={PayloadEncoding})")]
-        internal static partial void LogSendResponse(
-            this ILogger logger,
-            int payloadSize,
-            Encoding payloadEncoding);
+            Message = "sent response frame (PayloadEncoding={PayloadEncoding})")]
+        internal static partial void LogSendResponse(this ILogger logger, Encoding payloadEncoding);
 
         /// <summary>Starts a client connection scope.</summary>
         internal static IDisposable StartClientConnectionScope(
