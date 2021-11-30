@@ -46,10 +46,5 @@ namespace IceRpc.Internal
         /// <param name="message">The reason of the connection shutdown.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         Task ShutdownAsync(string message, CancellationToken cancel);
-
-        /// <summary>The <see cref="Connection.ShutdownAsync(CancellationToken)"/> call has been canceled. The protocol
-        /// implementation should take action to speed-up the shutdown when notified of the cancellation by this
-        /// method.</summary>
-        void ShutdownCanceled();
     }
 }

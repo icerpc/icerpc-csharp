@@ -4,18 +4,28 @@ using IceRpc.Internal;
 
 namespace IceRpc.Slice
 {
-    /// <summary>Extension methods to decode the payloads of incoming requests when such payloads are encoded with the
+    /// <summary>Extension methods to decode the payload of an incoming request when this payload is encoded with the
     /// Ice encoding.</summary>
     public static class IncomingRequestExtensions
     {
         /// <summary>Verifies that a request payload carries no argument or only unknown tagged arguments.</summary>
         /// <param name="request">The incoming request.</param>
         /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
-        public static void CheckEmptyArgs(
+        /// <param name="_">The cancellation token.</param>
+        /// <returns>A value task that completes when the checking is complete.</returns>
+        public static ValueTask CheckEmptyArgsAsync(
             this IncomingRequest request,
-            IIceDecoderFactory<IceDecoder> iceDecoderFactory) =>
+            IIceDecoderFactory<IceDecoder> iceDecoderFactory,
+            CancellationToken _)
+        {
+            // In the future, we'll read the args size (usually 0) from the payload stream, allocate a buffer then
+            // ReadAsync the payload stream into this buffer.
+
             iceDecoderFactory.CreateIceDecoder(request.Payload, request.Connection, request.ProxyInvoker).
                     CheckEndOfBuffer(skipTaggedParams: true);
+
+            return default; // for now, the exception is thrown synchronously.
+        }
 
         /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared
         /// idempotent, the request is not marked idempotent. If the request is marked idempotent, it means the caller
@@ -47,11 +57,13 @@ namespace IceRpc.Slice
         /// <param name="request">The incoming request.</param>
         /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
         /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
+        /// <param name="_">The cancellation token.</param>
         /// <returns>The request arguments.</returns>
-        public static T ToArgs<TDecoder, T>(
+        public static ValueTask<T> ToArgsAsync<TDecoder, T>(
             this IncomingRequest request,
             IIceDecoderFactory<TDecoder> iceDecoderFactory,
-            DecodeFunc<TDecoder, T> decodeFunc) where TDecoder : IceDecoder
+            DecodeFunc<TDecoder, T> decodeFunc,
+            CancellationToken _) where TDecoder : IceDecoder
         {
             if (request.PayloadEncoding != iceDecoderFactory.Encoding)
             {
@@ -60,13 +72,16 @@ namespace IceRpc.Slice
                     }; expected a payload encoded with {iceDecoderFactory.Encoding}");
             }
 
+            // In the future, we'll read the args size from the payload stream, allocate a buffer then ReadAsync the
+            // payload stream into this buffer.
+
             TDecoder decoder = iceDecoderFactory.CreateIceDecoder(
                 request.Payload,
                 request.Connection,
                 request.ProxyInvoker);
             T result = decodeFunc(decoder);
             decoder.CheckEndOfBuffer(skipTaggedParams: true);
-            return result;
+            return new(result);
         }
     }
 }
