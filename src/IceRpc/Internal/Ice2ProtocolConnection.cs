@@ -341,8 +341,8 @@ namespace IceRpc.Internal
                 // We're done with the header encoding, write the header size.
                 int headerSize = encoder.EndFixedLengthSize(frameHeaderStart, 2);
 
-                // We're done with the frame encoding, write the frame size.
-                int frameSize = headerSize + 2 + request.PayloadSize;
+                // We're done with the frame encoding, write the frame size (temporary)
+                int frameSize = headerSize + 2 + request.Payload.GetByteCount();
                 encoder.EncodeFixedLengthSize(frameSize, frameSizeStart);
                 if (frameSize > _peerIncomingFrameMaxSize)
                 {
@@ -422,8 +422,8 @@ namespace IceRpc.Internal
             // We're done with the header encoding, write the header size.
             int headerSize = encoder.EndFixedLengthSize(frameHeaderStart, 2);
 
-            // We're done with the frame encoding, write the frame size.
-            int frameSize = headerSize + 2 + response.PayloadSize;
+            // We're done with the frame encoding, write the frame size (temporary)
+            int frameSize = headerSize + 2 + response.Payload.GetByteCount();
             encoder.EncodeFixedLengthSize(frameSize, frameSizeStart);
             if (frameSize > _peerIncomingFrameMaxSize)
             {
