@@ -1,4 +1,4 @@
-This example application illustrates how make an asynchronous invocation and wait for the reply.
+This example application shows how to use the .NET Generic Host to implement IceRPC server and client command line applications.
 
 For build instructions checks the top-level [README.md](../../README.md).
 
