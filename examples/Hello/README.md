@@ -1,4 +1,4 @@
-This example application illustrates how make a asynchronous invocation and wait for the reply.
+This example application illustrates how make an asynchronous invocation and wait for the reply.
 
 For build instructions checks the top-level [README.md](../../README.md).
 

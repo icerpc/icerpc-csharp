@@ -9,7 +9,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.ComponentModel.DataAnnotations;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
@@ -21,8 +20,7 @@ public class Program
     {
         public ConnectionOptions ConnectionOptions { get; set; } = new();
 
-        [Required(ErrorMessage = "the Endpoint setting is required.")]
-        public Endpoint? Endpoint { get; set; }
+        public Endpoint Endpoint { get; set; } = "ice+tcp://[::1]";
     }
 
     public static void Main(string[] args) => CreateHostBuilder(args).Build().Run();
@@ -34,8 +32,7 @@ public class Program
             {
                 services.AddHostedService<HelloService>();
                 services.AddOptions<HelloOptions>()
-                    .Bind(hostContext.Configuration.GetSection("Hello"))
-                    .ValidateDataAnnotations();
+                    .Bind(hostContext.Configuration.GetSection("Hello"));
 
                 services.AddSingleton<IClientTransport<IMultiplexedNetworkConnection>>(serviceProvider =>
                     {
@@ -84,7 +81,7 @@ public class Program
             {
                 MultiplexedClientTransport = clientTransport,
                 Options = options.Value.ConnectionOptions,
-                RemoteEndpoint = options.Value.Endpoint!,
+                RemoteEndpoint = options.Value.Endpoint,
                 LoggerFactory = loggerFactory
             };
 
@@ -93,7 +90,14 @@ public class Program
 
         protected override async Task ExecuteAsync(CancellationToken cancellationToken)
         {
-            await _proxy.SayHelloAsync("Hello!", cancel: cancellationToken);
+            try
+            {
+                Console.WriteLine(await _proxy.SayHelloAsync("Hello", cancel: cancellationToken));
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine($"couldn't connect to the hello service:\n {exception}");
+            }
             _applicationLifetime.StopApplication();
         }
 

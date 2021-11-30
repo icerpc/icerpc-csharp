@@ -9,7 +9,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.ComponentModel.DataAnnotations;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
@@ -19,8 +18,7 @@ public class HelloOptions
 {
     public ConnectionOptions ConnectionOptions { get; set; } = new();
 
-    [Required(ErrorMessage = "the Endpoint setting is required.")]
-    public Endpoint? Endpoint { get; set; }
+    public Endpoint Endpoint { get; set; } = "ice+tcp://[::0]";
 }
 
 public class Program
@@ -35,8 +33,7 @@ public class Program
                 services.AddHostedService<HelloService>();
 
                 services.AddOptions<HelloOptions>()
-                    .Bind(hostContext.Configuration.GetSection("Hello"))
-                    .ValidateDataAnnotations();
+                    .Bind(hostContext.Configuration.GetSection("Hello"));
 
                 services.AddSingleton<IServerTransport<IMultiplexedNetworkConnection>>(serviceProvider =>
                     {
@@ -77,7 +74,7 @@ public class Program
             {
                 ConnectionOptions = options.Value.ConnectionOptions,
                 Dispatcher = dispatcher,
-                Endpoint = options.Value.Endpoint!,
+                Endpoint = options.Value.Endpoint,
                 LoggerFactory = loggerFactory,
                 MultiplexedServerTransport = serverTransport
             };
