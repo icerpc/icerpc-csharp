@@ -10,6 +10,14 @@ namespace IceRpc.Slice
         /// <summary>The Ice 1.1 encoding singleton.</summary>
         internal static Ice11Encoding Instance { get; } = new();
 
+        private static readonly ReadOnlyMemory<ReadOnlyMemory<byte>> _emptyPayload = new ReadOnlyMemory<byte>[]
+        {
+            new byte[] { 0, 0, 0, 0 } // 0 size on 4 bytes
+        };
+
+        /// <inheritdoc/>
+        public override ReadOnlyMemory<ReadOnlyMemory<byte>> CreateEmptyPayload() => _emptyPayload;
+
         /// <summary>Creates the payload of a request from the request's arguments. Use this method is for operations
         /// with multiple parameters.</summary>
         /// <typeparam name="T">The type of the operation's parameters.</typeparam>
@@ -25,7 +33,9 @@ namespace IceRpc.Slice
         {
             var bufferWriter = new BufferWriter();
             var encoder = new Ice11Encoder(bufferWriter, classFormat);
+            BufferWriter.Position start = encoder.StartFixedLengthSize();
             encodeAction(encoder, in args);
+            _ = encoder.EndFixedLengthSize(start);
             return bufferWriter.Finish();
         }
 
@@ -43,7 +53,9 @@ namespace IceRpc.Slice
         {
             var bufferWriter = new BufferWriter();
             var encoder = new Ice11Encoder(bufferWriter, classFormat);
+            BufferWriter.Position start = encoder.StartFixedLengthSize();
             encodeAction(encoder, arg);
+            _ = encoder.EndFixedLengthSize(start);
             return bufferWriter.Finish();
         }
 
@@ -62,7 +74,9 @@ namespace IceRpc.Slice
         {
             var bufferWriter = new BufferWriter();
             var encoder = new Ice11Encoder(bufferWriter, classFormat);
+            BufferWriter.Position start = encoder.StartFixedLengthSize();
             encodeAction(encoder, in returnValueTuple);
+            _ = encoder.EndFixedLengthSize(start);
             return bufferWriter.Finish();
         }
 
@@ -81,12 +95,11 @@ namespace IceRpc.Slice
         {
             var bufferWriter = new BufferWriter();
             var encoder = new Ice11Encoder(bufferWriter, classFormat);
+            BufferWriter.Position start = encoder.StartFixedLengthSize();
             encodeAction(encoder, returnValue);
+            _ = encoder.EndFixedLengthSize(start);
             return bufferWriter.Finish();
         }
-
-        /// <inheritdoc/>
-        public override ReadOnlyMemory<ReadOnlyMemory<byte>> CreateEmptyPayload() => default;
 
         internal override IceEncoder CreateIceEncoder(BufferWriter bufferWriter) => new Ice11Encoder(bufferWriter);
 

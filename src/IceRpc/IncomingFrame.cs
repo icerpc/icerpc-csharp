@@ -30,16 +30,12 @@ namespace IceRpc
             set
             {
                 _payload = value;
-                PayloadSize = value.Length;
             }
         }
 
         /// <summary>Returns the encoding of the payload of this frame.</summary>
         /// <remarks>The header of the frame is always encoded using the frame protocol's encoding.</remarks>
         public Encoding PayloadEncoding { get; init; } = Encoding.Unknown;
-
-        /// <summary>Returns the number of bytes in the payload.</summary>
-        public int PayloadSize { get; private set; }
 
         /// <summary>The Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }

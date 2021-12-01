@@ -50,9 +50,9 @@ module IceRpc::Internal
     {
         string path;
         string operation;
-        bool? \idempotent;       // null equivalent to false
+        bool \idempotent;
         varlong deadline;
-        string? payloadEncoding;
+        string payloadEncoding; // empty equivalent to "2.0"
     }
 
     /// Each ice2 request frame has:
@@ -67,7 +67,6 @@ module IceRpc::Internal
         varulong headerSize;
         Ice2RequestHeaderBody body;
         Fields fields;
-        varulong payloadSize;
     }
 
     // See Ice2ResponseHeader below.
@@ -75,7 +74,7 @@ module IceRpc::Internal
     struct Ice2ResponseHeaderBody
     {
         ResultType resultType;
-        string? payloadEncoding;
+        string payloadEncoding; // empty equivalent to "2.0"
     }
 
     /// Each ice2 response frame has:
@@ -90,7 +89,6 @@ module IceRpc::Internal
         varulong headerSize;
         Ice2ResponseHeaderBody body;
         Fields fields;
-        varulong payloadSize;
     }
 
     /// The go away frame is sent on connection shutdown to notify the peer that it shouldn't perform new invocations

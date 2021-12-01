@@ -106,15 +106,6 @@ namespace IceRpc.Internal
                 // Read the fields.
                 IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields = decoder.DecodeFieldDictionary();
 
-                // Ensure we read the same number of bytes as the header size.
-                int payloadSize = decoder.DecodeSize();
-                if (decoder.Pos - headerStartPos != headerSize)
-                {
-                    throw new InvalidDataException(
-                        @$"received invalid request header: expected {headerSize} bytes but read {
-                            decoder.Pos - headerStartPos} bytes");
-                }
-
                 // Decode Context from Fields and set corresponding feature.
                 FeatureCollection features = FeatureCollection.Empty;
                 if (fields.Get(
@@ -129,12 +120,6 @@ namespace IceRpc.Internal
                 }
 
                 ReadOnlyMemory<byte> payload = buffer[decoder.Pos..];
-                if (payloadSize != payload.Length)
-                {
-                    throw new InvalidDataException(
-                        @$"request payload size mismatch: expected {payloadSize} bytes, read {
-                            payload.Length} bytes");
-                }
 
                 if (requestHeaderBody.Operation.Length == 0)
                 {
@@ -146,14 +131,14 @@ namespace IceRpc.Internal
                     path: requestHeaderBody.Path,
                     operation: requestHeaderBody.Operation)
                 {
-                    IsIdempotent = requestHeaderBody.Idempotent ?? false,
+                    IsIdempotent = requestHeaderBody.Idempotent,
                     IsOneway = !stream.IsBidirectional,
                     Features = features,
                     // The infinite deadline is encoded as -1 and converted to DateTime.MaxValue
                     Deadline = requestHeaderBody.Deadline == -1 ?
                         DateTime.MaxValue : DateTime.UnixEpoch + TimeSpan.FromMilliseconds(requestHeaderBody.Deadline),
-                    PayloadEncoding = requestHeaderBody.PayloadEncoding is string payloadEncoding ?
-                        Encoding.FromString(payloadEncoding) : Ice2Definitions.Encoding,
+                    PayloadEncoding = requestHeaderBody.PayloadEncoding.Length > 0 ?
+                        Encoding.FromString(requestHeaderBody.PayloadEncoding) : Ice2Definitions.Encoding,
                     Fields = fields,
                     Payload = payload,
                     Stream = stream
@@ -222,16 +207,9 @@ namespace IceRpc.Internal
 
                 var responseHeaderBody = new Ice2ResponseHeaderBody(decoder);
                 IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields = decoder.DecodeFieldDictionary();
-                int payloadSize = decoder.DecodeSize();
-                if (decoder.Pos - headerStartPos != headerSize)
-                {
-                    throw new InvalidDataException(
-                        @$"received invalid response header: expected {headerSize} bytes but read {
-                            decoder.Pos - headerStartPos} bytes");
-                }
 
-                Encoding payloadEncoding = responseHeaderBody.PayloadEncoding is string encoding ?
-                    Encoding.FromString(encoding) : Ice2Definitions.Encoding;
+                Encoding payloadEncoding = responseHeaderBody.PayloadEncoding.Length > 0 ?
+                    Encoding.FromString(responseHeaderBody.PayloadEncoding) : Ice2Definitions.Encoding;
 
                 FeatureCollection features = FeatureCollection.Empty;
                 RetryPolicy? retryPolicy = fields.Get((int)FieldKey.RetryPolicy, decoder => new RetryPolicy(decoder));
@@ -256,13 +234,6 @@ namespace IceRpc.Internal
                     PayloadEncoding = payloadEncoding,
                     Payload = buffer[decoder.Pos..],
                 };
-
-                if (payloadSize != response.Payload.Length)
-                {
-                    throw new InvalidDataException(
-                        @$"response payload size mismatch: expected {payloadSize} bytes, read
-                            {response.Payload.Length} bytes");
-                }
 
                 return response;
             }
@@ -344,9 +315,9 @@ namespace IceRpc.Internal
                 var requestHeaderBody = new Ice2RequestHeaderBody(
                     request.Path,
                     request.Operation,
-                    request.IsIdempotent ? true : null,
+                    request.IsIdempotent,
                     deadline,
-                    request.PayloadEncoding == Ice2Definitions.Encoding ? null : request.PayloadEncoding.ToString());
+                    request.PayloadEncoding == Ice2Definitions.Encoding ? "" : request.PayloadEncoding.ToString());
 
                 requestHeaderBody.Encode(encoder);
 
@@ -366,13 +337,12 @@ namespace IceRpc.Internal
                 // else context remains empty (not set)
 
                 encoder.EncodeFields(request.Fields, request.FieldsDefaults);
-                encoder.EncodeSize(request.PayloadSize);
 
                 // We're done with the header encoding, write the header size.
                 int headerSize = encoder.EndFixedLengthSize(frameHeaderStart, 2);
 
-                // We're done with the frame encoding, write the frame size.
-                int frameSize = headerSize + 2 + request.PayloadSize;
+                // We're done with the frame encoding, write the frame size (temporary)
+                int frameSize = headerSize + 2 + request.Payload.GetByteCount();
                 encoder.EncodeFixedLengthSize(frameSize, frameSizeStart);
                 if (frameSize > _peerIncomingFrameMaxSize)
                 {
@@ -444,17 +414,16 @@ namespace IceRpc.Internal
 
             new Ice2ResponseHeaderBody(
                 response.ResultType,
-                response.PayloadEncoding == Ice2Definitions.Encoding ? null :
+                response.PayloadEncoding == Ice2Definitions.Encoding ? "" :
                     response.PayloadEncoding.ToString()).Encode(encoder);
 
             encoder.EncodeFields(response.Fields, response.FieldsDefaults);
-            encoder.EncodeSize(response.PayloadSize);
 
             // We're done with the header encoding, write the header size.
             int headerSize = encoder.EndFixedLengthSize(frameHeaderStart, 2);
 
-            // We're done with the frame encoding, write the frame size.
-            int frameSize = headerSize + 2 + response.PayloadSize;
+            // We're done with the frame encoding, write the frame size (temporary)
+            int frameSize = headerSize + 2 + response.Payload.GetByteCount();
             encoder.EncodeFixedLengthSize(frameSize, frameSizeStart);
             if (frameSize > _peerIncomingFrameMaxSize)
             {

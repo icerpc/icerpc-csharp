@@ -63,6 +63,10 @@ namespace IceRpc.Tests.SliceInternal
             {
                 ReadOnlyMemory<byte> data = request.Payload.ToSingleBuffer();
                 var decoder = new Ice11Decoder(data);
+
+                // Skip payload size
+                decoder.Skip(4);
+
                 // Read the instance marker
                 Assert.AreEqual(1, decoder.DecodeSize());
                 var sliceFlags = (SliceFlags)decoder.DecodeByte();
@@ -71,6 +75,10 @@ namespace IceRpc.Tests.SliceInternal
 
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 decoder = new Ice11Decoder(await response.GetPayloadAsync(cancel));
+
+                // Skip payload size
+                decoder.Skip(4);
+
                 // Read the instance marker
                 Assert.AreEqual(1, decoder.DecodeSize());
                 sliceFlags = (SliceFlags)decoder.DecodeByte();
@@ -87,6 +95,10 @@ namespace IceRpc.Tests.SliceInternal
             {
                 ReadOnlyMemory<byte> data = request.Payload.ToSingleBuffer();
                 var decoder = new Ice11Decoder(data);
+
+                // Skip payload size
+                decoder.Skip(4);
+
                 // Read the instance marker
                 Assert.AreEqual(1, decoder.DecodeSize());
                 var sliceFlags = (SliceFlags)decoder.DecodeByte();
@@ -94,6 +106,10 @@ namespace IceRpc.Tests.SliceInternal
                 Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 decoder = new Ice11Decoder(await response.GetPayloadAsync(cancel));
+
+                // Skip payload size
+                decoder.Skip(4);
+
                 // Read the instance marker
                 Assert.AreEqual(1, decoder.DecodeSize());
                 sliceFlags = (SliceFlags)decoder.DecodeByte();
@@ -110,6 +126,10 @@ namespace IceRpc.Tests.SliceInternal
             {
                 ReadOnlyMemory<byte> data = request.Payload.ToSingleBuffer();
                 var decoder = new Ice11Decoder(data);
+
+                // Skip payload size
+                decoder.Skip(4);
+
                 // Read the instance marker
                 Assert.AreEqual(1, decoder.DecodeSize());
                 var sliceFlags = (SliceFlags)decoder.DecodeByte();
@@ -117,6 +137,10 @@ namespace IceRpc.Tests.SliceInternal
                 Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 decoder = new Ice11Decoder(await response.GetPayloadAsync(cancel));
+
+                // Skip payload size
+                decoder.Skip(4);
+
                 // Read the instance marker
                 Assert.AreEqual(1, decoder.DecodeSize());
                 sliceFlags = (SliceFlags)decoder.DecodeByte();
@@ -132,6 +156,10 @@ namespace IceRpc.Tests.SliceInternal
             {
                 ReadOnlyMemory<byte> data = request.Payload.ToSingleBuffer();
                 var decoder = new Ice11Decoder(data);
+
+                // Skip payload size
+                decoder.Skip(4);
+
                 // Read the instance marker
                 Assert.AreEqual(1, decoder.DecodeSize());
                 var sliceFlags = (SliceFlags)decoder.DecodeByte();
@@ -139,6 +167,10 @@ namespace IceRpc.Tests.SliceInternal
                 Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 decoder = new Ice11Decoder(await response.GetPayloadAsync(cancel));
+
+                // Skip payload size
+                decoder.Skip(4);
+
                 // Read the instance marker
                 Assert.AreEqual(1, decoder.DecodeSize());
                 sliceFlags = (SliceFlags)decoder.DecodeByte();

@@ -169,7 +169,7 @@ namespace IceRpc.Tests.Api
                         }
                         Assert.Fail();
                     }
-                    return OutgoingResponse.ForPayload(request, default);
+                    return OutgoingResponse.ForPayload(request, Encoding.Ice20.CreateEmptyPayload());
                 }),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };

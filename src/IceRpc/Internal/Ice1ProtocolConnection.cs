@@ -92,7 +92,7 @@ namespace IceRpc.Internal
             {
                 // Wait for a request frame to be received.
                 int requestId;
-                ReadOnlyMemory<byte> buffer;
+                Memory<byte> buffer;
                 try
                 {
                     (requestId, buffer) = await ReceiveFrameAsync().ConfigureAwait(false);
@@ -126,15 +126,23 @@ namespace IceRpc.Internal
                     throw new InvalidDataException("received request with empty operation name");
                 }
 
-                ReadOnlyMemory<byte> payload = buffer[decoder.Pos..];
+                // The payload plus 4 bytes from the encapsulation header used to store the payload size encoded with
+                // payload encoding.
+                Memory<byte> payload = buffer[(decoder.Pos - 4)..];
 
                 // The payload size is the encapsulation size less the 6 bytes of the encapsulation header.
                 int payloadSize = requestHeader.EncapsulationSize - 6;
-                if (payloadSize != payload.Length)
+                if (payloadSize != payload.Length - 4)
                 {
-                    throw new InvalidDataException(
-                        $"request payload size mismatch: expected {payloadSize} bytes, read {payload.Length} bytes");
+                    throw new InvalidDataException(@$"request payload size mismatch: expected {payloadSize
+                        } bytes, read {payload.Length - 4} bytes");
                 }
+
+                Encoding payloadEncoding = EncodePayloadSize(
+                    payloadSize,
+                    requestHeader.PayloadEncodingMajor,
+                    requestHeader.PayloadEncodingMinor,
+                    payload.Span[0..4]);
 
                 var request = new IncomingRequest(
                     Protocol.Ice1,
@@ -143,9 +151,7 @@ namespace IceRpc.Internal
                 {
                     IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
                     IsOneway = requestId == 0,
-                    PayloadEncoding = Encoding.FromMajorMinor(
-                        requestHeader.PayloadEncodingMajor,
-                        requestHeader.PayloadEncodingMinor),
+                    PayloadEncoding = payloadEncoding,
                     Deadline = DateTime.MaxValue,
                     Payload = payload,
                 };
@@ -174,7 +180,7 @@ namespace IceRpc.Internal
         {
             if (request.IsOneway)
             {
-                throw new InvalidOperationException("can't receive a response for a one-way request");
+                throw new InvalidOperationException("can't receive a response for a oneway request");
             }
 
             Ice1Request? requestFeature = request.Features.Get<Ice1Request>();
@@ -184,7 +190,7 @@ namespace IceRpc.Internal
             }
 
             // Wait for the response.
-            ReadOnlyMemory<byte> buffer;
+            Memory<byte> buffer;
             try
             {
                 buffer = await requestFeature.ResponseCompletionSource.Task.WaitAsync(cancel).ConfigureAwait(false);
@@ -212,18 +218,15 @@ namespace IceRpc.Internal
             var features = new FeatureCollection();
             features.Set(replyStatus);
 
-            Encoding payloadEncoding;
+            byte encodingMajor = 1;
+            byte encodingMinor = 1;
             int? payloadSize = null;
             if (replyStatus <= ReplyStatus.UserException)
             {
                 var responseHeader = new Ice1ResponseHeader(decoder);
-                payloadEncoding = Encoding.FromMajorMinor(responseHeader.PayloadEncodingMajor,
-                                                          responseHeader.PayloadEncodingMinor);
+                encodingMajor = responseHeader.PayloadEncodingMajor;
+                encodingMinor = responseHeader.PayloadEncodingMinor;
                 payloadSize = responseHeader.EncapsulationSize - 6;
-            }
-            else
-            {
-                payloadEncoding = Encoding.Ice11;
             }
 
             // For compatibility with ZeroC Ice
@@ -234,12 +237,34 @@ namespace IceRpc.Internal
                 features.Set(RetryPolicy.OtherReplica);
             }
 
-            ReadOnlyMemory<byte> payload = buffer[decoder.Pos..];
-            if (payloadSize != null && payloadSize != payload.Length)
+            Memory<byte> payload;
+            if (payloadSize == null)
             {
-                throw new InvalidDataException(
-                    @$"response payload size mismatch: expected {payloadSize} bytes, read {payload.Length} bytes");
+                Debug.Assert(replyStatus > ReplyStatus.UserException);
+
+                // We need a new buffer that holds the payload size + payload since there is only one extra byte in
+                // buffer.
+
+                payloadSize = buffer.Length - decoder.Pos;
+                payload = new byte[4 + payloadSize.Value];
+                buffer[decoder.Pos..].CopyTo(payload[4..]);
             }
+            else
+            {
+                // We overwrite the encapsulation header to write the payload size
+                payload = buffer[(decoder.Pos - 4)..];
+                if (payloadSize != payload.Length - 4)
+                {
+                    throw new InvalidDataException(@$"response payload size mismatch: expected {payloadSize
+                        } bytes, read {payload.Length - 4} bytes");
+                }
+            }
+
+            Encoding payloadEncoding = EncodePayloadSize(
+                    payloadSize.Value,
+                    encodingMajor,
+                    encodingMinor,
+                    payload.Span[0..4]);
 
             return new IncomingResponse(
                 Protocol.Ice1,
@@ -309,22 +334,25 @@ namespace IceRpc.Internal
 
                 encoder.EncodeInt(requestId);
 
-                (byte encodingMajor, byte encodingMinor) = request.PayloadEncoding.ToMajorMinor();
+                ReadOnlyMemory<ReadOnlyMemory<byte>> payload = request.Payload;
+
+                (int payloadSize, byte encodingMajor, byte encodingMinor) =
+                    DecodePayloadSize(ref payload, request.PayloadEncoding);
 
                 var requestHeader = new Ice1RequestHeader(
                     IdentityAndFacet.FromPath(request.Path),
                     request.Operation,
                     request.IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
                     request.Features.GetContext(),
-                    encapsulationSize: request.PayloadSize + 6,
+                    encapsulationSize: payloadSize + 6,
                     encodingMajor,
                     encodingMinor);
                 requestHeader.Encode(encoder);
 
-                encoder.EncodeFixedLengthSize(bufferWriter.Size + request.PayloadSize, frameSizeStart);
+                encoder.EncodeFixedLengthSize(bufferWriter.Size + payloadSize, frameSizeStart);
 
                 // Add the payload to the buffer writer.
-                bufferWriter.Add(request.Payload);
+                bufferWriter.Add(payload);
 
                 // Perform the sending. When an Ice1 frame is sent over a connection (such as a TCP
                 // connection), we need to send the entire frame even when cancel gets canceled since the
@@ -386,22 +414,25 @@ namespace IceRpc.Internal
 
                         encoder.EncodeInt(requestId);
 
+                        ReadOnlyMemory<ReadOnlyMemory<byte>> payload = response.Payload;
+
+                        (int payloadSize, byte encodingMajor, byte encodingMinor) =
+                            DecodePayloadSize(ref payload, response.PayloadEncoding);
+
                         ReplyStatus replyStatus = response.Features.Get<ReplyStatus>();
                         encoder.EncodeReplyStatus(replyStatus);
                         if (replyStatus <= ReplyStatus.UserException)
                         {
-                            (byte encodingMajor, byte encodingMinor) = response.PayloadEncoding.ToMajorMinor();
-
-                            var responseHeader = new Ice1ResponseHeader(encapsulationSize: response.PayloadSize + 6,
+                            var responseHeader = new Ice1ResponseHeader(encapsulationSize: payloadSize + 6,
                                                                         encodingMajor,
                                                                         encodingMinor);
                             responseHeader.Encode(encoder);
                         }
 
-                        encoder.EncodeFixedLengthSize(bufferWriter.Size + response.PayloadSize, frameSizeStart);
+                        encoder.EncodeFixedLengthSize(bufferWriter.Size + payloadSize, frameSizeStart);
 
                         // Add the payload to the buffer writer.
-                        bufferWriter.Add(response.Payload);
+                        bufferWriter.Add(payload);
 
                         // Send the response frame.
                         ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
@@ -538,6 +569,77 @@ namespace IceRpc.Internal
             }
         }
 
+        /// <summary>Decodes the first byte of the payload to get its size.</summary>
+        private static (int PayloadSize, byte EncodingMajor, byte EncodingMinor) DecodePayloadSize(
+            ref ReadOnlyMemory<ReadOnlyMemory<byte>> payload,
+            Encoding payloadEncoding)
+        {
+            int payloadSize;
+            int payloadSizeLength;
+            byte encodingMajor;
+            byte encodingMinor;
+
+            if (payloadEncoding == Encoding.Ice11)
+            {
+                encodingMajor = 1;
+                encodingMinor = 1;
+                payloadSizeLength = 4;
+                payloadSize = IceDecoder.DecodeInt(payload.Span[0].Span);
+            }
+            else if (payloadEncoding == Encoding.Ice20)
+            {
+                encodingMajor = 2;
+                encodingMinor = 0;
+                (payloadSize, payloadSizeLength) = Ice20Decoder.DecodeSize(payload.Span[0].Span);
+            }
+            else
+            {
+                throw new NotSupportedException("an ice1 payload must be encoded with Slice 1.1 or Slice 2.0");
+            }
+
+            ReadOnlyMemory<byte>[] remainingPayload = Array.Empty<ReadOnlyMemory<byte>>();
+
+            if (payload.Length > 1 || payload.Span[0].Length > payloadSizeLength)
+            {
+                remainingPayload = new ReadOnlyMemory<byte>[payload.Length];
+                remainingPayload[0] = payload.Span[0][payloadSizeLength..];
+                Debug.Assert(remainingPayload[0].Length > 0);
+                for (int i = 1; i < payload.Length; ++i)
+                {
+                    remainingPayload[i] = payload.Span[i];
+                }
+            }
+
+            payload = remainingPayload;
+
+            return (payloadSize, encodingMajor, encodingMinor);
+        }
+
+        /// <summary>Encodes a payload size into a buffer with the specified encoding.</summary>
+        private static IceEncoding EncodePayloadSize(
+            int payloadSize,
+            byte encodingMajor,
+            byte encodingMinor,
+            Span<byte> buffer)
+        {
+            Debug.Assert(buffer.Length == 4);
+
+            if (encodingMajor == 1 && encodingMinor == 1)
+            {
+                IceEncoder.EncodeInt(payloadSize, buffer);
+                return Encoding.Ice11;
+            }
+            else if (encodingMajor == 2 && encodingMinor == 0)
+            {
+                Ice20Encoder.EncodeFixedLengthSize(payloadSize, buffer);
+                return Encoding.Ice20;
+            }
+            else
+            {
+                throw new NotSupportedException("an ice1 payload must be encoded with Slice 1.1 or Slice 2.0");
+            }
+        }
+
         private void CancelDispatches()
         {
             IEnumerable<IncomingRequest> dispatches;
@@ -573,7 +675,7 @@ namespace IceRpc.Internal
             }
         }
 
-        private async ValueTask<(int, ReadOnlyMemory<byte>)> ReceiveFrameAsync()
+        private async ValueTask<(int, Memory<byte>)> ReceiveFrameAsync()
         {
             // Reads are not cancellable. This method returns once a frame is read or when the connection is disposed.
             CancellationToken cancel = CancellationToken.None;

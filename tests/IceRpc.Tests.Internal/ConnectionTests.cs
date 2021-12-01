@@ -2,6 +2,7 @@
 
 using IceRpc.Configure;
 using IceRpc.Internal;
+using IceRpc.Slice;
 using IceRpc.Transports;
 using NUnit.Framework;
 using System.Collections.Immutable;
@@ -448,7 +449,8 @@ namespace IceRpc.Tests.Internal
                 dispatcher: new InlineDispatcher(async (request, cancel) =>
                 {
                     await dispatchSemaphore.WaitAsync(cancel);
-                    return OutgoingResponse.ForPayload(request, default);
+                    return OutgoingResponse.ForPayload(request,
+                                                       ((IceEncoding)request.PayloadEncoding).CreateEmptyPayload());
                 }));
 
             // Perform an invocation and wait 2 seconds. The connection shouldn't close.
@@ -477,7 +479,8 @@ namespace IceRpc.Tests.Internal
                 {
                     waitForDispatchSemaphore.Release();
                     await dispatchSemaphore.WaitAsync(cancel);
-                    return OutgoingResponse.ForPayload(request, default);
+                    return OutgoingResponse.ForPayload(request,
+                                                       ((IceEncoding)request.PayloadEncoding).CreateEmptyPayload());
                 }));
 
             // Perform an invocation.

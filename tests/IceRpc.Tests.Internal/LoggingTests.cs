@@ -82,7 +82,6 @@ namespace IceRpc.Tests.Internal
                                 request.Operation,
                                 connection.NetworkConnectionInformation?.LocalEndpoint!,
                                 connection.NetworkConnectionInformation?.RemoteEndpoint!,
-                                request.PayloadSize,
                                 request.PayloadEncoding);
 
                 if (twoway)
@@ -95,7 +94,6 @@ namespace IceRpc.Tests.Internal
                                     request.Operation,
                                     connection.NetworkConnectionInformation?.LocalEndpoint!,
                                     connection.NetworkConnectionInformation?.RemoteEndpoint!,
-                                    response.PayloadSize,
                                     response.PayloadEncoding);
 
                     Assert.That(loggerFactory.Logger!.Entries[1].State["ResultType"], Is.EqualTo(response.ResultType));
@@ -159,7 +157,6 @@ namespace IceRpc.Tests.Internal
                                 request.Operation,
                                 connection.NetworkConnectionInformation?.RemoteEndpoint!,
                                 connection.NetworkConnectionInformation?.LocalEndpoint!,
-                                request.PayloadSize,
                                 request.PayloadEncoding);
 
                 if (twoway)
@@ -172,7 +169,6 @@ namespace IceRpc.Tests.Internal
                                     request.Operation,
                                     connection.NetworkConnectionInformation?.RemoteEndpoint!,
                                     connection.NetworkConnectionInformation?.LocalEndpoint!,
-                                    response.PayloadSize,
                                     response.PayloadEncoding);
 
                     Assert.That(loggerFactory.Logger!.Entries[1].State["ResultType"], Is.EqualTo(response.ResultType));
@@ -219,7 +215,6 @@ namespace IceRpc.Tests.Internal
             string operation,
             Endpoint localEndpoint,
             Endpoint remoteEndpoint,
-            int? payloadSize = null,
             Encoding? payloadEncoding = null,
             Exception? exception = null)
         {
@@ -229,10 +224,7 @@ namespace IceRpc.Tests.Internal
             Assert.That(entry.State["RemoteEndpoint"], Is.EqualTo(remoteEndpoint.ToString()));
             Assert.That(entry.State["Path"], Is.EqualTo(path));
             Assert.That(entry.State["Operation"], Is.EqualTo(operation));
-            if (payloadSize is int size)
-            {
-                Assert.That(entry.State["PayloadSize"], Is.EqualTo(size));
-            }
+
             if (payloadEncoding is Encoding encoding)
             {
                 Assert.That(entry.State["PayloadEncoding"], Is.EqualTo(encoding));

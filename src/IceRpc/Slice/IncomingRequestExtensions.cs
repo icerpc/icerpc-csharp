@@ -21,8 +21,14 @@ namespace IceRpc.Slice
             // In the future, we'll read the args size (usually 0) from the payload stream, allocate a buffer then
             // ReadAsync the payload stream into this buffer.
 
-            iceDecoderFactory.CreateIceDecoder(request.Payload, request.Connection, request.ProxyInvoker).
-                    CheckEndOfBuffer(skipTaggedParams: true);
+            IceDecoder decoder = iceDecoderFactory.CreateIceDecoder(
+                request.Payload,
+                request.Connection,
+                request.ProxyInvoker);
+
+            decoder.DecodeFixedLengthSize(); // skip args size for now
+
+            decoder.CheckEndOfBuffer(skipTaggedParams: true);
 
             return default; // for now, the exception is thrown synchronously.
         }
@@ -79,6 +85,9 @@ namespace IceRpc.Slice
                 request.Payload,
                 request.Connection,
                 request.ProxyInvoker);
+
+            decoder.DecodeFixedLengthSize(); // skip args size for now
+
             T result = decodeFunc(decoder);
             decoder.CheckEndOfBuffer(skipTaggedParams: true);
             return new(result);

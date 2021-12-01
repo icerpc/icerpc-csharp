@@ -20,6 +20,9 @@ namespace IceRpc.Slice
 
         /// <summary>Creates an empty payload encoded with this encoding.</summary>
         /// <returns>A new empty payload.</returns>
+        // TODO: the term payload is not quite correct here. For this class, it currently represents only the
+        // args/return/exception portion of the payload; the actual payload of a request/response can also hold stream
+        // data.
         public abstract ReadOnlyMemory<ReadOnlyMemory<byte>> CreateEmptyPayload();
 
         /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
@@ -34,8 +37,10 @@ namespace IceRpc.Slice
             EncodeAction<IceEncoder, T> encodeAction)
         {
             var bufferWriter = new BufferWriter();
-            var encoder = CreateIceEncoder(bufferWriter);
+            IceEncoder encoder = CreateIceEncoder(bufferWriter);
+            BufferWriter.Position start = encoder.StartFixedLengthSize();
             encodeAction(encoder, arg);
+            _ = encoder.EndFixedLengthSize(start);
             return bufferWriter.Finish();
         }
 
@@ -51,8 +56,10 @@ namespace IceRpc.Slice
             TupleEncodeAction<IceEncoder, T> encodeAction) where T : struct
         {
             var bufferWriter = new BufferWriter();
-            var encoder = CreateIceEncoder(bufferWriter);
+            IceEncoder encoder = CreateIceEncoder(bufferWriter);
+            BufferWriter.Position start = encoder.StartFixedLengthSize();
             encodeAction(encoder, in args);
+            _ = encoder.EndFixedLengthSize(start);
             return bufferWriter.Finish();
         }
 
@@ -69,7 +76,9 @@ namespace IceRpc.Slice
         {
             var bufferWriter = new BufferWriter();
             IceEncoder encoder = CreateIceEncoder(bufferWriter);
+            BufferWriter.Position start = encoder.StartFixedLengthSize();
             encodeAction(encoder, in returnValueTuple);
+            _ = encoder.EndFixedLengthSize(start);
             return bufferWriter.Finish();
         }
 
@@ -86,7 +95,9 @@ namespace IceRpc.Slice
         {
             var bufferWriter = new BufferWriter();
             IceEncoder encoder = CreateIceEncoder(bufferWriter);
+            BufferWriter.Position start = encoder.StartFixedLengthSize();
             encodeAction(encoder, returnValue);
+            _ = encoder.EndFixedLengthSize(start);
             return bufferWriter.Finish();
         }
 

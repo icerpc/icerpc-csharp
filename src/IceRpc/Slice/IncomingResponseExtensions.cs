@@ -19,19 +19,23 @@ namespace IceRpc.Slice
             IIceDecoderFactory<IceDecoder> iceDecoderFactory,
             CancellationToken _)
         {
-            // In the future, we'll read the return size (usually 0) from the payload stream, allocate a buffer then
-            // ReadAsync the payload stream into this buffer.
-
-            IceDecoder decoder = iceDecoderFactory.CreateIceDecoder(response.Payload, response.Connection, invoker);
-
-            if (response.ResultType == ResultType.Failure)
+            if (response.Payload.Length > 0)
             {
-                throw response.ToRemoteException(decoder);
+                IceDecoder decoder = iceDecoderFactory.CreateIceDecoder(response.Payload, response.Connection, invoker);
+
+                decoder.DecodeFixedLengthSize(); // skip return size for now
+
+                if (response.ResultType == ResultType.Failure)
+                {
+                    throw response.ToRemoteException(decoder);
+                }
+                else
+                {
+                    decoder.CheckEndOfBuffer(skipTaggedParams: true);
+                }
             }
-            else
-            {
-                decoder.CheckEndOfBuffer(skipTaggedParams: true);
-            }
+            // else check is successful. Payload has length 0 for oneway responses.
+
             return default;
         }
 
@@ -59,6 +63,8 @@ namespace IceRpc.Slice
 
             TDecoder decoder = iceDecoderFactory.CreateIceDecoder(response.Payload, response.Connection, invoker);
 
+            decoder.DecodeFixedLengthSize(); // skip return size for now
+
             if (response.ResultType == ResultType.Failure)
             {
                 throw response.ToRemoteException(decoder);
@@ -74,6 +80,8 @@ namespace IceRpc.Slice
         /// <summary>Decodes a remote exception carried by a response.</summary>
         private static RemoteException ToRemoteException(this IncomingResponse response, IceDecoder decoder)
         {
+            // the caller skipped the size
+
             RemoteException exception = decoder is Ice11Decoder decoder11 &&
                 response.Features.Get<ReplyStatus>() is ReplyStatus replyStatus &&
                 replyStatus > ReplyStatus.UserException ?

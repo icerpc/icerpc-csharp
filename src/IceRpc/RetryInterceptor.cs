@@ -34,7 +34,9 @@ namespace IceRpc
             // buffer size beyond _bufferMaxSize we release the request after it was sent to avoid holding too
             // much memory and we won't retry in case of a failure.
 
-            int requestSize = request.PayloadSize;
+            // TODO: soon this won't work and the interceptor can't read the args size from the payload
+            int requestSize = request.Payload.GetByteCount();
+
             bool releaseRequestAfterSent = requestSize > _options.RequestMaxSize || !IncBufferSize(requestSize);
 
             int attempt = 1;

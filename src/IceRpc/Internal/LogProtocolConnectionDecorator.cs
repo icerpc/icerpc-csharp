@@ -39,7 +39,7 @@ namespace IceRpc.Internal
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             IncomingRequest request = await _decoratee.ReceiveRequestAsync().ConfigureAwait(false);
-            _logger.LogReceiveRequest(request.Path, request.Operation, request.PayloadSize, request.PayloadEncoding);
+            _logger.LogReceiveRequest(request.Path, request.Operation, request.PayloadEncoding);
             return request;
         }
 
@@ -51,7 +51,7 @@ namespace IceRpc.Internal
             using IDisposable _ = _logger.StartReceiveResponseScope(request);
             IncomingResponse response = await _decoratee.ReceiveResponseAsync(request, cancel).ConfigureAwait(false);
 
-            _logger.LogReceiveResponse(response.PayloadSize, response.PayloadEncoding, response.ResultType);
+            _logger.LogReceiveResponse(response.PayloadEncoding, response.ResultType);
             return response;
         }
 
@@ -60,7 +60,7 @@ namespace IceRpc.Internal
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             using IDisposable _ = _logger.StartSendRequestScope(request);
             await _decoratee.SendRequestAsync(request, cancel).ConfigureAwait(false);
-            _logger.LogSendRequest(request.PayloadSize, request.PayloadEncoding);
+            _logger.LogSendRequest(request.PayloadEncoding);
         }
 
         async Task IProtocolConnection.SendResponseAsync(
@@ -71,7 +71,7 @@ namespace IceRpc.Internal
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             using IDisposable _ = _logger.StartSendResponseScope(response, request);
             await _decoratee.SendResponseAsync(response, request, cancel).ConfigureAwait(false);
-            _logger.LogSendResponse(response.PayloadSize, response.PayloadEncoding);
+            _logger.LogSendResponse(response.PayloadEncoding);
         }
 
         async Task IProtocolConnection.ShutdownAsync(string message, CancellationToken cancel)

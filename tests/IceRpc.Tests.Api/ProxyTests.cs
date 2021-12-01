@@ -281,7 +281,9 @@ namespace IceRpc.Tests.Api
             var proxy = Proxy.FromConnection(connection, GreeterPrx.DefaultPath);
 
             (IncomingResponse response, StreamParamReceiver? _) =
-                await proxy.InvokeAsync("SayHello", proxy.Encoding, requestPayload: default);
+                await proxy.InvokeAsync("SayHello",
+                                        proxy.Encoding,
+                                        requestPayload: Encoding.Ice20.CreateEmptyPayload());
 
             Assert.DoesNotThrowAsync(async () => await response.CheckVoidReturnValueAsync(
                 proxy.Invoker,
@@ -443,7 +445,7 @@ namespace IceRpc.Tests.Api
                     Service = ServicePrx.FromConnection(request.Connection),
                     Greeter = GreeterPrx.FromConnection(request.Connection)
                 };
-                return new(OutgoingResponse.ForPayload(request, default));
+                return new(OutgoingResponse.ForPayload(request, Encoding.Ice20.CreateEmptyPayload()));
             }));
 
             await using var server = new Server
