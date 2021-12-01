@@ -9,9 +9,6 @@ namespace IceRpc.Tests.Api
     [Timeout(5000)]
     public class ServerTests
     {
-        private static readonly ReadOnlyMemory<ReadOnlyMemory<byte>> _emptyPayload20 =
-            new ReadOnlyMemory<byte>[] { new byte[] { 0 } };
-
         [Test]
         public async Task Server_Exceptions()
         {
@@ -172,7 +169,7 @@ namespace IceRpc.Tests.Api
                         }
                         Assert.Fail();
                     }
-                    return OutgoingResponse.ForPayload(request, _emptyPayload20);
+                    return OutgoingResponse.ForPayload(request, Encoding.Ice20.CreateEmptyPayload());
                 }),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
