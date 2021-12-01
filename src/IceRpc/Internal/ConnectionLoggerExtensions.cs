@@ -88,8 +88,7 @@ namespace IceRpc.Internal
             EventId = (int)ConnectionEventIds.ReceiveRequest,
             EventName = nameof(ConnectionEventIds.ReceiveRequest),
             Level = LogLevel.Debug,
-            Message = "received request frame (Path={Path}, Operation={Operation}, " +
-                "PayloadEncoding={PayloadEncoding})")]
+            Message = "received request frame (Path={Path}, Operation={Operation}, PayloadEncoding={PayloadEncoding})")]
         internal static partial void LogReceiveRequest(
             this ILogger logger,
             string path,
