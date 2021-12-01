@@ -10,7 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <SliceCompile Include="../Hello.ice" />
-    <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview1" PrivateAssets="All" />
+    <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview2" PrivateAssets="All" />
     <PackageReference Include="icerpc" Version="0.1.0-preview1" />
     <Compile Update="generated\Hello.cs">
       <SliceCompileSource>../Hello.ice</SliceCompileSource>
