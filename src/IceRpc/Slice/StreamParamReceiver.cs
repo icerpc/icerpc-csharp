@@ -152,8 +152,8 @@ namespace IceRpc.Slice
             internal ByteStreamParamReceiver(IMultiplexedStream? stream) => _multiplexedStream = stream;
         }
 
-        /// <summary>A stream reader to read variable size elements streamed in a <see cref="Ice2FrameType.BoundedData"/>
-        /// frame into <see cref="IAsyncEnumerable{T}"/>.</summary>
+        /// <summary>A stream reader to read variable size elements streamed into an <see cref="IAsyncEnumerable{T}"/>.
+        /// </summary>
         /// <typeparam name="T">The stream param type.</typeparam>
         private class AsyncEnumerableStreamParamReceiver<T>
         {
@@ -211,7 +211,7 @@ namespace IceRpc.Slice
                         if (size > _connection.Options.IncomingFrameMaxSize)
                         {
                             throw new InvalidDataException(
-                                @$"frame size of {size
+                                @$"segment size of {size
                                 } bytes is greater than the configured IncomingFrameMaxSize value ({
                                 _connection.Options.IncomingFrameMaxSize} bytes)");
                         }

@@ -18,12 +18,6 @@ module IceRpc::Internal
         /// The response frame.
         Response = 2,
 
-        /// The data frames.
-        /// TODO: replace these 2 frames with a single data frame.
-        BoundedData = 3,
-
-        UnboundedData = 4,
-
         /// The ping frame is sent to keep alive the Ice2 connection.
         Ping = 5,
 

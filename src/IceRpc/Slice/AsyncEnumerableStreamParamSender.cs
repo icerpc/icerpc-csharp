@@ -7,7 +7,7 @@ using IceRpc.Transports;
 namespace IceRpc.Slice
 {
     /// <summary>A stream parameter sender that encapsulates an<see cref="IAsyncEnumerable{T}"/> used to send a
-    /// <c> stream T</c> parameter using one or more <see cref="Ice2FrameType.BoundedData"/> frames.</summary>
+    /// <c> stream T</c> parameter.</summary>
     public sealed class AsyncEnumerableStreamParamSender<T> : IStreamParamSender
     {
         private readonly IAsyncEnumerable<T> _inputStream;
@@ -120,6 +120,8 @@ namespace IceRpc.Slice
             {
                 var bufferWriter = new BufferWriter();
                 IceEncoder encoder = encoding.CreateIceEncoder(bufferWriter);
+
+                // TODO: it's confusing to write this transport header all the time.
                 bufferWriter.WriteByteSpan(multiplexedStream.TransportHeader.Span);
                 BufferWriter.Position sizeStart = encoder.StartFixedLengthSize();
                 return (encoder, sizeStart, encoder.BufferWriter.Tail);
