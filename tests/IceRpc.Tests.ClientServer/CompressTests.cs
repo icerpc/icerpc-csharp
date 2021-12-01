@@ -82,12 +82,11 @@ namespace IceRpc.Tests.ClientServer
                         OutgoingResponse response = await next.DispatchAsync(request, cancel);
                         compressedResponse = response.Fields.ContainsKey((int)FieldKey.Compression);
 
-                        int count = 0;
+                        compressedResponseSize = 0;
                         foreach (ReadOnlyMemory<byte> buffer in response.Payload.ToArray())
                         {
-                            count += buffer.Length;
+                            compressedResponseSize += buffer.Length;
                         }
-                        compressedResponseSize = count;
 
                         return response;
                     }

@@ -25,32 +25,12 @@ namespace IceRpc
         public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
         /// <summary>Gets or sets the payload of this frame.</summary>
-        public ReadOnlyMemory<ReadOnlyMemory<byte>> Payload
-        {
-            get => _payload;
-            set
-            {
-                _payload = value;
-                _payloadSize = -1;
-            }
-        }
+        public ReadOnlyMemory<ReadOnlyMemory<byte>> Payload { get; set; } =
+            ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty;
 
         /// <summary>Returns the encoding of the payload of this frame.</summary>
         /// <remarks>The header of the frame is always encoded using the frame protocol's encoding.</remarks>
         public Encoding PayloadEncoding { get; init; } = Encoding.Unknown;
-
-        /// <summary>Returns the number of bytes in the payload.</summary>
-        public int PayloadSize
-        {
-            get
-            {
-                if (_payloadSize == -1)
-                {
-                    _payloadSize = Payload.GetByteCount();
-                }
-                return _payloadSize;
-            }
-        }
 
         /// <summary>Returns the Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }
@@ -62,9 +42,6 @@ namespace IceRpc
         /// <summary>The stream param sender, if the request or response has a stream param. The sender is called
         /// after the request or response frame is sent over the stream.</summary>
         internal IStreamParamSender? StreamParamSender { get; init; }
-
-        private ReadOnlyMemory<ReadOnlyMemory<byte>> _payload = ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty;
-        private int _payloadSize = -1;
 
         /// <summary>Constructs an outgoing frame.</summary>
         /// <param name="protocol">The protocol used to send the frame.</param>

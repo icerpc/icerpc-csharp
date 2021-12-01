@@ -125,13 +125,15 @@ namespace IceRpc.Internal
                 throw new InvalidOperationException("the payload is already compressed");
             }
 
+            int payloadSize = frame.Payload.GetByteCount();
+
             (CompressionFormat? format, ReadOnlyMemory<byte> compressedPayload) =
-                frame.Payload.Compress(frame.PayloadSize,
+                frame.Payload.Compress(payloadSize,
                                        options.CompressionLevel,
                                        options.CompressionMinSize);
             if (format != null)
             {
-                var header = new CompressionField(format.Value, (ulong)frame.PayloadSize);
+                var header = new CompressionField(format.Value, (ulong)payloadSize);
                 frame.Fields.Add((int)FieldKey.Compression, encoder => header.Encode(encoder));
                 frame.Payload = new ReadOnlyMemory<byte>[] { compressedPayload };
             }
