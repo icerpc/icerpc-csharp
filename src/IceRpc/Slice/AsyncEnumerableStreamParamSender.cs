@@ -31,11 +31,7 @@ namespace IceRpc.Slice
             _encoder = stream => SendAsync(stream, _inputStream, _encoding, _encodeAction);
         }
 
-        // TODO support compression
-        Task IStreamParamSender.SendAsync(
-            IMultiplexedStream stream,
-            Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? streamCompressor) =>
-            _encoder(stream);
+        Task IStreamParamSender.SendAsync(IMultiplexedStream stream) => _encoder(stream);
 
         private static async Task SendAsync(
             IMultiplexedStream multiplexedStream,

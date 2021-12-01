@@ -201,10 +201,10 @@ namespace IceRpc.Tests.Internal
             new Random().NextBytes(sendBuffer);
 
             IStreamParamSender writer = new ByteStreamParamSender(new MemoryStream(sendBuffer));
-            _ = Task.Run(() => writer.SendAsync(stream, null), CancellationToken.None);
+            _ = Task.Run(() => writer.SendAsync(stream), CancellationToken.None);
 
             byte[] receiveBuffer = new byte[recvSize];
-            Stream receiveStream = new StreamParamReceiver(serverStream, null).ToByteStream();
+            Stream receiveStream = new StreamParamReceiver(serverStream).ToByteStream();
 
             int offset = 0;
             while (offset < sendSize)
@@ -237,10 +237,10 @@ namespace IceRpc.Tests.Internal
             var sendStream = new TestMemoryStream(new byte[100]);
 
             IStreamParamSender writer = new ByteStreamParamSender(sendStream);
-            _ = Task.Run(() => writer.SendAsync(stream, null), CancellationToken.None);
+            _ = Task.Run(() => writer.SendAsync(stream), CancellationToken.None);
 
             byte[] readBuffer = new byte[100];
-            Stream receiveStream = new StreamParamReceiver(serverStream, null).ToByteStream();
+            Stream receiveStream = new StreamParamReceiver(serverStream).ToByteStream();
 
             ValueTask<int> readTask = receiveStream.ReadAsync(readBuffer);
 
@@ -289,58 +289,6 @@ namespace IceRpc.Tests.Internal
                 Assert.That(received, Is.EqualTo(1));
                 return serverStream;
             }
-        }
-
-        [Test]
-        public async Task MultiplexedStream_StreamReaderWriterCompressorAsync()
-        {
-            IMultiplexedStream clientStream = ClientConnection.CreateStream(true);
-            _ = clientStream.WriteAsync(CreateSendPayload(clientStream, 1), false, default).AsTask();
-
-            IMultiplexedStream serverStream = await ServerConnection.AcceptStreamAsync(default);
-            await serverStream.ReadAsync(new byte[1], default);
-
-            byte[] buffer = new byte[10000];
-            var sendStream = new MemoryStream(buffer);
-
-            bool compressorCalled = false;
-            bool decompressorCalled = false;
-
-            IStreamParamSender writer = new ByteStreamParamSender(sendStream);
-            _ = Task.Run(() =>
-            {
-                writer.SendAsync(
-                    clientStream,
-                    outputStream =>
-                    {
-                        compressorCalled = true;
-                        return (CompressionFormat.Deflate,
-                                new DeflateStream(outputStream, System.IO.Compression.CompressionLevel.SmallestSize));
-                    });
-            },
-            CancellationToken.None);
-
-            Stream receiveStream = new StreamParamReceiver(
-                serverStream,
-                (compressionFormat, inputStream) =>
-                {
-                    decompressorCalled = true;
-                    return new DeflateStream(inputStream, CompressionMode.Decompress);
-                }
-                ).ToByteStream();
-
-            byte[] readBuffer = new byte[10000];
-            int offset = 0;
-            int received;
-            while ((received = await receiveStream.ReadAsync(readBuffer)) != 0)
-            {
-                offset += received;
-            }
-
-            Assert.That(compressorCalled, Is.True);
-            Assert.That(decompressorCalled, Is.True);
-            Assert.That(offset, Is.EqualTo(buffer.Length));
-            Assert.That(readBuffer, Is.EqualTo(buffer));
         }
 
         private class TestMemoryStream : MemoryStream

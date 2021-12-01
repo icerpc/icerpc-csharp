@@ -54,7 +54,7 @@ namespace IceRpc
                 {
                     try
                     {
-                        StreamParamSender.SendAsync(stream, StreamCompressor);
+                        StreamParamSender.SendAsync(stream);
                     }
                     catch
                     {
