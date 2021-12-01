@@ -23,13 +23,13 @@ namespace IceRpc
             new CompositeSimpleServerTransport().UseColoc().UseTcp().UseUdp();
 
         /// <summary>Gets or sets the options of server connections created by this server.</summary>
-        public ConnectionOptions ConnectionOptions { get; set; } = new();
+        public ConnectionOptions ConnectionOptions { get; init; } = new();
 
         /// <summary>Gets or sets the dispatcher of this server.</summary>
         /// <value>The dispatcher of this server.</value>
         /// <seealso cref="IDispatcher"/>
         /// <seealso cref="Configure.Router"/>
-        public IDispatcher? Dispatcher { get; set; }
+        public IDispatcher? Dispatcher { get; init; }
 
         /// <summary>Gets or sets the endpoint of this server.</summary>
         /// <value>The endpoint of this server, by default <c>ice+tcp://[::0]</c>.The endpoint's host is usually an
@@ -45,7 +45,7 @@ namespace IceRpc
 
         /// <summary>The <see cref="IServerTransport{IMultiplexedNetworkConnection}"/> used by this server to accept
         /// multiplexed connections.</summary>
-        public IServerTransport<IMultiplexedNetworkConnection> MultiplexedServerTransport { get; set; } =
+        public IServerTransport<IMultiplexedNetworkConnection> MultiplexedServerTransport { get; init; } =
             DefaultMultiplexedServerTransport;
 
         /// <summary>Gets the Ice protocol used by this server.</summary>
@@ -54,7 +54,7 @@ namespace IceRpc
 
         /// <summary>The <see cref="IServerTransport{ISimpleNetworkConnection}"/> used by this server to accept
         /// simple connections.</summary>
-        public IServerTransport<ISimpleNetworkConnection> SimpleServerTransport { get; set; } =
+        public IServerTransport<ISimpleNetworkConnection> SimpleServerTransport { get; init; } =
             DefaultSimpleServerTransport;
 
         /// <summary>Returns a task that completes when the server's shutdown is complete: see <see

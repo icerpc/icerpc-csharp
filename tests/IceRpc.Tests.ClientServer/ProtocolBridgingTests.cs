@@ -9,26 +9,8 @@ namespace IceRpc.Tests.ClientServer
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(ParallelScope.All)]
     [Timeout(30000)]
-    public sealed class ProtocolBridgingTests : ClientServerBaseTest, IAsyncDisposable
+    public sealed class ProtocolBridgingTests : ClientServerBaseTest
     {
-        private readonly ConnectionPool _pool;
-        private Server _forwarderServer = null!;
-        private readonly Router _router = new(); // shared by both servers for coloc to work properly
-        private Server _targetServer = null!;
-
-        public ProtocolBridgingTests()
-        {
-            _pool = new ConnectionPool();
-        }
-
-        [TearDown]
-        public async ValueTask DisposeAsync()
-        {
-            await Task.WhenAll(_forwarderServer.DisposeAsync().AsTask(),
-                               _targetServer.DisposeAsync().AsTask());
-            await _pool.DisposeAsync();
-        }
-
         [TestCase(ProtocolCode.Ice2, ProtocolCode.Ice2, true)]
         [TestCase(ProtocolCode.Ice1, ProtocolCode.Ice1, true)]
         [TestCase(ProtocolCode.Ice2, ProtocolCode.Ice2, false)]
@@ -37,18 +19,51 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(ProtocolCode.Ice1, ProtocolCode.Ice2, true)]
         [TestCase(ProtocolCode.Ice2, ProtocolCode.Ice1, false)]
         [TestCase(ProtocolCode.Ice1, ProtocolCode.Ice2, false)]
-        public async Task ProtocolBridging_Forward(ProtocolCode forwarderProtocol, ProtocolCode targetProtocol, bool colocated)
+        public async Task ProtocolBridging_Forward(
+            ProtocolCode forwarderProtocolCode,
+            ProtocolCode targetProtocolCode,
+            bool colocated)
         {
+            var targetProtocol = Protocol.FromProtocolCode(targetProtocolCode);
+            var forwarderProtocol = Protocol.FromProtocolCode(forwarderProtocolCode);
+
             // TODO: add context testing
+            await using var pool = new ConnectionPool();
 
             var pipeline = new Pipeline();
-            pipeline.UseBinder(_pool);
+            pipeline.UseBinder(pool);
 
-            (ProtocolBridgingTestPrx forwarderServicePrx, ProtocolBridgingTest targetService) = SetupForwarderServer(
-                Protocol.FromProtocolCode(forwarderProtocol),
-                Protocol.FromProtocolCode(targetProtocol),
-                colocated,
-                pipeline);
+            var router = new Router();
+
+            await using var targetServer = new Server
+            {
+                Endpoint = colocated ?
+                    TestHelper.GetUniqueColocEndpoint(targetProtocol) :
+                    GetTestEndpoint(port: 0, protocol: targetProtocol),
+                Dispatcher = router
+            };
+            targetServer.Listen();
+
+            await using var forwarderServer = new Server
+            {
+                Endpoint = colocated ?
+                    TestHelper.GetUniqueColocEndpoint(forwarderProtocol) :
+                    GetTestEndpoint(port: 1, protocol: forwarderProtocol),
+                Dispatcher = router
+            };
+            forwarderServer.Listen();
+
+            var targetServicePrx = ProtocolBridgingTestPrx.FromPath("/target", targetProtocol);
+            targetServicePrx.Proxy.Endpoint = targetServer.Endpoint;
+            targetServicePrx.Proxy.Invoker = pipeline;
+
+            var forwarderServicePrx = ProtocolBridgingTestPrx.FromPath("/forward", forwarderProtocol);
+            forwarderServicePrx.Proxy.Endpoint = forwarderServer.Endpoint;
+            forwarderServicePrx.Proxy.Invoker = pipeline;
+
+            var targetService = new ProtocolBridgingTest();
+            router.Map("/target", targetService);
+            router.Map("/forward", new Forwarder(targetServicePrx.Proxy));
 
             // TODO: test with the other encoding; currently, the encoding is always the encoding of
             // forwardService.Proxy.Protocol
@@ -64,12 +79,12 @@ namespace IceRpc.Tests.ClientServer
 
                     // Fix up the "well-known" proxy
                     // TODO: cleaner solution?
-                    newPrx.Proxy.Endpoint = _targetServer.Endpoint;
+                    newPrx.Proxy.Endpoint = targetServer.Endpoint;
                 }
             }
             else
             {
-                Assert.AreEqual(targetProtocol, newPrx.Proxy.Protocol.Code);
+                Assert.AreEqual(targetProtocol, newPrx.Proxy.Protocol);
             }
 
             _ = await TestProxyAsync(newPrx, direct: true);
@@ -104,38 +119,6 @@ namespace IceRpc.Tests.ClientServer
                 ProtocolBridgingTestPrx newProxy = await prx.OpNewProxyAsync();
                 return newProxy;
             }
-        }
-
-        private (ProtocolBridgingTestPrx, ProtocolBridgingTest) SetupForwarderServer(
-            Protocol forwarderProtocol,
-            Protocol targetProtocol,
-            bool colocated,
-            IInvoker invoker)
-        {
-            var targetService = new ProtocolBridgingTest();
-            _targetServer = CreateServer(targetProtocol, port: 0, colocated);
-            _router.Map("/target", targetService);
-            _targetServer.Dispatcher = _router;
-            _targetServer.Listen();
-            var targetServicePrx = ProtocolBridgingTestPrx.FromPath("/target", targetProtocol);
-            targetServicePrx.Proxy.Endpoint = _targetServer.Endpoint;
-            targetServicePrx.Proxy.Invoker = invoker;
-
-            _forwarderServer = CreateServer(forwarderProtocol, port: 1, colocated);
-            _router.Map("/forward", new Forwarder(targetServicePrx.Proxy));
-            _forwarderServer.Dispatcher = _router;
-            _forwarderServer.Listen();
-            var forwardServicePrx = ProtocolBridgingTestPrx.FromPath("/forward", forwarderProtocol);
-            forwardServicePrx.Proxy.Endpoint = _forwarderServer.Endpoint;
-            forwardServicePrx.Proxy.Invoker = invoker;
-            return (forwardServicePrx, targetService);
-
-            Server CreateServer(Protocol protocol, int port, bool colocated) => new()
-            {
-                Endpoint = colocated ?
-                        TestHelper.GetUniqueColocEndpoint(protocol) :
-                        GetTestEndpoint(port: port, protocol: protocol)
-            };
         }
 
         internal class ProtocolBridgingTest : Service, IProtocolBridgingTest

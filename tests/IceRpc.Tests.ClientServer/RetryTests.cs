@@ -315,7 +315,6 @@ namespace IceRpc.Tests.ClientServer
                                     request.Connection.NetworkConnectionInformation!.Value.LocalEndpoint.ToString());
                                 return await next.DispatchAsync(request, cancel);
                             }));
-                        servers[i].Dispatcher = routers[i];
                         servers[i].Listen();
                     }
 
@@ -368,7 +367,6 @@ namespace IceRpc.Tests.ClientServer
 
                     for (int i = 0; i < servers.Length; ++i)
                     {
-                        servers[i].Dispatcher = routers[i];
                         servers[i].Listen();
                     }
                     var prx1 = RetryReplicatedTestPrx.Parse(GetTestProxy("/replicated", port: 0), pipeline);
@@ -489,14 +487,14 @@ namespace IceRpc.Tests.ClientServer
 
         private async Task WithReplicatedRetryServiceAsync(int replicas, Action<Server[], Router[]> closure)
         {
+            Router[] routers = Enumerable.Range(0, replicas).Select(i => new Router()).ToArray();
             Server[] servers = Enumerable.Range(0, replicas).Select(
                 i => new Server
                 {
+                    Dispatcher = routers[i],
                     Endpoint = GetTestEndpoint(port: i),
                     ConnectionOptions = new() { CloseTimeout = TimeSpan.FromMinutes(5) },
                 }).ToArray();
-
-            Router[] routers = Enumerable.Range(0, replicas).Select(i => new Router()).ToArray();
 
             closure(servers, routers);
             await Task.WhenAll(servers.Select(server => server.ShutdownAsync()));

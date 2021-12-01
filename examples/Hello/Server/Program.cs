@@ -2,45 +2,13 @@
 
 using Demo;
 using IceRpc;
-using IceRpc.Configure;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 
 try
 {
-    IConfiguration configuration = new ConfigurationBuilder()
-       .AddJsonFile("appsettings.json", optional: true)
-       .Build();
-
-    using ILoggerFactory loggerFactory = LoggerFactory.Create(
-        builder =>
-        {
-            builder.AddConfiguration(configuration.GetSection("Logging"));
-            builder.Configure(factoryOptions =>
-            {
-                factoryOptions.ActivityTrackingOptions = ActivityTrackingOptions.ParentId |
-                                                         ActivityTrackingOptions.SpanId;
-            });
-            builder.AddSimpleConsole(configure =>
-                {
-                    configure.IncludeScopes = true;
-                    configure.SingleLine = false;
-                    configure.UseUtcTimestamp = true;
-                });
-        });
-
-    var router = new Router();
-    router.UseTelemetry(new TelemetryOptions { LoggerFactory = loggerFactory});
-    router.UseLogger(loggerFactory);
-    router.Map<IHello>(new Hello());
-
-    IConfigurationSection section = configuration.GetSection("AppSettings").GetSection("Hello");
     await using var server = new Server
     {
-        Endpoint = section.GetValue<string>("Endpoints"),
-        // LoggerFactory = loggerFactory,
-        Dispatcher = router,
-        ConnectionOptions = section.GetSection("ConnectionOptions").Get<ConnectionOptions>()
+        Endpoint = "ice+tcp://127.0.0.1:10000?tls=false",
+        Dispatcher = new Hello()
     };
 
     // Destroy the server on Ctrl+C or Ctrl+Break
@@ -49,6 +17,7 @@ try
         eventArgs.Cancel = true;
         _ = server.ShutdownAsync();
     };
+
     server.Listen();
     await server.ShutdownComplete;
 }

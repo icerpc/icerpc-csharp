@@ -27,12 +27,13 @@ namespace IceRpc.Transports.Internal
             {
                 acceptedSocket = await _socket.AcceptAsync().ConfigureAwait(false);
             }
-            catch (SocketException ex) when (ex.ErrorCode == (int)SocketError.OperationAborted)
+            catch (SocketException ex) when (ex.SocketErrorCode == SocketError.OperationAborted)
             {
                 // We translate this expected error into an ObjectDisposedException that the caller can safely catch and
                 // ignore.
                 throw new ObjectDisposedException(nameof(TcpListener), ex);
             }
+
             // We don't translate other exceptions since they are unexpected and the application code has no opportunity
             // to catch and handle them. They are only useful for the log decorator.
 

@@ -5,11 +5,13 @@ using IceRpc.Transports.Internal;
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Text;
+using System.ComponentModel;
 
 namespace IceRpc
 {
     /// <summary>An endpoint describes a server-side network sink for IceRPC requests: a server listens on an endpoint
     /// and a client establishes a connection to a given endpoint.</summary>
+    [TypeConverter(typeof(EndpointTypeConverter))]
     public sealed record class Endpoint
     {
         /// <summary>The Ice protocol of this endpoint.</summary>
@@ -173,6 +175,28 @@ namespace IceRpc
         {
             name = Name;
             value = Value;
+        }
+    }
+
+    /// <summary>The endpoint type converter specifies how to convert a string to an endpoint. It's used by sub-systems
+    /// such as the Microsoft ConfigurationBinder to bind string values to Endpoint properties.</summary>
+    public class EndpointTypeConverter : TypeConverter
+    {
+        /// <inheritdoc/>
+        public override bool CanConvertFrom(ITypeDescriptorContext? context, Type sourceType) =>
+            sourceType == typeof(string) || base.CanConvertFrom(context, sourceType);
+
+        /// <inheritdoc/>
+        public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value)
+        {
+            if (value is string valueStr)
+            {
+                return Endpoint.FromString(valueStr);
+            }
+            else
+            {
+                return base.ConvertFrom(context, culture, value);
+            }
         }
     }
 }

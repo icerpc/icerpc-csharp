@@ -33,6 +33,7 @@ function BuildIceRpc($config) {
 function BuildIceRpcExamples($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
     RunCommand "dotnet" @('build', '--configuration', $dotnetConfiguration, "examples\Hello\Hello.sln")
+    RunCommand "dotnet" @('build', '--configuration', $dotnetConfiguration, "examples\GenericHost\GenericHost.sln")
 }
 
 function CleanIceRpc($config) {
@@ -42,7 +43,8 @@ function CleanIceRpc($config) {
 
 function CleanIceRpcExamples($config) {
     $dotnetConfiguration = DotnetConfiguration($config)
-    RunCommand "dotnet" @('clean', '--configuration', $dotnetConfiguration, 'examples\Hello\Hello.sln')
+    RunCommand "dotnet" @('clean', '--configuration', $dotnetConfiguration, "examples\Hello\Hello.sln")
+    RunCommand "dotnet" @('clean', '--configuration', $dotnetConfiguration, "examples\GenericHost\GenericHost.sln")
 }
 
 function Build($config, $examples, $srcdist) {
