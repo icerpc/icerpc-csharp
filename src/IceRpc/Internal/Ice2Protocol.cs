@@ -37,17 +37,7 @@ namespace IceRpc.Internal
             IceEncoder encoder = payloadEncoding.CreateIceEncoder(bufferWriter);
 
             BufferWriter.Position start = encoder.StartFixedLengthSize();
-
-            ReplyStatus replyStatus = ReplyStatus.UserException;
-            if (encoder is Ice11Encoder encoder11 && remoteException.IsIce1SystemException())
-            {
-                replyStatus = encoder11.EncodeIce1SystemException(remoteException);
-            }
-            else
-            {
-                encoder.EncodeException(remoteException);
-            }
-
+            encoder.EncodeException(remoteException);
             _ = encoder.EndFixedLengthSize(start);
 
             var response = new OutgoingResponse(this, ResultType.Failure)
@@ -61,13 +51,6 @@ namespace IceRpc.Internal
                 RetryPolicy retryPolicy = remoteException.RetryPolicy;
                 response.Fields.Add((int)FieldKey.RetryPolicy, encoder => retryPolicy.Encode(encoder));
             }
-
-            // We add the reply status field for ice1 system exceptions encoded with 1.1
-            if (replyStatus > ReplyStatus.UserException)
-            {
-                response.Fields.Add((int)FieldKey.ReplyStatus, encoder => encoder.EncodeReplyStatus(replyStatus));
-            }
-
             return response;
         }
 

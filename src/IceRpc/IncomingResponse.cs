@@ -21,25 +21,13 @@ namespace IceRpc
         /// forwarded using the given target protocol.</summary>
         /// <param name="targetProtocol">The protocol used to send to the outgoing response.</param>
         /// <returns>The outgoing response to be forwarded.</returns>
-        public OutgoingResponse ToOutgoingResponse(Protocol targetProtocol)
-        {
-            FeatureCollection features = FeatureCollection.Empty;
-            if (ResultType == ResultType.Failure && targetProtocol == Protocol.Ice1)
+        public OutgoingResponse ToOutgoingResponse(Protocol targetProtocol) =>
+            new(targetProtocol, ResultType)
             {
-                features = new FeatureCollection();
-                ReplyStatus replyStatus = Features.Get<ReplyStatus>(); // returns OK when not set
-                features.Set(replyStatus == ReplyStatus.OK ? ReplyStatus.UserException : replyStatus);
-            }
-            // if we're forwarding from ice2 to ice2, the reply status field (if set) is just forwarded as is
-
-            return new OutgoingResponse(targetProtocol, ResultType)
-            {
-                Features = features,
                 // Don't forward RetryPolicy
                 FieldsDefaults = Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
                 Payload = new ReadOnlyMemory<byte>[] { Payload },
                 PayloadEncoding = PayloadEncoding,
             };
-        }
     }
 }

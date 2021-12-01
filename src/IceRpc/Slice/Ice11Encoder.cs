@@ -40,11 +40,55 @@ namespace IceRpc.Slice
         {
             Debug.Assert(_current.InstanceType == InstanceType.None);
 
-            _classFormat = FormatType.Sliced; // always encode exceptions in sliced format
-            _current.InstanceType = InstanceType.Exception;
-            _current.FirstSlice = true;
-            v.Encode(this);
-            _current = default;
+            if (v.IsIce1SystemException())
+            {
+                ReplyStatus replyStatus = v switch
+                {
+                    ServiceNotFoundException => ReplyStatus.ObjectNotExistException,
+                    OperationNotFoundException => ReplyStatus.OperationNotExistException,
+                    _ => ReplyStatus.UnknownLocalException,
+                };
+
+                // This reply status byte is read and removed by Ice1ProtocolConnection and kept otherwise.
+                this.EncodeReplyStatus(replyStatus);
+
+                switch (replyStatus)
+                {
+                    case ReplyStatus.ObjectNotExistException:
+                    case ReplyStatus.OperationNotExistException:
+                        var remoteException = (RemoteException)v;
+                        IdentityAndFacet identityAndFacet;
+                        try
+                        {
+                            identityAndFacet = IdentityAndFacet.FromPath(remoteException.Origin.Path);
+                        }
+                        catch
+                        {
+                            // ignored, i.e. we'll encode an empty identity + facet
+                            identityAndFacet = new IdentityAndFacet(Identity.Empty, "");
+                        }
+                        var requestFailed = new Ice1RequestFailedExceptionData(
+                            identityAndFacet,
+                            remoteException.Origin.Operation);
+                        requestFailed.Encode(this);
+                        break;
+
+                    default:
+                        EncodeString(v.Message);
+                        break;
+                }
+            }
+            else
+            {
+                // This reply status byte is read and removed by Ice1ProtocolConnection and kept otherwise.
+                this.EncodeReplyStatus(ReplyStatus.UserException);
+
+                _classFormat = FormatType.Sliced; // always encode exceptions in sliced format
+                _current.InstanceType = InstanceType.Exception;
+                _current.FirstSlice = true;
+                v.Encode(this);
+                _current = default;
+            }
         }
 
         /// <summary>Encodes a class instance, or null.</summary>
@@ -325,49 +369,6 @@ namespace IceRpc.Slice
         internal Ice11Encoder(BufferWriter bufferWriter, FormatType classFormat = default)
             : base(bufferWriter) =>
             _classFormat = classFormat;
-
-        /// <summary>Encodes an ice1 system exception.</summary>
-        /// <param name="v">The ice1 system exception to encode.</param>
-        /// <returns>The reply status that corresponds to this exception.</returns>
-
-        internal ReplyStatus EncodeIce1SystemException(RemoteException v)
-        {
-            Debug.Assert(v.IsIce1SystemException());
-
-            ReplyStatus replyStatus = v switch
-            {
-                ServiceNotFoundException => ReplyStatus.ObjectNotExistException,
-                OperationNotFoundException => ReplyStatus.OperationNotExistException,
-                _ => ReplyStatus.UnknownLocalException,
-            };
-
-            switch (replyStatus)
-            {
-                case ReplyStatus.ObjectNotExistException:
-                case ReplyStatus.OperationNotExistException:
-                    var remoteException = (RemoteException)v;
-                    IdentityAndFacet identityAndFacet;
-                    try
-                    {
-                        identityAndFacet = IdentityAndFacet.FromPath(remoteException.Origin.Path);
-                    }
-                    catch
-                    {
-                        // ignored, i.e. we'll encode an empty identity + facet
-                        identityAndFacet = new IdentityAndFacet(Identity.Empty, "");
-                    }
-                    var requestFailed = new Ice1RequestFailedExceptionData(
-                        identityAndFacet,
-                        remoteException.Origin.Operation);
-                    requestFailed.Encode(this);
-                    break;
-
-                default:
-                    EncodeString(v.Message);
-                    break;
-            }
-            return replyStatus;
-        }
 
         /// <summary>Encodes sliced-off slices.</summary>
         /// <param name="unknownSlices">The sliced-off slices to encode.</param>

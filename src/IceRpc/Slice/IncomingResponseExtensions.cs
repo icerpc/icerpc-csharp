@@ -82,10 +82,7 @@ namespace IceRpc.Slice
         {
             // the caller skipped the size
 
-            RemoteException exception = decoder is Ice11Decoder decoder11 &&
-                response.Features.Get<ReplyStatus>() is ReplyStatus replyStatus &&
-                replyStatus > ReplyStatus.UserException ?
-                    decoder11.DecodeIce1SystemException(replyStatus) : decoder.DecodeException();
+            RemoteException exception = decoder.DecodeException();
 
             if (exception is not UnknownSlicedRemoteException)
             {
