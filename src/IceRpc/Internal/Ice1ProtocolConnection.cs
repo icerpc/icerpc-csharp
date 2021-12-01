@@ -650,19 +650,17 @@ namespace IceRpc.Internal
         }
 
         /// <summary>Encodes a payload size into a buffer with the specified encoding.</summary>
-        private static IceEncoding EncodePayloadSize(int payloadSize, Encoding payloadEncoding, Span<byte> buffer)
+        private static void EncodePayloadSize(int payloadSize, Encoding payloadEncoding, Span<byte> buffer)
         {
             Debug.Assert(buffer.Length == 4);
 
             if (payloadEncoding == Encoding.Ice11)
             {
                 IceEncoder.EncodeInt(payloadSize, buffer);
-                return Encoding.Ice11;
             }
             else if (payloadEncoding == Encoding.Ice20)
             {
                 Ice20Encoder.EncodeFixedLengthSize(payloadSize, buffer);
-                return Encoding.Ice20;
             }
             else
             {
