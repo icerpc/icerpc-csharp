@@ -41,8 +41,7 @@ namespace IceRpc.Slice
         /// <param name="invoker">The invoker.</param>
         /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
         /// <param name="decodeAction">The action used to decode the streamed params.</param>
-        /// <remarks>This method is used to read element of fixed size that are stream with an
-        /// <see cref="Ice2FrameType.UnboundedData"/> frame.</remarks>
+        /// <remarks>This method is used to read element of fixed encoded size.</remarks>
         public IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             IncomingResponse response,
             IInvoker? invoker,

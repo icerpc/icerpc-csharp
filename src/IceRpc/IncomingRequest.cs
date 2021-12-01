@@ -31,10 +31,6 @@ namespace IceRpc
         /// <summary>The invoker assigned to any proxy read from the payload of this request.</summary>
         public IInvoker? ProxyInvoker { get; set; }
 
-        /// <summary>A stream parameter decompressor. Middleware can use this property to decompress a stream
-        /// parameter.</summary>
-        public Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? StreamDecompressor { get; set; }
-
         /// <summary>Get the cancellation dispatch source.</summary>
         internal CancellationTokenSource? CancelDispatchSource { get; set; }
 

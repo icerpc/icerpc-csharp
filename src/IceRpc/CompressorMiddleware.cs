@@ -28,14 +28,6 @@ namespace IceRpc
                 request.DecompressPayload();
             }
 
-            // TODO: rename DecompressPayload to DecompressRequest or add DecompressStreamParam?
-            if (_options.DecompressPayload)
-            {
-                // TODO: check for request Features.DecompressPayload?
-                request.StreamDecompressor =
-                    (compressFormat, inputStream) => inputStream.DecompressStream(compressFormat);
-            }
-
             OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
 
             // TODO: rename CompressPayload to CompressResponse or add CompressStreamParam?
@@ -44,8 +36,6 @@ namespace IceRpc
                 response.Features.Get<Features.CompressPayload>() == Features.CompressPayload.Yes)
             {
                 response.CompressPayload(_options);
-
-                response.StreamCompressor = outputStream => outputStream.CompressStream(_options.CompressionLevel);
             }
 
             return response;
