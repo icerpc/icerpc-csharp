@@ -193,14 +193,10 @@ namespace IceRpc.Slice
                     try
                     {
                         // TODO: Use Ice2 protocol frame reader to read the frame
-                        int received = await _multiplexedStream.ReadAsync(buffer[0..2], cancel).ConfigureAwait(false);
+                        int received = await _multiplexedStream.ReadAsync(buffer[0..1], cancel).ConfigureAwait(false);
                         if (received == 0)
                         {
                             break; // EOF
-                        }
-                        else if (received == 1)
-                        {
-                            await _multiplexedStream.ReadUntilFullAsync(buffer[1..2], cancel).ConfigureAwait(false);
                         }
 
                         if ((Ice2FrameType)buffer.Span[0] != Ice2FrameType.BoundedData)
@@ -209,16 +205,23 @@ namespace IceRpc.Slice
                                 $"invalid frame type '{buffer.Span[0]}' expected '{Ice2FrameType.BoundedData}'");
                         }
 
+                        received = await _multiplexedStream.ReadAsync(buffer[0..1], cancel).ConfigureAwait(false);
+                        if (received == 0)
+                        {
+                            Debug.Assert(false);
+                            break; // EOF
+                        }
+
                         // Read the remainder of the size if needed.
-                        int sizeLength = Ice20Decoder.DecodeSizeLength(buffer.Span[1]);
+                        int sizeLength = Ice20Decoder.DecodeSizeLength(buffer.Span[0]);
                         if (sizeLength > 1)
                         {
                             await _multiplexedStream.ReadUntilFullAsync(
-                                buffer.Slice(2, sizeLength - 1),
+                                buffer.Slice(1, sizeLength - 1),
                                 cancel).ConfigureAwait(false);
                         }
 
-                        int size = Ice20Decoder.DecodeSize(buffer[1..].AsReadOnlySpan()).Size;
+                        int size = Ice20Decoder.DecodeSize(buffer.Span).Size;
                         if (size > _connection.Options.IncomingFrameMaxSize)
                         {
                             throw new InvalidDataException(
