@@ -28,7 +28,7 @@ namespace IceRpc.Tests.ClientServer
                 return Task.FromResult(new IncomingResponse(request.Protocol, ResultType.Success)
                 {
                     Connection = connection, // without a connection, the decoding of response fails, even for void
-                    Payload = default,
+                    Payload = Encoding.Ice20.CreateEmptyPayload().Span[0],
                     PayloadEncoding = Encoding.Ice20
                 });
             }));
@@ -77,11 +77,18 @@ namespace IceRpc.Tests.ClientServer
                 {
                     try
                     {
-                        compressedRequestSize = request.PayloadSize;
+                        compressedRequestSize = request.Payload.Length;
                         compressedRequest = request.Fields.ContainsKey((int)FieldKey.Compression);
                         OutgoingResponse response = await next.DispatchAsync(request, cancel);
                         compressedResponse = response.Fields.ContainsKey((int)FieldKey.Compression);
-                        compressedResponseSize = response.PayloadSize;
+
+                        int count = 0;
+                        foreach (ReadOnlyMemory<byte> buffer in response.Payload.ToArray())
+                        {
+                            count += buffer.Length;
+                        }
+                        compressedResponseSize = count;
+
                         return response;
                     }
                     catch
