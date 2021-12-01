@@ -597,11 +597,17 @@ namespace IceRpc.Internal
                 throw new NotSupportedException("an ice1 payload must be encoded with Slice 1.1 or Slice 2.0");
             }
 
-            var remainingPayload = new ReadOnlyMemory<byte>[payload.Length];
-            remainingPayload[0] = payload.Span[0][payloadSizeLength..];
-            for (int i = 1; i < payload.Length; ++i)
+            ReadOnlyMemory<byte>[] remainingPayload = Array.Empty<ReadOnlyMemory<byte>>();
+
+            if (payload.Length > 1 || payload.Span[0].Length > payloadSizeLength)
             {
-                remainingPayload[i] = payload.Span[i];
+                remainingPayload = new ReadOnlyMemory<byte>[payload.Length];
+                remainingPayload[0] = payload.Span[0][payloadSizeLength..];
+                Debug.Assert(remainingPayload[0].Length > 0);
+                for (int i = 1; i < payload.Length; ++i)
+                {
+                    remainingPayload[i] = payload.Span[i];
+                }
             }
 
             payload = remainingPayload;
