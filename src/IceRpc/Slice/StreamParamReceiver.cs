@@ -199,16 +199,14 @@ namespace IceRpc.Slice
                             break; // EOF
                         }
 
-                        if ((Ice2FrameType)buffer.Span[0] != Ice2FrameType.BoundedData)
+                        if (buffer.Span[0] != 123)
                         {
-                            throw new InvalidDataException(
-                                $"invalid frame type '{buffer.Span[0]}' expected '{Ice2FrameType.BoundedData}'");
+                            throw new InvalidDataException($"invalid frame type '{buffer.Span[0]}' expected 123");
                         }
 
                         received = await _multiplexedStream.ReadAsync(buffer[0..1], cancel).ConfigureAwait(false);
                         if (received == 0)
                         {
-                            Debug.Assert(false);
                             break; // EOF
                         }
 

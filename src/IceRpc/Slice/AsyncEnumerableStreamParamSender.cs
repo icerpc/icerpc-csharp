@@ -121,7 +121,7 @@ namespace IceRpc.Slice
                 var bufferWriter = new BufferWriter();
                 IceEncoder encoder = encoding.CreateIceEncoder(bufferWriter);
                 bufferWriter.WriteByteSpan(multiplexedStream.TransportHeader.Span);
-                encoder.EncodeByte((byte)Ice2FrameType.BoundedData);
+                encoder.EncodeByte(123);
                 BufferWriter.Position sizeStart = encoder.StartFixedLengthSize();
                 return (encoder, sizeStart, encoder.BufferWriter.Tail);
             }
