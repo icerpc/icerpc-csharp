@@ -97,9 +97,7 @@ namespace IceRpc.Slice
 
                 // Write end of stream (TODO: this might not work with Quic)
                 await multiplexedStream.WriteAsync(
-                    multiplexedStream.TransportHeader.Length == 0 ?
-                        ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty :
-                        new ReadOnlyMemory<byte>[1] { multiplexedStream.TransportHeader.ToArray() },
+                    ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty,
                     true,
                     default).ConfigureAwait(false);
             }
@@ -124,7 +122,6 @@ namespace IceRpc.Slice
             {
                 var bufferWriter = new BufferWriter();
                 IceEncoder encoder = encoding.CreateIceEncoder(bufferWriter);
-                bufferWriter.WriteByteSpan(multiplexedStream.TransportHeader.Span);
                 encoder.EncodeByte((byte)Ice2FrameType.BoundedData);
                 BufferWriter.Position sizeStart = encoder.StartFixedLengthSize();
                 return (encoder, sizeStart, encoder.BufferWriter.Tail);

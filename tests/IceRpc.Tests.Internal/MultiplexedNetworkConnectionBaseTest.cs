@@ -70,16 +70,5 @@ namespace IceRpc.Tests.Internal
                     slicOptions: _clientOptions as SlicOptions);
             return clientTransport.CreateConnection(_clientEndpoint, LogAttributeLoggerFactory.Instance.Logger);
         }
-
-        protected static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateSendPayload(
-            IMultiplexedStream stream,
-            int length = 10)
-        {
-            byte[] buffer = new byte[stream.TransportHeader.Length + length];
-            stream.TransportHeader.CopyTo(buffer);
-            return new ReadOnlyMemory<byte>[] { buffer };
-        }
-
-        protected static Memory<byte> CreateReceivePayload(int length = 10) => new byte[length];
     }
 }

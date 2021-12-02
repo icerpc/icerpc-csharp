@@ -148,10 +148,11 @@ namespace IceRpc.Transports.Internal
                             int offset = 0;
                             for (int i = 0; i < index; ++i)
                             {
-                                ReadOnlyMemory<byte> buffer = buffers.Span[index];
+                                ReadOnlyMemory<byte> buffer = buffers.Span[i];
                                 buffer.CopyTo(writeBuffer[offset..]);
                                 offset += buffer.Length;
                             }
+
                             // Send the "coalesced" initial buffers
                             await sslStream.WriteAsync(writeBuffer, cancel).ConfigureAwait(false);
                         }
