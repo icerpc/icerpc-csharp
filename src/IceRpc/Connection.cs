@@ -585,12 +585,9 @@ namespace IceRpc
                     }
 
                     IceEncoding payloadEncoding = request.GetIceEncoding();
-                    ReadOnlyMemory<ReadOnlyMemory<byte>> payload =
-                        payloadEncoding.CreatePayloadFromRemoteException(remoteException);
-
                     response = new OutgoingResponse(Protocol, ResultType.Failure)
                     {
-                        Payload = payload,
+                        Payload = payloadEncoding.CreatePayloadFromRemoteException(remoteException),
                         PayloadEncoding = payloadEncoding
                     };
 
