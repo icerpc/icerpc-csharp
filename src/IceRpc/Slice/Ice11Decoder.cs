@@ -83,7 +83,8 @@ namespace IceRpc.Slice
         /// <inheritdoc/>
         public override RemoteException DecodeException()
         {
-            // When the response is received over ice1, Ice1ProtocolConnection inserts this reply status.
+            // When the response is received over ice1, Ice1ProtocolConnection inserts this reply status. The response
+            // can alternatively come straight from an ice2 frame.
             ReplyStatus replyStatus = this.DecodeReplyStatus();
 
             if (replyStatus == ReplyStatus.OK)
