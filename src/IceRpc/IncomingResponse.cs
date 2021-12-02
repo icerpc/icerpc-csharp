@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Collections.Immutable;
+using System.IO.Pipelines;
 
 namespace IceRpc
 {
@@ -13,7 +13,13 @@ namespace IceRpc
         /// <summary>Constructs an incoming response.</summary>
         /// <param name="protocol">The <see cref="Protocol"/> used to receive the response.</param>
         /// <param name="resultType">The <see cref="ResultType"/> of the response.</param>
-        public IncomingResponse(Protocol protocol, ResultType resultType) :
-            base(protocol) => ResultType = resultType;
+        /// <param name="payload">The payload of the request.</param>
+        /// <param name="payloadEncoding">The encoding of the payload.</param>
+        public IncomingResponse(
+            Protocol protocol,
+            ResultType resultType,
+            PipeReader payload,
+            Encoding payloadEncoding) :
+            base(protocol, payload, payloadEncoding) => ResultType = resultType;
     }
 }

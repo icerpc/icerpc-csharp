@@ -295,20 +295,15 @@ namespace IceRpc
                 await _protocolConnection!.SendRequestAsync(request, cancel).ConfigureAwait(false);
 
                 // Wait for the response if two-way request, otherwise return a response with an empty payload.
-                IncomingResponse response;
-                if (request.IsOneway)
-                {
-                    response = new IncomingResponse(Protocol, ResultType.Success)
-                    {
-                        PayloadEncoding = request.PayloadEncoding,
-                        // TODO: can we use a static shared empty PipeReader?
-                        Payload = PipeReader.Create(ReadOnlySequence<byte>.Empty)
-                    };
-                }
-                else
-                {
-                    response = await _protocolConnection.ReceiveResponseAsync(request, cancel).ConfigureAwait(false);
-                }
+                IncomingResponse response = request.IsOneway ?
+                    // TODO: can we use a static shared empty PipeReader?
+                    new IncomingResponse(
+                        Protocol,
+                        ResultType.Success,
+                        PipeReader.Create(ReadOnlySequence<byte>.Empty),
+                        request.PayloadEncoding) :
+                    await _protocolConnection.ReceiveResponseAsync(request, cancel).ConfigureAwait(false);
+
                 response.Connection = this;
                 return response;
             }

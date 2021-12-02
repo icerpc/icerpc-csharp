@@ -236,20 +236,22 @@ namespace IceRpc.Tests.Internal
         }
 
         private static IncomingRequest CreateIncomingRequest(Connection connection, bool twoway) =>
-            new(Protocol.Ice2, path: "/dummy", operation: "foo")
+            new(
+                Protocol.Ice2,
+                path: "/dummy",
+                operation: "foo",
+                PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
+                Encoding.Ice20)
             {
                 Connection = connection,
-                IsOneway = !twoway,
-                Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
-                PayloadEncoding = Encoding.Ice20
+                IsOneway = !twoway
             };
 
-        private static IncomingResponse CreateIncomingResponse() =>
-            new(Protocol.Ice2, ResultType.Success)
-            {
-                Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[10])),
-                PayloadEncoding = Encoding.Ice20
-            };
+        private static IncomingResponse CreateIncomingResponse() => new(
+            Protocol.Ice2,
+            ResultType.Success,
+            PipeReader.Create(new ReadOnlySequence<byte>(new byte[10])),
+            Encoding.Ice20);
 
         private static OutgoingRequest CreateOutgoingRequest(Connection connection, bool twoway) =>
             new(Protocol.Ice2, path: "/dummy", operation: "foo")

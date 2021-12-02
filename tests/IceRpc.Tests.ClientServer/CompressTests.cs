@@ -27,12 +27,15 @@ namespace IceRpc.Tests.ClientServer
                 Assert.AreEqual(keepDefault ? Features.CompressPayload.Yes : Features.CompressPayload.No,
                                 request.Features.Get<Features.CompressPayload>());
 
-                return Task.FromResult(new IncomingResponse(request.Protocol, ResultType.Success)
-                {
-                    Connection = connection, // without a connection, the decoding of response fails, even for void
-                    Payload = PipeReader.Create(ReadOnlySequence<byte>.Empty),
-                    PayloadEncoding = Encoding.Ice20
-                });
+                return Task.FromResult(
+                    new IncomingResponse(
+                        request.Protocol,
+                        ResultType.Success,
+                        PipeReader.Create(ReadOnlySequence<byte>.Empty),
+                        Encoding.Ice20)
+                    {
+                        Connection = connection, // without a connection, the decoding of response fails, even for void
+                    });
             }));
 
             var prx = CompressTestPrx.FromPath(CompressTestPrx.DefaultPath);
