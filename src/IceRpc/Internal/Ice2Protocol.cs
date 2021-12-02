@@ -28,32 +28,6 @@ namespace IceRpc.Internal
             return base.CreateResponseFromException(exception, request);
         }
 
-        internal override OutgoingResponse CreateResponseFromRemoteException(
-            RemoteException remoteException,
-            IceEncoding payloadEncoding)
-        {
-            var bufferWriter = new BufferWriter();
-
-            IceEncoder encoder = payloadEncoding.CreateIceEncoder(bufferWriter);
-
-            BufferWriter.Position start = encoder.StartFixedLengthSize();
-            encoder.EncodeException(remoteException);
-            _ = encoder.EndFixedLengthSize(start);
-
-            var response = new OutgoingResponse(this, ResultType.Failure)
-            {
-                Payload = bufferWriter.Finish(),
-                PayloadEncoding = payloadEncoding
-            };
-
-            if (remoteException.RetryPolicy != RetryPolicy.NoRetry)
-            {
-                RetryPolicy retryPolicy = remoteException.RetryPolicy;
-                response.Fields.Add((int)FieldKey.RetryPolicy, encoder => retryPolicy.Encode(encoder));
-            }
-            return response;
-        }
-
         private Ice2Protocol()
             : base(ProtocolCode.Ice2, Ice2Name)
         {
