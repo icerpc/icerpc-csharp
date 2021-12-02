@@ -83,46 +83,91 @@ namespace IceRpc.Slice
         /// <inheritdoc/>
         public override RemoteException DecodeException()
         {
-            Debug.Assert(_current.InstanceType == InstanceType.None);
-            _current.InstanceType = InstanceType.Exception;
+            // When the response is received over ice1, Ice1ProtocolConnection inserts this reply status. The response
+            // can alternatively come straight from an ice2 frame.
+            ReplyStatus replyStatus = this.DecodeReplyStatus();
 
-            RemoteException? remoteEx;
-
-            // We can decode the indirection table (if there is one) immediately after decoding each slice header
-            // because the indirection table cannot reference the exception itself.
-            // Each slice contains its type ID as a string.
-
-            string? mostDerivedTypeId = null;
-
-            do
+            if (replyStatus == ReplyStatus.OK)
             {
-                // The type ID is always decoded for an exception and cannot be null.
-                string? typeId = DecodeSliceHeaderIntoCurrent();
-                Debug.Assert(typeId != null);
-                mostDerivedTypeId ??= typeId;
-
-                DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
-
-                remoteEx = _activator?.CreateInstance(typeId, this) as RemoteException;
-                if (remoteEx == null && SkipSlice(typeId)) // Slice off what we don't understand.
-                {
-                    break;
-                }
+                throw new InvalidDataException("invalid exception with OK ReplyStatus");
             }
-            while (remoteEx == null);
 
-            if (remoteEx != null)
+            if (replyStatus > ReplyStatus.UserException)
             {
-                _current.FirstSlice = true;
-                remoteEx.Decode(this);
+                RemoteException systemException;
+
+                switch (replyStatus)
+                {
+                    case ReplyStatus.FacetNotExistException:
+                    case ReplyStatus.ObjectNotExistException:
+                    case ReplyStatus.OperationNotExistException:
+
+                        var requestFailed = new Ice1RequestFailedExceptionData(this);
+
+                        if (requestFailed.IdentityAndFacet.OptionalFacet.Count > 1)
+                        {
+                            throw new InvalidDataException("received ice1 optionalFacet with too many elements");
+                        }
+
+                        systemException = replyStatus == ReplyStatus.OperationNotExistException ?
+                            new OperationNotFoundException() : new ServiceNotFoundException();
+
+                        systemException.Origin = new RemoteExceptionOrigin(
+                            requestFailed.IdentityAndFacet.ToPath(),
+                            requestFailed.Operation);
+                        break;
+
+                    default:
+                        systemException = new UnhandledException(DecodeString());
+                        break;
+                }
+
+                systemException.ConvertToUnhandled = true;
+                return systemException;
             }
             else
             {
-                remoteEx = new UnknownSlicedRemoteException(mostDerivedTypeId);
-            }
+                Debug.Assert(_current.InstanceType == InstanceType.None);
+                _current.InstanceType = InstanceType.Exception;
 
-            _current = default;
-            return remoteEx;
+                RemoteException? remoteEx;
+
+                // We can decode the indirection table (if there is one) immediately after decoding each slice header
+                // because the indirection table cannot reference the exception itself.
+                // Each slice contains its type ID as a string.
+
+                string? mostDerivedTypeId = null;
+
+                do
+                {
+                    // The type ID is always decoded for an exception and cannot be null.
+                    string? typeId = DecodeSliceHeaderIntoCurrent();
+                    Debug.Assert(typeId != null);
+                    mostDerivedTypeId ??= typeId;
+
+                    DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
+
+                    remoteEx = _activator?.CreateInstance(typeId, this) as RemoteException;
+                    if (remoteEx == null && SkipSlice(typeId)) // Slice off what we don't understand.
+                    {
+                        break;
+                    }
+                }
+                while (remoteEx == null);
+
+                if (remoteEx != null)
+                {
+                    _current.FirstSlice = true;
+                    remoteEx.Decode(this);
+                }
+                else
+                {
+                    remoteEx = new UnknownSlicedRemoteException(mostDerivedTypeId);
+                }
+
+                _current = default;
+                return remoteEx;
+            }
         }
 
         /// <inheritdoc/>
@@ -372,44 +417,6 @@ namespace IceRpc.Slice
         {
             _activator = activator;
             _classGraphMaxDepth = classGraphMaxDepth;
-        }
-
-        /// <summary>Decodes an ice1 system exception.</summary>
-        /// <param name="replyStatus">The reply status.</param>
-        /// <returns>The exception decoded using the decoder.</returns>
-        internal RemoteException DecodeIce1SystemException(ReplyStatus replyStatus)
-        {
-            Debug.Assert(replyStatus > ReplyStatus.UserException);
-
-            RemoteException systemException;
-
-            switch (replyStatus)
-            {
-                case ReplyStatus.FacetNotExistException:
-                case ReplyStatus.ObjectNotExistException:
-                case ReplyStatus.OperationNotExistException:
-
-                    var requestFailed = new Ice1RequestFailedExceptionData(this);
-
-                    if (requestFailed.IdentityAndFacet.OptionalFacet.Count > 1)
-                    {
-                        throw new InvalidDataException("received ice1 optionalFacet with too many elements");
-                    }
-
-                    systemException = replyStatus == ReplyStatus.OperationNotExistException ?
-                        new OperationNotFoundException() : new ServiceNotFoundException();
-
-                    systemException.Origin = new RemoteExceptionOrigin(requestFailed.IdentityAndFacet.ToPath(),
-                                                                       requestFailed.Operation);
-                    break;
-
-                default:
-                    systemException = new UnhandledException(DecodeString());
-                    break;
-            }
-
-            systemException.ConvertToUnhandled = true;
-            return systemException;
         }
 
         /// <summary>Skips the remaining tagged parameters, return value _or_ data members.</summary>

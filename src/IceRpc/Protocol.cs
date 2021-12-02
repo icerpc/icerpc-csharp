@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 
 namespace IceRpc
 {
@@ -110,9 +111,9 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Creates an outgoing response with the exception. With the ice1 protocol, this method sets
-        /// the <see cref="ReplyStatus"/> feature. This method also sets the <see
-        /// cref="FieldKey.RetryPolicy"/> if an exception retry policy is set.</summary>
+        /// <summary>Creates an outgoing response with the exception.This method sets the
+        /// <see cref="FieldKey.RetryPolicy"/> if an exception retry policy is set.</summary>
+        // TODO: move to Slice
         internal virtual OutgoingResponse CreateResponseFromException(Exception exception, IncomingRequest request)
         {
             RemoteException? remoteException = exception as RemoteException;
@@ -126,13 +127,28 @@ namespace IceRpc
                 remoteException.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
             }
 
-            return CreateResponseFromRemoteException(remoteException, request.GetIceEncoding());
-        }
+            IceEncoding payloadEncoding = request.GetIceEncoding();
+            var bufferWriter = new BufferWriter();
 
-        internal virtual OutgoingResponse CreateResponseFromRemoteException(
-            RemoteException remoteException,
-            IceEncoding payloadEncoding) =>
-            throw new NotSupportedException($"can't create response for unknown protocol {this}");
+            IceEncoder encoder = payloadEncoding.CreateIceEncoder(bufferWriter);
+
+            BufferWriter.Position start = encoder.StartFixedLengthSize();
+            encoder.EncodeException(remoteException);
+            _ = encoder.EndFixedLengthSize(start);
+
+            var response = new OutgoingResponse(this, ResultType.Failure)
+            {
+                Payload = bufferWriter.Finish(),
+                PayloadEncoding = payloadEncoding
+            };
+
+            if (HasFieldSupport && remoteException.RetryPolicy != RetryPolicy.NoRetry)
+            {
+                RetryPolicy retryPolicy = remoteException.RetryPolicy;
+                response.Fields.Add((int)FieldKey.RetryPolicy, encoder => retryPolicy.Encode(encoder));
+            }
+            return response;
+        }
 
         private protected Protocol(ProtocolCode code, string name)
         {
