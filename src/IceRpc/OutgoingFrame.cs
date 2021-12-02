@@ -35,10 +35,6 @@ namespace IceRpc
         /// <summary>Returns the Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }
 
-        /// <summary>A stream parameter compressor. Middleware or interceptors can use this property to
-        /// compress a stream parameter or return value.</summary>
-        public Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? StreamCompressor { get; set; }
-
         /// <summary>The stream param sender, if the request or response has a stream param. The sender is called
         /// after the request or response frame is sent over the stream.</summary>
         internal IStreamParamSender? StreamParamSender { get; init; }
@@ -54,7 +50,7 @@ namespace IceRpc
                 {
                     try
                     {
-                        StreamParamSender.SendAsync(stream, StreamCompressor);
+                        StreamParamSender.SendAsync(stream);
                     }
                     catch
                     {

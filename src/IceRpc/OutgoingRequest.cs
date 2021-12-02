@@ -48,10 +48,6 @@ namespace IceRpc
         /// <summary>The proxy that is sending this request.</summary>
         public Proxy? Proxy { get; init; }
 
-        /// <summary>A stream parameter decompressor. Middleware or interceptors can use this property to
-        /// decompress a stream return value.</summary>
-        public Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? StreamDecompressor { get; set; }
-
         /// <summary>The stream used to send the request.</summary>
         internal IMultiplexedStream? Stream { get; set; }
 

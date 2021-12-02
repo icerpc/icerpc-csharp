@@ -11,7 +11,6 @@ namespace IceRpc.Slice
     public sealed class StreamParamReceiver
     {
         private readonly IMultiplexedStream _stream;
-        private readonly Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? _streamDecompressor;
 
         /// <summary>Construct an <see cref="IAsyncEnumerable{T}"/> to receive the streamed param from an incoming
         /// request.</summary>
@@ -34,7 +33,7 @@ namespace IceRpc.Slice
         /// incoming request.</summary>
         /// <returns>The read-only <see cref="System.IO.Stream"/> to receive the streamed param.</returns>
         public static System.IO.Stream ToByteStream(IncomingRequest request) =>
-            new ByteStreamParamReceiver(request.Stream, request.StreamDecompressor);
+            new ByteStreamParamReceiver(request.Stream);
 
         /// <summary>Construct an <see cref="IAsyncEnumerable{T}"/> to receive the streamed param from an incoming
         /// response.</summary>
@@ -42,8 +41,7 @@ namespace IceRpc.Slice
         /// <param name="invoker">The invoker.</param>
         /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
         /// <param name="decodeAction">The action used to decode the streamed params.</param>
-        /// <remarks>This method is used to read element of fixed size that are stream with an
-        /// <see cref="Ice2FrameType.UnboundedData"/> frame.</remarks>
+        /// <remarks>This method is used to read element of fixed encoded size.</remarks>
         public IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             IncomingResponse response,
             IInvoker? invoker,
@@ -59,15 +57,9 @@ namespace IceRpc.Slice
         /// <summary>Constructs a read-only <see cref="System.IO.Stream"/> to receive the streamed param from an
         /// incoming response.</summary>
         /// <returns>The read-only <see cref="System.IO.Stream"/> to receive the streamed param.</returns>
-        public System.IO.Stream ToByteStream() => new ByteStreamParamReceiver(_stream, _streamDecompressor);
+        public System.IO.Stream ToByteStream() => new ByteStreamParamReceiver(_stream);
 
-        internal StreamParamReceiver(
-            IMultiplexedStream stream,
-            Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? streamDecompressor)
-        {
-            _stream = stream;
-            _streamDecompressor = streamDecompressor;
-        }
+        internal StreamParamReceiver(IMultiplexedStream stream) => _stream = stream;
 
         private class ByteStreamParamReceiver : System.IO.Stream
         {
@@ -84,7 +76,6 @@ namespace IceRpc.Slice
 
             private System.IO.Stream? _ioStream;
             private readonly IMultiplexedStream? _multiplexedStream;
-            private readonly Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? _streamDecompressor;
 
             public override void Flush() => throw new NotImplementedException();
 
@@ -113,29 +104,8 @@ namespace IceRpc.Slice
 
                 if (_ioStream == null)
                 {
-                    // Receive the data frame header.
-                    byte[] header = new byte[2];
-                    await _multiplexedStream.ReadAsync(header, default).ConfigureAwait(false);
-                    if (header[0] != (byte)Ice2FrameType.UnboundedData)
-                    {
-                        throw new InvalidDataException("invalid stream data");
-                    }
-                    var compressionFormat = (CompressionFormat)header[1];
-
                     // Read the unbounded data from the multiplexed stream.
                     _ioStream = _multiplexedStream.AsByteStream();
-                    if (compressionFormat != CompressionFormat.NotCompressed)
-                    {
-                        if (_streamDecompressor == null)
-                        {
-                            throw new NotSupportedException(
-                                $"cannot decompress compression format '{compressionFormat}'");
-                        }
-                        else
-                        {
-                            _ioStream = _streamDecompressor(compressionFormat, _ioStream);
-                        }
-                    }
                 }
 
                 try
@@ -179,17 +149,11 @@ namespace IceRpc.Slice
                 }
             }
 
-            internal ByteStreamParamReceiver(
-                IMultiplexedStream? stream,
-                Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? streamDecompressor)
-            {
-                _multiplexedStream = stream;
-                _streamDecompressor = streamDecompressor;
-            }
+            internal ByteStreamParamReceiver(IMultiplexedStream? stream) => _multiplexedStream = stream;
         }
 
-        /// <summary>A stream reader to read variable size elements streamed in a <see cref="Ice2FrameType.BoundedData"/>
-        /// frame into <see cref="IAsyncEnumerable{T}"/>.</summary>
+        /// <summary>A stream reader to read variable size elements streamed into an <see cref="IAsyncEnumerable{T}"/>.
+        /// </summary>
         /// <typeparam name="T">The stream param type.</typeparam>
         private class AsyncEnumerableStreamParamReceiver<T>
         {
@@ -228,37 +192,26 @@ namespace IceRpc.Slice
                     Memory<byte> buffer = new byte[256];
                     try
                     {
-                        // TODO: Use Ice2 protocol frame reader to read the frame
-                        int received = await _multiplexedStream.ReadAsync(buffer[0..2], cancel).ConfigureAwait(false);
+                        int received = await _multiplexedStream.ReadAsync(buffer[0..1], cancel).ConfigureAwait(false);
                         if (received == 0)
                         {
                             break; // EOF
                         }
-                        else if (received == 1)
-                        {
-                            await _multiplexedStream.ReadUntilFullAsync(buffer[1..2], cancel).ConfigureAwait(false);
-                        }
-
-                        if ((Ice2FrameType)buffer.Span[0] != Ice2FrameType.BoundedData)
-                        {
-                            throw new InvalidDataException(
-                                $"invalid frame type '{buffer.Span[0]}' expected '{Ice2FrameType.BoundedData}'");
-                        }
 
                         // Read the remainder of the size if needed.
-                        int sizeLength = Ice20Decoder.DecodeSizeLength(buffer.Span[1]);
+                        int sizeLength = Ice20Decoder.DecodeSizeLength(buffer.Span[0]);
                         if (sizeLength > 1)
                         {
                             await _multiplexedStream.ReadUntilFullAsync(
-                                buffer.Slice(2, sizeLength - 1),
+                                buffer.Slice(1, sizeLength - 1),
                                 cancel).ConfigureAwait(false);
                         }
 
-                        int size = Ice20Decoder.DecodeSize(buffer[1..].AsReadOnlySpan()).Size;
+                        int size = Ice20Decoder.DecodeSize(buffer.Span).Size;
                         if (size > _connection.Options.IncomingFrameMaxSize)
                         {
                             throw new InvalidDataException(
-                                @$"frame size of {size
+                                @$"segment size of {size
                                 } bytes is greater than the configured IncomingFrameMaxSize value ({
                                 _connection.Options.IncomingFrameMaxSize} bytes)");
                         }
