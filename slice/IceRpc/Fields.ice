@@ -18,8 +18,5 @@ module IceRpc
 
         /// The payload compression field (for the compression interceptor and middleware).
         Compression = -3,
-
-        /// The ice1 reply status field (for response headers).
-        ReplyStatus = -4
     }
 }
