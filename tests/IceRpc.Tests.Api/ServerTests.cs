@@ -124,6 +124,14 @@ namespace IceRpc.Tests.Api
             }
 
             {
+                // Setting Endpoint after calling Listen is not allowed
+                await using var server = new Server();
+                server.Endpoint = TestHelper.GetUniqueColocEndpoint();
+                server.Listen();
+                Assert.Throws<InvalidOperationException>(() => server.Endpoint = TestHelper.GetUniqueColocEndpoint());
+            }
+
+            {
                 // Calling Listen on a disposed server throws ObjectDisposedException
                 var server = new Server
                 {

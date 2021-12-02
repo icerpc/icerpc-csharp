@@ -9,6 +9,9 @@ namespace IceRpc.Transports
     public class ColocServerTransport : IServerTransport<ISimpleNetworkConnection>
     {
         /// <inheritdoc/>
+        Endpoint IServerTransport<ISimpleNetworkConnection>.DefaultEndpoint => "ice+coloc://coloc";
+
+        /// <inheritdoc/>
         IListener<ISimpleNetworkConnection> IServerTransport<ISimpleNetworkConnection>.Listen(
             Endpoint endpoint,
             ILogger logger) =>
