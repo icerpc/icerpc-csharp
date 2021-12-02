@@ -226,17 +226,9 @@ namespace IceRpc.Tests.ClientServer
             using var sendStream = new MemoryStream(new byte[size]);
             int receivedSize = await prx.OpCompressStreamArgAsync(sendStream);
             Assert.That(receivedSize, Is.EqualTo(size));
-            Assert.That(outgoingRequest!.StreamCompressor, Is.Not.Null);
-            Assert.That(outgoingResponse!.StreamCompressor, Is.Null);
-            Assert.That(outgoingRequest!.StreamDecompressor, Is.Not.Null);
-            Assert.That(incomingRequest!.StreamDecompressor, Is.Not.Null);
 
             using var receiveStream = await prx.OpCompressReturnStreamAsync(size);
             Assert.That(await ReadStreamAsync(receiveStream), Is.EqualTo(size));
-            Assert.That(outgoingRequest!.StreamCompressor, Is.Null);
-            Assert.That(outgoingResponse!.StreamCompressor, Is.Not.Null);
-            Assert.That(outgoingRequest!.StreamDecompressor, Is.Not.Null);
-            Assert.That(incomingRequest!.StreamDecompressor, Is.Not.Null);
 
             byte[] data = new byte[size];
             var random = new Random();
@@ -244,10 +236,6 @@ namespace IceRpc.Tests.ClientServer
             using var sendStream2 = new MemoryStream(data);
             using var receiveStream2 = await prx.OpCompressStreamArgAndReturnStreamAsync(sendStream2);
             Assert.That(await ReadStreamAsync(receiveStream2, data), Is.EqualTo(size));
-            Assert.That(outgoingRequest!.StreamCompressor, Is.Not.Null);
-            Assert.That(outgoingResponse!.StreamCompressor, Is.Not.Null);
-            Assert.That(outgoingRequest!.StreamDecompressor, Is.Not.Null);
-            Assert.That(incomingRequest!.StreamDecompressor, Is.Not.Null);
         }
 
         internal class CompressTest : Service, ICompressTest

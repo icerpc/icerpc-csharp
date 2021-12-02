@@ -7,7 +7,7 @@ using IceRpc.Transports;
 namespace IceRpc.Slice
 {
     /// <summary>A stream parameter sender that encapsulates an<see cref="IAsyncEnumerable{T}"/> used to send a
-    /// <c> stream T</c> parameter using one or more <see cref="Ice2FrameType.BoundedData"/> frames.</summary>
+    /// <c> stream T</c> parameter.</summary>
     public sealed class AsyncEnumerableStreamParamSender<T> : IStreamParamSender
     {
         private readonly IAsyncEnumerable<T> _inputStream;
@@ -31,11 +31,7 @@ namespace IceRpc.Slice
             _encoder = stream => SendAsync(stream, _inputStream, _encoding, _encodeAction);
         }
 
-        // TODO support compression
-        Task IStreamParamSender.SendAsync(
-            IMultiplexedStream stream,
-            Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? streamCompressor) =>
-            _encoder(stream);
+        Task IStreamParamSender.SendAsync(IMultiplexedStream stream) => _encoder(stream);
 
         private static async Task SendAsync(
             IMultiplexedStream multiplexedStream,
@@ -48,7 +44,7 @@ namespace IceRpc.Slice
             try
             {
                 asyncEnumerator = asyncEnumerable.GetAsyncEnumerator(cancelationSource.Token);
-                (IceEncoder encoder, BufferWriter.Position sizeStart, BufferWriter.Position payloadStart) = StartFrame();
+                (IceEncoder encoder, BufferWriter.Position sizeStart, BufferWriter.Position payloadStart) = StartSegment();
                 do
                 {
                     ValueTask<bool> moveNext = asyncEnumerator.MoveNextAsync();
@@ -62,7 +58,7 @@ namespace IceRpc.Slice
                         {
                             if (encoder.BufferWriter.Tail != payloadStart)
                             {
-                                await FinishFrameAndSendAsync(encoder, sizeStart).ConfigureAwait(false);
+                                await FinishSegmentAndSendAsync(encoder, sizeStart).ConfigureAwait(false);
                             }
                             break; // End iteration
                         }
@@ -72,8 +68,8 @@ namespace IceRpc.Slice
                         // If we already wrote some elements send the frame now and start a new one.
                         if (encoder.BufferWriter.Tail != payloadStart)
                         {
-                            await FinishFrameAndSendAsync(encoder, sizeStart).ConfigureAwait(false);
-                            (encoder, sizeStart, payloadStart) = StartFrame();
+                            await FinishSegmentAndSendAsync(encoder, sizeStart).ConfigureAwait(false);
+                            (encoder, sizeStart, payloadStart) = StartSegment();
                         }
 
                         if (await moveNext.ConfigureAwait(false))
@@ -89,8 +85,8 @@ namespace IceRpc.Slice
                     // TODO allow to configure the size limit?
                     if (encoder.BufferWriter.Size > 32 * 1024)
                     {
-                        await FinishFrameAndSendAsync(encoder, sizeStart).ConfigureAwait(false);
-                        (encoder, sizeStart, payloadStart) = StartFrame();
+                        await FinishSegmentAndSendAsync(encoder, sizeStart).ConfigureAwait(false);
+                        (encoder, sizeStart, payloadStart) = StartSegment();
                     }
                 }
                 while (true);
@@ -118,16 +114,15 @@ namespace IceRpc.Slice
                 }
             }
 
-            (IceEncoder encoder, BufferWriter.Position sizeStart, BufferWriter.Position payloadStart) StartFrame()
+            (IceEncoder encoder, BufferWriter.Position sizeStart, BufferWriter.Position payloadStart) StartSegment()
             {
                 var bufferWriter = new BufferWriter();
                 IceEncoder encoder = encoding.CreateIceEncoder(bufferWriter);
-                encoder.EncodeByte((byte)Ice2FrameType.BoundedData);
                 BufferWriter.Position sizeStart = encoder.StartFixedLengthSize();
                 return (encoder, sizeStart, encoder.BufferWriter.Tail);
             }
 
-            async ValueTask FinishFrameAndSendAsync(IceEncoder encoder, BufferWriter.Position start)
+            async ValueTask FinishSegmentAndSendAsync(IceEncoder encoder, BufferWriter.Position start)
             {
                 encoder.EndFixedLengthSize(start);
                 ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = encoder.BufferWriter.Finish();

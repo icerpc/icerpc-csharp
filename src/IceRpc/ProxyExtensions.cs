@@ -124,7 +124,7 @@ namespace IceRpc
                     StreamParamReceiver? streamParamReceiver = null;
                     if (returnStreamParamReceiver && request.Stream != null)
                     {
-                        streamParamReceiver = new StreamParamReceiver(request.Stream, request.StreamDecompressor);
+                        streamParamReceiver = new StreamParamReceiver(request.Stream);
                     }
                     return (response, streamParamReceiver);
                 }

@@ -27,16 +27,6 @@ namespace IceRpc
                 request.Features[typeof(Features.CompressPayload)] == Features.CompressPayload.Yes)
             {
                 request.CompressPayload(_options);
-
-                request.StreamCompressor = outputStream => outputStream.CompressStream(_options.CompressionLevel);
-            }
-
-            // TODO: rename DecompressPayload to DecompressResponse or add DecompressStreamParam?
-            if (_options.DecompressPayload)
-            {
-                // TODO: check for response Features.DecompressPayload?
-                request.StreamDecompressor =
-                    (compressFormat, inputStream) => inputStream.DecompressStream(compressFormat);
             }
 
             IncomingResponse response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
