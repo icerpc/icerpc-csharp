@@ -2,6 +2,7 @@
 
 using IceRpc.Configure;
 using IceRpc.Internal;
+using IceRpc.Slice;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
@@ -557,7 +558,44 @@ namespace IceRpc
                 }
                 catch (Exception exception)
                 {
-                    response = OutgoingResponse.ForException(request, exception);
+                    // If we catch an exception, we return a failure response with a Slice-encoded payload.
+
+                    if (exception is OperationCanceledException)
+                    {
+                        // TODO: do we really need this protocol-dependent processing?
+                        if (Protocol == Protocol.Ice1)
+                        {
+                            exception = new DispatchException("dispatch canceled by peer");
+                        }
+                        else
+                        {
+                            // Rethrow to abort the stream.
+                            throw;
+                        }
+                    }
+
+                    if (exception is not RemoteException remoteException || remoteException.ConvertToUnhandled)
+                    {
+                        remoteException = new UnhandledException(exception);
+                    }
+
+                    if (remoteException.Origin == RemoteExceptionOrigin.Unknown)
+                    {
+                        remoteException.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
+                    }
+
+                    IceEncoding payloadEncoding = request.GetIceEncoding();
+                    response = new OutgoingResponse(Protocol, ResultType.Failure)
+                    {
+                        Payload = payloadEncoding.CreatePayloadFromRemoteException(remoteException),
+                        PayloadEncoding = payloadEncoding
+                    };
+
+                    if (Protocol.HasFieldSupport && remoteException.RetryPolicy != RetryPolicy.NoRetry)
+                    {
+                        RetryPolicy retryPolicy = remoteException.RetryPolicy;
+                        response.Fields.Add((int)FieldKey.RetryPolicy, encoder => retryPolicy.Encode(encoder));
+                    }
                 }
 
                 await _protocolConnection.SendResponseAsync(

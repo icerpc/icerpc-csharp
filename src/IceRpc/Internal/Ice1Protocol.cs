@@ -17,15 +17,6 @@ namespace IceRpc.Internal
         internal IProtocolConnectionFactory<ISimpleNetworkConnection> ProtocolConnectionFactory { get; } =
             new Ice1ProtocolConnectionFactory();
 
-        internal override OutgoingResponse CreateResponseFromException(Exception exception, IncomingRequest request)
-        {
-            if (exception is OperationCanceledException)
-            {
-                exception = new DispatchException("dispatch canceled by peer");
-            }
-            return base.CreateResponseFromException(exception, request);
-        }
-
         private Ice1Protocol()
             : base(ProtocolCode.Ice1, Ice1Name)
         {
