@@ -69,8 +69,8 @@ namespace IceRpc.Slice
 
         /// <summary>Decodes the request's payload into a list of arguments. The payload must be encoded with
         /// a specific Ice encoding.</summary>
-        /// <paramtype name="TDecoder">The type of the Ice decoder.</paramtype> <paramtype name="T">The type
-        /// of the request parameters.</paramtype>
+        /// <paramtype name="TDecoder">The type of the Ice decoder.</paramtype>
+        /// <paramtype name="T">The type of the request parameters.</paramtype>
         /// <param name="request">The incoming request.</param>
         /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
         /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>

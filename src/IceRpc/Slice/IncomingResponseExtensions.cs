@@ -39,7 +39,7 @@ namespace IceRpc.Slice
 
                 if (response.ResultType == ResultType.Failure)
                 {
-                    var exception = response.ToRemoteException(decoder);
+                    RemoteException exception = ToRemoteException(decoder);
                     response.Payload.AdvanceTo(segment.End);
                     throw exception;
                 }
@@ -103,7 +103,7 @@ namespace IceRpc.Slice
 
             if (response.ResultType == ResultType.Failure)
             {
-                var exception = response.ToRemoteException(decoder);
+                RemoteException exception = ToRemoteException(decoder);
 
                 if (segmentSize > 0)
                 {
@@ -125,7 +125,7 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Decodes a remote exception carried by a response.</summary>
-        private static RemoteException ToRemoteException(this IncomingResponse response, IceDecoder decoder)
+        private static RemoteException ToRemoteException(IceDecoder decoder)
         {
             // the caller skipped the size
 
