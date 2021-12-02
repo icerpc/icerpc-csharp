@@ -10,6 +10,7 @@ namespace IceRpc.Tests
     public static class TestHelper
     {
         private static ulong _counter;
+        private static readonly ColocTransport _colocTransport = new();
 
         public static string EscapeIPv6Address(string address, Protocol? protocol) =>
             (protocol?.Code ?? ProtocolCode.Ice2) switch
@@ -103,21 +104,20 @@ namespace IceRpc.Tests
         }
 
         public static Endpoint GetUniqueColocEndpoint(Protocol? protocol = null) =>
-            protocol == Protocol.Ice1 ? $"coloc -h test.{Interlocked.Increment(ref _counter)}" :
-            $"ice+coloc://test.{Interlocked.Increment(ref _counter)}";
+            protocol == Protocol.Ice1 ?
+                $"coloc -h test.{Interlocked.Increment(ref _counter)}" :
+                $"ice+coloc://test.{Interlocked.Increment(ref _counter)}";
 
         public static IClientTransport<IMultiplexedNetworkConnection> CreateMultiplexedClientTransport(
             string transport = "tcp",
             TcpClientOptions? options = null,
-            SlicOptions? slicOptions = null,
-            ILoggerFactory? _ = null)
+            SlicOptions? slicOptions = null)
         {
-            // TODO: give loggerFactory to SlicClientTransport
             return transport switch
             {
                 "tcp" => new SlicClientTransport(new TcpClientTransport(options ?? new()),
                                                  slicOptions ?? new SlicOptions()),
-                "coloc" => new SlicClientTransport(new ColocClientTransport(), slicOptions ?? new SlicOptions()),
+                "coloc" => new SlicClientTransport(_colocTransport.ClientTransport, slicOptions ?? new SlicOptions()),
                 _ => throw new UnknownTransportException(transport)
             };
         }
@@ -126,15 +126,13 @@ namespace IceRpc.Tests
             string transport = "tcp",
             TcpServerOptions? options = null,
             SslServerAuthenticationOptions? authenticationOptions = null,
-            SlicOptions? slicOptions = null,
-            ILoggerFactory? _ = null)
+            SlicOptions? slicOptions = null)
         {
-            // TODO: give loggerFactory to SlicServerTransport
             return transport switch
             {
                 "tcp" => new SlicServerTransport(new TcpServerTransport(options ?? new()),
                                                  slicOptions ?? new SlicOptions()),
-                "coloc" => new SlicServerTransport(new ColocServerTransport(), slicOptions ?? new SlicOptions()),
+                "coloc" => new SlicServerTransport(_colocTransport.ServerTransport, slicOptions ?? new SlicOptions()),
                 _ => throw new UnknownTransportException(transport)
             };
         }
@@ -148,7 +146,7 @@ namespace IceRpc.Tests
                 "tcp" => new TcpClientTransport((TcpClientOptions?)options ?? new()),
                 "ssl" => new TcpClientTransport((TcpClientOptions?)options ?? new()),
                 "udp" => new UdpClientTransport((UdpClientOptions?)options ?? new()),
-                "coloc" => new ColocClientTransport(),
+                "coloc" => _colocTransport.ClientTransport,
                 _ => throw new UnknownTransportException(transport)
             };
         }
@@ -162,7 +160,7 @@ namespace IceRpc.Tests
                 "tcp" => new TcpServerTransport((TcpServerOptions?)options ?? new()),
                 "ssl" => new TcpServerTransport((TcpServerOptions?)options ?? new()),
                 "udp" => new UdpServerTransport((UdpServerOptions?)options ?? new()),
-                "coloc" => new ColocServerTransport(),
+                "coloc" => _colocTransport.ServerTransport,
                 _ => throw new UnknownTransportException(transport)
             };
         }

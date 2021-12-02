@@ -32,8 +32,7 @@ namespace IceRpc.Slice
                     proxy.Path,
                     protocol: proxy.Protocol != Protocol.Ice2 ? proxy.Protocol.Code : null,
                     encoding: proxy.Encoding == proxy.Protocol.IceEncoding ? null : proxy.Encoding.ToString(),
-                    endpoint: proxy.Endpoint is Endpoint endpoint && endpoint.Transport != TransportNames.Coloc ?
-                        endpoint.ToEndpointData() : null,
+                    endpoint: proxy.Endpoint?.ToEndpointData(),
                     altEndpoints:
                             proxy.AltEndpoints.Count == 0 ? null :
                                 proxy.AltEndpoints.Select(e => e.ToEndpointData()).ToArray());

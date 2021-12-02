@@ -34,6 +34,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\IceRpc\IceRpc.csproj" />
+    <ProjectReference Include="..\..\src\IceRpc.Coloc\IceRpc.Coloc.csproj" />
     <ProjectReference Include="..\..\src\IceRpc.Interop\IceRpc.Interop.csproj" />
     <ProjectReference Include="..\IceRpc.Tests.ReferencedAssemblies\A\A.csproj" />
     <ProjectReference Include="..\IceRpc.Tests.ReferencedAssemblies\B\B.csproj" />

@@ -32,18 +32,6 @@ namespace IceRpc
                             nameof(AltEndpoints));
                     }
 
-                    if (_endpoint.Transport == TransportNames.Coloc)
-                    {
-                        throw new ArgumentException(
-                            @$"cannot set {nameof(AltEndpoints)} when {nameof(Endpoint)} uses the coloc transport",
-                            nameof(AltEndpoints));
-                    }
-
-                    if (value.Any(e => e.Transport == TransportNames.Coloc))
-                    {
-                        throw new ArgumentException("cannot use coloc transport", nameof(AltEndpoints));
-                    }
-
                     if (value.Any(e => e.Protocol != Protocol))
                     {
                         throw new ArgumentException($"the protocol of all endpoints must be {Protocol}",
@@ -99,12 +87,6 @@ namespace IceRpc
                     {
                         throw new ArgumentException("the new endpoint must use the proxy's protocol",
                                                     nameof(Endpoint));
-                    }
-
-                    if (_altEndpoints.Count > 0 && value.Transport == TransportNames.Coloc)
-                    {
-                        throw new ArgumentException(
-                            "a proxy with a coloc endpoint cannot have alt endpoints", nameof(Endpoint));
                     }
 
                     if (Protocol == Protocol.Ice1 && _altEndpoints.Count > 0 && value.Transport == TransportNames.Loc)
