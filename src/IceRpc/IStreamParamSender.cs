@@ -11,9 +11,6 @@ namespace IceRpc
         /// <summary>Creates one or more frames appropriate to send the stream param and sends constructed
         /// frames using the given <see cref="IMultiplexedStream"/>.</summary>
         /// <param name="stream">The stream used to send the frames.</param>
-        /// <param name="streamCompressor">The compressor to apply to the encoded data.</param>
-        Task SendAsync(
-            IMultiplexedStream stream,
-            Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? streamCompressor);
+        Task SendAsync(IMultiplexedStream stream);
     }
 }
