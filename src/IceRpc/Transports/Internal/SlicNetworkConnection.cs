@@ -295,6 +295,10 @@ namespace IceRpc.Transports.Internal
 
             try
             {
+                // The writer WriteStreamFrameAsync method requires the header to always be included as the first
+                // buffers of the send buffers. This avoids allocating a new ReadOnlyMemory<byte> array to append the
+                // header.
+                Debug.Assert(buffers.Length > 0 && buffers.Span[0].Length == SlicDefinitions.FrameHeader.Length);
                 await _writer.WriteStreamFrameAsync(stream, buffers, endStream, cancel).ConfigureAwait(false);
             }
             catch

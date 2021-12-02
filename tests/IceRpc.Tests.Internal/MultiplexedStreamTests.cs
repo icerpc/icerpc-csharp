@@ -24,7 +24,7 @@ namespace IceRpc.Tests.Internal
 
             // Create client stream and send one byte.
             IMultiplexedStream clientStream = ClientConnection.CreateStream(true);
-            await clientStream.WriteAsync(CreateSendPayload(clientStream, 1), false, default);
+            await clientStream.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, false, default);
 
             (int received, IMultiplexedStream serverStream) = await serverTask;
 
@@ -45,7 +45,7 @@ namespace IceRpc.Tests.Internal
 
             // Ensure we can still create a new stream after the cancellation
             IMultiplexedStream clientStream2 = ClientConnection.CreateStream(true);
-            await clientStream2.WriteAsync(CreateSendPayload(clientStream2, 1), true, default);
+            await clientStream2.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, true, default);
 
             async Task<(int, IMultiplexedStream)> ReceiveAsync()
             {
@@ -70,15 +70,13 @@ namespace IceRpc.Tests.Internal
             byte[] buffer;
             if (bufferCount == 1)
             {
-                var sendBuffer = new ArraySegment<byte>(new byte[clientStream.TransportHeader.Length + sendSize]);
-                clientStream.TransportHeader.CopyTo(sendBuffer);
-                new Random().NextBytes(sendBuffer[clientStream.TransportHeader.Length..]);
+                var sendBuffer = new ArraySegment<byte>(new byte[sendSize]);
+                new Random().NextBytes(sendBuffer);
                 sendBuffers.Span[0] = sendBuffer;
             }
             else
             {
-                sendBuffers.Span[0] = clientStream.TransportHeader.ToArray();
-                for (int i = 1; i < bufferCount; ++i)
+                for (int i = 0; i < bufferCount; ++i)
                 {
                     buffer = new byte[sendSize / bufferCount];
                     new Random().NextBytes(buffer);
@@ -96,18 +94,6 @@ namespace IceRpc.Tests.Internal
             while (segment < bufferCount)
             {
                 ReadOnlyMemory<byte> sendBuffer = sendBuffers.Span[segment];
-                if (clientStream.TransportHeader.Length > 0 && segment == 0 && offset == 0)
-                {
-                    // Don't compare the transport header from the buffer since it's never returned by ReceiveAsync
-                    if (sendBuffer.Length == clientStream.TransportHeader.Length)
-                    {
-                        sendBuffer = sendBuffers.Span[++segment];
-                    }
-                    else
-                    {
-                        offset = clientStream.TransportHeader.Length;
-                    }
-                }
 
                 if (receiveBuffer.Length == 0)
                 {
@@ -148,7 +134,7 @@ namespace IceRpc.Tests.Internal
             source.Cancel();
 
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await stream.WriteAsync(CreateSendPayload(stream), true, source.Token));
+                async () => await stream.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[10] }, true, source.Token));
         }
 
         [Test]
@@ -158,23 +144,23 @@ namespace IceRpc.Tests.Internal
             using var source = new CancellationTokenSource();
             source.Cancel();
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await stream.ReadAsync(CreateReceivePayload(), source.Token));
+                async () => await stream.ReadAsync(new byte[10], source.Token));
         }
 
         [Test]
         public async Task MultiplexedStream_ReceiveAsync_Cancellation2Async()
         {
             IMultiplexedStream stream = ClientConnection.CreateStream(true);
-            await stream.WriteAsync(CreateSendPayload(stream), true, default);
+            await stream.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[10] }, true, default);
 
             IMultiplexedStream serverStream = await ServerConnection.AcceptStreamAsync(default);
-            await serverStream.ReadAsync(CreateReceivePayload(), default);
+            await serverStream.ReadAsync(new byte[10], default);
 
             var dispatchCanceled = new TaskCompletionSource();
             serverStream.ShutdownAction = () => dispatchCanceled.SetResult();
 
             using var source = new CancellationTokenSource();
-            ValueTask<int> receiveTask = stream.ReadAsync(CreateReceivePayload(), source.Token);
+            ValueTask<int> receiveTask = stream.ReadAsync(new byte[10], source.Token);
             source.Cancel();
             Assert.CatchAsync<OperationCanceledException>(async () => await receiveTask);
             stream.AbortRead(0);
@@ -193,7 +179,7 @@ namespace IceRpc.Tests.Internal
             Task<IMultiplexedStream> serverAcceptStream = AcceptServerStreamAsync();
 
             IMultiplexedStream stream = ClientConnection.CreateStream(true);
-            _ = stream.WriteAsync(CreateSendPayload(stream, 1), false, default).AsTask();
+            _ = stream.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, false, default).AsTask();
 
             IMultiplexedStream serverStream = await serverAcceptStream;
 
@@ -230,7 +216,7 @@ namespace IceRpc.Tests.Internal
             Task<IMultiplexedStream> serverAcceptStream = AcceptServerStreamAsync();
 
             IMultiplexedStream stream = ClientConnection.CreateStream(true);
-            _ = stream.WriteAsync(CreateSendPayload(stream, 1), false, default).AsTask();
+            _ = stream.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, false, default).AsTask();
 
             IMultiplexedStream serverStream = await serverAcceptStream;
 
@@ -279,7 +265,7 @@ namespace IceRpc.Tests.Internal
 
             // Ensure the server can still send data to the client even if the client can no longer send data to
             // the server.
-            await serverStream.WriteAsync(CreateSendPayload(serverStream, 1), false, default);
+            await serverStream.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, false, default);
             await stream.ReadAsync(new byte[1], default);
 
             async Task<IMultiplexedStream> AcceptServerStreamAsync()

@@ -50,8 +50,6 @@ namespace IceRpc.Transports.Internal
         private readonly IMultiplexedStream _decoratee;
         private readonly ILogger _logger;
 
-        public ReadOnlyMemory<byte> TransportHeader => _decoratee.TransportHeader;
-
         public void AbortRead(byte errorCode) => _decoratee.AbortRead(errorCode);
 
         public void AbortWrite(byte errorCode) => _decoratee.AbortWrite(errorCode);

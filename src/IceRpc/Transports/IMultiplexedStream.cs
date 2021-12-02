@@ -19,13 +19,6 @@ namespace IceRpc.Transports
         /// <summary>Sets the action which is called when the stream is reset.</summary>
         Action? ShutdownAction { get; set; }
 
-        /// <summary>The transport header sentinel. Transport implementations that need an additional header to transmit
-        /// data over the stream can provide a sample header here. The caller of <see cref="WriteAsync"/> is responsible
-        /// for prepending this header to the buffers provided to <see cref="WriteAsync"/>. The implementation of <see
-        /// cref="WriteAsync"/> expects this header to be present at the start of the <see cref="WriteAsync"/>
-        /// buffers.</summary>
-        ReadOnlyMemory<byte> TransportHeader { get; }
-
         /// <summary>Aborts the stream read side.</summary>
         /// <param name="errorCode">The reason of the abort.</param>
         void AbortRead(byte errorCode);

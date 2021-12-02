@@ -87,8 +87,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public ReadOnlyMemory<byte> TransportHeader => SlicDefinitions.FrameHeader;
-
         /// <summary>Specifies whether or not this is a stream initiated by the peer.</summary>
         internal bool IsRemote => _id != -1 && _id % 2 == (_connection.IsServer ? 0 : 1);
 
@@ -280,13 +278,17 @@ namespace IceRpc.Transports.Internal
             bool endStream,
             CancellationToken cancel)
         {
-            int size = buffers.GetByteCount() - TransportHeader.Length;
+            int size = buffers.GetByteCount();
             if (size == 0)
             {
                 // Send an empty last stream frame if there's no data to send. There's no need to check send flow
                 // control credit if there's no data to send.
                 Debug.Assert(endStream);
-                await _connection.SendStreamFrameAsync(this, buffers, true, cancel).ConfigureAwait(false);
+                await _connection.SendStreamFrameAsync(
+                    this,
+                    new ReadOnlyMemory<byte>[] { SlicDefinitions.FrameHeader.ToArray() },
+                    true,
+                    cancel).ConfigureAwait(false);
                 return;
             }
 
@@ -302,8 +304,9 @@ namespace IceRpc.Transports.Internal
                 _sendSemaphore = new AsyncSemaphore(1);
             }
 
-            // The send buffer for the Slic stream frame.
-            IList<ReadOnlyMemory<byte>>? sendBuffer = null;
+            // The send buffers for the Slic stream frame. Reserve an additional buffer for the Slic header.
+            var sendBuffers = new ReadOnlyMemory<byte>[buffers.Length + 1];
+            Memory<byte> headerBuffer = SlicDefinitions.FrameHeader.ToArray();
 
             // The amount of data sent so far.
             int offset = 0;
@@ -342,51 +345,28 @@ namespace IceRpc.Transports.Internal
                 // The maximum packet size to send, it can't be larger than the flow control credit left or
                 // the peer's packet max size.
                 int maxPacketSize = Math.Min(_sendCredit, _connection.PeerPacketMaxSize);
-
                 int sendSize = 0;
-                bool lastBuffer;
-                if (sendBuffer == null && size <= maxPacketSize)
-                {
-                    // The given buffer doesn't need to be fragmented as it's smaller than what we are allowed to send.
-                    // We directly send the buffer.
-                    sendSize = size;
-                    lastBuffer = true;
-                }
-                else
-                {
-                    if (sendBuffer == null)
-                    {
-                        // Sending first buffer fragment.
-                        sendBuffer = new List<ReadOnlyMemory<byte>>(buffers.Length);
-                        sendSize = -TransportHeader.Length;
-                    }
-                    else
-                    {
-                        // If it's not the first fragment, we re-use the space reserved for the Slic header in the first
-                        // buffer of the given protocol buffer.
-                        sendBuffer.Clear();
-                        sendBuffer.Add(buffers.Span[0][0..TransportHeader.Length]);
-                    }
 
-                    // Append data until we reach the allowed packet size or the end of the buffer to send.
-                    lastBuffer = false;
-                    for (int i = start.Buffer; i < buffers.Length; ++i)
+                int sendBufferIdx = 0;
+                sendBuffers[sendBufferIdx++] = headerBuffer;
+
+                // Append data until we reach the allowed packet size or the end of the buffer to send.
+                for (int i = start.Buffer; i < buffers.Length; ++i)
+                {
+                    int bufferOffset = i == start.Buffer ? start.Offset : 0;
+
+                    // Send the full buffer if there's still space left on the Slic packet. Otherwise, only send a chunk
+                    // of the buffer large enough to fill the Slic packet.
+                    int bufferSize = Math.Min(buffers.Span[i][bufferOffset..].Length, maxPacketSize - sendSize);
+                    sendBuffers[sendBufferIdx++] = buffers.Span[i][bufferOffset..(bufferOffset + bufferSize)];
+
+                    sendSize += bufferSize;
+
+                    if (sendSize == maxPacketSize)
                     {
-                        int bufferOffset = i == start.Buffer ? start.Offset : 0;
-                        if (buffers.Span[i][bufferOffset..].Length > maxPacketSize - sendSize)
-                        {
-                            sendBuffer.Add(buffers.Span[i][bufferOffset..(bufferOffset + maxPacketSize - sendSize)]);
-                            start = new BufferWriter.Position(i, bufferOffset + sendBuffer[^1].Length);
-                            Debug.Assert(start.Offset < buffers.Span[i].Length);
-                            sendSize = maxPacketSize;
-                            break;
-                        }
-                        else
-                        {
-                            sendBuffer.Add(buffers.Span[i][bufferOffset..]);
-                            sendSize += sendBuffer[^1].Length;
-                            lastBuffer = i + 1 == buffers.Length;
-                        }
+                        // No space left on the Slic packet, remember the send position for the next packet.
+                        start = new BufferWriter.Position(i, bufferOffset + bufferSize);
+                        break;
                     }
                 }
 
@@ -396,8 +376,8 @@ namespace IceRpc.Transports.Internal
                 {
                     await _connection.SendStreamFrameAsync(
                         this,
-                        sendBuffer?.ToArray() ?? buffers,
-                        lastBuffer && endStream,
+                        sendBuffers.AsMemory()[..sendBufferIdx],
+                        endStream: (offset == size) && endStream,
                         cancel).ConfigureAwait(false);
                 }
                 else
@@ -414,8 +394,8 @@ namespace IceRpc.Transports.Internal
 
                         await _connection.SendStreamFrameAsync(
                             this,
-                            sendBuffer?.ToArray() ?? buffers,
-                            lastBuffer && endStream,
+                            sendBuffers.AsMemory()[..sendBufferIdx],
+                            endStream: (offset == size) && endStream,
                             cancel).ConfigureAwait(false);
 
                         // If flow control allows sending more data, release the semaphore.
@@ -670,7 +650,7 @@ namespace IceRpc.Transports.Internal
                 set => throw new NotImplementedException();
             }
 
-            private readonly ReadOnlyMemory<byte>[] _buffers;
+            private readonly ReadOnlyMemory<byte>[] _buffers = new ReadOnlyMemory<byte>[1];
             private readonly SlicMultiplexedStream _stream;
 
             public override void Flush()
@@ -702,19 +682,11 @@ namespace IceRpc.Transports.Internal
 
             public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
             {
-                _buffers[1] = buffer;
+                _buffers[0] = buffer;
                 await _stream.WriteAsync(_buffers, buffer.Length == 0, cancel).ConfigureAwait(false);
             }
 
-            internal ByteStream(SlicMultiplexedStream stream)
-            {
-                _stream = stream;
-
-                // We allocate a two buffer array for writting the stream data to the Slic stream. The first buffer is
-                // for the Slic header and the second for the stream data.
-                _buffers = new ReadOnlyMemory<byte>[2];
-                _buffers[0] = _stream.TransportHeader.ToArray();
-            }
+            internal ByteStream(SlicMultiplexedStream stream) => _stream = stream;
         }
 
         [Flags]

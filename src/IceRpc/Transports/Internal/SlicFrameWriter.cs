@@ -35,8 +35,6 @@ namespace IceRpc.Transports.Internal
             bool endStream,
             CancellationToken cancel)
         {
-            Debug.Assert(buffers.Span[0].Length >= SlicDefinitions.FrameHeader.Length);
-
             int bufferSize = buffers.GetByteCount() - SlicDefinitions.FrameHeader.Length;
 
             // Compute how much space the size and stream ID require to figure out the start of the Slic
@@ -50,25 +48,14 @@ namespace IceRpc.Transports.Internal
             // buffer to ensure the first element points at the start of the Slic header. We'll restore the
             // send buffer once the send is complete (it's important for the tracing code which might rely on
             // the encoded data).
-            ReadOnlyMemory<byte> previous = buffers.Span[0];
             Memory<byte> headerData = MemoryMarshal.AsMemory(buffers.Span[0]);
             headerData = headerData[(SlicDefinitions.FrameHeader.Length - sizeLength - streamIdLength - 1)..];
-
             headerData.Span[0] = (byte)(endStream ? FrameType.StreamLast : FrameType.Stream);
             Ice20Encoder.EncodeFixedLengthSize(bufferSize, headerData.Span.Slice(1, sizeLength));
             Ice20Encoder.EncodeFixedLengthSize(stream.Id, headerData.Span.Slice(1 + sizeLength, streamIdLength));
-
-            // Update the first buffer entry
             MemoryMarshal.AsMemory(buffers).Span[0] = headerData;
-            try
-            {
-                await WriteFrameAsync(stream, buffers, cancel).ConfigureAwait(false);
-            }
-            finally
-            {
-                // Restore the original value of the send buffer.
-                MemoryMarshal.AsMemory(buffers).Span[0] = previous;
-            }
+
+            await WriteFrameAsync(stream, buffers, cancel).ConfigureAwait(false);
         }
 
         internal SlicFrameWriter(Func<ReadOnlyMemory<ReadOnlyMemory<byte>>, CancellationToken, ValueTask> writeFunc) =>

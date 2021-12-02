@@ -287,7 +287,6 @@ namespace IceRpc.Internal
             try
             {
                 var bufferWriter = new BufferWriter();
-                bufferWriter.WriteByteSpan(request.Stream.TransportHeader.Span);
                 var encoder = new Ice20Encoder(bufferWriter);
 
                 // Write the Ice2 request header.
@@ -392,7 +391,6 @@ namespace IceRpc.Internal
             }
 
             var bufferWriter = new BufferWriter();
-            bufferWriter.WriteByteSpan(request.Stream.TransportHeader.Span);
             var encoder = new Ice20Encoder(bufferWriter);
 
             // Write the Ice2 response header.
@@ -642,7 +640,6 @@ namespace IceRpc.Internal
             CancellationToken cancel)
         {
             var bufferWriter = new BufferWriter(new byte[1024]);
-            bufferWriter.WriteByteSpan(_controlStream!.TransportHeader.Span);
             var encoder = new Ice20Encoder(bufferWriter);
             encoder.EncodeByte((byte)frameType);
             BufferWriter.Position sizePos = encoder.StartFixedLengthSize();
