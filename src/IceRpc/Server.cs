@@ -16,11 +16,11 @@ namespace IceRpc
     {
         /// <summary>The default value for <see cref="MultiplexedServerTransport"/>.</summary>
         public static IServerTransport<IMultiplexedNetworkConnection> DefaultMultiplexedServerTransport { get; } =
-            new CompositeMultiplexedServerTransport().UseSlicOverColoc().UseSlicOverTcp();
+            new CompositeMultiplexedServerTransport().UseSlicOverTcp().UseSlicOverColoc();
 
         /// <summary>The default value for <see cref="SimpleServerTransport"/>.</summary>
         public static IServerTransport<ISimpleNetworkConnection> DefaultSimpleServerTransport { get; } =
-            new CompositeSimpleServerTransport().UseColoc().UseTcp().UseUdp();
+            new CompositeSimpleServerTransport().UseTcp().UseUdp().UseColoc();
 
         /// <summary>Gets or sets the options of server connections created by this server.</summary>
         public ConnectionOptions ConnectionOptions { get; init; } = new();
@@ -32,12 +32,21 @@ namespace IceRpc
         public IDispatcher? Dispatcher { get; init; }
 
         /// <summary>Gets or sets the endpoint of this server.</summary>
-        /// <value>The endpoint of this server, by default <c>ice+tcp://[::0]</c>.The endpoint's host is usually an
-        /// IP address, and it cannot be a DNS name.</value>
+        /// <value>The endpoint of this server. The endpoint's host is usually an IP address, and it cannot be a DNS
+        /// name. Once <see cref="Listen"/> is called, the endpoint can't be updated and its value is the listening
+        /// endpoint returned by the transport. The default value is transport specific (<c>ice+tcp://[::0]</c> for
+        /// TCP).</value>
         public Endpoint Endpoint
         {
-            get => _endpoint;
-            init => _endpoint = value;
+            get => _endpoint ?? MultiplexedServerTransport.DefaultEndpoint;
+            set
+            {
+                if (_listening)
+                {
+                    throw new InvalidOperationException("cannot change the endpoint of a server after calling Listen");
+                }
+                _endpoint = value;
+            }
         }
 
         /// <summary>The logger factory used to create loggers to log connection-related activities.</summary>
@@ -50,7 +59,7 @@ namespace IceRpc
 
         /// <summary>Gets the Ice protocol used by this server.</summary>
         /// <value>The Ice protocol of this server.</value>
-        public Protocol Protocol => _endpoint.Protocol;
+        public Protocol Protocol => Endpoint.Protocol;
 
         /// <summary>The <see cref="IServerTransport{ISimpleNetworkConnection}"/> used by this server to accept
         /// simple connections.</summary>
@@ -63,7 +72,7 @@ namespace IceRpc
 
         private readonly HashSet<Connection> _connections = new();
 
-        private Endpoint _endpoint = "ice+tcp://[::0]";
+        private Endpoint? _endpoint;
 
         private IListener? _listener;
 
@@ -124,7 +133,7 @@ namespace IceRpc
 
                 ILogger logger = LoggerFactory.CreateLogger("IceRpc.Server");
 
-                IListener<T> listener = serverTransport.Listen(_endpoint, logger);
+                IListener<T> listener = serverTransport.Listen(Endpoint, logger);
                 _listener = listener;
                 _endpoint = listener.Endpoint;
 
@@ -224,7 +233,7 @@ namespace IceRpc
         }
 
         /// <inherit-doc/>
-        public override string ToString() => _endpoint.ToString();
+        public override string ToString() => Endpoint.ToString();
 
         /// <inheritdoc/>
         public async ValueTask DisposeAsync() =>
@@ -260,7 +269,7 @@ namespace IceRpc
 
                 // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                var connection = new Connection(networkConnection, _endpoint.Protocol)
+                var connection = new Connection(networkConnection, Protocol)
                 {
                     Dispatcher = Dispatcher,
                     Options = ConnectionOptions
