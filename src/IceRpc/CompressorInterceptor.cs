@@ -35,7 +35,7 @@ namespace IceRpc
                 response.ResultType == ResultType.Success &&
                 response.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
             {
-                response.DecompressPayload();
+                response.UsePayloadDecompressor();
             }
 
             return response;

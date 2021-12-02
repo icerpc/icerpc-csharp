@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice.Internal;
+using System.Buffers;
+using System.IO.Pipelines;
 
 namespace IceRpc.Slice
 {
@@ -102,6 +104,35 @@ namespace IceRpc.Slice
         }
 
         internal override IceEncoder CreateIceEncoder(BufferWriter bufferWriter) => new Ice11Encoder(bufferWriter);
+
+        internal override async ValueTask<int> DecodeSegmentSizeAsync(PipeReader reader, CancellationToken cancel)
+        {
+            const int sizeLength = 4;
+
+            ReadResult readResult = await reader.ReadAtLeastAsync(sizeLength, cancel).ConfigureAwait(false);
+
+            if (readResult.IsCanceled)
+            {
+                throw new OperationCanceledException();
+            }
+
+            if (readResult.IsCompleted && readResult.Buffer.Length == 0)
+            {
+                return 0;
+            }
+
+            ReadOnlySequence<byte> buffer = readResult.Buffer.Slice(0, sizeLength);
+            int size = DecodeSize(buffer, sizeLength);
+            reader.AdvanceTo(buffer.End);
+            return size;
+
+            static int DecodeSize(ReadOnlySequence<byte> buffer, int sizeLength)
+            {
+                Span<byte> span = stackalloc byte[sizeLength];
+                buffer.CopyTo(span);
+                return IceDecoder.DecodeInt(span);
+            }
+        }
 
         internal override IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
             FeatureCollection features,

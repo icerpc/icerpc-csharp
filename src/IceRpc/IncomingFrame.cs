@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Collections.Immutable;
+using System.IO.Pipelines;
 
 namespace IceRpc
 {
@@ -22,15 +23,12 @@ namespace IceRpc
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <summary>The payload of this frame.</summary>
-        public ReadOnlyMemory<byte> Payload
+        public PipeReader Payload
         {
             get =>
-                _payload is ReadOnlyMemory<byte> value ? value : throw new InvalidOperationException("payload not set");
+                _payload is PipeReader value ? value : throw new InvalidOperationException("payload not set");
 
-            set
-            {
-                _payload = value;
-            }
+            set => _payload = value;
         }
 
         /// <summary>Returns the encoding of the payload of this frame.</summary>
@@ -40,16 +38,8 @@ namespace IceRpc
         /// <summary>The Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }
 
-        private protected bool IsPayloadSet => _payload != null;
-
         private Connection? _connection;
-        private ReadOnlyMemory<byte>? _payload;
-
-        /// <summary>Retrieves the payload of this frame.</summary>
-        /// <param name="cancel">The cancellation token.</param>
-        /// <returns>The payload.</returns>
-        public virtual ValueTask<ReadOnlyMemory<byte>> GetPayloadAsync(CancellationToken cancel = default) =>
-            IsPayloadSet ? new(Payload) : throw new NotImplementedException();
+        private PipeReader? _payload;
 
         /// <summary>Constructs an incoming frame.</summary>
         /// <param name="protocol">The protocol used to receive the frame.</param>

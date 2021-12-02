@@ -118,9 +118,6 @@ namespace IceRpc
                         invocation.ResponseFeatures = response.Features;
                     }
 
-                    // TODO: temporary
-                    _ = await response.GetPayloadAsync(cancel).ConfigureAwait(false);
-
                     StreamParamReceiver? streamParamReceiver = null;
                     if (returnStreamParamReceiver && request.Stream != null)
                     {

@@ -2,6 +2,8 @@
 
 using IceRpc.Configure;
 using NUnit.Framework;
+using System.Buffers;
+using System.IO.Pipelines;
 
 namespace IceRpc.Tests.ClientServer
 {
@@ -28,7 +30,7 @@ namespace IceRpc.Tests.ClientServer
                 return Task.FromResult(new IncomingResponse(request.Protocol, ResultType.Success)
                 {
                     Connection = connection, // without a connection, the decoding of response fails, even for void
-                    Payload = Encoding.Ice20.CreateEmptyPayload().Span[0],
+                    Payload = PipeReader.Create(ReadOnlySequence<byte>.Empty),
                     PayloadEncoding = Encoding.Ice20
                 });
             }));
@@ -65,7 +67,6 @@ namespace IceRpc.Tests.ClientServer
                     CompressionMinSize = compressionMinSize
                 });
 
-            int compressedRequestSize = 0;
             bool compressedRequest = false;
             int compressedResponseSize = 0;
 
@@ -77,7 +78,6 @@ namespace IceRpc.Tests.ClientServer
                 {
                     try
                     {
-                        compressedRequestSize = request.Payload.Length;
                         compressedRequest = request.Fields.ContainsKey((int)FieldKey.Compression);
                         OutgoingResponse response = await next.DispatchAsync(request, cancel);
                         compressedResponse = response.Fields.ContainsKey((int)FieldKey.Compression);
@@ -128,7 +128,6 @@ namespace IceRpc.Tests.ClientServer
             if (compressedRequest)
             {
                 Assert.That(size, Is.GreaterThanOrEqualTo(compressionMinSize));
-                Assert.That(size, Is.GreaterThan(compressedRequestSize));
             }
             else
             {
@@ -142,7 +141,6 @@ namespace IceRpc.Tests.ClientServer
             {
                 Assert.That(compressedResponse, Is.True);
                 Assert.That(size, Is.GreaterThanOrEqualTo(compressionMinSize));
-                Assert.That(size, Is.GreaterThan(compressedRequestSize));
                 Assert.That(size, Is.GreaterThan(compressedResponseSize));
             }
             else

@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using System.Buffers;
+using System.IO.Pipelines;
 
 namespace IceRpc.Slice
 {
@@ -12,31 +14,42 @@ namespace IceRpc.Slice
         /// <param name="response">The incoming response.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
-        /// <param name="_">The cancellation token.</param>
-        public static ValueTask CheckVoidReturnValueAsync(
+        /// <param name="cancel">The cancellation token.</param>
+        public static async ValueTask CheckVoidReturnValueAsync(
             this IncomingResponse response,
             IInvoker? invoker,
             IIceDecoderFactory<IceDecoder> iceDecoderFactory,
-            CancellationToken _)
+            CancellationToken cancel)
         {
-            if (response.Payload.Length > 0)
+            if (await iceDecoderFactory.Encoding.DecodeSegmentSizeAsync(
+                response.Payload,
+                cancel).ConfigureAwait(false) is int segmentSize && segmentSize > 0)
             {
-                IceDecoder decoder = iceDecoderFactory.CreateIceDecoder(response.Payload, response.Connection, invoker);
+                ReadResult readResult =
+                    await response.Payload.ReadAtLeastAsync(segmentSize, cancel).ConfigureAwait(false);
 
-                decoder.DecodeFixedLengthSize(); // skip return size for now
+                if (readResult.IsCanceled)
+                {
+                    throw new OperationCanceledException();
+                }
+
+                ReadOnlySequence<byte> segment = readResult.Buffer.Slice(0, segmentSize);
+
+                IceDecoder decoder = iceDecoderFactory.CreateIceDecoder(segment, response.Connection, invoker);
 
                 if (response.ResultType == ResultType.Failure)
                 {
-                    throw response.ToRemoteException(decoder);
+                    var exception = response.ToRemoteException(decoder);
+                    response.Payload.AdvanceTo(segment.End);
+                    throw exception;
                 }
                 else
                 {
                     decoder.CheckEndOfBuffer(skipTaggedParams: true);
+                    response.Payload.AdvanceTo(segment.End);
                 }
             }
-            // else check is successful. Payload has length 0 for oneway responses.
-
-            return default;
+            // else successful check
         }
 
         /// <summary>Decodes a response; only a specific Ice encoding is expected/supported.</summary>
@@ -46,14 +59,14 @@ namespace IceRpc.Slice
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
         /// <param name="decodeFunc">The decode function for the return value.</param>
-        /// <param name="_">The cancellation token.</param>
+        /// <param name="cancel">The cancellation token.</param>
         /// <returns>The return value.</returns>
-        public static ValueTask<T> ToReturnValueAsync<TDecoder, T>(
+        public static async ValueTask<T> ToReturnValueAsync<TDecoder, T>(
             this IncomingResponse response,
             IInvoker? invoker,
             IIceDecoderFactory<TDecoder> iceDecoderFactory,
             DecodeFunc<TDecoder, T> decodeFunc,
-            CancellationToken _) where TDecoder : IceDecoder
+            CancellationToken cancel) where TDecoder : IceDecoder
         {
             if (response.PayloadEncoding != iceDecoderFactory.Encoding)
             {
@@ -61,19 +74,53 @@ namespace IceRpc.Slice
                     }; expected a payload encoded with {iceDecoderFactory.Encoding}");
             }
 
-            TDecoder decoder = iceDecoderFactory.CreateIceDecoder(response.Payload, response.Connection, invoker);
+            int segmentSize = await iceDecoderFactory.Encoding.DecodeSegmentSizeAsync(
+                response.Payload,
+                cancel).ConfigureAwait(false);
 
-            decoder.DecodeFixedLengthSize(); // skip return size for now
+            ReadOnlySequence<byte> segment;
+
+            if (segmentSize > 0)
+            {
+                ReadResult readResult =
+                    await response.Payload.ReadAtLeastAsync(segmentSize, cancel).ConfigureAwait(false);
+
+                if (readResult.IsCanceled)
+                {
+                    throw new OperationCanceledException();
+                }
+
+                segment = readResult.Buffer.Slice(0, segmentSize);
+            }
+            else
+            {
+                // Typically return with only tagged return values where the sender does not know any tagged return or
+                // all the tagged return values are null.
+                segment = ReadOnlySequence<byte>.Empty;
+            }
+
+            TDecoder decoder = iceDecoderFactory.CreateIceDecoder(segment, response.Connection, invoker);
 
             if (response.ResultType == ResultType.Failure)
             {
-                throw response.ToRemoteException(decoder);
+                var exception = response.ToRemoteException(decoder);
+
+                if (segmentSize > 0)
+                {
+                    response.Payload.AdvanceTo(segment.End);
+                }
+                throw exception;
             }
             else
             {
                 T result = decodeFunc(decoder);
                 decoder.CheckEndOfBuffer(skipTaggedParams: true);
-                return new(result);
+
+                if (segmentSize > 0)
+                {
+                    response.Payload.AdvanceTo(segment.End);
+                }
+                return result;
             }
         }
 

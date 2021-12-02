@@ -3,6 +3,8 @@
 using IceRpc.Configure;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
+using System.Buffers;
+using System.IO.Pipelines;
 
 namespace IceRpc.Tests.Internal
 {
@@ -238,14 +240,14 @@ namespace IceRpc.Tests.Internal
             {
                 Connection = connection,
                 IsOneway = !twoway,
-                Payload = new byte[15],
+                Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
                 PayloadEncoding = Encoding.Ice20
             };
 
         private static IncomingResponse CreateIncomingResponse() =>
             new(Protocol.Ice2, ResultType.Success)
             {
-                Payload = new byte[10],
+                Payload = PipeReader.Create(new ReadOnlySequence<byte>(new byte[10])),
                 PayloadEncoding = Encoding.Ice20
             };
 

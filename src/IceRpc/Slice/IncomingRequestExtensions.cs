@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using System.Buffers;
+using System.IO.Pipelines;
 
 namespace IceRpc.Slice
 {
@@ -11,26 +13,35 @@ namespace IceRpc.Slice
         /// <summary>Verifies that a request payload carries no argument or only unknown tagged arguments.</summary>
         /// <param name="request">The incoming request.</param>
         /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
-        /// <param name="_">The cancellation token.</param>
+        /// <param name="cancel">The cancellation token.</param>
         /// <returns>A value task that completes when the checking is complete.</returns>
-        public static ValueTask CheckEmptyArgsAsync(
+        public static async ValueTask CheckEmptyArgsAsync(
             this IncomingRequest request,
             IIceDecoderFactory<IceDecoder> iceDecoderFactory,
-            CancellationToken _)
+            CancellationToken cancel)
         {
-            // In the future, we'll read the args size (usually 0) from the payload stream, allocate a buffer then
-            // ReadAsync the payload stream into this buffer.
-
-            IceDecoder decoder = iceDecoderFactory.CreateIceDecoder(
+            if (await iceDecoderFactory.Encoding.DecodeSegmentSizeAsync(
                 request.Payload,
-                request.Connection,
-                request.ProxyInvoker);
+                cancel).ConfigureAwait(false) is int segmentSize && segmentSize > 0)
+            {
+                ReadResult readResult =
+                    await request.Payload.ReadAtLeastAsync(segmentSize, cancel).ConfigureAwait(false);
 
-            decoder.DecodeFixedLengthSize(); // skip args size for now
+                if (readResult.IsCanceled)
+                {
+                    throw new OperationCanceledException();
+                }
 
-            decoder.CheckEndOfBuffer(skipTaggedParams: true);
+                ReadOnlySequence<byte> segment = readResult.Buffer.Slice(0, segmentSize);
 
-            return default; // for now, the exception is thrown synchronously.
+                IceDecoder decoder = iceDecoderFactory.CreateIceDecoder(
+                    segment,
+                    request.Connection,
+                    request.ProxyInvoker);
+
+                decoder.CheckEndOfBuffer(skipTaggedParams: true);
+                request.Payload.AdvanceTo(segment.End);
+            }
         }
 
         /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared
@@ -63,13 +74,13 @@ namespace IceRpc.Slice
         /// <param name="request">The incoming request.</param>
         /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
         /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
-        /// <param name="_">The cancellation token.</param>
+        /// <param name="cancel">The cancellation token.</param>
         /// <returns>The request arguments.</returns>
-        public static ValueTask<T> ToArgsAsync<TDecoder, T>(
+        public static async ValueTask<T> ToArgsAsync<TDecoder, T>(
             this IncomingRequest request,
             IIceDecoderFactory<TDecoder> iceDecoderFactory,
             DecodeFunc<TDecoder, T> decodeFunc,
-            CancellationToken _) where TDecoder : IceDecoder
+            CancellationToken cancel) where TDecoder : IceDecoder
         {
             if (request.PayloadEncoding != iceDecoderFactory.Encoding)
             {
@@ -78,19 +89,44 @@ namespace IceRpc.Slice
                     }; expected a payload encoded with {iceDecoderFactory.Encoding}");
             }
 
-            // In the future, we'll read the args size from the payload stream, allocate a buffer then ReadAsync the
-            // payload stream into this buffer.
+            int segmentSize = await iceDecoderFactory.Encoding.DecodeSegmentSizeAsync(
+                request.Payload,
+                cancel).ConfigureAwait(false);
+
+            ReadOnlySequence<byte> segment;
+
+            if (segmentSize > 0)
+            {
+                ReadResult readResult =
+                    await request.Payload.ReadAtLeastAsync(segmentSize, cancel).ConfigureAwait(false);
+
+                if (readResult.IsCanceled)
+                {
+                    throw new OperationCanceledException();
+                }
+
+                segment = readResult.Buffer.Slice(0, segmentSize);
+            }
+            else
+            {
+                // Typically args with only tagged parameters where the sender does not know any tagged param or all
+                // the tagged params are null.
+                segment = ReadOnlySequence<byte>.Empty;
+            }
 
             TDecoder decoder = iceDecoderFactory.CreateIceDecoder(
-                request.Payload,
+                segment,
                 request.Connection,
                 request.ProxyInvoker);
 
-            decoder.DecodeFixedLengthSize(); // skip args size for now
-
             T result = decodeFunc(decoder);
             decoder.CheckEndOfBuffer(skipTaggedParams: true);
-            return new(result);
+
+            if (segmentSize > 0)
+            {
+                request.Payload.AdvanceTo(segment.End);
+            }
+            return result;
         }
     }
 }

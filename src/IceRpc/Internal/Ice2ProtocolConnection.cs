@@ -4,7 +4,9 @@ using IceRpc.Features.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
+using System.Buffers;
 using System.Diagnostics;
+using System.IO.Pipelines;
 
 namespace IceRpc.Internal
 {
@@ -140,7 +142,7 @@ namespace IceRpc.Internal
                     PayloadEncoding = requestHeaderBody.PayloadEncoding.Length > 0 ?
                         Encoding.FromString(requestHeaderBody.PayloadEncoding) : Ice2Definitions.Encoding,
                     Fields = fields,
-                    Payload = payload,
+                    Payload = PipeReader.Create(new ReadOnlySequence<byte>(payload)),
                     Stream = stream
                 };
 
@@ -223,7 +225,7 @@ namespace IceRpc.Internal
                     Features = features,
                     Fields = fields,
                     PayloadEncoding = payloadEncoding,
-                    Payload = buffer[decoder.Pos..],
+                    Payload = PipeReader.Create(new ReadOnlySequence<byte>(buffer[decoder.Pos..])),
                 };
 
                 return response;

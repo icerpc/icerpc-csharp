@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Buffers;
 using System.Reflection;
 
 namespace IceRpc.Slice
@@ -17,6 +18,13 @@ namespace IceRpc.Slice
         /// <param name="invoker">The invoker of proxies decoded by this decoder.</param>
         /// <returns>A new Ice decoder.</returns>
         T CreateIceDecoder(ReadOnlyMemory<byte> buffer, Connection? connection, IInvoker? invoker);
+
+        /// <summary>Creates an Ice decoder.</summary>
+        /// <param name="buffer">The buffer to decode.</param>
+        /// <param name="connection">The connection that received this buffer.</param>
+        /// <param name="invoker">The invoker of proxies decoded by this decoder.</param>
+        /// <returns>A new Ice decoder.</returns>
+        T CreateIceDecoder(ReadOnlySequence<byte> buffer, Connection? connection, IInvoker? invoker);
     }
 
     /// <summary>The default implementation of <see cref="IIceDecoderFactory{T}"/> for <see cref="Ice11Decoder"/>.
@@ -42,6 +50,27 @@ namespace IceRpc.Slice
             ReadOnlyMemory<byte> buffer,
             Connection? connection,
             IInvoker? invoker) => new(buffer, connection, invoker, _activator, _classGraphMaxDepth);
+
+        Ice11Decoder IIceDecoderFactory<Ice11Decoder>.CreateIceDecoder(
+            ReadOnlySequence<byte> buffer,
+            Connection? connection,
+            IInvoker? invoker)
+        {
+            ReadOnlyMemory<byte> singleBuffer;
+
+            if (buffer.IsSingleSegment)
+            {
+                singleBuffer = buffer.First;
+            }
+            else
+            {
+                // Combine everything in a single buffer
+                Memory<byte> mergedBuffer = new byte[buffer.Length];
+                buffer.CopyTo(mergedBuffer.Span);
+                singleBuffer = mergedBuffer;
+            }
+            return new(singleBuffer, connection, invoker, _activator, _classGraphMaxDepth);
+        }
     }
 
     /// <summary>The default implementation of <see cref="IIceDecoderFactory{T}"/> for <see cref="Ice20Decoder"/>.
@@ -61,6 +90,27 @@ namespace IceRpc.Slice
             ReadOnlyMemory<byte> buffer,
             Connection? connection,
             IInvoker? invoker) => new(buffer, connection, invoker, _activator);
+
+        Ice20Decoder IIceDecoderFactory<Ice20Decoder>.CreateIceDecoder(
+            ReadOnlySequence<byte> buffer,
+            Connection? connection,
+            IInvoker? invoker)
+        {
+            ReadOnlyMemory<byte> singleBuffer;
+
+            if (buffer.IsSingleSegment)
+            {
+                singleBuffer = buffer.First;
+            }
+            else
+            {
+                // Combine everything in a single buffer
+                Memory<byte> mergedBuffer = new byte[buffer.Length];
+                buffer.CopyTo(mergedBuffer.Span);
+                singleBuffer = mergedBuffer;
+            }
+            return new(singleBuffer, connection, invoker, _activator);
+        }
     }
 
     /// <summary>A struct that holds default Ice decoder factories for all supported Ice encodings.</summary>

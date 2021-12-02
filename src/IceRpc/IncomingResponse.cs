@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using System.Collections.Immutable;
 
 namespace IceRpc
@@ -16,18 +15,5 @@ namespace IceRpc
         /// <param name="resultType">The <see cref="ResultType"/> of the response.</param>
         public IncomingResponse(Protocol protocol, ResultType resultType) :
             base(protocol) => ResultType = resultType;
-
-        /// <summary>Create an outgoing response from this incoming response. The response is constructed to be
-        /// forwarded using the given target protocol.</summary>
-        /// <param name="targetProtocol">The protocol used to send to the outgoing response.</param>
-        /// <returns>The outgoing response to be forwarded.</returns>
-        public OutgoingResponse ToOutgoingResponse(Protocol targetProtocol) =>
-            new(targetProtocol, ResultType)
-            {
-                // Don't forward RetryPolicy
-                FieldsDefaults = Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
-                Payload = new ReadOnlyMemory<byte>[] { Payload },
-                PayloadEncoding = PayloadEncoding,
-            };
     }
 }

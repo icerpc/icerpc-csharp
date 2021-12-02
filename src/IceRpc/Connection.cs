@@ -7,7 +7,9 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Buffers;
 using System.Diagnostics;
+using System.IO.Pipelines;
 
 namespace IceRpc
 {
@@ -299,7 +301,8 @@ namespace IceRpc
                     response = new IncomingResponse(Protocol, ResultType.Success)
                     {
                         PayloadEncoding = request.PayloadEncoding,
-                        Payload = default
+                        // TODO: can we use a static shared empty PipeReader?
+                        Payload = PipeReader.Create(ReadOnlySequence<byte>.Empty)
                     };
                 }
                 else
