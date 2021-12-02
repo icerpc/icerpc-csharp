@@ -574,8 +574,7 @@ namespace IceRpc
                         }
                     }
 
-                    var remoteException = exception as RemoteException;
-                    if (remoteException == null || remoteException.ConvertToUnhandled)
+                    if (exception is not RemoteException remoteException || remoteException.ConvertToUnhandled)
                     {
                         remoteException = new UnhandledException(exception);
                     }
