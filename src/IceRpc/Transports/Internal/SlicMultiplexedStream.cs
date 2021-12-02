@@ -345,32 +345,28 @@ namespace IceRpc.Transports.Internal
                 // The maximum packet size to send, it can't be larger than the flow control credit left or
                 // the peer's packet max size.
                 int maxPacketSize = Math.Min(_sendCredit, _connection.PeerPacketMaxSize);
-
                 int sendSize = 0;
-                int sendBufferIdx = 0;
-                bool lastBuffer;
 
+                int sendBufferIdx = 0;
                 sendBuffers[sendBufferIdx++] = headerBuffer;
 
                 // Append data until we reach the allowed packet size or the end of the buffer to send.
-                lastBuffer = false;
                 for (int i = start.Buffer; i < buffers.Length; ++i)
                 {
                     int bufferOffset = i == start.Buffer ? start.Offset : 0;
-                    if (buffers.Span[i][bufferOffset..].Length > maxPacketSize - sendSize)
+
+                    // Send the full buffer if there's still space left on the Slic packet. Otherwise, only send a chunk
+                    // of the buffer large enough to fill the Slic packet.
+                    int bufferSize = Math.Min(buffers.Span[i][bufferOffset..].Length, maxPacketSize - sendSize);
+                    sendBuffers[sendBufferIdx++] = buffers.Span[i][bufferOffset..(bufferOffset + bufferSize)];
+
+                    sendSize += bufferSize;
+
+                    if (sendSize == maxPacketSize)
                     {
-                        sendBuffers[sendBufferIdx++] =
-                            buffers.Span[i][bufferOffset..(bufferOffset + maxPacketSize - sendSize)];
-                        start = new BufferWriter.Position(i, bufferOffset + sendBuffers[sendBufferIdx - 1].Length);
-                        Debug.Assert(start.Offset < buffers.Span[i].Length);
-                        sendSize = maxPacketSize;
+                        // No space left on the Slic packet, remember the send position for the next packet.
+                        start = new BufferWriter.Position(i, bufferOffset + bufferSize);
                         break;
-                    }
-                    else
-                    {
-                        sendBuffers[sendBufferIdx++] = buffers.Span[i][bufferOffset..];
-                        sendSize += sendBuffers[sendBufferIdx - 1].Length;
-                        lastBuffer = i + 1 == buffers.Length;
                     }
                 }
 
@@ -381,7 +377,7 @@ namespace IceRpc.Transports.Internal
                     await _connection.SendStreamFrameAsync(
                         this,
                         sendBuffers.AsMemory()[..sendBufferIdx],
-                        lastBuffer && endStream,
+                        endStream: (offset == size) && endStream,
                         cancel).ConfigureAwait(false);
                 }
                 else
@@ -399,7 +395,7 @@ namespace IceRpc.Transports.Internal
                         await _connection.SendStreamFrameAsync(
                             this,
                             sendBuffers.AsMemory()[..sendBufferIdx],
-                            lastBuffer && endStream,
+                            endStream: (offset == size) && endStream,
                             cancel).ConfigureAwait(false);
 
                         // If flow control allows sending more data, release the semaphore.
