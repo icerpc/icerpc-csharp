@@ -34,6 +34,8 @@ namespace IceRpc.Tests.ClientServer
         private readonly IServerTransport<IMultiplexedNetworkConnection> _transport =
             new SlicServerTransport(new TcpServerTransport());
 
+        public Endpoint DefaultEndpoint => "ice+custom://[::0]";
+
         public IListener<IMultiplexedNetworkConnection> Listen(Endpoint endpoint, ILogger logger)
         {
             if (endpoint.Transport == "custom")
@@ -127,6 +129,20 @@ namespace IceRpc.Tests.ClientServer
                 prx = ServicePrx.FromConnection(connection2);
                 Assert.ThrowsAsync<FormatException>(async () => await prx.IcePingAsync());
             }
+        }
+
+        [Test]
+        public async Task CustomTransport_DefaultEndpointAsync()
+        {
+            await using var server = new Server
+            {
+                MultiplexedServerTransport = new CustomServerTransport(),
+                Dispatcher = new MyService()
+            };
+            Endpoint defaultEndpoint = server.MultiplexedServerTransport.DefaultEndpoint;
+            Assert.That(server.Endpoint, Is.EqualTo(defaultEndpoint));
+            server.Listen();
+            Assert.That(server.Endpoint, Is.EqualTo(defaultEndpoint));
         }
 
         public class MyService : Service, IService
