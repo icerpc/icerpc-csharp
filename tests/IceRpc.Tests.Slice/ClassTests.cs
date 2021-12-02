@@ -24,7 +24,7 @@ namespace IceRpc.Tests.Slice
                 new InlineDispatcher(
                     (request, cancel) =>
                     {
-                        var response = OutgoingResponse.ForPayload(
+                        var response = new OutgoingResponse(
                             request,
                             IceRpc.Slice.Ice11Encoding.CreatePayloadFromSingleReturnValue(
                                 new MyClassAlsoEmpty(),

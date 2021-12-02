@@ -63,6 +63,20 @@ namespace IceRpc.Slice
             return bufferWriter.Finish();
         }
 
+        /// <summary>Creates the payload of a response from a remote exception.</summary>
+        /// <param name="exception">The remote exception.</param>
+        /// <returns>A new payload.</returns>
+        public ReadOnlyMemory<ReadOnlyMemory<byte>> CreatePayloadFromRemoteException(RemoteException exception)
+        {
+            var bufferWriter = new BufferWriter();
+            IceEncoder encoder = CreateIceEncoder(bufferWriter);
+
+            BufferWriter.Position start = encoder.StartFixedLengthSize();
+            encoder.EncodeException(exception);
+            _ = encoder.EndFixedLengthSize(start);
+            return bufferWriter.Finish();
+        }
+
         /// <summary>Creates the payload of a response from the request's dispatch and return value tuple. Use this
         /// method when the operation returns a tuple.</summary>
         /// <typeparam name="T">The type of the operation's return value tuple.</typeparam>

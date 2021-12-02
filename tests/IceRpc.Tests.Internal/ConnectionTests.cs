@@ -228,7 +228,7 @@ namespace IceRpc.Tests.Internal
                 dispatcher: new InlineDispatcher(async (request, cancel) =>
                 {
                     await semaphore.WaitAsync(cancel);
-                    return OutgoingResponse.ForPayload(request, default);
+                    return new OutgoingResponse(request, default);
                 }),
                 protocol: protocol);
 
@@ -449,8 +449,9 @@ namespace IceRpc.Tests.Internal
                 dispatcher: new InlineDispatcher(async (request, cancel) =>
                 {
                     await dispatchSemaphore.WaitAsync(cancel);
-                    return OutgoingResponse.ForPayload(request,
-                                                       ((IceEncoding)request.PayloadEncoding).CreateEmptyPayload());
+                    return new OutgoingResponse(
+                        request,
+                        ((IceEncoding)request.PayloadEncoding).CreateEmptyPayload());
                 }));
 
             // Perform an invocation and wait 2 seconds. The connection shouldn't close.
@@ -479,8 +480,9 @@ namespace IceRpc.Tests.Internal
                 {
                     waitForDispatchSemaphore.Release();
                     await dispatchSemaphore.WaitAsync(cancel);
-                    return OutgoingResponse.ForPayload(request,
-                                                       ((IceEncoding)request.PayloadEncoding).CreateEmptyPayload());
+                    return new OutgoingResponse(
+                        request,
+                        ((IceEncoding)request.PayloadEncoding).CreateEmptyPayload());
                 }));
 
             // Perform an invocation.
@@ -538,7 +540,7 @@ namespace IceRpc.Tests.Internal
                     {
                     }
                     Assert.Fail();
-                    return OutgoingResponse.ForPayload(request, default);
+                    return new OutgoingResponse(request, default);
                 }));
 
             // Perform an invocation
@@ -608,7 +610,7 @@ namespace IceRpc.Tests.Internal
                 {
                     waitForDispatchSemaphore.Release();
                     await semaphore.WaitAsync(cancel);
-                    return OutgoingResponse.ForPayload(request, default);
+                    return new OutgoingResponse(request, default);
                 }));
 
             // Perform an invocation

@@ -14,24 +14,14 @@ namespace IceRpc
         public OutgoingResponse(Protocol protocol, ResultType resultType) :
             base(protocol) => ResultType = resultType;
 
-        /// <summary>Constructs a successful response that contains a payload.</summary>
-        /// <param name="request">The incoming request for which this method creates a response.</param>
+        /// <summary>Constructs a successful response with the specified payload.</summary>
+        /// <param name="request">The incoming request.</param>
         /// <param name="payload">The response's payload.</param>
-        /// <returns>The outgoing response.</returns>
-        public static OutgoingResponse ForPayload(
-            IncomingRequest request,
-            ReadOnlyMemory<ReadOnlyMemory<byte>> payload) =>
-            new(request.Protocol, ResultType.Success)
-            {
-                Payload = payload,
-                PayloadEncoding = request.PayloadEncoding,
-            };
-
-        /// <summary>Constructs a failure response that contains an exception.</summary>
-        /// <param name="request">The incoming request for which this method creates a response.</param>
-        /// <param name="exception">The exception to store into the response's payload.</param>
-        /// <returns>The outgoing response.</returns>
-        public static OutgoingResponse ForException(IncomingRequest request, Exception exception) =>
-            request.Protocol.CreateResponseFromException(exception, request);
+        public OutgoingResponse(IncomingRequest request, ReadOnlyMemory<ReadOnlyMemory<byte>> payload) :
+            this(request.Protocol, ResultType.Success)
+        {
+            Payload = payload;
+            PayloadEncoding = request.PayloadEncoding;
+        }
     }
 }
