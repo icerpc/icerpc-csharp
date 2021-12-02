@@ -127,14 +127,7 @@ namespace IceRpc
                 remoteException.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
             }
 
-            return CreateResponseFromRemoteException(remoteException, request.GetIceEncoding());
-        }
-
-        // TODO: move to Slice
-        internal OutgoingResponse CreateResponseFromRemoteException(
-            RemoteException remoteException,
-            IceEncoding payloadEncoding)
-        {
+            IceEncoding payloadEncoding = request.GetIceEncoding();
             var bufferWriter = new BufferWriter();
 
             IceEncoder encoder = payloadEncoding.CreateIceEncoder(bufferWriter);
