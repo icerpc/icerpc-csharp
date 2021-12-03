@@ -1,8 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using System.Buffers;
-using System.IO.Pipelines;
+using IceRpc.Slice.Internal;
 
 namespace IceRpc.Slice
 {
@@ -15,34 +14,10 @@ namespace IceRpc.Slice
         /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>A value task that completes when the checking is complete.</returns>
-        public static async ValueTask CheckEmptyArgsAsync(
+        public static ValueTask CheckEmptyArgsAsync(
             this IncomingRequest request,
             IIceDecoderFactory<IceDecoder> iceDecoderFactory,
-            CancellationToken cancel)
-        {
-            if (await iceDecoderFactory.Encoding.DecodeSegmentSizeAsync(
-                request.Payload,
-                cancel).ConfigureAwait(false) is int segmentSize && segmentSize > 0)
-            {
-                ReadResult readResult =
-                    await request.Payload.ReadAtLeastAsync(segmentSize, cancel).ConfigureAwait(false);
-
-                if (readResult.IsCanceled)
-                {
-                    throw new OperationCanceledException();
-                }
-
-                ReadOnlySequence<byte> segment = readResult.Buffer.Slice(0, segmentSize);
-
-                IceDecoder decoder = iceDecoderFactory.CreateIceDecoder(
-                    segment,
-                    request.Connection,
-                    request.ProxyInvoker);
-
-                decoder.CheckEndOfBuffer(skipTaggedParams: true);
-                request.Payload.AdvanceTo(segment.End);
-            }
-        }
+            CancellationToken cancel) => request.Payload.ReadVoidAsync(iceDecoderFactory, cancel);
 
         /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared
         /// idempotent, the request is not marked idempotent. If the request is marked idempotent, it means the caller
@@ -67,8 +42,7 @@ namespace IceRpc.Slice
         public static void StreamReadingComplete(this IncomingRequest request) =>
             request.Stream?.AbortRead((byte)MultiplexedStreamError.UnexpectedStreamData);
 
-        /// <summary>Decodes the request's payload into a list of arguments. The payload must be encoded with
-        /// a specific Ice encoding.</summary>
+        /// <summary>Decodes the request's payload into a list of arguments.</summary>
         /// <paramtype name="TDecoder">The type of the Ice decoder.</paramtype>
         /// <paramtype name="T">The type of the request parameters.</paramtype>
         /// <param name="request">The incoming request.</param>
@@ -76,57 +50,16 @@ namespace IceRpc.Slice
         /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The request arguments.</returns>
-        public static async ValueTask<T> ToArgsAsync<TDecoder, T>(
+        public static ValueTask<T> ToArgsAsync<TDecoder, T>(
             this IncomingRequest request,
             IIceDecoderFactory<TDecoder> iceDecoderFactory,
             DecodeFunc<TDecoder, T> decodeFunc,
-            CancellationToken cancel) where TDecoder : IceDecoder
-        {
-            if (request.PayloadEncoding != iceDecoderFactory.Encoding)
-            {
-                throw new InvalidDataException(@$"cannot decode payload of request {request.Operation
-                    } encoded with {request.PayloadEncoding
-                    }; expected a payload encoded with {iceDecoderFactory.Encoding}");
-            }
-
-            int segmentSize = await iceDecoderFactory.Encoding.DecodeSegmentSizeAsync(
-                request.Payload,
-                cancel).ConfigureAwait(false);
-
-            ReadOnlySequence<byte> segment;
-
-            if (segmentSize > 0)
-            {
-                ReadResult readResult =
-                    await request.Payload.ReadAtLeastAsync(segmentSize, cancel).ConfigureAwait(false);
-
-                if (readResult.IsCanceled)
-                {
-                    throw new OperationCanceledException();
-                }
-
-                segment = readResult.Buffer.Slice(0, segmentSize);
-            }
-            else
-            {
-                // Typically args with only tagged parameters where the sender does not know any tagged param or all
-                // the tagged params are null.
-                segment = ReadOnlySequence<byte>.Empty;
-            }
-
-            TDecoder decoder = iceDecoderFactory.CreateIceDecoder(
-                segment,
+            CancellationToken cancel) where TDecoder : IceDecoder =>
+            request.Payload.ReadValueAsync(
+                iceDecoderFactory,
+                decodeFunc,
                 request.Connection,
-                request.ProxyInvoker);
-
-            T result = decodeFunc(decoder);
-            decoder.CheckEndOfBuffer(skipTaggedParams: true);
-
-            if (segmentSize > 0)
-            {
-                request.Payload.AdvanceTo(segment.End);
-            }
-            return result;
-        }
+                request.ProxyInvoker,
+                cancel);
     }
 }
