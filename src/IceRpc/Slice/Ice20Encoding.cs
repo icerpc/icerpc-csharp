@@ -20,6 +20,10 @@ namespace IceRpc.Slice
 
         internal override IceEncoder CreateIceEncoder(BufferWriter bufferWriter) => new Ice20Encoder(bufferWriter);
 
+        internal override int DecodeSegmentSize(ReadOnlySpan<byte> buffer) => Ice20Decoder.DecodeSize(buffer).Size;
+        internal override int DecodeSegmentSizeLength(ReadOnlySpan<byte> buffer) =>
+            Ice20Decoder.DecodeSizeLength(buffer[0]);
+
         internal override IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
             FeatureCollection features,
             DefaultIceDecoderFactories defaultIceDecoderFactories) =>

@@ -5,7 +5,9 @@ using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
+using System.Buffers;
 using System.Diagnostics;
+using System.IO.Pipelines;
 
 namespace IceRpc.Internal
 {
@@ -147,14 +149,15 @@ namespace IceRpc.Internal
                 var request = new IncomingRequest(
                     Protocol.Ice1,
                     path: requestHeader.IdentityAndFacet.ToPath(),
-                    operation: requestHeader.Operation)
+                    operation: requestHeader.Operation,
+                    payload: PipeReader.Create(new ReadOnlySequence<byte>(payload)),
+                    payloadEncoding)
                 {
                     IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
                     IsOneway = requestId == 0,
-                    PayloadEncoding = payloadEncoding,
-                    Deadline = DateTime.MaxValue,
-                    Payload = payload,
+                    Deadline = DateTime.MaxValue
                 };
+
                 request.Features = request.Features.With(new Ice1Request(requestId, outgoing: false));
                 if (requestHeader.Context.Count > 0)
                 {
@@ -277,11 +280,13 @@ namespace IceRpc.Internal
 
             EncodePayloadSize(payloadSize.Value, payloadEncoding, payload.Span[0..4]);
 
-            return new IncomingResponse(Protocol.Ice1, resultType)
+            return new IncomingResponse(
+                Protocol.Ice1,
+                resultType,
+                PipeReader.Create(new ReadOnlySequence<byte>(payload)),
+                payloadEncoding)
             {
                 Features = features,
-                PayloadEncoding = payloadEncoding,
-                Payload = payload
             };
         }
 

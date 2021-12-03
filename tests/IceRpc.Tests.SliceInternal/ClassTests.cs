@@ -4,6 +4,7 @@ using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Slice;
 using NUnit.Framework;
+using System.IO.Pipelines;
 
 using static IceRpc.Slice.Internal.Ice11Definitions;
 
@@ -74,7 +75,12 @@ namespace IceRpc.Tests.SliceInternal
                 Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
 
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
-                decoder = new Ice11Decoder(await response.GetPayloadAsync(cancel));
+
+                ReadResult readResult = await response.Payload.ReadAsync(cancel);
+                Assert.That(readResult.IsCompleted);
+                Assert.That(readResult.Buffer.IsSingleSegment);
+
+                decoder = new Ice11Decoder(readResult.Buffer.First);
 
                 // Skip payload size
                 decoder.Skip(4);
@@ -105,7 +111,12 @@ namespace IceRpc.Tests.SliceInternal
                 // The Slice does not include a size when using the compact format
                 Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
-                decoder = new Ice11Decoder(await response.GetPayloadAsync(cancel));
+
+                ReadResult readResult = await response.Payload.ReadAsync(cancel);
+                Assert.That(readResult.IsCompleted);
+                Assert.That(readResult.Buffer.IsSingleSegment);
+
+                decoder = new Ice11Decoder(readResult.Buffer.First);
 
                 // Skip payload size
                 decoder.Skip(4);
@@ -136,7 +147,12 @@ namespace IceRpc.Tests.SliceInternal
                 // The Slice does not include a size when using the compact format
                 Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
-                decoder = new Ice11Decoder(await response.GetPayloadAsync(cancel));
+
+                ReadResult readResult = await response.Payload.ReadAsync(cancel);
+                Assert.That(readResult.IsCompleted);
+                Assert.That(readResult.Buffer.IsSingleSegment);
+
+                decoder = new Ice11Decoder(readResult.Buffer.First);
 
                 // Skip payload size
                 decoder.Skip(4);
@@ -166,7 +182,12 @@ namespace IceRpc.Tests.SliceInternal
                 // The Slice includes a size for the sliced format
                 Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
-                decoder = new Ice11Decoder(await response.GetPayloadAsync(cancel));
+
+                ReadResult readResult = await response.Payload.ReadAsync(cancel);
+                Assert.That(readResult.IsCompleted);
+                Assert.That(readResult.Buffer.IsSingleSegment);
+
+                decoder = new Ice11Decoder(readResult.Buffer.First);
 
                 // Skip payload size
                 decoder.Skip(4);

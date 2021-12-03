@@ -2,6 +2,7 @@
 
 using System.IO.Compression;
 using System.Runtime.InteropServices;
+using System.IO.Pipelines;
 
 namespace IceRpc.Internal
 {
@@ -139,19 +140,26 @@ namespace IceRpc.Internal
             }
         }
 
-        internal static void DecompressPayload(this IncomingFrame frame)
+        // TODO: move to class IncomingFrameExtensions
+        internal static void UsePayloadDecompressor(this IncomingFrame frame)
         {
             if (frame.Protocol.HasFieldSupport)
             {
                 // TODO: switch to class for CompressionField?
-                CompressionField compressionField = frame.Fields.Get((int)FieldKey.Compression,
-                                                                     decoder => new CompressionField(decoder));
+                CompressionField compressionField = frame.Fields.Get(
+                    (int)FieldKey.Compression,
+                    decoder => new CompressionField(decoder));
 
                 if (compressionField != default) // default means not set
                 {
-                    frame.Payload = frame.Payload.Decompress(compressionField.Format,
-                                                             (int)compressionField.UncompressedSize,
-                                                             frame.Connection.Options.IncomingFrameMaxSize);
+                    if (compressionField.Format != CompressionFormat.Deflate)
+                    {
+                        throw new NotSupportedException(
+                            $"cannot decompress compression format '{compressionField.Format}'");
+                    }
+
+                    frame.Payload = PipeReader.Create(
+                        new DeflateStream(frame.Payload.AsStream(), CompressionMode.Decompress));
                 }
             }
         }

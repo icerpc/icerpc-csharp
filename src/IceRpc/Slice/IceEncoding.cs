@@ -115,6 +115,12 @@ namespace IceRpc.Slice
             return bufferWriter.Finish();
         }
 
+        /// <summary>Decodes the size of a payload segment from a buffer.</summary>
+        internal abstract int DecodeSegmentSize(ReadOnlySpan<byte> buffer);
+
+        /// <summary>Decodes the length of the size of a payload segment from a buffer.</summary>
+        internal abstract int DecodeSegmentSizeLength(ReadOnlySpan<byte> buffer);
+
         internal abstract IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
             FeatureCollection features,
             DefaultIceDecoderFactories defaultIceDecoderFactories);

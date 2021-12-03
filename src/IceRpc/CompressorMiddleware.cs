@@ -25,7 +25,7 @@ namespace IceRpc
             if (_options.DecompressPayload &&
                 request.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
             {
-                request.DecompressPayload();
+                request.UsePayloadDecompressor();
             }
 
             OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);

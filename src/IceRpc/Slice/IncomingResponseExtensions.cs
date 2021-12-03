@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
+using IceRpc.Slice.Internal;
 
 namespace IceRpc.Slice
 {
@@ -12,85 +12,53 @@ namespace IceRpc.Slice
         /// <param name="response">The incoming response.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
-        /// <param name="_">The cancellation token.</param>
-        public static ValueTask CheckVoidReturnValueAsync(
+        /// <param name="cancel">The cancellation token.</param>
+        public static async ValueTask CheckVoidReturnValueAsync(
             this IncomingResponse response,
             IInvoker? invoker,
             IIceDecoderFactory<IceDecoder> iceDecoderFactory,
-            CancellationToken _)
+            CancellationToken cancel)
         {
-            if (response.Payload.Length > 0)
+            if (response.ResultType == ResultType.Success)
             {
-                IceDecoder decoder = iceDecoderFactory.CreateIceDecoder(response.Payload, response.Connection, invoker);
-
-                decoder.DecodeFixedLengthSize(); // skip return size for now
-
-                if (response.ResultType == ResultType.Failure)
-                {
-                    throw response.ToRemoteException(decoder);
-                }
-                else
-                {
-                    decoder.CheckEndOfBuffer(skipTaggedParams: true);
-                }
+                await response.Payload.ReadVoidAsync(iceDecoderFactory, cancel).ConfigureAwait(false);
             }
-            // else check is successful. Payload has length 0 for oneway responses.
-
-            return default;
+            else
+            {
+                throw await response.Payload.ReadRemoteExceptionAsync(
+                    iceDecoderFactory,
+                    response.Connection,
+                    invoker,
+                    cancel).ConfigureAwait(false);
+            }
         }
 
-        /// <summary>Decodes a response; only a specific Ice encoding is expected/supported.</summary>
+        /// <summary>Decodes a response payload.</summary>
         /// <paramtype name="TDecoder">The type of the Ice decoder.</paramtype>
         /// <paramtype name="T">The type of the return value.</paramtype>
         /// <param name="response">The incoming response.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
         /// <param name="decodeFunc">The decode function for the return value.</param>
-        /// <param name="_">The cancellation token.</param>
+        /// <param name="cancel">The cancellation token.</param>
         /// <returns>The return value.</returns>
-        public static ValueTask<T> ToReturnValueAsync<TDecoder, T>(
+        public static async ValueTask<T> ToReturnValueAsync<TDecoder, T>(
             this IncomingResponse response,
             IInvoker? invoker,
             IIceDecoderFactory<TDecoder> iceDecoderFactory,
             DecodeFunc<TDecoder, T> decodeFunc,
-            CancellationToken _) where TDecoder : IceDecoder
-        {
-            if (response.PayloadEncoding != iceDecoderFactory.Encoding)
-            {
-                throw new InvalidDataException(@$"cannot decode response payload encoded with {response.PayloadEncoding
-                    }; expected a payload encoded with {iceDecoderFactory.Encoding}");
-            }
-
-            TDecoder decoder = iceDecoderFactory.CreateIceDecoder(response.Payload, response.Connection, invoker);
-
-            decoder.DecodeFixedLengthSize(); // skip return size for now
-
-            if (response.ResultType == ResultType.Failure)
-            {
-                throw response.ToRemoteException(decoder);
-            }
-            else
-            {
-                T result = decodeFunc(decoder);
-                decoder.CheckEndOfBuffer(skipTaggedParams: true);
-                return new(result);
-            }
-        }
-
-        /// <summary>Decodes a remote exception carried by a response.</summary>
-        private static RemoteException ToRemoteException(this IncomingResponse response, IceDecoder decoder)
-        {
-            // the caller skipped the size
-
-            RemoteException exception = decoder.DecodeException();
-
-            if (exception is not UnknownSlicedRemoteException)
-            {
-                decoder.CheckEndOfBuffer(skipTaggedParams: false);
-            }
-            // else, we did not decode the full exception from the buffer
-
-            return exception;
-        }
+            CancellationToken cancel) where TDecoder : IceDecoder =>
+            response.ResultType == ResultType.Success ?
+                await response.Payload.ReadValueAsync(
+                    iceDecoderFactory,
+                    decodeFunc,
+                    response.Connection,
+                    invoker,
+                    cancel).ConfigureAwait(false) :
+                throw await response.Payload.ReadRemoteExceptionAsync(
+                    iceDecoderFactory,
+                    response.Connection,
+                    invoker,
+                    cancel).ConfigureAwait(false);
     }
 }

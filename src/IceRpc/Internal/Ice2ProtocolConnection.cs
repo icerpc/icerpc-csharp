@@ -4,7 +4,9 @@ using IceRpc.Features.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
+using System.Buffers;
 using System.Diagnostics;
+using System.IO.Pipelines;
 
 namespace IceRpc.Internal
 {
@@ -129,7 +131,10 @@ namespace IceRpc.Internal
                 var request = new IncomingRequest(
                     Protocol.Ice2,
                     path: requestHeaderBody.Path,
-                    operation: requestHeaderBody.Operation)
+                    operation: requestHeaderBody.Operation,
+                    PipeReader.Create(new ReadOnlySequence<byte>(payload)),
+                    payloadEncoding: requestHeaderBody.PayloadEncoding.Length > 0 ?
+                        Encoding.FromString(requestHeaderBody.PayloadEncoding) : Ice2Definitions.Encoding)
                 {
                     IsIdempotent = requestHeaderBody.Idempotent,
                     IsOneway = !stream.IsBidirectional,
@@ -137,10 +142,7 @@ namespace IceRpc.Internal
                     // The infinite deadline is encoded as -1 and converted to DateTime.MaxValue
                     Deadline = requestHeaderBody.Deadline == -1 ?
                         DateTime.MaxValue : DateTime.UnixEpoch + TimeSpan.FromMilliseconds(requestHeaderBody.Deadline),
-                    PayloadEncoding = requestHeaderBody.PayloadEncoding.Length > 0 ?
-                        Encoding.FromString(requestHeaderBody.PayloadEncoding) : Ice2Definitions.Encoding,
                     Fields = fields,
-                    Payload = payload,
                     Stream = stream
                 };
 
@@ -218,12 +220,14 @@ namespace IceRpc.Internal
                     features = features.With(retryPolicy);
                 }
 
-                var response = new IncomingResponse(Protocol.Ice2, responseHeaderBody.ResultType)
+                var response = new IncomingResponse(
+                    Protocol.Ice2,
+                    responseHeaderBody.ResultType,
+                    PipeReader.Create(new ReadOnlySequence<byte>(buffer[decoder.Pos..])),
+                    payloadEncoding)
                 {
                     Features = features,
                     Fields = fields,
-                    PayloadEncoding = payloadEncoding,
-                    Payload = buffer[decoder.Pos..],
                 };
 
                 return response;

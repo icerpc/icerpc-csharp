@@ -3,6 +3,7 @@
 using IceRpc.Configure;
 using NUnit.Framework;
 using System.Collections.Immutable;
+using System.IO.Pipelines;
 
 namespace IceRpc.Tests.ClientServer
 {
@@ -160,9 +161,66 @@ namespace IceRpc.Tests.ClientServer
                 IncomingRequest incomingRequest,
                 CancellationToken cancel)
             {
-                var outgoingRequest = incomingRequest.ToOutgoingRequest(_target);
+                // First create an outgoing request to _target from the incoming request:
+
+                Protocol targetProtocol = _target.Protocol;
+
+                // Fields and context forwarding
+                IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields =
+                    ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
+                FeatureCollection features = FeatureCollection.Empty;
+
+                if (incomingRequest.Protocol == Protocol.Ice2 && targetProtocol == Protocol.Ice2)
+                {
+                    // The context is just another field, features remain empty
+                    fields = incomingRequest.Fields;
+                }
+                else
+                {
+                    // When Protocol or targetProtocol is Ice1, fields remains empty and we put only the request context
+                    // in the initial features of the new outgoing request
+                    features = features.WithContext(incomingRequest.Features.GetContext());
+                }
+
+                ReadResult readResult = await incomingRequest.Payload.ReadAsync(cancel);
+                Assert.That(readResult.IsCompleted); // no stream param
+                Assert.That(readResult.Buffer.IsSingleSegment);
+
+                var outgoingRequest = new OutgoingRequest(
+                    targetProtocol,
+                    path: _target.Path,
+                    operation: incomingRequest.Operation)
+                {
+                    AltEndpoints = _target.AltEndpoints,
+                    Connection = _target.Connection,
+                    Deadline = incomingRequest.Deadline,
+                    Endpoint = _target.Endpoint,
+                    Features = features,
+                    FieldsDefaults = fields,
+                    IsOneway = incomingRequest.IsOneway,
+                    IsIdempotent = incomingRequest.IsIdempotent,
+                    Proxy = _target,
+                    PayloadEncoding = incomingRequest.PayloadEncoding,
+                    Payload = new ReadOnlyMemory<byte>[] { readResult.Buffer.First }
+                };
+
+                // Then invoke
+
                 IncomingResponse incomingResponse = await _target.Invoker!.InvokeAsync(outgoingRequest, cancel);
-                return incomingResponse.ToOutgoingResponse(incomingRequest.Protocol);
+
+                // Then create an outgoing response from the incoming response
+
+                readResult = await incomingResponse.Payload.ReadAsync(cancel);
+                Assert.That(readResult.IsCompleted); // no stream param
+                Assert.That(readResult.Buffer.IsSingleSegment);
+
+                return new OutgoingResponse(_target.Protocol, incomingResponse.ResultType)
+                {
+                    // Don't forward RetryPolicy
+                    FieldsDefaults = incomingResponse.Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
+                    Payload = new ReadOnlyMemory<byte>[] { readResult.Buffer.First },
+                    PayloadEncoding = incomingResponse.PayloadEncoding,
+                };
             }
 
             internal Forwarder(Proxy target) => _target = target;
