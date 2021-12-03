@@ -38,6 +38,11 @@ namespace IceRpc.Slice.Internal
                 throw new OperationCanceledException();
             }
 
+            if (readResult.Buffer.Length < segmentSize)
+            {
+                throw new InvalidDataException("too few bytes in payload segment");
+            }
+
             ReadOnlySequence<byte> segment = readResult.Buffer.Slice(0, segmentSize);
 
             IceDecoder decoder = iceDecoderFactory.CreateIceDecoder(segment, connection, invoker);
@@ -46,10 +51,10 @@ namespace IceRpc.Slice.Internal
             if (exception is not UnknownSlicedRemoteException)
             {
                 decoder.CheckEndOfBuffer(skipTaggedParams: false);
-                payload.AdvanceTo(segment.End);
             }
             // else, we did not decode the full exception from the buffer
 
+            payload.AdvanceTo(segment.End);
             return exception;
         }
 
@@ -84,6 +89,11 @@ namespace IceRpc.Slice.Internal
                 if (readResult.IsCanceled)
                 {
                     throw new OperationCanceledException();
+                }
+
+                if (readResult.Buffer.Length < segmentSize)
+                {
+                    throw new InvalidDataException("too few bytes in payload segment");
                 }
 
                 segment = readResult.Buffer.Slice(0, segmentSize);
@@ -126,6 +136,11 @@ namespace IceRpc.Slice.Internal
                     throw new OperationCanceledException();
                 }
 
+                if (readResult.Buffer.Length < segmentSize)
+                {
+                    throw new InvalidDataException("too few bytes in payload segment");
+                }
+
                 ReadOnlySequence<byte> segment = readResult.Buffer.Slice(0, segmentSize);
 
                 IceDecoder decoder = iceDecoderFactory.CreateIceDecoder(segment, invoker: null, connection: null);
@@ -147,7 +162,7 @@ namespace IceRpc.Slice.Internal
                 throw new OperationCanceledException();
             }
 
-            if (readResult.IsCompleted && readResult.Buffer.Length == 0)
+            if (readResult.Buffer.Length == 0)
             {
                 return 0;
             }
@@ -156,6 +171,7 @@ namespace IceRpc.Slice.Internal
 
             if (sizeLength > readResult.Buffer.Length)
             {
+                payload.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
                 readResult = await payload.ReadAtLeastAsync(sizeLength, cancel).ConfigureAwait(false);
 
                 if (readResult.IsCanceled)
@@ -163,7 +179,7 @@ namespace IceRpc.Slice.Internal
                     throw new OperationCanceledException();
                 }
 
-                if (readResult.IsCompleted && readResult.Buffer.Length < sizeLength)
+                if (readResult.Buffer.Length < sizeLength)
                 {
                     throw new InvalidDataException("too few bytes in payload segment");
                 }

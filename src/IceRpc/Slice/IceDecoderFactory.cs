@@ -34,6 +34,8 @@ namespace IceRpc.Slice
             }
             else
             {
+                // TODO: add support of decoding ReadOnlySequence<byte> directly.
+
                 // Combine everything in a single buffer
                 Memory<byte> mergedBuffer = new byte[buffer.Length];
                 buffer.CopyTo(mergedBuffer.Span);
