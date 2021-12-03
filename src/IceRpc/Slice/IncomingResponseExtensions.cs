@@ -33,7 +33,7 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Decodes a response.</summary>
+        /// <summary>Decodes a response payload.</summary>
         /// <paramtype name="TDecoder">The type of the Ice decoder.</paramtype>
         /// <paramtype name="T">The type of the return value.</paramtype>
         /// <param name="response">The incoming response.</param>
@@ -47,25 +47,18 @@ namespace IceRpc.Slice
             IInvoker? invoker,
             IIceDecoderFactory<TDecoder> iceDecoderFactory,
             DecodeFunc<TDecoder, T> decodeFunc,
-            CancellationToken cancel) where TDecoder : IceDecoder
-        {
-            if (response.ResultType == ResultType.Success)
-            {
-                return await response.Payload.ReadValueAsync(
+            CancellationToken cancel) where TDecoder : IceDecoder =>
+            response.ResultType == ResultType.Success ?
+                await response.Payload.ReadValueAsync(
                     iceDecoderFactory,
                     decodeFunc,
                     response.Connection,
                     invoker,
-                    cancel).ConfigureAwait(false);
-            }
-            else
-            {
+                    cancel).ConfigureAwait(false) :
                 throw await response.Payload.ReadRemoteExceptionAsync(
                     iceDecoderFactory,
                     response.Connection,
                     invoker,
                     cancel).ConfigureAwait(false);
-            }
-        }
     }
 }
