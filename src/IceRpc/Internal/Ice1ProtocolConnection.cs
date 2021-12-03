@@ -281,7 +281,8 @@ namespace IceRpc.Internal
             EncodePayloadSize(payloadSize.Value, payloadEncoding, payload.Span[0..4]);
 
             return new IncomingResponse(
-                Protocol.Ice1, resultType,
+                Protocol.Ice1,
+                resultType,
                 PipeReader.Create(new ReadOnlySequence<byte>(payload)),
                 payloadEncoding)
             {
