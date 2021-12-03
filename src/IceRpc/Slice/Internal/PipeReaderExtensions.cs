@@ -23,9 +23,8 @@ namespace IceRpc.Slice.Internal
             IInvoker? invoker,
             CancellationToken cancel)
         {
-            int segmentSize = await iceDecoderFactory.Encoding.DecodeSegmentSizeAsync(
-                payload,
-                cancel).ConfigureAwait(false);
+            int segmentSize =
+                await payload.ReadSegmentSizeAsync(iceDecoderFactory.Encoding, cancel).ConfigureAwait(false);
 
             if (segmentSize == 0)
             {
@@ -72,9 +71,8 @@ namespace IceRpc.Slice.Internal
             IInvoker? invoker,
             CancellationToken cancel) where TDecoder : IceDecoder
         {
-            int segmentSize = await iceDecoderFactory.Encoding.DecodeSegmentSizeAsync(
-                payload,
-                cancel).ConfigureAwait(false);
+            int segmentSize =
+                await payload.ReadSegmentSizeAsync(iceDecoderFactory.Encoding, cancel).ConfigureAwait(false);
 
             ReadOnlySequence<byte> segment;
 
@@ -118,9 +116,8 @@ namespace IceRpc.Slice.Internal
             IIceDecoderFactory<IceDecoder> iceDecoderFactory,
             CancellationToken cancel)
         {
-            if (await iceDecoderFactory.Encoding.DecodeSegmentSizeAsync(
-                payload,
-                cancel).ConfigureAwait(false) is int segmentSize && segmentSize > 0)
+            if (await payload.ReadSegmentSizeAsync(iceDecoderFactory.Encoding, cancel).ConfigureAwait(false)
+                is int segmentSize && segmentSize > 0)
             {
                 ReadResult readResult = await payload.ReadAtLeastAsync(segmentSize, cancel).ConfigureAwait(false);
 
@@ -134,6 +131,54 @@ namespace IceRpc.Slice.Internal
                 IceDecoder decoder = iceDecoderFactory.CreateIceDecoder(segment, invoker: null, connection: null);
                 decoder.CheckEndOfBuffer(skipTaggedParams: true);
                 payload.AdvanceTo(segment.End);
+            }
+        }
+
+        /// <summary>Reads the size of a payload segment.</summary>
+        private static async ValueTask<int> ReadSegmentSizeAsync(
+            this PipeReader payload,
+            IceEncoding encoding,
+            CancellationToken cancel)
+        {
+            ReadResult readResult = await payload.ReadAsync(cancel).ConfigureAwait(false);
+
+            if (readResult.IsCanceled)
+            {
+                throw new OperationCanceledException();
+            }
+
+            if (readResult.IsCompleted && readResult.Buffer.Length == 0)
+            {
+                return 0;
+            }
+
+            int sizeLength = encoding.DecodeSegmentSizeLength(readResult.Buffer.FirstSpan);
+
+            if (sizeLength > readResult.Buffer.Length)
+            {
+                readResult = await payload.ReadAtLeastAsync(sizeLength, cancel).ConfigureAwait(false);
+
+                if (readResult.IsCanceled)
+                {
+                    throw new OperationCanceledException();
+                }
+
+                if (readResult.IsCompleted && readResult.Buffer.Length < sizeLength)
+                {
+                    throw new InvalidDataException("too few bytes in payload segment");
+                }
+            }
+
+            ReadOnlySequence<byte> buffer = readResult.Buffer.Slice(0, sizeLength);
+            int size = DecodeSize(buffer);
+            payload.AdvanceTo(buffer.End);
+            return size;
+
+            int DecodeSize(ReadOnlySequence<byte> buffer)
+            {
+                Span<byte> span = stackalloc byte[sizeLength];
+                buffer.CopyTo(span);
+                return encoding.DecodeSegmentSize(span);
             }
         }
     }

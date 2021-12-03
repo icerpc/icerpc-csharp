@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice.Internal;
-using System.IO.Pipelines;
 
 namespace IceRpc.Slice
 {
@@ -116,9 +115,11 @@ namespace IceRpc.Slice
             return bufferWriter.Finish();
         }
 
-        /// <summary>Decodes a segment size from reader. Returns 0 when the size is 0 or the reader is completed with no
-        /// byte available.</summary>
-        internal abstract ValueTask<int> DecodeSegmentSizeAsync(PipeReader reader, CancellationToken cancel);
+        /// <summary>Decodes the size of a payload segment from a buffer.</summary>
+        internal abstract int DecodeSegmentSize(ReadOnlySpan<byte> buffer);
+
+        /// <summary>Decodes the length of the size of a payload segment from a buffer.</summary>
+        internal abstract int DecodeSegmentSizeLength(ReadOnlySpan<byte> buffer);
 
         internal abstract IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
             FeatureCollection features,
