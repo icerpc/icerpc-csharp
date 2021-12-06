@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Buffers;
+
 namespace IceRpc.Features.Internal
 {
     /// <summary>A feature that specifies the request ID of an Ice1 request or response.</summary>
@@ -9,7 +11,7 @@ namespace IceRpc.Features.Internal
         internal int Id { get; }
 
         /// <summary>The task completion source that will be completed when the response is received.</summary>
-        internal TaskCompletionSource<Memory<byte>>? ResponseCompletionSource { get; }
+        internal TaskCompletionSource<(IMemoryOwner<byte> MemoryOwner, int Start, int Length)>? ResponseCompletionSource { get; }
 
         internal Ice1Request(int id, bool outgoing)
         {
