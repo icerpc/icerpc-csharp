@@ -41,15 +41,15 @@ namespace IceRpc
         /// <param name="protocol">The <see cref="Protocol"/> used to send the request.</param>
         /// <param name="path">The path of the request.</param>
         /// <param name="operation">The operation of the request.</param>
-        /// <param name="pyaload">The payload of the request.</param>
+        /// <param name="payload">The payload of the request.</param>
         /// <param name="payloadEncoding">The encoding of the payload.</param>
         public IncomingRequest(
             Protocol protocol,
             string path,
             string operation,
-            PipeReader pyaload,
+            PipeReader payload,
             Encoding payloadEncoding) :
-            base(protocol, pyaload, payloadEncoding)
+            base(protocol, payload, payloadEncoding)
         {
             Path = path;
             Operation = operation;
