@@ -60,19 +60,19 @@ namespace IceRpc.Slice.Internal
                 throw;
             }
 
-            // If there is any byte in the pipe reader after the exception, we ignore them.
+            // If there are any bytes in the pipe reader after the exception, we ignore them.
             await reader.CompleteAsync().ConfigureAwait(false);
             return result;
         }
 
-        /// <summary>Reads a segment from a pipe reader. The caller must call AdvanceTo when the returned segment length
-        /// is greater than 0.</summary>
+        /// <summary>Reads a segment from a pipe reader.</summary>
         /// <param name="reader">The pipe reader.</param>
         /// <param name="encoding">The Slice encoding.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>A read result with the segment read from the reader unless IsCanceled is true.</returns>
         /// <exception cref="InvalidDataException">Thrown when the segment size could not be decoded.</exception>
-        /// <remarks>The method never marks the reader as completed.</remarks>
+        /// <remarks>The caller must call AdvanceTo when the returned segment length is greater than 0. This method
+        /// never marks the reader as completed.</remarks>
         internal static async ValueTask<ReadResult> ReadSegmentAsync(
             this PipeReader reader,
             IceEncoding encoding,
@@ -185,7 +185,7 @@ namespace IceRpc.Slice.Internal
                     throw new OperationCanceledException();
                 }
 
-                // the segment can be empty, for example args with only tagged parameters where the sender does not know
+                // The segment can be empty, for example args with only tagged parameters where the sender does not know
                 // any tagged param or all the tagged params are null. We still decode such an empty segment to make
                 // sure decodeFunc is fine with it.
 

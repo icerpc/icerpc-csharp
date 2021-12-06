@@ -22,7 +22,7 @@ namespace IceRpc
         public IReadOnlyDictionary<int, ReadOnlyMemory<byte>> Fields { get; init; } =
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
-        /// <summary>The payload of this frame, as a pipe reader.</summary>
+        /// <summary>The payload of this frame.</summary>
         public PipeReader Payload { get; set; }
 
         /// <summary>Returns the encoding of the payload of this frame.</summary>

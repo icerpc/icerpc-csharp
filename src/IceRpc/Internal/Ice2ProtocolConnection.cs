@@ -100,11 +100,8 @@ namespace IceRpc.Internal
                 {
                     ReadResult readResult = await reader.ReadSegmentAsync(Encoding.Ice20, cancel).ConfigureAwait(false);
 
-                    if (readResult.IsCanceled)
-                    {
-                        // TODO: can this happen? If not, replace by an assert.
-                        throw new OperationCanceledException();
-                    }
+                    // At this point, nothing can call CancelPendingReads on this pipe reader.
+                    Debug.Assert(!readResult.IsCanceled);
 
                     if (readResult.Buffer.IsEmpty)
                     {
@@ -575,6 +572,9 @@ namespace IceRpc.Internal
             // come from a Pipe.
 
             // The PauseWriterThreshold appears to be a soft limit - otherwise, the stress test would hang/fail.
+
+            // TODO: we could also use the default values, which are larger but not documented. A transport that uses
+            // a Pipe internally could/should make these options configurable.
             var pipe = new Pipe(new PipeOptions(
                 minimumSegmentSize: 1024,
                 pauseWriterThreshold: 16 * 1024,
@@ -586,7 +586,7 @@ namespace IceRpc.Internal
 
             async Task FillPipeAsync()
             {
-                await Task.Yield(); // TODO: works without, what's best?
+                // This can run synchronously for a while.
 
                 Exception? completeReason = null;
                 PipeWriter writer = pipe.Writer;
@@ -640,11 +640,15 @@ namespace IceRpc.Internal
 
                         if (flushResult.IsCompleted)
                         {
-                            break; // reader no longer reading
+                            // reader no longer reading
+                            stream.AbortRead((byte)MultiplexedStreamError.StreamingCanceledByReader);
+                            break;
                         }
                     }
                     catch (Exception ex)
                     {
+                        // TODO: error code?
+                        stream.AbortRead((byte)MultiplexedStreamError.StreamingCanceledByReader);
                         completeReason = ex;
                         break;
                     }
@@ -652,8 +656,7 @@ namespace IceRpc.Internal
 
                 await writer.CompleteAsync(completeReason).ConfigureAwait(false);
 
-                // TODO: is this the correct error code? Would be nice to have a regular "complete" with no error code.
-                stream.AbortRead((byte)MultiplexedStreamError.StreamingCanceledByReader);
+                // TODO: stream should be completed at this point, but there is no way to tell.
             }
         }
 
