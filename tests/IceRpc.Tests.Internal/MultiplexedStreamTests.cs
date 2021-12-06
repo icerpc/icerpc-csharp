@@ -168,6 +168,8 @@ namespace IceRpc.Tests.Internal
         }
 
         /*
+        TODO: reenable these tests with PipeReader/PipeWriter once IMultiplexedStream is an IDuplexPipe.
+
         [TestCase(256, 256)]
         [TestCase(1024, 256)]
         [TestCase(256, 1024)]
