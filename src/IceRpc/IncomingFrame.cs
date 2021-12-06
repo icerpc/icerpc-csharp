@@ -22,8 +22,8 @@ namespace IceRpc
         public IReadOnlyDictionary<int, ReadOnlyMemory<byte>> Fields { get; init; } =
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
-        /// <summary>The payload reader of this frame.</summary>
-        public PipeReader PayloadReader { get; set; }
+        /// <summary>The payload of this frame, as a pipe reader.</summary>
+        public PipeReader Payload { get; set; }
 
         /// <summary>Returns the encoding of the payload of this frame.</summary>
         /// <remarks>The header of the frame is always encoded using the frame protocol's encoding.</remarks>
@@ -36,11 +36,11 @@ namespace IceRpc
 
         /// <summary>Constructs an incoming frame.</summary>
         /// <param name="protocol">The protocol used to receive the frame.</param>
-        /// <param name="payloadReader">The payload reader of the new frame.</param>
+        /// <param name="payload">The payload of the new frame.</param>
         /// <param name="payloadEncoding">The encoding of the payload.</param>
-        protected IncomingFrame(Protocol protocol, PipeReader payloadReader, Encoding payloadEncoding)
+        protected IncomingFrame(Protocol protocol, PipeReader payload, Encoding payloadEncoding)
         {
-            PayloadReader = payloadReader;
+            Payload = payload;
             PayloadEncoding = payloadEncoding;
             Protocol = protocol;
         }

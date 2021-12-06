@@ -111,13 +111,13 @@ namespace IceRpc.Tests.Api
                 {
                     response = await next.InvokeAsync(request, cancel);
 
-                    ReadResult readResult = await response.PayloadReader.ReadAsync(cancel);
+                    ReadResult readResult = await response.Payload.ReadAsync(cancel);
                     Assert.That(readResult.IsCompleted);
                     savedPayload = new ReadOnlySequence<byte>(readResult.Buffer.ToArray());
-                    response.PayloadReader.AdvanceTo(readResult.Buffer.End);
+                    response.Payload.AdvanceTo(readResult.Buffer.End);
                 }
 
-                response.PayloadReader = PipeReader.Create(savedPayload); // restore saved payload
+                response.Payload = PipeReader.Create(savedPayload); // restore saved payload
                 return response;
             }));
 

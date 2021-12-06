@@ -150,7 +150,7 @@ namespace IceRpc.Internal
                     Protocol.Ice1,
                     path: requestHeader.IdentityAndFacet.ToPath(),
                     operation: requestHeader.Operation,
-                    payloadReader: PipeReader.Create(new ReadOnlySequence<byte>(payload)),
+                    pyaload: PipeReader.Create(new ReadOnlySequence<byte>(payload)),
                     payloadEncoding)
                 {
                     IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,

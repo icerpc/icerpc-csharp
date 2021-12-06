@@ -474,9 +474,9 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
         let create_stream_param: CodeBlock = match param_type.concrete_type() {
             Types::Primitive(primitive) if matches!(primitive, Primitive::Byte) => {
                 if dispatch {
-                    "request.PayloadReader.AsStream();".into()
+                    "request.Payload.AsStream();".into()
                 } else {
-                    "response.PayloadReader.AsStream();".into()
+                    "response.Payload.AsStream();".into()
                 }
             }
             _ => {

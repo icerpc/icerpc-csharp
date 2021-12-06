@@ -17,7 +17,7 @@ namespace IceRpc.Slice
         public static ValueTask CheckEmptyArgsAsync(
             this IncomingRequest request,
             IIceDecoderFactory<IceDecoder> iceDecoderFactory,
-            CancellationToken cancel) => request.PayloadReader.ReadVoidAsync(iceDecoderFactory, cancel);
+            CancellationToken cancel) => request.Payload.ReadVoidAsync(iceDecoderFactory, cancel);
 
         /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared
         /// idempotent, the request is not marked idempotent. If the request is marked idempotent, it means the caller
@@ -52,7 +52,7 @@ namespace IceRpc.Slice
             DecodeFunc<TDecoder, T> decodeFunc,
             bool hasStream,
             CancellationToken cancel) where TDecoder : IceDecoder =>
-            request.PayloadReader.ReadValueAsync(
+            request.Payload.ReadValueAsync(
                 request.Connection,
                 request.ProxyInvoker,
                 iceDecoderFactory,
@@ -68,7 +68,7 @@ namespace IceRpc.Slice
             this IncomingRequest request,
             IIceDecoderFactory<IceDecoder> iceDecoderFactory,
             Func<IceDecoder, T> decodeFunc) =>
-            request.PayloadReader.ToAsyncEnumerable<T>(
+            request.Payload.ToAsyncEnumerable<T>(
                 request.Connection,
                 request.ProxyInvoker,
                 iceDecoderFactory,

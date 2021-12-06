@@ -158,8 +158,8 @@ namespace IceRpc.Internal
                             $"cannot decompress compression format '{compressionField.Format}'");
                     }
 
-                    frame.PayloadReader = PipeReader.Create(
-                        new DeflateStream(frame.PayloadReader.AsStream(), CompressionMode.Decompress));
+                    frame.Payload = PipeReader.Create(
+                        new DeflateStream(frame.Payload.AsStream(), CompressionMode.Decompress));
                 }
             }
         }

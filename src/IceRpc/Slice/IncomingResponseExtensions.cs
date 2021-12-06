@@ -21,11 +21,11 @@ namespace IceRpc.Slice
         {
             if (response.ResultType == ResultType.Success)
             {
-                await response.PayloadReader.ReadVoidAsync(iceDecoderFactory, cancel).ConfigureAwait(false);
+                await response.Payload.ReadVoidAsync(iceDecoderFactory, cancel).ConfigureAwait(false);
             }
             else
             {
-                throw await response.PayloadReader.ReadRemoteExceptionAsync(
+                throw await response.Payload.ReadRemoteExceptionAsync(
                     response.Connection,
                     invoker,
                     iceDecoderFactory,
@@ -43,7 +43,7 @@ namespace IceRpc.Slice
             IInvoker? invoker,
             IIceDecoderFactory<IceDecoder> iceDecoderFactory,
             Func<IceDecoder, T> decodeFunc) =>
-            response.PayloadReader.ToAsyncEnumerable<T>(
+            response.Payload.ToAsyncEnumerable<T>(
                 response.Connection,
                 invoker,
                 iceDecoderFactory,
@@ -67,14 +67,14 @@ namespace IceRpc.Slice
             bool hasStream,
             CancellationToken cancel) where TDecoder : IceDecoder =>
             response.ResultType == ResultType.Success ?
-                await response.PayloadReader.ReadValueAsync(
+                await response.Payload.ReadValueAsync(
                     response.Connection,
                     invoker,
                     iceDecoderFactory,
                     decodeFunc,
                     hasStream,
                     cancel).ConfigureAwait(false) :
-                throw await response.PayloadReader.ReadRemoteExceptionAsync(
+                throw await response.Payload.ReadRemoteExceptionAsync(
                     response.Connection,
                     invoker,
                     iceDecoderFactory,

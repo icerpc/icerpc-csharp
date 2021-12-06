@@ -183,7 +183,7 @@ namespace IceRpc.Tests.ClientServer
                     features = features.WithContext(incomingRequest.Features.GetContext());
                 }
 
-                ReadResult readResult = await incomingRequest.PayloadReader.ReadAsync(cancel);
+                ReadResult readResult = await incomingRequest.Payload.ReadAsync(cancel);
                 Assert.That(readResult.IsCompleted);
                 Assert.That(readResult.Buffer.IsSingleSegment);
 
@@ -211,11 +211,11 @@ namespace IceRpc.Tests.ClientServer
 
                 // Then create an outgoing response from the incoming response
 
-                readResult = await incomingResponse.PayloadReader.ReadAsync(cancel);
+                readResult = await incomingResponse.Payload.ReadAsync(cancel);
                 while (!readResult.IsCompleted)
                 {
-                    incomingResponse.PayloadReader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                    readResult = await incomingResponse.PayloadReader.ReadAsync(cancel);
+                    incomingResponse.Payload.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                    readResult = await incomingResponse.Payload.ReadAsync(cancel);
                 }
                 var payload = new byte[readResult.Buffer.Length];
                 readResult.Buffer.CopyTo(payload);

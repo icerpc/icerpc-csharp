@@ -154,7 +154,7 @@ namespace IceRpc.Internal
                     Protocol.Ice2,
                     path: header.Path,
                     operation: header.Operation,
-                    payloadReader: reader,
+                    pyaload: reader,
                     payloadEncoding: header.PayloadEncoding.Length > 0 ?
                         Encoding.FromString(header.PayloadEncoding) : Ice2Definitions.Encoding)
                 {
