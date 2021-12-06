@@ -13,7 +13,7 @@ namespace IceRpc
         /// <summary>Constructs an incoming response.</summary>
         /// <param name="protocol">The <see cref="Protocol"/> used to receive the response.</param>
         /// <param name="resultType">The <see cref="ResultType"/> of the response.</param>
-        /// <param name="payload">The payload of the request.</param>
+        /// <param name="payload">The payload of the response.</param>
         /// <param name="payloadEncoding">The encoding of the payload.</param>
         public IncomingResponse(
             Protocol protocol,

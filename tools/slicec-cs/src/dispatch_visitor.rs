@@ -76,7 +76,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
     let operations = interface_def
         .operations()
         .iter()
-        .filter(|o| o.has_nonstreamed_parameters())
+        .filter(|o| o.parameters.len() > 0)
         .cloned()
         .collect::<Vec<_>>();
 
@@ -120,6 +120,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
     await request.ToArgsAsync(
         {decoder_factory},
         {decode_func},
+        {has_stream},
         cancel).ConfigureAwait(false);",
             access = access,
             s = if parameters.len() == 1 { "" } else { "s" },
@@ -128,6 +129,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             async_operation_name = operation.escape_identifier_with_suffix("Async"),
             decoder_factory = decoder_factory,
             decode_func = request_decode_func(operation).indent().indent(),
+            has_stream = parameters.len() > 0 && parameters.last().unwrap().is_streamed,
         );
 
         class_builder.add_block(code.into());
@@ -267,12 +269,13 @@ fn request_decode_func(operation: &Operation) -> CodeBlock {
 
     let use_default_decode_func = parameters.len() == 1
         && get_bit_sequence_size(&parameters) == 0
-        && parameters.first().unwrap().tag.is_none();
+        && parameters.first().unwrap().tag.is_none()
+        && !parameters.first().unwrap().is_streamed;
+
+    // TODO: simplify code for single stream param
 
     if use_default_decode_func {
         let param = parameters.first().unwrap();
-        // request_decode_func should not be called when the operation has a single parameter that is streamed.
-        assert!(!param.is_streamed);
         decode_func(param.data_type(), namespace)
     } else {
         format!(
@@ -361,17 +364,11 @@ protected static async global::System.Threading.Tasks.ValueTask<(IceEncoding, gl
 }
 
 fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
-    let namespace = &operation.namespace();
     let async_operation_name = &operation.escape_identifier_with_suffix("Async");
     let parameters = operation.parameters();
-    let stream_parameter = operation.streamed_parameter();
     let return_parameters = operation.return_members();
 
     let mut code = CodeBlock::new();
-
-    if stream_parameter.is_none() {
-        code.writeln("request.StreamReadingComplete();");
-    }
 
     if !operation.is_idempotent {
         code.writeln("request.CheckNonIdempotent();");
@@ -385,7 +382,6 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
         );
     }
 
-    // TODO: cleanup stream logic
     match parameters.as_slice() {
         [] => {
             // Verify the payload is indeed empty (it can contain tagged params that we have to skip).
@@ -395,30 +391,6 @@ await request.CheckEmptyArgsAsync(
     request.GetIceDecoderFactory(_defaultIceDecoderFactories),
     cancel).ConfigureAwait(false);",
             );
-        }
-        [_] if stream_parameter.is_some() => {
-            let stream_parameter = stream_parameter.unwrap();
-            let stream_type = stream_parameter.data_type();
-            let name = stream_parameter.parameter_name_with_prefix("iceP_");
-            let stream_assignment = match stream_type.concrete_type() {
-                Types::Primitive(primitive) if matches!(primitive, Primitive::Byte) => {
-                    "IceRpc.Slice.StreamParamReceiver.ToByteStream(request)".to_owned()
-                }
-                _ => {
-                    format!(
-                        "\
-IceRpc.Slice.StreamParamReceiver.ToAsyncEnumerable<{stream_type}>(
-    request,
-    request.GetIceDecoderFactory(_defaultIceDecoderFactories),
-    {decode_func})
-    ",
-                        stream_type =
-                            stream_type.to_type_string(namespace, TypeContext::Outgoing, false),
-                        decode_func = decode_func(stream_type, namespace).indent()
-                    )
-                }
-            };
-            writeln!(code, "var {} = {};", name, stream_assignment);
         }
         [parameter] => {
             writeln!(

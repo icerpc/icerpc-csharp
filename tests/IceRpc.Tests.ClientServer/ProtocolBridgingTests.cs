@@ -2,6 +2,7 @@
 
 using IceRpc.Configure;
 using NUnit.Framework;
+using System.Buffers;
 using System.Collections.Immutable;
 using System.IO.Pipelines;
 
@@ -183,8 +184,13 @@ namespace IceRpc.Tests.ClientServer
                 }
 
                 ReadResult readResult = await incomingRequest.Payload.ReadAsync(cancel);
-                Assert.That(readResult.IsCompleted); // no stream param
-                Assert.That(readResult.Buffer.IsSingleSegment);
+                while (!readResult.IsCompleted)
+                {
+                    incomingRequest.Payload.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                    readResult = await incomingRequest.Payload.ReadAsync(cancel);
+                }
+                var payload = new byte[readResult.Buffer.Length];
+                readResult.Buffer.CopyTo(payload);
 
                 var outgoingRequest = new OutgoingRequest(
                     targetProtocol,
@@ -201,7 +207,7 @@ namespace IceRpc.Tests.ClientServer
                     IsIdempotent = incomingRequest.IsIdempotent,
                     Proxy = _target,
                     PayloadEncoding = incomingRequest.PayloadEncoding,
-                    Payload = new ReadOnlyMemory<byte>[] { readResult.Buffer.First }
+                    Payload = new ReadOnlyMemory<byte>[] { payload }
                 };
 
                 // Then invoke
@@ -211,14 +217,19 @@ namespace IceRpc.Tests.ClientServer
                 // Then create an outgoing response from the incoming response
 
                 readResult = await incomingResponse.Payload.ReadAsync(cancel);
-                Assert.That(readResult.IsCompleted); // no stream param
-                Assert.That(readResult.Buffer.IsSingleSegment);
+                while (!readResult.IsCompleted)
+                {
+                    incomingResponse.Payload.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                    readResult = await incomingResponse.Payload.ReadAsync(cancel);
+                }
+                payload = new byte[readResult.Buffer.Length];
+                readResult.Buffer.CopyTo(payload);
 
                 return new OutgoingResponse(_target.Protocol, incomingResponse.ResultType)
                 {
                     // Don't forward RetryPolicy
                     FieldsDefaults = incomingResponse.Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
-                    Payload = new ReadOnlyMemory<byte>[] { readResult.Buffer.First },
+                    Payload = new ReadOnlyMemory<byte>[] { payload },
                     PayloadEncoding = incomingResponse.PayloadEncoding,
                 };
             }

@@ -37,29 +37,41 @@ namespace IceRpc.Slice
             request.PayloadEncoding as IceEncoding ?? request.Protocol.IceEncoding ??
                 throw new NotSupportedException($"unknown protocol {request.Protocol}");
 
-        /// <summary>The generated code calls this method to ensure that streaming is aborted if the operation
-        /// doesn't specify a stream parameter.</summary>
-        public static void StreamReadingComplete(this IncomingRequest request) =>
-            request.Stream?.AbortRead((byte)MultiplexedStreamError.UnexpectedStreamData);
-
         /// <summary>Decodes the request's payload into a list of arguments.</summary>
         /// <paramtype name="TDecoder">The type of the Ice decoder.</paramtype>
         /// <paramtype name="T">The type of the request parameters.</paramtype>
         /// <param name="request">The incoming request.</param>
         /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
         /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
+        /// <param name="hasStream">When true, T is or includes a stream.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The request arguments.</returns>
         public static ValueTask<T> ToArgsAsync<TDecoder, T>(
             this IncomingRequest request,
             IIceDecoderFactory<TDecoder> iceDecoderFactory,
             DecodeFunc<TDecoder, T> decodeFunc,
+            bool hasStream,
             CancellationToken cancel) where TDecoder : IceDecoder =>
             request.Payload.ReadValueAsync(
-                iceDecoderFactory,
-                decodeFunc,
                 request.Connection,
                 request.ProxyInvoker,
+                iceDecoderFactory,
+                decodeFunc,
+                hasStream,
                 cancel);
+
+        /// <summary>Creates an async enumerable over the payload reader of an incoming request.</summary>
+        /// <param name="request">The request.</param>
+        /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
+        /// <param name="decodeFunc">The function used to decode the streamed param.</param>
+        public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
+            this IncomingRequest request,
+            IIceDecoderFactory<IceDecoder> iceDecoderFactory,
+            Func<IceDecoder, T> decodeFunc) =>
+            request.Payload.ToAsyncEnumerable<T>(
+                request.Connection,
+                request.ProxyInvoker,
+                iceDecoderFactory,
+                decodeFunc);
     }
 }

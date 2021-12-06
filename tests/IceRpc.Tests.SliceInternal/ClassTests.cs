@@ -90,6 +90,7 @@ namespace IceRpc.Tests.SliceInternal
                 sliceFlags = (SliceFlags)decoder.DecodeByte();
                 // The Slice includes a size for the sliced format
                 Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
+                response.Payload.AdvanceTo(readResult.Buffer.Start);
                 return response;
             }));
             await prx1.OpMyClassAsync(new MyClassCustomFormat("foo"));
@@ -126,6 +127,7 @@ namespace IceRpc.Tests.SliceInternal
                 sliceFlags = (SliceFlags)decoder.DecodeByte();
                 // The Slice does not include a size when using the compact format
                 Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
+                response.Payload.AdvanceTo(readResult.Buffer.Start);
                 return response;
             }));
             await prx2.OpMyClassAsync(new MyClassCustomFormat("foo"));
@@ -162,6 +164,7 @@ namespace IceRpc.Tests.SliceInternal
                 sliceFlags = (SliceFlags)decoder.DecodeByte();
                 // The Slice does not include a size when using the compact format
                 Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
+                response.Payload.AdvanceTo(readResult.Buffer.Start);
                 return response;
             }));
             await prx3.OpMyClassAsync(new MyClassCustomFormat("foo"));
@@ -197,6 +200,7 @@ namespace IceRpc.Tests.SliceInternal
                 sliceFlags = (SliceFlags)decoder.DecodeByte();
                 // The Slice includes a size for the sliced format
                 Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
+                response.Payload.AdvanceTo(readResult.Buffer.Start);
                 return response;
             }));
             await prx3.OpMyClassSlicedFormatAsync(new MyClassCustomFormat("foo"));

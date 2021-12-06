@@ -674,7 +674,7 @@ namespace IceRpc.Tests.Slice
                         }
                     });
 
-            (IncomingResponse response, StreamParamReceiver? _) =
+            IncomingResponse response =
                 await prx.Proxy.InvokeAsync("opVoid", prx.Proxy.Encoding, requestPayload);
 
             Assert.DoesNotThrowAsync(async () => await response.CheckVoidReturnValueAsync(

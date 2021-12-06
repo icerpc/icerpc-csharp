@@ -23,12 +23,11 @@ namespace IceRpc
         /// <param name="idempotent">When true, the request is idempotent.</param>
         /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
         /// after sending the request.</param>
-        /// <param name="returnStreamParamReceiver">When true, a stream param receiver will be returned.</param>
         /// <param name="cancel">The cancellation token.</param>
-        /// <returns>The response and the optional stream reader.</returns>
+        /// <returns>The response.</returns>
         /// <remarks>This method stores the response features into the invocation's response features when invocation is
         /// not null.</remarks>
-        public static Task<(IncomingResponse, StreamParamReceiver?)> InvokeAsync(
+        public static Task<IncomingResponse> InvokeAsync(
             this Proxy proxy,
             string operation,
             Encoding payloadEncoding,
@@ -37,7 +36,6 @@ namespace IceRpc
             Invocation? invocation = null,
             bool idempotent = false,
             bool oneway = false,
-            bool returnStreamParamReceiver = false,
             CancellationToken cancel = default)
         {
             CancellationTokenSource? timeoutSource = null;
@@ -92,7 +90,7 @@ namespace IceRpc
 
                 // We perform as much work as possible in a non async method to throw exceptions synchronously.
                 Task<IncomingResponse> responseTask = (proxy.Invoker ?? NullInvoker).InvokeAsync(request, cancel);
-                return ConvertResponseAsync(request, responseTask, timeoutSource, combinedSource);
+                return ConvertResponseAsync(responseTask, timeoutSource, combinedSource);
             }
             catch
             {
@@ -103,8 +101,7 @@ namespace IceRpc
                 // If there is no synchronous exception, ConvertResponseAsync disposes these cancellation sources.
             }
 
-            async Task<(IncomingResponse, StreamParamReceiver?)> ConvertResponseAsync(
-                OutgoingRequest request,
+            async Task<IncomingResponse> ConvertResponseAsync(
                 Task<IncomingResponse> responseTask,
                 CancellationTokenSource? timeoutSource,
                 CancellationTokenSource? combinedSource)
@@ -118,12 +115,7 @@ namespace IceRpc
                         invocation.ResponseFeatures = response.Features;
                     }
 
-                    StreamParamReceiver? streamParamReceiver = null;
-                    if (returnStreamParamReceiver && request.Stream != null)
-                    {
-                        streamParamReceiver = new StreamParamReceiver(request.Stream);
-                    }
-                    return (response, streamParamReceiver);
+                    return response;
                 }
                 finally
                 {

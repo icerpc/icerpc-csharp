@@ -55,7 +55,6 @@ namespace IceRpc.Slice
 
         /// <summary>Decodes fields.</summary>
         /// <returns>The fields as an immutable dictionary.</returns>
-        /// <remarks>The values of the dictionary reference memory in the decoder's underlying buffer.</remarks>
         public ImmutableDictionary<int, ReadOnlyMemory<byte>> DecodeFieldDictionary()
         {
             int size = DecodeSize();
@@ -186,13 +185,12 @@ namespace IceRpc.Slice
             : base(buffer, connection, invoker) => _activator = activator;
 
         /// <summary>Decodes a field.</summary>
-        /// <returns>The key and value of the field. The read-only memory for the value is backed by the buffer, the
-        /// data is not copied.</returns>
+        /// <returns>The key and value of the field.</returns>
         internal (int Key, ReadOnlyMemory<byte> Value) DecodeField()
         {
             int key = DecodeVarInt();
             int entrySize = DecodeSize();
-            ReadOnlyMemory<byte> value = _buffer.Slice(Pos, entrySize);
+            byte[] value = _buffer.Slice(Pos, entrySize).ToArray(); // make a copy
             Pos += entrySize;
             return (key, value);
         }

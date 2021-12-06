@@ -215,8 +215,14 @@ namespace IceRpc.Transports.Internal
         {
             if (ReadsCompleted)
             {
-                Debug.Assert(ResetErrorCode != null);
-                throw new MultiplexedStreamAbortedException(ResetErrorCode.Value);
+                if (ResetErrorCode != null)
+                {
+                    throw new MultiplexedStreamAbortedException(ResetErrorCode.Value);
+                }
+                else
+                {
+                    return 0;
+                }
             }
 
             if (_receivedSize == _receivedOffset)
