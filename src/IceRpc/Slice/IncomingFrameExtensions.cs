@@ -5,7 +5,7 @@ namespace IceRpc.Slice
     /// <summary>Extension methods for incoming frames.</summary>
     public static class IncomingFrameExtensions
     {
-        /// <summary>Get the frame Ice decoder factory for decoding the payload. The default Ice decoder factory
+        /// <summary>Gets the frame Ice decoder factory for decoding the payload. The default Ice decoder factory
         /// for the payload encoding is used if no factory is set with the frame <see cref="Features"/>.</summary>
         /// <param name="frame">The incoming frame.</param>
         /// <param name="defaultIceDecoderFactories">The default Ice decoder factories.</param>
@@ -23,7 +23,7 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Get the frame Ice decoder factory for decoding the payload. The default Ice decoder factory
+        /// <summary>Gets the frame Ice decoder factory for decoding the payload. The default Ice decoder factory
         /// is used if no factory is set with the frame <see cref="Features"/>.</summary>
         /// <param name="frame">The incoming frame.</param>
         /// <param name="defaultIceDecoderFactory">The default Ice decoder factory.</param>

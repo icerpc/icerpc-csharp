@@ -6,17 +6,12 @@ module IceRpc::Internal
     // These definitions help with the encoding of ice2 frames.
 
     /// Each ice2 frame has a type identified by this enumeration.
+    // TODO: rename Ice2ControlFrameType
     enum Ice2FrameType : byte
     {
         /// The initialize frame is sent by each side the Ice2 connection on connection establishment
         /// to exchange Ice2 parameters.
         Initialize = 0,
-
-        /// The request frame.
-        Request = 1,
-
-        /// The response frame.
-        Response = 2,
 
         /// The ping frame is sent to keep alive the Ice2 connection.
         Ping = 5,
@@ -38,51 +33,31 @@ module IceRpc::Internal
         IncomingFrameMaxSize = 0
     }
 
-    // See Ice2RequestHeader below.
+    /// Each ice2 request frame consists of:
+    /// - a request header size (varulong)
+    /// - a request header (below)
+    /// - a request payload
     [cs:readonly]
-    struct Ice2RequestHeaderBody
+    struct Ice2RequestHeader
     {
         string path;
         string operation;
         bool \idempotent;
         varlong deadline;
         string payloadEncoding; // empty equivalent to "2.0"
+        // Fields fields; (encoded/decoded manually for now)
     }
 
-    /// Each ice2 request frame has:
-    /// - a frame prologue, with the frame type and (for now) the overall frame size
-    /// - a request header (below)
-    /// - a request payload
-    /// We put various members of the header in the Ice2RequestHeaderBody struct because the encoding and decoding of
-    /// Fields is often custom.
-    [cs:readonly]
-    struct Ice2RequestHeader
-    {
-        varulong headerSize;
-        Ice2RequestHeaderBody body;
-        Fields fields;
-    }
-
-    // See Ice2ResponseHeader below.
-    [cs:readonly]
-    struct Ice2ResponseHeaderBody
-    {
-        ResultType resultType;
-        string payloadEncoding; // empty equivalent to "2.0"
-    }
-
-    /// Each ice2 response frame has:
-    /// - a frame prologue, with the frame type and the overall frame size
+    /// Each ice2 response frame consists of:
+    /// - a response header size (varulong)
     /// - a response header (below)
     /// - a response payload
-    /// We put various members of the header in the Ice2ResponseHeaderBody struct because the encoding and decoding of
-    /// Fields is often custom.
     [cs:readonly]
     struct Ice2ResponseHeader
     {
-        varulong headerSize;
-        Ice2ResponseHeaderBody body;
-        Fields fields;
+        ResultType resultType;
+        string payloadEncoding; // empty equivalent to "2.0"
+        // Fields fields; (encoded/decoded manually for now)
     }
 
     /// The go away frame is sent on connection shutdown to notify the peer that it shouldn't perform new invocations

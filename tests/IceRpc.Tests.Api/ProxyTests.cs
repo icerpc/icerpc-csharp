@@ -280,7 +280,7 @@ namespace IceRpc.Tests.Api
             await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
             var proxy = Proxy.FromConnection(connection, GreeterPrx.DefaultPath);
 
-            (IncomingResponse response, StreamParamReceiver? _) =
+            IncomingResponse response =
                 await proxy.InvokeAsync("SayHello",
                                         proxy.Encoding,
                                         requestPayload: Encoding.Ice20.CreateEmptyPayload());

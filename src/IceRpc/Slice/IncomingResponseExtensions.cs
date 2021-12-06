@@ -21,17 +21,33 @@ namespace IceRpc.Slice
         {
             if (response.ResultType == ResultType.Success)
             {
-                await response.Payload.ReadVoidAsync(iceDecoderFactory, cancel).ConfigureAwait(false);
+                await response.PayloadReader.ReadVoidAsync(iceDecoderFactory, cancel).ConfigureAwait(false);
             }
             else
             {
-                throw await response.Payload.ReadRemoteExceptionAsync(
-                    iceDecoderFactory,
+                throw await response.PayloadReader.ReadRemoteExceptionAsync(
                     response.Connection,
                     invoker,
+                    iceDecoderFactory,
                     cancel).ConfigureAwait(false);
             }
         }
+
+        /// <summary>Creates an async enumerable over the payload reader of an incoming response.</summary>
+        /// <param name="response">The response.</param>
+        /// <param name="invoker">The invoker.</param>
+        /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
+        /// <param name="decodeFunc">The function used to decode the streamed member.</param>
+        public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
+            this IncomingResponse response,
+            IInvoker? invoker,
+            IIceDecoderFactory<IceDecoder> iceDecoderFactory,
+            Func<IceDecoder, T> decodeFunc) =>
+            response.PayloadReader.ToAsyncEnumerable<T>(
+                response.Connection,
+                invoker,
+                iceDecoderFactory,
+                decodeFunc);
 
         /// <summary>Decodes a response payload.</summary>
         /// <paramtype name="TDecoder">The type of the Ice decoder.</paramtype>
@@ -40,6 +56,7 @@ namespace IceRpc.Slice
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
         /// <param name="decodeFunc">The decode function for the return value.</param>
+        /// <param name="hasStream">When true, T is or includes a stream return.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The return value.</returns>
         public static async ValueTask<T> ToReturnValueAsync<TDecoder, T>(
@@ -47,18 +64,20 @@ namespace IceRpc.Slice
             IInvoker? invoker,
             IIceDecoderFactory<TDecoder> iceDecoderFactory,
             DecodeFunc<TDecoder, T> decodeFunc,
+            bool hasStream,
             CancellationToken cancel) where TDecoder : IceDecoder =>
             response.ResultType == ResultType.Success ?
-                await response.Payload.ReadValueAsync(
+                await response.PayloadReader.ReadValueAsync(
+                    response.Connection,
+                    invoker,
                     iceDecoderFactory,
                     decodeFunc,
-                    response.Connection,
-                    invoker,
+                    hasStream,
                     cancel).ConfigureAwait(false) :
-                throw await response.Payload.ReadRemoteExceptionAsync(
-                    iceDecoderFactory,
+                throw await response.PayloadReader.ReadRemoteExceptionAsync(
                     response.Connection,
                     invoker,
+                    iceDecoderFactory,
                     cancel).ConfigureAwait(false);
     }
 }

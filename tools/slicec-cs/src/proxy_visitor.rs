@@ -229,7 +229,7 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
     let cancel_parameter = escape_parameter_name(&operation.parameters(), "cancel");
 
     let sends_classes = operation.sends_classes();
-    let void_return = !operation.has_nonstreamed_return_members();
+    let void_return = operation.return_type.len() == 0;
     let access = operation.parent().unwrap().access_modifier();
 
     let mut builder = FunctionBuilder::new(
@@ -317,32 +317,6 @@ new IceRpc.Slice.AsyncEnumerableStreamParamSender<{stream_type}>(
 
     if !void_return {
         invoke_args.push("Response.".to_owned() + &async_operation_name);
-    } else if let Some(stream_return) = stream_return {
-        let stream_type = stream_return.data_type();
-        let mut stream_return_func: CodeBlock = match stream_type.concrete_type() {
-            Types::Primitive(primitive) if matches!(primitive, Primitive::Byte) => {
-                "streamParamReceiver!.ToByteStream()".into()
-            }
-            _ => format!(
-                "\
-streamParamReceiver!.ToAsyncEnumerable<{stream_type}>(
-    response,
-    invoker,
-    response.GetIceDecoderFactory(_defaultIceDecoderFactories),
-    {decode_func})",
-                stream_type = stream_type.to_type_string(namespace, TypeContext::Incoming, false),
-                decode_func = decode_func(stream_type, namespace).indent()
-            )
-            .into(),
-        };
-
-        invoke_args.push(format!(
-            "\
-(response, invoker, streamParamReceiver, cancel) =>
-    new global::System.Threading.Tasks.ValueTask<{stream_return}>({stream_return_func})",
-            stream_return = stream_return.to_type_string(namespace, TypeContext::Incoming, false),
-            stream_return_func = stream_return_func.indent()
-        ));
     }
 
     invoke_args.push("invocation".to_owned());
@@ -353,10 +327,6 @@ streamParamReceiver!.ToAsyncEnumerable<{stream_type}>(
 
     if void_return && is_oneway {
         invoke_args.push("oneway: true".to_owned());
-    }
-
-    if stream_return.is_some() {
-        invoke_args.push("returnStreamParamReceiver: true".to_owned());
     }
 
     invoke_args.push(format!("cancel: {}", cancel_parameter));
@@ -556,7 +526,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
     let operations = interface_def
         .operations()
         .iter()
-        .filter(|o| o.has_nonstreamed_return_members())
+        .filter(|o| o.return_type.len() > 0)
         .cloned()
         .collect::<Vec<_>>();
 
@@ -590,19 +560,20 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 {access} static async global::System.Threading.Tasks.ValueTask<{return_type}> {escaped_name}(
     IceRpc.IncomingResponse response,
     IceRpc.IInvoker? invoker,
-    IceRpc.Slice.StreamParamReceiver? streamParamReceiver,
     global::System.Threading.CancellationToken cancel) =>
     await response.ToReturnValueAsync(
         invoker,
         {decoder},
         {response_decode_func},
+        {has_stream},
         cancel).ConfigureAwait(false);"#,
             name = operation.identifier(),
             access = access,
             escaped_name = operation.escape_identifier_with_suffix("Async"),
-            return_type = members.to_tuple_type( namespace, TypeContext::Incoming, false),
+            return_type = members.to_tuple_type(namespace, TypeContext::Incoming, false),
             decoder = decoder,
-            response_decode_func = response_decode_func(operation).indent().indent().indent()
+            response_decode_func = response_decode_func(operation).indent().indent().indent(),
+            has_stream = members.len() > 0 && members.last().unwrap().is_streamed,
         ).into());
     }
     class_builder.build().into()
@@ -647,11 +618,14 @@ fn response_decode_func(operation: &Operation) -> CodeBlock {
     // vec of members
     let members = operation.return_members();
 
-    assert!(!members.is_empty() && (members.len() > 1 || !members.last().unwrap().is_streamed));
+    assert!(!members.is_empty());
+
+    // TODO: simplify single stream response generated code
 
     if members.len() == 1
         && get_bit_sequence_size(&members) == 0
         && members.first().unwrap().tag.is_none()
+        && !members.first().unwrap().is_streamed
     {
         decode_func(members.first().unwrap().data_type(), namespace)
     } else {

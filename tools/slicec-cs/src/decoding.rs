@@ -470,20 +470,20 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
         // Call to_type_string on the parameter itself to get its stream qualifier.
         let stream_type_str = stream_member.to_type_string(namespace, TypeContext::Incoming, false);
 
+        // TODO: change mapping to PipeReader
         let create_stream_param: CodeBlock = match param_type.concrete_type() {
             Types::Primitive(primitive) if matches!(primitive, Primitive::Byte) => {
                 if dispatch {
-                    "IceRpc.Slice.StreamParamReceiver.ToByteStream(request);".into()
+                    "request.PayloadReader.AsStream();".into()
                 } else {
-                    "streamParamReceiver!.ToByteStream();".into()
+                    "response.PayloadReader.AsStream();".into()
                 }
             }
             _ => {
                 if dispatch {
                     format!(
                         "\
-IceRpc.Slice.StreamParamReceiver.ToAsyncEnumerable<{param_type}>(
-    request,
+request.ToAsyncEnumerable<{param_type}>(
     request.GetIceDecoderFactory(_defaultIceDecoderFactories),
     {decode_func});",
                         param_type = param_type_str,
@@ -493,8 +493,7 @@ IceRpc.Slice.StreamParamReceiver.ToAsyncEnumerable<{param_type}>(
                 } else {
                     format!(
                         "\
-streamParamReceiver!.ToAsyncEnumerable<{param_type}>(
-    response,
+response.ToAsyncEnumerable<{param_type}>(
     invoker,
     response.GetIceDecoderFactory(_defaultIceDecoderFactories),
     {decode_func});",

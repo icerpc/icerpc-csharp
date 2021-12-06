@@ -7,7 +7,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Tests.Api
 {
-    [Timeout(30000)]
+    [Timeout(5000)]
     [Parallelizable(scope: ParallelScope.All)]
     public sealed class InterceptorTests : IAsyncDisposable
     {
@@ -111,14 +111,13 @@ namespace IceRpc.Tests.Api
                 {
                     response = await next.InvokeAsync(request, cancel);
 
-                    ReadResult readResult = await response.Payload.ReadAsync(cancel);
+                    ReadResult readResult = await response.PayloadReader.ReadAsync(cancel);
                     Assert.That(readResult.IsCompleted);
-                    savedPayload = readResult.Buffer;
+                    savedPayload = new ReadOnlySequence<byte>(readResult.Buffer.ToArray());
+                    response.PayloadReader.AdvanceTo(readResult.Buffer.End);
                 }
-                else
-                {
-                    response.Payload = PipeReader.Create(savedPayload); // restore saved payload
-                }
+
+                response.PayloadReader = PipeReader.Create(savedPayload); // restore saved payload
                 return response;
             }));
 
