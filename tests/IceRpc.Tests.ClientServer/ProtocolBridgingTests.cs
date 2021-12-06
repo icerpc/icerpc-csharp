@@ -184,8 +184,13 @@ namespace IceRpc.Tests.ClientServer
                 }
 
                 ReadResult readResult = await incomingRequest.Payload.ReadAsync(cancel);
-                Assert.That(readResult.IsCompleted);
-                Assert.That(readResult.Buffer.IsSingleSegment);
+                while (!readResult.IsCompleted)
+                {
+                    incomingRequest.Payload.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                    readResult = await incomingRequest.Payload.ReadAsync(cancel);
+                }
+                var payload = new byte[readResult.Buffer.Length];
+                readResult.Buffer.CopyTo(payload);
 
                 var outgoingRequest = new OutgoingRequest(
                     targetProtocol,
@@ -202,7 +207,7 @@ namespace IceRpc.Tests.ClientServer
                     IsIdempotent = incomingRequest.IsIdempotent,
                     Proxy = _target,
                     PayloadEncoding = incomingRequest.PayloadEncoding,
-                    Payload = new ReadOnlyMemory<byte>[] { readResult.Buffer.First }
+                    Payload = new ReadOnlyMemory<byte>[] { payload }
                 };
 
                 // Then invoke
@@ -217,7 +222,7 @@ namespace IceRpc.Tests.ClientServer
                     incomingResponse.Payload.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
                     readResult = await incomingResponse.Payload.ReadAsync(cancel);
                 }
-                var payload = new byte[readResult.Buffer.Length];
+                payload = new byte[readResult.Buffer.Length];
                 readResult.Buffer.CopyTo(payload);
 
                 return new OutgoingResponse(_target.Protocol, incomingResponse.ResultType)

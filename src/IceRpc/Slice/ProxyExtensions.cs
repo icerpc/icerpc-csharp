@@ -32,7 +32,6 @@ namespace IceRpc.Slice
         /// <see cref="RemoteException"/> when the response payload contains a failure.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="idempotent">When <c>true</c>, the request is idempotent.</param>
-        /// <param name="_"><c>true</c> if the response has a stream value.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The operation's return value.</returns>
         /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
@@ -47,7 +46,6 @@ namespace IceRpc.Slice
             ResponseDecodeFunc<T> responseDecodeFunc,
             Invocation? invocation,
             bool idempotent = false,
-            bool _ = false,
             CancellationToken cancel = default)
         {
             Task<IncomingResponse> responseTask =
@@ -65,8 +63,7 @@ namespace IceRpc.Slice
 
             async Task<T> ReadResponseAsync()
             {
-                IncomingResponse response =
-                    await responseTask.ConfigureAwait(false);
+                IncomingResponse response = await responseTask.ConfigureAwait(false);
 
                 return await responseDecodeFunc(
                     response,
