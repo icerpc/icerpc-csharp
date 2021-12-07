@@ -307,81 +307,72 @@ namespace IceRpc.Internal
                 }
             }
 
-            try
+            var bufferWriter = new BufferWriter();
+            var encoder = new Ice20Encoder(bufferWriter);
+
+            // Write the Ice2 request header.
+
+            BufferWriter.Position frameHeaderStart = encoder.StartFixedLengthSize(2);
+
+            // DateTime.MaxValue represents an infinite deadline and it is encoded as -1
+            long deadline = request.Deadline == DateTime.MaxValue ? -1 :
+                    (long)(request.Deadline - DateTime.UnixEpoch).TotalMilliseconds;
+
+            var header = new Ice2RequestHeader(
+                request.Path,
+                request.Operation,
+                request.IsIdempotent,
+                deadline,
+                request.PayloadEncoding == Ice2Definitions.Encoding ? "" : request.PayloadEncoding.ToString());
+
+            header.Encode(encoder);
+
+            // If the context feature is set to a non empty context, or if the fields defaults contains a context
+            // entry and the context feature is set, marshal the context feature in the request fields. The context
+            // feature must prevail over field defaults. Cannot use request.Features.GetContext it doesn't
+            // distinguish between empty an non set context.
+            if (request.Features.Get<Context>()?.Value is IDictionary<string, string> context &&
+                (context.Count > 0 || request.FieldsDefaults.ContainsKey((int)FieldKey.Context)))
             {
-                var bufferWriter = new BufferWriter();
-                var encoder = new Ice20Encoder(bufferWriter);
+                // Encodes context
+                request.Fields[(int)FieldKey.Context] =
+                    encoder => encoder.EncodeDictionary(context,
+                                                        (encoder, value) => encoder.EncodeString(value),
+                                                        (encoder, value) => encoder.EncodeString(value));
+            }
+            // else context remains empty (not set)
 
-                // Write the Ice2 request header.
+            encoder.EncodeFields(request.Fields, request.FieldsDefaults);
 
-                BufferWriter.Position frameHeaderStart = encoder.StartFixedLengthSize(2);
+            // We're done with the header encoding, write the header size.
+            _ = encoder.EndFixedLengthSize(frameHeaderStart, 2);
 
-                // DateTime.MaxValue represents an infinite deadline and it is encoded as -1
-                long deadline = request.Deadline == DateTime.MaxValue ? -1 :
-                        (long)(request.Deadline - DateTime.UnixEpoch).TotalMilliseconds;
+            // Add the payload to the buffer writer.
+            bufferWriter.Add(request.Payload);
 
-                var header = new Ice2RequestHeader(
-                    request.Path,
-                    request.Operation,
-                    request.IsIdempotent,
-                    deadline,
-                    request.PayloadEncoding == Ice2Definitions.Encoding ? "" : request.PayloadEncoding.ToString());
+            // Send the request frame.
+            var pipeWriter = new MultiplexedStreamPipeWriter(request.Stream);
 
-                header.Encode(encoder);
+            FlushResult flushResult = await pipeWriter.WriteAsync(
+                bufferWriter.Finish().ToSingleBuffer(),
+                cancel).ConfigureAwait(false);
 
-                // If the context feature is set to a non empty context, or if the fields defaults contains a context
-                // entry and the context feature is set, marshal the context feature in the request fields. The context
-                // feature must prevail over field defaults. Cannot use request.Features.GetContext it doesn't
-                // distinguish between empty an non set context.
-                if (request.Features.Get<Context>()?.Value is IDictionary<string, string> context &&
-                    (context.Count > 0 || request.FieldsDefaults.ContainsKey((int)FieldKey.Context)))
-                {
-                    // Encodes context
-                    request.Fields[(int)FieldKey.Context] =
-                        encoder => encoder.EncodeDictionary(context,
-                                                            (encoder, value) => encoder.EncodeString(value),
-                                                            (encoder, value) => encoder.EncodeString(value));
-                }
-                // else context remains empty (not set)
+            Debug.Assert(!flushResult.IsCanceled); // not implemented yet, so always false.
 
-                encoder.EncodeFields(request.Fields, request.FieldsDefaults);
-
-                // We're done with the header encoding, write the header size.
-                _ = encoder.EndFixedLengthSize(frameHeaderStart, 2);
-
-                // Add the payload to the buffer writer.
-                bufferWriter.Add(request.Payload);
-
-                // Send the request frame.
-                var pipeWriter = new MultiplexedStreamPipeWriter(request.Stream);
-
-                await pipeWriter.WriteAsync(bufferWriter.Finish().ToSingleBuffer(), cancel).ConfigureAwait(false);
+            if (!flushResult.IsCompleted)
+            {
                 if (request.StreamParamSender == null) // no stream
                 {
                     await pipeWriter.CompleteAsync().ConfigureAwait(false);
                 }
 
                 request.IsSent = true;
-            }
-            catch (MultiplexedStreamAbortedException ex)
-            {
-                switch ((MultiplexedStreamError)ex.ErrorCode)
+
+                // If there's a stream param sender, we can start sending the data.
+                if (request.StreamParamSender != null)
                 {
-                    case MultiplexedStreamError.ConnectionAborted:
-                        throw new ConnectionLostException(ex);
-
-                    case MultiplexedStreamError.ConnectionShutdown:
-                        throw new OperationCanceledException("connection shutdown", ex);
-
-                    default:
-                        throw;
+                    request.SendStreamParam(request.Stream);
                 }
-            }
-
-            // If there's a stream param sender, we can start sending the data.
-            if (request.StreamParamSender != null)
-            {
-                request.SendStreamParam(request.Stream);
             }
         }
 
