@@ -239,53 +239,32 @@ namespace IceRpc.Internal
             {
                 // Decode the response.
                 var decoder = new Ice11Decoder(buffer);
-                decoder.Skip(4); // we keep 4 extra bytes in the response buffer (see below)
+
+                // we keep 4 extra bytes in the response buffer to be able to write the payload size before an ice1
+                // system exception
+                decoder.Skip(4);
 
                 ReplyStatus replyStatus = decoder.DecodeReplyStatus();
                 ResultType resultType = replyStatus == ReplyStatus.OK ? ResultType.Success : ResultType.Failure;
 
-                byte encodingMajor = 1;
-                byte encodingMinor = 1;
-                int? payloadSize = null;
+                int payloadSize;
+                Encoding payloadEncoding;
+
                 if (replyStatus <= ReplyStatus.UserException)
                 {
                     var responseHeader = new Ice1ResponseHeader(decoder);
-                    encodingMajor = responseHeader.PayloadEncodingMajor;
-                    encodingMinor = responseHeader.PayloadEncodingMinor;
                     payloadSize = responseHeader.EncapsulationSize - 6;
-                }
+                    payloadEncoding = Encoding.FromMajorMinor(
+                        responseHeader.PayloadEncodingMajor,
+                        responseHeader.PayloadEncodingMinor);
 
-                var payloadEncoding = Encoding.FromMajorMinor(encodingMajor, encodingMinor);
-
-                var features = new FeatureCollection();
-
-                // For compatibility with ZeroC Ice
-                if (request.Proxy is Proxy proxy &&
-                    replyStatus == ReplyStatus.ObjectNotExistException &&
-                    (proxy.Endpoint == null || proxy.Endpoint.Transport == TransportNames.Loc)) // "indirect" proxy
-                {
-                    features.Set(RetryPolicy.OtherReplica);
-                }
-
-                if (payloadSize == null)
-                {
-                    // keep buffer as is - this why we include 4 extra bytes in buffer.
-
-                    Debug.Assert(replyStatus > ReplyStatus.UserException);
-                    Debug.Assert(decoder.Pos == 5); // replyStatus is first and last byte read
-                    payloadSize = buffer.Length - 4;
-                }
-                else
-                {
-                    if (payloadEncoding == Encoding.Ice11 && resultType == ResultType.Failure)
+                    if (payloadEncoding == Encoding.Ice11 && replyStatus == ReplyStatus.UserException)
                     {
                         buffer = buffer[(decoder.Pos - 5)..];
 
-                        // We encode the reply status (UserException) after the payload size
-                        Debug.Assert(replyStatus == ReplyStatus.UserException);
+                        // We encode the reply status (UserException) right after the payload size
                         buffer.Span[4] = (byte)ReplyStatus.UserException;
-
-                        payloadSize += 1; // we just added the reply status
+                        payloadSize += 1; // for the additional reply status
                     }
                     else
                     {
@@ -298,9 +277,26 @@ namespace IceRpc.Internal
                             } bytes, read {buffer.Length - 4} bytes");
                     }
                 }
+                else
+                {
+                    // Ice1 system exception
+                    payloadSize = buffer.Length - 4; // includes reply status, excludes the payload size
+                    payloadEncoding = Encoding.Ice11;
+                    // buffer stays the same
+                }
 
                 // We write the payload size in the first 4 bytes of the buffer.
-                EncodePayloadSize(payloadSize.Value, payloadEncoding, buffer.Span[0..4]);
+                EncodePayloadSize(payloadSize, payloadEncoding, buffer.Span[0..4]);
+
+                FeatureCollection features = FeatureCollection.Empty;
+
+                // For compatibility with ZeroC Ice
+                if (request.Proxy is Proxy proxy &&
+                    replyStatus == ReplyStatus.ObjectNotExistException &&
+                    (proxy.Endpoint == null || proxy.Endpoint.Transport == TransportNames.Loc)) // "indirect" proxy
+                {
+                    features = features.With(RetryPolicy.OtherReplica);
+                }
 
                 return new IncomingResponse(
                     Protocol.Ice1,
