@@ -7,7 +7,6 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using System.Buffers;
 using System.Diagnostics;
-using System.IO.Pipelines;
 
 namespace IceRpc.Internal
 {
@@ -98,13 +97,12 @@ namespace IceRpc.Internal
             {
                 // Wait for a request frame to be received.
                 int requestId;
-                IMemoryOwner<byte> memoryOwner;
-                int start;
-                int length;
+                Memory<byte> buffer;
+                IDisposable disposable;
 
                 try
                 {
-                    (requestId, memoryOwner, start, length) = await ReceiveFrameAsync().ConfigureAwait(false);
+                    (requestId, buffer, disposable) = await ReceiveFrameAsync().ConfigureAwait(false);
                 }
                 catch (ConnectionLostException)
                 {
@@ -125,7 +123,6 @@ namespace IceRpc.Internal
 
                 try
                 {
-                    ReadOnlyMemory<byte> buffer = memoryOwner.Memory.Slice(start, length);
                     var decoder = new Ice11Decoder(buffer);
 
                     var requestHeader = new Ice1RequestHeader(decoder);
@@ -138,32 +135,29 @@ namespace IceRpc.Internal
                         throw new InvalidDataException("received request with empty operation name");
                     }
 
-                    // The payload plus 4 bytes from the encapsulation header used to store the payload size encoded with
-                    // payload encoding.
-                    int consumed = decoder.Pos - 4;
-                    start += consumed;
-                    length -= consumed;
-                    Memory<byte> payload = memoryOwner.Memory.Slice(start, length);
+                    // The payload plus 4 bytes from the encapsulation header used to store the payload size encoded
+                    // with payload encoding.
+                    buffer = buffer[(decoder.Pos - 4)..];
 
                     // The payload size is the encapsulation size less the 6 bytes of the encapsulation header.
                     int payloadSize = requestHeader.EncapsulationSize - 6;
-                    if (payloadSize != payload.Length - 4)
+                    if (payloadSize != buffer.Length - 4)
                     {
                         throw new InvalidDataException(@$"request payload size mismatch: expected {payloadSize
-                            } bytes, read {payload.Length - 4} bytes");
+                            } bytes, read {buffer.Length - 4} bytes");
                     }
 
                     var payloadEncoding = Encoding.FromMajorMinor(
                         requestHeader.PayloadEncodingMajor,
                         requestHeader.PayloadEncodingMinor);
 
-                    EncodePayloadSize(payloadSize, payloadEncoding, payload.Span[0..4]);
+                    EncodePayloadSize(payloadSize, payloadEncoding, buffer.Span[0..4]);
 
                     var request = new IncomingRequest(
                         Protocol.Ice1,
                         path: requestHeader.IdentityAndFacet.ToPath(),
                         operation: requestHeader.Operation,
-                        payload: new DisposableMemoryPipeReader(memoryOwner.Memory.Slice(start, length), memoryOwner),
+                        payload: new DisposableMemoryPipeReader(buffer, disposable),
                         payloadEncoding)
                     {
                         IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
@@ -183,7 +177,7 @@ namespace IceRpc.Internal
                         // connection is closed.
                         if (_shutdown)
                         {
-                            memoryOwner.Dispose();
+                            disposable.Dispose();
                             // and loop back
                         }
                         else
@@ -196,7 +190,7 @@ namespace IceRpc.Internal
                 }
                 catch
                 {
-                    memoryOwner.Dispose();
+                    disposable.Dispose();
                     throw;
                 }
             }
@@ -218,13 +212,12 @@ namespace IceRpc.Internal
 
             // Wait for the response.
 
-            IMemoryOwner<byte> memoryOwner;
-            int start;
-            int length;
+            Memory<byte> buffer;
+            IDisposable disposable;
 
             try
             {
-                (memoryOwner, start, length) = await requestFeature.ResponseCompletionSource.Task.WaitAsync(
+                (buffer, disposable) = await requestFeature.ResponseCompletionSource.Task.WaitAsync(
                     cancel).ConfigureAwait(false);
             }
             finally
@@ -245,8 +238,8 @@ namespace IceRpc.Internal
             try
             {
                 // Decode the response.
-                ReadOnlyMemory<byte> buffer = memoryOwner.Memory.Slice(start, length);
                 var decoder = new Ice11Decoder(buffer);
+                decoder.Skip(4); // we keep 4 extra bytes in the response buffer (see below)
 
                 ReplyStatus replyStatus = decoder.DecodeReplyStatus();
                 ResultType resultType = replyStatus == ReplyStatus.OK ? ResultType.Success : ResultType.Failure;
@@ -274,56 +267,45 @@ namespace IceRpc.Internal
                     features.Set(RetryPolicy.OtherReplica);
                 }
 
-                Memory<byte> payload;
-
                 if (payloadSize == null)
                 {
-                    payloadSize = length; // includes reply status as first byte
+                    // keep buffer as is - this why we include 4 extra bytes in buffer.
 
                     Debug.Assert(replyStatus > ReplyStatus.UserException);
-                    Debug.Assert(decoder.Pos == 1); // first byte is replyStatus
-                    start -= 4; // we reuse 4 bytes from the frame header
-                    Debug.Assert(start >= 0);
-                    length += 4;
-                    payload = memoryOwner.Memory.Slice(start, length);
+                    Debug.Assert(decoder.Pos == 5); // replyStatus is first and last byte read
+                    payloadSize = buffer.Length - 4;
                 }
                 else
                 {
-                    // We overwrite the encapsulation header to write the payload size
-
                     if (payloadEncoding == Encoding.Ice11 && resultType == ResultType.Failure)
                     {
-                        int consumed = decoder.Pos - 5;
-                        start += consumed;
-                        length -= consumed;
-                        payload = memoryOwner.Memory.Slice(start, length);
+                        buffer = buffer[(decoder.Pos - 5)..];
 
                         // We encode the reply status (UserException) after the payload size
                         Debug.Assert(replyStatus == ReplyStatus.UserException);
-                        payload.Span[4] = (byte)ReplyStatus.UserException;
-                        payloadSize += 1;
+                        buffer.Span[4] = (byte)ReplyStatus.UserException;
+
+                        payloadSize += 1; // we just added the reply status
                     }
                     else
                     {
-                        int consumed = decoder.Pos - 4;
-                        start += consumed;
-                        length -= consumed;
-                        payload = memoryOwner.Memory.Slice(start, length);; // no reply status
+                        buffer = buffer[(decoder.Pos - 4)..]; // no reply status
                     }
 
-                    if (payloadSize != payload.Length - 4)
+                    if (payloadSize != buffer.Length - 4)
                     {
                         throw new InvalidDataException(@$"response payload size mismatch: expected {payloadSize
-                            } bytes, read {payload.Length - 4} bytes");
+                            } bytes, read {buffer.Length - 4} bytes");
                     }
                 }
 
-                EncodePayloadSize(payloadSize.Value, payloadEncoding, payload.Span[0..4]);
+                // We write the payload size in the first 4 bytes of the buffer.
+                EncodePayloadSize(payloadSize.Value, payloadEncoding, buffer.Span[0..4]);
 
                 return new IncomingResponse(
                     Protocol.Ice1,
                     resultType,
-                    new DisposableMemoryPipeReader(memoryOwner.Memory.Slice(start, length), memoryOwner),
+                    new DisposableMemoryPipeReader(buffer, disposable),
                     payloadEncoding)
                 {
                     Features = features,
@@ -331,7 +313,7 @@ namespace IceRpc.Internal
             }
             catch
             {
-                memoryOwner.Dispose();
+                disposable.Dispose();
                 throw;
             }
         }
@@ -755,7 +737,7 @@ namespace IceRpc.Internal
             }
         }
 
-        private async ValueTask<(int RequestId, IMemoryOwner<byte> MemoryOwner, int Start, int Length)> ReceiveFrameAsync()
+        private async ValueTask<(int RequestId, Memory<byte> buffer, IDisposable disposable)> ReceiveFrameAsync()
         {
             // Reads are not cancellable. This method returns once a frame is read or when the connection is disposed.
             CancellationToken cancel = CancellationToken.None;
@@ -770,8 +752,7 @@ namespace IceRpc.Internal
                     memoryOwner?.Dispose();
                     memoryOwner = null;
 
-                    int start = 0;
-                    ReadOnlyMemory<byte> buffer;
+                    Memory<byte> buffer;
 
                     // Receive the Ice1 frame header.
                     if (_isUdp)
@@ -833,13 +814,11 @@ namespace IceRpc.Internal
                     if (_isUdp)
                     {
                         // Remove header
-                        start = Ice1Definitions.HeaderSize;
-                        buffer = buffer[start..];
+                        buffer = buffer[Ice1Definitions.HeaderSize..];
                     }
                     else if (frameSize == Ice1Definitions.HeaderSize)
                     {
-                        buffer = ReadOnlyMemory<byte>.Empty;
-                        start = 0;
+                        buffer = Memory<byte>.Empty;
                     }
                     else
                     {
@@ -852,7 +831,6 @@ namespace IceRpc.Internal
                         }
 
                         await ReceiveUntilFullAsync(memoryOwner.Memory[0..remainingSize], cancel).ConfigureAwait(false);
-                        start = 0;
                         buffer = memoryOwner.Memory[0..remainingSize];
                     }
 
@@ -909,16 +887,13 @@ namespace IceRpc.Internal
                         case Ice1FrameType.Request:
                         {
                             int requestId = IceDecoder.DecodeInt(buffer.Span[0..4]);
-                            start += 4;
-                            buffer = buffer[4..];
-                            return (requestId, memoryOwner, start, buffer.Length);
+                            buffer = buffer[4..]; // consume these 4 bytes
+                            return (requestId, buffer, memoryOwner);
                         }
 
                         case Ice1FrameType.RequestBatch:
                         {
                             int invokeNum = IceDecoder.DecodeInt(buffer.Span[0..4]);
-                            start += 4;
-                            buffer = buffer[4..];
 
                             // TODO: implement protocol logging with decorators
                             // _logger.LogReceivedIce1RequestBatchFrame(invokeNum);
@@ -934,15 +909,14 @@ namespace IceRpc.Internal
                         case Ice1FrameType.Reply:
                         {
                             int requestId = IceDecoder.DecodeInt(buffer.Span[0..4]);
-                            start += 4;
-                            buffer = buffer[4..];
+                            // we keep the extra 4 bytes in the buffer
 
                             lock (_mutex)
                             {
                                 if (_invocations.TryGetValue(requestId, out OutgoingRequest? request))
                                 {
                                     request.Features.Get<Ice1Request>()!.ResponseCompletionSource!.SetResult(
-                                        (memoryOwner, start, buffer.Length));
+                                        (buffer, memoryOwner));
                                     memoryOwner = null; // avoid recycling
                                 }
                                 else if (!_shutdown)
