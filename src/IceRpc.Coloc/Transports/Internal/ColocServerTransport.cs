@@ -20,7 +20,7 @@ namespace IceRpc.Transports
             ILogger logger)
         {
             var listener = new ColocListener(endpoint);
-            if (!_listeners.TryAdd(endpoint, new ColocListener(endpoint)))
+            if (!_listeners.TryAdd(endpoint, listener))
             {
                 throw new TransportException($"endpoint '{endpoint}' is already in use");
             }
