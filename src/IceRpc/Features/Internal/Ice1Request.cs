@@ -9,7 +9,7 @@ namespace IceRpc.Features.Internal
         internal int Id { get; }
 
         /// <summary>The task completion source that will be completed when the response is received.</summary>
-        internal TaskCompletionSource<Memory<byte>>? ResponseCompletionSource { get; }
+        internal TaskCompletionSource<(Memory<byte>, IDisposable)>? ResponseCompletionSource { get; }
 
         internal Ice1Request(int id, bool outgoing)
         {

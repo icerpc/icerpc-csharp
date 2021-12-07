@@ -227,11 +227,8 @@ namespace IceRpc.Internal
             {
                 ReadResult readResult = await reader.ReadSegmentAsync(Encoding.Ice20, cancel).ConfigureAwait(false);
 
-                if (readResult.IsCanceled)
-                {
-                    // TODO: can this happen? If not, replace by an assert.
-                    throw new OperationCanceledException();
-                }
+                // At this point, nothing can call CancelPendingReads on this pipe reader.
+                Debug.Assert(!readResult.IsCanceled);
 
                 if (readResult.Buffer.IsEmpty)
                 {
