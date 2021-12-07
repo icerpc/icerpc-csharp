@@ -909,7 +909,7 @@ namespace IceRpc.Internal
                         case Ice1FrameType.Reply:
                         {
                             int requestId = IceDecoder.DecodeInt(buffer.Span[0..4]);
-                            // we keep the extra 4 bytes in the buffer
+                            // we keep these 4 bytes in buffer
 
                             lock (_mutex)
                             {

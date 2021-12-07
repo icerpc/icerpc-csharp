@@ -9,8 +9,8 @@ namespace IceRpc.Internal
     /// object is disposed as soon as the pipe reader is completed.</summary>
     internal class DisposableMemoryPipeReader : PipeReader
     {
-        private readonly SequencePosition _endPosition;
         private readonly IDisposable _disposable;
+        private readonly SequencePosition _endPosition;
         private bool _isDisposed;
         private readonly PipeReader _sequencePipeReader;
 
@@ -20,12 +20,10 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
         {
-            // Recycle as soon as possible:
-            if (consumed.Equals(_endPosition))
+            if (consumed.Equals(_endPosition)) // fully consumed
             {
                 Dispose();
             }
-
             _sequencePipeReader.AdvanceTo(consumed, examined);
         }
 
