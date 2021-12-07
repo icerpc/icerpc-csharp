@@ -5,9 +5,9 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Internal
 {
-    /// <summary>Implements a PipeReader over a ReadOnlyMemory{byte} buffer and a disposable object. The disposable
+    /// <summary>Implements a PipeReader over a ReadOnlySequence{byte} buffer and a disposable object. The disposable
     /// object is disposed as soon as the pipe reader is completed.</summary>
-    internal class DisposableMemoryPipeReader : PipeReader
+    internal class DisposableSequencePipeReader : PipeReader
     {
         private readonly IDisposable _disposable;
         private readonly SequencePosition _endPosition;
@@ -47,12 +47,11 @@ namespace IceRpc.Internal
         /// <summary>Constructs a pipe reader over buffer and a disposable object.</summary>
         /// <param name="buffer">The buffer.</param>
         /// <param name="disposable">The disposable object.</param>
-        internal DisposableMemoryPipeReader(ReadOnlyMemory<byte> buffer, IDisposable disposable)
+        internal DisposableSequencePipeReader(ReadOnlySequence<byte> buffer, IDisposable disposable)
         {
             _disposable = disposable;
-            var sequence = new ReadOnlySequence<byte>(buffer);
-            _endPosition = sequence.End;
-            _sequencePipeReader = PipeReader.Create(sequence);
+            _endPosition = buffer.End;
+            _sequencePipeReader = Create(buffer);
         }
 
         private void Dispose()

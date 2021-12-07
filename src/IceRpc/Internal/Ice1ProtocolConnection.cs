@@ -157,7 +157,7 @@ namespace IceRpc.Internal
                         Protocol.Ice1,
                         path: requestHeader.IdentityAndFacet.ToPath(),
                         operation: requestHeader.Operation,
-                        payload: new DisposableMemoryPipeReader(buffer, disposable),
+                        payload: new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
                         payloadEncoding)
                     {
                         IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
@@ -305,7 +305,7 @@ namespace IceRpc.Internal
                 return new IncomingResponse(
                     Protocol.Ice1,
                     resultType,
-                    new DisposableMemoryPipeReader(buffer, disposable),
+                    new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
                     payloadEncoding)
                 {
                     Features = features,
