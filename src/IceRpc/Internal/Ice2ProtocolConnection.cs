@@ -361,16 +361,15 @@ namespace IceRpc.Internal
 
             if (!flushResult.IsCompleted)
             {
+                request.IsSent = true;
+
                 if (request.StreamParamSender == null) // no stream
                 {
                     await pipeWriter.CompleteAsync().ConfigureAwait(false);
                 }
-
-                request.IsSent = true;
-
-                // If there's a stream param sender, we can start sending the data.
-                if (request.StreamParamSender != null)
+                else
                 {
+                    // If there's a stream param sender, we can start sending the data.
                     request.SendStreamParam(request.Stream);
                 }
             }
@@ -412,14 +411,26 @@ namespace IceRpc.Internal
             bufferWriter.Add(response.Payload);
 
             // Send the response frame.
-            await request.Stream.WriteAsync(bufferWriter.Finish(),
-                                            endStream: response.StreamParamSender == null,
-                                            cancel).ConfigureAwait(false);
 
-            // If there's a stream param sender, we can start sending the data.
-            if (response.StreamParamSender != null)
+            var pipeWriter = new MultiplexedStreamPipeWriter(request.Stream);
+
+            FlushResult flushResult = await pipeWriter.WriteAsync(
+                bufferWriter.Finish().ToSingleBuffer(),
+                cancel).ConfigureAwait(false);
+
+            Debug.Assert(!flushResult.IsCanceled); // not implemented yet, so always false.
+
+            if (!flushResult.IsCompleted)
             {
-                response.SendStreamParam(request.Stream);
+                if (response.StreamParamSender == null) // no stream
+                {
+                    await pipeWriter.CompleteAsync().ConfigureAwait(false);
+                }
+                else
+                {
+                    // If there's a stream param sender, we can start sending the data.
+                    response.SendStreamParam(request.Stream);
+                }
             }
         }
 
