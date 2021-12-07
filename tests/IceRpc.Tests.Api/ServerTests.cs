@@ -215,7 +215,7 @@ namespace IceRpc.Tests.Api
                 {
                     dispatchStartSemaphore.Release();
                     await dispatchContinueSemaphore.WaitAsync(cancel);
-                    return new OutgoingResponse(request, default);
+                    return new OutgoingResponse(request, payload: default);
                 }),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
@@ -257,7 +257,7 @@ namespace IceRpc.Tests.Api
                     Assert.That(cancel.CanBeCanceled, Is.True);
                     semaphore.Release();
                     await Task.Delay(-1, cancel);
-                    return new OutgoingResponse(request, default);
+                    return new OutgoingResponse(request, payload: default);
                 }),
                 Endpoint = serverEndpoint
             };

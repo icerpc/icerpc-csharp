@@ -31,7 +31,7 @@ namespace IceRpc
             ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty;
 
         /// <summary>Gets or sets the payload sink of this frame.</summary>
-        public PipeWriter PayloadSink { get; set; } = null!;
+        public PipeWriter PayloadSink { get; set; }
 
         /// <summary>Gets or sets the payload source of this frame.</summary>
         // TODO: temporary implementation!
@@ -50,7 +50,14 @@ namespace IceRpc
 
         /// <summary>Constructs an outgoing frame.</summary>
         /// <param name="protocol">The protocol used to send the frame.</param>
-        protected OutgoingFrame(Protocol protocol) => Protocol = protocol;
+        /// <param name="payloadSink">The outgoing frame's payload sink.</param>
+        protected OutgoingFrame(
+            Protocol protocol,
+            PipeWriter payloadSink)
+        {
+            Protocol = protocol;
+            PayloadSink = payloadSink;
+        }
 
         internal void SendStreamParam(IMultiplexedStream stream)
         {

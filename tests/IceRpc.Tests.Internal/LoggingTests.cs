@@ -140,7 +140,7 @@ namespace IceRpc.Tests.Internal
             await WithConnectionAndLoggerFactory(async (connection, loggerFactory) =>
             {
                 IncomingRequest request = CreateIncomingRequest(connection, twoway);
-                OutgoingResponse response = CreateOutgoingResponse();
+                OutgoingResponse response = CreateOutgoingResponse(request);
 
                 var router = new Router();
                 router.UseLogger(loggerFactory);
@@ -262,8 +262,8 @@ namespace IceRpc.Tests.Internal
                 PayloadEncoding = Encoding.Ice20
             };
 
-        private static OutgoingResponse CreateOutgoingResponse() =>
-            new(Protocol.Ice2, ResultType.Success)
+        private static OutgoingResponse CreateOutgoingResponse(IncomingRequest request) =>
+            new(request, ResultType.Success)
             {
                 Payload = new ReadOnlyMemory<byte>[] { new byte[10] },
                 PayloadEncoding = Encoding.Ice20

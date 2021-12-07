@@ -225,7 +225,7 @@ namespace IceRpc.Tests.ClientServer
                 payload = new byte[readResult.Buffer.Length];
                 readResult.Buffer.CopyTo(payload);
 
-                return new OutgoingResponse(_target.Protocol, incomingResponse.ResultType)
+                return new OutgoingResponse(incomingRequest, incomingResponse.ResultType)
                 {
                     // Don't forward RetryPolicy
                     FieldsDefaults = incomingResponse.Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),

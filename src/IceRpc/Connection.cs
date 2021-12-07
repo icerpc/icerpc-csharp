@@ -583,7 +583,7 @@ namespace IceRpc
                     }
 
                     IceEncoding payloadEncoding = request.GetIceEncoding();
-                    response = new OutgoingResponse(Protocol, ResultType.Failure)
+                    response = new OutgoingResponse(request, ResultType.Failure)
                     {
                         Payload = payloadEncoding.CreatePayloadFromRemoteException(remoteException),
                         PayloadEncoding = payloadEncoding

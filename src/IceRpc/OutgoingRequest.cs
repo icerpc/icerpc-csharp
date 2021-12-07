@@ -1,7 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Transports;
 using System.Collections.Immutable;
+using System.IO.Pipelines;
 
 namespace IceRpc
 {
@@ -48,6 +50,8 @@ namespace IceRpc
         /// <summary>The proxy that is sending this request.</summary>
         public Proxy? Proxy { get; init; }
 
+        internal DelayedPipeWriterDecorator InitialPayloadSink { get; }
+
         /// <summary>The stream used to send the request.</summary>
         internal IMultiplexedStream? Stream { get; set; }
 
@@ -56,10 +60,13 @@ namespace IceRpc
         /// <param name="path">The path of the request.</param>
         /// <param name="operation">The operation of the request.</param>
         public OutgoingRequest(Protocol protocol, string path, string operation) :
-            base(protocol)
+            base(protocol, new DelayedPipeWriterDecorator())
         {
             Path = path;
             Operation = operation;
+
+            // We keep it to initialize it later
+            InitialPayloadSink = (DelayedPipeWriterDecorator)PayloadSink;
         }
     }
 }

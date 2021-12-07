@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Transports;
 using System.IO.Pipelines;
 
@@ -33,6 +34,11 @@ namespace IceRpc
 
         /// <summary>Get the cancellation dispatch source.</summary>
         internal CancellationTokenSource? CancelDispatchSource { get; set; }
+
+        /// <summary>The payload sink of the corresponding response.</summary>
+        // TODO: get-only ok, but with temporary implementation
+        internal PipeWriter ResponsePayloadSink => Stream is IMultiplexedStream stream ?
+            new MultiplexedStreamPipeWriter(stream) : new DelayedPipeWriterDecorator(); // delayed never set!
 
         /// <summary>The stream used to receive the request.</summary>
         internal IMultiplexedStream? Stream { get; init; }
