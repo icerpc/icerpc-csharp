@@ -414,9 +414,7 @@ namespace IceRpc.Internal
 
             // Send the response frame.
 
-            var pipeWriter = new MultiplexedStreamPipeWriter(request.Stream);
-
-            FlushResult flushResult = await pipeWriter.WriteAsync(
+            FlushResult flushResult = await response.PayloadSink.WriteAsync(
                 bufferWriter.Finish().ToSingleBuffer(),
                 cancel).ConfigureAwait(false);
 
@@ -426,7 +424,7 @@ namespace IceRpc.Internal
             {
                 if (response.StreamParamSender == null) // no stream
                 {
-                    await pipeWriter.CompleteAsync().ConfigureAwait(false);
+                    await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
                 }
                 else
                 {
