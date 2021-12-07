@@ -34,10 +34,13 @@ namespace IceRpc.Internal
 
         internal void SetDecoratee(PipeWriter decoratee)
         {
-            if (_decoratee != null)
-            {
-                throw new InvalidOperationException("pipe writer already set");
-            }
+            // TODO: we currently set and reset this decoratee several times when retrying (resending the exact same
+            // OutgoingRequest). Is this correct?
+
+            // if (_decoratee != null)
+            // {
+            //    throw new InvalidOperationException("pipe writer already set");
+            // }
             _decoratee = decoratee;
         }
     }

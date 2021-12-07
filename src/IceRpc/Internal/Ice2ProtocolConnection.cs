@@ -279,6 +279,9 @@ namespace IceRpc.Internal
             // Create the stream.
             request.Stream = _networkConnection.CreateStream(!request.IsOneway);
 
+            // Set decoratee.
+            request.InitialPayloadSink.SetDecoratee(new MultiplexedStreamPipeWriter(request.Stream));
+
             if (!request.IsOneway || request.StreamParamSender != null)
             {
                 lock (_mutex)
@@ -351,9 +354,8 @@ namespace IceRpc.Internal
             bufferWriter.Add(request.Payload);
 
             // Send the request frame.
-            var pipeWriter = new MultiplexedStreamPipeWriter(request.Stream);
-
-            FlushResult flushResult = await pipeWriter.WriteAsync(
+            // PayloadSink can be a decorated InitialPayloadSink at this point.
+            FlushResult flushResult = await request.PayloadSink.WriteAsync(
                 bufferWriter.Finish().ToSingleBuffer(),
                 cancel).ConfigureAwait(false);
 
@@ -365,7 +367,7 @@ namespace IceRpc.Internal
 
                 if (request.StreamParamSender == null) // no stream
                 {
-                    await pipeWriter.CompleteAsync().ConfigureAwait(false);
+                    await request.PayloadSink.CompleteAsync().ConfigureAwait(false);
                 }
                 else
                 {
