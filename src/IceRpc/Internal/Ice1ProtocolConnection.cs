@@ -737,7 +737,7 @@ namespace IceRpc.Internal
             }
         }
 
-        private async ValueTask<(int RequestId, Memory<byte> buffer, IDisposable disposable)> ReceiveFrameAsync()
+        private async ValueTask<(int RequestId, Memory<byte> Buffer, IDisposable Disposable)> ReceiveFrameAsync()
         {
             // Reads are not cancellable. This method returns once a frame is read or when the connection is disposed.
             CancellationToken cancel = CancellationToken.None;
@@ -917,7 +917,7 @@ namespace IceRpc.Internal
                                 {
                                     request.Features.Get<Ice1Request>()!.ResponseCompletionSource!.SetResult(
                                         (buffer, memoryOwner));
-                                    memoryOwner = null; // avoid recycling
+                                    memoryOwner = null; // otherwise memoryOwner is disposed immediately
                                 }
                                 else if (!_shutdown)
                                 {
