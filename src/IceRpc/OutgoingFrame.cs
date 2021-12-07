@@ -4,7 +4,9 @@ using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Transports;
 using System.Collections.Immutable;
+using System.Buffers;
 using System.Diagnostics;
+using System.IO.Pipelines;
 
 namespace IceRpc
 {
@@ -27,6 +29,13 @@ namespace IceRpc
         /// <summary>Gets or sets the payload of this frame.</summary>
         public ReadOnlyMemory<ReadOnlyMemory<byte>> Payload { get; set; } =
             ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty;
+
+        /// <summary>Gets or sets the payload sink of this frame.</summary>
+        public PipeWriter PayloadSink { get; set; } = null!;
+
+        /// <summary>Gets or sets the payload source of this frame.</summary>
+        // TODO: temporary implementation!
+        public PipeReader PayloadSource => PipeReader.Create(new ReadOnlySequence<byte>(Payload.ToSingleBuffer()));
 
         /// <summary>Returns the encoding of the payload of this frame.</summary>
         /// <remarks>The header of the frame is always encoded using the frame protocol's encoding.</remarks>

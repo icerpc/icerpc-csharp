@@ -353,11 +353,14 @@ namespace IceRpc.Internal
                 bufferWriter.Add(request.Payload);
 
                 // Send the request frame.
-                await request.Stream.WriteAsync(bufferWriter.Finish(),
-                                                endStream: request.StreamParamSender == null,
-                                                cancel).ConfigureAwait(false);
+                var pipeWriter = new MultiplexedStreamPipeWriter(request.Stream);
 
-                // Mark the request as sent.
+                await pipeWriter.WriteAsync(bufferWriter.Finish().ToSingleBuffer(), cancel).ConfigureAwait(false);
+                if (request.StreamParamSender == null) // no stream
+                {
+                    await pipeWriter.CompleteAsync().ConfigureAwait(false);
+                }
+
                 request.IsSent = true;
             }
             catch (MultiplexedStreamAbortedException ex)
