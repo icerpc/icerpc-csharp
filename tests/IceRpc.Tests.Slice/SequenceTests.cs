@@ -1,43 +1,30 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice
 {
-    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
     [TestFixture(ProtocolCode.Ice1)]
     [TestFixture(ProtocolCode.Ice2)]
-    public sealed class SequenceTests : IAsyncDisposable
+    public sealed class SequenceTests
     {
-        private readonly Connection _connection;
-        private readonly Server _server;
+        private readonly ServiceProvider _serviceProvider;
         private readonly SequenceOperationsPrx _prx;
 
         public SequenceTests(ProtocolCode protocol)
         {
-            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
-            _server = new Server
-            {
-                Dispatcher = new SequenceOperations(),
-                Endpoint = serverEndpoint
-            };
-            _server.Listen();
-            _connection = new Connection
-            {
-                RemoteEndpoint = serverEndpoint
-            };
-            _prx = SequenceOperationsPrx.FromConnection(_connection);
-            Assert.AreEqual(protocol, _prx.Proxy.Protocol.Code);
+            _serviceProvider = new IntegrationServiceCollection()
+                .UseProtocol(protocol)
+                .AddTransient<IDispatcher, SequenceOperations>()
+                .BuildServiceProvider();
+            _prx = SequenceOperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
         }
 
-        [TearDown]
-        public async ValueTask DisposeAsync()
-        {
-            await _server.DisposeAsync();
-            await _connection.DisposeAsync();
-        }
+        [OneTimeTearDown]
+        public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
 
         [Test]
         public async Task Sequence_BuiltinTypesAsync()

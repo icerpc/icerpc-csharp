@@ -2,46 +2,44 @@
 
 using IceRpc.Configure;
 using IceRpc.Slice;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice
 {
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    public sealed class OperationTagTests : IAsyncDisposable
+    [TestFixture("1.1")]
+    [TestFixture("2.0")]
+    public sealed class OperationTagTests
     {
-        private readonly Connection _connection;
-        private readonly Server _server;
+        private readonly ServiceProvider _serviceProvider;
+        private readonly OperationTagPrx _prx;
 
-        public OperationTagTests()
+        public OperationTagTests(string encoding)
         {
-            var router = new Router();
-            router.Map<IOperationTagDouble>(new OperationTagDouble());
-            router.Map<IOperationTagEncodedResult>(new OperationTagEncodedResult());
-            router.Map<IOperationTag>(new OperationTag());
+            _serviceProvider = new IntegrationServiceCollection()
+                .AddTransient<IDispatcher>(_ => {
+                    var router = new Router();
+                    router.Map<IOperationTagDouble>(new OperationTagDouble());
+                    router.Map<IOperationTagEncodedResult>(new OperationTagEncodedResult());
+                    router.Map<IOperationTag>(new OperationTag());
+                    return router;
+                })
+                .BuildServiceProvider();
 
-            _server = new Server
-            {
-                Dispatcher = router,
-                Endpoint = TestHelper.GetUniqueColocEndpoint(),
-            };
-            _server.Listen();
-            _connection = new Connection { RemoteEndpoint = _server.Endpoint };
+            _prx = OperationTagPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
+            _prx.Proxy.Encoding = Encoding.FromString(encoding);
         }
 
         [OneTimeTearDown]
-        public async ValueTask DisposeAsync()
-        {
-            await _server.DisposeAsync();
-            await _connection.DisposeAsync();
-        }
+        public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
 
-        [TestCase("1.1")]
-        [TestCase("2.0")]
-        public async Task OperationTag_Double(string encoding)
+        [Test]
+        public async Task OperationTag_Double()
         {
-            var doublePrx = OperationTagDoublePrx.FromConnection(_connection);
-            doublePrx.Proxy.Encoding = Encoding.FromString(encoding);
+            var doublePrx = OperationTagDoublePrx.FromConnection(_prx.Proxy.Connection!);
+            doublePrx.Proxy.Encoding = _prx.Proxy.Encoding;
 
             {
                 (byte? r1, byte? r2) = await doublePrx.OpByteAsync(null);
@@ -610,12 +608,11 @@ namespace IceRpc.Tests.Slice
             }
         }
 
-        [TestCase("1.1")]
-        [TestCase("2.0")]
-        public async Task OperationTag_EncodedResult(string encoding)
+        [Test]
+        public async Task OperationTag_EncodedResult()
         {
-            var encodedResultPrx = OperationTagEncodedResultPrx.FromConnection(_connection);
-            encodedResultPrx.Proxy.Encoding = Encoding.FromString(encoding);
+            var encodedResultPrx = OperationTagEncodedResultPrx.FromConnection(_prx.Proxy.Connection!);
+            encodedResultPrx.Proxy.Encoding = _prx.Proxy.Encoding;
 
             {
                 MyStruct? r1 = await encodedResultPrx.OpMyStructAsync(null);
@@ -645,15 +642,12 @@ namespace IceRpc.Tests.Slice
             }
         }
 
-        [TestCase("1.1")]
-        [TestCase("2.0")]
-        public async Task OperationTag_DuplicateTag(string encoding)
+        [Test]
+        public async Task OperationTag_DuplicateTag()
         {
-            OperationTagPrx prx = GetPrx(encoding);
-
             // Build a request payload with 2 tagged values
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload =
-                prx.Proxy.GetIceEncoding().CreatePayloadFromArgs(
+                _prx.Proxy.GetIceEncoding().CreatePayloadFromArgs(
                     (15, "test"),
                     (IceEncoder encoder, in (int? N, string? S) value) =>
                     {
@@ -675,34 +669,28 @@ namespace IceRpc.Tests.Slice
                     });
 
             (IncomingResponse response, StreamParamReceiver? _) =
-                await prx.Proxy.InvokeAsync("opVoid", prx.Proxy.Encoding, requestPayload);
+                await _prx.Proxy.InvokeAsync("opVoid", _prx.Proxy.Encoding, requestPayload);
 
             Assert.DoesNotThrowAsync(async () => await response.CheckVoidReturnValueAsync(
-                prx.Proxy.Invoker,
+                _prx.Proxy.Invoker,
                 response.GetIceDecoderFactory(new DefaultIceDecoderFactories(typeof(OperationTagTests).Assembly)),
                 default));
         }
 
-        [TestCase("1.1")]
-        [TestCase("2.0")]
-        public async Task OperationTag_MinusTag(string encoding)
+        [Test]
+        public async Task OperationTag_MinusTag()
         {
-            OperationTagPrx prx = GetPrx(encoding);
-
             // We use a compatible interface with fewer tags:
-            var minusPrx = new OperationTagMinusPrx(prx.Proxy);
+            var minusPrx = new OperationTagMinusPrx(_prx.Proxy);
             int? r1 = await minusPrx.OpIntAsync();
             Assert.That(r1, Is.Null);
         }
 
-        [TestCase("1.1")]
-        [TestCase("2.0")]
-        public async Task OperationTag_PlusTag(string encoding)
+        [Test]
+        public async Task OperationTag_PlusTag()
         {
-            OperationTagPrx prx = GetPrx(encoding);
-
             // We use a compatible interface with more tags:
-            var plusPrx = new OperationTagPlusPrx(prx.Proxy);
+            var plusPrx = new OperationTagPlusPrx(_prx.Proxy);
 
             {
                 (int? r1, string? r2) = await plusPrx.OpIntAsync(42, "42");
@@ -714,13 +702,6 @@ namespace IceRpc.Tests.Slice
                 string? r1 = await plusPrx.OpVoidAsync("42");
                 Assert.That(r1, Is.Null);
             }
-        }
-
-        private OperationTagPrx GetPrx(string encoding)
-        {
-            var prx = OperationTagPrx.FromConnection(_connection);
-            prx.Proxy.Encoding = Encoding.FromString(encoding);
-            return prx;
         }
     }
 

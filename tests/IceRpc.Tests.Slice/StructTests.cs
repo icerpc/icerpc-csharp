@@ -1,45 +1,31 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice
 {
-    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    [Timeout(30000)]
+    [Timeout(5000)]
     [Parallelizable(ParallelScope.All)]
     [TestFixture(ProtocolCode.Ice1)]
     [TestFixture(ProtocolCode.Ice2)]
-    public sealed class StructTests : IAsyncDisposable
+    public sealed class StructTests
     {
-        private readonly Connection _connection;
-        private readonly Server _server;
         private readonly StructOperationsPrx _prx;
+        private readonly ServiceProvider _serviceProvider;
 
-        public StructTests(ProtocolCode protocol)
+        public StructTests(ProtocolCode protocolCode)
         {
-            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
-            _server = new Server
-            {
-                Dispatcher = new StructOperations(),
-                Endpoint = serverEndpoint
-            };
-            _server.Listen();
-            _connection = new Connection
-            {
-                RemoteEndpoint = serverEndpoint
-            };
-            _prx = StructOperationsPrx.FromConnection(_connection);
-            Assert.AreEqual(protocol, _prx.Proxy.Protocol.Code);
+            _serviceProvider = new IntegrationServiceCollection()
+                .UseProtocol(protocolCode)
+                .AddTransient<IDispatcher, StructOperations>()
+                .BuildServiceProvider();
 
-            Assert.AreEqual("12", new MyStruct(5, 7).ToString());
+            _prx = StructOperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
         }
 
-        [TearDown]
-        public async ValueTask DisposeAsync()
-        {
-            await _server.DisposeAsync();
-            await _connection.DisposeAsync();
-        }
+        [OneTimeTearDown]
+        public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
 
         [Test]
         public async Task Struct_OperationsAsync()

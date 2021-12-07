@@ -20,6 +20,12 @@ namespace IceRpc.Tests
                 _ => address.Contains(':', StringComparison.InvariantCulture) ? $"[{address}]" : address
             };
 
+        public static IClientTransport<IMultiplexedNetworkConnection> GetMultiplexedColocClientTransport() =>
+            CreateMultiplexedClientTransport("coloc");
+
+        public static IServerTransport<IMultiplexedNetworkConnection> GetMultiplexedColocServerTransport() =>
+            CreateMultiplexedServerTransport("coloc");
+
         public static IClientTransport<IMultiplexedNetworkConnection> GetSecureMultiplexedClientTransport(
             string caFile = "cacert.der") =>
             new SlicClientTransport(

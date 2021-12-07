@@ -29,22 +29,25 @@ namespace IceRpc.Tests.Api
 
             {
                 // Listen twice is incorrect
-                await using var server = new Server
-                {
-                    Endpoint = TestHelper.GetUniqueColocEndpoint()
-                };
+                await using var server = new Server();
                 server.Listen();
                 Assert.Throws<InvalidOperationException>(() => server.Listen());
             }
 
             {
+                var colocTransport = new ColocTransport();
+
                 await using var server = new Server
                 {
+                    MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport),
                     Dispatcher = new Greeter(),
-                    Endpoint = TestHelper.GetUniqueColocEndpoint()
                 };
 
-                await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
+                await using var connection = new Connection
+                {
+                    MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
+                    RemoteEndpoint = server.Endpoint
+                };
                 var proxy = GreeterPrx.FromConnection(connection);
 
                 Assert.ThrowsAsync<ConnectionRefusedException>(async () => await proxy.IcePingAsync());
@@ -53,12 +56,18 @@ namespace IceRpc.Tests.Api
             }
 
             {
+                var colocTransport = new ColocTransport();
+
                 await using var server = new Server
                 {
-                    Endpoint = TestHelper.GetUniqueColocEndpoint()
+                    MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport),
                 };
 
-                await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
+                await using var connection = new Connection
+                {
+                    MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
+                    RemoteEndpoint = server.Endpoint
+                };
                 var proxy = GreeterPrx.FromConnection(connection);
 
                 server.Listen();
@@ -73,13 +82,19 @@ namespace IceRpc.Tests.Api
                 var router = new Router();
                 router.Map<IGreeter>(new Greeter());
 
+                var colocTransport = new ColocTransport();
+
                 await using var server = new Server
                 {
                     Dispatcher = router,
-                    Endpoint = TestHelper.GetUniqueColocEndpoint()
+                    MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport),
                 };
 
-                await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
+                await using var connection = new Connection
+                {
+                    MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
+                    RemoteEndpoint = server.Endpoint
+                };
                 var proxy = GreeterPrx.FromConnection(connection);
                 server.Listen();
 
@@ -106,10 +121,11 @@ namespace IceRpc.Tests.Api
             }
 
             {
-                Endpoint endpoint = TestHelper.GetUniqueColocEndpoint();
+                var colocTransport = new ColocTransport();
+
                 await using var server1 = new Server
                 {
-                    Endpoint = endpoint
+                    MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport),
                 };
                 server1.Listen();
 
@@ -117,7 +133,7 @@ namespace IceRpc.Tests.Api
                     {
                         await using var server2 = new Server
                         {
-                            Endpoint = endpoint
+                            MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport),
                         };
                         server2.Listen();
                     });
@@ -126,17 +142,13 @@ namespace IceRpc.Tests.Api
             {
                 // Setting Endpoint after calling Listen is not allowed
                 await using var server = new Server();
-                server.Endpoint = TestHelper.GetUniqueColocEndpoint();
                 server.Listen();
-                Assert.Throws<InvalidOperationException>(() => server.Endpoint = TestHelper.GetUniqueColocEndpoint());
+                Assert.Throws<InvalidOperationException>(() => server.Endpoint = "ice+tcp://127.0.0.1:15001");
             }
 
             {
                 // Calling Listen on a disposed server throws ObjectDisposedException
-                var server = new Server
-                {
-                    Endpoint = TestHelper.GetUniqueColocEndpoint()
-                };
+                var server = new Server();
                 await server.DisposeAsync();
                 Assert.Throws<ObjectDisposedException>(() => server.Listen());
             }
@@ -153,6 +165,8 @@ namespace IceRpc.Tests.Api
         // When a client cancels a request, the dispatch is canceled.
         public async Task Server_RequestCancelAsync()
         {
+            var colocTransport = new ColocTransport();
+
             using var semaphore = new SemaphoreSlim(0);
             bool waitForCancellation = true;
             await using var server = new Server
@@ -179,12 +193,16 @@ namespace IceRpc.Tests.Api
                     }
                     return OutgoingResponse.ForPayload(request, Encoding.Ice20.CreateEmptyPayload());
                 }),
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
+                MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport),
             };
 
             server.Listen();
 
-            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
+            await using var connection = new Connection
+            {
+                MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
+                RemoteEndpoint = server.Endpoint
+            };
             var proxy = GreeterPrx.FromConnection(connection);
 
             using var cancellationSource = new CancellationTokenSource();
@@ -207,6 +225,8 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task Server_ShutdownAsync()
         {
+            var colocTransport = new ColocTransport();
+
             using var dispatchStartSemaphore = new SemaphoreSlim(0);
             using var dispatchContinueSemaphore = new SemaphoreSlim(0);
             await using var server = new Server
@@ -217,12 +237,16 @@ namespace IceRpc.Tests.Api
                     await dispatchContinueSemaphore.WaitAsync(cancel);
                     return OutgoingResponse.ForPayload(request, default);
                 }),
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
+                MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport),
             };
 
             server.Listen();
 
-            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
+            await using var connection = new Connection
+            {
+                MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
+                RemoteEndpoint = server.Endpoint
+            };
 
             var proxy = GreeterPrx.FromConnection(connection);
 
@@ -248,8 +272,14 @@ namespace IceRpc.Tests.Api
         // shutdown, which call ShutdownAsync with a canceled token.
         public async Task Server_ShutdownCancelAsync(bool disposeInsteadOfShutdown, ProtocolCode protocol)
         {
+            var colocTransport = new ColocTransport();
+
             using var semaphore = new SemaphoreSlim(0);
-            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
+            Endpoint serverEndpoint = colocTransport.ServerTransport.DefaultEndpoint with
+            {
+                Protocol = Protocol.FromProtocolCode(protocol)
+            };
+
             await using var server = new Server
             {
                 Dispatcher = new InlineDispatcher(async (request, cancel) =>
@@ -259,13 +289,17 @@ namespace IceRpc.Tests.Api
                     await Task.Delay(-1, cancel);
                     return OutgoingResponse.ForPayload(request, default);
                 }),
-                Endpoint = serverEndpoint
+                Endpoint = serverEndpoint,
+                SimpleServerTransport = colocTransport.ServerTransport,
+                MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport),
             };
 
             server.Listen();
 
             await using var connection = new Connection
             {
+                SimpleClientTransport = colocTransport.ClientTransport,
+                MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
                 RemoteEndpoint = serverEndpoint
             };
 

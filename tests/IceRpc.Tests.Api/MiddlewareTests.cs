@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Api
@@ -13,22 +14,18 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task Middleware_Throw_AbortsDispatch()
         {
-            var router = new Router();
-            router.Use(next => new InlineDispatcher((request, cancel) => throw new ArgumentException("message")));
-
             var service = new Greeter();
-            router.Map<IGreeter>(service);
+            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+                .AddTransient<IDispatcher>(_ =>
+                {
+                    var router = new Router();
+                    router.Use(next => new InlineDispatcher((request, cancel) => throw new ArgumentException("message")));
+                    router.Map<IGreeter>(service);
+                    return router;
+                })
+                .BuildServiceProvider();
 
-            await using var server = new Server
-            {
-                Dispatcher = router,
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-            server.Listen();
-
-            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
-            var prx = GreeterPrx.FromConnection(connection);
-
+            var prx = GreeterPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
             Assert.ThrowsAsync<UnhandledException>(() => prx.SayHelloAsync());
             Assert.That(service.Called, Is.False);
         }
@@ -39,39 +36,32 @@ namespace IceRpc.Tests.Api
         {
             var middlewareCalls = new List<string>();
 
-            var router = new Router();
-
-            router.Use(next => new InlineDispatcher(
-                async (request, cancel) =>
+            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+                .AddTransient<IDispatcher>(_ =>
                 {
-                    middlewareCalls.Add("Middlewares -> 0");
-                    OutgoingResponse result = await next.DispatchAsync(request, cancel);
-                    middlewareCalls.Add("Middlewares <- 0");
-                    return result;
-                }));
+                    var router = new Router();
+                    router.Use(next => new InlineDispatcher(
+                        async (request, cancel) =>
+                        {
+                            middlewareCalls.Add("Middlewares -> 0");
+                            OutgoingResponse result = await next.DispatchAsync(request, cancel);
+                            middlewareCalls.Add("Middlewares <- 0");
+                            return result;
+                        }));
+                    router.Use(next => new InlineDispatcher(
+                        async (request, cancel) =>
+                        {
+                            middlewareCalls.Add("Middlewares -> 1");
+                            OutgoingResponse result = await next.DispatchAsync(request, cancel);
+                            middlewareCalls.Add("Middlewares <- 1");
+                            return result;
+                        }));
+                    router.Map<IGreeter>(new Greeter());
+                    return router;
+                })
+                .BuildServiceProvider();
 
-            router.Use(next => new InlineDispatcher(
-                async (request, cancel) =>
-                {
-                    middlewareCalls.Add("Middlewares -> 1");
-                    OutgoingResponse result = await next.DispatchAsync(request, cancel);
-                    middlewareCalls.Add("Middlewares <- 1");
-                    return result;
-                }));
-
-            router.Map<IGreeter>(new Greeter());
-
-            await using var server = new Server
-            {
-                Dispatcher = router,
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-
-            server.Listen();
-
-            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
-
-            var prx = GreeterPrx.FromConnection(connection);
+            var prx = GreeterPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
             await prx.IcePingAsync();
 
             Assert.AreEqual("Middlewares -> 0", middlewareCalls[0]);

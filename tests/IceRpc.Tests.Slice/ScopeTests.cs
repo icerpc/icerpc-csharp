@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice
@@ -9,8 +10,7 @@ namespace IceRpc.Tests.Slice
     [Parallelizable(ParallelScope.All)]
     public sealed class ScopeTests : IAsyncDisposable
     {
-        private readonly Connection _connection;
-        private readonly Server _server;
+        private readonly ServiceProvider _serviceProvider;
         private readonly Scope.OperationsPrx _prx1;
         private readonly Scope.Inner.OperationsPrx _prx2;
         private readonly Scope.Inner.Inner2.OperationsPrx _prx3;
@@ -18,32 +18,27 @@ namespace IceRpc.Tests.Slice
 
         public ScopeTests()
         {
-            var router = new Router();
-            router.Map<Scope.IOperations>(new Scope.Operations());
-            router.Map<Scope.Inner.IOperations>(new Scope.Inner.Operations());
-            router.Map<Scope.Inner.Inner2.IOperations>(new Scope.Inner.Inner2.Operations());
-            router.Map<Scope.Inner.Test.Inner2.IOperations>(new Scope.Inner.Test.Inner2.Operations());
+            _serviceProvider = new IntegrationServiceCollection()
+                .AddTransient<IDispatcher>(_ =>
+                {
+                    var router = new Router();
+                    router.Map<Scope.IOperations>(new Scope.Operations());
+                    router.Map<Scope.Inner.IOperations>(new Scope.Inner.Operations());
+                    router.Map<Scope.Inner.Inner2.IOperations>(new Scope.Inner.Inner2.Operations());
+                    router.Map<Scope.Inner.Test.Inner2.IOperations>(new Scope.Inner.Test.Inner2.Operations());
+                    return router;
+                })
+                .BuildServiceProvider();
 
-            _server = new Server()
-            {
-                Dispatcher = router,
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-            _server.Listen();
-
-            _connection = new Connection { RemoteEndpoint = _server.Endpoint };
-            _prx1 = Scope.OperationsPrx.FromConnection(_connection);
-            _prx2 = Scope.Inner.OperationsPrx.FromConnection(_connection);
-            _prx3 = Scope.Inner.Inner2.OperationsPrx.FromConnection(_connection);
-            _prx4 = Scope.Inner.Test.Inner2.OperationsPrx.FromConnection(_connection);
+            Connection connection = _serviceProvider.GetRequiredService<Connection>();
+            _prx1 = Scope.OperationsPrx.FromConnection(connection);
+            _prx2 = Scope.Inner.OperationsPrx.FromConnection(connection);
+            _prx3 = Scope.Inner.Inner2.OperationsPrx.FromConnection(connection);
+            _prx4 = Scope.Inner.Test.Inner2.OperationsPrx.FromConnection(connection);
         }
 
         [OneTimeTearDown]
-        public async ValueTask DisposeAsync()
-        {
-            await _server.DisposeAsync();
-            await _connection.DisposeAsync();
-        }
+        public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
 
         [Test]
         public async Task Scope_Operations()

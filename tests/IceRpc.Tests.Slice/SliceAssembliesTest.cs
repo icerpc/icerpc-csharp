@@ -3,6 +3,7 @@
 using IceRpc.Configure;
 using IceRpc.Slice;
 using IceRpc.Tests.ReferencedAssemblies;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice
@@ -14,21 +15,13 @@ namespace IceRpc.Tests.Slice
         [Test]
         public async Task SliceAssemblies_AssembliesInterceptorAsync()
         {
-            Endpoint endpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(ProtocolCode.Ice1));
-            await using var server = new Server
-            {
-                Dispatcher = new AssembliesOperations(),
-                Endpoint = endpoint,
-            };
-            server.Listen();
+            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+                .AddTransient<IDispatcher, AssembliesOperations>()
+                .BuildServiceProvider();
 
-            await using var connection = new Connection
-            {
-                RemoteEndpoint = endpoint
-            };
+            var prx = AssembliesOperationsPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
 
             // This should fail the client has no factory for ClassB and compact format prevents slicing
-            var prx = AssembliesOperationsPrx.FromConnection(connection);
             var pipeline = new Pipeline();
             prx.Proxy.Invoker = pipeline;
             // Setup response decode factories excluding ClassB assembly
@@ -36,7 +29,6 @@ namespace IceRpc.Tests.Slice
             Assert.ThrowsAsync<InvalidDataException>(async () => await prx.OpAAsync(new ClassB("A", "B")));
 
             // Repeat but this time use SliceAssemblies interceptor to include ClassB factory
-            prx = AssembliesOperationsPrx.FromConnection(connection);
             pipeline = new Pipeline();
             prx.Proxy.Invoker = pipeline;
             // Setup the Assemblies interceptors to ensure it correctly setup the factories
@@ -70,46 +62,39 @@ namespace IceRpc.Tests.Slice
         public async Task SliceAssemblies_AssembliesMiddlewareAsync()
         {
             Endpoint endpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(ProtocolCode.Ice1));
-            {
-                var router = new Router();
-                SetupRequestIceDecoderFactory(router);
-                router.Map<IAssembliesOperations>(new AssembliesOperations());
-                await using var server = new Server
-                {
-                    Dispatcher = router,
-                    Endpoint = endpoint,
-                };
-                server.Listen();
 
-                await using var connection = new Connection
-                {
-                    RemoteEndpoint = endpoint
-                };
+            {
+                await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+                    .UseProtocol(ProtocolCode.Ice1)
+                    .AddTransient<IDispatcher>(_ =>
+                    {
+                        var router = new Router();
+                        SetupRequestIceDecoderFactory(router);
+                        router.Map<IAssembliesOperations>(new AssembliesOperations());
+                        return router;
+                    })
+                    .BuildServiceProvider();
 
                 // This should fail the server has no factory for ClassB and compact format prevents slicing
-                var prx = AssembliesOperationsPrx.FromConnection(connection);
+                var prx = AssembliesOperationsPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
                 Assert.ThrowsAsync<UnhandledException>(async () => await prx.OpAAsync(new ClassB("A", "B")));
             }
 
             // Repeat but this time use SliceAssemblies middleware to include ClassB factory
             {
-                var router = new Router();
-                SetupRequestIceDecoderFactory(router);
-                router.UseSliceAssemblies(typeof(ClassB).Assembly);
-                router.Map<IAssembliesOperations>(new AssembliesOperations());
-                await using var server = new Server
-                {
-                    Dispatcher = router,
-                    Endpoint = endpoint,
-                };
-                server.Listen();
+                await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+                    .UseProtocol(ProtocolCode.Ice1)
+                    .AddTransient<IDispatcher>(_ =>
+                    {
+                        var router = new Router();
+                        SetupRequestIceDecoderFactory(router);
+                        router.UseSliceAssemblies(typeof(ClassB).Assembly);
+                        router.Map<IAssembliesOperations>(new AssembliesOperations());
+                        return router;
+                    })
+                    .BuildServiceProvider();
 
-                await using var connection = new Connection
-                {
-                    RemoteEndpoint = endpoint
-                };
-
-                var prx = AssembliesOperationsPrx.FromConnection(connection);
+                var prx = AssembliesOperationsPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
                 await prx.OpAAsync(new ClassB("A", "B"));
             }
 

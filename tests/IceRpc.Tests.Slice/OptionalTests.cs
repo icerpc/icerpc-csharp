@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice
@@ -8,31 +9,20 @@ namespace IceRpc.Tests.Slice
     [Parallelizable(ParallelScope.All)]
     public sealed class OptionalTests : IAsyncDisposable
     {
-        private readonly Connection _connection;
-        private readonly Server _server;
+        private readonly ServiceProvider _serviceProvider;
         private readonly OptionalOperationsPrx _prx;
 
         public OptionalTests()
         {
-            _server = new Server()
-            {
-                Dispatcher = new OptionalOperations(),
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-            _server.Listen();
-            _connection = new Connection
-            {
-                RemoteEndpoint = _server.Endpoint
-            };
-            _prx = OptionalOperationsPrx.FromConnection(_connection);
+            _serviceProvider = new IntegrationServiceCollection()
+                .AddTransient<IDispatcher, OptionalOperations>()
+                .BuildServiceProvider();
+
+            _prx = OptionalOperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
         }
 
         [OneTimeTearDown]
-        public async ValueTask DisposeAsync()
-        {
-            await _server.DisposeAsync();
-            await _connection.DisposeAsync();
-        }
+        public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
 
         [Test]
         public void Optional_DataMembers()
@@ -624,7 +614,7 @@ namespace IceRpc.Tests.Slice
             Assert.That(multiOptional.MAnotherStructDict, Is.Null);
         }
 
-        class OptionalOperations : Service, IOptionalOperations
+        public class OptionalOperations : Service, IOptionalOperations
         {
             public ValueTask<(AnotherStruct? R1, AnotherStruct? R2)> OpAnotherStructAsync(
                 AnotherStruct? p1,

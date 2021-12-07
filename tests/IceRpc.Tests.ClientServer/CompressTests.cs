@@ -1,11 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.ClientServer
 {
-    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(ParallelScope.All)]
     class CompressTests
     {
@@ -57,66 +57,63 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(2048, 2048, "Fastest")]
         public async Task Compress_Payload(int size, int compressionMinSize, string compressionLevel)
         {
-            var pipeline = new Pipeline();
-            pipeline.UseCompressor(
-                new CompressOptions
-                {
-                    CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
-                    CompressionMinSize = compressionMinSize
-                });
-
             int compressedRequestSize = 0;
             bool compressedRequest = false;
             int compressedResponseSize = 0;
-
-            var router = new Router();
             bool compressedResponse = false;
 
-            router.Use(next => new InlineDispatcher(
-                async (request, cancel) =>
+            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+                .AddTransient<IDispatcher>(_ =>
                 {
-                    try
-                    {
-                        compressedRequestSize = request.Payload.Length;
-                        compressedRequest = request.Fields.ContainsKey((int)FieldKey.Compression);
-                        OutgoingResponse response = await next.DispatchAsync(request, cancel);
-                        compressedResponse = response.Fields.ContainsKey((int)FieldKey.Compression);
-
-                        compressedResponseSize = 0;
-                        foreach (ReadOnlyMemory<byte> buffer in response.Payload.ToArray())
+                    var router = new Router();
+                    router.Use(next => new InlineDispatcher(
+                        async (request, cancel) =>
                         {
-                            compressedResponseSize += buffer.Length;
-                        }
+                            try
+                            {
+                                compressedRequestSize = request.Payload.Length;
+                                compressedRequest = request.Fields.ContainsKey((int)FieldKey.Compression);
+                                OutgoingResponse response = await next.DispatchAsync(request, cancel);
+                                compressedResponse = response.Fields.ContainsKey((int)FieldKey.Compression);
 
-                        return response;
-                    }
-                    catch
-                    {
-                        compressedResponse = false;
-                        compressedResponseSize = size;
-                        throw;
-                    }
-                }));
-            router.UseCompressor(
-                new CompressOptions
+                                compressedResponseSize = 0;
+                                foreach (ReadOnlyMemory<byte> buffer in response.Payload.ToArray())
+                                {
+                                    compressedResponseSize += buffer.Length;
+                                }
+
+                                return response;
+                            }
+                            catch
+                            {
+                                compressedResponse = false;
+                                compressedResponseSize = size;
+                                throw;
+                            }
+                        }));
+                    router.UseCompressor(
+                        new CompressOptions
+                        {
+                            CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
+                            CompressionMinSize = compressionMinSize
+                        });
+                    router.Map<ICompressTest>(new CompressTest());
+                    return router;
+                })
+                .AddTransient<IInvoker>(_ =>
                 {
-                    CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
-                    CompressionMinSize = compressionMinSize
-                });
+                    var pipeline = new Pipeline();
+                    pipeline.UseCompressor(
+                        new CompressOptions
+                        {
+                            CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
+                            CompressionMinSize = compressionMinSize
+                        });
+                    return pipeline;
+                })
+                .BuildServiceProvider();
 
-            await using var server = new Server
-            {
-                Dispatcher = router,
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-            server.Listen();
-
-            router.Map<ICompressTest>(new CompressTest());
-            await using var connection = new Connection
-            {
-                RemoteEndpoint = server.Endpoint
-            };
-            var prx = CompressTestPrx.FromConnection(connection, invoker: pipeline);
+            CompressTestPrx prx = serviceProvider.GetProxy<CompressTestPrx>();
 
             byte[] data = Enumerable.Range(0, size).Select(i => (byte)i).ToArray();
             await prx.OpCompressArgsAsync(size, data);
@@ -178,50 +175,49 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(2048, 2048, "Fastest")]
         public async Task Compress_StreamBytes(int size, int compressionMinSize, string compressionLevel)
         {
-            var pipeline = new Pipeline();
-            pipeline.UseCompressor(
-                new CompressOptions
-                {
-                    CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
-                    CompressionMinSize = compressionMinSize
-                });
-
             OutgoingRequest? outgoingRequest = null;
             IncomingRequest? incomingRequest = null;
             OutgoingResponse? outgoingResponse = null;
 
-            pipeline.Use(next => new InlineInvoker(
-                (request, cancel) =>
+            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+                .AddTransient<IInvoker>(_ =>
                 {
-                    outgoingRequest = request;
-                    return next.InvokeAsync(request, cancel);
-                }));
-
-            var router = new Router();
-            router.UseCompressor(
-                new CompressOptions
+                    var pipeline = new Pipeline();
+                    pipeline.UseCompressor(
+                        new CompressOptions
+                        {
+                            CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
+                            CompressionMinSize = compressionMinSize
+                        });
+                    pipeline.Use(next => new InlineInvoker(
+                        (request, cancel) =>
+                        {
+                            outgoingRequest = request;
+                            return next.InvokeAsync(request, cancel);
+                        }));
+                    return pipeline;
+                })
+                .AddTransient<IDispatcher>(_ =>
                 {
-                    CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
-                    CompressionMinSize = compressionMinSize
-                });
-            router.Use(next => new InlineDispatcher(
-                async (request, cancel) =>
-                {
-                    incomingRequest = request;
-                    outgoingResponse = await next.DispatchAsync(request, cancel);
-                    return outgoingResponse;
-                }));
+                    var router = new Router();
+                    router.UseCompressor(
+                        new CompressOptions
+                        {
+                            CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
+                            CompressionMinSize = compressionMinSize
+                        });
+                    router.Use(next => new InlineDispatcher(
+                        async (request, cancel) =>
+                        {
+                            incomingRequest = request;
+                            outgoingResponse = await next.DispatchAsync(request, cancel);
+                            return outgoingResponse;
+                        }));
+                    router.Map<ICompressTest>(new CompressTest());
+                    return router;
+                }).BuildServiceProvider();
 
-            await using var server = new Server
-            {
-                Dispatcher = router,
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-            server.Listen();
-
-            router.Map<ICompressTest>(new CompressTest());
-            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
-            var prx = CompressTestPrx.FromConnection(connection, invoker: pipeline);
+            CompressTestPrx prx = serviceProvider.GetProxy<CompressTestPrx>();
 
             using var sendStream = new MemoryStream(new byte[size]);
             int receivedSize = await prx.OpCompressStreamArgAsync(sendStream);

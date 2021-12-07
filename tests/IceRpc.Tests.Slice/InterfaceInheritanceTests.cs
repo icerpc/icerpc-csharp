@@ -2,15 +2,15 @@
 
 using IceRpc.Configure;
 using IceRpc.Tests.Slice.InterfaceInheritance;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice
 {
     [Timeout(30000)]
-    public sealed class InterfaceInheritanceTests : IAsyncDisposable
+    public sealed class InterfaceInheritanceTests
     {
-        private readonly Connection _connection;
-        private readonly Server _server;
+        private readonly ServiceProvider _serviceProvider;
         private readonly APrx _aPrx;
         private readonly BPrx _bPrx;
         private readonly CPrx _cPrx;
@@ -18,33 +18,26 @@ namespace IceRpc.Tests.Slice
 
         public InterfaceInheritanceTests()
         {
-            _connection = new Connection();
+            _serviceProvider = new IntegrationServiceCollection()
+                .AddTransient<IDispatcher>(_ => {
+                    var router = new Router();
+                    router.Map<IA>(new A());
+                    router.Map<IB>(new B());
+                    router.Map<IC>(new C());
+                    router.Map<ID>(new D());
+                    return router;
+                })
+                .BuildServiceProvider();
 
-            var router = new Router();
-            router.Map<IA>(new A());
-            router.Map<IB>(new B());
-            router.Map<IC>(new C());
-            router.Map<ID>(new D());
-
-            _server = new Server
-            {
-                Dispatcher = router,
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-            _server.Listen();
-            _connection = new Connection { RemoteEndpoint = _server.Endpoint };
-            _aPrx = APrx.FromConnection(_connection);
-            _bPrx = BPrx.FromConnection(_connection);
-            _cPrx = CPrx.FromConnection(_connection);
-            _dPrx = DPrx.FromConnection(_connection);
+            Connection connection = _serviceProvider.GetRequiredService<Connection>();
+            _aPrx = APrx.FromConnection(connection);
+            _bPrx = BPrx.FromConnection(connection);
+            _cPrx = CPrx.FromConnection(connection);
+            _dPrx = DPrx.FromConnection(connection);
         }
 
         [OneTimeTearDown]
-        public async ValueTask DisposeAsync()
-        {
-            await _server.DisposeAsync();
-            await _connection.DisposeAsync();
-        }
+        public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
 
         [Test]
         public async Task InterfaceInheritance_IceIsAAsync()

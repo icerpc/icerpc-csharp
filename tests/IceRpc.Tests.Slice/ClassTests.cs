@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.DependencyInjection;
 using IceRpc.Configure;
 using NUnit.Framework;
 
@@ -9,52 +10,41 @@ namespace IceRpc.Tests.Slice
     [Parallelizable(ParallelScope.All)]
     [TestFixture(ProtocolCode.Ice1)]
     [TestFixture(ProtocolCode.Ice2)]
-    public sealed class ClassTests : IAsyncDisposable
+    public sealed class ClassTests
     {
-        private readonly Connection _connection;
-        private readonly Server _server;
+        private readonly ServiceProvider _serviceProvider;
         private readonly ClassOperationsPrx _prx;
         private readonly ClassOperationsUnexpectedClassPrx _prxUnexpectedClass;
 
         public ClassTests(ProtocolCode protocol)
         {
-            var router = new Router();
-            router.Map<IClassOperations>(new ClassOperations());
-            router.Map<IClassOperationsUnexpectedClass>(
-                new InlineDispatcher(
-                    (request, cancel) =>
+            _serviceProvider = new IntegrationServiceCollection()
+                .UseProtocol(protocol)
+                .AddTransient<IDispatcher>(_ =>
                     {
-                        var response = OutgoingResponse.ForPayload(
-                            request,
-                            IceRpc.Slice.Ice11Encoding.CreatePayloadFromSingleReturnValue(
-                                new MyClassAlsoEmpty(),
-                                (encoder, ae) => encoder.EncodeClass(ae)));
-                        return new(response);
-                    }));
+                        var router = new Router();
+                        router.Map<IClassOperations>(new ClassOperations());
+                        router.Map<IClassOperationsUnexpectedClass>(new InlineDispatcher(
+                            (request, cancel) =>
+                            {
+                                var response = OutgoingResponse.ForPayload(
+                                    request,
+                                    IceRpc.Slice.Ice11Encoding.CreatePayloadFromSingleReturnValue(
+                                        new MyClassAlsoEmpty(),
+                                        (encoder, ae) => encoder.EncodeClass(ae)));
+                                return new(response);
+                            }));
+                        return router;
+                    })
+                .BuildServiceProvider();
 
-            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
-            _server = new Server
-            {
-                Dispatcher = router,
-                Endpoint = serverEndpoint
-            };
-            _server.Listen();
-
-            _connection = new Connection
-            {
-                RemoteEndpoint = serverEndpoint
-            };
-
-            _prx = ClassOperationsPrx.FromConnection(_connection);
-            _prxUnexpectedClass = ClassOperationsUnexpectedClassPrx.FromConnection(_connection);
+            Connection connection = _serviceProvider.GetRequiredService<Connection>();
+            _prx = ClassOperationsPrx.FromConnection(connection);
+            _prxUnexpectedClass = ClassOperationsUnexpectedClassPrx.FromConnection(connection);
         }
 
         [OneTimeTearDown]
-        public async ValueTask DisposeAsync()
-        {
-            await _server.DisposeAsync();
-            await _connection.DisposeAsync();
-        }
+        public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
 
         [Test]
         public async Task Class_OperationsAsync()

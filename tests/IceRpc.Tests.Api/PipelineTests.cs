@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Api
@@ -19,16 +20,11 @@ namespace IceRpc.Tests.Api
             var pipeline = new Pipeline();
             pipeline.Use(CheckValue(nextValue, 1), CheckValue(nextValue, 2), CheckValue(nextValue, 3));
 
-            await using var server = new Server
-            {
-                Dispatcher = new Greeter(),
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-            server.Listen();
+            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+                .AddTransient<IDispatcher, Greeter>()
+                .BuildServiceProvider();
 
-            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
-
-            var prx = GreeterPrx.FromConnection(connection);
+            var prx = GreeterPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
             prx.Proxy.Invoker = pipeline;
 
             Assert.AreEqual(0, value);

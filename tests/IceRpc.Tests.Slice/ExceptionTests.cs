@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice
@@ -8,35 +9,22 @@ namespace IceRpc.Tests.Slice
     [Parallelizable(ParallelScope.All)]
     [TestFixture(ProtocolCode.Ice1)]
     [TestFixture(ProtocolCode.Ice2)]
-    public sealed class Exception : IAsyncDisposable
+    public sealed class Exception
     {
-        private readonly Connection _connection;
-        private readonly Server _server;
+        private readonly ServiceProvider _serviceProvider;
         private readonly ExceptionOperationsPrx _prx;
 
         public Exception(ProtocolCode protocol)
         {
-            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
-            _server = new Server
-            {
-                Dispatcher = new ExceptionOperations(),
-                Endpoint = serverEndpoint
-            };
-            _server.Listen();
-            _connection = new Connection
-            {
-                RemoteEndpoint = serverEndpoint
-            };
-            _prx = ExceptionOperationsPrx.FromConnection(_connection);
-            Assert.AreEqual(protocol, _prx.Proxy.Protocol.Code);
+            _serviceProvider = new IntegrationServiceCollection()
+                .UseProtocol(protocol)
+                .AddTransient<IDispatcher, ExceptionOperations>()
+                .BuildServiceProvider();
+            _prx = ExceptionOperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
         }
 
         [OneTimeTearDown]
-        public async ValueTask DisposeAsync()
-        {
-            await _server.DisposeAsync();
-            await _connection.DisposeAsync();
-        }
+        public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
 
         [Test]
         public void Exception_Constructors()
@@ -83,7 +71,7 @@ namespace IceRpc.Tests.Slice
                 Assert.ThrowsAsync<RemoteException>(async () => await _prx.ThrowRemoteExceptionAsync());
 
             Assert.That(remoteEx, Is.Not.Null);
-            if (_connection.Protocol == Protocol.Ice2)
+            if (_prx.Proxy.Protocol == Protocol.Ice2)
             {
                 Assert.AreEqual("some message", remoteEx!.Message);
             }

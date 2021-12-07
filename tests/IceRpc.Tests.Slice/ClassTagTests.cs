@@ -1,38 +1,27 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice
 {
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    public sealed class ClassTagTests : IAsyncDisposable
+    public sealed class ClassTagTests
     {
-        private readonly Connection _connection;
-        private readonly Server _server;
+        private readonly ServiceProvider _serviceProvider;
         private readonly ClassTagPrx _prx;
 
         public ClassTagTests()
         {
-            _server = new Server
-            {
-                Dispatcher = new ClassTag(),
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-            _server.Listen();
-            _connection = new Connection
-            {
-                RemoteEndpoint = _server.Endpoint
-            };
-            _prx = ClassTagPrx.FromConnection(_connection);
+            _serviceProvider = new IntegrationServiceCollection()
+                .AddTransient<IDispatcher, ClassTag>()
+                .BuildServiceProvider();
+            _prx = _serviceProvider.GetProxy<ClassTagPrx>();
         }
 
         [OneTimeTearDown]
-        public async ValueTask DisposeAsync()
-        {
-            await _server.DisposeAsync();
-            await _connection.DisposeAsync();
-        }
+        public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
 
         [Test]
         public void ClassTag_DataMembers()

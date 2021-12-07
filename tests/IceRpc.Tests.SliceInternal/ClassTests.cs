@@ -3,6 +3,7 @@
 using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Slice;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 using static IceRpc.Slice.Internal.Ice11Definitions;
@@ -12,46 +13,34 @@ namespace IceRpc.Tests.SliceInternal
     [Timeout(30000)]
     [TestFixture(ProtocolCode.Ice1)]
     [TestFixture(ProtocolCode.Ice2)]
-    public sealed class ClassTests : IAsyncDisposable
+    public sealed class ClassTests
     {
-        private readonly Server _server;
+        private readonly ServiceProvider _serviceProvider;
         private readonly SlicedFormatOperationsPrx _sliced;
         private readonly CompactFormatOperationsPrx _compact;
         private readonly ClassFormatOperationsPrx _classformat;
 
-        private readonly Connection _connection;
-
         public ClassTests(ProtocolCode protocol)
         {
-            var router = new Router();
-            router.Map<ISlicedFormatOperations>(new SlicedFormatOperations());
-            router.Map<ICompactFormatOperations>(new CompactFormatOperations());
-            router.Map<IClassFormatOperations>(new ClassFormatOperations());
+            _serviceProvider = new IntegrationServiceCollection()
+                .UseProtocol(protocol)
+                .AddTransient<IDispatcher>(_ =>
+                {
+                    var router = new Router();
+                    router.Map<ISlicedFormatOperations>(new SlicedFormatOperations());
+                    router.Map<ICompactFormatOperations>(new CompactFormatOperations());
+                    router.Map<IClassFormatOperations>(new ClassFormatOperations());
+                    return router;
+                })
+                .BuildServiceProvider();
 
-            var serverEndpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
-            _server = new Server()
-            {
-                Dispatcher = router,
-                Endpoint = serverEndpoint
-            };
-            _server.Listen();
-
-            _connection = new Connection
-            {
-                RemoteEndpoint = _server.Endpoint
-            };
-
-            _sliced = SlicedFormatOperationsPrx.FromConnection(_connection);
-            _compact = CompactFormatOperationsPrx.FromConnection(_connection);
-            _classformat = ClassFormatOperationsPrx.FromConnection(_connection);
+            _sliced = SlicedFormatOperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
+            _compact = CompactFormatOperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
+            _classformat = ClassFormatOperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
         }
 
         [OneTimeTearDown]
-        public async ValueTask DisposeAsync()
-        {
-            await _server.DisposeAsync();
-            await _connection.DisposeAsync();
-        }
+        public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
 
         [Test]
         public async Task Class_FormatMetadata()
@@ -185,36 +174,34 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(100, 10, 10)]
         [TestCase(50, 200, 10)]
         [TestCase(50, 10, 200)]
-        public async Task Class_ClassGraphMaxDepth(int graphSize, int clientClassGraphMaxDepth, int serverClassGraphMaxDepth)
+        public async Task Class_ClassGraphMaxDepth(
+            int graphSize,
+            int clientClassGraphMaxDepth,
+            int serverClassGraphMaxDepth)
         {
             // We overwrite the default value for class graph max depth through a middleware (server side) and
             // an interceptor (client side).
 
-            var router = new Router();
-            router.Map<IClassGraphOperations>(new ClassGraphOperations());
-            router.Use(next => new InlineDispatcher(
-                (request, cancel) =>
+            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+                .UseProtocol(_serviceProvider.GetRequiredService<Connection>().Protocol.Code)
+                .AddTransient<IDispatcher>(_ =>
                 {
-                    request.Features = new FeatureCollection(request.Features);
-                    request.Features.Set<IIceDecoderFactory<Ice11Decoder>>(
-                        new Ice11DecoderFactory(Ice11Decoder.GetActivator(typeof(ClassTests).Assembly),
-                                                serverClassGraphMaxDepth));
-                    return next.DispatchAsync(request, cancel);
-                }));
+                    var router = new Router();
+                    router.Map<IClassGraphOperations>(new ClassGraphOperations());
+                    router.Use(next => new InlineDispatcher(
+                        (request, cancel) =>
+                        {
+                            request.Features = new FeatureCollection(request.Features);
+                            request.Features.Set<IIceDecoderFactory<Ice11Decoder>>(
+                                new Ice11DecoderFactory(Ice11Decoder.GetActivator(typeof(ClassTests).Assembly),
+                                                        serverClassGraphMaxDepth));
+                            return next.DispatchAsync(request, cancel);
+                        }));
+                    return router;
+                })
+                .BuildServiceProvider();
 
-            await using var server = new Server
-            {
-                Dispatcher = router,
-                Endpoint = TestHelper.GetUniqueColocEndpoint(),
-            };
-            server.Listen();
-
-            await using var connection = new Connection
-            {
-                RemoteEndpoint = server.Endpoint
-            };
-
-            var prx = ClassGraphOperationsPrx.FromConnection(connection);
+            var prx = ClassGraphOperationsPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
 
             var pipeline = new Pipeline();
             pipeline.Use(next => new InlineInvoker(
