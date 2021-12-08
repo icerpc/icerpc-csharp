@@ -27,10 +27,7 @@ namespace IceRpc
             get =>
                 _payload is ReadOnlyMemory<byte> value ? value : throw new InvalidOperationException("payload not set");
 
-            set
-            {
-                _payload = value;
-            }
+            set => _payload = value;
         }
 
         /// <summary>Returns the encoding of the payload of this frame.</summary>

@@ -20,14 +20,19 @@ namespace IceRpc.Tests.Api
             DateTime? dispatchDeadline = null;
             DateTime? invocationDeadline = null;
             await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
-                .Use(next => new InlineDispatcher(
+                .AddTransient<IDispatcher>(_ =>
+                {
+                    var router = new Router();
+                    router.Use(next => new InlineDispatcher(
                     async (current, cancel) =>
                     {
                         dispatchDeadline = current.Deadline;
                         await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
                         return await next.DispatchAsync(current, cancel);
-                    }))
-                .Map<IGreeter>(new Greeter())
+                    }));
+                    router.Map<IGreeter>(new Greeter());
+                    return router;
+                })
                 .BuildServiceProvider();
 
             var pipeline = new Pipeline();
@@ -62,15 +67,20 @@ namespace IceRpc.Tests.Api
             DateTime? dispatchDeadline = null;
             DateTime? invocationDeadline = null;
             await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
-                .Use(next => new InlineDispatcher(
-                    async (current, cancel) =>
-                    {
-                        Assert.That(cancel.CanBeCanceled, Is.True);
-                        dispatchDeadline = current.Deadline;
-                        await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
-                        return await next.DispatchAsync(current, cancel);
-                    }))
-                .Map<IGreeter>(new Greeter())
+                .AddTransient<IDispatcher>(_ =>
+                {
+                    var router = new Router();
+                    router.Use(next => new InlineDispatcher(
+                        async (current, cancel) =>
+                        {
+                            Assert.That(cancel.CanBeCanceled, Is.True);
+                            dispatchDeadline = current.Deadline;
+                            await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
+                            return await next.DispatchAsync(current, cancel);
+                        }));
+                    router.Map<IGreeter>(new Greeter());
+                    return router;
+                })
                 .BuildServiceProvider();
 
             // Setting a timeout with an interceptor
@@ -104,14 +114,19 @@ namespace IceRpc.Tests.Api
             DateTime? invocationDeadline = null;
 
             await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
-                .Use(next => new InlineDispatcher(
-                    async (current, cancel) =>
-                    {
-                        dispatchDeadline = current.Deadline;
-                        await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
-                        return await next.DispatchAsync(current, cancel);
-                    }))
-                .Map<IGreeter>(new Greeter())
+                .AddTransient<IDispatcher>(_ =>
+                {
+                    var router = new Router();
+                    router.Use(next => new InlineDispatcher(
+                        async (current, cancel) =>
+                        {
+                            dispatchDeadline = current.Deadline;
+                            await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
+                            return await next.DispatchAsync(current, cancel);
+                        }));
+                    router.Map<IGreeter>(new Greeter());
+                    return router;
+                })
                 .BuildServiceProvider();
 
             var connection = serviceProvider.GetRequiredService<Connection>();

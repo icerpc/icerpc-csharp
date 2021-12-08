@@ -10,7 +10,7 @@ namespace IceRpc.Configure
     public sealed class TelemetryOptions
     {
         /// <summary>If set to a non null object the <see cref="ActivitySource"/> is used to start the request and
-        /// response activities..</summary>
+        /// response activities.</summary>
         public ActivitySource? ActivitySource { get; set; }
 
         /// <summary>The logger factory used to create the IceRpc logger.</summary>
