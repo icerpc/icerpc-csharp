@@ -19,7 +19,9 @@ namespace IceRpc.Tests
                 }
                 else
                 {
-                    reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                    // Can't advance examined more without giving "examined" to the caller.
+                    reader.AdvanceTo(readResult.Buffer.Start);
+                    await Task.Yield(); // avoid tight loop
                 }
             }
         }
