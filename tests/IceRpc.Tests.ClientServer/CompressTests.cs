@@ -3,6 +3,7 @@
 using IceRpc.Configure;
 using NUnit.Framework;
 using System.Buffers;
+using System.IO.Compression;
 using System.IO.Pipelines;
 
 namespace IceRpc.Tests.ClientServer
@@ -67,7 +68,6 @@ namespace IceRpc.Tests.ClientServer
                 new CompressOptions
                 {
                     CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
-                    CompressionMinSize = 0 // TODO: remove
                 });
 
             bool compressedRequest = false;
@@ -96,7 +96,6 @@ namespace IceRpc.Tests.ClientServer
                 new CompressOptions
                 {
                     CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
-                    CompressionMinSize = 0
                 });
 
             await using var server = new Server

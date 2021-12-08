@@ -5,8 +5,7 @@ module IceRpc
     /// The compression format of the Request or "Success" Response frame payload.
     unchecked enum CompressionFormat : byte
     {
-        /// The payload is not compressed and can be read directly.
-        // TODO: Remove NotCompressed once data frames suppport fields
+        /// Reserved value which should not be encoded.
         NotCompressed = 0,
 
         /// The payload is compressed using the deflate format.
@@ -19,8 +18,5 @@ module IceRpc
     {
         /// The compression format.
         CompressionFormat format;
-
-        /// The uncompressed size.
-        varulong uncompressedSize;
     }
 }

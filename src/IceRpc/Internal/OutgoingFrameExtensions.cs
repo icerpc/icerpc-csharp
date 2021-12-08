@@ -17,12 +17,9 @@ namespace IceRpc.Internal
                 frame.PayloadSink = PipeWriter.Create(
                     new DeflateStream(
                         frame.PayloadSink.AsStream(),
-                        options.CompressionLevel == CompressionLevel.Fastest ?
-                            System.IO.Compression.CompressionLevel.Fastest :
-                            System.IO.Compression.CompressionLevel.Optimal));
+                        options.CompressionLevel));
 
-                // TODO: eliminate payloadSize in CompressionField
-                var header = new CompressionField(CompressionFormat.Deflate, 0);
+                var header = new CompressionField(CompressionFormat.Deflate);
                 frame.Fields.Add((int)FieldKey.Compression, encoder => header.Encode(encoder));
             }
         }
