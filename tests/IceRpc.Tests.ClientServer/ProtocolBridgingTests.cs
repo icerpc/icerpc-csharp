@@ -183,14 +183,8 @@ namespace IceRpc.Tests.ClientServer
                     features = features.WithContext(incomingRequest.Features.GetContext());
                 }
 
-                ReadResult readResult = await incomingRequest.Payload.ReadAsync(cancel);
-                while (!readResult.IsCompleted)
-                {
-                    incomingRequest.Payload.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                    readResult = await incomingRequest.Payload.ReadAsync(cancel);
-                }
-                var payload = new byte[readResult.Buffer.Length];
-                readResult.Buffer.CopyTo(payload);
+                ReadResult readResult = await incomingRequest.Payload.ReadAllAsync(cancel);
+                var payload = readResult.Buffer.ToArray();
 
                 var outgoingRequest = new OutgoingRequest(
                     targetProtocol,
@@ -216,14 +210,8 @@ namespace IceRpc.Tests.ClientServer
 
                 // Then create an outgoing response from the incoming response
 
-                readResult = await incomingResponse.Payload.ReadAsync(cancel);
-                while (!readResult.IsCompleted)
-                {
-                    incomingResponse.Payload.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                    readResult = await incomingResponse.Payload.ReadAsync(cancel);
-                }
-                payload = new byte[readResult.Buffer.Length];
-                readResult.Buffer.CopyTo(payload);
+                readResult = await incomingResponse.Payload.ReadAllAsync(cancel);
+                payload = readResult.Buffer.ToArray();
 
                 return new OutgoingResponse(incomingRequest, incomingResponse.ResultType)
                 {
