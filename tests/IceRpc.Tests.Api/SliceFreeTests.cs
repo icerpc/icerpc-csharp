@@ -14,6 +14,7 @@ namespace IceRpc.Tests.Api
     [Parallelizable(scope: ParallelScope.All)]
     [Timeout(5000)]
     [Log(LogAttributeLevel.Information)]
+    [FixtureLifeCycle(LifeCycle.SingleInstance)]
     public sealed class SliceFreeTests : IAsyncDisposable
     {
         private const string _austin = "/austin";
@@ -52,7 +53,7 @@ namespace IceRpc.Tests.Api
             };
         }
 
-        // TODO: never called, what's the fix?
+        [OneTimeTearDown]
         public async ValueTask DisposeAsync()
         {
             await _connection.DisposeAsync();
