@@ -3,7 +3,9 @@
 using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
+using System.Buffers;
 using System.Diagnostics;
+using System.IO.Pipelines;
 
 namespace IceRpc
 {
@@ -147,6 +149,10 @@ namespace IceRpc
                         {
                             request.Features.Set<RetryPolicy>(null);
                         }
+
+                        // TODO: temporary!
+                        request.PayloadSource =
+                            PipeReader.Create(new ReadOnlySequence<byte>(request.Payload.ToSingleBuffer()));
                     }
                 }
                 while (tryAgain);

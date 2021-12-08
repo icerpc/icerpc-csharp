@@ -35,7 +35,12 @@ namespace IceRpc
 
         /// <summary>Gets or sets the payload source of this frame.</summary>
         // TODO: temporary implementation!
-        public PipeReader PayloadSource => PipeReader.Create(new ReadOnlySequence<byte>(Payload.ToSingleBuffer()));
+        public PipeReader PayloadSource
+        {
+            get => _payloadSource ??= PipeReader.Create(new ReadOnlySequence<byte>(Payload.ToSingleBuffer()));
+
+            set => _payloadSource = value;
+        }
 
         /// <summary>Returns the encoding of the payload of this frame.</summary>
         /// <remarks>The header of the frame is always encoded using the frame protocol's encoding.</remarks>
@@ -58,6 +63,8 @@ namespace IceRpc
             Protocol = protocol;
             PayloadSink = payloadSink;
         }
+
+        private PipeReader? _payloadSource;
 
         internal void SendStreamParam(IMultiplexedStream stream)
         {

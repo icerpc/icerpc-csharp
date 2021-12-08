@@ -280,8 +280,6 @@ namespace IceRpc.Internal
             request.Stream = _networkConnection.CreateStream(!request.IsOneway);
 
             var output = new MultiplexedStreamPipeWriter(request.Stream);
-
-            // Set decoratee.
             request.InitialPayloadSink.SetDecoratee(output);
 
             if (!request.IsOneway || request.StreamParamSender != null)
@@ -362,10 +360,21 @@ namespace IceRpc.Internal
 
             if (!flushResult.IsCompleted) // we still have a reader
             {
-                // TODO: CopyToAsync does not return a flushResult so we don't know if we still have a reader. It just
-                // returns with no exception when flushResult.IsCompleted is true. We could implement our own version.
-                await request.PayloadSource.CopyToAsync(request.PayloadSink, cancel).ConfigureAwait(false);
+                try
+                {
+                    // TODO: CopyToAsync does not return a flushResult so we don't know if we still have a reader. It
+                    // just returns with no exception when flushResult.IsCompleted is true. We could implement our own
+                    // version.
+                    await request.PayloadSource.CopyToAsync(request.PayloadSink, cancel).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    await request.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
+                    await request.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                    throw;
+                }
 
+                await request.PayloadSource.CompleteAsync().ConfigureAwait(false);
                 request.IsSent = true;
 
                 if (request.StreamParamSender == null) // no stream
@@ -426,9 +435,21 @@ namespace IceRpc.Internal
 
             if (!flushResult.IsCompleted) // we still have a reader
             {
-                // TODO: CopyToAsync does not return a flushResult so we don't know if we still have a reader. It just
-                // returns with no exception when flushResult.IsCompleted is true. We could implement our own version.
-                await response.PayloadSource.CopyToAsync(response.PayloadSink, cancel).ConfigureAwait(false);
+                try
+                {
+                    // TODO: CopyToAsync does not return a flushResult so we don't know if we still have a reader. It
+                    // just returns with no exception when flushResult.IsCompleted is true. We could implement our own
+                    // version.
+                    await response.PayloadSource.CopyToAsync(response.PayloadSink, cancel).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    await response.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
+                    await response.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                    throw;
+                }
+
+                await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
 
                 if (response.StreamParamSender == null) // no stream
                 {
