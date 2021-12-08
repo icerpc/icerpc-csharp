@@ -18,7 +18,16 @@ namespace IceRpc.Internal
 
         public override void CancelPendingFlush() => throw new NotImplementedException();
 
-        public override void Complete(Exception? exception) => throw new NotImplementedException();
+        public override void Complete(Exception? exception)
+        {
+            #pragma warning disable CA2012
+            // TODO: not very nice - can we do better? Called by the default PipeWriter.AsStream implementation.
+            if (CompleteAsync(exception) is ValueTask valueTask && !valueTask.IsCompleted)
+            {
+                valueTask.AsTask().GetAwaiter().GetResult();
+            }
+            #pragma warning restore CA2012
+        }
 
         public override async ValueTask CompleteAsync(Exception? exception = default)
         {

@@ -22,11 +22,10 @@ namespace IceRpc
 
         async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            // TODO: rename CompressPayload to CompressRequest or add CompressStreamParam?
             if (_options.CompressPayload &&
                 request.Features[typeof(Features.CompressPayload)] == Features.CompressPayload.Yes)
             {
-                request.CompressPayload(_options);
+                request.UsePayloadCompressor(_options);
             }
 
             IncomingResponse response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);

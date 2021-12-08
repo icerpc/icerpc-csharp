@@ -15,7 +15,10 @@ namespace IceRpc.Internal
         private PipeWriter? _decoratee;
 
         public override void Advance(int bytes) => Decoratee.Advance(bytes);
-        public override Stream AsStream(bool leaveOpen = false) => Decoratee.AsStream(leaveOpen);
+
+        // TODO: we may want to implement and return a DelayedWriteStreamDecorator here.
+        // public override Stream AsStream(bool leaveOpen = false) => Decoratee.AsStream(leaveOpen);
+
         public override void CancelPendingFlush() => Decoratee.CancelPendingFlush();
         public override void Complete(Exception? exception) => Decoratee.Complete(exception);
         public override ValueTask CompleteAsync(Exception? exception = default) => Decoratee.CompleteAsync(exception);
