@@ -1,6 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice.Internal;
+using System.Buffers;
+using System.Diagnostics;
+using System.IO.Pipelines;
 
 namespace IceRpc.Slice
 {
@@ -103,8 +106,49 @@ namespace IceRpc.Slice
 
         internal override IceEncoder CreateIceEncoder(BufferWriter bufferWriter) => new Ice11Encoder(bufferWriter);
 
-        internal override int DecodeSegmentSize(ReadOnlySpan<byte> buffer) => IceDecoder.DecodeInt(buffer);
-        internal override int DecodeSegmentSizeLength(ReadOnlySpan<byte> buffer) => 4;
+        internal override async ValueTask<(int Size, bool IsCanceled, bool IsCompleted)> DecodeSegmentSizeAsync(
+            PipeReader reader,
+            CancellationToken cancel)
+        {
+            const int sizeLength = 4;
+
+            ReadResult readResult = await reader.ReadAtLeastAsync(sizeLength, cancel).ConfigureAwait(false);
+
+            if (readResult.IsCanceled)
+            {
+                return (-1, true, false);
+            }
+
+            if (readResult.Buffer.IsEmpty)
+            {
+                Debug.Assert(readResult.IsCompleted);
+                return (0, false, true);
+            }
+            else
+            {
+                ReadOnlySequence<byte> buffer = readResult.Buffer.Slice(readResult.Buffer.Start, sizeLength);
+                int size = DecodeSize(buffer);
+                bool isCompleted = readResult.IsCompleted && readResult.Buffer.Length == sizeLength;
+                reader.AdvanceTo(buffer.End);
+                return (size, false, isCompleted);
+            }
+
+            static int DecodeSize(ReadOnlySequence<byte> buffer)
+            {
+                Debug.Assert(buffer.Length == sizeLength);
+
+                if (buffer.IsSingleSegment)
+                {
+                    return IceDecoder.DecodeInt(buffer.FirstSpan);
+                }
+                else
+                {
+                    Span<byte> span = stackalloc byte[sizeLength];
+                    buffer.CopyTo(span);
+                    return IceDecoder.DecodeInt(span);
+                }
+            }
+        }
 
         internal override IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
             FeatureCollection features,
