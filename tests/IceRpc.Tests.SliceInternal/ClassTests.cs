@@ -76,8 +76,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
 
-                ReadResult readResult = await response.Payload.ReadAsync(cancel);
-                Assert.That(readResult.IsCompleted);
+                ReadResult readResult = await response.Payload.ReadAllAsync(cancel);
                 Assert.That(readResult.Buffer.IsSingleSegment);
 
                 decoder = new Ice11Decoder(readResult.Buffer.First);
@@ -113,8 +112,7 @@ namespace IceRpc.Tests.SliceInternal
                 Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
 
-                ReadResult readResult = await response.Payload.ReadAsync(cancel);
-                Assert.That(readResult.IsCompleted);
+                ReadResult readResult = await response.Payload.ReadAllAsync(cancel);
                 Assert.That(readResult.Buffer.IsSingleSegment);
 
                 decoder = new Ice11Decoder(readResult.Buffer.First);
@@ -150,8 +148,7 @@ namespace IceRpc.Tests.SliceInternal
                 Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
 
-                ReadResult readResult = await response.Payload.ReadAsync(cancel);
-                Assert.That(readResult.IsCompleted);
+                ReadResult readResult = await response.Payload.ReadAllAsync(cancel);
                 Assert.That(readResult.Buffer.IsSingleSegment);
 
                 decoder = new Ice11Decoder(readResult.Buffer.First);
@@ -186,8 +183,7 @@ namespace IceRpc.Tests.SliceInternal
                 Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
 
-                ReadResult readResult = await response.Payload.ReadAsync(cancel);
-                Assert.That(readResult.IsCompleted);
+                ReadResult readResult = await response.Payload.ReadAllAsync(cancel);
                 Assert.That(readResult.Buffer.IsSingleSegment);
 
                 decoder = new Ice11Decoder(readResult.Buffer.First);

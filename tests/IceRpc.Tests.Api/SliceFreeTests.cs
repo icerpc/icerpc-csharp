@@ -1,11 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
-using IceRpc.Slice;
 using NUnit.Framework;
 using System.IO.Pipelines;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace IceRpc.Tests.Api
 {
@@ -128,12 +125,7 @@ namespace IceRpc.Tests.Api
             PipeReader reader,
             CancellationToken cancel = default)
         {
-            ReadResult readResult;
-            do
-            {
-                readResult = await reader.ReadAsync(cancel);
-            }
-            while (!readResult.IsCompleted);
+            ReadResult readResult = await reader.ReadAllAsync(cancel);
 
             Assert.That(readResult.Buffer.IsSingleSegment); // very likely; if not, fix test
             return readResult.Buffer.First;
