@@ -279,8 +279,10 @@ namespace IceRpc.Internal
             // Create the stream.
             request.Stream = _networkConnection.CreateStream(!request.IsOneway);
 
+            var output = new MultiplexedStreamPipeWriter(request.Stream);
+
             // Set decoratee.
-            request.InitialPayloadSink.SetDecoratee(new MultiplexedStreamPipeWriter(request.Stream));
+            request.InitialPayloadSink.SetDecoratee(output);
 
             if (!request.IsOneway || request.StreamParamSender != null)
             {
@@ -350,19 +352,20 @@ namespace IceRpc.Internal
             // We're done with the header encoding, write the header size.
             _ = encoder.EndFixedLengthSize(frameHeaderStart, 2);
 
-            // Add the payload to the buffer writer.
-            bufferWriter.Add(request.Payload);
+            // Send the header. TODO: delaying the sending (flushing) until we send the payload
 
-            // Send the request frame.
-            // PayloadSink can be a decorated InitialPayloadSink at this point.
-            FlushResult flushResult = await request.PayloadSink.WriteAsync(
+            FlushResult flushResult = await output.WriteAsync(
                 bufferWriter.Finish().ToSingleBuffer(),
                 cancel).ConfigureAwait(false);
 
             Debug.Assert(!flushResult.IsCanceled); // not implemented yet, so always false.
 
-            if (!flushResult.IsCompleted)
+            if (!flushResult.IsCompleted) // we still have a reader
             {
+                // TODO: CopyToAsync does not return a flushResult so we don't know if we still have a reader. It just
+                // returns with no exception when flushResult.IsCompleted is true. We could implement our own version.
+                await request.PayloadSource.CopyToAsync(request.PayloadSink, cancel).ConfigureAwait(false);
+
                 request.IsSent = true;
 
                 if (request.StreamParamSender == null) // no stream
