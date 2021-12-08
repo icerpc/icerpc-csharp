@@ -7,6 +7,7 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using System.Buffers;
 using System.Diagnostics;
+using System.IO.Pipelines;
 
 namespace IceRpc.Internal
 {
@@ -361,6 +362,26 @@ namespace IceRpc.Internal
 
             try
             {
+                if (request.PayloadEncoding is not IceEncoding payloadEncoding)
+                {
+                    throw new NotSupportedException(
+                        "the payload of an ice1 request must be encoded with a supported Slice encoding");
+                }
+
+                (int payloadSize, bool isCanceled, bool isCompleted) = await payloadEncoding.DecodeSegmentSizeAsync(
+                    request.PayloadSource,
+                    cancel).ConfigureAwait(false);
+
+                if (isCanceled)
+                {
+                    throw new OperationCanceledException();
+                }
+
+                if (payloadSize > 0 && isCompleted)
+                {
+                    throw new ArgumentException($"empty payload with {payloadSize} bytes");
+                }
+
                 var bufferWriter = new BufferWriter();
                 var encoder = new Ice11Encoder(bufferWriter);
 
@@ -371,11 +392,7 @@ namespace IceRpc.Internal
                 BufferWriter.Position frameSizeStart = encoder.StartFixedLengthSize();
 
                 encoder.EncodeInt(requestId);
-
-                ReadOnlyMemory<ReadOnlyMemory<byte>> payload = request.Payload;
-
-                (int payloadSize, byte encodingMajor, byte encodingMinor) =
-                    DecodePayloadSize(ref payload, request.PayloadEncoding);
+                (byte encodingMajor, byte encodingMinor) = payloadEncoding.ToMajorMinor();
 
                 var requestHeader = new Ice1RequestHeader(
                     IdentityAndFacet.FromPath(request.Path),
@@ -389,14 +406,73 @@ namespace IceRpc.Internal
 
                 encoder.EncodeFixedLengthSize(bufferWriter.Size + payloadSize, frameSizeStart);
 
-                // Add the payload to the buffer writer.
-                bufferWriter.Add(payload);
-
                 // Perform the sending. When an Ice1 frame is sent over a connection (such as a TCP
                 // connection), we need to send the entire frame even when cancel gets canceled since the
                 // recipient cannot read a partial frame and then keep going.
+
+                // TODO: if any part of the sending fails, we should kill the connection. We can't guarantee an atomic
+                // send.
+
+                if (_isUdp)
+                {
+                    // TODO: with UDP, we currently can't use the PayloadSink to send the payload. Everything needs to
+                    // be sent in a single call. So we add PayloadSource to bufferWriter now.
+
+                    while (true)
+                    {
+                        ReadResult readResult = await request.PayloadSource.ReadAsync(cancel).ConfigureAwait(false);
+                        if (readResult.IsCanceled)
+                        {
+                            throw new OperationCanceledException();
+                        }
+
+                        if (!readResult.Buffer.IsEmpty)
+                        {
+                            if (readResult.Buffer.IsSingleSegment)
+                            {
+                                bufferWriter.Add(new ReadOnlyMemory<byte>[] { readResult.Buffer.First });
+                            }
+                            else // temporary
+                            {
+                                bufferWriter.Add(new ReadOnlyMemory<byte>[] { readResult.Buffer.ToArray() });
+                            }
+
+                            request.PayloadSource.AdvanceTo(readResult.Buffer.End);
+                        }
+
+                        if (readResult.IsCompleted)
+                        {
+                            await request.PayloadSource.CompleteAsync().ConfigureAwait(false);
+                            break;
+                        }
+                    }
+                }
+
                 ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
                 await _networkConnection.WriteAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+
+                if (!_isUdp)
+                {
+                    var output = new SimpleNetworkConnectionPipeWriter(_networkConnection);
+                    request.InitialPayloadSink.SetDecoratee(output);
+
+                    try
+                    {
+                        // Use the PayloadSink to send PayloadSource
+                        await request.PayloadSource.CopyToAsync(
+                            request.PayloadSink,
+                            CancellationToken.None).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        await request.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
+                        await request.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                        throw;
+                    }
+
+                    await request.PayloadSource.CompleteAsync().ConfigureAwait(false);
+                    await request.PayloadSink.CompleteAsync().ConfigureAwait(false);
+                }
 
                 // Mark the request as sent and, if it's a twoway request, keep track of it.
                 request.IsSent = true;
