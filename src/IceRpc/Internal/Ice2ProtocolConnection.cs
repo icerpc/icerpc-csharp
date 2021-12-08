@@ -409,19 +409,24 @@ namespace IceRpc.Internal
             // We're done with the header encoding, write the header size.
             _ = encoder.EndFixedLengthSize(frameHeaderStart, 2);
 
-            // Add the payload to the buffer writer.
-            bufferWriter.Add(response.Payload);
+            // TODO: it's the initial PayloadSink but we can't retrieve it and it seems illogical to store it in the
+            // response frame.
+            PipeWriter output = new MultiplexedStreamPipeWriter(request.Stream);
 
-            // Send the response frame.
+            // Send the header. TODO: delaying the sending (flushing) until we send the payload
 
-            FlushResult flushResult = await response.PayloadSink.WriteAsync(
+            FlushResult flushResult = await output.WriteAsync(
                 bufferWriter.Finish().ToSingleBuffer(),
                 cancel).ConfigureAwait(false);
 
             Debug.Assert(!flushResult.IsCanceled); // not implemented yet, so always false.
 
-            if (!flushResult.IsCompleted)
+            if (!flushResult.IsCompleted) // we still have a reader
             {
+                // TODO: CopyToAsync does not return a flushResult so we don't know if we still have a reader. It just
+                // returns with no exception when flushResult.IsCompleted is true. We could implement our own version.
+                await response.PayloadSource.CopyToAsync(response.PayloadSink, cancel).ConfigureAwait(false);
+
                 if (response.StreamParamSender == null) // no stream
                 {
                     await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
