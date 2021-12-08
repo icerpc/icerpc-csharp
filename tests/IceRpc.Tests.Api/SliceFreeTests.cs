@@ -162,7 +162,7 @@ namespace IceRpc.Tests.Api
                 // TODO: it makes no sense to have a simpler API for success.
 
                 var payload = new ReadOnlyMemory<byte>[] { _utf8.GetBytes(_message) };
-                var response = new OutgoingResponse(request.Protocol, _resultType)
+                var response = new OutgoingResponse(request, _resultType)
                 {
                     Payload = payload,
                     PayloadEncoding = _customEncoding
