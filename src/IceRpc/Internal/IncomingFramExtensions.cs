@@ -8,7 +8,7 @@ namespace IceRpc.Internal
     /// <summary>Extensions methods for IncomingFrame.</summary>
     internal static class IncomingFrameExtensions
     {
-        /// <summary>Installs a payload decompress on the frame's Payload.</summary>
+        /// <summary>Installs a payload decompressor on the frame's Payload.</summary>
         internal static void UsePayloadDecompressor(this IncomingFrame frame)
         {
             if (frame.Protocol.HasFieldSupport)

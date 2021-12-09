@@ -102,6 +102,7 @@ namespace IceRpc
                     // Check if we can retry
                     if (attempt == _options.MaxAttempts ||
                         retryPolicy == RetryPolicy.NoRetry ||
+                        !decorator.IsResettable ||
                         (request.IsSent && releaseRequestAfterSent) ||
                         (retryPolicy == RetryPolicy.OtherReplica && (request.Connection?.IsServer ?? false)))
                     {

@@ -22,52 +22,58 @@ namespace IceRpc.Internal
 
         public override void Complete(Exception? exception)
         {
-            #pragma warning disable CA2012
+#pragma warning disable CA2012
             // TODO: not very nice - can we do better? Called by the default PipeWriter.AsStream implementation.
             if (CompleteAsync(exception) is ValueTask valueTask && !valueTask.IsCompleted)
             {
                 valueTask.AsTask().GetAwaiter().GetResult();
             }
-            #pragma warning restore CA2012
+#pragma warning restore CA2012
         }
 
         public override async ValueTask CompleteAsync(Exception? exception = default)
         {
-            if (exception == null)
+            try
             {
-                if (!_isReaderCompleted && !_isWriterCompleted)
+                if (exception == null)
                 {
-                    try
+                    if (!_isReaderCompleted && !_isWriterCompleted)
                     {
-                        await _stream.WriteAsync(
-                            ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty,
-                            endStream: true,
-                            cancel: default).ConfigureAwait(false);
+                        try
+                        {
+                            await _stream.WriteAsync(
+                                ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty,
+                                endStream: true,
+                                cancel: default).ConfigureAwait(false);
+                        }
+                        catch (MultiplexedStreamAbortedException)
+                        {
+                            // See WriteASync
+                            _isReaderCompleted = true;
+                        }
                     }
-                    catch (MultiplexedStreamAbortedException)
-                    {
-                        // See WriteASync
-                        _isReaderCompleted = true;
-                    }
-                    finally
-                    {
-                        _isWriterCompleted = true;
-                    }
+                    // else no-op
                 }
-                // else no-op
-            }
-            else
-            {
-                // TODO: error code for other exceptions?
-                byte errorCode = exception is MultiplexedStreamAbortedException multiplexedException ?
-                    multiplexedException.ErrorCode : (byte)0;
+                else
+                {
+                    // TODO: error code for other exceptions?
+                    byte errorCode = exception is MultiplexedStreamAbortedException multiplexedException ?
+                        multiplexedException.ErrorCode : (byte)0;
 
-                _stream.AbortWrite(errorCode);
+                    _stream.AbortWrite(errorCode);
+                }
+            }
+            finally
+            {
+                _isWriterCompleted = true;
             }
         }
 
-        public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken) =>
-            new(new FlushResult(isCanceled: false, isCompleted: _isReaderCompleted));
+        public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken)
+        {
+            ThrowIfCompleted();
+            return new(new FlushResult(isCanceled: false, isCompleted: _isReaderCompleted));
+        }
 
         public override Memory<byte> GetMemory(int sizeHint) => throw new NotImplementedException();
         public override Span<byte> GetSpan(int sizeHint) => throw new NotImplementedException();
@@ -76,10 +82,7 @@ namespace IceRpc.Internal
             ReadOnlyMemory<byte> source,
             CancellationToken cancellationToken)
         {
-            if (_isWriterCompleted)
-            {
-                throw new InvalidOperationException("writer is completed");
-            }
+            ThrowIfCompleted();
 
             if (source.Length == 0)
             {
@@ -106,5 +109,13 @@ namespace IceRpc.Internal
         }
 
         internal MultiplexedStreamPipeWriter(IMultiplexedStream stream) => _stream = stream;
+
+        private void ThrowIfCompleted()
+        {
+            if (_isWriterCompleted)
+            {
+                throw new InvalidOperationException("writer is completed");
+            }
+        }
     }
 }

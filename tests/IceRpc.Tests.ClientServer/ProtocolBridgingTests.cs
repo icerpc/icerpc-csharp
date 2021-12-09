@@ -191,7 +191,7 @@ namespace IceRpc.Tests.ClientServer
                     IsOneway = incomingRequest.IsOneway,
                     IsIdempotent = incomingRequest.IsIdempotent,
                     PayloadEncoding = incomingRequest.PayloadEncoding,
-                    PayloadSource = incomingRequest.Payload // pretty neat!
+                    PayloadSource = incomingRequest.Payload
                 };
 
                 // Then invoke
