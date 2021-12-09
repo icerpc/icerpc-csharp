@@ -72,16 +72,12 @@ namespace IceRpc
                         nameof(cancel));
                 }
 
-                var request = new OutgoingRequest(proxy.Protocol, path: proxy.Path, operation: operation)
+                var request = new OutgoingRequest(proxy, operation)
                 {
-                    AltEndpoints = proxy.AltEndpoints,
-                    Connection = proxy.Connection,
                     Deadline = deadline,
-                    Endpoint = proxy.Endpoint,
                     Features = invocation?.RequestFeatures ?? FeatureCollection.Empty,
                     IsOneway = oneway || (invocation?.IsOneway ?? false),
                     IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false),
-                    Proxy = proxy,
                     PayloadEncoding = payloadEncoding,
                     PayloadSource = requestPayload,
                     StreamParamSender = streamParamSender

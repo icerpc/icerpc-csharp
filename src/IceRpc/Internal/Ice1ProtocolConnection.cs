@@ -294,9 +294,8 @@ namespace IceRpc.Internal
                 FeatureCollection features = FeatureCollection.Empty;
 
                 // For compatibility with ZeroC Ice
-                if (request.Proxy is Proxy proxy &&
-                    replyStatus == ReplyStatus.ObjectNotExistException &&
-                    (proxy.Endpoint == null || proxy.Endpoint.Transport == TransportNames.Loc)) // "indirect" proxy
+                if (replyStatus == ReplyStatus.ObjectNotExistException &&
+                    (request.Proxy.Endpoint == null || request.Proxy.Endpoint.Transport == TransportNames.Loc)) // "indirect" proxy
                 {
                     features = features.With(RetryPolicy.OtherReplica);
                 }

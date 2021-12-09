@@ -256,7 +256,7 @@ namespace IceRpc.Tests.Internal
             Encoding.Ice20);
 
         private static OutgoingRequest CreateOutgoingRequest(Connection connection, bool twoway) =>
-            new(Protocol.Ice2, path: "/dummy", operation: "foo")
+            new(Proxy.FromPath("/dummy"), operation: "foo")
             {
                 Connection = connection,
                 IsOneway = !twoway,

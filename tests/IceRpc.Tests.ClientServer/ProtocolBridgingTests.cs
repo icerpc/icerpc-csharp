@@ -183,20 +183,13 @@ namespace IceRpc.Tests.ClientServer
                     features = features.WithContext(incomingRequest.Features.GetContext());
                 }
 
-                var outgoingRequest = new OutgoingRequest(
-                    targetProtocol,
-                    path: _target.Path,
-                    operation: incomingRequest.Operation)
+                var outgoingRequest = new OutgoingRequest(_target, incomingRequest.Operation)
                 {
-                    AltEndpoints = _target.AltEndpoints,
-                    Connection = _target.Connection,
                     Deadline = incomingRequest.Deadline,
-                    Endpoint = _target.Endpoint,
                     Features = features,
                     FieldsDefaults = fields,
                     IsOneway = incomingRequest.IsOneway,
                     IsIdempotent = incomingRequest.IsIdempotent,
-                    Proxy = _target,
                     PayloadEncoding = incomingRequest.PayloadEncoding,
                     PayloadSource = incomingRequest.Payload // pretty neat!
                 };
