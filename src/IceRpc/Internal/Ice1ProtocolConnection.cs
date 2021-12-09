@@ -159,7 +159,10 @@ namespace IceRpc.Internal
                         path: requestHeader.IdentityAndFacet.ToPath(),
                         operation: requestHeader.Operation,
                         payload: new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
-                        payloadEncoding)
+                        payloadEncoding,
+                        responsePayloadSink: requestId == 0 ?
+                            new DelayedPipeWriterDecorator() : // TODO: stand-in for NullPipeWriter
+                            new SimpleNetworkConnectionPipeWriter(_networkConnection))
                     {
                         IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
                         IsOneway = requestId == 0,
@@ -512,6 +515,27 @@ namespace IceRpc.Internal
                     await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
                     try
                     {
+                        if (request.PayloadEncoding is not IceEncoding payloadEncoding)
+                        {
+                            throw new NotSupportedException(
+                                "the payload of an ice1 request must be encoded with a supported Slice encoding");
+                        }
+
+                        (int payloadSize, bool isCanceled, bool isCompleted) =
+                            await payloadEncoding.DecodeSegmentSizeAsync(
+                                response.PayloadSource,
+                                cancel).ConfigureAwait(false);
+
+                        if (isCanceled)
+                        {
+                            throw new OperationCanceledException();
+                        }
+
+                        if (payloadSize > 0 && isCompleted)
+                        {
+                            throw new ArgumentException($"empty payload with {payloadSize} bytes");
+                        }
+
                         var bufferWriter = new BufferWriter();
                         if (response.StreamParamSender != null)
                         {
@@ -527,21 +551,29 @@ namespace IceRpc.Internal
                         BufferWriter.Position frameSizeStart = encoder.StartFixedLengthSize();
 
                         encoder.EncodeInt(requestId);
-
-                        ReadOnlyMemory<ReadOnlyMemory<byte>> payload = response.Payload;
-
-                        (int payloadSize, byte encodingMajor, byte encodingMinor) =
-                            DecodePayloadSize(ref payload, response.PayloadEncoding);
+                        (byte encodingMajor, byte encodingMinor) = payloadEncoding.ToMajorMinor();
 
                         ReplyStatus replyStatus = ReplyStatus.OK;
 
                         if (response.ResultType == ResultType.Failure)
                         {
-                            if (response.PayloadEncoding == Encoding.Ice11)
+                            if (payloadEncoding == Encoding.Ice11)
                             {
                                 // extract reply status from 1.1-encoded payload
-                                replyStatus = (ReplyStatus)payload.Span[0].Span[0];
-                                payload = SliceBuffers(payload, 1);
+                                ReadResult readResult = await response.PayloadSource.ReadAsync(
+                                    cancel).ConfigureAwait(false);
+
+                                if (readResult.IsCanceled)
+                                {
+                                    throw new OperationCanceledException();
+                                }
+                                if (readResult.Buffer.IsEmpty)
+                                {
+                                    throw new ArgumentException("empty exception payload");
+                                }
+
+                                replyStatus = (ReplyStatus)readResult.Buffer.FirstSpan[0];
+                                response.PayloadSource.AdvanceTo(readResult.Buffer.GetPosition(1));
                                 payloadSize -= 1;
                             }
                             else
@@ -561,12 +593,28 @@ namespace IceRpc.Internal
 
                         encoder.EncodeFixedLengthSize(bufferWriter.Size + payloadSize, frameSizeStart);
 
-                        // Add the payload to the buffer writer.
-                        bufferWriter.Add(payload);
+                        Debug.Assert(!_isUdp);
 
-                        // Send the response frame.
+                        // Send the response frame header
                         ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
                         await _networkConnection.WriteAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+
+                        try
+                        {
+                            // Use the PayloadSink to send PayloadSource
+                            await response.PayloadSource.CopyToAsync(
+                                response.PayloadSink,
+                                CancellationToken.None).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            await response.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
+                            await response.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                            throw;
+                        }
+
+                        await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
+                        await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
                     }
                     finally
                     {

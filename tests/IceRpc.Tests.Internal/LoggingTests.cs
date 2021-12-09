@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System.Buffers;
@@ -241,7 +242,8 @@ namespace IceRpc.Tests.Internal
                 path: "/dummy",
                 operation: "foo",
                 PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
-                Encoding.Ice20)
+                Encoding.Ice20,
+                responsePayloadSink: new DelayedPipeWriterDecorator())
             {
                 Connection = connection,
                 IsOneway = !twoway

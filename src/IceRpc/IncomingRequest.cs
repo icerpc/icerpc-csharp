@@ -35,10 +35,8 @@ namespace IceRpc
         /// <summary>Get the cancellation dispatch source.</summary>
         internal CancellationTokenSource? CancelDispatchSource { get; set; }
 
-        /// <summary>The payload sink of the corresponding response.</summary>
-        // TODO: get-only ok, but with temporary implementation
-        internal PipeWriter ResponsePayloadSink => Stream is IMultiplexedStream stream ?
-            new MultiplexedStreamPipeWriter(stream) : new DelayedPipeWriterDecorator(); // delayed never set!
+        /// <summary>The initial payload sink of a response created for this request.</summary>
+        internal PipeWriter ResponsePayloadSink { get; }
 
         /// <summary>The stream used to receive the request.</summary>
         internal IMultiplexedStream? Stream { get; init; }
@@ -49,16 +47,19 @@ namespace IceRpc
         /// <param name="operation">The operation of the request.</param>
         /// <param name="payload">The payload of the request.</param>
         /// <param name="payloadEncoding">The encoding of the payload.</param>
-        public IncomingRequest(
+        /// <param name="responsePayloadSink">The initial payload sink of a response created for this request.</param>
+        internal IncomingRequest(
             Protocol protocol,
             string path,
             string operation,
             PipeReader payload,
-            Encoding payloadEncoding) :
+            Encoding payloadEncoding,
+            PipeWriter responsePayloadSink) :
             base(protocol, payload, payloadEncoding)
         {
             Path = path;
             Operation = operation;
+            ResponsePayloadSink = responsePayloadSink;
         }
     }
 }

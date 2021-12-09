@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using NUnit.Framework;
 using System.Diagnostics.Tracing;
 using System.Buffers;
@@ -32,7 +33,8 @@ namespace IceRpc.Tests.Internal
                 path: "/service",
                 operation: "ice_id",
                 PipeReader.Create(ReadOnlySequence<byte>.Empty),
-                Encoding.Ice20));
+                Encoding.Ice20,
+                responsePayloadSink: new DelayedPipeWriterDecorator())); // TODO: stand-in for NullPipeWriter
 
             EventWrittenEventArgs? eventData = eventListener.EventData;
             Assert.That(eventData, Is.Not.Null);
@@ -56,7 +58,8 @@ namespace IceRpc.Tests.Internal
                 path: "/service",
                 "ice_id",
                 PipeReader.Create(ReadOnlySequence<byte>.Empty),
-                Encoding.Ice20));
+                Encoding.Ice20,
+                responsePayloadSink: new DelayedPipeWriterDecorator())); // TODO: stand-in for NullPipeWriter));
 
             EventWrittenEventArgs? eventData = eventListener.EventData;
             Assert.That(eventData, Is.Not.Null);
@@ -80,7 +83,8 @@ namespace IceRpc.Tests.Internal
                 path: "/service",
                 operation: "ice_id",
                 PipeReader.Create(ReadOnlySequence<byte>.Empty),
-                Encoding.Ice20));
+                Encoding.Ice20,
+                responsePayloadSink: new DelayedPipeWriterDecorator())); // TODO: stand-in for NullPipeWriter
 
             EventWrittenEventArgs? eventData = eventListener.EventData;
             Assert.That(eventData, Is.Not.Null);
@@ -105,7 +109,8 @@ namespace IceRpc.Tests.Internal
                     path: "/service",
                     operation: "ice_id",
                     PipeReader.Create(ReadOnlySequence<byte>.Empty),
-                    Encoding.Ice20),
+                    Encoding.Ice20,
+                    responsePayloadSink: new DelayedPipeWriterDecorator()),
                 "IceRpc.RemoteException");
 
             EventWrittenEventArgs? eventData = eventListener.EventData;
