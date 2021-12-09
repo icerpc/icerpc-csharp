@@ -6,7 +6,7 @@ namespace IceRpc.Internal
 {
     /// <summary>A PipeWriter that does nothing and always throws NotSupportedException except for
     /// Complete/CompleteAsync.</summary>
-    internal class InvalidPipeWriter : PipeWriter
+    internal sealed class InvalidPipeWriter : PipeWriter
     {
         public override bool CanGetUnflushedBytes => false;
         public override long UnflushedBytes => throw _notSupportedException;
@@ -37,5 +37,10 @@ namespace IceRpc.Internal
 
         protected override Task CopyFromAsync(Stream source, CancellationToken cancellationToken) =>
             throw _notSupportedException;
+
+        private InvalidPipeWriter()
+        {
+            // ensures there is only one instance
+        }
     }
 }

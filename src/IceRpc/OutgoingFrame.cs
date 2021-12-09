@@ -30,9 +30,7 @@ namespace IceRpc
         public PipeWriter PayloadSink { get; set; }
 
         /// <summary>Gets or sets the payload source of this frame.</summary>
-        // TODO: bad default. Should we make it a constructor parameter?
-        public PipeReader PayloadSource { get; set; } =
-            PipeReader.Create(ReadOnlySequence<byte>.Empty);
+        public PipeReader PayloadSource { get; set; } = EmptyPipeReader.Instance;
 
         /// <summary>Returns the encoding of the payload of this frame.</summary>
         /// <remarks>The header of the frame is always encoded using the frame protocol's encoding.</remarks>
