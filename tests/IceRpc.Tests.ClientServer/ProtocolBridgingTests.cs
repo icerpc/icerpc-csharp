@@ -183,9 +183,6 @@ namespace IceRpc.Tests.ClientServer
                     features = features.WithContext(incomingRequest.Features.GetContext());
                 }
 
-                ReadResult readResult = await incomingRequest.Payload.ReadAllAsync(cancel);
-                var payload = readResult.Buffer.ToArray();
-
                 var outgoingRequest = new OutgoingRequest(
                     targetProtocol,
                     path: _target.Path,
@@ -201,7 +198,7 @@ namespace IceRpc.Tests.ClientServer
                     IsIdempotent = incomingRequest.IsIdempotent,
                     Proxy = _target,
                     PayloadEncoding = incomingRequest.PayloadEncoding,
-                    Payload = new ReadOnlyMemory<byte>[] { payload }
+                    PayloadSource = incomingRequest.Payload // pretty neat!
                 };
 
                 // Then invoke
@@ -210,15 +207,12 @@ namespace IceRpc.Tests.ClientServer
 
                 // Then create an outgoing response from the incoming response
 
-                readResult = await incomingResponse.Payload.ReadAllAsync(cancel);
-                payload = readResult.Buffer.ToArray();
-
                 return new OutgoingResponse(incomingRequest, incomingResponse.ResultType)
                 {
                     // Don't forward RetryPolicy
                     FieldsDefaults = incomingResponse.Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
-                    Payload = new ReadOnlyMemory<byte>[] { payload },
                     PayloadEncoding = incomingResponse.PayloadEncoding,
+                    PayloadSource = incomingResponse.Payload,
                 };
             }
 
