@@ -45,28 +45,10 @@ namespace IceRpc
 
             bool tryAgain;
 
-            // TODO: temporary: for now we make and keep a full copy of the request's payload
-            ReadOnlySequence<byte> payload;
-            while (true)
-            {
-                ReadResult readResult = await request.PayloadSource.ReadAsync(cancel).ConfigureAwait(false);
-                if (readResult.IsCanceled)
-                {
-                    throw new OperationCanceledException();
-                }
+            var decorator = new ResettablePipeReaderDecorator(request.PayloadSource);
+            await using var _ = decorator.ConfigureAwait(false);
 
-                if (readResult.IsCompleted)
-                {
-                    payload = new ReadOnlySequence<byte>(readResult.Buffer.ToArray());
-                    request.PayloadSource.AdvanceTo(readResult.Buffer.Start); // don't consume/examine anything
-                    break;
-                }
-                else
-                {
-                    request.PayloadSource.AdvanceTo(readResult.Buffer.Start); // don't consume/examine anything
-                    await Task.Yield(); // slow down
-                }
-            }
+            request.PayloadSource = decorator;
 
             try
             {
@@ -173,8 +155,7 @@ namespace IceRpc
                             request.Features.Set<RetryPolicy>(null);
                         }
 
-                        // TODO: temporary!
-                        request.PayloadSource = PipeReader.Create(payload);
+                        decorator.Reset();
                     }
                 }
                 while (tryAgain);

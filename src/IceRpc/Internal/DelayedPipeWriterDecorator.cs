@@ -4,8 +4,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Internal
 {
-    /// <summary>A PipeWriter decorator where the decoratee is provided later. Otherwise, this decorator does nothing.
-    /// </summary>
+    /// <summary>A PipeWriter decorator where the decoratee is provided later through SetDecoratee.</summary>
     internal class DelayedPipeWriterDecorator : PipeWriter
     {
         public override bool CanGetUnflushedBytes => Decoratee.CanGetUnflushedBytes;
@@ -17,6 +16,7 @@ namespace IceRpc.Internal
         public override void Advance(int bytes) => Decoratee.Advance(bytes);
 
         // TODO: we may want to implement and return a DelayedWriteStreamDecorator here.
+        // We can't just forward to Decoratee as it's legitimate to call AsStream before the decoratee is set.
         // public override Stream AsStream(bool leaveOpen = false) => Decoratee.AsStream(leaveOpen);
 
         public override void CancelPendingFlush() => Decoratee.CancelPendingFlush();
