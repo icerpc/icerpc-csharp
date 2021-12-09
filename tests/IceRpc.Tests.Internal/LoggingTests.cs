@@ -260,14 +260,14 @@ namespace IceRpc.Tests.Internal
             {
                 Connection = connection,
                 IsOneway = !twoway,
-                Payload = new ReadOnlyMemory<byte>[] { new byte[15] },
+                PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
                 PayloadEncoding = Encoding.Ice20
             };
 
         private static OutgoingResponse CreateOutgoingResponse(IncomingRequest request) =>
             new(request, ResultType.Success)
             {
-                Payload = new ReadOnlyMemory<byte>[] { new byte[10] },
+                PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(new byte[10])),
                 PayloadEncoding = Encoding.Ice20
             };
 

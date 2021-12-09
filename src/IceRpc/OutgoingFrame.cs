@@ -26,21 +26,13 @@ namespace IceRpc
         /// <summary>The features of this frame.</summary>
         public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
-        /// <summary>Gets or sets the payload of this frame.</summary>
-        public ReadOnlyMemory<ReadOnlyMemory<byte>> Payload { get; set; } =
-            ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty;
-
         /// <summary>Gets or sets the payload sink of this frame.</summary>
         public PipeWriter PayloadSink { get; set; }
 
         /// <summary>Gets or sets the payload source of this frame.</summary>
-        // TODO: temporary implementation!
-        public PipeReader PayloadSource
-        {
-            get => _payloadSource ??= PipeReader.Create(new ReadOnlySequence<byte>(Payload.ToSingleBuffer()));
-
-            set => _payloadSource = value;
-        }
+        // TODO: bad default. Should we make it a constructor parameter?
+        public PipeReader PayloadSource { get; set; } =
+            PipeReader.Create(ReadOnlySequence<byte>.Empty);
 
         /// <summary>Returns the encoding of the payload of this frame.</summary>
         /// <remarks>The header of the frame is always encoded using the frame protocol's encoding.</remarks>
@@ -63,8 +55,6 @@ namespace IceRpc
             Protocol = protocol;
             PayloadSink = payloadSink;
         }
-
-        private PipeReader? _payloadSource;
 
         internal void SendStreamParam(IMultiplexedStream stream)
         {
