@@ -265,10 +265,9 @@ namespace IceRpc.Tests.Internal
             };
 
         private static OutgoingResponse CreateOutgoingResponse(IncomingRequest request) =>
-            new(request, ResultType.Success)
+            new(request)
             {
-                PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(new byte[10])),
-                PayloadEncoding = Encoding.Ice20
+                PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(new byte[10]))
             };
 
         private static async Task WithConnectionAndLoggerFactory(Func<Connection, TestLoggerFactory, Task> testAsync)

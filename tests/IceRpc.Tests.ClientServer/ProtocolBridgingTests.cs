@@ -207,12 +207,13 @@ namespace IceRpc.Tests.ClientServer
 
                 // Then create an outgoing response from the incoming response
 
-                return new OutgoingResponse(incomingRequest, incomingResponse.ResultType)
+                return new OutgoingResponse(incomingRequest)
                 {
                     // Don't forward RetryPolicy
                     FieldsDefaults = incomingResponse.Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
                     PayloadEncoding = incomingResponse.PayloadEncoding,
                     PayloadSource = incomingResponse.Payload,
+                    ResultType = incomingResponse.ResultType
                 };
             }
 

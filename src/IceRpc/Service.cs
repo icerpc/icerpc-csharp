@@ -102,7 +102,7 @@ namespace IceRpc
                     (IceEncoding payloadEncoding, PipeReader responsePayloadSource, IStreamParamSender? streamParamSender) =
                         await dispatchMethod(this, request, dispatch, cancel).ConfigureAwait(false);
 
-                    return new OutgoingResponse(request, ResultType.Success)
+                    return new OutgoingResponse(request)
                     {
                         Features = dispatch.ResponseFeatures,
                         PayloadSource = responsePayloadSource,

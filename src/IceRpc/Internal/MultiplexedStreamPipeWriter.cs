@@ -106,6 +106,5 @@ namespace IceRpc.Internal
         }
 
         internal MultiplexedStreamPipeWriter(IMultiplexedStream stream) => _stream = stream;
-
     }
 }

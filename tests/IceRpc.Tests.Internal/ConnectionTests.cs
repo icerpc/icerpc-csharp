@@ -228,7 +228,7 @@ namespace IceRpc.Tests.Internal
                 dispatcher: new InlineDispatcher(async (request, cancel) =>
                 {
                     await semaphore.WaitAsync(cancel);
-                    return new OutgoingResponse(request, payloadSource: Encoding.Ice20.CreateEmptyPayload());
+                    return new OutgoingResponse(request);
                 }),
                 protocol: protocol);
 
@@ -449,9 +449,7 @@ namespace IceRpc.Tests.Internal
                 dispatcher: new InlineDispatcher(async (request, cancel) =>
                 {
                     await dispatchSemaphore.WaitAsync(cancel);
-                    return new OutgoingResponse(
-                        request,
-                        ((IceEncoding)request.PayloadEncoding).CreateEmptyPayload());
+                    return new OutgoingResponse(request);
                 }));
 
             // Perform an invocation and wait 2 seconds. The connection shouldn't close.
@@ -480,9 +478,7 @@ namespace IceRpc.Tests.Internal
                 {
                     waitForDispatchSemaphore.Release();
                     await dispatchSemaphore.WaitAsync(cancel);
-                    return new OutgoingResponse(
-                        request,
-                        ((IceEncoding)request.PayloadEncoding).CreateEmptyPayload());
+                    return new OutgoingResponse(request);
                 }));
 
             // Perform an invocation.
@@ -540,7 +536,7 @@ namespace IceRpc.Tests.Internal
                     {
                     }
                     Assert.Fail();
-                    return new OutgoingResponse(request, payloadSource: Encoding.Ice20.CreateEmptyPayload());
+                    return new OutgoingResponse(request);
                 }));
 
             // Perform an invocation
@@ -610,7 +606,7 @@ namespace IceRpc.Tests.Internal
                 {
                     waitForDispatchSemaphore.Release();
                     await semaphore.WaitAsync(cancel);
-                    return new OutgoingResponse(request, payloadSource: Encoding.Ice20.CreateEmptyPayload());
+                    return new OutgoingResponse(request);
                 }));
 
             // Perform an invocation

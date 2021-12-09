@@ -445,7 +445,7 @@ namespace IceRpc.Tests.Api
                     Service = ServicePrx.FromConnection(request.Connection),
                     Greeter = GreeterPrx.FromConnection(request.Connection)
                 };
-                return new(new OutgoingResponse(request, Encoding.Ice20.CreateEmptyPayload()));
+                return new(new OutgoingResponse(request));
             }));
 
             await using var server = new Server

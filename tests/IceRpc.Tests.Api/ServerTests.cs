@@ -177,7 +177,7 @@ namespace IceRpc.Tests.Api
                         }
                         Assert.Fail();
                     }
-                    return new OutgoingResponse(request, Encoding.Ice20.CreateEmptyPayload());
+                    return new OutgoingResponse(request);
                 }),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
@@ -215,7 +215,7 @@ namespace IceRpc.Tests.Api
                 {
                     dispatchStartSemaphore.Release();
                     await dispatchContinueSemaphore.WaitAsync(cancel);
-                    return new OutgoingResponse(request, payloadSource: Encoding.Ice20.CreateEmptyPayload());
+                    return new OutgoingResponse(request);
                 }),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
@@ -257,7 +257,7 @@ namespace IceRpc.Tests.Api
                     Assert.That(cancel.CanBeCanceled, Is.True);
                     semaphore.Release();
                     await Task.Delay(-1, cancel);
-                    return new OutgoingResponse(request, payloadSource: Encoding.Ice20.CreateEmptyPayload());
+                    return new OutgoingResponse(request);
                 }),
                 Endpoint = serverEndpoint
             };

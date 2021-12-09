@@ -8,24 +8,12 @@ namespace IceRpc
     public sealed class OutgoingResponse : OutgoingFrame
     {
         /// <summary>The <see cref="IceRpc.ResultType"/> of this response.</summary>
-        public ResultType ResultType { get; }
+        public ResultType ResultType { get; init; } = ResultType.Success;
 
         /// <summary>Constructs an outgoing response.</summary>
         /// <param name="request">The incoming request.</param>
-        /// <param name="resultType">The <see cref="ResultType"/> of the response.</param>
-        public OutgoingResponse(IncomingRequest request, ResultType resultType) :
-            base(request.Protocol, request.ResponsePayloadSink) => ResultType = resultType;
-
-        /// <summary>Constructs a successful response with the specified payload.</summary>
-        /// <param name="request">The incoming request.</param>
-        /// <param name="payloadSource">The response's payload.</param>
-        public OutgoingResponse(
-            IncomingRequest request,
-            PipeReader payloadSource) :
-            this(request, ResultType.Success)
-        {
-            PayloadSource = payloadSource;
+        public OutgoingResponse(IncomingRequest request) :
+            base(request.Protocol, request.ResponsePayloadSink) =>
             PayloadEncoding = request.PayloadEncoding;
-        }
     }
 }

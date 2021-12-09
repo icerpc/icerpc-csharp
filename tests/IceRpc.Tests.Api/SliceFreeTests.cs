@@ -158,13 +158,12 @@ namespace IceRpc.Tests.Api
 
                 Assert.That(greeting, Is.EqualTo(_greeting));
 
-                // TODO: it makes no sense to have a simpler API for success.
-
                 var payload = new ReadOnlySequence<byte>(_utf8.GetBytes(_message));
-                var response = new OutgoingResponse(request, _resultType)
+                var response = new OutgoingResponse(request)
                 {
                     PayloadSource = PipeReader.Create(payload),
-                    PayloadEncoding = _customEncoding
+                    ResultType = _resultType
+                    // use same payload encoding as request (default)
                 };
                 return response;
             }

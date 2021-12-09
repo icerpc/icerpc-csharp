@@ -46,9 +46,7 @@ namespace IceRpc
         /// <summary>Constructs an outgoing frame.</summary>
         /// <param name="protocol">The protocol used to send the frame.</param>
         /// <param name="payloadSink">The outgoing frame's payload sink.</param>
-        protected OutgoingFrame(
-            Protocol protocol,
-            PipeWriter payloadSink)
+        protected OutgoingFrame(Protocol protocol, PipeWriter payloadSink)
         {
             Protocol = protocol;
             PayloadSink = payloadSink;
