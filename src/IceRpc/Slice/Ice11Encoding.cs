@@ -14,12 +14,11 @@ namespace IceRpc.Slice
         /// <summary>The Ice 1.1 encoding singleton.</summary>
         internal static Ice11Encoding Instance { get; } = new();
 
-        // Must use a payload with 0-size as opposed to nothing in case there is a Slice stream afterwards.
-        // TODO: fix if/when we remove stream support from Slice 1.1
-        private static readonly ReadOnlyMemory<byte> _emptyPayload = new byte[] { 0, 0, 0, 0 };
+        private static readonly ReadOnlySequence<byte> _payloadWithZeroSize = new(new byte[] { 0, 0, 0, 0 });
 
         /// <inheritdoc/>
-        public override PipeReader CreateEmptyPayload() => PipeReader.Create(new ReadOnlySequence<byte>(_emptyPayload));
+        public override PipeReader CreateEmptyPayload(bool hasStream = true) =>
+            hasStream ? PipeReader.Create(_payloadWithZeroSize) : EmptyPipeReader.Instance;
 
         /// <summary>Creates the payload of a request from the request's arguments. Use this method is for operations
         /// with multiple parameters.</summary>

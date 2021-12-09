@@ -22,11 +22,11 @@ namespace IceRpc.Slice
             };
 
         /// <summary>Creates an empty payload encoded with this encoding.</summary>
+        /// <param name="hasStream">When true, the Slice operation includes a stream in addition to the empty parameters
+        /// or void return.</param>
         /// <returns>A new empty payload.</returns>
-        // TODO: the term payload is not quite correct here. For this class, it currently represents only the
-        // args/return/exception portion of the payload; the actual payload of a request/response can also hold stream
-        // data.
-        public abstract PipeReader CreateEmptyPayload();
+        // TODO: for now, we assume there is always a stream after. Fix with outgoing stream refactoring.
+        public abstract PipeReader CreateEmptyPayload(bool hasStream = true);
 
         /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
         /// takes a single parameter.</summary>
