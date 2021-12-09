@@ -155,8 +155,7 @@ namespace IceRpc.Internal
                     payloadEncoding: header.PayloadEncoding.Length > 0 ?
                         Encoding.FromString(header.PayloadEncoding) : Ice2Definitions.Encoding,
                     responsePayloadSink: stream.IsBidirectional ?
-                        new MultiplexedStreamPipeWriter(stream) :
-                        new DelayedPipeWriterDecorator()) // TODO: stand-in for NullPipeWriter
+                        new MultiplexedStreamPipeWriter(stream) : InvalidPipeWriter.Instance)
                 {
                     IsIdempotent = header.Idempotent,
                     IsOneway = !stream.IsBidirectional,

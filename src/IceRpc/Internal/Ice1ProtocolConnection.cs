@@ -161,8 +161,7 @@ namespace IceRpc.Internal
                         payload: new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
                         payloadEncoding,
                         responsePayloadSink: requestId == 0 ?
-                            new DelayedPipeWriterDecorator() : // TODO: stand-in for NullPipeWriter
-                            new SimpleNetworkConnectionPipeWriter(_networkConnection))
+                            InvalidPipeWriter.Instance : new SimpleNetworkConnectionPipeWriter(_networkConnection))
                     {
                         IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
                         IsOneway = requestId == 0,
