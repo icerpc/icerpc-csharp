@@ -12,6 +12,8 @@ namespace IceRpc.Internal
         public override bool CanGetUnflushedBytes => false; // doesn't support unflushed bytes at all
 
         private bool _isReaderCompleted;
+        private bool _isWriterCompleted;
+
         private readonly IMultiplexedStream _stream;
 
         public override void Advance(int bytes) => throw new NotImplementedException();
@@ -33,19 +35,23 @@ namespace IceRpc.Internal
         {
             if (exception == null)
             {
-                if (!_isReaderCompleted)
+                if (!_isReaderCompleted && !_isWriterCompleted)
                 {
                     try
                     {
                         await _stream.WriteAsync(
                             ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty,
                             endStream: true,
-                            default).ConfigureAwait(false);
+                            cancel: default).ConfigureAwait(false);
                     }
                     catch (MultiplexedStreamAbortedException)
                     {
                         // See WriteASync
                         _isReaderCompleted = true;
+                    }
+                    finally
+                    {
+                        _isWriterCompleted = true;
                     }
                 }
                 // else no-op
@@ -70,13 +76,23 @@ namespace IceRpc.Internal
             ReadOnlyMemory<byte> source,
             CancellationToken cancellationToken)
         {
+            if (_isWriterCompleted)
+            {
+                throw new InvalidOperationException("writer is completed");
+            }
+
+            if (source.Length == 0)
+            {
+                _isWriterCompleted = true;
+            }
+
             if (!_isReaderCompleted)
             {
                 try
                 {
                     await _stream.WriteAsync(
                         new ReadOnlyMemory<byte>[] { source },
-                        endStream: false,
+                        endStream: _isWriterCompleted,
                         cancellationToken).ConfigureAwait(false);
                 }
                 catch (MultiplexedStreamAbortedException)
