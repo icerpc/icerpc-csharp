@@ -45,6 +45,29 @@ namespace IceRpc
 
             bool tryAgain;
 
+            // TODO: temporary: for now we make and keep a full copy of the request's payload
+            ReadOnlySequence<byte> payload;
+            while (true)
+            {
+                ReadResult readResult = await request.PayloadSource.ReadAsync(cancel).ConfigureAwait(false);
+                if (readResult.IsCanceled)
+                {
+                    throw new OperationCanceledException();
+                }
+
+                if (readResult.IsCompleted)
+                {
+                    payload = new ReadOnlySequence<byte>(readResult.Buffer.ToArray());
+                    request.PayloadSource.AdvanceTo(readResult.Buffer.Start); // don't consume/examine anything
+                    break;
+                }
+                else
+                {
+                    request.PayloadSource.AdvanceTo(readResult.Buffer.Start); // don't consume/examine anything
+                    await Task.Yield(); // slow down
+                }
+            }
+
             try
             {
                 do
@@ -151,8 +174,7 @@ namespace IceRpc
                         }
 
                         // TODO: temporary!
-                        request.PayloadSource =
-                            PipeReader.Create(new ReadOnlySequence<byte>(request.Payload.ToSingleBuffer()));
+                        request.PayloadSource = PipeReader.Create(payload);
                     }
                 }
                 while (tryAgain);
