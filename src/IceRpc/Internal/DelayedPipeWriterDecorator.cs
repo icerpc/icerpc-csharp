@@ -20,8 +20,9 @@ namespace IceRpc.Internal
         // public override Stream AsStream(bool leaveOpen = false) => Decoratee.AsStream(leaveOpen);
 
         public override void CancelPendingFlush() => Decoratee.CancelPendingFlush();
-        public override void Complete(Exception? exception) => Decoratee.Complete(exception);
-        public override ValueTask CompleteAsync(Exception? exception = default) => Decoratee.CompleteAsync(exception);
+        public override void Complete(Exception? exception) => _decoratee?.Complete(exception);
+        public override ValueTask CompleteAsync(Exception? exception = default) =>
+            _decoratee?.CompleteAsync(exception) ?? default;
         public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken) =>
            Decoratee.FlushAsync(cancellationToken);
 

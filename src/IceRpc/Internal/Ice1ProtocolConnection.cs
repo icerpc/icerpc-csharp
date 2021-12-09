@@ -424,7 +424,7 @@ namespace IceRpc.Internal
                         ReadResult readResult = await request.PayloadSource.ReadAsync(cancel).ConfigureAwait(false);
                         if (readResult.IsCanceled)
                         {
-                            throw new OperationCanceledException();
+                            var exception = new OperationCanceledException();
                         }
 
                         if (!readResult.Buffer.IsEmpty)
@@ -443,7 +443,6 @@ namespace IceRpc.Internal
 
                         if (readResult.IsCompleted)
                         {
-                            await request.PayloadSource.CompleteAsync().ConfigureAwait(false);
                             break;
                         }
                     }
@@ -457,23 +456,14 @@ namespace IceRpc.Internal
                     var output = new SimpleNetworkConnectionPipeWriter(_networkConnection);
                     request.InitialPayloadSink.SetDecoratee(output);
 
-                    try
-                    {
-                        // Use the PayloadSink to send PayloadSource
-                        await request.PayloadSource.CopyToAsync(
-                            request.PayloadSink,
-                            CancellationToken.None).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        await request.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
-                        await request.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
-                        throw;
-                    }
-
-                    await request.PayloadSource.CompleteAsync().ConfigureAwait(false);
-                    await request.PayloadSink.CompleteAsync().ConfigureAwait(false);
+                    // Use the PayloadSink to send PayloadSource
+                    await request.PayloadSource.CopyToAsync(
+                        request.PayloadSink,
+                        CancellationToken.None).ConfigureAwait(false);
                 }
+
+                await request.PayloadSource.CompleteAsync().ConfigureAwait(false);
+                await request.PayloadSink.CompleteAsync().ConfigureAwait(false);
 
                 // Mark the request as sent and, if it's a twoway request, keep track of it.
                 request.IsSent = true;
@@ -484,7 +474,16 @@ namespace IceRpc.Internal
                 // request is retried by the retry interceptor.
                 // TODO: this is clunky but required for retries to work because the retry interceptor only retries
                 // a request if the exception is a transport exception.
-                throw new ConnectionLostException(exception);
+                var ex = new ConnectionLostException(exception);
+                await request.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
+                await request.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                throw ex;
+            }
+            catch (Exception ex)
+            {
+                await request.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
+                await request.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                throw;
             }
             finally
             {
@@ -597,22 +596,18 @@ namespace IceRpc.Internal
                         ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
                         await _networkConnection.WriteAsync(buffers, CancellationToken.None).ConfigureAwait(false);
 
-                        try
-                        {
-                            // Use the PayloadSink to send PayloadSource
-                            await response.PayloadSource.CopyToAsync(
+                        await response.PayloadSource.CopyToAsync(
                                 response.PayloadSink,
                                 CancellationToken.None).ConfigureAwait(false);
-                        }
-                        catch (Exception ex)
-                        {
-                            await response.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
-                            await response.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
-                            throw;
-                        }
 
                         await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
                         await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        await response.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
+                        await response.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                        throw;
                     }
                     finally
                     {
