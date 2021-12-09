@@ -278,116 +278,116 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            // Create the stream.
-            request.Stream = _networkConnection.CreateStream(!request.IsOneway);
-
-            var output = new MultiplexedStreamPipeWriter(request.Stream);
-            request.InitialPayloadSink.SetDecoratee(output);
-
-            if (!request.IsOneway || request.StreamParamSender != null)
+            try
             {
-                lock (_mutex)
-                {
-                    if (_shutdown)
-                    {
-                        request.Features = request.Features.With(RetryPolicy.Immediately);
-                        request.Stream.Abort(MultiplexedStreamError.ConnectionShutdown);
-                        throw new ConnectionClosedException("connection shutdown");
-                    }
-                    _invocations.Add(request);
+                // Create the stream.
+                request.Stream = _networkConnection.CreateStream(!request.IsOneway);
 
-                    request.Stream.ShutdownAction = () =>
+                var output = new MultiplexedStreamPipeWriter(request.Stream);
+                request.InitialPayloadSink.SetDecoratee(output);
+
+                if (!request.IsOneway || request.StreamParamSender != null)
+                {
+                    lock (_mutex)
+                    {
+                        if (_shutdown)
                         {
-                            lock (_mutex)
+                            request.Features = request.Features.With(RetryPolicy.Immediately);
+                            request.Stream.Abort(MultiplexedStreamError.ConnectionShutdown);
+                            throw new ConnectionClosedException("connection shutdown");
+                        }
+                        _invocations.Add(request);
+
+                        request.Stream.ShutdownAction = () =>
                             {
-                                _invocations.Remove(request);
+                                lock (_mutex)
+                                {
+                                    _invocations.Remove(request);
 
                                 // If no more invocations or dispatches and shutting down, shutdown can complete.
                                 if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
-                                {
-                                    _dispatchesAndInvocationsCompleted.SetResult();
+                                    {
+                                        _dispatchesAndInvocationsCompleted.SetResult();
+                                    }
                                 }
-                            }
-                        };
+                            };
+                    }
                 }
-            }
 
-            var bufferWriter = new BufferWriter();
-            var encoder = new Ice20Encoder(bufferWriter);
+                var bufferWriter = new BufferWriter();
+                var encoder = new Ice20Encoder(bufferWriter);
 
-            // Write the Ice2 request header.
+                // Write the Ice2 request header.
 
-            BufferWriter.Position frameHeaderStart = encoder.StartFixedLengthSize(2);
+                BufferWriter.Position frameHeaderStart = encoder.StartFixedLengthSize(2);
 
-            // DateTime.MaxValue represents an infinite deadline and it is encoded as -1
-            long deadline = request.Deadline == DateTime.MaxValue ? -1 :
-                    (long)(request.Deadline - DateTime.UnixEpoch).TotalMilliseconds;
+                // DateTime.MaxValue represents an infinite deadline and it is encoded as -1
+                long deadline = request.Deadline == DateTime.MaxValue ? -1 :
+                        (long)(request.Deadline - DateTime.UnixEpoch).TotalMilliseconds;
 
-            var header = new Ice2RequestHeader(
-                request.Path,
-                request.Operation,
-                request.IsIdempotent,
-                deadline,
-                request.PayloadEncoding == Ice2Definitions.Encoding ? "" : request.PayloadEncoding.ToString());
+                var header = new Ice2RequestHeader(
+                    request.Path,
+                    request.Operation,
+                    request.IsIdempotent,
+                    deadline,
+                    request.PayloadEncoding == Ice2Definitions.Encoding ? "" : request.PayloadEncoding.ToString());
 
-            header.Encode(encoder);
+                header.Encode(encoder);
 
-            // If the context feature is set to a non empty context, or if the fields defaults contains a context
-            // entry and the context feature is set, marshal the context feature in the request fields. The context
-            // feature must prevail over field defaults. Cannot use request.Features.GetContext it doesn't
-            // distinguish between empty an non set context.
-            if (request.Features.Get<Context>()?.Value is IDictionary<string, string> context &&
-                (context.Count > 0 || request.FieldsDefaults.ContainsKey((int)FieldKey.Context)))
-            {
-                // Encodes context
-                request.Fields[(int)FieldKey.Context] =
-                    encoder => encoder.EncodeDictionary(context,
-                                                        (encoder, value) => encoder.EncodeString(value),
-                                                        (encoder, value) => encoder.EncodeString(value));
-            }
-            // else context remains empty (not set)
+                // If the context feature is set to a non empty context, or if the fields defaults contains a context
+                // entry and the context feature is set, marshal the context feature in the request fields. The context
+                // feature must prevail over field defaults. Cannot use request.Features.GetContext it doesn't
+                // distinguish between empty an non set context.
+                if (request.Features.Get<Context>()?.Value is IDictionary<string, string> context &&
+                    (context.Count > 0 || request.FieldsDefaults.ContainsKey((int)FieldKey.Context)))
+                {
+                    // Encodes context
+                    request.Fields[(int)FieldKey.Context] =
+                        encoder => encoder.EncodeDictionary(context,
+                                                            (encoder, value) => encoder.EncodeString(value),
+                                                            (encoder, value) => encoder.EncodeString(value));
+                }
+                // else context remains empty (not set)
 
-            encoder.EncodeFields(request.Fields, request.FieldsDefaults);
+                encoder.EncodeFields(request.Fields, request.FieldsDefaults);
 
-            // We're done with the header encoding, write the header size.
-            _ = encoder.EndFixedLengthSize(frameHeaderStart, 2);
+                // We're done with the header encoding, write the header size.
+                _ = encoder.EndFixedLengthSize(frameHeaderStart, 2);
 
-            // Send the header. TODO: delaying the sending (flushing) until we send the payload
+                // Send the header. TODO: delaying the sending (flushing) until we send the payload
 
-            FlushResult flushResult = await output.WriteAsync(
-                bufferWriter.Finish().ToSingleBuffer(),
-                cancel).ConfigureAwait(false);
+                FlushResult flushResult = await output.WriteAsync(
+                    bufferWriter.Finish().ToSingleBuffer(),
+                    cancel).ConfigureAwait(false);
 
-            Debug.Assert(!flushResult.IsCanceled); // not implemented yet, so always false.
+                Debug.Assert(!flushResult.IsCanceled); // not implemented yet, so always false.
 
-            if (!flushResult.IsCompleted) // we still have a reader
-            {
-                try
+                if (!flushResult.IsCompleted) // we still have a reader
                 {
                     // TODO: CopyToAsync does not return a flushResult so we don't know if we still have a reader. It
                     // just returns with no exception when flushResult.IsCompleted is true. We could implement our own
                     // version.
                     await request.PayloadSource.CopyToAsync(request.PayloadSink, cancel).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    await request.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
-                    await request.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
-                    throw;
+
+                    request.IsSent = true;
                 }
 
                 await request.PayloadSource.CompleteAsync().ConfigureAwait(false);
-                request.IsSent = true;
-
-                if (request.StreamParamSender == null) // no stream
-                {
-                    await request.PayloadSink.CompleteAsync().ConfigureAwait(false);
-                }
-                else
+                if (request.StreamParamSender != null && !flushResult.IsCompleted)
                 {
                     // If there's a stream param sender, we can start sending the data.
                     request.SendStreamParam(request.Stream);
                 }
+                else
+                {
+                    await request.PayloadSink.CompleteAsync().ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                await request.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
+                await request.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                throw;
             }
         }
 
@@ -403,65 +403,66 @@ namespace IceRpc.Internal
             }
             else if (request.IsOneway)
             {
+                await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
+                await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
                 return;
             }
 
-            var bufferWriter = new BufferWriter();
-            var encoder = new Ice20Encoder(bufferWriter);
-
-            // Write the Ice2 response header.
-
-            BufferWriter.Position frameHeaderStart = encoder.StartFixedLengthSize(2);
-
-            new Ice2ResponseHeader(
-                response.ResultType,
-                response.PayloadEncoding == Ice2Definitions.Encoding ? "" :
-                    response.PayloadEncoding.ToString()).Encode(encoder);
-
-            encoder.EncodeFields(response.Fields, response.FieldsDefaults);
-
-            // We're done with the header encoding, write the header size.
-            _ = encoder.EndFixedLengthSize(frameHeaderStart, 2);
-
-            // TODO: it's the initial PayloadSink but we can't retrieve it and it seems illogical to store it in the
-            // response frame.
-            PipeWriter output = new MultiplexedStreamPipeWriter(request.Stream);
-
-            // Send the header. TODO: delaying the sending (flushing) until we send the payload
-
-            FlushResult flushResult = await output.WriteAsync(
-                bufferWriter.Finish().ToSingleBuffer(),
-                cancel).ConfigureAwait(false);
-
-            Debug.Assert(!flushResult.IsCanceled); // not implemented yet, so always false.
-
-            if (!flushResult.IsCompleted) // we still have a reader
+            try
             {
-                try
+                var bufferWriter = new BufferWriter();
+                var encoder = new Ice20Encoder(bufferWriter);
+
+                // Write the Ice2 response header.
+
+                BufferWriter.Position frameHeaderStart = encoder.StartFixedLengthSize(2);
+
+                new Ice2ResponseHeader(
+                    response.ResultType,
+                    response.PayloadEncoding == Ice2Definitions.Encoding ? "" :
+                        response.PayloadEncoding.ToString()).Encode(encoder);
+
+                encoder.EncodeFields(response.Fields, response.FieldsDefaults);
+
+                // We're done with the header encoding, write the header size.
+                _ = encoder.EndFixedLengthSize(frameHeaderStart, 2);
+
+                // TODO: it's the initial PayloadSink but we can't retrieve it and it seems illogical to store it in the
+                // response frame.
+                PipeWriter output = new MultiplexedStreamPipeWriter(request.Stream);
+
+                // Send the header. TODO: delaying the sending (flushing) until we send the payload
+
+                FlushResult flushResult = await output.WriteAsync(
+                    bufferWriter.Finish().ToSingleBuffer(),
+                    cancel).ConfigureAwait(false);
+
+                Debug.Assert(!flushResult.IsCanceled); // not implemented yet, so always false.
+
+                if (!flushResult.IsCompleted) // we still have a reader
                 {
                     // TODO: CopyToAsync does not return a flushResult so we don't know if we still have a reader. It
                     // just returns with no exception when flushResult.IsCompleted is true. We could implement our own
                     // version.
                     await response.PayloadSource.CopyToAsync(response.PayloadSink, cancel).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    await response.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
-                    await response.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
-                    throw;
-                }
+                    await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
 
-                await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
-
-                if (response.StreamParamSender == null) // no stream
-                {
-                    await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
+                    if (response.StreamParamSender != null)
+                    {
+                        // If there's a stream param sender, we can start sending the data.
+                        response.SendStreamParam(request.Stream);
+                    }
+                    else
+                    {
+                        await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
+                    }
                 }
-                else
-                {
-                    // If there's a stream param sender, we can start sending the data.
-                    response.SendStreamParam(request.Stream);
-                }
+            }
+            catch (Exception ex)
+            {
+                await response.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
+                await response.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                throw;
             }
         }
 
