@@ -18,13 +18,13 @@ namespace IceRpc
 
         /// <summary>Constructs a successful response with the specified payload.</summary>
         /// <param name="request">The incoming request.</param>
-        /// <param name="payload">The response's payload.</param>
+        /// <param name="payloadSource">The response's payload.</param>
         public OutgoingResponse(
             IncomingRequest request,
-            ReadOnlyMemory<ReadOnlyMemory<byte>> payload) :
+            PipeReader payloadSource) :
             this(request, ResultType.Success)
         {
-            Payload = payload;
+            PayloadSource = payloadSource;
             PayloadEncoding = request.PayloadEncoding;
         }
     }

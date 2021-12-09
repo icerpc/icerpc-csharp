@@ -433,7 +433,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
         let mut builder = FunctionBuilder::new(
             &format!("{} static", access),
-            "global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>",
+            "global::System.IO.Pipelines.PipeReader",
             &operation.escape_identifier(),
             FunctionType::ExpressionBody,
         );

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.Diagnostics;
@@ -13,13 +14,12 @@ namespace IceRpc.Slice
         /// <summary>The Ice 1.1 encoding singleton.</summary>
         internal static Ice11Encoding Instance { get; } = new();
 
-        private static readonly ReadOnlyMemory<ReadOnlyMemory<byte>> _emptyPayload = new ReadOnlyMemory<byte>[]
-        {
-            new byte[] { 0, 0, 0, 0 } // 0 size on 4 bytes
-        };
+        // Must use a payload with 0-size as opposed to nothing in case there is a Slice stream afterwards.
+        // TODO: fix if/when we remove stream support from Slice 1.1
+        private static readonly ReadOnlyMemory<byte> _emptyPayload = new byte[] { 0, 0, 0, 0 };
 
         /// <inheritdoc/>
-        public override ReadOnlyMemory<ReadOnlyMemory<byte>> CreateEmptyPayload() => _emptyPayload;
+        public override PipeReader CreateEmptyPayload() => PipeReader.Create(new ReadOnlySequence<byte>(_emptyPayload));
 
         /// <summary>Creates the payload of a request from the request's arguments. Use this method is for operations
         /// with multiple parameters.</summary>
@@ -29,7 +29,7 @@ namespace IceRpc.Slice
         /// the payload.</param>
         /// <param name="classFormat">The class format.</param>
         /// <returns>A new payload encoded with encoding Ice 1.1.</returns>
-        public static ReadOnlyMemory<ReadOnlyMemory<byte>> CreatePayloadFromArgs<T>(
+        public static PipeReader CreatePayloadFromArgs<T>(
             in T args,
             TupleEncodeAction<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default) where T : struct
@@ -39,7 +39,7 @@ namespace IceRpc.Slice
             BufferWriter.Position start = encoder.StartFixedLengthSize();
             encodeAction(encoder, in args);
             _ = encoder.EndFixedLengthSize(start);
-            return bufferWriter.Finish();
+            return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.Finish().ToSingleBuffer()));
         }
 
         /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
@@ -49,7 +49,7 @@ namespace IceRpc.Slice
         /// <param name="encodeAction">A delegate that encodes the argument into the payload.</param>
         /// <param name="classFormat">The class format.</param>
         /// <returns>A new payload encoded with encoding Ice 1.1.</returns>
-        public static ReadOnlyMemory<ReadOnlyMemory<byte>> CreatePayloadFromSingleArg<T>(
+        public static PipeReader CreatePayloadFromSingleArg<T>(
             T arg,
             Action<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default)
@@ -59,7 +59,7 @@ namespace IceRpc.Slice
             BufferWriter.Position start = encoder.StartFixedLengthSize();
             encodeAction(encoder, arg);
             _ = encoder.EndFixedLengthSize(start);
-            return bufferWriter.Finish();
+            return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.Finish().ToSingleBuffer()));
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value tuple. Use this
@@ -70,7 +70,7 @@ namespace IceRpc.Slice
         /// the payload.</param>
         /// <param name="classFormat">The class format.</param>
         /// <returns>A new payload encoded with the Ice 1.1 encoding.</returns>
-        public static ReadOnlyMemory<ReadOnlyMemory<byte>> CreatePayloadFromReturnValueTuple<T>(
+        public static PipeReader CreatePayloadFromReturnValueTuple<T>(
             in T returnValueTuple,
             TupleEncodeAction<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default) where T : struct
@@ -80,7 +80,7 @@ namespace IceRpc.Slice
             BufferWriter.Position start = encoder.StartFixedLengthSize();
             encodeAction(encoder, in returnValueTuple);
             _ = encoder.EndFixedLengthSize(start);
-            return bufferWriter.Finish();
+            return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.Finish().ToSingleBuffer()));
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value. Use this method
@@ -91,7 +91,7 @@ namespace IceRpc.Slice
         /// payload.</param>
         /// <param name="classFormat">The class format.</param>
         /// <returns>A new payload with the Ice 1.1 encoding.</returns>
-        public static ReadOnlyMemory<ReadOnlyMemory<byte>> CreatePayloadFromSingleReturnValue<T>(
+        public static PipeReader CreatePayloadFromSingleReturnValue<T>(
             T returnValue,
             EncodeAction<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default)
@@ -101,7 +101,7 @@ namespace IceRpc.Slice
             BufferWriter.Position start = encoder.StartFixedLengthSize();
             encodeAction(encoder, returnValue);
             _ = encoder.EndFixedLengthSize(start);
-            return bufferWriter.Finish();
+            return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.Finish().ToSingleBuffer()));
         }
 
         internal override IceEncoder CreateIceEncoder(BufferWriter bufferWriter) => new Ice11Encoder(bufferWriter);

@@ -3,6 +3,7 @@
 using IceRpc.Slice;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.IO.Pipelines;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -13,7 +14,7 @@ namespace IceRpc
     {
         /// <summary>A delegate that matches the signature of the generated IceDXxx methods, the only difference is that
         /// for the generated methods <para>target</para> type is the type of the generated service interface.</summary>
-        private delegate ValueTask<(IceEncoding, ReadOnlyMemory<ReadOnlyMemory<byte>>, IStreamParamSender?)> IceDMethod(
+        private delegate ValueTask<(IceEncoding, PipeReader, IStreamParamSender?)> IceDMethod(
             object target,
             IncomingRequest request,
             Dispatch dispatch,
@@ -98,13 +99,13 @@ namespace IceRpc
             {
                 if (_dispatchMethods.TryGetValue(dispatch.Operation, out IceDMethod? dispatchMethod))
                 {
-                    (IceEncoding payloadEncoding, ReadOnlyMemory<ReadOnlyMemory<byte>> responsePayload, IStreamParamSender? streamParamSender) =
+                    (IceEncoding payloadEncoding, PipeReader responsePayloadSource, IStreamParamSender? streamParamSender) =
                         await dispatchMethod(this, request, dispatch, cancel).ConfigureAwait(false);
 
                     return new OutgoingResponse(request, ResultType.Success)
                     {
                         Features = dispatch.ResponseFeatures,
-                        Payload = responsePayload,
+                        PayloadSource = responsePayloadSource,
                         PayloadEncoding = payloadEncoding,
                         StreamParamSender = streamParamSender,
                     };

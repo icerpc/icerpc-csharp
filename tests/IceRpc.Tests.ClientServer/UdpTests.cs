@@ -20,7 +20,7 @@ namespace IceRpc.Tests.ClientServer
                 Dispatcher = new InlineDispatcher((request, cancel) =>
                     {
                         source.TrySetResult(request.Operation);
-                        return new(new OutgoingResponse(request, payload: default));
+                        return new(new OutgoingResponse(request, payloadSource: Encoding.Ice11.CreateEmptyPayload()));
                     }),
                 Endpoint = GetTestEndpoint(protocol: Protocol.Ice1, transport: "udp")
             };

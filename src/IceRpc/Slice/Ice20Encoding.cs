@@ -13,13 +13,11 @@ namespace IceRpc.Slice
         /// <summary>The Ice 2.0 encoding singleton.</summary>
         internal static Ice20Encoding Instance { get; } = new();
 
-        private static readonly ReadOnlyMemory<ReadOnlyMemory<byte>> _emptyPayload = new ReadOnlyMemory<byte>[]
-        {
-            new byte[] { 0 }
-        };
+        // Must use a payload with 0-size as opposed to nothing in case there is a Slice stream afterwards.
+        private static readonly ReadOnlyMemory<byte> _emptyPayload = new byte[] { 0 };
 
         /// <inheritdoc/>
-        public override ReadOnlyMemory<ReadOnlyMemory<byte>> CreateEmptyPayload() => _emptyPayload;
+        public override PipeReader CreateEmptyPayload() => PipeReader.Create(new ReadOnlySequence<byte>(_emptyPayload));
 
         internal override IceEncoder CreateIceEncoder(BufferWriter bufferWriter) => new Ice20Encoder(bufferWriter);
 

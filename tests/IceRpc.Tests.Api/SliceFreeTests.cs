@@ -2,6 +2,7 @@
 
 using IceRpc.Configure;
 using NUnit.Framework;
+using System.Buffers;
 using System.IO.Pipelines;
 
 namespace IceRpc.Tests.Api
@@ -60,10 +61,13 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task SliceFree_InvokeAsync()
         {
-            var payload = new ReadOnlyMemory<byte>[] { _utf8.GetBytes(_greeting) };
+            var payload = new ReadOnlySequence<byte>(_utf8.GetBytes(_greeting));
 
             var joeProxy = Proxy.FromConnection(_connection, _joe);
-            IncomingResponse response = await joeProxy.InvokeAsync(_sayHelloOperation, _customEncoding, payload);
+            IncomingResponse response = await joeProxy.InvokeAsync(
+                _sayHelloOperation,
+                _customEncoding,
+                PipeReader.Create(payload));
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
             Assert.That(response.PayloadEncoding, Is.EqualTo(_customEncoding));
             string greetingResponse = _utf8.GetString((await ReadFullPayloadAsync(response.Payload)).Span);
@@ -71,7 +75,7 @@ namespace IceRpc.Tests.Api
             Assert.That(greetingResponse, Is.EqualTo(_doingWell));
 
             var austinProxy = Proxy.FromConnection(_connection, _austin);
-            response = await austinProxy.InvokeAsync(_sayHelloOperation, _customEncoding, payload);
+            response = await austinProxy.InvokeAsync(_sayHelloOperation, _customEncoding, PipeReader.Create(payload));
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
             Assert.That(response.PayloadEncoding, Is.EqualTo(_customEncoding));
             greetingResponse = _utf8.GetString((await ReadFullPayloadAsync(response.Payload)).Span);
@@ -82,10 +86,13 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task SliceFree_ExceptionAsync()
         {
-            var payload = new ReadOnlyMemory<byte>[] { _utf8.GetBytes(_greeting) };
+            var payload = new ReadOnlySequence<byte>(_utf8.GetBytes(_greeting));
 
             var badProxy = Proxy.FromConnection(_connection, "/bad");
-            IncomingResponse response = await badProxy.InvokeAsync(_sayHelloOperation, _customEncoding, payload);
+            IncomingResponse response = await badProxy.InvokeAsync(
+                _sayHelloOperation,
+                _customEncoding,
+                PipeReader.Create(payload));
 
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
             Assert.That(response.PayloadEncoding, Is.EqualTo(Encoding.Ice20));
@@ -102,7 +109,7 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task SliceFree_InvocationAsync()
         {
-            var payload = new ReadOnlyMemory<byte>[] { _utf8.GetBytes(_greeting) };
+            var payload = new ReadOnlySequence<byte>(_utf8.GetBytes(_greeting));
             var joeProxy = Proxy.FromConnection(_connection, _joe);
 
             var invocation = new Invocation { IsOneway = true };
@@ -110,7 +117,7 @@ namespace IceRpc.Tests.Api
             IncomingResponse response = await joeProxy.InvokeAsync(
                 _sayHelloOperation,
                 _customEncoding,
-                payload,
+                PipeReader.Create(payload),
                 invocation: invocation);
 
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
@@ -153,10 +160,10 @@ namespace IceRpc.Tests.Api
 
                 // TODO: it makes no sense to have a simpler API for success.
 
-                var payload = new ReadOnlyMemory<byte>[] { _utf8.GetBytes(_message) };
+                var payload = new ReadOnlySequence<byte>(_utf8.GetBytes(_message));
                 var response = new OutgoingResponse(request, _resultType)
                 {
-                    Payload = payload,
+                    PayloadSource = PipeReader.Create(payload),
                     PayloadEncoding = _customEncoding
                 };
                 return response;

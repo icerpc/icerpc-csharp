@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice;
-
+using System.IO.Pipelines;
 namespace IceRpc
 {
     /// <summary>Provides extension methods for <see cref="Proxy"/>.</summary>
@@ -31,7 +30,7 @@ namespace IceRpc
             this Proxy proxy,
             string operation,
             Encoding payloadEncoding,
-            ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
+            PipeReader requestPayload,
             IStreamParamSender? streamParamSender = null,
             Invocation? invocation = null,
             bool idempotent = false,
@@ -84,7 +83,7 @@ namespace IceRpc
                     IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false),
                     Proxy = proxy,
                     PayloadEncoding = payloadEncoding,
-                    Payload = requestPayload,
+                    PayloadSource = requestPayload,
                     StreamParamSender = streamParamSender
                 };
 

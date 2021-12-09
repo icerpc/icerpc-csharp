@@ -3,6 +3,7 @@
 using IceRpc.Configure;
 using IceRpc.Slice;
 using NUnit.Framework;
+using System.IO.Pipelines;
 
 namespace IceRpc.Tests.Slice
 {
@@ -652,7 +653,7 @@ namespace IceRpc.Tests.Slice
             OperationTagPrx prx = GetPrx(encoding);
 
             // Build a request payload with 2 tagged values
-            ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload =
+            PipeReader requestPayload =
                 prx.Proxy.GetIceEncoding().CreatePayloadFromArgs(
                     (15, "test"),
                     (IceEncoder encoder, in (int? N, string? S) value) =>
