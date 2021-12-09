@@ -37,26 +37,20 @@ namespace IceRpc.Internal
                 throw new InvalidOperationException("cannot call AdvanceTo before reading PipeReader");
             }
 
-            // The examined given to _decoratee must be ever-increasing, but we can't compare sequence positions
-            // directly.
+            // The examined given to _decoratee must be ever-increasing.
             if (_highestExamined == null) // first AdvanceTo ever
             {
                 _highestExamined = examined;
             }
-            else
+            else if (_sequence.Value.GetOffset(examined) > _sequence.Value.GetOffset(_highestExamined.Value))
             {
-                long currentOffset = _sequence.Value.GetOffset(_highestExamined.Value);
-                long newOffset = _sequence.Value.GetOffset(examined);
-                if (newOffset > currentOffset)
-                {
-                    _highestExamined = examined;
-                }
+                _highestExamined = examined;
             }
 
             if (IsResettable)
             {
                 ThrowIfCompleted();
-                _consumed = consumed;
+                _consumed = consumed; // saved for the next ReadAsync/TryRead
 
                 try
                 {
@@ -70,8 +64,8 @@ namespace IceRpc.Internal
             }
             else
             {
-                // consumed is always going to be greater than the consumed we passed in IsResettable (since we always
-                // passed _sequence.Value.Start).
+                // consumed is always going to be equal or greater to the consumed we passed in the IsResettable block
+                // above (since we always passed _sequence.Value.Start).
                 _decoratee.AdvanceTo(consumed, _highestExamined.Value);
             }
         }
@@ -109,28 +103,32 @@ namespace IceRpc.Internal
             }
         }
 
-        // If not resettable, the caller must call Complete/CompleteAsync, as usual.
+        /// <inheritdoc/>
+        /// <remarks>If not resettable, the caller must call Complete/CompleteAsync, as usual.</remarks>
         public ValueTask DisposeAsync() => IsResettable ? _decoratee.CompleteAsync() : default;
 
         /// <inheritdoc/>
         public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken)
         {
-            ReadResult readResult;
-
             if (IsResettable)
             {
                 ThrowIfCompleted();
                 try
                 {
-                    readResult = await _decoratee.ReadAsync(cancellationToken).ConfigureAwait(false);
+                    ReadResult readResult = await _decoratee.ReadAsync(cancellationToken).ConfigureAwait(false);
+                    if (!readResult.IsCanceled)
+                    {
+                        _sequence = readResult.Buffer;
+                    }
 
                     if (_consumed is SequencePosition consumed)
                     {
-                        return new ReadResult(
+                        readResult = new ReadResult(
                             readResult.Buffer.Slice(consumed),
                             readResult.IsCanceled,
                             readResult.IsCompleted);
                     }
+                    return readResult;
                 }
                 catch
                 {
@@ -140,21 +138,18 @@ namespace IceRpc.Internal
             }
             else
             {
-                readResult = await _decoratee.ReadAsync(cancellationToken).ConfigureAwait(false);
+                ReadResult readResult = await _decoratee.ReadAsync(cancellationToken).ConfigureAwait(false);
+                if (!readResult.IsCanceled)
+                {
+                    _sequence = readResult.Buffer;
+                }
+                return readResult;
             }
-
-            if (!readResult.IsCanceled)
-            {
-                _sequence = readResult.Buffer;
-            }
-            return readResult;
         }
 
         /// <inheritdoc/>
         public override bool TryRead(out ReadResult result)
         {
-            bool success;
-
             if (IsResettable)
             {
                 ThrowIfCompleted();
@@ -162,6 +157,11 @@ namespace IceRpc.Internal
                 {
                     if (_decoratee.TryRead(out result))
                     {
+                        if (!result.IsCanceled)
+                        {
+                            _sequence = result.Buffer;
+                        }
+
                         if (_consumed is SequencePosition consumed)
                         {
                             result = new ReadResult(
@@ -170,11 +170,11 @@ namespace IceRpc.Internal
                                 result.IsCompleted);
                         }
                         // else keep result as is
-                        success = true;
+                        return true;
                     }
                     else
                     {
-                        success = false;
+                        return false;
                     }
                 }
                 catch
@@ -183,29 +183,34 @@ namespace IceRpc.Internal
                     throw;
                 }
             }
+            else if (_decoratee.TryRead(out result))
+            {
+                if (!result.IsCanceled)
+                {
+                    _sequence = result.Buffer;
+                }
+                return true;
+            }
             else
             {
-                success = _decoratee.TryRead(out result);
+                return false;
             }
-
-            if (success && !result.IsCanceled)
-            {
-                _sequence = result.Buffer;
-            }
-            return success;
         }
 
+        /// <summary>Constructs a ResettablePipeReaderDecorator.</summary>
         internal ResettablePipeReaderDecorator(PipeReader decoratee) => _decoratee = decoratee;
 
+        /// <summary>Resets this pipe reader.</summary>
+        /// <exception name="InvalidOperationException">Thrown if <see cref="IsResettable"/> is false.</exception>
         internal void Reset()
         {
             if (IsResettable)
             {
-                // TODO: enable this check or add comment on why it's not correct
-                // if (!_isReaderCompleted)
-                // {
-                //    throw new InvalidOperationException("cannot reset a non-completed ResettablePipeReaderDecorator");
-                // }
+                if (!_isReaderCompleted && _consumed != null)
+                {
+                    throw new InvalidOperationException(
+                        "cannot reset a non-completed partially consumed ResettablePipeReaderDecorator");
+                }
 
                 _consumed = null;
                 _isReaderCompleted = false;
