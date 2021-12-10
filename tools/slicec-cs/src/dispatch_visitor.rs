@@ -346,7 +346,7 @@ fn operation_dispatch(operation: &Operation) -> CodeBlock {
     format!(
         r#"
 [IceRpc.Slice.Operation("{name}")]
-protected static async global::System.Threading.Tasks.ValueTask<(IceEncoding, global::System.IO.Pipelines.PipeReader, IceRpc.IStreamParamSender?)> {internal_name}(
+protected static async global::System.Threading.Tasks.ValueTask<(IceEncoding, global::System.IO.Pipelines.PipeReader, global::System.IO.Pipelines.PipeReader?)> {internal_name}(
     {interface_name} target,
     IceRpc.IncomingRequest request,
     IceRpc.Dispatch dispatch,
@@ -540,13 +540,12 @@ fn stream_param_sender(operation: &Operation, encoding: &str) -> CodeBlock {
 
             match stream_type.concrete_type() {
                 Types::Primitive(primitive) if matches!(primitive, Primitive::Byte) => {
-                    format!("new IceRpc.Slice.ByteStreamParamSender({})", stream_arg).into()
+                    format!("global::System.IO.Pipelines.PipeReader.Create({})", stream_arg).into()
                 }
                 _ => format!(
                     "\
-new IceRpc.Slice.AsyncEnumerableStreamParamSender<{stream_type}>(
+{encoding}.CreatePayloadSourceStream<{stream_type}>(
     {stream_arg},
-    {encoding},
     {encode_action})",
                     stream_type =
                         stream_type.to_type_string(namespace, TypeContext::Outgoing, false),

@@ -29,8 +29,14 @@ namespace IceRpc
         /// <summary>Gets or sets the payload sink of this frame.</summary>
         public PipeWriter PayloadSink { get; set; }
 
-        /// <summary>Gets or sets the payload source of this frame.</summary>
+        /// <summary>Gets or sets the payload source of this frame. The payload source is sent together with the frame
+        /// header and the sending operation awaits until the payload source is fully sent.</summary>
         public PipeReader PayloadSource { get; set; } = EmptyPipeReader.Instance;
+
+        /// <summary>Gets or sets the payload source stream of this frame. The payload source stream (if specified) is
+        /// sent after the payload source. It's sent in the background: the sending operation does not await it.
+        /// </summary>
+        public PipeReader? PayloadSourceStream { get; set; }
 
         /// <summary>Returns the encoding of the payload of this frame.</summary>
         /// <remarks>The header of the frame is always encoded using the frame protocol's encoding.</remarks>

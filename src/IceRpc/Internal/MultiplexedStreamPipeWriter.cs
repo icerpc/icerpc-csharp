@@ -57,9 +57,11 @@ namespace IceRpc.Internal
                 }
                 else
                 {
+                    Console.WriteLine($"CompleteAsync received {exception}");
+
                     // TODO: error code for other exceptions?
                     byte errorCode = exception is MultiplexedStreamAbortedException multiplexedException ?
-                        multiplexedException.ErrorCode : (byte)0;
+                        multiplexedException.ErrorCode : (byte)25;
 
                     _stream.AbortWrite(errorCode);
                 }
@@ -107,6 +109,33 @@ namespace IceRpc.Internal
             }
 
             return new FlushResult(isCanceled: false, isCompleted: _isReaderCompleted);
+        }
+
+        // TODO: temporary implementation, not needed when GetMemory/AdvanceTo are implemented
+        protected override async Task CopyFromAsync(Stream source, CancellationToken cancellationToken)
+        {
+            Memory<byte> copyBuffer = new byte[4096];
+
+            while (true)
+            {
+                int read = await source.ReadAsync(copyBuffer, cancellationToken).ConfigureAwait(false);
+
+                if (read == 0)
+                {
+                    break;
+                }
+                else
+                {
+                    FlushResult flushResult = await WriteAsync(
+                        copyBuffer[0..read],
+                        cancellationToken).ConfigureAwait(false);
+
+                    if (flushResult.IsCompleted || flushResult.IsCanceled)
+                    {
+                        break;
+                    }
+                }
+            }
         }
 
         internal MultiplexedStreamPipeWriter(IMultiplexedStream stream) => _stream = stream;

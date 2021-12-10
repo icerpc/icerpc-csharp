@@ -373,6 +373,32 @@ namespace IceRpc.Internal
                 }
 
                 await request.PayloadSource.CompleteAsync().ConfigureAwait(false);
+
+                if (request.PayloadSourceStream is PipeReader payloadSourceStream)
+                {
+                    _ = Task.Run(
+                        async () =>
+                        {
+                            Exception? completeReason = null;
+
+                            try
+                            {
+                                await payloadSourceStream.CopyToAsync(
+                                    request.PayloadSink,
+                                    cancel).ConfigureAwait(false);
+                            }
+                            catch (Exception ex)
+                            {
+                                completeReason = ex;
+                                // no need to rethrow, we're done.
+                            }
+
+                            await payloadSourceStream.CompleteAsync(completeReason).ConfigureAwait(false);
+                            await request.PayloadSink.CompleteAsync(completeReason).ConfigureAwait(false);
+                        },
+                        cancel);
+                }
+
                 if (request.StreamParamSender != null && !flushResult.IsCompleted)
                 {
                     // If there's a stream param sender, we can start sending the data.
@@ -447,10 +473,31 @@ namespace IceRpc.Internal
                     await response.PayloadSource.CopyToAsync(response.PayloadSink, cancel).ConfigureAwait(false);
                     await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
 
-                    if (response.StreamParamSender != null)
+                    // TODO: avoid duplication with SendRequest code
+
+                    if (response.PayloadSourceStream is PipeReader payloadSourceStream)
                     {
-                        // If there's a stream param sender, we can start sending the data.
-                        response.SendStreamParam(request.Stream);
+                        _ = Task.Run(
+                            async () =>
+                            {
+                                Exception? completeReason = null;
+
+                                try
+                                {
+                                    await payloadSourceStream.CopyToAsync(
+                                        response.PayloadSink,
+                                        cancel).ConfigureAwait(false);
+                                }
+                                catch (Exception ex)
+                                {
+                                    completeReason = ex;
+                                    // no need to rethrow, we're done.
+                                }
+
+                                await payloadSourceStream.CompleteAsync(completeReason).ConfigureAwait(false);
+                                await response.PayloadSink.CompleteAsync(completeReason).ConfigureAwait(false);
+                            },
+                            cancel);
                     }
                     else
                     {
