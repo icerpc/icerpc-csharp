@@ -45,10 +45,6 @@ namespace IceRpc
         /// <summary>Returns the Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }
 
-        /// <summary>The stream param sender, if the request or response has a stream param. The sender is called
-        /// after the request or response frame is sent over the stream.</summary>
-        internal IStreamParamSender? StreamParamSender { get; init; }
-
         /// <summary>Constructs an outgoing frame.</summary>
         /// <param name="protocol">The protocol used to send the frame.</param>
         /// <param name="payloadSink">The outgoing frame's payload sink.</param>
@@ -56,22 +52,6 @@ namespace IceRpc
         {
             Protocol = protocol;
             PayloadSink = payloadSink;
-        }
-
-        internal void SendStreamParam(IMultiplexedStream stream)
-        {
-            Debug.Assert(StreamParamSender != null);
-            _ = Task.Run(() =>
-                {
-                    try
-                    {
-                        StreamParamSender.SendAsync(stream);
-                    }
-                    catch
-                    {
-                    }
-                },
-                default);
         }
     }
 }

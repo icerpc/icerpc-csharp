@@ -478,10 +478,10 @@ await request.CheckEmptyArgsAsync(
 
         writeln!(
             code,
-            "return ({encoding}, {payload}, {stream});",
+            "return ({encoding}, {payload_source}, {payload_source_stream});",
             encoding = encoding,
-            payload = dispatch_return_payload(operation, encoding),
-            stream = stream_param_sender(operation, encoding)
+            payload_source = dispatch_return_payload(operation, encoding),
+            payload_source_stream = payload_source_stream(operation, encoding)
         );
     }
 
@@ -520,7 +520,7 @@ fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
     .into()
 }
 
-fn stream_param_sender(operation: &Operation, encoding: &str) -> CodeBlock {
+fn payload_source_stream(operation: &Operation, encoding: &str) -> CodeBlock {
     let namespace = &operation.namespace();
     let return_values = operation.return_members();
 

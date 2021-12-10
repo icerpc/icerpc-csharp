@@ -319,9 +319,9 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            if (request.StreamParamSender != null)
+            if (request.PayloadSourceStream != null)
             {
-                throw new NotSupportedException("stream parameters are not supported with ice1");
+                throw new NotSupportedException("payload source stream is not supported with ice1");
             }
             else if (request.Fields.Count > 0 || request.FieldsDefaults.Count > 0)
             {
@@ -538,9 +538,9 @@ namespace IceRpc.Internal
                         }
 
                         var bufferWriter = new BufferWriter();
-                        if (response.StreamParamSender != null)
+                        if (response.PayloadSourceStream != null)
                         {
-                            throw new NotSupportedException("stream parameters are not supported with ice1");
+                            throw new NotSupportedException("payload source stream is supported with ice1");
                         }
 
                         var encoder = new Ice11Encoder(bufferWriter);
