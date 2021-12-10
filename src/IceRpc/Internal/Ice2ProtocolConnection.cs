@@ -477,6 +477,7 @@ namespace IceRpc.Internal
 
                     if (response.PayloadSourceStream is PipeReader payloadSourceStream)
                     {
+                        // send payloadSourceStream in the background
                         _ = Task.Run(
                             async () =>
                             {

@@ -57,11 +57,17 @@ namespace IceRpc.Internal
                 }
                 else
                 {
-                    Console.WriteLine($"CompleteAsync received {exception}");
-
-                    // TODO: error code for other exceptions?
-                    byte errorCode = exception is MultiplexedStreamAbortedException multiplexedException ?
-                        multiplexedException.ErrorCode : (byte)25;
+                    byte errorCode;
+                    if (exception is MultiplexedStreamAbortedException multiplexedException)
+                    {
+                        errorCode = multiplexedException.ErrorCode;
+                    }
+                    else
+                    {
+                        // TODO: error code for other exceptions
+                        Console.WriteLine($"MultiplexedStreamPipeWriter.CompleteAsync received {exception}");
+                        errorCode = (byte)123;
+                    }
 
                     _stream.AbortWrite(errorCode);
                 }
