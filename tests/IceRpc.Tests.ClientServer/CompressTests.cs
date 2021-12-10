@@ -62,7 +62,7 @@ namespace IceRpc.Tests.ClientServer
             int compressedResponseSize = 0;
             bool compressedResponse = false;
 
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher>(_ =>
                 {
                     var router = new Router();
@@ -179,7 +179,7 @@ namespace IceRpc.Tests.ClientServer
             IncomingRequest? incomingRequest = null;
             OutgoingResponse? outgoingResponse = null;
 
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IInvoker>(_ =>
                 {
                     var pipeline = new Pipeline();

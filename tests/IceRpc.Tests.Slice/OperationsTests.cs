@@ -17,7 +17,7 @@ namespace IceRpc.Tests.Slice
 
         public OperationsTests(ProtocolCode protocol)
         {
-            _serviceProvider = new IntegrationServiceCollection()
+            _serviceProvider = new IntegrationTestServiceCollection()
                 .UseProtocol(protocol)
                 .AddTransient<IDispatcher, Operations>()
                 .BuildServiceProvider();
@@ -97,7 +97,7 @@ namespace IceRpc.Tests.Slice
         [Test]
         public async Task Operations_OperationNotFoundExceptionAsync()
         {
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher, NoOperations>()
                 .BuildServiceProvider();
             var prx = OperationsPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());

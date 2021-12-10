@@ -16,7 +16,7 @@ namespace IceRpc.Tests.Api
 
         public ConnectionPoolTests()
         {
-            _serviceProvider = new IntegrationServiceCollection().BuildServiceProvider();
+            _serviceProvider = new IntegrationTestServiceCollection().BuildServiceProvider();
             _clientTransport = _serviceProvider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
             _remoteEndpoint = _serviceProvider.GetRequiredService<Server>().Endpoint;
         }
@@ -114,7 +114,7 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+tcp://127.0.0.1:0?tls=true", "ice+tcp://127.0.0.1:0")]
         public async Task ConnectionPool_ConnectionNotReused(string endpoint1Str, string endpoint2Str)
         {
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .UseTls()
                 .AddTransient<Endpoint>(_ => endpoint1Str)
                 .BuildServiceProvider();

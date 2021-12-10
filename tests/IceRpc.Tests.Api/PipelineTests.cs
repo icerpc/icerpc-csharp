@@ -20,7 +20,7 @@ namespace IceRpc.Tests.Api
             var pipeline = new Pipeline();
             pipeline.Use(CheckValue(nextValue, 1), CheckValue(nextValue, 2), CheckValue(nextValue, 3));
 
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher, Greeter>()
                 .BuildServiceProvider();
 

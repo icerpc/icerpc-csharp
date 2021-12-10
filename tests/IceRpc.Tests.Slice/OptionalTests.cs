@@ -14,7 +14,7 @@ namespace IceRpc.Tests.Slice
 
         public OptionalTests()
         {
-            _serviceProvider = new IntegrationServiceCollection()
+            _serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher, OptionalOperations>()
                 .BuildServiceProvider();
 

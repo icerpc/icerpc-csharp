@@ -15,7 +15,7 @@ namespace IceRpc.Tests.Api
 
         public InterceptorTests()
         {
-            _serviceProvider = new IntegrationServiceCollection()
+            _serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher, InterceptorTest>()
                 .BuildServiceProvider();
             _prx = InterceptorTestPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());

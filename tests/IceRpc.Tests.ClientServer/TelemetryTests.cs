@@ -16,7 +16,7 @@ namespace IceRpc.Tests.ClientServer
             Activity? invocationActivity = null;
             bool called = false;
 
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher, Greeter>()
                 .AddTransient<IInvoker>(_ =>
                 {
@@ -71,7 +71,7 @@ namespace IceRpc.Tests.ClientServer
                 Activity? dispatchActivity = null;
                 bool called = false;
 
-                await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+                await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                     .AddTransient<IDispatcher>(_ =>
                     {
                         var router = new Router();
@@ -116,7 +116,7 @@ namespace IceRpc.Tests.ClientServer
                 Activity? dispatchActivity = null;
                 bool called = false;
 
-                await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+                await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                     .AddTransient<IDispatcher>(_ =>
                     {
                         var router = new Router();
@@ -172,7 +172,7 @@ namespace IceRpc.Tests.ClientServer
             };
             ActivitySource.AddActivityListener(listener);
 
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                     .AddTransient<IDispatcher>(_ =>
                     {
                         var router = new Router();

@@ -26,7 +26,7 @@ namespace IceRpc.Tests.Slice.Stream
             new Random().NextBytes(_sendBuffer);
             _servant = new StreamParamOperations(_sendBuffer);
 
-            _serviceProvider = new IntegrationServiceCollection()
+            _serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher>(_ => _servant)
                 .BuildServiceProvider();
             _prx = StreamParamOperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());

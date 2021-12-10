@@ -1,38 +1,30 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.ClientServer
 {
     [Timeout(5000)]
-    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(ParallelScope.All)]
-    public class UdpTests : ClientServerBaseTest
+    public class UdpTests
     {
 
         [Test]
         public async Task Udp_Invoke()
         {
             var source = new TaskCompletionSource<string>();
-            await using var server = new Server
-            {
-                Dispatcher = new InlineDispatcher((request, cancel) =>
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<Endpoint>(_ => "ice+udp://[::0]:0")
+                .AddTransient<IDispatcher>(_ => new InlineDispatcher((request, cancel) =>
                     {
                         source.TrySetResult(request.Operation);
                         return new(OutgoingResponse.ForPayload(request, default));
-                    }),
-                Endpoint = GetTestEndpoint(protocol: Protocol.Ice1, transport: "udp")
-            };
-            server.Listen();
+                    }))
+                .BuildServiceProvider();
 
-            await using var connection = new Connection
-            {
-                RemoteEndpoint = server.Endpoint
-            };
-            await connection.ConnectAsync();
-
-            var proxy = ServicePrx.FromConnection(connection);
+            ServicePrx proxy = serviceProvider.GetProxy<ServicePrx>();
             await proxy.IcePingAsync(new Invocation { IsOneway = true });
             await proxy.IcePingAsync(new Invocation { IsOneway = true });
             await proxy.IcePingAsync(new Invocation { IsOneway = true });
@@ -62,17 +54,10 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Udp_ConnectSuccess()
         {
-            await using var server = new Server
-            {
-                Endpoint = GetTestEndpoint(protocol: Protocol.Ice1, transport: "udp")
-            };
-            server.Listen();
-
-            await using var connection = new Connection
-            {
-                RemoteEndpoint = server.Endpoint
-            };
-            await connection.ConnectAsync();
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<Endpoint>(_ => "ice+udp://[::0]:0")
+                .BuildServiceProvider();
+            await serviceProvider.GetRequiredService<Connection>().ConnectAsync();
         }
 
         [Test]
@@ -80,7 +65,7 @@ namespace IceRpc.Tests.ClientServer
         {
             await using var server = new Server
             {
-                Endpoint = GetTestEndpoint(protocol: Protocol.Ice2, transport: "udp")
+                Endpoint = "ice+udp://[::0]:0"
             };
 
             // udp is not registered as a multiplexed transport

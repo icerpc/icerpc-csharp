@@ -87,7 +87,7 @@ namespace IceRpc.Tests.Slice
         [TestCase(ProtocolCode.Ice2)]
         public async Task Enum_OperationsAsync(ProtocolCode protocol)
         {
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .UseProtocol(protocol)
                 .AddTransient<IDispatcher, EnumOperations>()
                 .BuildServiceProvider();

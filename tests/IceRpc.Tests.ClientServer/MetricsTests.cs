@@ -1,12 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Diagnostics.Tracing;
 
 namespace IceRpc.Tests.ClientServer
 {
-    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
+    [Timeout(5000)]
     public class MetricsTests
     {
         [Test]
@@ -28,54 +29,52 @@ namespace IceRpc.Tests.ClientServer
                     ("current-requests", "10"),
                 });
 
-            var pipeline = new Pipeline();
-            using var invocationEventSource = new InvocationEventSource("IceRpc.Invocation.Test");
-            pipeline.UseMetrics(invocationEventSource);
-
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
-            var router = new Router();
-            router.UseMetrics(dispatchEventSource);
             int dispatchRequests = 0;
-            var mutex = new object();
+            object mutex = new();
             using var dispatchSemaphore = new SemaphoreSlim(0);
-            router.Use(next => new InlineDispatcher(
-                async (request, cancel) =>
-                {
-                    // Hold the dispatch until we received 10 requests to ensure current-request grows to 10
-                    Task? t = null;
-                    lock (mutex)
-                    {
-                        if (++dispatchRequests < 10)
-                        {
-                            t = dispatchSemaphore.WaitAsync(cancel);
-                        }
-                        else
-                        {
-                            dispatchSemaphore.Release(dispatchRequests);
-                        }
-                    }
-                    await (t ?? Task.CompletedTask);
-                    // This delay ensure the metrics would be refresh while current-requests is still 10
-                    await Task.Delay(TimeSpan.FromSeconds(1), cancel);
-                    return await next.DispatchAsync(request, cancel);
-                }));
-            router.Map<IGreeter>(new Greeter1());
-            await using var server = new Server
-            {
-                Dispatcher = router,
-                Endpoint = "ice+coloc://event_source"
-            };
-            server.Listen();
+            using var invocationEventSource = new InvocationEventSource("IceRpc.Invocation.Test");
 
-            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
-            var greeter = GreeterPrx.FromConnection(connection, invoker: pipeline);
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<IDispatcher>(_ =>
+                {
+                    var router = new Router();
+                    router.UseMetrics(dispatchEventSource);
+                    router.Use(next => new InlineDispatcher(
+                        async (request, cancel) =>
+                        {
+                            // Hold the dispatch until we received 10 requests to ensure current-request grows to 10
+                            Task? t = null;
+                            lock (mutex)
+                            {
+                                if (++dispatchRequests < 10)
+                                {
+                                    t = dispatchSemaphore.WaitAsync(cancel);
+                                }
+                                else
+                                {
+                                    dispatchSemaphore.Release(dispatchRequests);
+                                }
+                            }
+                            await (t ?? Task.CompletedTask);
+
+                            // This delay ensure the metrics would be refresh while current-requests is still 10
+                            await Task.Delay(TimeSpan.FromSeconds(1), cancel);
+                            return await next.DispatchAsync(request, cancel);
+                        }));
+                    router.Map<IGreeter>(new Greeter1());
+                    return router;
+                })
+                .AddTransient<IInvoker>(_ => new Pipeline().UseMetrics(invocationEventSource))
+                .BuildServiceProvider();
+
+            GreeterPrx greeter = serviceProvider.GetProxy<GreeterPrx>();
 
             var tasks = new List<Task>();
             for (int i = 0; i < 10; ++i)
             {
                 tasks.Add(greeter.SayHelloAsync());
             }
-
             await Task.WhenAll(tasks);
 
             Assert.DoesNotThrowAsync(async () => await dispatchEventListener.WaitForCounterEventsAsync());
@@ -101,22 +100,21 @@ namespace IceRpc.Tests.ClientServer
                     ("canceled-requests", "10")
                 });
 
-            var pipeline = new Pipeline();
-            using var invocationEventSource = new InvocationEventSource("IceRpc.Invocation.Test");
-            pipeline.UseMetrics(invocationEventSource);
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
-            var router = new Router();
-            router.UseMetrics(dispatchEventSource);
-            router.Map<IGreeter>(new Greeter2());
-            await using var server = new Server
-            {
-                Dispatcher = router,
-                Endpoint = "ice+coloc://event_source"
-            };
-            server.Listen();
+            using var invocationEventSource = new InvocationEventSource("IceRpc.Invocation.Test");
 
-            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
-            var greeter = GreeterPrx.FromConnection(connection, invoker: pipeline);
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<IDispatcher>(_ =>
+                {
+                    var router = new Router();
+                    router.UseMetrics(dispatchEventSource);
+                    router.Map<IGreeter>(new Greeter2());
+                    return router;
+                })
+                .AddTransient<IInvoker>(_ => new Pipeline().UseMetrics(invocationEventSource))
+                .BuildServiceProvider();
+
+            GreeterPrx greeter = serviceProvider.GetProxy<GreeterPrx>();
 
             var tasks = new List<Task>();
             for (int i = 0; i < 10; ++i)
@@ -149,22 +147,21 @@ namespace IceRpc.Tests.ClientServer
                     ("failed-requests", "10")
                 });
 
-            var pipeline = new Pipeline();
             using var invocationEventSource = new InvocationEventSource("IceRpc.Invocation.Test");
-            pipeline.UseMetrics(invocationEventSource);
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
-            var router = new Router();
-            router.UseMetrics(dispatchEventSource);
-            router.Map<IGreeter>(new Greeter3());
-            await using var server = new Server
-            {
-                Dispatcher = router,
-                Endpoint = "ice+coloc://event_source"
-            };
-            server.Listen();
 
-            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
-            var greeter = GreeterPrx.FromConnection(connection, invoker: pipeline);
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<IDispatcher>(_ =>
+                {
+                    var router = new Router();
+                    router.UseMetrics(dispatchEventSource);
+                    router.Map<IGreeter>(new Greeter3());
+                    return router;
+                })
+                .AddTransient<IInvoker>(_ => new Pipeline().UseMetrics(invocationEventSource))
+                .BuildServiceProvider();
+
+            GreeterPrx greeter = serviceProvider.GetProxy<GreeterPrx>();
 
             for (int i = 0; i < 10; ++i)
             {
@@ -194,9 +191,9 @@ namespace IceRpc.Tests.ClientServer
 
         private class TestEventListener : EventListener
         {
-            public EventSource? EventSource { get; set; }
             public List<(string Key, string Value)> ExpectedEventCounters { get; }
             public List<(string Key, string Value)> ReceivedEventCounters { get; } = new();
+            private EventSource? _eventSource;
             private readonly string _sourceName;
             private readonly SemaphoreSlim _semaphore;
             private readonly object _mutex = new(); // protects ReceivedEventCounters
@@ -206,22 +203,13 @@ namespace IceRpc.Tests.ClientServer
                 ExpectedEventCounters = expectedCounters;
                 _semaphore = new SemaphoreSlim(0);
                 _sourceName = sourceName;
-                EventSource? eventSource = EventSource.GetSources().FirstOrDefault(
-                    source => source.Name == _sourceName);
-                if (eventSource != null)
-                {
-                    EnableEvents(eventSource);
-                }
             }
 
             public async Task WaitForCounterEventsAsync()
             {
                 for (int i = 0; i < ExpectedEventCounters.Count; ++i)
                 {
-                    if (!await _semaphore.WaitAsync(TimeSpan.FromSeconds(30)))
-                    {
-                        break;
-                    }
+                    await _semaphore.WaitAsync();
                 }
                 lock (_mutex)
                 {
@@ -240,16 +228,29 @@ namespace IceRpc.Tests.ClientServer
 
                 if (_sourceName == eventSource.Name)
                 {
-                    EnableEvents(eventSource);
+                    lock (_mutex)
+                    {
+                        if (_eventSource == null)
+                        {
+                            _eventSource = eventSource;
+                            EnableEvents(eventSource,
+                                         EventLevel.LogAlways,
+                                         EventKeywords.All,
+                                         new Dictionary<string, string?>
+                                         {
+                                            { "EventCounterIntervalSec", "1" }
+                                         });
+                        }
+                    }
                 }
             }
 
             protected override void OnEventWritten(EventWrittenEventArgs eventData)
             {
-                if (eventData.EventSource == EventSource && eventData.EventId == -1) // counter event
+                if (eventData.EventSource == _eventSource && eventData.EventId == -1) // counter event
                 {
                     Assert.That(eventData.Payload, Is.Not.Null);
-                    var eventPayload = (IDictionary<string, object?>)eventData.Payload[0]!;
+                    var eventPayload = (IDictionary<string, object?>)eventData.Payload![0]!;
 
                     string name = "";
                     if (eventPayload.TryGetValue("Name", out object? nameValue))
@@ -280,24 +281,6 @@ namespace IceRpc.Tests.ClientServer
                         }
                     }
 
-                }
-            }
-
-            private void EnableEvents(EventSource eventSource)
-            {
-                lock (_mutex)
-                {
-                    if (EventSource == null)
-                    {
-                        EventSource = eventSource;
-                        EnableEvents(eventSource,
-                                     EventLevel.LogAlways,
-                                     EventKeywords.All,
-                                     new Dictionary<string, string?>
-                                     {
-                                        { "EventCounterIntervalSec", "0.001" }
-                                     });
-                    }
                 }
             }
         }

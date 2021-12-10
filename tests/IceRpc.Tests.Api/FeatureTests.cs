@@ -50,7 +50,7 @@ namespace IceRpc.Tests.Api
         public async Task Dispatch_Features()
         {
             bool? responseFeature = null;
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher>(_ =>
                 {
                     // This middleare reads the multiplier from the header field (key = 1) and sets a request feature. It also

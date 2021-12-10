@@ -11,17 +11,16 @@ namespace IceRpc
         /// <summary>The default <c>InvocationEventSource</c> used by <see cref="MetricsInterceptor"/>.
         /// </summary>
         public static readonly InvocationEventSource Log = new("IceRpc.Invocation");
-#pragma warning disable IDE0052 // Remove unread private members, IDE is wrong here counters are used in OnEventCommand
-        private PollingCounter? _canceledRequestsCounter;
+
+        private readonly PollingCounter _canceledRequestsCounter;
         private long _canceledRequests;
-        private PollingCounter? _currentRequestsCounter;
+        private readonly PollingCounter _currentRequestsCounter;
         private long _currentRequests;
-        private PollingCounter? _failedRequestsCounter;
+        private readonly PollingCounter _failedRequestsCounter;
         private long _failedRequests;
-        private IncrementingPollingCounter? _requestsPerSecondCounter;
-        private PollingCounter? _totalRequestsCounter;
+        private readonly IncrementingPollingCounter _requestsPerSecondCounter;
+        private readonly PollingCounter _totalRequestsCounter;
         private long _totalRequests;
-#pragma warning restore IDE0052 // Remove unread private members
 
         /// <summary>Creates a new instance of the <see cref="InvocationEventSource"/> class with the specified name.
         /// </summary>
@@ -29,6 +28,58 @@ namespace IceRpc
         public InvocationEventSource(string eventSourceName)
             : base(eventSourceName)
         {
+            _canceledRequestsCounter = new PollingCounter(
+                "canceled-requests",
+                this,
+                () => Volatile.Read(ref _canceledRequests))
+            {
+                DisplayName = "Canceled Requests",
+            };
+
+            _currentRequestsCounter = new PollingCounter(
+                "current-requests",
+                this,
+                () => Volatile.Read(ref _currentRequests))
+            {
+                DisplayName = "Current Requests",
+            };
+
+            _failedRequestsCounter = new PollingCounter(
+                "failed-requests",
+                this,
+                () => Volatile.Read(ref _failedRequests))
+            {
+                DisplayName = "Failed Requests",
+            };
+
+            _requestsPerSecondCounter = new IncrementingPollingCounter(
+                "requests-per-second",
+                this,
+                () => Volatile.Read(ref _totalRequests))
+            {
+                DisplayName = "Request Rate",
+                DisplayUnits = "req/s",
+                DisplayRateTimeScale = TimeSpan.FromSeconds(1)
+            };
+
+            _totalRequestsCounter = new PollingCounter(
+                "total-requests",
+                this,
+                () => Volatile.Read(ref _totalRequests))
+            {
+                DisplayName = "Total Requests",
+            };
+        }
+
+        /// <inheritdoc/>
+        protected override void Dispose(bool disposing)
+        {
+            _canceledRequestsCounter?.Dispose();
+            _currentRequestsCounter?.Dispose();
+            _failedRequestsCounter?.Dispose();
+            _requestsPerSecondCounter?.Dispose();
+            _totalRequestsCounter?.Dispose();
+            base.Dispose(disposing);
         }
 
         [NonEvent]
@@ -73,58 +124,6 @@ namespace IceRpc
             if (IsEnabled(EventLevel.Informational, EventKeywords.None))
             {
                 RequestFailed(request.Path, request.Operation, exception);
-            }
-        }
-
-        /// <inheritdoc/>
-        protected override void OnEventCommand(EventCommandEventArgs command)
-        {
-            if (command.Command == EventCommand.Enable)
-            {
-                // This is the convention for initializing counters in the RuntimeEventSource (lazily on the first enable command).
-                // They aren't disabled afterwards...
-
-                _canceledRequestsCounter ??= new PollingCounter(
-                    "canceled-requests",
-                    this,
-                    () => Volatile.Read(ref _canceledRequests))
-                {
-                    DisplayName = "Canceled Requests",
-                };
-
-                _currentRequestsCounter ??= new PollingCounter(
-                    "current-requests",
-                    this,
-                    () => Volatile.Read(ref _currentRequests))
-                {
-                    DisplayName = "Current Requests",
-                };
-
-                _failedRequestsCounter ??= new PollingCounter(
-                    "failed-requests",
-                    this,
-                    () => Volatile.Read(ref _failedRequests))
-                {
-                    DisplayName = "Failed Requests",
-                };
-
-                _requestsPerSecondCounter ??= new IncrementingPollingCounter(
-                    "requests-per-second",
-                    this,
-                    () => Volatile.Read(ref _totalRequests))
-                {
-                    DisplayName = "Request Rate",
-                    DisplayUnits = "req/s",
-                    DisplayRateTimeScale = TimeSpan.FromSeconds(1)
-                };
-
-                _totalRequestsCounter ??= new PollingCounter(
-                    "total-requests",
-                    this,
-                    () => Volatile.Read(ref _totalRequests))
-                {
-                    DisplayName = "Total Requests",
-                };
             }
         }
 

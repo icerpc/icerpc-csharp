@@ -8,7 +8,7 @@ namespace IceRpc.Tests.Slice
 {
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    public sealed class ScopeTests : IAsyncDisposable
+    public sealed class ScopeTests
     {
         private readonly ServiceProvider _serviceProvider;
         private readonly Scope.OperationsPrx _prx1;
@@ -18,7 +18,7 @@ namespace IceRpc.Tests.Slice
 
         public ScopeTests()
         {
-            _serviceProvider = new IntegrationServiceCollection()
+            _serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher>(_ =>
                 {
                     var router = new Router();

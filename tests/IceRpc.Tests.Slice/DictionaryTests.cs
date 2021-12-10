@@ -16,7 +16,7 @@ namespace IceRpc.Tests.Slice
 
         public DictionaryTests(ProtocolCode protocol)
         {
-            _serviceProvider = new IntegrationServiceCollection()
+            _serviceProvider = new IntegrationTestServiceCollection()
                 .UseProtocol(protocol)
                 .AddTransient<IDispatcher, DictionaryOperations>()
                 .BuildServiceProvider();

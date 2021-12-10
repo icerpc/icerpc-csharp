@@ -21,7 +21,7 @@ namespace IceRpc.Tests.ClientServer
             // This large value should be large enough to create multiple buffer for the request and responses headers.
             string largeValue = new('C', 4000);
 
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<Endpoint>(_ => endpoint)
                 .AddTransient<IDispatcher>(_ =>
                 {

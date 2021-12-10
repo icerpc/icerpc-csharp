@@ -9,14 +9,14 @@ using NUnit.Framework;
 namespace IceRpc.Tests.Slice
 {
     [Timeout(10000)]
-    public sealed class NamespaceMetadataTests : IAsyncDisposable
+    public sealed class NamespaceMetadataTests
     {
         private readonly ServiceProvider _serviceProvider;
         private readonly Proxy _prx;
 
         public NamespaceMetadataTests()
         {
-            _serviceProvider = new IntegrationServiceCollection()
+            _serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher, NamespaceMDOperations>()
                 .BuildServiceProvider();
             _prx = NamespaceMDOperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>()).Proxy;

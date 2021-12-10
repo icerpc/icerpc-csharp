@@ -16,7 +16,7 @@ namespace IceRpc.Tests.Slice
 
         public StructTests(ProtocolCode protocolCode)
         {
-            _serviceProvider = new IntegrationServiceCollection()
+            _serviceProvider = new IntegrationTestServiceCollection()
                 .UseProtocol(protocolCode)
                 .AddTransient<IDispatcher, StructOperations>()
                 .BuildServiceProvider();

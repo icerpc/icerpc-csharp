@@ -36,7 +36,7 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase("1.1")]
         public async Task Proxy_EndpointLess(string encodingStr)
         {
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection().BuildServiceProvider();
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection().BuildServiceProvider();
             Connection connection = serviceProvider.GetRequiredService<Connection>();
 
             var encoding = IceEncoding.FromString(encodingStr);

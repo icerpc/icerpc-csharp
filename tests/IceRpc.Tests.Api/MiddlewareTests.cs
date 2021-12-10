@@ -15,7 +15,7 @@ namespace IceRpc.Tests.Api
         public async Task Middleware_Throw_AbortsDispatch()
         {
             var service = new Greeter();
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher>(_ =>
                 {
                     var router = new Router();
@@ -36,7 +36,7 @@ namespace IceRpc.Tests.Api
         {
             var middlewareCalls = new List<string>();
 
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher>(_ =>
                 {
                     var router = new Router();

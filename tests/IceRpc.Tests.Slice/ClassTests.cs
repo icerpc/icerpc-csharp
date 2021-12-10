@@ -18,7 +18,7 @@ namespace IceRpc.Tests.Slice
 
         public ClassTests(ProtocolCode protocol)
         {
-            _serviceProvider = new IntegrationServiceCollection()
+            _serviceProvider = new IntegrationTestServiceCollection()
                 .UseProtocol(protocol)
                 .AddTransient<IDispatcher>(_ =>
                     {

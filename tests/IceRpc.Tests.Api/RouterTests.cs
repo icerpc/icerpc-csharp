@@ -27,7 +27,7 @@ namespace IceRpc.Tests.Api
 
         public RouterTests()
         {
-            _serviceProvider = new IntegrationServiceCollection()
+            _serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher>(_ => _router)
                 .BuildServiceProvider();
             _connection = _serviceProvider.GetRequiredService<Connection>();

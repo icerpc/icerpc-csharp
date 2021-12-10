@@ -19,7 +19,7 @@ namespace IceRpc.Tests.Api
         {
             DateTime? dispatchDeadline = null;
             DateTime? invocationDeadline = null;
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher>(_ =>
                 {
                     var router = new Router();
@@ -66,7 +66,7 @@ namespace IceRpc.Tests.Api
         {
             DateTime? dispatchDeadline = null;
             DateTime? invocationDeadline = null;
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher>(_ =>
                 {
                     var router = new Router();
@@ -113,7 +113,7 @@ namespace IceRpc.Tests.Api
             DateTime? dispatchDeadline = null;
             DateTime? invocationDeadline = null;
 
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher>(_ =>
                 {
                     var router = new Router();

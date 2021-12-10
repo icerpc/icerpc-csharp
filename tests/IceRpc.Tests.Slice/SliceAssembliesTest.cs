@@ -15,7 +15,7 @@ namespace IceRpc.Tests.Slice
         [Test]
         public async Task SliceAssemblies_AssembliesInterceptorAsync()
         {
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher, AssembliesOperations>()
                 .BuildServiceProvider();
 
@@ -64,7 +64,7 @@ namespace IceRpc.Tests.Slice
             Endpoint endpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(ProtocolCode.Ice1));
 
             {
-                await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+                await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                     .UseProtocol(ProtocolCode.Ice1)
                     .AddTransient<IDispatcher>(_ =>
                     {
@@ -82,7 +82,7 @@ namespace IceRpc.Tests.Slice
 
             // Repeat but this time use SliceAssemblies middleware to include ClassB factory
             {
-                await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+                await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                     .UseProtocol(ProtocolCode.Ice1)
                     .AddTransient<IDispatcher>(_ =>
                     {

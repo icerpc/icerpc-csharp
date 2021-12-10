@@ -16,7 +16,7 @@ namespace IceRpc.Tests.Api
         [TestCase(ProtocolCode.Ice2)]
         public async Task Proxy_ServiceAsync(ProtocolCode protocol)
         {
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .UseProtocol(protocol)
                 .AddTransient<IDispatcher, Greeter>()
                 .BuildServiceProvider();
@@ -256,7 +256,7 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task Proxy_InvokeAsync()
         {
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher, Greeter>()
                 .BuildServiceProvider();
 
@@ -278,7 +278,7 @@ namespace IceRpc.Tests.Api
         {
             var service = new ProxyTest();
 
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher>(_ => service)
                 .BuildServiceProvider();
 
@@ -310,7 +310,7 @@ namespace IceRpc.Tests.Api
             var service = new ProxyTest();
 
             // First verify that the invoker of a proxy received over an incoming request is by default null.
-            await using ServiceProvider serviceProvider1 = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider1 = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher>(_ => service)
                 .BuildServiceProvider();
 
@@ -323,7 +323,7 @@ namespace IceRpc.Tests.Api
             // service.
             var pipeline = new Pipeline();
 
-            await using ServiceProvider serviceProvider2 = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider2 = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher>(_ =>
                 {
                     var router = new Router();
@@ -362,7 +362,7 @@ namespace IceRpc.Tests.Api
         [TestCase("2.1")]
         public async Task Proxy_NotSupportedEncoding(string encoding)
         {
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher, Greeter>()
                 .BuildServiceProvider();
 
@@ -401,7 +401,7 @@ namespace IceRpc.Tests.Api
 
             dynamic? capture = null;
 
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher>(_ =>
                 {
                     var router = new Router();

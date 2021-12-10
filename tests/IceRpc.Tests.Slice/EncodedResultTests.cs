@@ -16,7 +16,7 @@ namespace IceRpc.Tests.Slice
 
         public EncodedResultTests(ProtocolCode protocol)
         {
-            _serviceProvider = new IntegrationServiceCollection()
+            _serviceProvider = new IntegrationTestServiceCollection()
                 .UseProtocol(protocol)
                 .AddTransient<IDispatcher, EncodedResultOperations>()
                 .BuildServiceProvider();

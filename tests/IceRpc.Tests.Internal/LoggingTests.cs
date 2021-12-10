@@ -19,7 +19,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task Logging_RetryInterceptor()
         {
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<ILoggerFactory>(_ => NullLoggerFactory.Instance)
                 .BuildServiceProvider();
             Connection connection = serviceProvider.GetRequiredService<Connection>();
@@ -46,7 +46,7 @@ namespace IceRpc.Tests.Internal
             CheckRequestEntry(
                 entry,
                 (int)RetryInterceptorEventIds.RetryRequest,
-                LogLevel.Debug, // TODO: Should use Information instead?
+                LogLevel.Information,
                 "retrying request because of retryable exception",
                 request.Path,
                 request.Operation,
@@ -66,7 +66,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(true)]
         public async Task Logging_RequestInterceptor(bool twoway)
         {
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<ILoggerFactory>(_ => NullLoggerFactory.Instance)
                 .BuildServiceProvider();
             Connection connection = serviceProvider.GetRequiredService<Connection>();
@@ -114,7 +114,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task Logging_RequestInterceptor_Exception()
         {
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<ILoggerFactory>(_ => NullLoggerFactory.Instance)
                 .BuildServiceProvider();
             Connection connection = serviceProvider.GetRequiredService<Connection>();
@@ -147,7 +147,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(true)]
         public async Task Logging_RequestMiddleware(bool twoway)
         {
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<ILoggerFactory>(_ => NullLoggerFactory.Instance)
                 .BuildServiceProvider();
             Connection connection = serviceProvider.GetRequiredService<Connection>();
@@ -195,7 +195,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task Logging_RequestMiddleware_Exception()
         {
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<ILoggerFactory>(_ => NullLoggerFactory.Instance)
                 .BuildServiceProvider();
             Connection connection = serviceProvider.GetRequiredService<Connection>();

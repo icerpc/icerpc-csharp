@@ -18,7 +18,7 @@ namespace IceRpc.Tests.Slice
 
         public ExceptionTagTests(string encoding)
         {
-            _serviceProvider = new IntegrationServiceCollection()
+            _serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher, ExceptionTag>()
                 .BuildServiceProvider();
 

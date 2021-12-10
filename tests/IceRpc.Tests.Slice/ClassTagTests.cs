@@ -14,7 +14,7 @@ namespace IceRpc.Tests.Slice
 
         public ClassTagTests()
         {
-            _serviceProvider = new IntegrationServiceCollection()
+            _serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher, ClassTag>()
                 .BuildServiceProvider();
             _prx = _serviceProvider.GetProxy<ClassTagPrx>();

@@ -39,7 +39,10 @@ namespace IceRpc.Tests
                                     CertificateValidaton.GetServerCertificateValidationCallback(
                                         certificateAuthorities: new X509Certificate2Collection
                                         {
-                                            new X509Certificate2(Path.Combine(Environment.CurrentDirectory, "certs", caFile))
+                                            new X509Certificate2(Path.Combine(
+                                                Environment.CurrentDirectory,
+                                                "certs",
+                                                caFile))
                                         })
                             }
                         }));
@@ -131,7 +134,6 @@ namespace IceRpc.Tests
         public static IServerTransport<IMultiplexedNetworkConnection> CreateMultiplexedServerTransport(
             string transport = "tcp",
             TcpServerOptions? options = null,
-            SslServerAuthenticationOptions? authenticationOptions = null,
             SlicOptions? slicOptions = null)
         {
             return transport switch

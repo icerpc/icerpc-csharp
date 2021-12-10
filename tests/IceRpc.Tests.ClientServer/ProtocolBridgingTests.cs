@@ -11,7 +11,7 @@ namespace IceRpc.Tests.ClientServer
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(ParallelScope.All)]
     [Timeout(30000)]
-    public sealed class ProtocolBridgingTests : ClientServerBaseTest
+    public sealed class ProtocolBridgingTests
     {
         [TestCase(ProtocolCode.Ice2, ProtocolCode.Ice2, true)]
         [TestCase(ProtocolCode.Ice1, ProtocolCode.Ice1, true)]
@@ -28,8 +28,8 @@ namespace IceRpc.Tests.ClientServer
         {
             var router = new Router();
 
-            var targetServiceCollection = new IntegrationServiceCollection();
-            var forwarderServiceCollection = new IntegrationServiceCollection();
+            var targetServiceCollection = new IntegrationTestServiceCollection();
+            var forwarderServiceCollection = new IntegrationTestServiceCollection();
 
             targetServiceCollection.UseProtocol(targetProtocol).AddTransient<IDispatcher>(_ => router);
             forwarderServiceCollection.UseProtocol(forwarderProtocol).AddTransient<IDispatcher>(_ => router);

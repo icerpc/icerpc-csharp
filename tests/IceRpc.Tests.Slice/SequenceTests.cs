@@ -16,7 +16,7 @@ namespace IceRpc.Tests.Slice
 
         public SequenceTests(ProtocolCode protocol)
         {
-            _serviceProvider = new IntegrationServiceCollection()
+            _serviceProvider = new IntegrationTestServiceCollection()
                 .UseProtocol(protocol)
                 .AddTransient<IDispatcher, SequenceOperations>()
                 .BuildServiceProvider();

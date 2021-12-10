@@ -22,7 +22,6 @@ namespace IceRpc.Transports.Internal
         public async Task<ISimpleNetworkConnection> AcceptAsync()
         {
             Socket acceptedSocket;
-
             try
             {
                 acceptedSocket = await _socket.AcceptAsync().ConfigureAwait(false);

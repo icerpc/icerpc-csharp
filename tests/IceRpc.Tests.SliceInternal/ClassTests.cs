@@ -22,7 +22,7 @@ namespace IceRpc.Tests.SliceInternal
 
         public ClassTests(ProtocolCode protocol)
         {
-            _serviceProvider = new IntegrationServiceCollection()
+            _serviceProvider = new IntegrationTestServiceCollection()
                 .UseProtocol(protocol)
                 .AddTransient<IDispatcher>(_ =>
                 {
@@ -182,7 +182,7 @@ namespace IceRpc.Tests.SliceInternal
             // We overwrite the default value for class graph max depth through a middleware (server side) and
             // an interceptor (client side).
 
-            await using ServiceProvider serviceProvider = new IntegrationServiceCollection()
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .UseProtocol(_serviceProvider.GetRequiredService<Connection>().Protocol.Code)
                 .AddTransient<IDispatcher>(_ =>
                 {
