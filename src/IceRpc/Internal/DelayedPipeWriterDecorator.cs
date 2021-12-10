@@ -33,7 +33,12 @@ namespace IceRpc.Internal
             ReadOnlyMemory<byte> source,
             CancellationToken cancellationToken) => Decoratee.WriteAsync(source, cancellationToken);
 
-        // Can't decorate CopyFromAsync because it's protected internal, not public.
+        // TODO: temporary - not needed once MultiplexedStreamPipeWriter implements GetMemory.
+        // Unfortunately we can't just forward it as it's protected not public.
+        protected override Task CopyFromAsync(Stream source, CancellationToken cancellationToken) =>
+            Decoratee is MultiplexedStreamPipeWriter pipeWriter ?
+            pipeWriter.CopyFromAsyncCore(source, cancellationToken) :
+            base.CopyFromAsync(source, cancellationToken);
 
         internal void SetDecoratee(PipeWriter decoratee)
         {

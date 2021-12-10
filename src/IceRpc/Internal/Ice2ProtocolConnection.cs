@@ -286,7 +286,8 @@ namespace IceRpc.Internal
                 var output = new MultiplexedStreamPipeWriter(request.Stream);
                 request.InitialPayloadSink.SetDecoratee(output);
 
-                if (!request.IsOneway || request.StreamParamSender != null)
+                // TODO: missing comment - what are we doing here?
+                if (!request.IsOneway || request.PayloadSourceStream != null)
                 {
                     lock (_mutex)
                     {
@@ -299,18 +300,18 @@ namespace IceRpc.Internal
                         _invocations.Add(request);
 
                         request.Stream.ShutdownAction = () =>
+                        {
+                            lock (_mutex)
                             {
-                                lock (_mutex)
-                                {
-                                    _invocations.Remove(request);
+                                _invocations.Remove(request);
 
                                 // If no more invocations or dispatches and shutting down, shutdown can complete.
                                 if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
-                                    {
-                                        _dispatchesAndInvocationsCompleted.SetResult();
-                                    }
+                                {
+                                    _dispatchesAndInvocationsCompleted.SetResult();
                                 }
-                            };
+                            }
+                        };
                     }
                 }
 
@@ -398,12 +399,6 @@ namespace IceRpc.Internal
                         },
                         cancel);
                 }
-
-                if (request.StreamParamSender != null && !flushResult.IsCompleted)
-                {
-                    // If there's a stream param sender, we can start sending the data.
-                    request.SendStreamParam(request.Stream);
-                }
                 else
                 {
                     await request.PayloadSink.CompleteAsync().ConfigureAwait(false);
@@ -457,7 +452,7 @@ namespace IceRpc.Internal
                 // response frame.
                 PipeWriter output = new MultiplexedStreamPipeWriter(request.Stream);
 
-                // Send the header. TODO: delaying the sending (flushing) until we send the payload
+                // Send the header. TODO: delay the sending (flushing) until we send the payload
 
                 FlushResult flushResult = await output.WriteAsync(
                     bufferWriter.Finish().ToSingleBuffer(),

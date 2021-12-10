@@ -28,8 +28,8 @@ namespace IceRpc.Slice
         /// <param name="proxy">A proxy for the remote service.</param>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="payloadEncoding">The encoding of the request payload.</param>
-        /// <param name="requestPayload">The payload of the request.</param>
-        /// <param name="streamParamSender">The stream param sender.</param>
+        /// <param name="payloadSource">The payload source of the request.</param>
+        /// <param name="payloadSourceStream">The optional payload source stream of the request.</param>
         /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws a
         /// <see cref="RemoteException"/> when the response payload contains a failure.</param>
         /// <param name="invocation">The invocation properties.</param>
@@ -43,8 +43,8 @@ namespace IceRpc.Slice
             this Proxy proxy,
             string operation,
             IceEncoding payloadEncoding,
-            PipeReader requestPayload,
-            IStreamParamSender? streamParamSender,
+            PipeReader payloadSource,
+            PipeReader? payloadSourceStream,
             ResponseDecodeFunc<T> responseDecodeFunc,
             Invocation? invocation,
             bool idempotent = false,
@@ -54,8 +54,8 @@ namespace IceRpc.Slice
                 proxy.InvokeAsync(
                     operation,
                     payloadEncoding,
-                    requestPayload,
-                    streamParamSender,
+                    payloadSource,
+                    payloadSourceStream,
                     invocation,
                     idempotent,
                     oneway: false,
@@ -78,9 +78,9 @@ namespace IceRpc.Slice
         /// <param name="proxy">A proxy for the remote service.</param>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="payloadEncoding">The encoding of the request payload.</param>
-        /// <param name="requestPayload">The payload of the request.</param>
+        /// <param name="payloadSource">The payload source of the request.</param>
+        /// <param name="payloadSourceStream">The payload source stream of the request.</param>
         /// <param name="defaultIceDecoderFactories">The default Ice decoder factories.</param>
-        /// <param name="streamParamSender">The stream param sender.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="idempotent">When true, the request is idempotent.</param>
         /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
@@ -94,9 +94,9 @@ namespace IceRpc.Slice
             this Proxy proxy,
             string operation,
             IceEncoding payloadEncoding,
-            PipeReader requestPayload,
+            PipeReader payloadSource,
+            PipeReader? payloadSourceStream,
             DefaultIceDecoderFactories defaultIceDecoderFactories,
-            IStreamParamSender? streamParamSender,
             Invocation? invocation,
             bool idempotent = false,
             bool oneway = false,
@@ -106,8 +106,8 @@ namespace IceRpc.Slice
                 proxy.InvokeAsync(
                     operation,
                     payloadEncoding,
-                    requestPayload,
-                    streamParamSender,
+                    payloadSource,
+                    payloadSourceStream,
                     invocation,
                     idempotent,
                     oneway,

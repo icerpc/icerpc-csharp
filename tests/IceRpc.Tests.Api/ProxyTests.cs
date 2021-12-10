@@ -283,7 +283,7 @@ namespace IceRpc.Tests.Api
             IncomingResponse response =
                 await proxy.InvokeAsync("SayHello",
                                         proxy.Encoding,
-                                        requestPayload: Encoding.Ice20.CreateEmptyPayload());
+                                        payloadSource: Encoding.Ice20.CreateEmptyPayload());
 
             Assert.DoesNotThrowAsync(async () => await response.CheckVoidReturnValueAsync(
                 proxy.Invoker,

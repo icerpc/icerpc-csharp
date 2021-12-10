@@ -118,7 +118,10 @@ namespace IceRpc.Internal
         }
 
         // TODO: temporary implementation, not needed when GetMemory/AdvanceTo are implemented
-        protected override async Task CopyFromAsync(Stream source, CancellationToken cancellationToken)
+        protected override Task CopyFromAsync(Stream source, CancellationToken cancellationToken) =>
+            CopyFromAsyncCore(source, cancellationToken);
+
+        internal async Task CopyFromAsyncCore(Stream source, CancellationToken cancellationToken)
         {
             Memory<byte> copyBuffer = new byte[4096];
 
