@@ -153,7 +153,9 @@ namespace IceRpc.Internal
                     operation: header.Operation,
                     payload: reader,
                     payloadEncoding: header.PayloadEncoding.Length > 0 ?
-                        Encoding.FromString(header.PayloadEncoding) : Ice2Definitions.Encoding)
+                        Encoding.FromString(header.PayloadEncoding) : Ice2Definitions.Encoding,
+                    responsePayloadSink: stream.IsBidirectional ?
+                        new MultiplexedStreamPipeWriter(stream) : InvalidPipeWriter.Instance)
                 {
                     IsIdempotent = header.Idempotent,
                     IsOneway = !stream.IsBidirectional,
@@ -184,21 +186,21 @@ namespace IceRpc.Internal
                         }
 
                         stream.ShutdownAction = () =>
+                        {
+                            request.CancelDispatchSource.Cancel();
+                            request.CancelDispatchSource.Dispose();
+
+                            lock (_mutex)
                             {
-                                request.CancelDispatchSource.Cancel();
-                                request.CancelDispatchSource.Dispose();
+                                _dispatches.Remove(request);
 
-                                lock (_mutex)
+                                // If no more invocations or dispatches and shutting down, shutdown can complete.
+                                if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
                                 {
-                                    _dispatches.Remove(request);
-
-                                    // If no more invocations or dispatches and shutting down, shutdown can complete.
-                                    if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
-                                    {
-                                        _dispatchesAndInvocationsCompleted.SetResult();
-                                    }
+                                    _dispatchesAndInvocationsCompleted.SetResult();
                                 }
-                            };
+                            }
+                        };
                         return request;
                     }
                 }
@@ -276,39 +278,42 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            // Create the stream.
-            request.Stream = _networkConnection.CreateStream(!request.IsOneway);
-
-            if (!request.IsOneway || request.StreamParamSender != null)
+            try
             {
-                lock (_mutex)
-                {
-                    if (_shutdown)
-                    {
-                        request.Features = request.Features.With(RetryPolicy.Immediately);
-                        request.Stream.Abort(MultiplexedStreamError.ConnectionShutdown);
-                        throw new ConnectionClosedException("connection shutdown");
-                    }
-                    _invocations.Add(request);
+                // Create the stream.
+                request.Stream = _networkConnection.CreateStream(!request.IsOneway);
 
-                    request.Stream.ShutdownAction = () =>
+                var output = new MultiplexedStreamPipeWriter(request.Stream);
+                request.InitialPayloadSink.SetDecoratee(output);
+
+                if (!request.IsOneway || request.StreamParamSender != null)
+                {
+                    lock (_mutex)
+                    {
+                        if (_shutdown)
                         {
-                            lock (_mutex)
+                            request.Features = request.Features.With(RetryPolicy.Immediately);
+                            request.Stream.Abort(MultiplexedStreamError.ConnectionShutdown);
+                            throw new ConnectionClosedException("connection shutdown");
+                        }
+                        _invocations.Add(request);
+
+                        request.Stream.ShutdownAction = () =>
                             {
-                                _invocations.Remove(request);
+                                lock (_mutex)
+                                {
+                                    _invocations.Remove(request);
 
                                 // If no more invocations or dispatches and shutting down, shutdown can complete.
                                 if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
-                                {
-                                    _dispatchesAndInvocationsCompleted.SetResult();
+                                    {
+                                        _dispatchesAndInvocationsCompleted.SetResult();
+                                    }
                                 }
-                            }
-                        };
+                            };
+                    }
                 }
-            }
 
-            try
-            {
                 var bufferWriter = new BufferWriter();
                 var encoder = new Ice20Encoder(bufferWriter);
 
@@ -349,36 +354,40 @@ namespace IceRpc.Internal
                 // We're done with the header encoding, write the header size.
                 _ = encoder.EndFixedLengthSize(frameHeaderStart, 2);
 
-                // Add the payload to the buffer writer.
-                bufferWriter.Add(request.Payload);
+                // Send the header. TODO: delaying the sending (flushing) until we send the payload
 
-                // Send the request frame.
-                await request.Stream.WriteAsync(bufferWriter.Finish(),
-                                                endStream: request.StreamParamSender == null,
-                                                cancel).ConfigureAwait(false);
+                FlushResult flushResult = await output.WriteAsync(
+                    bufferWriter.Finish().ToSingleBuffer(),
+                    cancel).ConfigureAwait(false);
 
-                // Mark the request as sent.
-                request.IsSent = true;
-            }
-            catch (MultiplexedStreamAbortedException ex)
-            {
-                switch ((MultiplexedStreamError)ex.ErrorCode)
+                Debug.Assert(!flushResult.IsCanceled); // not implemented yet, so always false.
+
+                if (!flushResult.IsCompleted) // we still have a reader
                 {
-                    case MultiplexedStreamError.ConnectionAborted:
-                        throw new ConnectionLostException(ex);
+                    // TODO: CopyToAsync does not return a flushResult so we don't know if we still have a reader. It
+                    // just returns with no exception when flushResult.IsCompleted is true. We could implement our own
+                    // version.
+                    await request.PayloadSource.CopyToAsync(request.PayloadSink, cancel).ConfigureAwait(false);
 
-                    case MultiplexedStreamError.ConnectionShutdown:
-                        throw new OperationCanceledException("connection shutdown", ex);
+                    request.IsSent = true;
+                }
 
-                    default:
-                        throw;
+                await request.PayloadSource.CompleteAsync().ConfigureAwait(false);
+                if (request.StreamParamSender != null && !flushResult.IsCompleted)
+                {
+                    // If there's a stream param sender, we can start sending the data.
+                    request.SendStreamParam(request.Stream);
+                }
+                else
+                {
+                    await request.PayloadSink.CompleteAsync().ConfigureAwait(false);
                 }
             }
-
-            // If there's a stream param sender, we can start sending the data.
-            if (request.StreamParamSender != null)
+            catch (Exception ex)
             {
-                request.SendStreamParam(request.Stream);
+                await request.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
+                await request.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                throw;
             }
         }
 
@@ -394,38 +403,66 @@ namespace IceRpc.Internal
             }
             else if (request.IsOneway)
             {
+                await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
+                await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
                 return;
             }
 
-            var bufferWriter = new BufferWriter();
-            var encoder = new Ice20Encoder(bufferWriter);
-
-            // Write the Ice2 response header.
-
-            BufferWriter.Position frameHeaderStart = encoder.StartFixedLengthSize(2);
-
-            new Ice2ResponseHeader(
-                response.ResultType,
-                response.PayloadEncoding == Ice2Definitions.Encoding ? "" :
-                    response.PayloadEncoding.ToString()).Encode(encoder);
-
-            encoder.EncodeFields(response.Fields, response.FieldsDefaults);
-
-            // We're done with the header encoding, write the header size.
-            _ = encoder.EndFixedLengthSize(frameHeaderStart, 2);
-
-            // Add the payload to the buffer writer.
-            bufferWriter.Add(response.Payload);
-
-            // Send the response frame.
-            await request.Stream.WriteAsync(bufferWriter.Finish(),
-                                            endStream: response.StreamParamSender == null,
-                                            cancel).ConfigureAwait(false);
-
-            // If there's a stream param sender, we can start sending the data.
-            if (response.StreamParamSender != null)
+            try
             {
-                response.SendStreamParam(request.Stream);
+                var bufferWriter = new BufferWriter();
+                var encoder = new Ice20Encoder(bufferWriter);
+
+                // Write the Ice2 response header.
+
+                BufferWriter.Position frameHeaderStart = encoder.StartFixedLengthSize(2);
+
+                new Ice2ResponseHeader(
+                    response.ResultType,
+                    response.PayloadEncoding == Ice2Definitions.Encoding ? "" :
+                        response.PayloadEncoding.ToString()).Encode(encoder);
+
+                encoder.EncodeFields(response.Fields, response.FieldsDefaults);
+
+                // We're done with the header encoding, write the header size.
+                _ = encoder.EndFixedLengthSize(frameHeaderStart, 2);
+
+                // TODO: it's the initial PayloadSink but we can't retrieve it and it seems illogical to store it in the
+                // response frame.
+                PipeWriter output = new MultiplexedStreamPipeWriter(request.Stream);
+
+                // Send the header. TODO: delaying the sending (flushing) until we send the payload
+
+                FlushResult flushResult = await output.WriteAsync(
+                    bufferWriter.Finish().ToSingleBuffer(),
+                    cancel).ConfigureAwait(false);
+
+                Debug.Assert(!flushResult.IsCanceled); // not implemented yet, so always false.
+
+                if (!flushResult.IsCompleted) // we still have a reader
+                {
+                    // TODO: CopyToAsync does not return a flushResult so we don't know if we still have a reader. It
+                    // just returns with no exception when flushResult.IsCompleted is true. We could implement our own
+                    // version.
+                    await response.PayloadSource.CopyToAsync(response.PayloadSink, cancel).ConfigureAwait(false);
+                    await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
+
+                    if (response.StreamParamSender != null)
+                    {
+                        // If there's a stream param sender, we can start sending the data.
+                        response.SendStreamParam(request.Stream);
+                    }
+                    else
+                    {
+                        await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                await response.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
+                await response.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                throw;
             }
         }
 

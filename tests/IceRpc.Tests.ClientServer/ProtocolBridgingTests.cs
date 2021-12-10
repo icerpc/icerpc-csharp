@@ -183,25 +183,15 @@ namespace IceRpc.Tests.ClientServer
                     features = features.WithContext(incomingRequest.Features.GetContext());
                 }
 
-                ReadResult readResult = await incomingRequest.Payload.ReadAllAsync(cancel);
-                var payload = readResult.Buffer.ToArray();
-
-                var outgoingRequest = new OutgoingRequest(
-                    targetProtocol,
-                    path: _target.Path,
-                    operation: incomingRequest.Operation)
+                var outgoingRequest = new OutgoingRequest(_target, incomingRequest.Operation)
                 {
-                    AltEndpoints = _target.AltEndpoints,
-                    Connection = _target.Connection,
                     Deadline = incomingRequest.Deadline,
-                    Endpoint = _target.Endpoint,
                     Features = features,
                     FieldsDefaults = fields,
                     IsOneway = incomingRequest.IsOneway,
                     IsIdempotent = incomingRequest.IsIdempotent,
-                    Proxy = _target,
                     PayloadEncoding = incomingRequest.PayloadEncoding,
-                    Payload = new ReadOnlyMemory<byte>[] { payload }
+                    PayloadSource = incomingRequest.Payload
                 };
 
                 // Then invoke
@@ -210,15 +200,13 @@ namespace IceRpc.Tests.ClientServer
 
                 // Then create an outgoing response from the incoming response
 
-                readResult = await incomingResponse.Payload.ReadAllAsync(cancel);
-                payload = readResult.Buffer.ToArray();
-
-                return new OutgoingResponse(_target.Protocol, incomingResponse.ResultType)
+                return new OutgoingResponse(incomingRequest)
                 {
                     // Don't forward RetryPolicy
                     FieldsDefaults = incomingResponse.Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
-                    Payload = new ReadOnlyMemory<byte>[] { payload },
                     PayloadEncoding = incomingResponse.PayloadEncoding,
+                    PayloadSource = incomingResponse.Payload,
+                    ResultType = incomingResponse.ResultType
                 };
             }
 

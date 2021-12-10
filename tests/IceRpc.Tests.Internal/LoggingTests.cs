@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System.Buffers;
@@ -140,7 +141,7 @@ namespace IceRpc.Tests.Internal
             await WithConnectionAndLoggerFactory(async (connection, loggerFactory) =>
             {
                 IncomingRequest request = CreateIncomingRequest(connection, twoway);
-                OutgoingResponse response = CreateOutgoingResponse();
+                OutgoingResponse response = CreateOutgoingResponse(request);
 
                 var router = new Router();
                 router.UseLogger(loggerFactory);
@@ -241,7 +242,8 @@ namespace IceRpc.Tests.Internal
                 path: "/dummy",
                 operation: "foo",
                 PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
-                Encoding.Ice20)
+                Encoding.Ice20,
+                responsePayloadSink: new DelayedPipeWriterDecorator())
             {
                 Connection = connection,
                 IsOneway = !twoway
@@ -254,19 +256,18 @@ namespace IceRpc.Tests.Internal
             Encoding.Ice20);
 
         private static OutgoingRequest CreateOutgoingRequest(Connection connection, bool twoway) =>
-            new(Protocol.Ice2, path: "/dummy", operation: "foo")
+            new(Proxy.FromPath("/dummy"), operation: "foo")
             {
                 Connection = connection,
                 IsOneway = !twoway,
-                Payload = new ReadOnlyMemory<byte>[] { new byte[15] },
+                PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
                 PayloadEncoding = Encoding.Ice20
             };
 
-        private static OutgoingResponse CreateOutgoingResponse() =>
-            new(Protocol.Ice2, ResultType.Success)
+        private static OutgoingResponse CreateOutgoingResponse(IncomingRequest request) =>
+            new(request)
             {
-                Payload = new ReadOnlyMemory<byte>[] { new byte[10] },
-                PayloadEncoding = Encoding.Ice20
+                PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(new byte[10]))
             };
 
         private static async Task WithConnectionAndLoggerFactory(Func<Connection, TestLoggerFactory, Task> testAsync)

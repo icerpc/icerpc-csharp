@@ -15,6 +15,7 @@ namespace IceRpc
         /// <param name="resultType">The <see cref="ResultType"/> of the response.</param>
         /// <param name="payload">The payload of the response.</param>
         /// <param name="payloadEncoding">The encoding of the payload.</param>
+        // TODO: make constructor internal
         public IncomingResponse(
             Protocol protocol,
             ResultType resultType,

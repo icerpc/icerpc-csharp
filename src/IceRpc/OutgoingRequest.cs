@@ -1,7 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Transports;
 using System.Collections.Immutable;
+using System.IO.Pipelines;
 
 namespace IceRpc
 {
@@ -46,19 +48,28 @@ namespace IceRpc
         public string Path { get; }
 
         /// <summary>The proxy that is sending this request.</summary>
-        public Proxy? Proxy { get; init; }
+        public Proxy Proxy { get; }
+
+        internal DelayedPipeWriterDecorator InitialPayloadSink { get; }
 
         /// <summary>The stream used to send the request.</summary>
         internal IMultiplexedStream? Stream { get; set; }
 
         /// <summary>Constructs an outgoing request.</summary>
-        /// <param name="protocol">The <see cref="Protocol"/> used to send the request.</param>
-        /// <param name="path">The path of the request.</param>
+        /// <param name="proxy">The <see cref="Proxy"/> used to send the request.</param>
         /// <param name="operation">The operation of the request.</param>
-        public OutgoingRequest(Protocol protocol, string path, string operation) :
-            base(protocol)
+        public OutgoingRequest(Proxy proxy, string operation) :
+            base(proxy.Protocol, new DelayedPipeWriterDecorator())
         {
-            Path = path;
+            AltEndpoints = proxy.AltEndpoints;
+            Connection = proxy.Connection;
+
+            // We keep it to initialize it later
+            InitialPayloadSink = (DelayedPipeWriterDecorator)PayloadSink;
+
+            Endpoint = proxy.Endpoint;
+            Proxy = proxy;
+            Path = proxy.Path;
             Operation = operation;
         }
     }

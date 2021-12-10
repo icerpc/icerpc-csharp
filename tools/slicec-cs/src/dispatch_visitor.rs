@@ -178,7 +178,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 
         let mut builder = FunctionBuilder::new(
             &format!("{} static", access),
-            "global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>",
+            "global::System.IO.Pipelines.PipeReader",
             operation_name,
             FunctionType::ExpressionBody,
         );
@@ -346,7 +346,7 @@ fn operation_dispatch(operation: &Operation) -> CodeBlock {
     format!(
         r#"
 [IceRpc.Slice.Operation("{name}")]
-protected static async global::System.Threading.Tasks.ValueTask<(IceEncoding, global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>, IceRpc.IStreamParamSender?)> {internal_name}(
+protected static async global::System.Threading.Tasks.ValueTask<(IceEncoding, global::System.IO.Pipelines.PipeReader, IceRpc.IStreamParamSender?)> {internal_name}(
     {interface_name} target,
     IceRpc.IncomingRequest request,
     IceRpc.Dispatch dispatch,

@@ -3,7 +3,9 @@
 using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
+using System.Buffers;
 using System.Diagnostics;
+using System.IO.Pipelines;
 
 namespace IceRpc
 {
@@ -11,9 +13,7 @@ namespace IceRpc
     /// typically configured before the <see cref="BinderInterceptor"/>.</summary>
     public class RetryInterceptor : IInvoker
     {
-        private int _bufferSize;
         private readonly ILogger _logger;
-        private readonly object _mutex = new();
         private readonly IInvoker _next;
         private readonly Configure.RetryOptions _options;
 
@@ -35,15 +35,20 @@ namespace IceRpc
             // much memory and we won't retry in case of a failure.
 
             // TODO: soon this won't work and the interceptor can't read the args size from the payload
-            int requestSize = request.Payload.GetByteCount();
+            // int requestSize = request.Payload.GetByteCount();
 
-            bool releaseRequestAfterSent = requestSize > _options.RequestMaxSize || !IncBufferSize(requestSize);
+            bool releaseRequestAfterSent = false; // requestSize > _options.RequestMaxSize;
 
             int attempt = 1;
             IncomingResponse? response = null;
             Exception? exception = null;
 
             bool tryAgain;
+
+            var decorator = new ResettablePipeReaderDecorator(request.PayloadSource);
+            await using var _ = decorator.ConfigureAwait(false);
+
+            request.PayloadSource = decorator;
 
             try
             {
@@ -97,6 +102,7 @@ namespace IceRpc
                     // Check if we can retry
                     if (attempt == _options.MaxAttempts ||
                         retryPolicy == RetryPolicy.NoRetry ||
+                        !decorator.IsResettable ||
                         (request.IsSent && releaseRequestAfterSent) ||
                         (retryPolicy == RetryPolicy.OtherReplica && (request.Connection?.IsServer ?? false)))
                     {
@@ -149,6 +155,8 @@ namespace IceRpc
                         {
                             request.Features.Set<RetryPolicy>(null);
                         }
+
+                        decorator.Reset();
                     }
                 }
                 while (tryAgain);
@@ -159,34 +167,8 @@ namespace IceRpc
             }
             finally
             {
-                if (!releaseRequestAfterSent)
-                {
-                    DecBufferSize(requestSize);
-                }
                 // TODO release the request memory if not already done after sent.
             }
-        }
-
-        private void DecBufferSize(int size)
-        {
-            lock (_mutex)
-            {
-                Debug.Assert(size <= _bufferSize);
-                _bufferSize -= size;
-            }
-        }
-
-        private bool IncBufferSize(int size)
-        {
-            lock (_mutex)
-            {
-                if (size + _bufferSize < _options.BufferMaxSize)
-                {
-                    _bufferSize += size;
-                    return true;
-                }
-            }
-            return false;
         }
     }
 

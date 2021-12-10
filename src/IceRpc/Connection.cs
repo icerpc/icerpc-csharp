@@ -582,11 +582,14 @@ namespace IceRpc
                         remoteException.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
                     }
 
-                    IceEncoding payloadEncoding = request.GetIceEncoding();
-                    response = new OutgoingResponse(Protocol, ResultType.Failure)
+                    // not necessarily the request payload encoding
+                    IceEncoding sliceEncoding = request.GetIceEncoding();
+
+                    response = new OutgoingResponse(request)
                     {
-                        Payload = payloadEncoding.CreatePayloadFromRemoteException(remoteException),
-                        PayloadEncoding = payloadEncoding
+                        PayloadSource = sliceEncoding.CreatePayloadFromRemoteException(remoteException),
+                        PayloadEncoding = sliceEncoding,
+                        ResultType = ResultType.Failure
                     };
 
                     if (Protocol.HasFieldSupport && remoteException.RetryPolicy != RetryPolicy.NoRetry)

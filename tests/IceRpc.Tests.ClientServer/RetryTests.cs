@@ -403,6 +403,8 @@ namespace IceRpc.Tests.ClientServer
                 });
         }
 
+        /*
+        TODO: reenable once we implement again buffer max size
         [Test]
         public async Task Retry_RetryBufferMaxSize()
         {
@@ -438,6 +440,10 @@ namespace IceRpc.Tests.ClientServer
                     await retry1.OpWithDataAsync(2, 100, data);
                 });
         }
+        */
+
+        /*
+        TODO: reenable once RetryInterceptor supports max size again.
 
         [TestCase(1024, 1024)]
         [TestCase(1024, 2048)]
@@ -461,6 +467,7 @@ namespace IceRpc.Tests.ClientServer
                     }
                 });
         }
+        */
 
         private static Pipeline CreatePipeline(ConnectionPool pool)
         {

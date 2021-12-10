@@ -4,6 +4,7 @@ using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Slice;
 using NUnit.Framework;
+using System.Buffers;
 using System.IO.Pipelines;
 
 using static IceRpc.Slice.Internal.Ice11Definitions;
@@ -62,7 +63,9 @@ namespace IceRpc.Tests.SliceInternal
             prx1.Proxy.Invoker = pipeline1;
             pipeline1.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                ReadOnlyMemory<byte> data = request.Payload.ToSingleBuffer();
+                ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
+                ReadOnlyMemory<byte> data = readResult.Buffer.ToArray();
+                request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
                 var decoder = new Ice11Decoder(data);
 
                 // Skip payload size
@@ -76,7 +79,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
 
-                ReadResult readResult = await response.Payload.ReadAllAsync(cancel);
+                readResult = await response.Payload.ReadAllAsync(cancel);
                 Assert.That(readResult.Buffer.IsSingleSegment);
 
                 decoder = new Ice11Decoder(readResult.Buffer.First);
@@ -99,7 +102,9 @@ namespace IceRpc.Tests.SliceInternal
             prx2.Proxy.Invoker = pipeline2;
             pipeline2.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                ReadOnlyMemory<byte> data = request.Payload.ToSingleBuffer();
+                ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
+                ReadOnlyMemory<byte> data = readResult.Buffer.ToArray();
+                request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
                 var decoder = new Ice11Decoder(data);
 
                 // Skip payload size
@@ -112,7 +117,7 @@ namespace IceRpc.Tests.SliceInternal
                 Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
 
-                ReadResult readResult = await response.Payload.ReadAllAsync(cancel);
+                readResult = await response.Payload.ReadAllAsync(cancel);
                 Assert.That(readResult.Buffer.IsSingleSegment);
 
                 decoder = new Ice11Decoder(readResult.Buffer.First);
@@ -135,7 +140,9 @@ namespace IceRpc.Tests.SliceInternal
             prx3.Proxy.Invoker = pipeline3;
             pipeline3.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                ReadOnlyMemory<byte> data = request.Payload.ToSingleBuffer();
+                ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
+                ReadOnlyMemory<byte> data = readResult.Buffer.ToArray();
+                request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
                 var decoder = new Ice11Decoder(data);
 
                 // Skip payload size
@@ -148,7 +155,7 @@ namespace IceRpc.Tests.SliceInternal
                 Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
 
-                ReadResult readResult = await response.Payload.ReadAllAsync(cancel);
+                readResult = await response.Payload.ReadAllAsync(cancel);
                 Assert.That(readResult.Buffer.IsSingleSegment);
 
                 decoder = new Ice11Decoder(readResult.Buffer.First);
@@ -170,7 +177,9 @@ namespace IceRpc.Tests.SliceInternal
             prx3.Proxy.Invoker = pipeline4;
             pipeline4.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                ReadOnlyMemory<byte> data = request.Payload.ToSingleBuffer();
+                ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
+                ReadOnlyMemory<byte> data = readResult.Buffer.ToArray();
+                request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
                 var decoder = new Ice11Decoder(data);
 
                 // Skip payload size
@@ -183,7 +192,7 @@ namespace IceRpc.Tests.SliceInternal
                 Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
 
-                ReadResult readResult = await response.Payload.ReadAllAsync(cancel);
+                readResult = await response.Payload.ReadAllAsync(cancel);
                 Assert.That(readResult.Buffer.IsSingleSegment);
 
                 decoder = new Ice11Decoder(readResult.Buffer.First);

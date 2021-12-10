@@ -24,11 +24,12 @@ namespace IceRpc.Tests.Slice
                 new InlineDispatcher(
                     (request, cancel) =>
                     {
-                        var response = new OutgoingResponse(
-                            request,
-                            IceRpc.Slice.Ice11Encoding.CreatePayloadFromSingleReturnValue(
+                        var response = new OutgoingResponse(request)
+                        {
+                            PayloadSource = IceRpc.Slice.Ice11Encoding.CreatePayloadFromSingleReturnValue(
                                 new MyClassAlsoEmpty(),
-                                (encoder, ae) => encoder.EncodeClass(ae)));
+                                (encoder, ae) => encoder.EncodeClass(ae))
+                        };
                         return new(response);
                     }));
 

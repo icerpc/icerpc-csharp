@@ -4,7 +4,9 @@ using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Transports;
 using System.Collections.Immutable;
+using System.Buffers;
 using System.Diagnostics;
+using System.IO.Pipelines;
 
 namespace IceRpc
 {
@@ -24,9 +26,11 @@ namespace IceRpc
         /// <summary>The features of this frame.</summary>
         public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
-        /// <summary>Gets or sets the payload of this frame.</summary>
-        public ReadOnlyMemory<ReadOnlyMemory<byte>> Payload { get; set; } =
-            ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty;
+        /// <summary>Gets or sets the payload sink of this frame.</summary>
+        public PipeWriter PayloadSink { get; set; }
+
+        /// <summary>Gets or sets the payload source of this frame.</summary>
+        public PipeReader PayloadSource { get; set; } = EmptyPipeReader.Instance;
 
         /// <summary>Returns the encoding of the payload of this frame.</summary>
         /// <remarks>The header of the frame is always encoded using the frame protocol's encoding.</remarks>
@@ -41,7 +45,12 @@ namespace IceRpc
 
         /// <summary>Constructs an outgoing frame.</summary>
         /// <param name="protocol">The protocol used to send the frame.</param>
-        protected OutgoingFrame(Protocol protocol) => Protocol = protocol;
+        /// <param name="payloadSink">The outgoing frame's payload sink.</param>
+        protected OutgoingFrame(Protocol protocol, PipeWriter payloadSink)
+        {
+            Protocol = protocol;
+            PayloadSink = payloadSink;
+        }
 
         internal void SendStreamParam(IMultiplexedStream stream)
         {

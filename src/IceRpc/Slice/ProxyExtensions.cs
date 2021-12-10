@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.IO.Pipelines;
+
 namespace IceRpc.Slice
 {
     /// <summary>A function that decodes the return value from an Ice-encoded response.</summary>
@@ -41,7 +43,7 @@ namespace IceRpc.Slice
             this Proxy proxy,
             string operation,
             IceEncoding payloadEncoding,
-            ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
+            PipeReader requestPayload,
             IStreamParamSender? streamParamSender,
             ResponseDecodeFunc<T> responseDecodeFunc,
             Invocation? invocation,
@@ -92,7 +94,7 @@ namespace IceRpc.Slice
             this Proxy proxy,
             string operation,
             IceEncoding payloadEncoding,
-            ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
+            PipeReader requestPayload,
             DefaultIceDecoderFactories defaultIceDecoderFactories,
             IStreamParamSender? streamParamSender,
             Invocation? invocation,
