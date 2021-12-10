@@ -36,7 +36,7 @@ namespace IceRpc
         internal CancellationTokenSource? CancelDispatchSource { get; set; }
 
         /// <summary>The initial payload sink of a response created for this request.</summary>
-        internal PipeWriter ResponsePayloadSink { get; }
+        internal PipeWriter InitialResponsePayloadSink { get; }
 
         /// <summary>The stream used to receive the request.</summary>
         internal IMultiplexedStream? Stream { get; init; }
@@ -59,7 +59,7 @@ namespace IceRpc
         {
             Path = path;
             Operation = operation;
-            ResponsePayloadSink = responsePayloadSink;
+            InitialResponsePayloadSink = responsePayloadSink;
         }
     }
 }

@@ -13,7 +13,7 @@ namespace IceRpc
         /// <summary>Constructs an outgoing response.</summary>
         /// <param name="request">The incoming request.</param>
         public OutgoingResponse(IncomingRequest request) :
-            base(request.Protocol, request.ResponsePayloadSink) =>
+            base(request.Protocol, request.InitialResponsePayloadSink) =>
             PayloadEncoding = request.PayloadEncoding;
     }
 }

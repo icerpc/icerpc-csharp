@@ -24,7 +24,8 @@ namespace IceRpc.Internal
         {
 #pragma warning disable CA2012
             // TODO: not very nice - can we do better? Called by the default PipeWriter.AsStream implementation.
-            if (CompleteAsync(exception) is ValueTask valueTask && !valueTask.IsCompleted)
+            ValueTask valueTask = CompleteAsync(exception);
+            if (!valueTask.IsCompleted)
             {
                 valueTask.AsTask().GetAwaiter().GetResult();
             }
@@ -48,7 +49,7 @@ namespace IceRpc.Internal
                         }
                         catch (MultiplexedStreamAbortedException)
                         {
-                            // See WriteASync
+                            // See WriteAsync
                             _isReaderCompleted = true;
                         }
                     }

@@ -380,7 +380,8 @@ namespace IceRpc.Internal
 
                 if (payloadSize > 0 && isCompleted)
                 {
-                    throw new ArgumentException($"empty payload with {payloadSize} bytes");
+                    throw new ArgumentException(
+                        $"expected {payloadSize} bytes in ice1 request payload source, but it's empty");
                 }
 
                 var bufferWriter = new BufferWriter();
@@ -447,6 +448,8 @@ namespace IceRpc.Internal
                         }
                     }
                 }
+
+                // TODO: rework this code to send the header and first part of the payload together.
 
                 ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
                 await _networkConnection.WriteAsync(buffers, CancellationToken.None).ConfigureAwait(false);
@@ -530,7 +533,8 @@ namespace IceRpc.Internal
 
                         if (payloadSize > 0 && isCompleted)
                         {
-                            throw new ArgumentException($"empty payload with {payloadSize} bytes");
+                            throw new ArgumentException(
+                                $"expected {payloadSize} bytes in response payload source, but it's empty");
                         }
 
                         var bufferWriter = new BufferWriter();

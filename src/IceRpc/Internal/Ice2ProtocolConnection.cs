@@ -186,21 +186,21 @@ namespace IceRpc.Internal
                         }
 
                         stream.ShutdownAction = () =>
+                        {
+                            request.CancelDispatchSource.Cancel();
+                            request.CancelDispatchSource.Dispose();
+
+                            lock (_mutex)
                             {
-                                request.CancelDispatchSource.Cancel();
-                                request.CancelDispatchSource.Dispose();
+                                _dispatches.Remove(request);
 
-                                lock (_mutex)
+                                // If no more invocations or dispatches and shutting down, shutdown can complete.
+                                if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
                                 {
-                                    _dispatches.Remove(request);
-
-                                    // If no more invocations or dispatches and shutting down, shutdown can complete.
-                                    if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
-                                    {
-                                        _dispatchesAndInvocationsCompleted.SetResult();
-                                    }
+                                    _dispatchesAndInvocationsCompleted.SetResult();
                                 }
-                            };
+                            }
+                        };
                         return request;
                     }
                 }
