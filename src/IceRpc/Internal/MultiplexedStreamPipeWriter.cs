@@ -57,23 +57,7 @@ namespace IceRpc.Internal
                     try
                     {
                         // TODO: all this activity during CompleteAsync is worrying.
-
-                        if (!(await FlushAsync(CancellationToken.None).ConfigureAwait(false)).IsCompleted)
-                        {
-                            try
-                            {
-                                await _stream.WriteAsync(
-                                    ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty,
-                                    endStream: true,
-                                    cancel: default).ConfigureAwait(false);
-                            }
-                            catch (MultiplexedStreamAbortedException)
-                            {
-                                // See WriteAsync
-                                _isReaderCompleted = true;
-                                throw;
-                            }
-                        }
+                        _ = await WriteAsync(default, CancellationToken.None).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
