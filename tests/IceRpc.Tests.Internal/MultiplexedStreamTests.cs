@@ -4,6 +4,7 @@ using IceRpc.Slice;
 using IceRpc.Transports;
 using NUnit.Framework;
 using System.IO.Compression;
+using System.IO.Pipelines;
 
 namespace IceRpc.Tests.Internal
 {
@@ -167,9 +168,6 @@ namespace IceRpc.Tests.Internal
             Assert.DoesNotThrowAsync(async () => await dispatchCanceled.Task);
         }
 
-        /*
-        TODO: reenable these tests with PipeReader/PipeWriter once IMultiplexedStream is an IDuplexPipe.
-
         [TestCase(256, 256)]
         [TestCase(1024, 256)]
         [TestCase(256, 1024)]
@@ -184,16 +182,17 @@ namespace IceRpc.Tests.Internal
             IMultiplexedStream stream = ClientConnection.CreateStream(true);
             _ = stream.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, false, default).AsTask();
 
-            IMultiplexedStream serverStream = await serverAcceptStream;
+            _ = await serverAcceptStream;
 
             byte[] sendBuffer = new byte[sendSize];
             new Random().NextBytes(sendBuffer);
 
-            IStreamParamSender writer = new ByteStreamParamSender(new MemoryStream(sendBuffer));
-            _ = Task.Run(() => writer.SendAsync(stream), CancellationToken.None);
+            // TODO: it's not clear what we're testing here. The multiplexed stream doesn't appear to be involved.
+
+            var payloadSourceStream = PipeReader.Create(new MemoryStream(sendBuffer));
+            Stream receiveStream = payloadSourceStream.AsStream();
 
             byte[] receiveBuffer = new byte[recvSize];
-            Stream receiveStream = StreamParamReceiver.ToByteStream();
 
             int offset = 0;
             while (offset < sendSize)
@@ -211,6 +210,8 @@ namespace IceRpc.Tests.Internal
                 return serverStream;
             }
         }
+
+        /*  TODO: reenable with updated IMultiplexedStream API
 
         [TestCase(false)]
         [TestCase(true)]
