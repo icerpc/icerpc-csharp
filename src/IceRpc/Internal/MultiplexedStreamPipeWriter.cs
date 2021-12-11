@@ -55,23 +55,24 @@ namespace IceRpc.Internal
             {
                 if (exception == null)
                 {
-                    if (!_isReaderCompleted && !_isWriterCompleted)
+                    if (!_isWriterCompleted)
                     {
                         // TODO: all this activity during CompleteAsync is worrying.
 
-                        await WriteBufferedMemoryAsync(CancellationToken.None).ConfigureAwait(false);
-
-                        try
+                        if (!(await FlushAsync(CancellationToken.None).ConfigureAwait(false)).IsCompleted)
                         {
-                            await _stream.WriteAsync(
-                                ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty,
-                                endStream: true,
-                                cancel: default).ConfigureAwait(false);
-                        }
-                        catch (MultiplexedStreamAbortedException)
-                        {
-                            // See WriteAsync
-                            _isReaderCompleted = true;
+                            try
+                            {
+                                await _stream.WriteAsync(
+                                    ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty,
+                                    endStream: true,
+                                    cancel: default).ConfigureAwait(false);
+                            }
+                            catch (MultiplexedStreamAbortedException)
+                            {
+                                // See WriteAsync
+                                _isReaderCompleted = true;
+                            }
                         }
                     }
                     // else no-op
@@ -116,9 +117,42 @@ namespace IceRpc.Internal
         {
             ThrowIfCompleted();
 
-            if (!_isReaderCompleted)
+            if (!_isReaderCompleted && _pipe is Pipe pipe)
             {
-                await WriteBufferedMemoryAsync(cancellationToken).ConfigureAwait(false);
+                // We're flushing our own internal pipe here.
+                _ = await pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+
+                if (pipe.Reader.TryRead(out ReadResult result))
+                {
+                    try
+                    {
+                        if (result.Buffer.IsSingleSegment)
+                        {
+                            await _stream.WriteAsync(
+                                new ReadOnlyMemory<byte>[] { result.Buffer.First },
+                                endStream: false,
+                                cancellationToken).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            await _stream.WriteAsync(
+                                new ReadOnlyMemory<byte>[] { result.Buffer.ToArray() },
+                                endStream: false,
+                                cancellationToken).ConfigureAwait(false);
+                        }
+                    }
+                    catch (MultiplexedStreamAbortedException)
+                    {
+                        // TODO: confirm this is indeed correct
+                        _isReaderCompleted = true;
+                    }
+                    finally
+                    {
+                        // The unflushed bytes are all consumed no matter what.
+                        pipe.Reader.AdvanceTo(result.Buffer.End);
+                    }
+                }
+                // else pipe is empty, meaning there was no call to writer.Advance (fine).
             }
 
             return new FlushResult(isCanceled: false, isCompleted: _isReaderCompleted);
@@ -133,14 +167,12 @@ namespace IceRpc.Internal
         {
             ThrowIfCompleted();
 
-            if (source.Length == 0)
+            if (!(await FlushAsync(cancellationToken).ConfigureAwait(false)).IsCompleted)
             {
-                _isWriterCompleted = true;
-            }
-
-            if (!_isReaderCompleted)
-            {
-                await WriteBufferedMemoryAsync(cancellationToken).ConfigureAwait(false);
+                if (source.Length == 0)
+                {
+                    _isWriterCompleted = true;
+                }
 
                 try
                 {
@@ -163,49 +195,6 @@ namespace IceRpc.Internal
         // implementation calls GetMemory / Advance.
 
         internal MultiplexedStreamPipeWriter(IMultiplexedStream stream) => _stream = stream;
-
-        private async ValueTask WriteBufferedMemoryAsync(CancellationToken cancel)
-        {
-            Debug.Assert(!_isReaderCompleted);
-
-            if (_pipe is Pipe pipe)
-            {
-                // We're flushing our own internal pipe here.
-                _ = await pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-
-                if (pipe.Reader.TryRead(out ReadResult result))
-                {
-                    try
-                    {
-                        if (result.Buffer.IsSingleSegment)
-                        {
-                            await _stream.WriteAsync(
-                                new ReadOnlyMemory<byte>[] { result.Buffer.First },
-                                endStream: false,
-                                cancel).ConfigureAwait(false);
-                        }
-                        else
-                        {
-                            await _stream.WriteAsync(
-                                new ReadOnlyMemory<byte>[] { result.Buffer.ToArray() },
-                                endStream: false,
-                                cancel).ConfigureAwait(false);
-                        }
-                    }
-                    catch (MultiplexedStreamAbortedException)
-                    {
-                        // TODO: confirm this is indeed correct
-                        _isReaderCompleted = true;
-                    }
-                    finally
-                    {
-                        // The unflushed bytes are all consumed no matter what.
-                        pipe.Reader.AdvanceTo(result.Buffer.End);
-                    }
-                }
-                // else pipe is empty, meaning there was no call to writer.Advance (fine).
-            }
-        }
 
         private void ThrowIfCompleted()
         {
