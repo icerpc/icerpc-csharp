@@ -44,7 +44,7 @@ namespace IceRpc
         /// <param name="operation">The operation of the request.</param>
         /// <param name="payload">The payload of the request.</param>
         /// <param name="payloadEncoding">The encoding of the payload.</param>
-        /// <param name="responseWriter">The response sink.</param>
+        /// <param name="responseWriter">The response writer.</param>
         internal IncomingRequest(
             Protocol protocol,
             string path,

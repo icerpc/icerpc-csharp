@@ -372,7 +372,10 @@ namespace IceRpc.Internal
                 throw;
             }
 
-            request.ResponseReader = CreateInputPipeReader(stream, cancel);
+            if (!request.IsOneway)
+            {
+                request.ResponseReader = CreateInputPipeReader(stream, cancel);
+            }
         }
 
         /// <inheritdoc/>
@@ -384,7 +387,7 @@ namespace IceRpc.Internal
             if (request.IsOneway)
             {
                 await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
-                Debug.Assert(request.ResponseWriter == InvalidPipeWriter.Instance);
+                await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
                 return;
             }
 
@@ -796,7 +799,7 @@ namespace IceRpc.Internal
                 // endStream or actually complete the frameWriter if successful.
                 await outgoingFrame.PayloadSink.CompleteAsync().ConfigureAwait(false);
 
-                // The actual WriteEndStram + Complete
+                // The actual WriteEndStream + Complete
                 await frameWriter.WriteEndStreamAndCompleteAsync(cancel).ConfigureAwait(false);
             }
 

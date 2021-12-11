@@ -23,6 +23,10 @@ namespace IceRpc
         /// <summary>The features of this frame.</summary>
         public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
+        /// <summary>Returns the encoding of the payload of this frame.</summary>
+        /// <remarks>The header of the frame is always encoded using the frame protocol's encoding.</remarks>
+        public Encoding PayloadEncoding { get; init; } = Encoding.Unknown;
+
         /// <summary>Gets or sets the payload sink of this frame.</summary>
         public PipeWriter PayloadSink { get; set; }
 
@@ -34,10 +38,6 @@ namespace IceRpc
         /// sent after the payload source. It's sent in the background: the sending operation does not await it.
         /// </summary>
         public PipeReader? PayloadSourceStream { get; set; }
-
-        /// <summary>Returns the encoding of the payload of this frame.</summary>
-        /// <remarks>The header of the frame is always encoded using the frame protocol's encoding.</remarks>
-        public Encoding PayloadEncoding { get; init; } = Encoding.Unknown;
 
         /// <summary>Returns the Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }

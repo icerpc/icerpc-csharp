@@ -546,7 +546,7 @@ namespace IceRpc.Internal
                         var bufferWriter = new BufferWriter();
                         if (response.PayloadSourceStream != null)
                         {
-                            throw new NotSupportedException("payload source stream is supported with ice1");
+                            throw new NotSupportedException("payload source stream is not supported with ice1");
                         }
 
                         var encoder = new Ice11Encoder(bufferWriter);
