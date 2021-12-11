@@ -507,8 +507,15 @@ namespace IceRpc.Internal
             try
             {
                 // Send the response if the request is not a one-way request.
-                if (!request.IsOneway)
+                if (request.IsOneway)
                 {
+                    await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
+                    await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
+                }
+                else
+                {
+                    Debug.Assert(!_isUdp); // udp is oneway-only so no response
+
                     // Wait for sending of other frames to complete. The semaphore is used as an asynchronous
                     // queue to serialize the sending of frames.
                     await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
@@ -593,11 +600,9 @@ namespace IceRpc.Internal
 
                         encoder.EncodeFixedLengthSize(bufferWriter.Size + payloadSize, frameSizeStart);
 
-                        Debug.Assert(!_isUdp);
-
                         // Send the response frame header
                         ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
-                        await _networkConnection.WriteAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+                        await request.ResponseWriter.WriteAsync(buffers.ToSingleBuffer(), cancel).ConfigureAwait(false);
 
                         await response.PayloadSource.CopyToAsync(
                                 response.PayloadSink,
