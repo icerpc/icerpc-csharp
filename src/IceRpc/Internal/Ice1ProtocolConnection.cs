@@ -160,7 +160,7 @@ namespace IceRpc.Internal
                         operation: requestHeader.Operation,
                         payload: new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
                         payloadEncoding,
-                        initialResponsePayloadSink: requestId == 0 ?
+                        responseWriter: requestId == 0 ?
                             InvalidPipeWriter.Instance : new SimpleNetworkConnectionPipeWriter(_networkConnection))
                     {
                         IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
@@ -200,15 +200,11 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
-        public async Task<IncomingResponse> ReceiveResponseAsync(
-            OutgoingRequest request,
-            PipeReader _,
-            CancellationToken cancel)
+        public async Task<IncomingResponse> ReceiveResponseAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            if (request.IsOneway)
-            {
-                throw new InvalidOperationException("can't receive a response for a oneway request");
-            }
+            // This class sent this request and didn't set a ResponseReader on it.
+            Debug.Assert(request.ResponseReader == null);
+            Debug.Assert(!request.IsOneway);
 
             Ice1Request? requestFeature = request.Features.Get<Ice1Request>();
             if (requestFeature == null || requestFeature.ResponseCompletionSource == null)
@@ -320,7 +316,7 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
-        public async Task<PipeReader> SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
+        public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
             if (request.PayloadSourceStream != null)
             {
@@ -495,9 +491,6 @@ namespace IceRpc.Internal
             {
                 _sendSemaphore.Release();
             }
-
-            // TODO: for now we always return an empty pipe reader that we don't use
-            return EmptyPipeReader.Instance;
         }
 
         /// <inheritdoc/>

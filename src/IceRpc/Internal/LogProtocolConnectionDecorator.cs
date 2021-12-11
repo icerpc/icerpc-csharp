@@ -2,7 +2,6 @@
 
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
-using System.IO.Pipelines;
 
 namespace IceRpc.Internal
 {
@@ -46,27 +45,24 @@ namespace IceRpc.Internal
 
         async Task<IncomingResponse> IProtocolConnection.ReceiveResponseAsync(
             OutgoingRequest request,
-            PipeReader responseReader,
             CancellationToken cancel)
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             using IDisposable _ = _logger.StartReceiveResponseScope(request);
             IncomingResponse response = await _decoratee.ReceiveResponseAsync(
                 request,
-                responseReader,
                 cancel).ConfigureAwait(false);
 
             _logger.LogReceiveResponse(response.PayloadEncoding, response.ResultType);
             return response;
         }
 
-        async Task<PipeReader> IProtocolConnection.SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
+        async Task IProtocolConnection.SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             using IDisposable _ = _logger.StartSendRequestScope(request);
-            PipeReader responseReader = await _decoratee.SendRequestAsync(request, cancel).ConfigureAwait(false);
+            await _decoratee.SendRequestAsync(request, cancel).ConfigureAwait(false);
             _logger.LogSendRequest(request.PayloadEncoding);
-            return responseReader;
         }
 
         async Task IProtocolConnection.SendResponseAsync(

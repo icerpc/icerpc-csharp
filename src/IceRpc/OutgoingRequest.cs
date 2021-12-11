@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using System.Collections.Immutable;
+using System.IO.Pipelines;
 
 namespace IceRpc
 {
@@ -48,7 +49,13 @@ namespace IceRpc
         /// <summary>The proxy that is sending this request.</summary>
         public Proxy Proxy { get; }
 
+        /// <summary>The payload sink that an interceptor would see unless some other interceptor decorates it.
+        /// </summary>
         internal DelayedPipeWriterDecorator InitialPayloadSink { get; }
+
+        /// <summary>A pipe reader used to read the response. The protocol connection implementation may or may not set
+        /// this property when sending the request.</summary>
+        internal PipeReader? ResponseReader { get; set; }
 
         /// <summary>Constructs an outgoing request.</summary>
         /// <param name="proxy">The <see cref="Proxy"/> used to send the request.</param>

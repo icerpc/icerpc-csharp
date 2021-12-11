@@ -33,8 +33,10 @@ namespace IceRpc
         /// <summary>Get the cancellation dispatch source.</summary>
         internal CancellationTokenSource? CancelDispatchSource { get; set; }
 
-        /// <summary>The initial payload sink of a response created for this request.</summary>
-        internal PipeWriter InitialResponsePayloadSink { get; }
+        /// <summary>The pipe writer used by IceRPC to write the response, including the response header. This is also
+        /// the outgoing response's payload sink a middleware would see if no middleware decorates this response's
+        /// payload sink.</summary>
+        internal PipeWriter ResponseWriter { get; }
 
         /// <summary>Constructs an incoming request.</summary>
         /// <param name="protocol">The <see cref="Protocol"/> used to send the request.</param>
@@ -42,20 +44,19 @@ namespace IceRpc
         /// <param name="operation">The operation of the request.</param>
         /// <param name="payload">The payload of the request.</param>
         /// <param name="payloadEncoding">The encoding of the payload.</param>
-        /// <param name="initialResponsePayloadSink">The initial payload sink of a response created for this request.
-        /// </param>
+        /// <param name="responseWriter">The response sink.</param>
         internal IncomingRequest(
             Protocol protocol,
             string path,
             string operation,
             PipeReader payload,
             Encoding payloadEncoding,
-            PipeWriter initialResponsePayloadSink) :
+            PipeWriter responseWriter) :
             base(protocol, payload, payloadEncoding)
         {
             Path = path;
             Operation = operation;
-            InitialResponsePayloadSink = initialResponsePayloadSink;
+            ResponseWriter = responseWriter;
         }
     }
 }

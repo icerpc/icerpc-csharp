@@ -243,7 +243,7 @@ namespace IceRpc.Tests.Internal
                 operation: "foo",
                 PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
                 Encoding.Ice20,
-                initialResponsePayloadSink: new DelayedPipeWriterDecorator())
+                responseWriter: new DelayedPipeWriterDecorator())
             {
                 Connection = connection,
                 IsOneway = !twoway

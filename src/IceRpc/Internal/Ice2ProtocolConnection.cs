@@ -154,7 +154,7 @@ namespace IceRpc.Internal
                     payload: reader,
                     payloadEncoding: header.PayloadEncoding.Length > 0 ?
                         Encoding.FromString(header.PayloadEncoding) : Ice2Definitions.Encoding,
-                    initialResponsePayloadSink: stream.IsBidirectional ?
+                    responseWriter: stream.IsBidirectional ?
                         new MultiplexedStreamPipeWriter(stream) : InvalidPipeWriter.Instance)
                 {
                     IsIdempotent = header.Idempotent,
@@ -207,19 +207,17 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
-        public async Task<IncomingResponse> ReceiveResponseAsync(
-            OutgoingRequest request,
-            PipeReader responseReader,
-            CancellationToken cancel)
+        public async Task<IncomingResponse> ReceiveResponseAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            if (request.IsOneway)
-            {
-                throw new InvalidOperationException("can't receive a response for a oneway request");
-            }
+            // This class sent this request and set ResponseReader on it.
+            Debug.Assert(request.ResponseReader != null);
+            Debug.Assert(!request.IsOneway);
 
             Ice2ResponseHeader header;
             IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields;
             FeatureCollection features = FeatureCollection.Empty;
+
+            PipeReader responseReader = request.ResponseReader;
 
             try
             {
@@ -274,7 +272,7 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
-        public async Task<PipeReader> SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
+        public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
             IMultiplexedStream stream;
             try
@@ -374,7 +372,7 @@ namespace IceRpc.Internal
                 throw;
             }
 
-            return CreateInputPipeReader(stream, cancel);
+            request.ResponseReader = CreateInputPipeReader(stream, cancel);
         }
 
         /// <inheritdoc/>
@@ -409,7 +407,7 @@ namespace IceRpc.Internal
                 // We're done with the header encoding, write the header size.
                 _ = encoder.EndFixedLengthSize(frameHeaderStart, 2);
 
-                PipeWriter output = request.InitialResponsePayloadSink;
+                PipeWriter output = request.ResponseWriter;
 
                 // Send the header. TODO: delay the sending (flushing) until we send the payload
 

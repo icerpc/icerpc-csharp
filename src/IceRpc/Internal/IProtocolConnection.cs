@@ -28,20 +28,14 @@ namespace IceRpc.Internal
 
         /// <summary>Receives a response for a given request.</summary>
         /// <param name="request">The outgoing request associated to the response to receive.</param>
-        /// <param name="responseReader">The pipe reader returned by the corresponding <see cref="SendRequestAsync"/>.
-        /// </param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The incoming response.</returns>
-        Task<IncomingResponse> ReceiveResponseAsync(
-            OutgoingRequest request,
-            PipeReader responseReader,
-            CancellationToken cancel);
+        Task<IncomingResponse> ReceiveResponseAsync(OutgoingRequest request, CancellationToken cancel);
 
         /// <summary>Sends a request.</summary>
         /// <param name="request">The outgoing request to send.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A pipe reader to read the response.</returns>
-        Task<PipeReader> SendRequestAsync(OutgoingRequest request, CancellationToken cancel);
+        Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel);
 
         /// <summary>Sends a response.</summary>
         /// <param name="response">The outgoing response to send.</param>
