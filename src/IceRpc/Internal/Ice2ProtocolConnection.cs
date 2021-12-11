@@ -384,11 +384,7 @@ namespace IceRpc.Internal
             IncomingRequest request,
             CancellationToken cancel)
         {
-            if (request.Stream == null)
-            {
-                throw new InvalidOperationException($"{nameof(request.Stream)} is not set");
-            }
-            else if (request.IsOneway)
+            if (request.IsOneway)
             {
                 await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
                 await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
@@ -416,7 +412,7 @@ namespace IceRpc.Internal
 
                 // TODO: it's the initial PayloadSink but we can't retrieve it and it seems illogical to store it in the
                 // response frame.
-                PipeWriter output = new MultiplexedStreamPipeWriter(request.Stream);
+                PipeWriter output = new MultiplexedStreamPipeWriter(request.Stream!);
 
                 // Send the header. TODO: delay the sending (flushing) until we send the payload
 
