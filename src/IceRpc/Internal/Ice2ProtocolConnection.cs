@@ -208,18 +208,15 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
-        public async Task<IncomingResponse> ReceiveResponseAsync(OutgoingRequest request, CancellationToken cancel)
+        public async Task<IncomingResponse> ReceiveResponseAsync(
+            OutgoingRequest request,
+            PipeReader responseReader,
+            CancellationToken cancel)
         {
-            if (request.Stream == null)
-            {
-                throw new InvalidOperationException($"{nameof(request.Stream)} is not set");
-            }
-            else if (request.IsOneway)
+            if (request.IsOneway)
             {
                 throw new InvalidOperationException("can't receive a response for a oneway request");
             }
-
-            PipeReader reader = CreateInputPipeReader(request.Stream, cancel);
 
             Ice2ResponseHeader header;
             IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields;
@@ -227,7 +224,9 @@ namespace IceRpc.Internal
 
             try
             {
-                ReadResult readResult = await reader.ReadSegmentAsync(Encoding.Ice20, cancel).ConfigureAwait(false);
+                ReadResult readResult = await responseReader.ReadSegmentAsync(
+                    Encoding.Ice20,
+                    cancel).ConfigureAwait(false);
 
                 // At this point, nothing can call CancelPendingReads on this pipe reader.
                 Debug.Assert(!readResult.IsCanceled);
@@ -240,7 +239,7 @@ namespace IceRpc.Internal
                 var decoder = new Ice20Decoder(readResult.Buffer.ToSingleBuffer());
                 header = new Ice2ResponseHeader(decoder);
                 fields = decoder.DecodeFieldDictionary();
-                reader.AdvanceTo(readResult.Buffer.End);
+                responseReader.AdvanceTo(readResult.Buffer.End);
 
                 RetryPolicy? retryPolicy = fields.Get(
                     (int)FieldKey.RetryPolicy, decoder => new RetryPolicy(decoder));
@@ -251,20 +250,20 @@ namespace IceRpc.Internal
 
                 if (readResult.IsCompleted)
                 {
-                    await reader.CompleteAsync().ConfigureAwait(false);
-                    reader = PipeReader.Create(ReadOnlySequence<byte>.Empty);
+                    await responseReader.CompleteAsync().ConfigureAwait(false);
+                    responseReader = PipeReader.Create(ReadOnlySequence<byte>.Empty);
                 }
             }
             catch (Exception ex)
             {
-                await reader.CompleteAsync(ex).ConfigureAwait(false);
+                await responseReader.CompleteAsync(ex).ConfigureAwait(false);
                 throw;
             }
 
             var response = new IncomingResponse(
                 Protocol.Ice2,
                 header.ResultType,
-                reader,
+                responseReader,
                 payloadEncoding: header.PayloadEncoding.Length > 0 ?
                     Encoding.FromString(header.PayloadEncoding) : Ice2Definitions.Encoding)
             {
@@ -276,13 +275,13 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
-        public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
+        public async Task<PipeReader> SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
+            IMultiplexedStream stream;
             try
             {
                 // Create the stream.
-
-                IMultiplexedStream stream = _networkConnection.CreateStream(!request.IsOneway);
+                stream = _networkConnection.CreateStream(!request.IsOneway);
                 request.Stream = stream;
 
                 var output = new MultiplexedStreamPipeWriter(stream);
@@ -377,6 +376,8 @@ namespace IceRpc.Internal
                 await request.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
                 throw;
             }
+
+            return CreateInputPipeReader(stream, cancel);
         }
 
         /// <inheritdoc/>

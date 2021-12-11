@@ -200,7 +200,10 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
-        public async Task<IncomingResponse> ReceiveResponseAsync(OutgoingRequest request, CancellationToken cancel)
+        public async Task<IncomingResponse> ReceiveResponseAsync(
+            OutgoingRequest request,
+            PipeReader _,
+            CancellationToken cancel)
         {
             if (request.IsOneway)
             {
@@ -317,7 +320,7 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
-        public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
+        public async Task<PipeReader> SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
             if (request.PayloadSourceStream != null)
             {
@@ -492,6 +495,9 @@ namespace IceRpc.Internal
             {
                 _sendSemaphore.Release();
             }
+
+            // TODO: for now we always return an empty pipe reader that we don't use
+            return EmptyPipeReader.Instance;
         }
 
         /// <inheritdoc/>

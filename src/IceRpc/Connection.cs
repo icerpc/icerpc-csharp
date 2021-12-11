@@ -291,7 +291,8 @@ namespace IceRpc
 
             // Send the request. This completes payload source; this also completes payload sink when the Send fails
             // with an exception or there is no payload source stream.
-            await _protocolConnection!.SendRequestAsync(request, cancel).ConfigureAwait(false);
+            PipeReader responseReader =
+                await _protocolConnection!.SendRequestAsync(request, cancel).ConfigureAwait(false);
 
             // Wait for the response if two-way request, otherwise return a response with an empty payload.
             IncomingResponse response = request.IsOneway ?
@@ -300,7 +301,7 @@ namespace IceRpc
                     ResultType.Success,
                     EmptyPipeReader.Instance,
                     request.PayloadEncoding) :
-                await _protocolConnection.ReceiveResponseAsync(request, cancel).ConfigureAwait(false);
+                await _protocolConnection.ReceiveResponseAsync(request, responseReader, cancel).ConfigureAwait(false);
 
             response.Connection = this;
             return response;
