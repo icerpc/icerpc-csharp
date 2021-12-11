@@ -44,7 +44,7 @@ namespace IceRpc.Internal
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly int _incomingFrameMaxSize;
-        private readonly HashSet<OutgoingRequest> _invocations = new();
+        private readonly HashSet<IMultiplexedStream> _invocations = new();
         private long _lastRemoteBidirectionalStreamId = -1;
         // TODO: to we really need to keep track of this since we don't keep track of one-way requests?
         private long _lastRemoteUnidirectionalStreamId = -1;
@@ -282,7 +282,6 @@ namespace IceRpc.Internal
             {
                 // Create the stream.
                 stream = _networkConnection.CreateStream(!request.IsOneway);
-                request.Stream = stream;
 
                 var output = new MultiplexedStreamPipeWriter(stream);
                 request.InitialPayloadSink.SetDecoratee(output);
@@ -298,13 +297,13 @@ namespace IceRpc.Internal
                             stream.Abort(MultiplexedStreamError.ConnectionShutdown);
                             throw new ConnectionClosedException("connection shutdown");
                         }
-                        _invocations.Add(request);
+                        _invocations.Add(stream);
 
                         stream.ShutdownAction = () =>
                         {
                             lock (_mutex)
                             {
-                                _invocations.Remove(request);
+                                _invocations.Remove(stream);
 
                                 // If no more invocations or dispatches and shutting down, shutdown can complete.
                                 if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
@@ -817,7 +816,7 @@ namespace IceRpc.Internal
                 Debug.Assert(false, $"{nameof(PeerShutdownInitiated)} raised unexpected exception\n{ex}");
             }
 
-            IEnumerable<OutgoingRequest> invocations;
+            IEnumerable<IMultiplexedStream> invocations;
             bool alreadyShuttingDown = false;
             lock (_mutex)
             {
@@ -836,16 +835,16 @@ namespace IceRpc.Internal
                 }
 
                 // Cancel the invocations that were not dispatched by the peer.
-                invocations = _invocations.Where(request =>
-                    !request.Stream!.IsStarted ||
-                    (request.Stream.Id > (request.Stream!.IsBidirectional ?
+                invocations = _invocations.Where(stream =>
+                    !stream.IsStarted ||
+                    (stream.Id > (stream.IsBidirectional ?
                         goAwayFrame.LastBidirectionalStreamId :
                         goAwayFrame.LastUnidirectionalStreamId))).ToArray();
             }
 
-            foreach (OutgoingRequest request in invocations)
+            foreach (IMultiplexedStream stream in invocations)
             {
-                request.Stream!.Abort(MultiplexedStreamError.ConnectionShutdownByPeer);
+                stream.Abort(MultiplexedStreamError.ConnectionShutdownByPeer);
             }
 
             if (!alreadyShuttingDown)
@@ -888,9 +887,9 @@ namespace IceRpc.Internal
                     }
                 }
 
-                foreach (OutgoingRequest request in invocations)
+                foreach (IMultiplexedStream stream in invocations)
                 {
-                    request.Stream!.Abort(MultiplexedStreamError.ConnectionShutdown);
+                    stream.Abort(MultiplexedStreamError.ConnectionShutdown);
                 }
 
                 // Wait again for dispatches and invocations to complete.

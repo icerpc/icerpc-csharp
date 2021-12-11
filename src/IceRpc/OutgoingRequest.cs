@@ -52,9 +52,6 @@ namespace IceRpc
 
         internal DelayedPipeWriterDecorator InitialPayloadSink { get; }
 
-        /// <summary>The stream used to send the request.</summary>
-        internal IMultiplexedStream? Stream { get; set; }
-
         /// <summary>Constructs an outgoing request.</summary>
         /// <param name="proxy">The <see cref="Proxy"/> used to send the request.</param>
         /// <param name="operation">The operation of the request.</param>
