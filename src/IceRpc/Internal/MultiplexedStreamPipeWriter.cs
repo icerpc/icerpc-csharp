@@ -131,7 +131,7 @@ namespace IceRpc.Internal
                     }
                     catch (MultiplexedStreamAbortedException)
                     {
-                        // TODO: confirm this is indeed correct
+                        // TODO: confirm this is indeed correct; should we rethrow?
                         _isReaderCompleted = true;
                     }
                     finally
@@ -171,7 +171,7 @@ namespace IceRpc.Internal
                 }
                 catch (MultiplexedStreamAbortedException)
                 {
-                    // TODO: confirm this is indeed correct
+                    // TODO: confirm this is indeed correct. Should we rethrow?
                     _isReaderCompleted = true;
                 }
             }
