@@ -281,9 +281,11 @@ namespace IceRpc.Internal
             try
             {
                 // Create the stream.
-                request.Stream = _networkConnection.CreateStream(!request.IsOneway);
 
-                var output = new MultiplexedStreamPipeWriter(request.Stream);
+                IMultiplexedStream stream = _networkConnection.CreateStream(!request.IsOneway);
+                request.Stream = stream;
+
+                var output = new MultiplexedStreamPipeWriter(stream);
                 request.InitialPayloadSink.SetDecoratee(output);
 
                 // TODO: missing comment - what are we doing here?
@@ -294,12 +296,12 @@ namespace IceRpc.Internal
                         if (_shutdown)
                         {
                             request.Features = request.Features.With(RetryPolicy.Immediately);
-                            request.Stream.Abort(MultiplexedStreamError.ConnectionShutdown);
+                            stream.Abort(MultiplexedStreamError.ConnectionShutdown);
                             throw new ConnectionClosedException("connection shutdown");
                         }
                         _invocations.Add(request);
 
-                        request.Stream.ShutdownAction = () =>
+                        stream.ShutdownAction = () =>
                         {
                             lock (_mutex)
                             {
