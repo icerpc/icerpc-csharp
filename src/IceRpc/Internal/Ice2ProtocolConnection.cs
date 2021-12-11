@@ -365,43 +365,8 @@ namespace IceRpc.Internal
 
                 if (!flushResult.IsCompleted) // we still have a reader
                 {
-                    // TODO: CopyToAsync does not return a flushResult so we don't know if we still have a reader. It
-                    // just returns with no exception when flushResult.IsCompleted is true. We could implement our own
-                    // version.
-                    await request.PayloadSource.CopyToAsync(request.PayloadSink, cancel).ConfigureAwait(false);
-
+                    await SendPayloadAsync(request, cancel).ConfigureAwait(false);
                     request.IsSent = true;
-                }
-
-                await request.PayloadSource.CompleteAsync().ConfigureAwait(false);
-
-                if (request.PayloadSourceStream is PipeReader payloadSourceStream)
-                {
-                    _ = Task.Run(
-                        async () =>
-                        {
-                            Exception? completeReason = null;
-
-                            try
-                            {
-                                await payloadSourceStream.CopyToAsync(
-                                    request.PayloadSink,
-                                    cancel).ConfigureAwait(false);
-                            }
-                            catch (Exception ex)
-                            {
-                                completeReason = ex;
-                                // no need to rethrow, we're done.
-                            }
-
-                            await payloadSourceStream.CompleteAsync(completeReason).ConfigureAwait(false);
-                            await request.PayloadSink.CompleteAsync(completeReason).ConfigureAwait(false);
-                        },
-                        cancel);
-                }
-                else
-                {
-                    await request.PayloadSink.CompleteAsync().ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -462,43 +427,7 @@ namespace IceRpc.Internal
 
                 if (!flushResult.IsCompleted) // we still have a reader
                 {
-                    // TODO: CopyToAsync does not return a flushResult so we don't know if we still have a reader. It
-                    // just returns with no exception when flushResult.IsCompleted is true. We could implement our own
-                    // version.
-                    await response.PayloadSource.CopyToAsync(response.PayloadSink, cancel).ConfigureAwait(false);
-                    await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
-
-                    // TODO: avoid duplication with SendRequest code
-
-                    if (response.PayloadSourceStream is PipeReader payloadSourceStream)
-                    {
-                        // send payloadSourceStream in the background
-                        _ = Task.Run(
-                            async () =>
-                            {
-                                Exception? completeReason = null;
-
-                                try
-                                {
-                                    await payloadSourceStream.CopyToAsync(
-                                        response.PayloadSink,
-                                        cancel).ConfigureAwait(false);
-                                }
-                                catch (Exception ex)
-                                {
-                                    completeReason = ex;
-                                    // no need to rethrow, we're done.
-                                }
-
-                                await payloadSourceStream.CompleteAsync(completeReason).ConfigureAwait(false);
-                                await response.PayloadSink.CompleteAsync(completeReason).ConfigureAwait(false);
-                            },
-                            cancel);
-                    }
-                    else
-                    {
-                        await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
-                    }
+                    await SendPayloadAsync(response, cancel).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -810,6 +739,48 @@ namespace IceRpc.Internal
                 bufferWriter.Finish(),
                 frameType == Ice2FrameType.GoAwayCompleted,
                 cancel).ConfigureAwait(false);
+        }
+
+        /// <summary>Sends the payload source and payload source stream of an outgoing frame.</summary>
+        private static async ValueTask SendPayloadAsync(OutgoingFrame outgoingFrame, CancellationToken cancel)
+        {
+            // TODO: CopyToAsync does not return a flushResult so we don't know if we still have a reader. It
+            // just returns with no exception when flushResult.IsCompleted is true. We could implement our own
+            // version.
+            await outgoingFrame.PayloadSource.CopyToAsync(outgoingFrame.PayloadSink, cancel).ConfigureAwait(false);
+            await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
+
+            if (outgoingFrame.PayloadSourceStream is PipeReader payloadSourceStream)
+            {
+                // send payloadSourceStream in the background
+                _ = Task.Run(
+                    async () =>
+                    {
+                        Exception? completeReason = null;
+
+                        try
+                        {
+                            await payloadSourceStream.CopyToAsync(
+                                outgoingFrame.PayloadSink,
+                                cancel).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            completeReason = ex;
+                            // no need to rethrow, we're done.
+                        }
+
+                        await payloadSourceStream.CompleteAsync(completeReason).ConfigureAwait(false);
+                        await outgoingFrame.PayloadSink.CompleteAsync(completeReason).ConfigureAwait(false);
+                    },
+                    cancel);
+            }
+            else
+            {
+                await outgoingFrame.PayloadSink.CompleteAsync().ConfigureAwait(false);
+            }
+
+            // The caller CompletAsync the payload source/sink if an exception is thrown.
         }
 
         private async Task WaitForShutdownAsync()
