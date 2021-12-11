@@ -154,7 +154,7 @@ namespace IceRpc.Internal
                     payload: reader,
                     payloadEncoding: header.PayloadEncoding.Length > 0 ?
                         Encoding.FromString(header.PayloadEncoding) : Ice2Definitions.Encoding,
-                    responsePayloadSink: stream.IsBidirectional ?
+                    initialResponsePayloadSink: stream.IsBidirectional ?
                         new MultiplexedStreamPipeWriter(stream) : InvalidPipeWriter.Instance)
                 {
                     IsIdempotent = header.Idempotent,
@@ -163,8 +163,7 @@ namespace IceRpc.Internal
                     // The infinite deadline is encoded as -1 and converted to DateTime.MaxValue
                     Deadline = header.Deadline == -1 ?
                         DateTime.MaxValue : DateTime.UnixEpoch + TimeSpan.FromMilliseconds(header.Deadline),
-                    Fields = fields,
-                    Stream = stream // temporary, used for outgoing responses!
+                    Fields = fields
                 };
 
                 lock (_mutex)
@@ -410,9 +409,7 @@ namespace IceRpc.Internal
                 // We're done with the header encoding, write the header size.
                 _ = encoder.EndFixedLengthSize(frameHeaderStart, 2);
 
-                // TODO: it's the initial PayloadSink but we can't retrieve it and it seems illogical to store it in the
-                // response frame.
-                PipeWriter output = new MultiplexedStreamPipeWriter(request.Stream!);
+                PipeWriter output = request.InitialResponsePayloadSink;
 
                 // Send the header. TODO: delay the sending (flushing) until we send the payload
 

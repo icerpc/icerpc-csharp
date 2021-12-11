@@ -2,10 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
-using IceRpc.Transports;
 using System.Collections.Immutable;
-using System.Buffers;
-using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc

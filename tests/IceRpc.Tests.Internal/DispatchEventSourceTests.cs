@@ -34,7 +34,7 @@ namespace IceRpc.Tests.Internal
                 operation: "ice_id",
                 PipeReader.Create(ReadOnlySequence<byte>.Empty),
                 Encoding.Ice20,
-                responsePayloadSink: InvalidPipeWriter.Instance));
+                initialResponsePayloadSink: InvalidPipeWriter.Instance));
 
             EventWrittenEventArgs? eventData = eventListener.EventData;
             Assert.That(eventData, Is.Not.Null);
@@ -59,7 +59,7 @@ namespace IceRpc.Tests.Internal
                 "ice_id",
                 PipeReader.Create(ReadOnlySequence<byte>.Empty),
                 Encoding.Ice20,
-                responsePayloadSink: InvalidPipeWriter.Instance));
+                initialResponsePayloadSink: InvalidPipeWriter.Instance));
 
             EventWrittenEventArgs? eventData = eventListener.EventData;
             Assert.That(eventData, Is.Not.Null);
@@ -84,7 +84,7 @@ namespace IceRpc.Tests.Internal
                 operation: "ice_id",
                 PipeReader.Create(ReadOnlySequence<byte>.Empty),
                 Encoding.Ice20,
-                responsePayloadSink: InvalidPipeWriter.Instance));
+                initialResponsePayloadSink: InvalidPipeWriter.Instance));
 
             EventWrittenEventArgs? eventData = eventListener.EventData;
             Assert.That(eventData, Is.Not.Null);
@@ -110,7 +110,7 @@ namespace IceRpc.Tests.Internal
                     operation: "ice_id",
                     PipeReader.Create(ReadOnlySequence<byte>.Empty),
                     Encoding.Ice20,
-                    responsePayloadSink: InvalidPipeWriter.Instance),
+                    initialResponsePayloadSink: InvalidPipeWriter.Instance),
                 "IceRpc.RemoteException");
 
             EventWrittenEventArgs? eventData = eventListener.EventData;

@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.IO.Pipelines;
-
 namespace IceRpc
 {
     /// <summary>Represents a response protocol frame sent by the application.</summary>

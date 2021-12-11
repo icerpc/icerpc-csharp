@@ -160,7 +160,7 @@ namespace IceRpc.Internal
                         operation: requestHeader.Operation,
                         payload: new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
                         payloadEncoding,
-                        responsePayloadSink: requestId == 0 ?
+                        initialResponsePayloadSink: requestId == 0 ?
                             InvalidPipeWriter.Instance : new SimpleNetworkConnectionPipeWriter(_networkConnection))
                     {
                         IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
