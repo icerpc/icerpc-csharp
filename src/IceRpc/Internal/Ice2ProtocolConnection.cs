@@ -293,7 +293,6 @@ namespace IceRpc.Internal
                     {
                         if (_shutdown)
                         {
-                            request.Features = request.Features.With(RetryPolicy.Immediately);
                             stream.Abort(MultiplexedStreamError.ConnectionShutdown);
                             throw new ConnectionClosedException("connection shutdown");
                         }
