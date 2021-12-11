@@ -64,10 +64,9 @@ namespace IceRpc.Internal
                     }
                     else if (exception is OperationCanceledException)
                     {
-                        // TODO: it can also be DispatchCanceled, but I could find no way to identify if this stream
+                        // TODO: it can also be InvocationCanceled, but I could find no way to identify if this stream
                         // was initiated locally (invocation) or remotely (dispatch).
                         errorCode = (byte)MultiplexedStreamError.DispatchCanceled;
-                            // (byte)MultiplexedStreamError.InvocationCanceled;
                     }
                     else
                     {

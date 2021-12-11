@@ -7,7 +7,6 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
@@ -541,6 +540,7 @@ namespace IceRpc
             {
                 // Dispatch the request and get the response.
                 OutgoingResponse? response = null;
+
                 try
                 {
                     CancellationToken cancel = request.CancelDispatchSource?.Token ?? default;
@@ -597,9 +597,9 @@ namespace IceRpc
                     request,
                     CancellationToken.None).ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex)
             {
-                request.Stream?.Abort(MultiplexedStreamError.DispatchCanceled);
+                await request.InitialResponsePayloadSink.CompleteAsync(ex).ConfigureAwait(false);
             }
             catch (MultiplexedStreamAbortedException)
             {
