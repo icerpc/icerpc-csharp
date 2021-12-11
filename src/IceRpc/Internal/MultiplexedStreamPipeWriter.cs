@@ -2,7 +2,6 @@
 
 using IceRpc.Transports;
 using System.Buffers;
-using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Internal
@@ -20,7 +19,7 @@ namespace IceRpc.Internal
             {
                 ThrowIfCompleted();
 
-                // TODO: the relevant PipeOptions should be supplied to the constructor.
+                // TODO: the relevant PipeOptions should be supplied to the MultiplexedStreamPipeWriter constructor.
                 _pipe ??= new Pipe();
                 return _pipe.Writer;
             }
@@ -53,9 +52,9 @@ namespace IceRpc.Internal
         {
             try
             {
-                if (exception == null)
+                if (exception == null && !_isWriterCompleted)
                 {
-                    if (!_isWriterCompleted)
+                    try
                     {
                         // TODO: all this activity during CompleteAsync is worrying.
 
@@ -72,12 +71,18 @@ namespace IceRpc.Internal
                             {
                                 // See WriteAsync
                                 _isReaderCompleted = true;
+                                throw;
                             }
                         }
                     }
-                    // else no-op
+                    catch (Exception ex)
+                    {
+                        exception = ex;
+                        // and then process it below
+                    }
                 }
-                else
+
+                if (exception != null)
                 {
                     byte errorCode;
                     if (exception is MultiplexedStreamAbortedException multiplexedException)
@@ -86,8 +91,7 @@ namespace IceRpc.Internal
                     }
                     else if (exception is OperationCanceledException)
                     {
-                        // TODO: it can also be InvocationCanceled, but I could find no way to identify if this stream
-                        // was initiated locally (invocation) or remotely (dispatch).
+                        // TODO: could it also be InvocationCanceled?
                         errorCode = (byte)MultiplexedStreamError.DispatchCanceled;
                     }
                     else
