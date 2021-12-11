@@ -4,8 +4,6 @@ using NUnit.Framework;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 
-#pragma warning disable CA2000 // TODO Dispose MemoryStream used for Stream params
-
 namespace IceRpc.Tests.Slice.Stream
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
@@ -74,31 +72,46 @@ namespace IceRpc.Tests.Slice.Stream
             Assert.That(r2, Is.EqualTo(6));
             await stream.DisposeAsync();
 
-            await _prx.OpStreamByteSend0Async(new MemoryStream(_sendBuffer));
-            await _prx.OpStreamByteSend1Async(0x08, new MemoryStream(_sendBuffer));
-            await _prx.OpStreamByteSend2Async(0x08, 10, new MemoryStream(_sendBuffer));
-
-            stream = await _prx.OpStreamByteSendReceive0Async(new MemoryStream(_sendBuffer));
-            Assert.That(await stream.ReadAsync(buffer.AsMemory(0, 512)), Is.EqualTo(256));
-            Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
-            Assert.That(await stream.ReadAsync(buffer.AsMemory(0, 512)), Is.EqualTo(0));
-            await stream.DisposeAsync();
-
-            (r1, stream) = await _prx.OpStreamByteSendReceive1Async(0x08, new MemoryStream(_sendBuffer));
-            Assert.That(await stream.ReadAsync(buffer.AsMemory(0, 512)), Is.EqualTo(256));
-            Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
-            Assert.That(r1, Is.EqualTo(0x08));
-            await stream.DisposeAsync();
-
-            (r1, r2, stream) = await _prx.OpStreamByteSendReceive2Async(
-                0x08,
-                10,
-                new MemoryStream(_sendBuffer));
-            Assert.That(await stream.ReadAsync(buffer.AsMemory(0, 512)), Is.EqualTo(256));
-            Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
-            Assert.That(r1, Is.EqualTo(0x08));
-            Assert.That(r2, Is.EqualTo(10));
-            await stream.DisposeAsync();
+            {
+                using var memoryStream = new MemoryStream(_sendBuffer);
+                await _prx.OpStreamByteSend0Async(memoryStream);
+            }
+            {
+                using var memoryStream = new MemoryStream(_sendBuffer);
+                await _prx.OpStreamByteSend1Async(0x08, memoryStream);
+            }
+            {
+                using var memoryStream = new MemoryStream(_sendBuffer);
+                await _prx.OpStreamByteSend2Async(0x08, 10, memoryStream);
+            }
+            {
+                using var memoryStream = new MemoryStream(_sendBuffer);
+                stream = await _prx.OpStreamByteSendReceive0Async(memoryStream);
+                Assert.That(await stream.ReadAsync(buffer.AsMemory(0, 512)), Is.EqualTo(256));
+                Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
+                Assert.That(await stream.ReadAsync(buffer.AsMemory(0, 512)), Is.EqualTo(0));
+                await stream.DisposeAsync();
+            }
+            {
+                 using var memoryStream = new MemoryStream(_sendBuffer);
+                (r1, stream) = await _prx.OpStreamByteSendReceive1Async(0x08, memoryStream);
+                Assert.That(await stream.ReadAsync(buffer.AsMemory(0, 512)), Is.EqualTo(256));
+                Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
+                Assert.That(r1, Is.EqualTo(0x08));
+                await stream.DisposeAsync();
+            }
+            {
+                using var memoryStream = new MemoryStream(_sendBuffer);
+                (r1, r2, stream) = await _prx.OpStreamByteSendReceive2Async(
+                    0x08,
+                    10,
+                    memoryStream);
+                Assert.That(await stream.ReadAsync(buffer.AsMemory(0, 512)), Is.EqualTo(256));
+                Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
+                Assert.That(r1, Is.EqualTo(0x08));
+                Assert.That(r2, Is.EqualTo(10));
+                await stream.DisposeAsync();
+            }
         }
 
         [Test]
@@ -149,7 +162,7 @@ namespace IceRpc.Tests.Slice.Stream
             var v1 = new MyStruct(1, 1);
             var v2 = new MyStruct(2, 2);
 
-            var semaphore = new SemaphoreSlim(0);
+            using var semaphore = new SemaphoreSlim(0);
             await _prx.OpStreamMyStructSend0Async(MyStructEnumerable(semaphore, 100, v1));
             Assert.That(_servant.MyStructs.Count, Is.EqualTo(0));
             // Release the semaphore to start streaming elements
@@ -182,7 +195,7 @@ namespace IceRpc.Tests.Slice.Stream
         [Test]
         public async Task StreamParam_Send_MyStructCancellation()
         {
-            var semaphore = new SemaphoreSlim(0);
+            using var semaphore = new SemaphoreSlim(0);
             var canceled = new TaskCompletionSource<bool>();
 
             async IAsyncEnumerable<MyStruct> MyStructEnemerable0Async(
@@ -207,7 +220,7 @@ namespace IceRpc.Tests.Slice.Stream
         [Test]
         public async Task StreamParam_SendAndReceive_MyStruct()
         {
-            var semaphore = new SemaphoreSlim(0);
+            using var semaphore = new SemaphoreSlim(0);
 
             var v1 = new MyStruct(1, 1);
             var v2 = new MyStruct(2, 2);
@@ -303,7 +316,7 @@ namespace IceRpc.Tests.Slice.Stream
             AnotherStruct v1 = GetAnotherStruct(1);
             AnotherStruct v2 = GetAnotherStruct(2);
 
-            var semaphore = new SemaphoreSlim(0);
+            using var semaphore = new SemaphoreSlim(0);
             await _prx.OpStreamAnotherStructSend0Async(AnotherStructEnumerable(semaphore, 100, v1));
             Assert.That(_servant.AnotherStructs.Count, Is.EqualTo(0));
             // Release the semaphore to start streaming elements
@@ -336,7 +349,7 @@ namespace IceRpc.Tests.Slice.Stream
         [Test]
         public async Task StreamParam_SendAndReceive_AnotherStruct()
         {
-            var semaphore = new SemaphoreSlim(0);
+            using var semaphore = new SemaphoreSlim(0);
 
             AnotherStruct v1 = GetAnotherStruct(1);
             AnotherStruct v2 = GetAnotherStruct(2);
@@ -396,15 +409,17 @@ namespace IceRpc.Tests.Slice.Stream
                 CancellationToken cancel) =>
                 new(new MemoryStream(_sendBuffer));
 
+#pragma warning disable CA2000 // Call System.IDisposable.Dispose on object created by 'new MemoryStream
             public ValueTask<(byte, System.IO.Stream)> OpStreamByteReceive1Async(
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new((0x05, new MemoryStream(_sendBuffer)));
+                new((0x05, new MemoryStream(_sendBuffer))); // disposed by recipient, who else?
 
             public ValueTask<(byte, int, System.IO.Stream)> OpStreamByteReceive2Async(
                 Dispatch dispatch,
                 CancellationToken cancel) =>
                 new((0x05, 6, new MemoryStream(_sendBuffer)));
+#pragma warning restore CA2000
 
             public async ValueTask OpStreamByteSend0Async(
                 System.IO.Stream p1,
