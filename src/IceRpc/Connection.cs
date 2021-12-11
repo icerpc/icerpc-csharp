@@ -289,29 +289,21 @@ namespace IceRpc
             // Make sure the connection is connected.
             await ConnectAsync(cancel).ConfigureAwait(false);
 
-            try
-            {
-                // Send the request.
-                await _protocolConnection!.SendRequestAsync(request, cancel).ConfigureAwait(false);
+            // Send the request. This completes payload source; this also completes payload sink when the Send fails
+            // with an exception or there is no payload source stream.
+            await _protocolConnection!.SendRequestAsync(request, cancel).ConfigureAwait(false);
 
-                // Wait for the response if two-way request, otherwise return a response with an empty payload.
-                IncomingResponse response = request.IsOneway ?
-                    // TODO: can we use a static shared empty PipeReader?
-                    new IncomingResponse(
-                        Protocol,
-                        ResultType.Success,
-                        PipeReader.Create(ReadOnlySequence<byte>.Empty),
-                        request.PayloadEncoding) :
-                    await _protocolConnection.ReceiveResponseAsync(request, cancel).ConfigureAwait(false);
+            // Wait for the response if two-way request, otherwise return a response with an empty payload.
+            IncomingResponse response = request.IsOneway ?
+                new IncomingResponse(
+                    Protocol,
+                    ResultType.Success,
+                    EmptyPipeReader.Instance,
+                    request.PayloadEncoding) :
+                await _protocolConnection.ReceiveResponseAsync(request, cancel).ConfigureAwait(false);
 
-                response.Connection = this;
-                return response;
-            }
-            catch (OperationCanceledException)
-            {
-                request.Stream?.Abort(MultiplexedStreamError.InvocationCanceled);
-                throw;
-            }
+            response.Connection = this;
+            return response;
         }
 
         /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are

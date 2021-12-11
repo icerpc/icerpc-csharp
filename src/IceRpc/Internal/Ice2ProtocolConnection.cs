@@ -601,6 +601,7 @@ namespace IceRpc.Internal
 
                 while (true)
                 {
+
                     Memory<byte> buffer = writer.GetMemory();
 
                     int count;
@@ -624,10 +625,22 @@ namespace IceRpc.Internal
                                 new OperationCanceledException("dispatch canceled by peer", ex),
                             _ => ex
                         };
+
+                        // TODO: confirm there is no need to AbortRead the stream.
+
                         break; // done
+                    }
+                    catch (OperationCanceledException ex)
+                    {
+                        stream.AbortRead((byte)MultiplexedStreamError.InvocationCanceled);
+                        completeReason = ex;
+                        break;
                     }
                     catch (Exception ex)
                     {
+                        // TODO: error code!
+                        Console.WriteLine($"stream.ReadAsync failed with {ex}");
+                        stream.AbortRead((byte)124);
                         completeReason = ex;
                         break;
                     }
