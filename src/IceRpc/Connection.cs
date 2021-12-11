@@ -534,11 +534,11 @@ namespace IceRpc
             // Start a new task to accept a new incoming request before dispatching this one.
             _ = Task.Run(() => AcceptIncomingRequestAsync(dispatcher));
 
+            OutgoingResponse? response = null;
+
             try
             {
                 // Dispatch the request and get the response.
-                OutgoingResponse? response = null;
-
                 try
                 {
                     CancellationToken cancel = request.CancelDispatchSource?.Token ?? default;
@@ -597,7 +597,16 @@ namespace IceRpc
             }
             catch (OperationCanceledException ex)
             {
-                await request.ResponseWriter.CompleteAsync(ex).ConfigureAwait(false);
+                // The two calls are equivalent except the response.PayloadSink version goes through the decorators
+                // installed by the middleware, if any.
+                if (response != null)
+                {
+                    await response.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                }
+                else
+                {
+                    await request.ResponseWriter.CompleteAsync(ex).ConfigureAwait(false);
+                }
             }
             catch (MultiplexedStreamAbortedException)
             {

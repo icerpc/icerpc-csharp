@@ -25,6 +25,7 @@ namespace IceRpc.Internal
             }
         }
 
+        private bool _endStreamWritten; // true once endStream is written
         private bool _isReaderCompleted;
         private bool _isWriterCompleted;
 
@@ -38,32 +39,19 @@ namespace IceRpc.Internal
 
         public override void Complete(Exception? exception)
         {
-#pragma warning disable CA2012
-            // TODO: not very nice - can we do better? Called by the default PipeWriter.AsStream implementation.
-            ValueTask valueTask = CompleteAsync(exception);
-            if (!valueTask.IsCompleted)
+            if (exception == null && !_endStreamWritten)
             {
-                valueTask.AsTask().GetAwaiter().GetResult();
+                // no-op Complete. WriteEndStreamAndCompleteAsync should be called later.
             }
-#pragma warning restore CA2012
-        }
-
-        public override async ValueTask CompleteAsync(Exception? exception = default)
-        {
-            try
+            else
             {
-                if (exception == null && !_isWriterCompleted)
+                _isWriterCompleted = true;
+
+                if (_pipe != null)
                 {
-                    try
-                    {
-                        // TODO: all this activity during CompleteAsync is worrying.
-                        _ = await WriteAsync(default, CancellationToken.None).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        exception = ex;
-                        // and then process it below
-                    }
+                    _pipe.Writer.Complete();
+                    _pipe.Reader.Complete();
+                    _pipe = null;
                 }
 
                 if (exception != null)
@@ -81,70 +69,19 @@ namespace IceRpc.Internal
                     else
                     {
                         // TODO: error code for other exceptions
-                        Console.WriteLine($"MultiplexedStreamPipeWriter.CompleteAsync received {exception}");
+                        Console.WriteLine($"MultiplexedStreamPipeWriter.Complete received {exception}");
                         errorCode = (byte)123;
                     }
 
                     _stream.AbortWrite(errorCode);
                 }
             }
-            finally
-            {
-                _isWriterCompleted = true;
-
-                if (_pipe != null)
-                {
-                    await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
-                    await _pipe.Reader.CompleteAsync().ConfigureAwait(false);
-                    _pipe = null;
-                }
-            }
         }
 
-        public override async ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken)
-        {
-            ThrowIfCompleted();
+        // Use the default CompleteAsync(Exception? exception = default) that calls Complete above.
 
-            if (!_isReaderCompleted && _pipe is Pipe pipe)
-            {
-                // We're flushing our own internal pipe here.
-                _ = await pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-
-                if (pipe.Reader.TryRead(out ReadResult result))
-                {
-                    try
-                    {
-                        if (result.Buffer.IsSingleSegment)
-                        {
-                            await _stream.WriteAsync(
-                                new ReadOnlyMemory<byte>[] { result.Buffer.First },
-                                endStream: false,
-                                cancellationToken).ConfigureAwait(false);
-                        }
-                        else
-                        {
-                            await _stream.WriteAsync(
-                                new ReadOnlyMemory<byte>[] { result.Buffer.ToArray() },
-                                endStream: false,
-                                cancellationToken).ConfigureAwait(false);
-                        }
-                    }
-                    catch (MultiplexedStreamAbortedException)
-                    {
-                        // TODO: confirm this is indeed correct; should we rethrow?
-                        _isReaderCompleted = true;
-                    }
-                    finally
-                    {
-                        // The unflushed bytes are all consumed no matter what.
-                        pipe.Reader.AdvanceTo(result.Buffer.End);
-                    }
-                }
-                // else pipe is empty, meaning there was no call to writer.Advance (fine).
-            }
-
-            return new FlushResult(isCanceled: false, isCompleted: _isReaderCompleted);
-        }
+        public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken) =>
+            FlushAsyncCore(endStream: false, cancellationToken);
 
         public override Memory<byte> GetMemory(int sizeHint) => PipeWriter.GetMemory(sizeHint);
         public override Span<byte> GetSpan(int sizeHint) => PipeWriter.GetSpan(sizeHint);
@@ -155,34 +92,126 @@ namespace IceRpc.Internal
         {
             ThrowIfCompleted();
 
-            if (!(await FlushAsync(cancellationToken).ConfigureAwait(false)).IsCompleted)
+            if (!(await FlushAsyncCore(endStream: false, cancellationToken).ConfigureAwait(false)).IsCompleted)
             {
-                if (source.Length == 0)
+                if (source.Length > 0)
                 {
-                    _isWriterCompleted = true;
-                }
-
-                try
-                {
-                    await _stream.WriteAsync(
-                        new ReadOnlyMemory<byte>[] { source },
-                        endStream: _isWriterCompleted,
-                        cancellationToken).ConfigureAwait(false);
-                }
-                catch (MultiplexedStreamAbortedException)
-                {
-                    // TODO: confirm this is indeed correct. Should we rethrow?
-                    _isReaderCompleted = true;
+                    try
+                    {
+                        await _stream.WriteAsync(
+                            new ReadOnlyMemory<byte>[] { source },
+                            endStream: false,
+                            cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (MultiplexedStreamAbortedException)
+                    {
+                        // TODO: confirm this is indeed correct. Should we rethrow?
+                        _isReaderCompleted = true;
+                    }
                 }
             }
 
             return new FlushResult(isCanceled: false, isCompleted: _isReaderCompleted);
         }
 
+        /// <summary>Writes the endStream marker and completes this pipe writer.</summary>
+        /// <remarks>We cannot simply have a WriteEndStreamAsync to be called before Complete because StreamPipeWriter
+        /// over a DeflateStream writes bytes in Complete/CompleteAsync.</remarks>
+        public async ValueTask WriteEndStreamAndCompleteAsync(CancellationToken cancel)
+        {
+            try
+            {
+                _ = await FlushAsyncCore(endStream: true, cancel).ConfigureAwait(false);
+
+                if (!_isReaderCompleted && !_endStreamWritten) // flush didn't write anything
+                {
+                    try
+                    {
+                        // Write an empty buffer with endStream.
+                        await _stream.WriteAsync(
+                            default,
+                            endStream: true,
+                            cancel).ConfigureAwait(false);
+                    }
+                    catch (MultiplexedStreamAbortedException)
+                    {
+                        // TODO: confirm this is indeed correct; should we rethrow?
+                        _isReaderCompleted = true;
+                        throw;
+                    }
+                    finally
+                    {
+                        _endStreamWritten = true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                await CompleteAsync(ex).ConfigureAwait(false);
+                throw;
+            }
+            finally
+            {
+                _isWriterCompleted = true;
+            }
+        }
+
         // We use the default implementation for protected CopyFromAsync(Stream, CancellationToken). This default
         // implementation calls GetMemory / Advance.
 
         internal MultiplexedStreamPipeWriter(IMultiplexedStream stream) => _stream = stream;
+
+        private async ValueTask<FlushResult> FlushAsyncCore(bool endStream, CancellationToken cancellationToken)
+        {
+            ThrowIfCompleted();
+
+            if (!_isReaderCompleted)
+            {
+                if (_pipe is Pipe pipe)
+                {
+                    // We're flushing our own internal pipe here.
+                    _ = await pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+
+                    if (pipe.Reader.TryRead(out ReadResult result))
+                    {
+                        try
+                        {
+                            if (result.Buffer.IsSingleSegment)
+                            {
+                                await _stream.WriteAsync(
+                                    new ReadOnlyMemory<byte>[] { result.Buffer.First },
+                                    endStream,
+                                    cancellationToken).ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                await _stream.WriteAsync(
+                                    new ReadOnlyMemory<byte>[] { result.Buffer.ToArray() },
+                                    endStream,
+                                    cancellationToken).ConfigureAwait(false);
+                            }
+                        }
+                        catch (MultiplexedStreamAbortedException)
+                        {
+                            // TODO: confirm this is indeed correct; should we rethrow?
+                            _isReaderCompleted = true;
+                        }
+                        finally
+                        {
+                            if (endStream)
+                            {
+                                _endStreamWritten = true;
+                            }
+
+                            // The unflushed bytes are all consumed no matter what.
+                            pipe.Reader.AdvanceTo(result.Buffer.End);
+                        }
+                    }
+                }
+            }
+
+            return new FlushResult(isCanceled: false, isCompleted: _isReaderCompleted);
+        }
 
         private void ThrowIfCompleted()
         {
