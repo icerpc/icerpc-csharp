@@ -11,27 +11,20 @@ namespace IceRpc.Internal
     // TODO: replace by transport-specific SlicPipeWriter/QuicPipeWriter etc. implementations.
     internal class MultiplexedStreamPipeWriter : PipeWriter
     {
-        public override bool CanGetUnflushedBytes => false; // doesn't support unflushed bytes at all
+        public override bool CanGetUnflushedBytes => PipeWriter.CanGetUnflushedBytes;
+        public override long UnflushedBytes => PipeWriter.UnflushedBytes;
 
         private PipeWriter PipeWriter
         {
             get
             {
-                if (_isBuffering)
-                {
-                    // TODO: the relevant PipeOptions should be supplied to the constructor.
-                    _pipe ??= new Pipe();
-                    return _pipe.Writer;
-                }
-                else
-                {
-                    throw new InvalidOperationException("pipe writer is no longer in buffering mode");
-                }
+                ThrowIfCompleted();
+
+                // TODO: the relevant PipeOptions should be supplied to the constructor.
+                _pipe ??= new Pipe();
+                return _pipe.Writer;
             }
         }
-
-        // In buffering mode, we create a pipe to hold onto our unflushed bytes.
-        private bool _isBuffering = true;
 
         private bool _isReaderCompleted;
         private bool _isWriterCompleted;
@@ -167,8 +160,8 @@ namespace IceRpc.Internal
         }
 
         // TODO: temporary implementation, not needed when GetMemory/AdvanceTo are implemented
-        protected override Task CopyFromAsync(Stream source, CancellationToken cancellationToken) =>
-            CopyFromAsyncCore(source, cancellationToken);
+        // protected override Task CopyFromAsync(Stream source, CancellationToken cancellationToken) =>
+        //    CopyFromAsyncCore(source, cancellationToken);
 
         internal async Task CopyFromAsyncCore(Stream source, CancellationToken cancellationToken)
         {
@@ -202,11 +195,10 @@ namespace IceRpc.Internal
         {
             Debug.Assert(!_isReaderCompleted);
 
-            if (_isBuffering && _pipe is Pipe pipe)
+            if (_pipe is Pipe pipe)
             {
                 // We're flushing our own internal pipe here.
                 _ = await pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-                await pipe.Writer.CompleteAsync().ConfigureAwait(false);
 
                 if (pipe.Reader.TryRead(out ReadResult result))
                 {
@@ -232,13 +224,14 @@ namespace IceRpc.Internal
                         // TODO: confirm this is indeed correct
                         _isReaderCompleted = true;
                     }
+                    finally
+                    {
+                        // The unflushed bytes are all consumed no matter what.
+                        pipe.Reader.AdvanceTo(result.Buffer.End);
+                    }
                 }
-                // else pipe is empty, meaning there was never any call to Advance (fine).
-
-                await pipe.Reader.CompleteAsync().ConfigureAwait(false);
-                _pipe = null;
+                // else pipe is empty, meaning there was no call to writer.Advance (fine).
             }
-            _isBuffering = false;
         }
 
         private void ThrowIfCompleted()
