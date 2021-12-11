@@ -159,35 +159,8 @@ namespace IceRpc.Internal
             return new FlushResult(isCanceled: false, isCompleted: _isReaderCompleted);
         }
 
-        // TODO: temporary implementation, not needed when GetMemory/AdvanceTo are implemented
-        // protected override Task CopyFromAsync(Stream source, CancellationToken cancellationToken) =>
-        //    CopyFromAsyncCore(source, cancellationToken);
-
-        internal async Task CopyFromAsyncCore(Stream source, CancellationToken cancellationToken)
-        {
-            Memory<byte> copyBuffer = new byte[4096];
-
-            while (true)
-            {
-                int read = await source.ReadAsync(copyBuffer, cancellationToken).ConfigureAwait(false);
-
-                if (read == 0)
-                {
-                    break;
-                }
-                else
-                {
-                    FlushResult flushResult = await WriteAsync(
-                        copyBuffer[0..read],
-                        cancellationToken).ConfigureAwait(false);
-
-                    if (flushResult.IsCompleted || flushResult.IsCanceled)
-                    {
-                        break;
-                    }
-                }
-            }
-        }
+        // We use the default implementation for protected CopyFromAsync(Stream, CancellationToken). This default
+        // implementation calls GetMemory / Advance.
 
         internal MultiplexedStreamPipeWriter(IMultiplexedStream stream) => _stream = stream;
 
