@@ -292,7 +292,7 @@ if ({invocation}?.RequestFeatures.Get<IceRpc.Features.CompressPayload>() == null
         let stream_type = stream_parameter.data_type();
         match stream_type.concrete_type() {
             Types::Primitive(b) if matches!(b, Primitive::Byte) => invoke_args.push(format!(
-                "global::System.IO.Pipelines.PipeReader.Create({})",
+                "{}",
                 stream_parameter_name
             )),
             _ => invoke_args.push(format!(

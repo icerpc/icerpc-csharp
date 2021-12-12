@@ -236,38 +236,37 @@ namespace IceRpc.Tests.ClientServer
                 throw new CompressMyException(Enumerable.Range(0, size).Select(i => (byte)i).ToArray());
 
             public ValueTask<int> OpCompressStreamArgAsync(
-                Stream stream,
+                PipeReader stream,
                 Dispatch dispatch,
                 CancellationToken cancel) => ReadStreamAsync(stream);
 
-            public ValueTask<Stream> OpCompressReturnStreamAsync(
+            public ValueTask<PipeReader> OpCompressReturnStreamAsync(
                 int size,
                 Dispatch dispatch,
-                CancellationToken cancel) => new(new MemoryStream(new byte[size]));
+                CancellationToken cancel) => new(PipeReader.Create(new ReadOnlySequence<byte>(new byte[size])));
 
-            public ValueTask<Stream> OpCompressStreamArgAndReturnStreamAsync(
-                Stream stream,
+            public ValueTask<PipeReader> OpCompressStreamArgAndReturnStreamAsync(
+                PipeReader stream,
                 Dispatch dispatch,
                 CancellationToken cancel) => new(stream);
         }
 
-        private static int ReadStream(Stream stream, byte[]? data = null) =>
-            ReadStreamAsync(stream, data).AsTask().Result;
-
-        private static async ValueTask<int> ReadStreamAsync(Stream stream, byte[]? data = null)
+        private static async ValueTask<int> ReadStreamAsync(PipeReader reader)
         {
             int totalSize = 0;
-            int received;
-            byte[] buffer = new byte[32];
 
-            while ((received = await stream.ReadAsync(buffer)) != 0)
+            while (true)
             {
-                if (data != null)
+                ReadResult readResult = await reader.ReadAsync();
+
+                totalSize += (int)readResult.Buffer.Length;
+
+                if (readResult.IsCompleted)
                 {
-                    Assert.That(buffer[0..received], Is.EqualTo(data[totalSize..(totalSize + received)]));
+                    break; // while
                 }
-                totalSize += received;
             }
+
             return totalSize;
         }
     }

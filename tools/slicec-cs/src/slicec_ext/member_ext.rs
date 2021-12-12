@@ -65,7 +65,7 @@ impl ParameterExt for Parameter {
         if self.is_streamed {
             let type_str = self.data_type().to_type_string(namespace, context, true);
             if type_str == "byte" {
-                "global::System.IO.Stream".to_owned()
+                "global::System.IO.Pipelines.PipeReader".to_owned()
             } else {
                 format!(
                     "global::System.Collections.Generic.IAsyncEnumerable<{}>",
