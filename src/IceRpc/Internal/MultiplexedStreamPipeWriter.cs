@@ -56,22 +56,14 @@ namespace IceRpc.Internal
 
                 if (exception != null)
                 {
-                    byte errorCode;
-                    if (exception is MultiplexedStreamAbortedException multiplexedException)
+                    byte errorCode = exception switch
                     {
-                        errorCode = multiplexedException.ErrorCode;
-                    }
-                    else if (exception is OperationCanceledException)
-                    {
+                        MultiplexedStreamAbortedException multiplexedException => multiplexedException.ErrorCode,
                         // TODO: could it also be InvocationCanceled?
-                        errorCode = (byte)MultiplexedStreamError.DispatchCanceled;
-                    }
-                    else
-                    {
-                        // TODO: error code for other exceptions
-                        Console.WriteLine($"MultiplexedStreamPipeWriter.Complete received {exception}");
-                        errorCode = (byte)123;
-                    }
+                        OperationCanceledException => (byte)MultiplexedStreamError.DispatchCanceled,
+                        // TODO: error code for other exceptions;
+                        _ => 123
+                    };
 
                     _stream.AbortWrite(errorCode);
                 }
