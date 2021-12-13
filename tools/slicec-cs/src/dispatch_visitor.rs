@@ -540,7 +540,7 @@ fn payload_source_stream(operation: &Operation, encoding: &str) -> CodeBlock {
 
             match stream_type.concrete_type() {
                 Types::Primitive(primitive) if matches!(primitive, Primitive::Byte) => {
-                    format!("{}", stream_arg).into()
+                    stream_arg.into()
                 }
                 _ => format!(
                     "\
