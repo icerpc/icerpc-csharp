@@ -313,7 +313,7 @@ namespace IceRpc.Internal
                     }
                 }
 
-                var bufferWriter = new BufferWriter();
+                var bufferWriter = new BufferWriter(requestWriter);
                 var encoder = new Ice20Encoder(bufferWriter);
 
                 // Write the Ice2 request header.
@@ -353,19 +353,10 @@ namespace IceRpc.Internal
                 // We're done with the header encoding, write the header size.
                 _ = encoder.EndFixedLengthSize(frameHeaderStart, 2);
 
-                // Send the header. TODO: delaying the sending (flushing) until we send the payload
+                bufferWriter.Complete();
 
-                FlushResult flushResult = await requestWriter.WriteAsync(
-                    bufferWriter.Finish().ToSingleBuffer(),
-                    cancel).ConfigureAwait(false);
-
-                Debug.Assert(!flushResult.IsCanceled); // not implemented yet, so always false.
-
-                if (!flushResult.IsCompleted) // we still have a reader
-                {
-                    await SendPayloadAsync(request, requestWriter, cancel).ConfigureAwait(false);
-                    request.IsSent = true;
-                }
+                await SendPayloadAsync(request, requestWriter, cancel).ConfigureAwait(false);
+                request.IsSent = true;
             }
             catch (Exception ex)
             {
@@ -399,7 +390,7 @@ namespace IceRpc.Internal
 
             try
             {
-                var bufferWriter = new BufferWriter();
+                var bufferWriter = new BufferWriter(responseWriter);
                 var encoder = new Ice20Encoder(bufferWriter);
 
                 // Write the Ice2 response header.
@@ -415,19 +406,9 @@ namespace IceRpc.Internal
 
                 // We're done with the header encoding, write the header size.
                 _ = encoder.EndFixedLengthSize(frameHeaderStart, 2);
+                bufferWriter.Complete();
 
-                // Send the header. TODO: delay the sending (flushing) until we send the payload
-
-                FlushResult flushResult = await responseWriter.WriteAsync(
-                    bufferWriter.Finish().ToSingleBuffer(),
-                    cancel).ConfigureAwait(false);
-
-                Debug.Assert(!flushResult.IsCanceled); // not implemented yet, so always false.
-
-                if (!flushResult.IsCompleted) // we still have a reader
-                {
-                    await SendPayloadAsync(response, responseWriter, cancel).ConfigureAwait(false);
-                }
+                await SendPayloadAsync(response, responseWriter, cancel).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -634,14 +615,18 @@ namespace IceRpc.Internal
             Action<Ice20Encoder>? frameEncodeAction,
             CancellationToken cancel)
         {
-            var bufferWriter = new BufferWriter(new byte[1024]);
+            Memory<byte> buffer = new byte[1024]; // TODO: use pooled memory?
+
+            var bufferWriter = new BufferWriter(buffer);
             var encoder = new Ice20Encoder(bufferWriter);
             encoder.EncodeByte((byte)frameType);
             BufferWriter.Position sizePos = encoder.StartFixedLengthSize();
             frameEncodeAction?.Invoke(encoder);
             encoder.EndFixedLengthSize(sizePos);
+            buffer = buffer[0..bufferWriter.Size];
+
             await _controlStream!.WriteAsync(
-                bufferWriter.Finish(),
+                new ReadOnlyMemory<byte>[] { buffer }, // TODO: better API
                 frameType == Ice2FrameType.GoAwayCompleted,
                 cancel).ConfigureAwait(false);
         }
@@ -655,7 +640,14 @@ namespace IceRpc.Internal
             // TODO: CopyToAsync does not return a flushResult so we don't know if we still have a reader. It
             // just returns with no exception when flushResult.IsCompleted is true. We could implement our own
             // version.
-            await outgoingFrame.PayloadSource.CopyToAsync(outgoingFrame.PayloadSink, cancel).ConfigureAwait(false);
+            try
+            {
+                await outgoingFrame.PayloadSource.CopyToAsync(outgoingFrame.PayloadSink, cancel).ConfigureAwait(false);
+            }
+            catch (TaskCanceledException) // CopyToAsync returns a canceled task if cancel is cancelled
+            {
+                throw new OperationCanceledException();
+            }
             await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
 
             if (outgoingFrame.PayloadSourceStream is PipeReader payloadSourceStream)

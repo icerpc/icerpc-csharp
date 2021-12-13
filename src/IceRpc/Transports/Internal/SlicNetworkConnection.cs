@@ -3,9 +3,11 @@
 using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {
@@ -328,10 +330,20 @@ namespace IceRpc.Transports.Internal
 
             static KeyValuePair<int, IList<byte>> EncodeParameter(ParameterKey key, ulong value)
             {
-                var bufferWriter = new BufferWriter();
+                var pipe = new Pipe();
+                var bufferWriter = new BufferWriter(pipe.Writer);
                 var encoder = new Ice20Encoder(bufferWriter);
                 encoder.EncodeVarULong(value);
-                return new((int)key, bufferWriter.Finish().ToSingleBuffer().ToArray());
+                bufferWriter.Complete();
+                pipe.Writer.Complete();
+
+                bool success = pipe.Reader.TryRead(out ReadResult result);
+                Debug.Assert(success);
+                Debug.Assert(result.IsCompleted);
+                byte[] buffer = result.Buffer.ToArray();
+                pipe.Reader.Complete();
+
+                return new((int)key, buffer);
             }
         }
 

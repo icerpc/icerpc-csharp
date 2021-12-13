@@ -1,12 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace IceRpc.Slice.Internal
 {
-    /// <summary>Writes bytes into a non-contiguous byte buffer.</summary>
-    internal class BufferWriter
+    /// <summary>Implements a custom buffer writer using another buffer writer.</summary>
+    internal class BufferWriter // TODO: implement IBufferWriter<byte>
     {
         /// <summary>Represents a position in the underlying buffer vector. This position consists of the index of the
         /// buffer in the vector and the offset into that buffer.</summary>
@@ -32,15 +33,13 @@ namespace IceRpc.Slice.Internal
         /// </summary>
         internal int Capacity { get; private set; }
 
-        /// <summary>Determines the current size of the buffer. This corresponds to the number of bytes already encoded
-        /// using this encoder.</summary>
+        /// <summary>Determines the current size of the buffer. This corresponds to the number of bytes already written.
+        /// </summary>
         /// <value>The current size.</value>
         internal int Size { get; private set; }
 
         /// <summary>Gets the position of the next write.</summary>
         internal Position Tail => _tail;
-
-        private const int DefaultBufferSize = 256;
 
         // All buffers before the tail buffer are fully used.
         private Memory<ReadOnlyMemory<byte>> _bufferVector = Memory<ReadOnlyMemory<byte>>.Empty;
@@ -52,60 +51,33 @@ namespace IceRpc.Slice.Internal
         // The position for the next write operation.
         private Position _tail;
 
-        // Constructs a BufferWriter
-        internal BufferWriter(Memory<byte> initialBuffer = default)
-        {
-            _tail = default;
-            Size = 0;
-            _currentBuffer = initialBuffer;
-            if (_currentBuffer.Length > 0)
-            {
-                _bufferVector = new ReadOnlyMemory<byte>[] { _currentBuffer };
-            }
+        // The underlying buffer writer.
+        private readonly IBufferWriter<byte>? _underlying;
 
+        // Constructs a BufferWriter from another buffer writer.
+        internal BufferWriter(IBufferWriter<byte> underlying)
+        {
+            _underlying = underlying;
+
+            _currentBuffer = _underlying.GetMemory();
+            _bufferVector = new ReadOnlyMemory<byte>[] { _currentBuffer };
             Capacity = _currentBuffer.Length;
         }
 
-        /// <summary>Add memory buffers to the underlying buffer vector. Small buffers are copied to the last
-        /// buffer from the underlying vector if it's not full.</summary>
-        /// <param name="buffers">The buffers to add.</param>
-        internal void Add(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
+        // Constructs a BufferWriter over a single buffer.
+        internal BufferWriter(Memory<byte> buffer)
         {
-            // Coalesce small buffers at the end of the current buffer
-            int index = 0;
-            while (index < buffers.Length && buffers.Span[index].Length <= Capacity - Size)
-            {
-                WriteByteSpan(buffers.Span[index++].Span);
-            }
+            Debug.Assert(buffer.Length > 0);
 
-            // Add remaining buffers if any
-            if (index < buffers.Length)
-            {
-                // Terminate the last buffer.
-                if (_bufferVector.Length > 0)
-                {
-                    _bufferVector.Span[^1] = _bufferVector.Span[^1].Slice(0, _tail.Offset);
-                }
-
-                var newBuffers = new ReadOnlyMemory<byte>[_bufferVector.Length + buffers.Length - index];
-                _bufferVector.CopyTo(newBuffers);
-                foreach (ReadOnlyMemory<byte> memory in buffers.Span[index..])
-                {
-                    newBuffers[_bufferVector.Length + index++] = memory;
-                    Size += memory.Length;
-                }
-                _bufferVector = newBuffers;
-                Capacity = Size;
-
-                _tail.Buffer = _bufferVector.Length;
-                _tail.Offset = _bufferVector.Span[^1].Length;
-
-                // It's fine to set this to default when there's no space left in the buffer vector. It's only
-                // used by Write methods that always call Expand first. Expand will re-assign _currentBuffer
-                // where there's no space left.
-                _currentBuffer = default;
-            }
+            _currentBuffer = buffer;
+            _bufferVector = new ReadOnlyMemory<byte>[] { _currentBuffer };
+            Capacity = _currentBuffer.Length;
         }
+
+        /// <summary>Finishes-off the current buffer.</summary>
+        /// <remarks>If you are using a single buffer, you must instead Slice your buffer as follows:
+        /// buffer = buffer[0..bufferWriter.Size].</remarks>
+        internal void Complete() => _underlying!.Advance(_tail.Offset);
 
         /// <summary>Returns the distance in bytes from start position to the tail position.</summary>
         /// <param name="start">The start position from where to calculate distance to the tail position.</param>
@@ -116,18 +88,6 @@ namespace IceRpc.Slice.Internal
                         (Tail.Buffer == start.Buffer && Tail.Offset >= start.Offset));
 
             return Distance(_bufferVector, start, Tail);
-        }
-
-        /// <summary>Finishes off the underlying buffer vector and returns it. You should not write additional data to
-        /// this buffer after calling Finish, however rewriting previous data is fine.</summary>
-        /// <returns>The buffers.</returns>
-        internal ReadOnlyMemory<ReadOnlyMemory<byte>> Finish()
-        {
-            if (_bufferVector.Length > 0)
-            {
-                _bufferVector.Span[^1] = _bufferVector.Span[^1].Slice(0, _tail.Offset);
-            }
-            return _bufferVector;
         }
 
         /// <summary>Rewrites a single byte at a given position.</summary>
@@ -283,9 +243,9 @@ namespace IceRpc.Slice.Internal
             }
         }
 
-        /// <summary>Expands the encoder's buffer to make room for more data. If the bytes remaining in the buffer are
-        /// not enough to hold the given number of bytes, allocates a new byte array. The caller should then consume the
-        /// new bytes immediately; calling Expand repeatedly is not supported.</summary>
+        /// <summary>Expands the buffer writer's buffer to make room for more data. If the bytes remaining in the buffer
+        /// are not enough to hold the given number of bytes, allocates a Memory. The caller should then consume _all_
+        /// the new bytes immediately; calling Expand repeatedly is not supported.</summary>
         /// <param name="n">The number of bytes to accommodate in the buffer.</param>
         private void Expand(int n)
         {
@@ -293,32 +253,30 @@ namespace IceRpc.Slice.Internal
             int remaining = Capacity - Size;
             if (n > remaining)
             {
-                int size = Math.Max(DefaultBufferSize, _currentBuffer.Length * 2);
-                size = Math.Max(n - remaining, size);
-                byte[] buffer = new byte[size];
-
-                if (_bufferVector.Length == 0)
+                if (_underlying == null)
                 {
-                    // First Expand for a new Ice encoder constructed with no buffer.
-                    Debug.Assert(_currentBuffer.Length == 0);
-                    _bufferVector = new ReadOnlyMemory<byte>[] { buffer };
-                    _currentBuffer = buffer;
+                    throw new InvalidOperationException(
+                        "cannot expand the buffers of a buffer writer over a fixed-size buffer");
                 }
-                else
-                {
-                    var newBufferVector = new ReadOnlyMemory<byte>[_bufferVector.Length + 1];
-                    _bufferVector.CopyTo(newBufferVector.AsMemory());
-                    newBufferVector[^1] = buffer;
-                    _bufferVector = newBufferVector;
 
-                    if (remaining == 0)
-                    {
-                        // Patch _tail to point to the first byte in the new buffer.
-                        Debug.Assert(_tail.Offset == _currentBuffer.Length);
-                        _currentBuffer = buffer;
-                        _tail.Buffer++;
-                        _tail.Offset = 0;
-                    }
+                // We promise to fill the current buffer completely
+                _underlying.Advance(_currentBuffer.Length);
+
+                // A single buffer must satisfy the expansion request.
+                Memory<byte> buffer = _underlying.GetMemory(n - remaining);
+
+                var newBufferVector = new ReadOnlyMemory<byte>[_bufferVector.Length + 1];
+                _bufferVector.CopyTo(newBufferVector.AsMemory());
+                newBufferVector[^1] = buffer;
+                _bufferVector = newBufferVector;
+
+                if (remaining == 0)
+                {
+                    // Patch _tail to point to the first byte in the new buffer.
+                    Debug.Assert(_tail.Offset == _currentBuffer.Length);
+                    _currentBuffer = buffer;
+                    _tail.Buffer++;
+                    _tail.Offset = 0;
                 }
                 Capacity += buffer.Length;
             }

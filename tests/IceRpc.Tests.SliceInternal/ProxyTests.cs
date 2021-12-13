@@ -12,11 +12,9 @@ namespace IceRpc.Tests.SliceInternal
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly BufferWriter _bufferWriter;
 
         public ProxyTests()
         {
-            _bufferWriter = new BufferWriter(new byte[256]);
             _server = new Server
             {
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
@@ -39,12 +37,15 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase("1.1", "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
         public async Task Proxy_EncodingVersioning(string encodingStr, string str)
         {
+            Memory<byte> data = new byte[4096];
+            var bufferWriter = new BufferWriter(data);
+
             var encoding = IceEncoding.FromString(encodingStr);
-            var encoder = encoding.CreateIceEncoder(_bufferWriter);
+            var encoder = encoding.CreateIceEncoder(bufferWriter);
 
             var proxy = Proxy.Parse(str);
             encoder.EncodeProxy(proxy);
-            ReadOnlyMemory<byte> data = _bufferWriter.Finish().Span[0];
+            data = data[0..bufferWriter.Size];
 
             await using var connection = new Connection();
 
@@ -59,6 +60,8 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase("1.1")]
         public void Proxy_EndpointLess(string encodingStr)
         {
+            Memory<byte> data = new byte[4096];
+            var bufferWriter = new BufferWriter(data);
             var encoding = IceEncoding.FromString(encodingStr);
 
             // Create an endpointless proxy
@@ -67,9 +70,9 @@ namespace IceRpc.Tests.SliceInternal
             var regular = Proxy.FromConnection(_connection, "/bar");
 
             // Encodes the endpointless proxy
-            var encoder = encoding.CreateIceEncoder(_bufferWriter);
+            var encoder = encoding.CreateIceEncoder(bufferWriter);
             encoder.EncodeProxy(endpointLess);
-            ReadOnlyMemory<byte> data = _bufferWriter.Finish().Span[0];
+            data = data[0..bufferWriter.Size];
 
             // Decodes the endpointless proxy using the client connection. We get back a 1-endpoint proxy
             IceDecoder decoder = encoding == IceRpc.Encoding.Ice11 ? new Ice11Decoder(data, _connection) :

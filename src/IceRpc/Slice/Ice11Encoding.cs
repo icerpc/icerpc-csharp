@@ -33,12 +33,17 @@ namespace IceRpc.Slice
             TupleEncodeAction<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default) where T : struct
         {
-            var bufferWriter = new BufferWriter();
+            var pipe = new Pipe(); // TODO: pipe options
+
+            var bufferWriter = new BufferWriter(pipe.Writer);
             var encoder = new Ice11Encoder(bufferWriter, classFormat);
             BufferWriter.Position start = encoder.StartFixedLengthSize();
             encodeAction(encoder, in args);
             _ = encoder.EndFixedLengthSize(start);
-            return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.Finish().ToSingleBuffer()));
+
+            bufferWriter.Complete(); // pipe.Writer.Advance on latest memory
+            pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
+            return pipe.Reader;
         }
 
         /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
@@ -53,12 +58,17 @@ namespace IceRpc.Slice
             Action<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default)
         {
-            var bufferWriter = new BufferWriter();
+            var pipe = new Pipe(); // TODO: pipe options
+
+            var bufferWriter = new BufferWriter(pipe.Writer);
             var encoder = new Ice11Encoder(bufferWriter, classFormat);
             BufferWriter.Position start = encoder.StartFixedLengthSize();
             encodeAction(encoder, arg);
             _ = encoder.EndFixedLengthSize(start);
-            return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.Finish().ToSingleBuffer()));
+
+            bufferWriter.Complete(); // pipe.Writer.Advance on latest memory
+            pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
+            return pipe.Reader;
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value tuple. Use this
@@ -74,12 +84,17 @@ namespace IceRpc.Slice
             TupleEncodeAction<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default) where T : struct
         {
-            var bufferWriter = new BufferWriter();
+            var pipe = new Pipe(); // TODO: pipe options
+
+            var bufferWriter = new BufferWriter(pipe.Writer);
             var encoder = new Ice11Encoder(bufferWriter, classFormat);
             BufferWriter.Position start = encoder.StartFixedLengthSize();
             encodeAction(encoder, in returnValueTuple);
             _ = encoder.EndFixedLengthSize(start);
-            return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.Finish().ToSingleBuffer()));
+
+            bufferWriter.Complete(); // pipe.Writer.Advance on latest memory
+            pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
+            return pipe.Reader;
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value. Use this method
@@ -95,12 +110,17 @@ namespace IceRpc.Slice
             EncodeAction<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default)
         {
-            var bufferWriter = new BufferWriter();
+            var pipe = new Pipe(); // TODO: pipe options
+
+            var bufferWriter = new BufferWriter(pipe.Writer);
             var encoder = new Ice11Encoder(bufferWriter, classFormat);
             BufferWriter.Position start = encoder.StartFixedLengthSize();
             encodeAction(encoder, returnValue);
             _ = encoder.EndFixedLengthSize(start);
-            return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.Finish().ToSingleBuffer()));
+
+            bufferWriter.Complete(); // pipe.Writer.Advance on latest memory
+            pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
+            return pipe.Reader;
         }
 
         internal override IceEncoder CreateIceEncoder(BufferWriter bufferWriter) => new Ice11Encoder(bufferWriter);

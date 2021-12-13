@@ -327,7 +327,7 @@ namespace IceRpc.Internal
             {
                 // Since the payload is encoded with a Slice encoding, PayloadSourceStream can only come from a
                 // Slice stream parameter/return.
-                throw new NotSupportedException("stream parameters not supported with ice1");
+                throw new NotSupportedException("stream parameters are not supported with ice1");
             }
             else if (request.Fields.Count > 0 || request.FieldsDefaults.Count > 0)
             {
@@ -384,7 +384,9 @@ namespace IceRpc.Internal
                         $"expected {payloadSize} bytes in ice1 request payload source, but it's empty");
                 }
 
-                var bufferWriter = new BufferWriter();
+                var output = new SimpleNetworkConnectionPipeWriter(_networkConnection);
+
+                var bufferWriter = new BufferWriter(output);
                 var encoder = new Ice11Encoder(bufferWriter);
 
                 // Write the Ice1 request header.
@@ -407,56 +409,48 @@ namespace IceRpc.Internal
                 requestHeader.Encode(encoder);
 
                 encoder.EncodeFixedLengthSize(bufferWriter.Size + payloadSize, frameSizeStart);
-
-                // Perform the sending. When an Ice1 frame is sent over a connection (such as a TCP
-                // connection), we need to send the entire frame even when cancel gets canceled since the
-                // recipient cannot read a partial frame and then keep going.
-
-                // TODO: if any part of the sending fails, we should kill the connection. We can't guarantee an atomic
-                // send.
+                bufferWriter.Complete();
 
                 if (_isUdp)
                 {
-                    // TODO: with UDP, we currently can't use the PayloadSink to send the payload. Everything needs to
-                    // be sent in a single call. So we add PayloadSource to bufferWriter now.
+                    ReadResult readResult;
 
-                    while (true)
+                    do
                     {
-                        ReadResult readResult = await request.PayloadSource.ReadAsync(cancel).ConfigureAwait(false);
+                        readResult = await request.PayloadSource.ReadAsync(cancel).ConfigureAwait(false);
+
                         if (readResult.IsCanceled)
                         {
-                            var exception = new OperationCanceledException();
+                            throw new OperationCanceledException();
                         }
+                    } while (!readResult.IsCompleted);
 
-                        if (!readResult.Buffer.IsEmpty)
+                    if (!readResult.Buffer.IsEmpty)
+                    {
+                        // TODO: better SimpleNetworkConnection.WriteAsync
+
+                        if (readResult.Buffer.IsSingleSegment)
                         {
-                            if (readResult.Buffer.IsSingleSegment)
-                            {
-                                bufferWriter.Add(new ReadOnlyMemory<byte>[] { readResult.Buffer.First });
-                            }
-                            else // temporary
-                            {
-                                bufferWriter.Add(new ReadOnlyMemory<byte>[] { readResult.Buffer.ToArray() });
-                            }
-
-                            request.PayloadSource.AdvanceTo(readResult.Buffer.End);
+                            output.Write(readResult.Buffer.FirstSpan); // makes one copy
                         }
-
-                        if (readResult.IsCompleted)
+                        else
                         {
-                            break;
+                            output.Write(readResult.Buffer.ToArray().AsSpan()); // makes two copies!
                         }
+
+                        request.PayloadSource.AdvanceTo(readResult.Buffer.End);
                     }
+
+                    // Send UDP request, hopefully in a single chunk.
+                    // TODO: add UdpPipeWriter
+                    await output.FlushAsync(cancel).ConfigureAwait(false);
                 }
-
-                // TODO: rework this code to send the header and first part of the payload together.
-
-                ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
-                await _networkConnection.WriteAsync(buffers, CancellationToken.None).ConfigureAwait(false);
-
-                if (!_isUdp)
+                else
                 {
-                    var output = new SimpleNetworkConnectionPipeWriter(_networkConnection);
+                    // Perform the sending. When an Ice1 frame is sent over a connection (such as a TCP
+                    // connection), we need to send the entire frame even when cancel gets canceled since the
+                    // recipient cannot read a partial frame and then keep going.
+
                     request.InitialPayloadSink.SetDecoratee(output);
 
                     // Use the PayloadSink to send PayloadSource
@@ -527,6 +521,12 @@ namespace IceRpc.Internal
                             throw new NotSupportedException(
                                 "the payload of an ice1 request must be encoded with a supported Slice encoding");
                         }
+                        else if (response.PayloadSourceStream != null)
+                        {
+                            // Since the payload is encoded with a Slice encoding, PayloadSourceStream can only come from
+                            // a Slice stream parameter/return.
+                            throw new NotSupportedException("stream return values are not supported with ice1");
+                        }
 
                         (int payloadSize, bool isCanceled, bool isCompleted) =
                             await payloadEncoding.DecodeSegmentSizeAsync(
@@ -544,12 +544,7 @@ namespace IceRpc.Internal
                                 $"expected {payloadSize} bytes in response payload source, but it's empty");
                         }
 
-                        var bufferWriter = new BufferWriter();
-                        if (response.PayloadSourceStream != null)
-                        {
-                            throw new NotSupportedException("payload source stream is not supported with ice1");
-                        }
-
+                        var bufferWriter = new BufferWriter(request.ResponseWriter);
                         var encoder = new Ice11Encoder(bufferWriter);
 
                         // Write the response header.
@@ -600,10 +595,7 @@ namespace IceRpc.Internal
                         }
 
                         encoder.EncodeFixedLengthSize(bufferWriter.Size + payloadSize, frameSizeStart);
-
-                        // Send the response frame header
-                        ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
-                        await request.ResponseWriter.WriteAsync(buffers.ToSingleBuffer(), cancel).ConfigureAwait(false);
+                        bufferWriter.Complete();
 
                         await response.PayloadSource.CopyToAsync(
                                 response.PayloadSink,

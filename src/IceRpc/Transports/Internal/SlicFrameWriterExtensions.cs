@@ -2,6 +2,9 @@
 
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
+using System.Buffers;
+using System.Diagnostics;
+using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {
@@ -60,14 +63,17 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel) =>
             WriteFrameAsync(writer, FrameType.UnidirectionalStreamReleased, stream, null, cancel);
 
-        private static ValueTask WriteFrameAsync(
+        private static async ValueTask WriteFrameAsync(
             ISlicFrameWriter writer,
             FrameType type,
             SlicMultiplexedStream? stream,
             Action<IceEncoder>? encode,
             CancellationToken cancel)
         {
-            var bufferWriter = new BufferWriter();
+            // TODO: ISlicFrameWriter needs a better API!
+            var pipe = new Pipe();
+
+            var bufferWriter = new BufferWriter(pipe.Writer);
             var encoder = new Ice20Encoder(bufferWriter);
             encoder.EncodeByte((byte)type);
             BufferWriter.Position sizePos = encoder.StartFixedLengthSize();
@@ -80,7 +86,20 @@ namespace IceRpc.Transports.Internal
                 encode?.Invoke(encoder);
             }
             encoder.EndFixedLengthSize(sizePos);
-            return writer.WriteFrameAsync(stream, bufferWriter.Finish(), cancel);
+            bufferWriter.Complete();
+
+            // TODO: all this copying is naturally temporary
+            await pipe.Writer.CompleteAsync().ConfigureAwait(false);
+            bool success = pipe.Reader.TryRead(out ReadResult result);
+            Debug.Assert(success);
+            Debug.Assert(result.IsCompleted);
+            byte[] buffer = result.Buffer.ToArray();
+            await pipe.Reader.CompleteAsync().ConfigureAwait(false);
+
+            await writer.WriteFrameAsync(
+                stream,
+                new ReadOnlyMemory<byte>[] { buffer },
+                cancel).ConfigureAwait(false);
         }
     }
 }
