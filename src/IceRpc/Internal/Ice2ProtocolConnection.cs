@@ -77,8 +77,8 @@ namespace IceRpc.Internal
 
                     // Receives the request frame from the stream.
 
-                    // TODO: is it correct to pass cancel to the new pipe reader?
-                    reader = stream.ToPipeReader(cancel);
+                    // We cancel reading when we shutdown the connection.
+                    reader = stream.ToPipeReader(CancellationToken.None);
                 }
                 catch
                 {
@@ -285,7 +285,7 @@ namespace IceRpc.Internal
                 requestWriter = new MultiplexedStreamPipeWriter(stream);
                 request.InitialPayloadSink.SetDecoratee(requestWriter);
 
-                // TODO: missing comment - what are we doing here?
+                // Keep track of the invocation for the shutdown logic.
                 if (!request.IsOneway || request.PayloadSourceStream != null)
                 {
                     lock (_mutex)
