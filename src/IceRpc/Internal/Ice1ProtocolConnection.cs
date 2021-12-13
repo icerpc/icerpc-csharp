@@ -318,9 +318,16 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            if (request.PayloadSourceStream != null)
+            if (request.PayloadEncoding is not IceEncoding payloadEncoding)
             {
-                throw new NotSupportedException("payload source stream is not supported with ice1");
+                throw new NotSupportedException(
+                    "the payload of an ice1 request must be encoded with a supported Slice encoding");
+            }
+            else if (request.PayloadSourceStream != null)
+            {
+                // Since the payload is encoded with a Slice encoding, PayloadSourceStream can only come from a
+                // Slice stream parameter/return.
+                throw new NotSupportedException("stream parameters not supported with ice1");
             }
             else if (request.Fields.Count > 0 || request.FieldsDefaults.Count > 0)
             {
@@ -362,12 +369,6 @@ namespace IceRpc.Internal
 
             try
             {
-                if (request.PayloadEncoding is not IceEncoding payloadEncoding)
-                {
-                    throw new NotSupportedException(
-                        "the payload of an ice1 request must be encoded with a supported Slice encoding");
-                }
-
                 (int payloadSize, bool isCanceled, bool isCompleted) = await payloadEncoding.DecodeSegmentSizeAsync(
                     request.PayloadSource,
                     cancel).ConfigureAwait(false);
