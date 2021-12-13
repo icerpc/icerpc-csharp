@@ -160,7 +160,7 @@ namespace IceRpc.Internal
                         operation: requestHeader.Operation,
                         payload: new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
                         payloadEncoding,
-                        responsePayloadSink: requestId == 0 ?
+                        responseWriter: requestId == 0 ?
                             InvalidPipeWriter.Instance : new SimpleNetworkConnectionPipeWriter(_networkConnection))
                     {
                         IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
@@ -202,10 +202,9 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task<IncomingResponse> ReceiveResponseAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            if (request.IsOneway)
-            {
-                throw new InvalidOperationException("can't receive a response for a oneway request");
-            }
+            // This class sent this request and didn't set a ResponseReader on it.
+            Debug.Assert(request.ResponseReader == null);
+            Debug.Assert(!request.IsOneway);
 
             Ice1Request? requestFeature = request.Features.Get<Ice1Request>();
             if (requestFeature == null || requestFeature.ResponseCompletionSource == null)
@@ -319,9 +318,16 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            if (request.StreamParamSender != null)
+            if (request.PayloadEncoding is not IceEncoding payloadEncoding)
             {
-                throw new NotSupportedException("stream parameters are not supported with ice1");
+                throw new NotSupportedException(
+                    "the payload of an ice1 request must be encoded with a supported Slice encoding");
+            }
+            else if (request.PayloadSourceStream != null)
+            {
+                // Since the payload is encoded with a Slice encoding, PayloadSourceStream can only come from a
+                // Slice stream parameter/return.
+                throw new NotSupportedException("stream parameters not supported with ice1");
             }
             else if (request.Fields.Count > 0 || request.FieldsDefaults.Count > 0)
             {
@@ -363,12 +369,6 @@ namespace IceRpc.Internal
 
             try
             {
-                if (request.PayloadEncoding is not IceEncoding payloadEncoding)
-                {
-                    throw new NotSupportedException(
-                        "the payload of an ice1 request must be encoded with a supported Slice encoding");
-                }
-
                 (int payloadSize, bool isCanceled, bool isCompleted) = await payloadEncoding.DecodeSegmentSizeAsync(
                     request.PayloadSource,
                     cancel).ConfigureAwait(false);
@@ -508,8 +508,15 @@ namespace IceRpc.Internal
             try
             {
                 // Send the response if the request is not a one-way request.
-                if (!request.IsOneway)
+                if (request.IsOneway)
                 {
+                    await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
+                    await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
+                }
+                else
+                {
+                    Debug.Assert(!_isUdp); // udp is oneway-only so no response
+
                     // Wait for sending of other frames to complete. The semaphore is used as an asynchronous
                     // queue to serialize the sending of frames.
                     await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
@@ -538,9 +545,9 @@ namespace IceRpc.Internal
                         }
 
                         var bufferWriter = new BufferWriter();
-                        if (response.StreamParamSender != null)
+                        if (response.PayloadSourceStream != null)
                         {
-                            throw new NotSupportedException("stream parameters are not supported with ice1");
+                            throw new NotSupportedException("payload source stream is not supported with ice1");
                         }
 
                         var encoder = new Ice11Encoder(bufferWriter);
@@ -594,11 +601,9 @@ namespace IceRpc.Internal
 
                         encoder.EncodeFixedLengthSize(bufferWriter.Size + payloadSize, frameSizeStart);
 
-                        Debug.Assert(!_isUdp);
-
                         // Send the response frame header
                         ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
-                        await _networkConnection.WriteAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+                        await request.ResponseWriter.WriteAsync(buffers.ToSingleBuffer(), cancel).ConfigureAwait(false);
 
                         await response.PayloadSource.CopyToAsync(
                                 response.PayloadSink,

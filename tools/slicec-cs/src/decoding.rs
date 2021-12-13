@@ -470,13 +470,12 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
         // Call to_type_string on the parameter itself to get its stream qualifier.
         let stream_type_str = stream_member.to_type_string(namespace, TypeContext::Incoming, false);
 
-        // TODO: change mapping to PipeReader
         let create_stream_param: CodeBlock = match param_type.concrete_type() {
             Types::Primitive(primitive) if matches!(primitive, Primitive::Byte) => {
                 if dispatch {
-                    "request.Payload.AsStream();".into()
+                    "request.Payload;".into()
                 } else {
-                    "response.Payload.AsStream();".into()
+                    "response.Payload;".into()
                 }
             }
             _ => {

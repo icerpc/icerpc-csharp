@@ -286,24 +286,17 @@ if ({invocation}?.RequestFeatures.Get<IceRpc.Features.CompressPayload>() == null
         ));
     }
 
-    if void_return && stream_return.is_none() {
-        invoke_args.push("_defaultIceDecoderFactories".to_owned());
-    }
-
     // Stream parameter (if any)
     if let Some(stream_parameter) = operation.streamed_parameter() {
         let stream_parameter_name = stream_parameter.parameter_name();
         let stream_type = stream_parameter.data_type();
         match stream_type.concrete_type() {
-            Types::Primitive(b) if matches!(b, Primitive::Byte) => invoke_args.push(format!(
-                "new IceRpc.Slice.ByteStreamParamSender({})",
-                stream_parameter_name
-            )),
+            Types::Primitive(b) if matches!(b, Primitive::Byte) =>
+            invoke_args.push(stream_parameter_name),
             _ => invoke_args.push(format!(
                 "\
-new IceRpc.Slice.AsyncEnumerableStreamParamSender<{stream_type}>(
+{payload_encoding}.CreatePayloadSourceStream<{stream_type}>(
     {stream_parameter},
-    {payload_encoding},
     {encode_action})",
                 stream_type = stream_type.to_type_string(namespace, TypeContext::Outgoing, false),
                 stream_parameter = stream_parameter_name,
@@ -312,7 +305,11 @@ new IceRpc.Slice.AsyncEnumerableStreamParamSender<{stream_type}>(
             )),
         }
     } else {
-        invoke_args.push("streamParamSender: null".to_owned());
+        invoke_args.push("payloadSourceStream: null".to_owned());
+    }
+
+    if void_return && stream_return.is_none() {
+        invoke_args.push("_defaultIceDecoderFactories".to_owned());
     }
 
     if !void_return {

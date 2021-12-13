@@ -346,7 +346,7 @@ fn operation_dispatch(operation: &Operation) -> CodeBlock {
     format!(
         r#"
 [IceRpc.Slice.Operation("{name}")]
-protected static async global::System.Threading.Tasks.ValueTask<(IceEncoding, global::System.IO.Pipelines.PipeReader, IceRpc.IStreamParamSender?)> {internal_name}(
+protected static async global::System.Threading.Tasks.ValueTask<(IceEncoding, global::System.IO.Pipelines.PipeReader, global::System.IO.Pipelines.PipeReader?)> {internal_name}(
     {interface_name} target,
     IceRpc.IncomingRequest request,
     IceRpc.Dispatch dispatch,
@@ -478,10 +478,10 @@ await request.CheckEmptyArgsAsync(
 
         writeln!(
             code,
-            "return ({encoding}, {payload}, {stream});",
+            "return ({encoding}, {payload_source}, {payload_source_stream});",
             encoding = encoding,
-            payload = dispatch_return_payload(operation, encoding),
-            stream = stream_param_sender(operation, encoding)
+            payload_source = dispatch_return_payload(operation, encoding),
+            payload_source_stream = payload_source_stream(operation, encoding)
         );
     }
 
@@ -520,7 +520,7 @@ fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
     .into()
 }
 
-fn stream_param_sender(operation: &Operation, encoding: &str) -> CodeBlock {
+fn payload_source_stream(operation: &Operation, encoding: &str) -> CodeBlock {
     let namespace = &operation.namespace();
     let return_values = operation.return_members();
 
@@ -540,13 +540,12 @@ fn stream_param_sender(operation: &Operation, encoding: &str) -> CodeBlock {
 
             match stream_type.concrete_type() {
                 Types::Primitive(primitive) if matches!(primitive, Primitive::Byte) => {
-                    format!("new IceRpc.Slice.ByteStreamParamSender({})", stream_arg).into()
+                    stream_arg.into()
                 }
                 _ => format!(
                     "\
-new IceRpc.Slice.AsyncEnumerableStreamParamSender<{stream_type}>(
+{encoding}.CreatePayloadSourceStream<{stream_type}>(
     {stream_arg},
-    {encoding},
     {encode_action})",
                     stream_type =
                         stream_type.to_type_string(namespace, TypeContext::Outgoing, false),

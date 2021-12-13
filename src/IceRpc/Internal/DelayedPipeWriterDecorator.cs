@@ -33,7 +33,8 @@ namespace IceRpc.Internal
             ReadOnlyMemory<byte> source,
             CancellationToken cancellationToken) => Decoratee.WriteAsync(source, cancellationToken);
 
-        // Can't decorate CopyFromAsync because it's protected internal, not public.
+        // We use the default implementation for CopyFromAsync: it's protected as a result we can't forward
+        // it to Decoratee.
 
         internal void SetDecoratee(PipeWriter decoratee)
         {

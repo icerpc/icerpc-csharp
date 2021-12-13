@@ -16,8 +16,8 @@ namespace IceRpc
         /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="operation">The name of the operation.</param>
         /// <param name="payloadEncoding">The encoding of the request payload.</param>
-        /// <param name="requestPayload">The payload of the request.</param>
-        /// <param name="streamParamSender">The stream param sender.</param>
+        /// <param name="payloadSource">The payload source of the request.</param>
+        /// <param name="payloadSourceStream">The optional payload source stream of the request.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="idempotent">When true, the request is idempotent.</param>
         /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
@@ -30,8 +30,8 @@ namespace IceRpc
             this Proxy proxy,
             string operation,
             Encoding payloadEncoding,
-            PipeReader requestPayload,
-            IStreamParamSender? streamParamSender = null,
+            PipeReader payloadSource,
+            PipeReader? payloadSourceStream = null,
             Invocation? invocation = null,
             bool idempotent = false,
             bool oneway = false,
@@ -79,8 +79,8 @@ namespace IceRpc
                     IsOneway = oneway || (invocation?.IsOneway ?? false),
                     IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false),
                     PayloadEncoding = payloadEncoding,
-                    PayloadSource = requestPayload,
-                    StreamParamSender = streamParamSender
+                    PayloadSource = payloadSource,
+                    PayloadSourceStream = payloadSourceStream
                 };
 
                 // We perform as much work as possible in a non async method to throw exceptions synchronously.
