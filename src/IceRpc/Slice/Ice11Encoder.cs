@@ -480,7 +480,7 @@ namespace IceRpc.Slice
                 this.EncodeTransportCode(transportCode);
 
                 int startPos = EncodedBytes; // size includes size-length
-                Span<byte> sizePlaceHolder = GetPlaceHolderSpan(4);
+                Span<byte> sizePlaceHolder = GetPlaceHolderSpan(4); // encapsulation size
                 EncodeByte(1); // encoding version major
                 EncodeByte(1); // encoding version minor
 
