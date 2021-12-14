@@ -42,7 +42,7 @@ namespace IceRpc.Slice.Internal
         internal Position Tail => _tail;
 
         // All buffers before the tail buffer are fully used.
-        private Memory<ReadOnlyMemory<byte>> _bufferVector = Memory<ReadOnlyMemory<byte>>.Empty;
+        private readonly List<Memory<byte>> _bufferList;
 
         // The buffer currently used by write operations. The tail Position always points to this buffer, and the tail
         // offset indicates how much of the buffer has been used.
@@ -60,7 +60,7 @@ namespace IceRpc.Slice.Internal
             _underlying = underlying;
 
             _currentBuffer = _underlying.GetMemory();
-            _bufferVector = new ReadOnlyMemory<byte>[] { _currentBuffer };
+            _bufferList = new List<Memory<byte>> { _currentBuffer };
             Capacity = _currentBuffer.Length;
         }
 
@@ -70,7 +70,7 @@ namespace IceRpc.Slice.Internal
             Debug.Assert(buffer.Length > 0);
 
             _currentBuffer = buffer;
-            _bufferVector = new ReadOnlyMemory<byte>[] { _currentBuffer };
+            _bufferList = new List<Memory<byte>> { _currentBuffer };
             Capacity = _currentBuffer.Length;
         }
 
@@ -87,7 +87,7 @@ namespace IceRpc.Slice.Internal
             Debug.Assert(Tail.Buffer > start.Buffer ||
                         (Tail.Buffer == start.Buffer && Tail.Offset >= start.Offset));
 
-            return Distance(_bufferVector, start, Tail);
+            return Distance(_bufferList, start, Tail);
         }
 
         /// <summary>Rewrites a single byte at a given position.</summary>
@@ -95,7 +95,7 @@ namespace IceRpc.Slice.Internal
         /// <param name="pos">The position to write to.</param>
         internal void RewriteByte(byte v, Position pos)
         {
-            Memory<byte> buffer = GetBuffer(pos.Buffer);
+            Memory<byte> buffer = _bufferList[pos.Buffer];
 
             if (pos.Offset < buffer.Length)
             {
@@ -105,7 +105,7 @@ namespace IceRpc.Slice.Internal
             {
                 // (segN, segN.Count) points to the same byte as (segN + 1, 0)
                 Debug.Assert(pos.Offset == buffer.Length);
-                buffer = GetBuffer(pos.Buffer + 1);
+                buffer = _bufferList[pos.Buffer + 1];
                 buffer.Span[0] = v;
             }
         }
@@ -117,7 +117,7 @@ namespace IceRpc.Slice.Internal
         /// most two segments</remarks>
         internal void RewriteByteSpan(ReadOnlySpan<byte> data, Position pos)
         {
-            Memory<byte> buffer = GetBuffer(pos.Buffer);
+            Memory<byte> buffer = _bufferList[pos.Buffer];
 
             int remaining = Math.Min(data.Length, buffer.Length - pos.Offset);
             if (remaining > 0)
@@ -127,7 +127,7 @@ namespace IceRpc.Slice.Internal
 
             if (remaining < data.Length)
             {
-                buffer = GetBuffer(pos.Buffer + 1);
+                buffer = _bufferList[pos.Buffer + 1];
                 data[remaining..].CopyTo(buffer.Span.Slice(0, data.Length - remaining));
             }
         }
@@ -156,7 +156,7 @@ namespace IceRpc.Slice.Internal
             {
                 Span<byte> firstSpan = _currentBuffer.Span[_tail.Offset..];
                 firstSpan.Fill(255);
-                _currentBuffer = GetBuffer(++_tail.Buffer);
+                _currentBuffer = _bufferList[++_tail.Buffer];
                 _tail.Offset = size - remaining;
                 Size += size;
                 Span<byte> secondSpan = _currentBuffer.Span.Slice(0, _tail.Offset);
@@ -202,7 +202,7 @@ namespace IceRpc.Slice.Internal
 
                 if (length > 0)
                 {
-                    _currentBuffer = GetBuffer(++_tail.Buffer);
+                    _currentBuffer = _bufferList[++_tail.Buffer];
                     if (remaining == 0)
                     {
                         span.CopyTo(_currentBuffer.Span.Slice(0, length));
@@ -216,7 +216,7 @@ namespace IceRpc.Slice.Internal
             }
         }
 
-        private static int Distance(ReadOnlyMemory<ReadOnlyMemory<byte>> data, Position start, Position end)
+        private static int Distance(List<Memory<byte>> data, Position start, Position end)
         {
             // If both the start and end position are in the same array buffer just
             // compute the offsets distance.
@@ -228,13 +228,13 @@ namespace IceRpc.Slice.Internal
             // If start and end position are in different buffers we need to accumulate the
             // size from start offset to the end of the start buffer, the size of the intermediary
             // buffers, and the current offset into the last buffer.
-            ReadOnlyMemory<byte> buffer = data.Span[start.Buffer];
+            Memory<byte> buffer = data[start.Buffer];
             int size = buffer.Length - start.Offset;
             for (int i = start.Buffer + 1; i < end.Buffer; ++i)
             {
                 checked
                 {
-                    size += data.Span[i].Length;
+                    size += data[i].Length;
                 }
             }
             checked
@@ -264,11 +264,7 @@ namespace IceRpc.Slice.Internal
 
                 // A single buffer must satisfy the expansion request.
                 Memory<byte> buffer = _underlying.GetMemory(n - remaining);
-
-                var newBufferVector = new ReadOnlyMemory<byte>[_bufferVector.Length + 1];
-                _bufferVector.CopyTo(newBufferVector.AsMemory());
-                newBufferVector[^1] = buffer;
-                _bufferVector = newBufferVector;
+                _bufferList.Add(buffer);
 
                 if (remaining == 0)
                 {
@@ -284,8 +280,5 @@ namespace IceRpc.Slice.Internal
             // Once Expand returns, _tail points to a writeable byte.
             Debug.Assert(_tail.Offset < _currentBuffer.Length);
         }
-
-        /// <summary>Returns the buffer at the given index.</summary>
-        private Memory<byte> GetBuffer(int index) => MemoryMarshal.AsMemory(_bufferVector.Span[index]);
     }
 }
