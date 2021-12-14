@@ -637,6 +637,8 @@ namespace IceRpc.Internal
             MultiplexedStreamPipeWriter frameWriter,
             CancellationToken cancel)
         {
+            frameWriter.CompleteCancellationToken = cancel;
+
             try
             {
                 await outgoingFrame.PayloadSource.CopyToAsync(outgoingFrame.PayloadSink, cancel).ConfigureAwait(false);
@@ -661,6 +663,7 @@ namespace IceRpc.Internal
 
                         // TODO: better cancellation token?
                         CancellationToken cancel = CancellationToken.None;
+                        frameWriter.CompleteCancellationToken = cancel;
 
                         try
                         {
@@ -673,24 +676,26 @@ namespace IceRpc.Internal
                             completeReason = ex;
                         }
 
-                        // See comments below
                         await payloadSourceStream.CompleteAsync(completeReason).ConfigureAwait(false);
                         await outgoingFrame.PayloadSink.CompleteAsync(completeReason).ConfigureAwait(false);
+
                         if (completeReason == null)
                         {
-                            await frameWriter.WriteEndStreamAndCompleteAsync(cancel).ConfigureAwait(false);
+                            // Need to call it again directly on frameWriter in case the PayloadSink.CompleteAsync
+                            // ended up calling the no-op frameWriter.Complete.
+                            await frameWriter.CompleteAsync().ConfigureAwait(false);
                         }
                     },
                     CancellationToken.None);
             }
             else
             {
-                // This is a "fake" Complete that flushes buffers (e.g. a stream-based pipe writer) but does not write
-                // endStream or actually complete the frameWriter if successful.
+                // The implementation of frameWriter.CompleteAsync uses cancel set earlier.
                 await outgoingFrame.PayloadSink.CompleteAsync().ConfigureAwait(false);
 
-                // The actual WriteEndStream + Complete
-                await frameWriter.WriteEndStreamAndCompleteAsync(cancel).ConfigureAwait(false);
+                // Need to call it again directly on frameWriter in case the PayloadSink.CompleteAsync
+                // ended up calling the no-op frameWriter.Complete.
+                await frameWriter.CompleteAsync().ConfigureAwait(false);
             }
 
             // The caller CompleteAsync the payload source/sink if an exception is thrown by CopyToAsync.
