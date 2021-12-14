@@ -457,6 +457,9 @@ namespace IceRpc.Internal
                     await request.PayloadSource.CopyToAsync(
                         request.PayloadSink,
                         CancellationToken.None).ConfigureAwait(false);
+
+                    // We need to call Flush in case PayloadSource was empty and CopyToAsync didn't do anything.
+                    _ = await request.PayloadSink.FlushAsync(CancellationToken.None).ConfigureAwait(false);
                 }
 
                 await request.PayloadSource.CompleteAsync().ConfigureAwait(false);
@@ -598,8 +601,11 @@ namespace IceRpc.Internal
                         bufferWriter.Complete();
 
                         await response.PayloadSource.CopyToAsync(
-                                response.PayloadSink,
-                                CancellationToken.None).ConfigureAwait(false);
+                            response.PayloadSink,
+                            CancellationToken.None).ConfigureAwait(false);
+
+                        // We need to call Flush in case PayloadSource was empty and CopyToAsync didn't do anything.
+                        _ = await response.PayloadSink.FlushAsync(CancellationToken.None).ConfigureAwait(false);
 
                         await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
                         await response.PayloadSink.CompleteAsync().ConfigureAwait(false);

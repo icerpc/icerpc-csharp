@@ -637,9 +637,6 @@ namespace IceRpc.Internal
             MultiplexedStreamPipeWriter frameWriter,
             CancellationToken cancel)
         {
-            // TODO: CopyToAsync does not return a flushResult so we don't know if we still have a reader. It
-            // just returns with no exception when flushResult.IsCompleted is true. We could implement our own
-            // version.
             try
             {
                 await outgoingFrame.PayloadSource.CopyToAsync(outgoingFrame.PayloadSink, cancel).ConfigureAwait(false);
@@ -648,9 +645,13 @@ namespace IceRpc.Internal
             {
                 throw new OperationCanceledException();
             }
+
+            // We need to call FlushAsync in case PayloadSource was empty and CopyToAsync didn't do anything.
+            FlushResult flushResult = await outgoingFrame.PayloadSink.FlushAsync(cancel).ConfigureAwait(false);
+
             await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
 
-            if (outgoingFrame.PayloadSourceStream is PipeReader payloadSourceStream)
+            if (!flushResult.IsCompleted && outgoingFrame.PayloadSourceStream is PipeReader payloadSourceStream)
             {
                 // send payloadSourceStream in the background
                 _ = Task.Run(
