@@ -9,8 +9,8 @@ namespace IceRpc.Slice.Internal
     /// <summary>Implements a custom buffer writer using another buffer writer.</summary>
     internal class BufferWriter // TODO: implement IBufferWriter<byte>
     {
-        /// <summary>Represents a position in the underlying buffer vector. This position consists of the index of the
-        /// buffer in the vector and the offset into that buffer.</summary>
+        /// <summary>Represents a position in the underlying buffer list. This position consists of the index of the
+        /// buffer in the list and the offset into that buffer.</summary>
         internal record struct Position
         {
             /// <summary>The zero based index of the buffer.</summary>
@@ -20,7 +20,7 @@ namespace IceRpc.Slice.Internal
             internal int Offset;
 
             /// <summary>Creates a new position from the buffer and offset values.</summary>
-            /// <param name="buffer">The zero based index of the buffer in the buffer vector.</param>
+            /// <param name="buffer">The zero based index of the buffer in the buffer list.</param>
             /// <param name="offset">The offset into the buffer.</param>
             internal Position(int buffer, int offset)
             {
@@ -29,8 +29,7 @@ namespace IceRpc.Slice.Internal
             }
         }
 
-        /// <summary>The number of bytes that the underlying buffer vector can hold without further allocation.
-        /// </summary>
+        /// <summary>The number of bytes that the underlying buffer list can hold without further allocation.</summary>
         internal int Capacity { get; private set; }
 
         /// <summary>Determines the current size of the buffer. This corresponds to the number of bytes already written.
@@ -75,7 +74,7 @@ namespace IceRpc.Slice.Internal
         }
 
         /// <summary>Finishes-off the current buffer.</summary>
-        /// <remarks>If you are using a single buffer, you must instead Slice your buffer as follows:
+        /// <remarks>If you are using a single buffer, you must instead slice your buffer as follows:
         /// buffer = buffer[0..bufferWriter.Size].</remarks>
         internal void Complete() => _underlying!.Advance(_tail.Offset);
 
