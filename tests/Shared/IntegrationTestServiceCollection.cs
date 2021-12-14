@@ -35,7 +35,7 @@ namespace IceRpc.Tests
                 return server;
             });
 
-            // The default Connection is configured to connection to the Server configured on the service collection.
+            // The default Connection is configured to connect to the Server configured on the service collection.
             this.AddScoped(serviceProvider =>
             {
                 IClientTransport<ISimpleNetworkConnection> simpleClientTransport =

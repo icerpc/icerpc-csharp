@@ -39,7 +39,7 @@ namespace IceRpc.Tests
             // Use coloc as the default transport.
             this.UseTransport("coloc");
 
-            // The default simple server transport is based on the transport of the service collection endpoint.
+            // The default simple server transport is based on the configured endpoint.
             this.AddScoped(serviceProvider =>
                 serviceProvider.GetRequiredService<Endpoint>().Transport switch
                 {
@@ -60,7 +60,7 @@ namespace IceRpc.Tests
                         serviceProvider.GetService<SlicOptions>() ?? new())
                 });
 
-            // The default simple client transport is based on the transport of the service collection endpoint.
+            // The default simple client transport is based on the configured endpoint.
             this.AddScoped(serviceProvider =>
                 serviceProvider.GetRequiredService<Endpoint>().Transport switch
                 {
@@ -80,18 +80,6 @@ namespace IceRpc.Tests
                         serviceProvider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
                         serviceProvider.GetService<SlicOptions>() ?? new())
                 });
-
-            // The simple server transport listener
-            this.AddScoped(serviceProvider =>
-                serviceProvider.GetRequiredService<IServerTransport<ISimpleNetworkConnection>>().Listen(
-                    serviceProvider.GetRequiredService<Endpoint>(),
-                    serviceProvider.GetRequiredService<ILogger>()));
-
-            // The multiplexed server transport listener
-            this.AddScoped(serviceProvider =>
-                serviceProvider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>().Listen(
-                    serviceProvider.GetRequiredService<Endpoint>(),
-                    serviceProvider.GetRequiredService<ILogger>()));
         }
     }
 
@@ -101,17 +89,14 @@ namespace IceRpc.Tests
             this IServiceCollection collection,
             ColocTransport transport,
             int port) =>
-            collection.AddScoped(_ => transport).UseTransport("coloc", port);
+            collection.AddScoped(_ => transport).UseEndpoint("coloc", host: "coloctest", port);
 
         public static IServiceCollection UseTls(
             this IServiceCollection collection,
             string caFile = "cacert.der",
             string certificateFile = "server.p12")
         {
-            // The certificate target host name is 127.0.0.1
-            collection.AddTransient<Endpoint>(_ => $"ice+tcp://127.0.0.1:0");
-
-            collection.AddScoped(_ => new SslClientAuthenticationOptions()
+            collection.AddScoped(serviceProvider => new SslClientAuthenticationOptions()
             {
                 RemoteCertificateValidationCallback =
                     CertificateValidaton.GetServerCertificateValidationCallback(
@@ -131,49 +116,43 @@ namespace IceRpc.Tests
             return collection;
         }
 
-        public static IServiceCollection UseTransport(
+        public static IServiceCollection UseTransport(this IServiceCollection collection, string transport) =>
+            collection.UseEndpoint(transport, "[::1]", 0);
+
+        public static IServiceCollection UseEndpoint(
             this IServiceCollection collection,
             string transport,
-            int port = 0) =>
+            string host,
+            int port)
+        {
+            if (transport == "udp")
+            {
+                // Override the protocol to Ice1 for udp since it's the only supported protocol for this transport.
+                collection.UseProtocol(Protocol.Ice1.Code);
+            }
+
             collection.AddScoped(serviceProvider =>
             {
-                // Get the default endpoint for the given transport.
-                Endpoint endpoint = transport switch
-                {
-                    "tcp" => $"ice+tcp://[::1]:{port}",
-                    "ssl" => $"ice+tcp://[::1]:{port}",
-                    "udp" => $"ice+udp://[::1]:{port}",
-                    "coloc" => $"ice+coloc://coloctest:{port}",
-                    _ => Server.DefaultSimpleServerTransport.DefaultEndpoint with { Port = (ushort)port }
-                };
+                Endpoint endpoint = $"ice+{transport}://{host}:{port}";
 
                 // Set the endpoint protocol to the configured protocol.
-                if (endpoint.Transport == "udp")
-                {
-                    // UDP is only supported with Ice1
-                    endpoint = endpoint with { Protocol = Protocol.Ice1 };
-                }
-                else
-                {
-                    endpoint = endpoint with { Protocol = serviceProvider.GetRequiredService<Protocol>() };
-                }
+                endpoint = endpoint with { Protocol = serviceProvider.GetRequiredService<Protocol>() };
 
-                // For tcp or ssl, set the "tls" parameter to true if authentication options are configured, to false
-                // otherwise.
-                if (endpoint.Transport == "tcp" || endpoint.Transport == "ssl")
+                // For tcp or ssl, set the "tls" parameter (only when using Ice2)
+                if (endpoint.Protocol != Protocol.Ice1 && (endpoint.Transport == "tcp" || endpoint.Transport == "ssl"))
                 {
-                    // If server authentication options are set, use TLS
+                    // If server authentication options are configured, set the tls=true endpoint parameter.
                     bool tls = serviceProvider.GetService<SslServerAuthenticationOptions>() != null;
-                    if (endpoint.Protocol != Protocol.Ice1)
+                    endpoint = endpoint with
                     {
-                        endpoint = endpoint with
-                        {
-                            Params = ImmutableList.Create(new EndpointParam("tls", tls.ToString().ToLowerInvariant()))
-                        };
-                    }
+                        Params = ImmutableList.Create(new EndpointParam("tls", tls.ToString().ToLowerInvariant()))
+                    };
                 }
 
                 return endpoint;
             });
+
+            return collection;
+        }
     }
 }

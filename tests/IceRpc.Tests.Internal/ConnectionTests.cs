@@ -101,7 +101,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(ProtocolCode.Ice2)]
         public async Task Connection_ConnectTimeoutAsync(ProtocolCode protocol)
         {
-            await using ServiceProvider serviceProvider = new TransportServiceCollection()
+            await using ServiceProvider serviceProvider = new InternalTestServiceCollection()
                 .UseTransport("tcp")
                 .UseProtocol(protocol)
                 .BuildServiceProvider();
@@ -125,11 +125,13 @@ namespace IceRpc.Tests.Internal
         [Log(LogAttributeLevel.Trace)]
         public async Task Connection_InformationAsync(string transport, bool secure)
         {
-            await using var factory = new ConnectionFactory(
-                new ConnectionTestServiceCollection(
-                    transport,
-                    protocol: transport == "udp" ? ProtocolCode.Ice1 : ProtocolCode.Ice2)
-                   .UseTls());
+            var serviceCollection = new InternalTestServiceCollection();
+            if (secure)
+            {
+                serviceCollection.UseTls();
+            }
+            serviceCollection.UseEndpoint(transport, host: "127.0.0.1", port: 0);
+            await using var factory = new ConnectionFactory(serviceCollection);
 
             Assert.That(factory.ClientConnection.IsSecure, Is.EqualTo(secure));
             Assert.That(factory.ServerConnection.IsSecure, Is.EqualTo(secure));
@@ -452,11 +454,14 @@ namespace IceRpc.Tests.Internal
         {
             internal ConnectionTestServiceCollection(
                 string transport = "coloc",
-                ProtocolCode protocol = ProtocolCode.Ice2,
+                ProtocolCode? protocol = null,
                 IDispatcher? dispatcher = null)
             {
                 this.UseTransport(transport);
-                this.UseProtocol(protocol);
+                if (protocol != null)
+                {
+                    this.UseProtocol(protocol.Value);
+                }
                 if (dispatcher != null)
                 {
                     this.AddScoped(_ => dispatcher);

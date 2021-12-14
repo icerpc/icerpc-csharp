@@ -11,7 +11,7 @@ namespace IceRpc.Tests.Internal
     {
         internal InternalTestServiceCollection()
         {
-            // Add internal transport log decorators
+            // Add internal transport log decorators to enable logging for internal tests.
             this.AddScoped<LogNetworkConnectionDecoratorFactory<ISimpleNetworkConnection>>(
                 _ => LogSimpleNetworkConnectionDecorator.Decorate);
             this.AddScoped<LogNetworkConnectionDecoratorFactory<IMultiplexedNetworkConnection>>(
