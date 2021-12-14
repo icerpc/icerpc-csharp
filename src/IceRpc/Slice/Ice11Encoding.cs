@@ -35,13 +35,12 @@ namespace IceRpc.Slice
         {
             var pipe = new Pipe(); // TODO: pipe options
 
-            var bufferWriter = new BufferWriter(pipe.Writer);
-            var encoder = new Ice11Encoder(bufferWriter, classFormat);
-            BufferWriter.Position start = encoder.StartFixedLengthSize();
+            var encoder = new Ice11Encoder(pipe.Writer, classFormat);
+            Span<byte> sizePlaceHolder = encoder.GetPlaceHolderSpan(4);
+            int startPos = encoder.EncodedBytes;
             encodeAction(encoder, in args);
-            _ = encoder.EndFixedLengthSize(start);
+            encoder.EncodeFixedLengthSize(encoder.EncodedBytes - startPos, sizePlaceHolder);
 
-            bufferWriter.Complete(); // pipe.Writer.Advance on latest memory
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
         }
@@ -60,13 +59,12 @@ namespace IceRpc.Slice
         {
             var pipe = new Pipe(); // TODO: pipe options
 
-            var bufferWriter = new BufferWriter(pipe.Writer);
-            var encoder = new Ice11Encoder(bufferWriter, classFormat);
-            BufferWriter.Position start = encoder.StartFixedLengthSize();
+            var encoder = new Ice11Encoder(pipe.Writer, classFormat);
+            Span<byte> sizePlaceHolder = encoder.GetPlaceHolderSpan(4);
+            int startPos = encoder.EncodedBytes;
             encodeAction(encoder, arg);
-            _ = encoder.EndFixedLengthSize(start);
+            encoder.EncodeFixedLengthSize(encoder.EncodedBytes - startPos, sizePlaceHolder);
 
-            bufferWriter.Complete(); // pipe.Writer.Advance on latest memory
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
         }
@@ -86,13 +84,12 @@ namespace IceRpc.Slice
         {
             var pipe = new Pipe(); // TODO: pipe options
 
-            var bufferWriter = new BufferWriter(pipe.Writer);
-            var encoder = new Ice11Encoder(bufferWriter, classFormat);
-            BufferWriter.Position start = encoder.StartFixedLengthSize();
+            var encoder = new Ice11Encoder(pipe.Writer, classFormat);
+            Span<byte> sizePlaceHolder = encoder.GetPlaceHolderSpan(4);
+            int startPos = encoder.EncodedBytes;
             encodeAction(encoder, in returnValueTuple);
-            _ = encoder.EndFixedLengthSize(start);
+            encoder.EncodeFixedLengthSize(encoder.EncodedBytes - startPos, sizePlaceHolder);
 
-            bufferWriter.Complete(); // pipe.Writer.Advance on latest memory
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
         }
@@ -112,18 +109,18 @@ namespace IceRpc.Slice
         {
             var pipe = new Pipe(); // TODO: pipe options
 
-            var bufferWriter = new BufferWriter(pipe.Writer);
-            var encoder = new Ice11Encoder(bufferWriter, classFormat);
-            BufferWriter.Position start = encoder.StartFixedLengthSize();
+            var encoder = new Ice11Encoder(pipe.Writer, classFormat);
+            Span<byte> sizePlaceHolder = encoder.GetPlaceHolderSpan(4);
+            int startPos = encoder.EncodedBytes;
             encodeAction(encoder, returnValue);
-            _ = encoder.EndFixedLengthSize(start);
+            encoder.EncodeFixedLengthSize(encoder.EncodedBytes - startPos, sizePlaceHolder);
 
-            bufferWriter.Complete(); // pipe.Writer.Advance on latest memory
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
         }
 
-        internal override IceEncoder CreateIceEncoder(BufferWriter bufferWriter) => new Ice11Encoder(bufferWriter);
+        internal override IceEncoder CreateIceEncoder(IBufferWriter<byte> bufferWriter) =>
+            new Ice11Encoder(bufferWriter);
 
         internal override async ValueTask<(int Size, bool IsCanceled, bool IsCompleted)> DecodeSegmentSizeAsync(
             PipeReader reader,

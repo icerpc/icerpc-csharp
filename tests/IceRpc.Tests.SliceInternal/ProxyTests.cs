@@ -38,14 +38,14 @@ namespace IceRpc.Tests.SliceInternal
         public async Task Proxy_EncodingVersioning(string encodingStr, string str)
         {
             Memory<byte> data = new byte[4096];
-            var bufferWriter = new BufferWriter(data);
+            var bufferWriter = new SingleBufferWriter(data);
 
             var encoding = IceEncoding.FromString(encodingStr);
             var encoder = encoding.CreateIceEncoder(bufferWriter);
 
             var proxy = Proxy.Parse(str);
             encoder.EncodeProxy(proxy);
-            data = data[0..bufferWriter.Size];
+            data = bufferWriter.WrittenBuffer;
 
             await using var connection = new Connection();
 
@@ -61,7 +61,7 @@ namespace IceRpc.Tests.SliceInternal
         public void Proxy_EndpointLess(string encodingStr)
         {
             Memory<byte> data = new byte[4096];
-            var bufferWriter = new BufferWriter(data);
+            var bufferWriter = new SingleBufferWriter(data);
             var encoding = IceEncoding.FromString(encodingStr);
 
             // Create an endpointless proxy
@@ -72,7 +72,7 @@ namespace IceRpc.Tests.SliceInternal
             // Encodes the endpointless proxy
             var encoder = encoding.CreateIceEncoder(bufferWriter);
             encoder.EncodeProxy(endpointLess);
-            data = data[0..bufferWriter.Size];
+            data = bufferWriter.WrittenBuffer;
 
             // Decodes the endpointless proxy using the client connection. We get back a 1-endpoint proxy
             IceDecoder decoder = encoding == IceRpc.Encoding.Ice11 ? new Ice11Decoder(data, _connection) :

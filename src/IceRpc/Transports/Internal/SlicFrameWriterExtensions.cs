@@ -73,10 +73,11 @@ namespace IceRpc.Transports.Internal
             // TODO: ISlicFrameWriter needs a better API!
             var pipe = new Pipe();
 
-            var bufferWriter = new BufferWriter(pipe.Writer);
-            var encoder = new Ice20Encoder(bufferWriter);
+            var encoder = new Ice20Encoder(pipe.Writer);
             encoder.EncodeByte((byte)type);
-            BufferWriter.Position sizePos = encoder.StartFixedLengthSize();
+            Memory<byte> sizePlaceHolder = encoder.GetPlaceHolderMemory(4);
+            int startPos = encoder.EncodedBytes;
+
             if (stream != null)
             {
                 encoder.EncodeVarULong((ulong)stream.Id);
@@ -85,8 +86,7 @@ namespace IceRpc.Transports.Internal
             {
                 encode?.Invoke(encoder);
             }
-            encoder.EndFixedLengthSize(sizePos);
-            bufferWriter.Complete();
+            Ice20Encoder.EncodeFixedLengthSize(encoder.EncodedBytes - startPos, sizePlaceHolder.Span);
 
             // TODO: all this copying is naturally temporary
             await pipe.Writer.CompleteAsync().ConfigureAwait(false);

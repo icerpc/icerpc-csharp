@@ -32,12 +32,12 @@ namespace IceRpc.Tests.SliceInternal
         public void Slicing_Classes()
         {
             Memory<byte> buffer = new byte[1024 * 1024];
-            var bufferWriter = new BufferWriter(buffer);
+            var bufferWriter = new SingleBufferWriter(buffer);
             var encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
 
             var p1 = new MyMostDerivedClass("most-derived", "derived", "base");
             encoder.EncodeClass(p1);
-            buffer = buffer[0..bufferWriter.Size];
+            buffer = bufferWriter.WrittenBuffer;
 
             // Create an activator that knows about all the types using in this test
             var activator = Ice11Decoder.GetActivator(new Assembly[]
@@ -98,12 +98,12 @@ namespace IceRpc.Tests.SliceInternal
         public void Slicing_Classes_WithCompactTypeId()
         {
             Memory<byte> buffer = new byte[1024 * 1024];
-            var bufferWriter = new BufferWriter(buffer);
+            var bufferWriter = new SingleBufferWriter(buffer);
             var encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
 
             var p1 = new MyCompactMostDerivedClass("most-derived", "derived", "base");
             encoder.EncodeClass(p1);
-            buffer = buffer[0..bufferWriter.Size];
+            buffer = bufferWriter.WrittenBuffer;
 
             // Create an activator that knows about all the types using in this test
             var activator = Ice11Decoder.GetActivator(new Assembly[]
@@ -158,12 +158,12 @@ namespace IceRpc.Tests.SliceInternal
         public void Slicing_Exceptions()
         {
             Memory<byte> buffer = new byte[1024 * 1024];
-            var bufferWriter = new BufferWriter(buffer);
+            var bufferWriter = new SingleBufferWriter(buffer);
             var encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
 
             var p1 = new MyMostDerivedException("most-derived", "derived", "base");
             encoder.EncodeException(p1);
-            buffer = buffer[0..bufferWriter.Size];
+            buffer = bufferWriter.WrittenBuffer;
 
             // Create an activator that knows about all the types using in this test
             var activator = Ice11Decoder.GetActivator(new Assembly[]
@@ -228,10 +228,10 @@ namespace IceRpc.Tests.SliceInternal
 
             // Marshal the exception again -- there is no Slice preservation for exceptions
             buffer = new byte[1024 * 1024];
-            bufferWriter = new BufferWriter(buffer);
+            bufferWriter = new SingleBufferWriter(buffer);
             encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
             encoder.EncodeException(r);
-            buffer = buffer[0..bufferWriter.Size];
+            buffer = bufferWriter.WrittenBuffer;
 
             decoder = new Ice11Decoder(buffer, activator: activator);
             r = decoder.DecodeException();
@@ -243,13 +243,13 @@ namespace IceRpc.Tests.SliceInternal
         public void Slicing_PreservedClasses()
         {
             Memory<byte> buffer = new byte[1024 * 1024];
-            var bufferWriter = new BufferWriter(buffer);
+            var bufferWriter = new SingleBufferWriter(buffer);
             var encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
 
             var p2 = new MyPreservedDerivedClass1("p2-m1", "p2-m2", new MyBaseClass("base"));
             var p1 = new MyPreservedDerivedClass1("p1-m1", "p1-m2", p2);
             encoder.EncodeClass(p1);
-            buffer = buffer[0..bufferWriter.Size];
+            buffer = bufferWriter.WrittenBuffer;
 
             // Create an activator that knows about all the types using in this test
             var activator = Ice11Decoder.GetActivator(typeof(MyPreservedDerivedClass1).Assembly);
@@ -269,10 +269,10 @@ namespace IceRpc.Tests.SliceInternal
 
             // Marshal the sliced class
             buffer = new byte[1024 * 1024];
-            bufferWriter = new BufferWriter(buffer);
+            bufferWriter = new SingleBufferWriter(buffer);
             encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
             encoder.EncodeClass(r1);
-            buffer = buffer[0..bufferWriter.Size];
+            buffer = bufferWriter.WrittenBuffer;
 
             // unmarshal again using the default factory, the unmarshaled class should contain the preserved Slices.
             decoder = new Ice11Decoder(buffer, activator: activator);
@@ -291,13 +291,13 @@ namespace IceRpc.Tests.SliceInternal
         public void Slicing_PreservedClasses_WithCompactTypeId()
         {
             Memory<byte> buffer = new byte[1024 * 1024];
-            var bufferWriter = new BufferWriter(buffer);
+            var bufferWriter = new SingleBufferWriter(buffer);
             var encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
 
             var p2 = new MyPreservedDerivedClass2("p2-m1", "p2-m2", new MyBaseClass("base"));
             var p1 = new MyPreservedDerivedClass2("p1-m1", "p1-m2", p2);
             encoder.EncodeClass(p1);
-            buffer = buffer[0..bufferWriter.Size];
+            buffer = bufferWriter.WrittenBuffer;
 
             // Create an activator that knows about all the types using in this test
             var activator = Ice11Decoder.GetActivator(typeof(MyPreservedDerivedClass2).Assembly);
@@ -315,10 +315,10 @@ namespace IceRpc.Tests.SliceInternal
 
             // Marshal the sliced class
             buffer = new byte[1024 * 1024];
-            bufferWriter = new BufferWriter(buffer);
+            bufferWriter = new SingleBufferWriter(buffer);
             encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
             encoder.EncodeClass(r1);
-            buffer = buffer[0..bufferWriter.Size];
+            buffer = bufferWriter.WrittenBuffer;
 
             // unmarshal again using the default factory, the unmarshaled class should contain the preserved Slices.
             decoder = new Ice11Decoder(buffer, activator: activator);

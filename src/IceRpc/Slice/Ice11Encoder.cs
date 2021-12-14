@@ -4,6 +4,7 @@ using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports.Internal;
 using System.Collections.Immutable;
+using System.Buffers;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
@@ -228,9 +229,12 @@ namespace IceRpc.Slice
             if (tagFormat == TagFormat.FSize)
             {
                 EncodeTaggedParamHeader(tag, tagFormat);
-                BufferWriter.Position pos = StartFixedLengthSize();
+                Span<byte> placeHolder = GetPlaceHolderSpan(4);
+                int startPos = EncodedBytes;
                 encodeAction(this, v);
-                EndFixedLengthSize(pos);
+
+                // We don't include the size-length in the size we encode.
+                EncodeFixedLengthSize(EncodedBytes - startPos, placeHolder);
             }
             else
             {
@@ -279,9 +283,9 @@ namespace IceRpc.Slice
                 EncodeSize(size);
             }
 
-            BufferWriter.Position startPos = BufferWriter.Tail;
+            int startPos = EncodedBytes;
             encodeAction(this, v);
-            int actualSize = BufferWriter.Distance(startPos);
+            int actualSize = EncodedBytes - startPos;
             if (actualSize != size)
             {
                 throw new ArgumentException($"value of size ({size}) does not match encoded size ({actualSize})",
@@ -314,7 +318,7 @@ namespace IceRpc.Slice
             if ((_current.SliceFlags & SliceFlags.HasSliceSize) != 0)
             {
                 // Size includes the size length.
-                EncodeFixedLengthSize(BufferWriter.Distance(_current.SliceSizePos), _current.SliceSizePos);
+                EncodeFixedLengthSize(EncodedBytes - _current.SliceSizeStartPos, _current.SliceSizePlaceHolder.Span);
             }
 
             if (_current.IndirectionTable?.Count > 0)
@@ -332,7 +336,7 @@ namespace IceRpc.Slice
             }
 
             // Update SliceFlags in case they were updated.
-            BufferWriter.RewriteByte((byte)_current.SliceFlags, _current.SliceFlagsPos);
+            _current.SliceFlagsPlaceHolder.Span[0] = (byte)_current.SliceFlags;
         }
 
         /// <summary>Marks the start of the encoding of a class or remote exception slice.</summary>
@@ -344,15 +348,15 @@ namespace IceRpc.Slice
             Debug.Assert(_current.InstanceType != InstanceType.None);
 
             _current.SliceFlags = default;
-            _current.SliceFlagsPos = BufferWriter.Tail;
-            EncodeByte(0); // Placeholder for the slice flags
+            _current.SliceFlagsPlaceHolder = GetPlaceHolderMemory(1);
 
             if (_classFormat == FormatType.Sliced)
             {
                 EncodeTypeId(typeId, compactId);
                 // Encode the slice size if using the sliced format.
                 _current.SliceFlags |= SliceFlags.HasSliceSize;
-                _current.SliceSizePos = StartFixedLengthSize();
+                _current.SliceSizeStartPos = EncodedBytes; // size includes size-length
+                _current.SliceSizePlaceHolder = GetPlaceHolderMemory(4);
             }
             else if (_current.FirstSlice)
             {
@@ -366,7 +370,7 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Constructs an encoder for the Ice 1.1 encoding.</summary>
-        internal Ice11Encoder(BufferWriter bufferWriter, FormatType classFormat = default)
+        internal Ice11Encoder(IBufferWriter<byte> bufferWriter, FormatType classFormat = default)
             : base(bufferWriter) =>
             _classFormat = classFormat;
 
@@ -405,7 +409,7 @@ namespace IceRpc.Slice
                 IceStartSlice(sliceInfo.TypeId, compactId);
 
                 // Writes the bytes associated with this slice.
-                BufferWriter.WriteByteSpan(sliceInfo.Bytes.Span);
+                WriteByteSpan(sliceInfo.Bytes.Span);
 
                 if (sliceInfo.HasTaggedMembers)
                 {
@@ -424,7 +428,7 @@ namespace IceRpc.Slice
             }
         }
 
-        private protected override void EncodeFixedLengthSize(int size, Span<byte> into)
+        internal override void EncodeFixedLengthSize(int size, Span<byte> into)
         {
             if (into.Length != 4)
             {
@@ -460,7 +464,7 @@ namespace IceRpc.Slice
                     Debug.Assert(encoding == Encoding.Ice10);
                     EncodeByte(0); // encoding version minor
                 }
-                BufferWriter.WriteByteSpan(bytes.Span);
+                WriteByteSpan(bytes.Span);
             }
             else
             {
@@ -475,8 +479,8 @@ namespace IceRpc.Slice
 
                 this.EncodeTransportCode(transportCode);
 
-                BufferWriter.Position startPos = BufferWriter.Tail;
-                EncodeInt(0); // placeholder for encapsulation size written by EncodeFixedLengthSize below
+                int startPos = EncodedBytes; // size includes size-length
+                Span<byte> sizePlaceHolder = GetPlaceHolderSpan(4);
                 EncodeByte(1); // encoding version major
                 EncodeByte(1); // encoding version minor
 
@@ -508,7 +512,7 @@ namespace IceRpc.Slice
                         break;
                 }
 
-                EncodeFixedLengthSize(BufferWriter.Distance(startPos), startPos);
+                EncodeFixedLengthSize(EncodedBytes - startPos, sizePlaceHolder);
             }
         }
 
@@ -655,11 +659,14 @@ namespace IceRpc.Slice
 
             internal SliceFlags SliceFlags;
 
-            // Position of the slice flags.
-            internal BufferWriter.Position SliceFlagsPos;
+            // The slice flags byte.
+            internal Memory<byte> SliceFlagsPlaceHolder;
 
-            // Position of the slice size. Used only for the sliced format.
-            internal BufferWriter.Position SliceSizePos;
+            // The place holder for the Slice size. Used only for the sliced format.
+            internal Memory<byte> SliceSizePlaceHolder;
+
+            // The starting position for computing the size of the slice. It includes the size length.
+            internal int SliceSizeStartPos;
         }
 
         private enum InstanceType : byte

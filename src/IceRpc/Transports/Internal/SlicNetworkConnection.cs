@@ -330,19 +330,9 @@ namespace IceRpc.Transports.Internal
 
             static KeyValuePair<int, IList<byte>> EncodeParameter(ParameterKey key, ulong value)
             {
-                var pipe = new Pipe();
-                var bufferWriter = new BufferWriter(pipe.Writer);
-                var encoder = new Ice20Encoder(bufferWriter);
-                encoder.EncodeVarULong(value);
-                bufferWriter.Complete();
-                pipe.Writer.Complete();
-
-                bool success = pipe.Reader.TryRead(out ReadResult result);
-                Debug.Assert(success);
-                Debug.Assert(result.IsCompleted);
-                byte[] buffer = result.Buffer.ToArray();
-                pipe.Reader.Complete();
-
+                int sizeLength = IceEncoder.GetVarULongEncodedSize(value);
+                byte[] buffer = new byte[sizeLength];
+                IceEncoder.EncodeVarULong(value, buffer);
                 return new((int)key, buffer);
             }
         }

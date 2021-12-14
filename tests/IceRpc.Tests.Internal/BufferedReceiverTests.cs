@@ -73,7 +73,7 @@ namespace IceRpc.Tests.Internal
         {
             // TODO: I wish I knew what receiveSize and bufferSize means in this test
             Memory<byte> sourceBuffer = new byte[4096];
-            var bufferWriter = new BufferWriter(sourceBuffer);
+            var bufferWriter = new SingleBufferWriter(sourceBuffer);
             var encoder = new Ice20Encoder(bufferWriter);
             var values = new List<int>();
             encoder.EncodeSize(0);
@@ -84,7 +84,7 @@ namespace IceRpc.Tests.Internal
                 values.Add(1 << i);
             }
 
-            sourceBuffer = sourceBuffer[0..bufferWriter.Size];
+            sourceBuffer = bufferWriter.WrittenBuffer;
 
             using var receiver = new BufferedReceiver(GetReceiver(sourceBuffer, receiveSize), bufferSize);
 
@@ -104,7 +104,7 @@ namespace IceRpc.Tests.Internal
         public async ValueTask BufferedReceiver_ReceiveVarULongAsync(int receiveSize, int bufferSize)
         {
             Memory<byte> sourceBuffer = new byte[4096];
-            var bufferWriter = new BufferWriter(sourceBuffer);
+            var bufferWriter = new SingleBufferWriter(sourceBuffer);
             var encoder = new Ice20Encoder(bufferWriter);
             var values = new List<ulong>();
             encoder.EncodeSize(0);
@@ -115,7 +115,7 @@ namespace IceRpc.Tests.Internal
                 values.Add((ulong)1 << i);
             }
 
-            sourceBuffer = sourceBuffer[0..bufferWriter.Size];
+            sourceBuffer = bufferWriter.WrittenBuffer;
 
             using var receiver = new BufferedReceiver(GetReceiver(sourceBuffer, receiveSize), bufferSize);
 
