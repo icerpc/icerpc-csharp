@@ -5,7 +5,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Internal
 {
-    /// <summary>Implements the buffering methods of a PipeWriter using a lazyily created Pipe.</summary>
+    /// <summary>Implements the buffering methods of a PipeWriter using a lazily created Pipe.</summary>
     /// <remarks>This class could derive directly from PipeWriter: it does not use or implement the property and
     /// method of AsyncCompletePipeWriter.</remarks>
     internal abstract class BufferedPipeWriter : AsyncCompletePipeWriter
@@ -33,10 +33,10 @@ namespace IceRpc.Internal
 
         public override void Complete(Exception? exception = default)
         {
-            if (_pipe != null)
+            if (_pipe is Pipe pipe)
             {
-                _pipe.Writer.Complete();
-                _pipe.Reader.Complete();
+                pipe.Writer.Complete();
+                pipe.Reader.Complete();
                 _pipe = null;
             }
         }

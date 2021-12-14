@@ -640,7 +640,7 @@ namespace IceRpc.Internal
             {
                 await outgoingFrame.PayloadSource.CopyToAsync(outgoingFrame.PayloadSink, cancel).ConfigureAwait(false);
             }
-            catch (TaskCanceledException) // CopyToAsync returns a canceled task if cancel is cancelled
+            catch (TaskCanceledException) // CopyToAsync returns a canceled task if cancel is canceled
             {
                 throw new OperationCanceledException();
             }

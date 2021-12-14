@@ -22,7 +22,7 @@ namespace IceRpc.Slice.Internal
             if (sizeHint > _available.Length)
             {
                 throw new ArgumentException(
-                    @$"requested at least {sizeHint} bytes from SingleMemoryBuffer when only {
+                    @$"requested at least {sizeHint} bytes from {nameof(SingleBufferWriter)} when only {
                         _available.Length} bytes are available");
             }
             return _available;
