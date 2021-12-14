@@ -1,6 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Slice.Internal;
+using System.Buffers;
+using System.Diagnostics;
+using System.IO.Pipelines;
 
 namespace IceRpc.Slice
 {
@@ -19,11 +23,11 @@ namespace IceRpc.Slice
             };
 
         /// <summary>Creates an empty payload encoded with this encoding.</summary>
+        /// <param name="hasStream">When true, the Slice operation includes a stream in addition to the empty parameters
+        /// or void return.</param>
         /// <returns>A new empty payload.</returns>
-        // TODO: the term payload is not quite correct here. For this class, it currently represents only the
-        // args/return/exception portion of the payload; the actual payload of a request/response can also hold stream
-        // data.
-        public abstract ReadOnlyMemory<ReadOnlyMemory<byte>> CreateEmptyPayload();
+        // TODO: for now, we assume there is always a stream after. Fix with outgoing stream refactoring.
+        public abstract PipeReader CreateEmptyPayload(bool hasStream = true);
 
         /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
         /// takes a single parameter.</summary>
@@ -32,7 +36,7 @@ namespace IceRpc.Slice
         /// <param name="encodeAction">The <see cref="EncodeAction{TEncoder, T}"/> that encodes the argument into the
         /// payload.</param>
         /// <returns>A new payload.</returns>
-        public ReadOnlyMemory<ReadOnlyMemory<byte>> CreatePayloadFromSingleArg<T>(
+        public PipeReader CreatePayloadFromSingleArg<T>(
             T arg,
             EncodeAction<IceEncoder, T> encodeAction)
         {
@@ -41,7 +45,7 @@ namespace IceRpc.Slice
             BufferWriter.Position start = encoder.StartFixedLengthSize();
             encodeAction(encoder, arg);
             _ = encoder.EndFixedLengthSize(start);
-            return bufferWriter.Finish();
+            return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.Finish().ToSingleBuffer()));
         }
 
         /// <summary>Creates the payload of a request from the request's arguments. Use this method is for operations
@@ -51,7 +55,7 @@ namespace IceRpc.Slice
         /// <param name="encodeAction">The <see cref="TupleEncodeAction{TEncoder, T}"/> that encodes the arguments into
         /// the payload.</param>
         /// <returns>A new payload.</returns>
-        public ReadOnlyMemory<ReadOnlyMemory<byte>> CreatePayloadFromArgs<T>(
+        public PipeReader CreatePayloadFromArgs<T>(
             in T args,
             TupleEncodeAction<IceEncoder, T> encodeAction) where T : struct
         {
@@ -60,7 +64,142 @@ namespace IceRpc.Slice
             BufferWriter.Position start = encoder.StartFixedLengthSize();
             encodeAction(encoder, in args);
             _ = encoder.EndFixedLengthSize(start);
-            return bufferWriter.Finish();
+            return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.Finish().ToSingleBuffer()));
+        }
+
+        /// <summary>Creates a payload source stream from an async enumerable.</summary>
+        public PipeReader CreatePayloadSourceStream<T>(
+            IAsyncEnumerable<T> asyncEnumerable,
+            EncodeAction<IceEncoder, T> encodeAction)
+        {
+            var pipe = new Pipe(); // TODO: pipe options, pipe pooling
+
+            // start writing immediately into background
+            Task.Run(() => FillPipeAsync());
+
+            return pipe.Reader;
+
+            async Task FillPipeAsync()
+            {
+                PipeWriter writer = pipe.Writer;
+
+                using var cancelationSource = new CancellationTokenSource();
+                IAsyncEnumerator<T> asyncEnumerator = asyncEnumerable.GetAsyncEnumerator(cancelationSource.Token);
+                await using var _ = asyncEnumerator.ConfigureAwait(false);
+
+                (IceEncoder encoder, BufferWriter.Position sizeStart, BufferWriter.Position payloadStart) =
+                    StartSegment();
+
+                while (true)
+                {
+                    ValueTask<bool> moveNext = asyncEnumerator.MoveNextAsync();
+                    if (moveNext.IsCompletedSuccessfully)
+                    {
+                        if (moveNext.Result)
+                        {
+                            encodeAction(encoder, asyncEnumerator.Current);
+                        }
+                        else
+                        {
+                            if (encoder.BufferWriter.Tail != payloadStart)
+                            {
+                                await FinishSegmentAsync(encoder, sizeStart).ConfigureAwait(false);
+                            }
+                            break; // End iteration
+                        }
+                    }
+                    else
+                    {
+                        // If we already wrote some elements write the segment now and start a new one.
+                        if (encoder.BufferWriter.Tail != payloadStart)
+                        {
+                            FlushResult flushResult = await FinishSegmentAsync(
+                                encoder,
+                                sizeStart).ConfigureAwait(false);
+
+                            // nobody can call CancelPendingFlush on this writer
+                            Debug.Assert(!flushResult.IsCanceled);
+
+                            if (flushResult.IsCompleted) // reader no longer reading
+                            {
+                                cancelationSource.Cancel();
+                                break; // End iteration
+                            }
+
+                            (encoder, sizeStart, payloadStart) = StartSegment();
+                        }
+
+                        if (await moveNext.ConfigureAwait(false))
+                        {
+                            encodeAction(encoder, asyncEnumerator.Current);
+                        }
+                        else
+                        {
+                            break; // End iteration
+                        }
+                    }
+
+                    // TODO allow to configure the size limit?
+                    if (encoder.BufferWriter.Size > 32 * 1024)
+                    {
+                        FlushResult flushResult = await FinishSegmentAsync(
+                                encoder,
+                                sizeStart).ConfigureAwait(false);
+
+                        // nobody can call CancelPendingFlush on this writer
+                        Debug.Assert(!flushResult.IsCanceled);
+
+                        if (flushResult.IsCompleted) // reader no longer reading
+                        {
+                            break; // End iteration
+                        }
+
+                        (encoder, sizeStart, payloadStart) = StartSegment();
+                    }
+                }
+
+                // Write end of stream
+                await writer.CompleteAsync().ConfigureAwait(false);
+
+                (IceEncoder encoder, BufferWriter.Position sizeStart, BufferWriter.Position payloadStart) StartSegment()
+                {
+                    var bufferWriter = new BufferWriter();
+                    IceEncoder encoder = CreateIceEncoder(bufferWriter);
+                    BufferWriter.Position sizeStart = encoder.StartFixedLengthSize();
+                    return (encoder, sizeStart, encoder.BufferWriter.Tail);
+                }
+
+                async ValueTask<FlushResult> FinishSegmentAsync(IceEncoder encoder, BufferWriter.Position start)
+                {
+                    encoder.EndFixedLengthSize(start);
+                    ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = encoder.BufferWriter.Finish();
+
+                    try
+                    {
+                        return await writer.WriteAsync(buffers.ToSingleBuffer()).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        cancelationSource.Cancel();
+                        await writer.CompleteAsync(ex).ConfigureAwait(false);
+                        throw;
+                    }
+                }
+            }
+        }
+
+        /// <summary>Creates the payload of a response from a remote exception.</summary>
+        /// <param name="exception">The remote exception.</param>
+        /// <returns>A new payload.</returns>
+        public PipeReader CreatePayloadFromRemoteException(RemoteException exception)
+        {
+            var bufferWriter = new BufferWriter();
+            IceEncoder encoder = CreateIceEncoder(bufferWriter);
+
+            BufferWriter.Position start = encoder.StartFixedLengthSize();
+            encoder.EncodeException(exception);
+            _ = encoder.EndFixedLengthSize(start);
+            return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.Finish().ToSingleBuffer()));
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value tuple. Use this
@@ -70,7 +209,7 @@ namespace IceRpc.Slice
         /// <param name="encodeAction">The <see cref="TupleEncodeAction{TEncoder, T}"/> that encodes the arguments into
         /// the payload.</param>
         /// <returns>A new payload.</returns>
-        public ReadOnlyMemory<ReadOnlyMemory<byte>> CreatePayloadFromReturnValueTuple<T>(
+        public PipeReader CreatePayloadFromReturnValueTuple<T>(
             in T returnValueTuple,
             TupleEncodeAction<IceEncoder, T> encodeAction) where T : struct
         {
@@ -79,7 +218,7 @@ namespace IceRpc.Slice
             BufferWriter.Position start = encoder.StartFixedLengthSize();
             encodeAction(encoder, in returnValueTuple);
             _ = encoder.EndFixedLengthSize(start);
-            return bufferWriter.Finish();
+            return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.Finish().ToSingleBuffer()));
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value. Use this method
@@ -89,7 +228,7 @@ namespace IceRpc.Slice
         /// <param name="encodeAction">The <see cref="EncodeAction{TEncoder, T}"/> that encodes the argument into the
         /// payload.</param>
         /// <returns>A new payload.</returns>
-        public ReadOnlyMemory<ReadOnlyMemory<byte>> CreatePayloadFromSingleReturnValue<T>(
+        public PipeReader CreatePayloadFromSingleReturnValue<T>(
             T returnValue,
             EncodeAction<IceEncoder, T> encodeAction)
         {
@@ -98,8 +237,13 @@ namespace IceRpc.Slice
             BufferWriter.Position start = encoder.StartFixedLengthSize();
             encodeAction(encoder, returnValue);
             _ = encoder.EndFixedLengthSize(start);
-            return bufferWriter.Finish();
+            return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.Finish().ToSingleBuffer()));
         }
+
+        /// <summary>Decodes the size of a segment read from a PipeReader.</summary>
+        internal abstract ValueTask<(int Size, bool IsCanceled, bool IsCompleted)> DecodeSegmentSizeAsync(
+            PipeReader reader,
+            CancellationToken cancel);
 
         internal abstract IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
             FeatureCollection features,

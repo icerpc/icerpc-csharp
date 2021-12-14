@@ -18,15 +18,6 @@ namespace IceRpc.Internal
         internal IProtocolConnectionFactory<IMultiplexedNetworkConnection> ProtocolConnectionFactory { get; } =
             new Ice2ProtocolConnectionFactory();
 
-        internal override OutgoingResponse CreateResponseFromException(Exception exception, IncomingRequest request)
-        {
-            if (exception is OperationCanceledException)
-            {
-                throw exception; // Rethrow to abort the stream.
-            }
-            return base.CreateResponseFromException(exception, request);
-        }
-
         private Ice2Protocol()
             : base(ProtocolCode.Ice2, Ice2Name)
         {

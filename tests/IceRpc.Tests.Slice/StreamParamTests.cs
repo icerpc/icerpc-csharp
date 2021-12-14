@@ -2,10 +2,10 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Buffers;
 using System.Collections.Immutable;
+using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
-
-#pragma warning disable CA2000 // TODO Dispose MemoryStream used for Stream params
 
 namespace IceRpc.Tests.Slice.Stream
 {
@@ -17,13 +17,15 @@ namespace IceRpc.Tests.Slice.Stream
     {
         private readonly ServiceProvider _serviceProvider;
         private readonly IStreamParamOperationsPrx _prx;
-        private readonly byte[] _sendBuffer;
+        private readonly ReadOnlySequence<byte> _sendBuffer;
         private readonly StreamParamOperations _servant;
 
         public StreamParamTests()
         {
-            _sendBuffer = new byte[256];
-            new Random().NextBytes(_sendBuffer);
+            var buffer = new byte[256];
+            new Random().NextBytes(buffer);
+            _sendBuffer = new ReadOnlySequence<byte>(buffer);
+
             _servant = new StreamParamOperations(_sendBuffer);
 
             _serviceProvider = new IntegrationTestServiceCollection()
@@ -38,55 +40,74 @@ namespace IceRpc.Tests.Slice.Stream
         [Test]
         public async Task StreamParam_Byte()
         {
-            System.IO.Stream stream;
+            PipeReader reader;
             byte r1;
             int r2;
-            byte[] buffer = new byte[512];
 
-            stream = await _prx.OpStreamByteReceive0Async();
-            Assert.That(await stream.ReadAsync(buffer.AsMemory(0, 512)), Is.EqualTo(256));
-            Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
-            Assert.That(await stream.ReadAsync(buffer.AsMemory(0, 512)), Is.EqualTo(0));
-            await stream.DisposeAsync();
+            reader = await _prx.OpStreamByteReceive0Async();
+            ReadResult readResult = await reader.ReadAtLeastAsync(256);
+            Assert.That(readResult.IsCompleted);
+            Assert.That(readResult.Buffer.FirstSpan.SequenceEqual(_sendBuffer.FirstSpan));
 
-            (r1, stream) = await _prx.OpStreamByteReceive1Async();
-            Assert.That(await stream.ReadAsync(buffer.AsMemory(0, 512)), Is.EqualTo(256));
-            Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
+            (r1, reader) = await _prx.OpStreamByteReceive1Async();
+            readResult = await reader.ReadAtLeastAsync(256);
+            Assert.That(readResult.IsCompleted);
+            Assert.That(readResult.Buffer.FirstSpan.SequenceEqual(_sendBuffer.FirstSpan));
             Assert.That(r1, Is.EqualTo(0x05));
-            await stream.DisposeAsync();
+            await reader.CompleteAsync();
 
-            (r1, r2, stream) = await _prx.OpStreamByteReceive2Async();
-            Assert.That(await stream.ReadAsync(buffer.AsMemory(0, 512)), Is.EqualTo(256));
-            Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
+            (r1, r2, reader) = await _prx.OpStreamByteReceive2Async();
+            readResult = await reader.ReadAtLeastAsync(256);
+            Assert.That(readResult.IsCompleted);
+            Assert.That(readResult.Buffer.FirstSpan.SequenceEqual(_sendBuffer.FirstSpan));
             Assert.That(r1, Is.EqualTo(0x05));
             Assert.That(r2, Is.EqualTo(6));
-            await stream.DisposeAsync();
+            await reader.CompleteAsync();
 
-            await _prx.OpStreamByteSend0Async(new MemoryStream(_sendBuffer));
-            await _prx.OpStreamByteSend1Async(0x08, new MemoryStream(_sendBuffer));
-            await _prx.OpStreamByteSend2Async(0x08, 10, new MemoryStream(_sendBuffer));
+            {
+                var sendPipeReader = PipeReader.Create(_sendBuffer);
+                await _prx.OpStreamByteSend0Async(sendPipeReader);
+            }
+            {
+                var sendPipeReader = PipeReader.Create(_sendBuffer);
+                await _prx.OpStreamByteSend1Async(0x08, sendPipeReader);
+            }
+            {
+                var sendPipeReader = PipeReader.Create(_sendBuffer);
+                await _prx.OpStreamByteSend2Async(0x08, 10, sendPipeReader);
+            }
 
-            stream = await _prx.OpStreamByteSendReceive0Async(new MemoryStream(_sendBuffer));
-            Assert.That(await stream.ReadAsync(buffer.AsMemory(0, 512)), Is.EqualTo(256));
-            Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
-            Assert.That(await stream.ReadAsync(buffer.AsMemory(0, 512)), Is.EqualTo(0));
-            await stream.DisposeAsync();
+            {
+                var sendPipeReader = PipeReader.Create(_sendBuffer);
+                reader = await _prx.OpStreamByteSendReceive0Async(sendPipeReader);
+                readResult = await reader.ReadAtLeastAsync(256);
+                Assert.That(readResult.IsCompleted);
+                Assert.That(readResult.Buffer.FirstSpan.SequenceEqual(_sendBuffer.FirstSpan));
+                await reader.CompleteAsync();
+            }
 
-            (r1, stream) = await _prx.OpStreamByteSendReceive1Async(0x08, new MemoryStream(_sendBuffer));
-            Assert.That(await stream.ReadAsync(buffer.AsMemory(0, 512)), Is.EqualTo(256));
-            Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
-            Assert.That(r1, Is.EqualTo(0x08));
-            await stream.DisposeAsync();
-
-            (r1, r2, stream) = await _prx.OpStreamByteSendReceive2Async(
-                0x08,
-                10,
-                new MemoryStream(_sendBuffer));
-            Assert.That(await stream.ReadAsync(buffer.AsMemory(0, 512)), Is.EqualTo(256));
-            Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
-            Assert.That(r1, Is.EqualTo(0x08));
-            Assert.That(r2, Is.EqualTo(10));
-            await stream.DisposeAsync();
+            {
+                 var sendPipeReader = PipeReader.Create(_sendBuffer);
+                (r1, reader) = await _prx.OpStreamByteSendReceive1Async(0x08, sendPipeReader);
+                readResult = await reader.ReadAtLeastAsync(256);
+                Assert.That(readResult.IsCompleted);
+                Assert.That(readResult.Buffer.FirstSpan.SequenceEqual(_sendBuffer.FirstSpan));
+                Assert.That(r1, Is.EqualTo(0x08));
+                await reader.CompleteAsync();
+            }
+            {
+                var sendPipeReader = PipeReader.Create(_sendBuffer);
+                (r1, r2, reader) = await _prx.OpStreamByteSendReceive2Async(
+                    0x08,
+                    10,
+                    sendPipeReader);
+                readResult = await reader.ReadAtLeastAsync(256);
+                Assert.That(readResult.IsCompleted);
+                Assert.That(readResult.Buffer.FirstSpan.SequenceEqual(_sendBuffer.FirstSpan));
+                Assert.That(r1, Is.EqualTo(0x08));
+                Assert.That(r2, Is.EqualTo(10));
+                await reader.CompleteAsync();
+            }
         }
 
         [Test]
@@ -137,7 +158,7 @@ namespace IceRpc.Tests.Slice.Stream
             var v1 = new MyStruct(1, 1);
             var v2 = new MyStruct(2, 2);
 
-            var semaphore = new SemaphoreSlim(0);
+            using var semaphore = new SemaphoreSlim(0);
             await _prx.OpStreamMyStructSend0Async(MyStructEnumerable(semaphore, 100, v1));
             Assert.That(_servant.MyStructs.Count, Is.EqualTo(0));
             // Release the semaphore to start streaming elements
@@ -170,7 +191,7 @@ namespace IceRpc.Tests.Slice.Stream
         [Test]
         public async Task StreamParam_Send_MyStructCancellation()
         {
-            var semaphore = new SemaphoreSlim(0);
+            using var semaphore = new SemaphoreSlim(0);
             var canceled = new TaskCompletionSource<bool>();
 
             async IAsyncEnumerable<MyStruct> MyStructEnemerable0Async(
@@ -195,7 +216,7 @@ namespace IceRpc.Tests.Slice.Stream
         [Test]
         public async Task StreamParam_SendAndReceive_MyStruct()
         {
-            var semaphore = new SemaphoreSlim(0);
+            using var semaphore = new SemaphoreSlim(0);
 
             var v1 = new MyStruct(1, 1);
             var v2 = new MyStruct(2, 2);
@@ -291,7 +312,7 @@ namespace IceRpc.Tests.Slice.Stream
             AnotherStruct v1 = GetAnotherStruct(1);
             AnotherStruct v2 = GetAnotherStruct(2);
 
-            var semaphore = new SemaphoreSlim(0);
+            using var semaphore = new SemaphoreSlim(0);
             await _prx.OpStreamAnotherStructSend0Async(AnotherStructEnumerable(semaphore, 100, v1));
             Assert.That(_servant.AnotherStructs.Count, Is.EqualTo(0));
             // Release the semaphore to start streaming elements
@@ -324,7 +345,7 @@ namespace IceRpc.Tests.Slice.Stream
         [Test]
         public async Task StreamParam_SendAndReceive_AnotherStruct()
         {
-            var semaphore = new SemaphoreSlim(0);
+            using var semaphore = new SemaphoreSlim(0);
 
             AnotherStruct v1 = GetAnotherStruct(1);
             AnotherStruct v2 = GetAnotherStruct(2);
@@ -377,79 +398,76 @@ namespace IceRpc.Tests.Slice.Stream
             public ImmutableList<AnotherStruct> AnotherStructs { get; set; } = ImmutableList<AnotherStruct>.Empty;
 
             public SemaphoreSlim EnumerableReceived { get; } = new SemaphoreSlim(0);
-            private readonly byte[] _sendBuffer;
+            private readonly ReadOnlySequence<byte> _sendBuffer;
 
-            public ValueTask<System.IO.Stream> OpStreamByteReceive0Async(
+            public ValueTask<PipeReader> OpStreamByteReceive0Async(
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new MemoryStream(_sendBuffer));
+                new(PipeReader.Create(_sendBuffer));
 
-            public ValueTask<(byte, System.IO.Stream)> OpStreamByteReceive1Async(
+            public ValueTask<(byte, PipeReader)> OpStreamByteReceive1Async(
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new((0x05, new MemoryStream(_sendBuffer)));
+                new((0x05, PipeReader.Create(_sendBuffer)));
 
-            public ValueTask<(byte, int, System.IO.Stream)> OpStreamByteReceive2Async(
+            public ValueTask<(byte, int, PipeReader)> OpStreamByteReceive2Async(
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new((0x05, 6, new MemoryStream(_sendBuffer)));
+                new((0x05, 6, PipeReader.Create(_sendBuffer)));
 
             public async ValueTask OpStreamByteSend0Async(
-                System.IO.Stream p1,
+                PipeReader p1,
                 Dispatch dispatch,
                 CancellationToken cancel)
             {
-                byte[] buffer = new byte[512];
-                Assert.That(await p1.ReadAsync(buffer.AsMemory(0, 512), cancellationToken: cancel), Is.EqualTo(256));
-                Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
-                Assert.That(p1.ReadByte(), Is.EqualTo(-1));
-                await p1.DisposeAsync();
+                ReadResult readResult = await p1.ReadAtLeastAsync(256, cancel);
+                Assert.That(readResult.IsCompleted);
+                Assert.That(readResult.Buffer.FirstSpan.SequenceEqual(_sendBuffer.FirstSpan));
+                await p1.CompleteAsync();
             }
 
             public async ValueTask OpStreamByteSend1Async(
                 byte p1,
-                System.IO.Stream p2,
+                PipeReader p2,
                 Dispatch dispatch,
                 CancellationToken cancel)
             {
-                byte[] buffer = new byte[512];
-                Assert.That(await p2.ReadAsync(buffer.AsMemory(0, 512), cancellationToken: cancel), Is.EqualTo(256));
-                Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
-                Assert.That(p2.ReadByte(), Is.EqualTo(-1));
-                await p2.DisposeAsync();
+                ReadResult readResult = await p2.ReadAtLeastAsync(256, cancel);
+                Assert.That(readResult.IsCompleted);
+                Assert.That(readResult.Buffer.FirstSpan.SequenceEqual(_sendBuffer.FirstSpan));
+                await p2.CompleteAsync();
             }
 
             public async ValueTask OpStreamByteSend2Async(
                 byte p1,
                 int p2,
-                System.IO.Stream p3,
+                PipeReader p3,
                 Dispatch dispatch,
                 CancellationToken cancel)
             {
-                byte[] buffer = new byte[512];
-                Assert.That(await p3.ReadAsync(buffer.AsMemory(0, 512), cancellationToken: cancel), Is.EqualTo(256));
-                Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
-                Assert.That(p3.ReadByte(), Is.EqualTo(-1));
-                await p3.DisposeAsync();
+                ReadResult readResult = await p3.ReadAtLeastAsync(256, cancel);
+                Assert.That(readResult.IsCompleted);
+                Assert.That(readResult.Buffer.FirstSpan.SequenceEqual(_sendBuffer.FirstSpan));
+                await p3.CompleteAsync();
             }
 
-            public ValueTask<System.IO.Stream> OpStreamByteSendReceive0Async(
-                System.IO.Stream p1,
+            public ValueTask<PipeReader> OpStreamByteSendReceive0Async(
+                PipeReader p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
                 new(p1);
 
-            public ValueTask<(byte, System.IO.Stream)> OpStreamByteSendReceive1Async(
+            public ValueTask<(byte, PipeReader)> OpStreamByteSendReceive1Async(
                 byte p1,
-                System.IO.Stream p2,
+                PipeReader p2,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
                 new((p1, p2));
 
-            public ValueTask<(byte, int, System.IO.Stream)> OpStreamByteSendReceive2Async(
+            public ValueTask<(byte, int, PipeReader)> OpStreamByteSendReceive2Async(
                 byte p1,
                 int p2,
-                System.IO.Stream p3,
+                PipeReader p3,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
                 new((p1, p2, p3));
@@ -666,7 +684,7 @@ namespace IceRpc.Tests.Slice.Stream
                 return default;
             }
 
-            public StreamParamOperations(byte[] buffer) => _sendBuffer = buffer;
+            public StreamParamOperations(ReadOnlySequence<byte> buffer) => _sendBuffer = buffer;
         }
 
         private static async IAsyncEnumerable<MyStruct> MyStructEnumerable(

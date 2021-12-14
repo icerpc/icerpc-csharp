@@ -5,7 +5,9 @@ using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
+using System.Buffers;
 using System.Diagnostics;
+using System.IO.Pipelines;
 
 namespace IceRpc.Internal
 {
@@ -44,7 +46,11 @@ namespace IceRpc.Internal
         private readonly int _incomingFrameMaxSize;
         private readonly Dictionary<int, OutgoingRequest> _invocations = new();
         private readonly bool _isUdp;
+
+        private readonly MemoryPool<byte> _memoryPool;
+
         private readonly object _mutex = new();
+
         private readonly ISimpleNetworkConnection _networkConnection;
         private int _nextRequestId;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -93,9 +99,11 @@ namespace IceRpc.Internal
                 // Wait for a request frame to be received.
                 int requestId;
                 Memory<byte> buffer;
+                IDisposable disposable;
+
                 try
                 {
-                    (requestId, buffer) = await ReceiveFrameAsync().ConfigureAwait(false);
+                    (requestId, buffer, disposable) = await ReceiveFrameAsync().ConfigureAwait(false);
                 }
                 catch (ConnectionLostException)
                 {
@@ -114,63 +122,79 @@ namespace IceRpc.Internal
                     }
                 }
 
-                var decoder = new Ice11Decoder(buffer);
-
-                var requestHeader = new Ice1RequestHeader(decoder);
-                if (requestHeader.IdentityAndFacet.Identity.Name.Length == 0)
+                try
                 {
-                    throw new InvalidDataException("received ice1 request with empty identity name");
-                }
-                if (requestHeader.Operation.Length == 0)
-                {
-                    throw new InvalidDataException("received request with empty operation name");
-                }
+                    var decoder = new Ice11Decoder(buffer);
 
-                // The payload plus 4 bytes from the encapsulation header used to store the payload size encoded with
-                // payload encoding.
-                Memory<byte> payload = buffer[(decoder.Pos - 4)..];
-
-                // The payload size is the encapsulation size less the 6 bytes of the encapsulation header.
-                int payloadSize = requestHeader.EncapsulationSize - 6;
-                if (payloadSize != payload.Length - 4)
-                {
-                    throw new InvalidDataException(@$"request payload size mismatch: expected {payloadSize
-                        } bytes, read {payload.Length - 4} bytes");
-                }
-
-                var payloadEncoding = Encoding.FromMajorMinor(
-                    requestHeader.PayloadEncodingMajor,
-                    requestHeader.PayloadEncodingMinor);
-
-               EncodePayloadSize(payloadSize, payloadEncoding, payload.Span[0..4]);
-
-                var request = new IncomingRequest(
-                    Protocol.Ice1,
-                    path: requestHeader.IdentityAndFacet.ToPath(),
-                    operation: requestHeader.Operation)
-                {
-                    IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
-                    IsOneway = requestId == 0,
-                    PayloadEncoding = payloadEncoding,
-                    Deadline = DateTime.MaxValue,
-                    Payload = payload,
-                };
-                request.Features = request.Features.With(new Ice1Request(requestId, outgoing: false));
-                if (requestHeader.Context.Count > 0)
-                {
-                    request.Features = request.Features.WithContext(requestHeader.Context);
-                }
-
-                lock (_mutex)
-                {
-                    // If shutdown, ignore the incoming request and continue receiving frames until the
-                    // connection is closed.
-                    if (!_shutdown)
+                    var requestHeader = new Ice1RequestHeader(decoder);
+                    if (requestHeader.IdentityAndFacet.Identity.Name.Length == 0)
                     {
-                        _dispatches.Add(request);
-                        request.CancelDispatchSource = new();
-                        return request;
+                        throw new InvalidDataException("received ice1 request with empty identity name");
                     }
+                    if (requestHeader.Operation.Length == 0)
+                    {
+                        throw new InvalidDataException("received request with empty operation name");
+                    }
+
+                    // The payload plus 4 bytes from the encapsulation header used to store the payload size encoded
+                    // with payload encoding.
+                    buffer = buffer[(decoder.Pos - 4)..];
+
+                    // The payload size is the encapsulation size less the 6 bytes of the encapsulation header.
+                    int payloadSize = requestHeader.EncapsulationSize - 6;
+                    if (payloadSize != buffer.Length - 4)
+                    {
+                        throw new InvalidDataException(@$"request payload size mismatch: expected {payloadSize
+                            } bytes, read {buffer.Length - 4} bytes");
+                    }
+
+                    var payloadEncoding = Encoding.FromMajorMinor(
+                        requestHeader.PayloadEncodingMajor,
+                        requestHeader.PayloadEncodingMinor);
+
+                    EncodePayloadSize(payloadSize, payloadEncoding, buffer.Span[0..4]);
+
+                    var request = new IncomingRequest(
+                        Protocol.Ice1,
+                        path: requestHeader.IdentityAndFacet.ToPath(),
+                        operation: requestHeader.Operation,
+                        payload: new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
+                        payloadEncoding,
+                        responseWriter: requestId == 0 ?
+                            InvalidPipeWriter.Instance : new SimpleNetworkConnectionPipeWriter(_networkConnection))
+                    {
+                        IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
+                        IsOneway = requestId == 0,
+                        Deadline = DateTime.MaxValue
+                    };
+
+                    request.Features = request.Features.With(new Ice1Request(requestId, outgoing: false));
+                    if (requestHeader.Context.Count > 0)
+                    {
+                        request.Features = request.Features.WithContext(requestHeader.Context);
+                    }
+
+                    lock (_mutex)
+                    {
+                        // If shutdown, ignore the incoming request and continue receiving frames until the
+                        // connection is closed.
+                        if (_shutdown)
+                        {
+                            disposable.Dispose();
+                            // and loop back
+                        }
+                        else
+                        {
+                            _dispatches.Add(request);
+                            request.CancelDispatchSource = new();
+                            return request;
+                        }
+                    }
+                }
+                catch
+                {
+                    disposable.Dispose();
+                    throw;
                 }
             }
         }
@@ -178,10 +202,9 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task<IncomingResponse> ReceiveResponseAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            if (request.IsOneway)
-            {
-                throw new InvalidOperationException("can't receive a response for a oneway request");
-            }
+            // This class sent this request and didn't set a ResponseReader on it.
+            Debug.Assert(request.ResponseReader == null);
+            Debug.Assert(!request.IsOneway);
 
             Ice1Request? requestFeature = request.Features.Get<Ice1Request>();
             if (requestFeature == null || requestFeature.ResponseCompletionSource == null)
@@ -190,10 +213,14 @@ namespace IceRpc.Internal
             }
 
             // Wait for the response.
+
             Memory<byte> buffer;
+            IDisposable disposable;
+
             try
             {
-                buffer = await requestFeature.ResponseCompletionSource.Task.WaitAsync(cancel).ConfigureAwait(false);
+                (buffer, disposable) = await requestFeature.ResponseCompletionSource.Task.WaitAsync(
+                    cancel).ConfigureAwait(false);
             }
             finally
             {
@@ -210,87 +237,97 @@ namespace IceRpc.Internal
                 }
             }
 
-            // Decode the response.
-            var decoder = new Ice11Decoder(buffer);
-
-            ReplyStatus replyStatus = decoder.DecodeReplyStatus();
-            ResultType resultType = replyStatus == ReplyStatus.OK ? ResultType.Success : ResultType.Failure;
-
-            byte encodingMajor = 1;
-            byte encodingMinor = 1;
-            int? payloadSize = null;
-            if (replyStatus <= ReplyStatus.UserException)
+            try
             {
-                var responseHeader = new Ice1ResponseHeader(decoder);
-                encodingMajor = responseHeader.PayloadEncodingMajor;
-                encodingMinor = responseHeader.PayloadEncodingMinor;
-                payloadSize = responseHeader.EncapsulationSize - 6;
-            }
+                // Decode the response.
+                var decoder = new Ice11Decoder(buffer);
 
-            var payloadEncoding = Encoding.FromMajorMinor(encodingMajor, encodingMinor);
+                // we keep 4 extra bytes in the response buffer to be able to write the payload size before an ice1
+                // system exception
+                decoder.Skip(4);
 
-            var features = new FeatureCollection();
+                ReplyStatus replyStatus = decoder.DecodeReplyStatus();
+                ResultType resultType = replyStatus == ReplyStatus.OK ? ResultType.Success : ResultType.Failure;
 
-            // For compatibility with ZeroC Ice
-            if (request.Proxy is Proxy proxy &&
-                replyStatus == ReplyStatus.ObjectNotExistException &&
-                (proxy.Endpoint == null || proxy.Endpoint.Transport == TransportNames.Loc)) // "indirect" proxy
-            {
-                features.Set(RetryPolicy.OtherReplica);
-            }
+                int payloadSize;
+                Encoding payloadEncoding;
 
-            Memory<byte> payload;
-            if (payloadSize == null)
-            {
-                Debug.Assert(replyStatus > ReplyStatus.UserException);
-                Debug.Assert(decoder.Pos == 1);
-
-                // We need a new buffer
-
-                payloadSize = buffer.Length; // includes reply status as first byte
-                payload = new byte[4 + payloadSize.Value];
-                buffer.CopyTo(payload[4..]);
-            }
-            else
-            {
-                // We overwrite the encapsulation header to write the payload size
-
-                if (payloadEncoding == Encoding.Ice11 && resultType == ResultType.Failure)
+                if (replyStatus <= ReplyStatus.UserException)
                 {
-                    // We encode the reply status (UserException) after the payload size
-                    Debug.Assert(replyStatus == ReplyStatus.UserException);
-                    payload = buffer[(decoder.Pos - 5)..];
-                    payload.Span[4] = (byte)ReplyStatus.UserException;
-                    payloadSize += 1;
+                    var responseHeader = new Ice1ResponseHeader(decoder);
+                    payloadSize = responseHeader.EncapsulationSize - 6;
+                    payloadEncoding = Encoding.FromMajorMinor(
+                        responseHeader.PayloadEncodingMajor,
+                        responseHeader.PayloadEncodingMinor);
+
+                    if (payloadEncoding == Encoding.Ice11 && replyStatus == ReplyStatus.UserException)
+                    {
+                        buffer = buffer[(decoder.Pos - 5)..];
+
+                        // We encode the reply status (UserException) right after the payload size
+                        buffer.Span[4] = (byte)ReplyStatus.UserException;
+                        payloadSize += 1; // for the additional reply status
+                    }
+                    else
+                    {
+                        buffer = buffer[(decoder.Pos - 4)..]; // no reply status
+                    }
+
+                    if (payloadSize != buffer.Length - 4)
+                    {
+                        throw new InvalidDataException(@$"response payload size mismatch: expected {payloadSize
+                            } bytes, read {buffer.Length - 4} bytes");
+                    }
                 }
                 else
                 {
-                    payload = buffer[(decoder.Pos - 4)..]; // no reply status
+                    // Ice1 system exception
+                    payloadSize = buffer.Length - 4; // includes reply status, excludes the payload size
+                    payloadEncoding = Encoding.Ice11;
+                    // buffer stays the same
                 }
 
-                if (payloadSize != payload.Length - 4)
+                // We write the payload size in the first 4 bytes of the buffer.
+                EncodePayloadSize(payloadSize, payloadEncoding, buffer.Span[0..4]);
+
+                FeatureCollection features = FeatureCollection.Empty;
+
+                // For compatibility with ZeroC Ice
+                if (replyStatus == ReplyStatus.ObjectNotExistException &&
+                    (request.Proxy.Endpoint == null || request.Proxy.Endpoint.Transport == TransportNames.Loc)) // "indirect" proxy
                 {
-                    throw new InvalidDataException(@$"response payload size mismatch: expected {payloadSize
-                        } bytes, read {payload.Length - 4} bytes");
+                    features = features.With(RetryPolicy.OtherReplica);
                 }
+
+                return new IncomingResponse(
+                    Protocol.Ice1,
+                    resultType,
+                    new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
+                    payloadEncoding)
+                {
+                    Features = features,
+                };
             }
-
-            EncodePayloadSize(payloadSize.Value, payloadEncoding, payload.Span[0..4]);
-
-            return new IncomingResponse(Protocol.Ice1, resultType)
+            catch
             {
-                Features = features,
-                PayloadEncoding = payloadEncoding,
-                Payload = payload
-            };
+                disposable.Dispose();
+                throw;
+            }
         }
 
         /// <inheritdoc/>
         public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            if (request.StreamParamSender != null)
+            if (request.PayloadEncoding is not IceEncoding payloadEncoding)
             {
-                throw new NotSupportedException("stream parameters are not supported with ice1");
+                throw new NotSupportedException(
+                    "the payload of an ice1 request must be encoded with a supported Slice encoding");
+            }
+            else if (request.PayloadSourceStream != null)
+            {
+                // Since the payload is encoded with a Slice encoding, PayloadSourceStream can only come from a
+                // Slice stream parameter/return.
+                throw new NotSupportedException("stream parameters not supported with ice1");
             }
             else if (request.Fields.Count > 0 || request.FieldsDefaults.Count > 0)
             {
@@ -332,6 +369,21 @@ namespace IceRpc.Internal
 
             try
             {
+                (int payloadSize, bool isCanceled, bool isCompleted) = await payloadEncoding.DecodeSegmentSizeAsync(
+                    request.PayloadSource,
+                    cancel).ConfigureAwait(false);
+
+                if (isCanceled)
+                {
+                    throw new OperationCanceledException();
+                }
+
+                if (payloadSize > 0 && isCompleted)
+                {
+                    throw new ArgumentException(
+                        $"expected {payloadSize} bytes in ice1 request payload source, but it's empty");
+                }
+
                 var bufferWriter = new BufferWriter();
                 var encoder = new Ice11Encoder(bufferWriter);
 
@@ -342,11 +394,7 @@ namespace IceRpc.Internal
                 BufferWriter.Position frameSizeStart = encoder.StartFixedLengthSize();
 
                 encoder.EncodeInt(requestId);
-
-                ReadOnlyMemory<ReadOnlyMemory<byte>> payload = request.Payload;
-
-                (int payloadSize, byte encodingMajor, byte encodingMinor) =
-                    DecodePayloadSize(ref payload, request.PayloadEncoding);
+                (byte encodingMajor, byte encodingMinor) = payloadEncoding.ToMajorMinor();
 
                 var requestHeader = new Ice1RequestHeader(
                     IdentityAndFacet.FromPath(request.Path),
@@ -360,14 +408,65 @@ namespace IceRpc.Internal
 
                 encoder.EncodeFixedLengthSize(bufferWriter.Size + payloadSize, frameSizeStart);
 
-                // Add the payload to the buffer writer.
-                bufferWriter.Add(payload);
-
                 // Perform the sending. When an Ice1 frame is sent over a connection (such as a TCP
                 // connection), we need to send the entire frame even when cancel gets canceled since the
                 // recipient cannot read a partial frame and then keep going.
+
+                // TODO: if any part of the sending fails, we should kill the connection. We can't guarantee an atomic
+                // send.
+
+                if (_isUdp)
+                {
+                    // TODO: with UDP, we currently can't use the PayloadSink to send the payload. Everything needs to
+                    // be sent in a single call. So we add PayloadSource to bufferWriter now.
+
+                    while (true)
+                    {
+                        ReadResult readResult = await request.PayloadSource.ReadAsync(cancel).ConfigureAwait(false);
+                        if (readResult.IsCanceled)
+                        {
+                            var exception = new OperationCanceledException();
+                        }
+
+                        if (!readResult.Buffer.IsEmpty)
+                        {
+                            if (readResult.Buffer.IsSingleSegment)
+                            {
+                                bufferWriter.Add(new ReadOnlyMemory<byte>[] { readResult.Buffer.First });
+                            }
+                            else // temporary
+                            {
+                                bufferWriter.Add(new ReadOnlyMemory<byte>[] { readResult.Buffer.ToArray() });
+                            }
+
+                            request.PayloadSource.AdvanceTo(readResult.Buffer.End);
+                        }
+
+                        if (readResult.IsCompleted)
+                        {
+                            break;
+                        }
+                    }
+                }
+
+                // TODO: rework this code to send the header and first part of the payload together.
+
                 ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
                 await _networkConnection.WriteAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+
+                if (!_isUdp)
+                {
+                    var output = new SimpleNetworkConnectionPipeWriter(_networkConnection);
+                    request.InitialPayloadSink.SetDecoratee(output);
+
+                    // Use the PayloadSink to send PayloadSource
+                    await request.PayloadSource.CopyToAsync(
+                        request.PayloadSink,
+                        CancellationToken.None).ConfigureAwait(false);
+                }
+
+                await request.PayloadSource.CompleteAsync().ConfigureAwait(false);
+                await request.PayloadSink.CompleteAsync().ConfigureAwait(false);
 
                 // Mark the request as sent and, if it's a twoway request, keep track of it.
                 request.IsSent = true;
@@ -378,7 +477,16 @@ namespace IceRpc.Internal
                 // request is retried by the retry interceptor.
                 // TODO: this is clunky but required for retries to work because the retry interceptor only retries
                 // a request if the exception is a transport exception.
-                throw new ConnectionLostException(exception);
+                var ex = new ConnectionLostException(exception);
+                await request.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
+                await request.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                throw ex;
+            }
+            catch (Exception ex)
+            {
+                await request.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
+                await request.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                throw;
             }
             finally
             {
@@ -400,17 +508,46 @@ namespace IceRpc.Internal
             try
             {
                 // Send the response if the request is not a one-way request.
-                if (!request.IsOneway)
+                if (request.IsOneway)
                 {
+                    await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
+                    await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
+                }
+                else
+                {
+                    Debug.Assert(!_isUdp); // udp is oneway-only so no response
+
                     // Wait for sending of other frames to complete. The semaphore is used as an asynchronous
                     // queue to serialize the sending of frames.
                     await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
                     try
                     {
-                        var bufferWriter = new BufferWriter();
-                        if (response.StreamParamSender != null)
+                        if (request.PayloadEncoding is not IceEncoding payloadEncoding)
                         {
-                            throw new NotSupportedException("stream parameters are not supported with ice1");
+                            throw new NotSupportedException(
+                                "the payload of an ice1 request must be encoded with a supported Slice encoding");
+                        }
+
+                        (int payloadSize, bool isCanceled, bool isCompleted) =
+                            await payloadEncoding.DecodeSegmentSizeAsync(
+                                response.PayloadSource,
+                                cancel).ConfigureAwait(false);
+
+                        if (isCanceled)
+                        {
+                            throw new OperationCanceledException();
+                        }
+
+                        if (payloadSize > 0 && isCompleted)
+                        {
+                            throw new ArgumentException(
+                                $"expected {payloadSize} bytes in response payload source, but it's empty");
+                        }
+
+                        var bufferWriter = new BufferWriter();
+                        if (response.PayloadSourceStream != null)
+                        {
+                            throw new NotSupportedException("payload source stream is not supported with ice1");
                         }
 
                         var encoder = new Ice11Encoder(bufferWriter);
@@ -422,21 +559,29 @@ namespace IceRpc.Internal
                         BufferWriter.Position frameSizeStart = encoder.StartFixedLengthSize();
 
                         encoder.EncodeInt(requestId);
-
-                        ReadOnlyMemory<ReadOnlyMemory<byte>> payload = response.Payload;
-
-                        (int payloadSize, byte encodingMajor, byte encodingMinor) =
-                            DecodePayloadSize(ref payload, response.PayloadEncoding);
+                        (byte encodingMajor, byte encodingMinor) = payloadEncoding.ToMajorMinor();
 
                         ReplyStatus replyStatus = ReplyStatus.OK;
 
                         if (response.ResultType == ResultType.Failure)
                         {
-                            if (response.PayloadEncoding == Encoding.Ice11)
+                            if (payloadEncoding == Encoding.Ice11)
                             {
                                 // extract reply status from 1.1-encoded payload
-                                replyStatus = (ReplyStatus)payload.Span[0].Span[0];
-                                payload = SliceBuffers(payload, 1);
+                                ReadResult readResult = await response.PayloadSource.ReadAsync(
+                                    cancel).ConfigureAwait(false);
+
+                                if (readResult.IsCanceled)
+                                {
+                                    throw new OperationCanceledException();
+                                }
+                                if (readResult.Buffer.IsEmpty)
+                                {
+                                    throw new ArgumentException("empty exception payload");
+                                }
+
+                                replyStatus = (ReplyStatus)readResult.Buffer.FirstSpan[0];
+                                response.PayloadSource.AdvanceTo(readResult.Buffer.GetPosition(1));
                                 payloadSize -= 1;
                             }
                             else
@@ -456,12 +601,22 @@ namespace IceRpc.Internal
 
                         encoder.EncodeFixedLengthSize(bufferWriter.Size + payloadSize, frameSizeStart);
 
-                        // Add the payload to the buffer writer.
-                        bufferWriter.Add(payload);
-
-                        // Send the response frame.
+                        // Send the response frame header
                         ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
-                        await _networkConnection.WriteAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+                        await request.ResponseWriter.WriteAsync(buffers.ToSingleBuffer(), cancel).ConfigureAwait(false);
+
+                        await response.PayloadSource.CopyToAsync(
+                                response.PayloadSink,
+                                CancellationToken.None).ConfigureAwait(false);
+
+                        await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
+                        await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        await response.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
+                        await response.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                        throw;
                     }
                     finally
                     {
@@ -560,6 +715,7 @@ namespace IceRpc.Internal
         {
             _isUdp = isUdp;
             _incomingFrameMaxSize = incomingFrameMaxSize;
+            _memoryPool = MemoryPool<byte>.Shared; // TODO: should be configurable by caller
             _networkConnection = simpleNetworkConnection;
         }
 
@@ -703,187 +859,220 @@ namespace IceRpc.Internal
             }
         }
 
-        private async ValueTask<(int, Memory<byte>)> ReceiveFrameAsync()
+        private async ValueTask<(int RequestId, Memory<byte> Buffer, IDisposable Disposable)> ReceiveFrameAsync()
         {
             // Reads are not cancellable. This method returns once a frame is read or when the connection is disposed.
             CancellationToken cancel = CancellationToken.None;
 
-            while (true)
-            {
-                // Receive the Ice1 frame header.
-                Memory<byte> buffer;
-                if (_isUdp)
-                {
-                    buffer = new byte[_incomingFrameMaxSize];
-                    int received = await _networkConnection.ReadAsync(buffer, cancel).ConfigureAwait(false);
-                    if (received < Ice1Definitions.HeaderSize)
-                    {
-                        // TODO: implement protocol logging with decorators
-                        //_logger.LogReceivedInvalidDatagram(received);
-                        continue; // while
-                    }
-                    buffer = buffer[0..received];
-                }
-                else
-                {
-                    // TODO: rent buffer from memory pool
-                    buffer = new byte[256];
-                    await ReceiveUntilFullAsync(buffer[0..Ice1Definitions.HeaderSize], cancel).ConfigureAwait(false);
-                }
+            IMemoryOwner<byte>? memoryOwner = null;
 
-                // Check the header
-                Ice1Definitions.CheckHeader(buffer.Span[0..Ice1Definitions.HeaderSize]);
-                int frameSize = IceDecoder.DecodeInt(buffer.AsReadOnlySpan().Slice(10, 4));
-                if (_isUdp && frameSize != buffer.Length)
+            try
+            {
+                while (true)
                 {
-                    // TODO: implement protocol logging with decorators
-                    // _logger.LogReceivedInvalidDatagram(frameSize);
-                    continue; // while
-                }
-                else if (frameSize > _incomingFrameMaxSize)
-                {
+                    // Recycle
+                    memoryOwner?.Dispose();
+                    memoryOwner = null;
+
+                    Memory<byte> buffer;
+
+                    // Receive the Ice1 frame header.
                     if (_isUdp)
                     {
-                        // TODO: implement protocol logging with decorators
-                        // _logger.LogDatagramSizeExceededIncomingFrameMaxSize(frameSize);
-                        continue;
+                        memoryOwner = _memoryPool.Rent(_incomingFrameMaxSize);
+
+                        int received = await _networkConnection.ReadAsync(
+                            memoryOwner.Memory, cancel).ConfigureAwait(false);
+                        if (received < Ice1Definitions.HeaderSize)
+                        {
+                            // TODO: implement protocol logging with decorators
+                            //_logger.LogReceivedInvalidDatagram(received);
+                            continue; // while
+                        }
+                        buffer = memoryOwner.Memory[0..received];
                     }
                     else
                     {
-                        throw new InvalidDataException(
-                            $"frame with {frameSize} bytes exceeds IncomingFrameMaxSize connection option value");
+                        memoryOwner = _memoryPool.Rent(256);
+                        await ReceiveUntilFullAsync(
+                            memoryOwner.Memory[0..Ice1Definitions.HeaderSize], cancel).ConfigureAwait(false);
+
+                        buffer = memoryOwner.Memory[0..Ice1Definitions.HeaderSize];
                     }
-                }
 
-                // The magic and version fields have already been checked.
-                var frameType = (Ice1FrameType)buffer.Span[8];
-                byte compressionStatus = buffer.Span[9];
-                if (compressionStatus == 2)
-                {
-                    throw new NotSupportedException("cannot decompress ice1 frame");
-                }
-
-                // Read the remainder of the frame if needed.
-                if (_isUdp)
-                {
-                    Debug.Assert(frameSize == buffer.Length);
-                    buffer = buffer[Ice1Definitions.HeaderSize..];
-                }
-                else if (frameSize == Ice1Definitions.HeaderSize)
-                {
-                    buffer = Memory<byte>.Empty;
-                }
-                else
-                {
-                    int remainingSize = frameSize - Ice1Definitions.HeaderSize;
-                    // TODO: rent buffer from memory pool
-                    buffer = buffer.Length < remainingSize ? new byte[remainingSize] : buffer[0..remainingSize];
-                    await ReceiveUntilFullAsync(buffer, cancel).ConfigureAwait(false);
-                }
-
-                switch (frameType)
-                {
-                    case Ice1FrameType.CloseConnection:
+                    // Check the header
+                    Ice1Definitions.CheckHeader(buffer.Span[0..Ice1Definitions.HeaderSize]);
+                    int frameSize = IceDecoder.DecodeInt(buffer[10..14].Span);
+                    if (_isUdp && frameSize != buffer.Length)
                     {
-                        if (buffer.Length > 0)
-                        {
-                            throw new InvalidDataException(
-                                $"unexpected data for {nameof(Ice1FrameType.CloseConnection)}");
-                        }
+                        // TODO: implement protocol logging with decorators
+                        // _logger.LogReceivedInvalidDatagram(frameSize);
+                        continue; // while
+                    }
+                    else if (frameSize > _incomingFrameMaxSize)
+                    {
                         if (_isUdp)
                         {
-                            throw new InvalidDataException(
-                                $"unexpected {nameof(Ice1FrameType.CloseConnection)} frame for udp connection");
+                            // TODO: implement protocol logging with decorators
+                            // _logger.LogDatagramSizeExceededIncomingFrameMaxSize(frameSize);
+                            continue;
                         }
-
-                        lock (_mutex)
-                        {
-                            // If local shutdown is in progress, shutdown from peer prevails. The local shutdown
-                            // will return once the connection disposes this protocol connection.
-                            _shutdown = true;
-                        }
-
-                        // Raise the peer shutdown initiated event.
-                        try
-                        {
-                            PeerShutdownInitiated?.Invoke();
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.Assert(false, $"{nameof(PeerShutdownInitiated)} raised unexpected exception\n{ex}");
-                        }
-
-                        var exception = new ConnectionClosedException("connection shutdown by peer");
-
-                        // The peer cancels its invocations on shutdown so we can cancel the dispatches.
-                        CancelDispatches();
-
-                        // The peer didn't dispatch invocations which are still in progress, these invocations can
-                        // therefore be retried (completing the invocation here ensures that the invocations won't get
-                        // ConnectionLostException from Dispose).
-                        CancelInvocations(exception);
-
-                        // New requests will complete with ConnectionClosedException.
-                        _sendSemaphore.Complete(exception);
-
-                        throw exception;
-                    }
-
-                    case Ice1FrameType.Request:
-                    {
-                        int requestId = IceDecoder.DecodeInt(buffer.Span[0..4]);
-                        return (requestId, buffer[4..]);
-                    }
-
-                    case Ice1FrameType.RequestBatch:
-                    {
-                        int invokeNum = IceDecoder.DecodeInt(buffer.Span[0..4]);
-                        // TODO: implement protocol logging with decorators
-                        // _logger.LogReceivedIce1RequestBatchFrame(invokeNum);
-
-                        if (invokeNum < 0)
+                        else
                         {
                             throw new InvalidDataException(
-                                $"received ice1 RequestBatchMessage with {invokeNum} batch requests");
+                                $"frame with {frameSize} bytes exceeds IncomingFrameMaxSize connection option value");
                         }
-                        break; // Batch requests are ignored because not supported
                     }
 
-                    case Ice1FrameType.Reply:
+                    // The magic and version fields have already been checked by CheckHeader above
+                    var frameType = (Ice1FrameType)buffer.Span[8];
+                    byte compressionStatus = buffer.Span[9];
+                    if (compressionStatus == 2)
                     {
-                        int requestId = IceDecoder.DecodeInt(buffer.Span[0..4]);
-                        lock (_mutex)
+                        throw new NotSupportedException("cannot decompress ice1 frame");
+                    }
+
+                    // Read the remainder of the frame if needed.
+                    if (_isUdp)
+                    {
+                        // Remove header
+                        buffer = buffer[Ice1Definitions.HeaderSize..];
+                    }
+                    else if (frameSize == Ice1Definitions.HeaderSize)
+                    {
+                        buffer = Memory<byte>.Empty;
+                    }
+                    else
+                    {
+                        int remainingSize = frameSize - Ice1Definitions.HeaderSize;
+
+                        if (memoryOwner.Memory.Length < remainingSize)
                         {
-                            if (_invocations.TryGetValue(requestId, out OutgoingRequest? request))
+                            memoryOwner.Dispose();
+                            memoryOwner = _memoryPool.Rent(remainingSize);
+                        }
+
+                        await ReceiveUntilFullAsync(memoryOwner.Memory[0..remainingSize], cancel).ConfigureAwait(false);
+                        buffer = memoryOwner.Memory[0..remainingSize];
+                    }
+
+                    switch (frameType)
+                    {
+                        case Ice1FrameType.CloseConnection:
+                        {
+                            if (buffer.Length > 0)
                             {
-                                request.Features.Get<Ice1Request>()!.ResponseCompletionSource!.SetResult(buffer[4..]);
+                                throw new InvalidDataException(
+                                    $"unexpected data for {nameof(Ice1FrameType.CloseConnection)}");
                             }
-                            else if (!_shutdown)
+                            if (_isUdp)
                             {
-                                throw new InvalidDataException("received ice1 Reply for unknown invocation");
+                                throw new InvalidDataException(
+                                    $"unexpected {nameof(Ice1FrameType.CloseConnection)} frame for udp connection");
                             }
-                        }
-                        break;
-                    }
 
-                    case Ice1FrameType.ValidateConnection:
-                    {
-                        // Notify the control stream of the reception of a Ping frame.
-                        if (buffer.Length > 0)
+                            lock (_mutex)
+                            {
+                                // If local shutdown is in progress, shutdown from peer prevails. The local shutdown
+                                // will return once the connection disposes this protocol connection.
+                                _shutdown = true;
+                            }
+
+                            // Raise the peer shutdown initiated event.
+                            try
+                            {
+                                PeerShutdownInitiated?.Invoke();
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.Assert(
+                                    false,
+                                    $"{nameof(PeerShutdownInitiated)} raised unexpected exception\n{ex}");
+                            }
+
+                            var exception = new ConnectionClosedException("connection shutdown by peer");
+
+                            // The peer cancels its invocations on shutdown so we can cancel the dispatches.
+                            CancelDispatches();
+
+                            // The peer didn't dispatch invocations which are still in progress, these invocations can
+                            // therefore be retried (completing the invocation here ensures that the invocations won't
+                            // get ConnectionLostException from Dispose).
+                            CancelInvocations(exception);
+
+                            // New requests will complete with ConnectionClosedException.
+                            _sendSemaphore.Complete(exception);
+
+                            throw exception;
+                        }
+
+                        case Ice1FrameType.Request:
                         {
-                            throw new InvalidDataException(
-                                $"unexpected data for {nameof(Ice1FrameType.ValidateConnection)}");
+                            int requestId = IceDecoder.DecodeInt(buffer.Span[0..4]);
+                            buffer = buffer[4..]; // consume these 4 bytes
+                            return (requestId, buffer, memoryOwner);
                         }
-                        // TODO: implement protocol logging with decorators
-                        // _logger.LogReceivedIce1ValidateConnectionFrame();
-                        break;
-                    }
 
-                    default:
-                    {
-                        throw new InvalidDataException($"received ice1 frame with unknown frame type '{frameType}'");
+                        case Ice1FrameType.RequestBatch:
+                        {
+                            int invokeNum = IceDecoder.DecodeInt(buffer.Span[0..4]);
+
+                            // TODO: implement protocol logging with decorators
+                            // _logger.LogReceivedIce1RequestBatchFrame(invokeNum);
+
+                            if (invokeNum < 0)
+                            {
+                                throw new InvalidDataException(
+                                    $"received ice1 RequestBatchMessage with {invokeNum} batch requests");
+                            }
+                            break; // Batch requests are ignored because not supported
+                        }
+
+                        case Ice1FrameType.Reply:
+                        {
+                            int requestId = IceDecoder.DecodeInt(buffer.Span[0..4]);
+                            // we keep these 4 bytes in buffer
+
+                            lock (_mutex)
+                            {
+                                if (_invocations.TryGetValue(requestId, out OutgoingRequest? request))
+                                {
+                                    request.Features.Get<Ice1Request>()!.ResponseCompletionSource!.SetResult(
+                                        (buffer, memoryOwner));
+                                    memoryOwner = null; // otherwise memoryOwner is disposed immediately
+                                }
+                                else if (!_shutdown)
+                                {
+                                    throw new InvalidDataException("received ice1 Reply for unknown invocation");
+                                }
+                            }
+                            break;
+                        }
+
+                        case Ice1FrameType.ValidateConnection:
+                        {
+                            // Notify the control stream of the reception of a Ping frame.
+                            if (buffer.Length > 0)
+                            {
+                                throw new InvalidDataException(
+                                    $"unexpected data for {nameof(Ice1FrameType.ValidateConnection)}");
+                            }
+                            // TODO: implement protocol logging with decorators
+                            // _logger.LogReceivedIce1ValidateConnectionFrame();
+                            break;
+                        }
+
+                        default:
+                        {
+                            throw new InvalidDataException($"received ice1 frame with unknown frame type '{frameType}'");
+                        }
                     }
-                }
+                } // while
+            }
+            catch
+            {
+                memoryOwner?.Dispose();
+                throw;
             }
         }
 

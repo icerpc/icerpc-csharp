@@ -49,7 +49,9 @@ namespace IceRpc.Internal
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             using IDisposable _ = _logger.StartReceiveResponseScope(request);
-            IncomingResponse response = await _decoratee.ReceiveResponseAsync(request, cancel).ConfigureAwait(false);
+            IncomingResponse response = await _decoratee.ReceiveResponseAsync(
+                request,
+                cancel).ConfigureAwait(false);
 
             _logger.LogReceiveResponse(response.PayloadEncoding, response.ResultType);
             return response;

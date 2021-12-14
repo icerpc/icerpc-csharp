@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports;
-using System.Collections.Immutable;
+using System.IO.Pipelines;
 
 namespace IceRpc
 {
@@ -34,78 +33,30 @@ namespace IceRpc
         /// <summary>Get the cancellation dispatch source.</summary>
         internal CancellationTokenSource? CancelDispatchSource { get; set; }
 
-        /// <summary>The stream used to receive the request.</summary>
-        internal IMultiplexedStream? Stream { get; init; }
+        /// <summary>The pipe writer used by IceRPC to write the response, including the response header. This is also
+        /// the outgoing response's payload sink a middleware would see if no middleware decorates this response's
+        /// payload sink.</summary>
+        internal PipeWriter ResponseWriter { get; }
 
         /// <summary>Constructs an incoming request.</summary>
         /// <param name="protocol">The <see cref="Protocol"/> used to send the request.</param>
         /// <param name="path">The path of the request.</param>
         /// <param name="operation">The operation of the request.</param>
-        public IncomingRequest(Protocol protocol, string path, string operation) :
-            base(protocol)
+        /// <param name="payload">The payload of the request.</param>
+        /// <param name="payloadEncoding">The encoding of the payload.</param>
+        /// <param name="responseWriter">The response writer.</param>
+        internal IncomingRequest(
+            Protocol protocol,
+            string path,
+            string operation,
+            PipeReader payload,
+            Encoding payloadEncoding,
+            PipeWriter responseWriter) :
+            base(protocol, payload, payloadEncoding)
         {
             Path = path;
             Operation = operation;
+            ResponseWriter = responseWriter;
         }
-
-        /// <summary>Create an outgoing request from this incoming request. The outgoing request is
-        /// constructed to be forwarded with the given proxy. The <see cref="OutgoingRequest.Path"/> is set to
-        /// the target <see cref="Proxy.Path"/>.</summary>
-        /// <param name="targetProxy">The proxy used to send to the outgoing request.</param>
-        /// <returns>The outgoing request to be forwarded.</returns>
-        public OutgoingRequest ToOutgoingRequest(Proxy targetProxy) =>
-            ToOutgoingRequest(targetConnection: null, targetProxy: targetProxy);
-
-        /// <summary>Create an outgoing request from this incoming request. The outgoing request is
-        /// constructed to be forwarded with the given connection. The <see cref="OutgoingRequest.Path"/> is
-        /// set to <see cref="Path"/>.</summary>
-        /// <param name="targetConnection">The target connection.</param>
-        /// <returns>The outgoing request to be forwarded.</returns>
-        public OutgoingRequest ToOutgoingRequest(Connection targetConnection) =>
-            ToOutgoingRequest(targetConnection: targetConnection, targetProxy: null);
-
-        private OutgoingRequest ToOutgoingRequest(
-            Connection? targetConnection,
-            Proxy? targetProxy)
-        {
-            Protocol targetProtocol = targetConnection?.Protocol ?? targetProxy!.Protocol;
-
-            // Fields and context forwarding
-            IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields = ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
-            FeatureCollection features = FeatureCollection.Empty;
-
-            if (Protocol == Protocol.Ice2 && targetProtocol == Protocol.Ice2)
-            {
-                // The context is just another field, features remain empty
-                fields = Fields;
-            }
-            else
-            {
-                // When Protocol or targetProtocol is Ice1, fields remains empty and we put only the request context
-                // in the initial features of the new outgoing request
-                features = features.WithContext(Features.GetContext());
-            }
-
-            // TODO: forward stream parameters
-
-            return new OutgoingRequest(
-                targetProtocol,
-                path: targetProxy?.Path ?? Path,
-                operation: Operation)
-            {
-                AltEndpoints = targetProxy?.AltEndpoints ?? ImmutableList<Endpoint>.Empty,
-                Connection = targetConnection ?? targetProxy?.Connection,
-                Deadline = Deadline,
-                Endpoint = targetProxy?.Endpoint,
-                Features = features,
-                FieldsDefaults = fields,
-                IsOneway = IsOneway,
-                IsIdempotent = IsIdempotent,
-                Proxy = targetProxy,
-                PayloadEncoding = PayloadEncoding,
-                Payload = new ReadOnlyMemory<byte>[] { Payload }
-            };
-        }
-
     }
 }

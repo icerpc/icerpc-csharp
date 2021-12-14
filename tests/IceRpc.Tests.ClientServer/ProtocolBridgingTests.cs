@@ -4,7 +4,9 @@ using IceRpc.Configure;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Buffers;
 using System.Collections.Immutable;
+using System.IO.Pipelines;
 
 namespace IceRpc.Tests.ClientServer
 {
@@ -149,9 +151,52 @@ namespace IceRpc.Tests.ClientServer
                 IncomingRequest incomingRequest,
                 CancellationToken cancel)
             {
-                var outgoingRequest = incomingRequest.ToOutgoingRequest(_target);
+                // First create an outgoing request to _target from the incoming request:
+
+                Protocol targetProtocol = _target.Protocol;
+
+                // Fields and context forwarding
+                IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields =
+                    ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
+                FeatureCollection features = FeatureCollection.Empty;
+
+                if (incomingRequest.Protocol == Protocol.Ice2 && targetProtocol == Protocol.Ice2)
+                {
+                    // The context is just another field, features remain empty
+                    fields = incomingRequest.Fields;
+                }
+                else
+                {
+                    // When Protocol or targetProtocol is Ice1, fields remains empty and we put only the request context
+                    // in the initial features of the new outgoing request
+                    features = features.WithContext(incomingRequest.Features.GetContext());
+                }
+
+                var outgoingRequest = new OutgoingRequest(_target, incomingRequest.Operation)
+                {
+                    Deadline = incomingRequest.Deadline,
+                    Features = features,
+                    FieldsDefaults = fields,
+                    IsOneway = incomingRequest.IsOneway,
+                    IsIdempotent = incomingRequest.IsIdempotent,
+                    PayloadEncoding = incomingRequest.PayloadEncoding,
+                    PayloadSource = incomingRequest.Payload
+                };
+
+                // Then invoke
+
                 IncomingResponse incomingResponse = await _target.Invoker!.InvokeAsync(outgoingRequest, cancel);
-                return incomingResponse.ToOutgoingResponse(incomingRequest.Protocol);
+
+                // Then create an outgoing response from the incoming response
+
+                return new OutgoingResponse(incomingRequest)
+                {
+                    // Don't forward RetryPolicy
+                    FieldsDefaults = incomingResponse.Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
+                    PayloadEncoding = incomingResponse.PayloadEncoding,
+                    PayloadSource = incomingResponse.Payload,
+                    ResultType = incomingResponse.ResultType
+                };
             }
 
             internal Forwarder(Proxy target) => _target = target;

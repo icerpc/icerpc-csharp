@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice.Internal;
+using System.Buffers;
 using System.Reflection;
 
 namespace IceRpc.Slice
@@ -17,6 +19,15 @@ namespace IceRpc.Slice
         /// <param name="invoker">The invoker of proxies decoded by this decoder.</param>
         /// <returns>A new Ice decoder.</returns>
         T CreateIceDecoder(ReadOnlyMemory<byte> buffer, Connection? connection, IInvoker? invoker);
+
+        /// <summary>Creates an Ice decoder.</summary>
+        /// <param name="sequence">The sequence to decode.</param>
+        /// <param name="connection">The connection that received this buffer.</param>
+        /// <param name="invoker">The invoker of proxies decoded by this decoder.</param>
+        /// <returns>A new Ice decoder.</returns>
+        // TODO: add support of decoding ReadOnlySequence<byte> directly.
+        T CreateIceDecoder(ReadOnlySequence<byte> sequence, Connection? connection, IInvoker? invoker) =>
+            CreateIceDecoder(sequence.ToSingleBuffer(), connection, invoker);
     }
 
     /// <summary>The default implementation of <see cref="IIceDecoderFactory{T}"/> for <see cref="Ice11Decoder"/>.

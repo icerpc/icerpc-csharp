@@ -20,7 +20,7 @@ namespace IceRpc.Tests.ClientServer
                 .AddTransient<IDispatcher>(_ => new InlineDispatcher((request, cancel) =>
                     {
                         source.TrySetResult(request.Operation);
-                        return new(OutgoingResponse.ForPayload(request, default));
+                        return new(new OutgoingResponse(request));
                     }))
                 .BuildServiceProvider();
 

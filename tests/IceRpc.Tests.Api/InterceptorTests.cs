@@ -3,10 +3,12 @@
 using IceRpc.Configure;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Buffers;
+using System.IO.Pipelines;
 
 namespace IceRpc.Tests.Api
 {
-    [Timeout(30000)]
+    [Timeout(5000)]
     [Parallelizable(scope: ParallelScope.All)]
     public sealed class InterceptorTests
     {
@@ -95,6 +97,8 @@ namespace IceRpc.Tests.Api
         public async Task Interceptor_Bypass_RemoteCall(int p1, int p2)
         {
             IncomingResponse? response = null;
+            ReadOnlySequence<byte> savedPayload = default;
+
             var proxy = _prx.Proxy.Clone();
             var prx = new InterceptorTestPrx(proxy);
             var pipeline = new Pipeline();
@@ -104,7 +108,13 @@ namespace IceRpc.Tests.Api
                 if (response == null)
                 {
                     response = await next.InvokeAsync(request, cancel);
+
+                    ReadResult readResult = await response.Payload.ReadAllAsync(cancel);;
+                    savedPayload = new ReadOnlySequence<byte>(readResult.Buffer.ToArray());
+                    response.Payload.AdvanceTo(readResult.Buffer.End);
                 }
+
+                response.Payload = PipeReader.Create(savedPayload); // restore saved payload
                 return response;
             }));
 

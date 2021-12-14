@@ -1,19 +1,19 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.IO.Pipelines;
+
 namespace IceRpc.Slice
 {
     /// <summary>A function that decodes the return value from an Ice-encoded response.</summary>
     /// <typeparam name="T">The type of the return value to read.</typeparam>
     /// <param name="response">The incoming response.</param>
     /// <param name="invoker">The invoker of the proxy used to send this request.</param>
-    /// <param name="streamParamReceiver">The stream param receiver from the response.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>A value task that contains the return value or a <see cref="RemoteException"/> when the response
     /// carries a failure.</returns>
     public delegate ValueTask<T> ResponseDecodeFunc<T>(
         IncomingResponse response,
         IInvoker? invoker,
-        StreamParamReceiver? streamParamReceiver,
         CancellationToken cancel);
 
     /// <summary>Provides extension methods for class Proxy.</summary>
@@ -28,13 +28,12 @@ namespace IceRpc.Slice
         /// <param name="proxy">A proxy for the remote service.</param>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="payloadEncoding">The encoding of the request payload.</param>
-        /// <param name="requestPayload">The payload of the request.</param>
-        /// <param name="streamParamSender">The stream param sender.</param>
+        /// <param name="payloadSource">The payload source of the request.</param>
+        /// <param name="payloadSourceStream">The optional payload source stream of the request.</param>
         /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws a
         /// <see cref="RemoteException"/> when the response payload contains a failure.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="idempotent">When <c>true</c>, the request is idempotent.</param>
-        /// <param name="returnStreamParamReceiver"><c>true</c> if the response has a stream value.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The operation's return value.</returns>
         /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
@@ -44,37 +43,33 @@ namespace IceRpc.Slice
             this Proxy proxy,
             string operation,
             IceEncoding payloadEncoding,
-            ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
-            IStreamParamSender? streamParamSender,
+            PipeReader payloadSource,
+            PipeReader? payloadSourceStream,
             ResponseDecodeFunc<T> responseDecodeFunc,
             Invocation? invocation,
             bool idempotent = false,
-            bool returnStreamParamReceiver = false,
             CancellationToken cancel = default)
         {
-            Task<(IncomingResponse, StreamParamReceiver?)> responseTask =
+            Task<IncomingResponse> responseTask =
                 proxy.InvokeAsync(
                     operation,
                     payloadEncoding,
-                    requestPayload,
-                    streamParamSender,
+                    payloadSource,
+                    payloadSourceStream,
                     invocation,
                     idempotent,
                     oneway: false,
-                    returnStreamParamReceiver: returnStreamParamReceiver,
                     cancel);
 
             return ReadResponseAsync();
 
             async Task<T> ReadResponseAsync()
             {
-                (IncomingResponse response, StreamParamReceiver? streamParamReceiver) =
-                    await responseTask.ConfigureAwait(false);
+                IncomingResponse response = await responseTask.ConfigureAwait(false);
 
                 return await responseDecodeFunc(
                     response,
                     proxy.Invoker,
-                    streamParamReceiver,
                     cancel).ConfigureAwait(false);
             }
         }
@@ -83,9 +78,9 @@ namespace IceRpc.Slice
         /// <param name="proxy">A proxy for the remote service.</param>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="payloadEncoding">The encoding of the request payload.</param>
-        /// <param name="requestPayload">The payload of the request.</param>
+        /// <param name="payloadSource">The payload source of the request.</param>
+        /// <param name="payloadSourceStream">The payload source stream of the request.</param>
         /// <param name="defaultIceDecoderFactories">The default Ice decoder factories.</param>
-        /// <param name="streamParamSender">The stream param sender.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="idempotent">When true, the request is idempotent.</param>
         /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
@@ -99,31 +94,30 @@ namespace IceRpc.Slice
             this Proxy proxy,
             string operation,
             IceEncoding payloadEncoding,
-            ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
+            PipeReader payloadSource,
+            PipeReader? payloadSourceStream,
             DefaultIceDecoderFactories defaultIceDecoderFactories,
-            IStreamParamSender? streamParamSender,
             Invocation? invocation,
             bool idempotent = false,
             bool oneway = false,
             CancellationToken cancel = default)
         {
-            Task<(IncomingResponse, StreamParamReceiver?)> responseTask =
+            Task<IncomingResponse> responseTask =
                 proxy.InvokeAsync(
                     operation,
                     payloadEncoding,
-                    requestPayload,
-                    streamParamSender,
+                    payloadSource,
+                    payloadSourceStream,
                     invocation,
                     idempotent,
                     oneway,
-                    returnStreamParamReceiver: false,
                     cancel);
 
             return ReadResponseAsync();
 
             async Task ReadResponseAsync()
             {
-                (IncomingResponse response, StreamParamReceiver? _) = await responseTask.ConfigureAwait(false);
+                IncomingResponse response = await responseTask.ConfigureAwait(false);
 
                 await response.CheckVoidReturnValueAsync(
                     proxy.Invoker,

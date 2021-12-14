@@ -1,7 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using NUnit.Framework;
 using System.Diagnostics.Tracing;
+using System.Buffers;
+using System.IO.Pipelines;
 
 namespace IceRpc.Tests.Internal
 {
@@ -25,7 +28,13 @@ namespace IceRpc.Tests.Internal
             using var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            _eventSource.RequestStart(new IncomingRequest(Protocol.Ice2, path: "/service", operation: "ice_id"));
+            _eventSource.RequestStart(new IncomingRequest(
+                Protocol.Ice2,
+                path: "/service",
+                operation: "ice_id",
+                PipeReader.Create(ReadOnlySequence<byte>.Empty),
+                Encoding.Ice20,
+                responseWriter: InvalidPipeWriter.Instance));
 
             EventWrittenEventArgs? eventData = eventListener.EventData;
             Assert.That(eventData, Is.Not.Null);
@@ -44,7 +53,13 @@ namespace IceRpc.Tests.Internal
             using var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            _eventSource.RequestStop(new IncomingRequest(Protocol.Ice2, path: "/service", "ice_id"));
+            _eventSource.RequestStop(new IncomingRequest(
+                Protocol.Ice2,
+                path: "/service",
+                "ice_id",
+                PipeReader.Create(ReadOnlySequence<byte>.Empty),
+                Encoding.Ice20,
+                responseWriter: InvalidPipeWriter.Instance));
 
             EventWrittenEventArgs? eventData = eventListener.EventData;
             Assert.That(eventData, Is.Not.Null);
@@ -63,7 +78,13 @@ namespace IceRpc.Tests.Internal
             using var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            _eventSource.RequestCanceled(new IncomingRequest(Protocol.Ice2, path: "/service", operation: "ice_id"));
+            _eventSource.RequestCanceled(new IncomingRequest(
+                Protocol.Ice2,
+                path: "/service",
+                operation: "ice_id",
+                PipeReader.Create(ReadOnlySequence<byte>.Empty),
+                Encoding.Ice20,
+                responseWriter: InvalidPipeWriter.Instance));
 
             EventWrittenEventArgs? eventData = eventListener.EventData;
             Assert.That(eventData, Is.Not.Null);
@@ -83,7 +104,13 @@ namespace IceRpc.Tests.Internal
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
             _eventSource.RequestFailed(
-                new IncomingRequest(Protocol.Ice2, path: "/service", operation: "ice_id"),
+                new IncomingRequest(
+                    Protocol.Ice2,
+                    path: "/service",
+                    operation: "ice_id",
+                    PipeReader.Create(ReadOnlySequence<byte>.Empty),
+                    Encoding.Ice20,
+                    responseWriter: InvalidPipeWriter.Instance),
                 "IceRpc.RemoteException");
 
             EventWrittenEventArgs? eventData = eventListener.EventData;

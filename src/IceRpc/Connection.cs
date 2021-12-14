@@ -2,6 +2,7 @@
 
 using IceRpc.Configure;
 using IceRpc.Internal;
+using IceRpc.Slice;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
@@ -286,33 +287,21 @@ namespace IceRpc
             // Make sure the connection is connected.
             await ConnectAsync(cancel).ConfigureAwait(false);
 
-            try
-            {
-                // Send the request.
-                await _protocolConnection!.SendRequestAsync(request, cancel).ConfigureAwait(false);
+            // Send the request. This completes payload source; this also completes payload sink when the Send fails
+            // with an exception or there is no payload source stream.
+            await _protocolConnection!.SendRequestAsync(request, cancel).ConfigureAwait(false);
 
-                // Wait for the response if two-way request, otherwise return a response with an empty payload.
-                IncomingResponse response;
-                if (request.IsOneway)
-                {
-                    response = new IncomingResponse(Protocol, ResultType.Success)
-                    {
-                        PayloadEncoding = request.PayloadEncoding,
-                        Payload = default
-                    };
-                }
-                else
-                {
-                    response = await _protocolConnection.ReceiveResponseAsync(request, cancel).ConfigureAwait(false);
-                }
-                response.Connection = this;
-                return response;
-            }
-            catch (OperationCanceledException)
-            {
-                request.Stream?.Abort(MultiplexedStreamError.InvocationCanceled);
-                throw;
-            }
+            // Wait for the response if two-way request, otherwise return a response with an empty payload.
+            IncomingResponse response = request.IsOneway ?
+                new IncomingResponse(
+                    Protocol,
+                    ResultType.Success,
+                    EmptyPipeReader.Instance,
+                    request.PayloadEncoding) :
+                await _protocolConnection.ReceiveResponseAsync(request, cancel).ConfigureAwait(false);
+
+            response.Connection = this;
+            return response;
         }
 
         /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
@@ -545,10 +534,11 @@ namespace IceRpc
             // Start a new task to accept a new incoming request before dispatching this one.
             _ = Task.Run(() => AcceptIncomingRequestAsync(dispatcher));
 
+            OutgoingResponse? response = null;
+
             try
             {
                 // Dispatch the request and get the response.
-                OutgoingResponse? response = null;
                 try
                 {
                     CancellationToken cancel = request.CancelDispatchSource?.Token ?? default;
@@ -557,7 +547,47 @@ namespace IceRpc
                 }
                 catch (Exception exception)
                 {
-                    response = OutgoingResponse.ForException(request, exception);
+                    // If we catch an exception, we return a failure response with a Slice-encoded payload.
+
+                    if (exception is OperationCanceledException)
+                    {
+                        // TODO: do we really need this protocol-dependent processing?
+                        if (Protocol == Protocol.Ice1)
+                        {
+                            exception = new DispatchException("dispatch canceled by peer");
+                        }
+                        else
+                        {
+                            // Rethrow to abort the stream.
+                            throw;
+                        }
+                    }
+
+                    if (exception is not RemoteException remoteException || remoteException.ConvertToUnhandled)
+                    {
+                        remoteException = new UnhandledException(exception);
+                    }
+
+                    if (remoteException.Origin == RemoteExceptionOrigin.Unknown)
+                    {
+                        remoteException.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
+                    }
+
+                    // not necessarily the request payload encoding
+                    IceEncoding sliceEncoding = request.GetIceEncoding();
+
+                    response = new OutgoingResponse(request)
+                    {
+                        PayloadSource = sliceEncoding.CreatePayloadFromRemoteException(remoteException),
+                        PayloadEncoding = sliceEncoding,
+                        ResultType = ResultType.Failure
+                    };
+
+                    if (Protocol.HasFieldSupport && remoteException.RetryPolicy != RetryPolicy.NoRetry)
+                    {
+                        RetryPolicy retryPolicy = remoteException.RetryPolicy;
+                        response.Fields.Add((int)FieldKey.RetryPolicy, encoder => retryPolicy.Encode(encoder));
+                    }
                 }
 
                 await _protocolConnection.SendResponseAsync(
@@ -565,9 +595,18 @@ namespace IceRpc
                     request,
                     CancellationToken.None).ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex)
             {
-                request.Stream?.Abort(MultiplexedStreamError.DispatchCanceled);
+                // The two calls are equivalent except the response.PayloadSink version goes through the decorators
+                // installed by the middleware, if any.
+                if (response != null)
+                {
+                    await response.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                }
+                else
+                {
+                    await request.ResponseWriter.CompleteAsync(ex).ConfigureAwait(false);
+                }
             }
             catch (MultiplexedStreamAbortedException)
             {

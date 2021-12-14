@@ -21,7 +21,7 @@ pub fn encoded_result_struct(operation: &Operation) -> CodeBlock {
     let mut container_builder = ContainerBuilder::new(
         &format!("{} readonly record struct", access),
         &format!(
-            "{}(global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>> Payload)",
+            "{}(global::System.IO.Pipelines.PipeReader Payload)",
             struct_name
         ),
     );

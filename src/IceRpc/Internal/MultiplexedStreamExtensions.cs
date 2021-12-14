@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using System.Diagnostics;
+using System.IO.Pipelines;
 
 namespace IceRpc.Internal
 {
@@ -37,6 +39,112 @@ namespace IceRpc.Internal
                     throw new InvalidDataException("unexpected end of stream");
                 }
                 offset += received;
+            }
+        }
+
+        internal static PipeReader ToPipeReader(this IMultiplexedStream stream, CancellationToken cancel)
+        {
+            // TODO: in the future, multiplexed stream should provide directly the PipeReader which may or may not
+            // come from a Pipe.
+
+            // The PauseWriterThreshold appears to be a soft limit - otherwise, the stress test would hang/fail.
+
+            // TODO: we could also use the default values, which are larger but not documented. A transport that uses
+            // a Pipe internally could/should make these options configurable.
+            var pipe = new Pipe(new PipeOptions(
+                minimumSegmentSize: 1024,
+                pauseWriterThreshold: 16 * 1024,
+                resumeWriterThreshold: 8 * 1024));
+
+            _ = FillPipeAsync();
+
+            return pipe.Reader;
+
+            async Task FillPipeAsync()
+            {
+                // This can run synchronously for a while.
+
+                Exception? completeReason = null;
+                PipeWriter writer = pipe.Writer;
+
+                while (true)
+                {
+                    Memory<byte> buffer = writer.GetMemory();
+
+                    int count;
+                    try
+                    {
+                        count = await stream.ReadAsync(buffer, cancel).ConfigureAwait(false);
+                    }
+                    catch (MultiplexedStreamAbortedException ex)
+                    {
+                        // We don't want the PipeReader to throw MultiplexedStreamAbortedException to the decoding code.
+
+                        completeReason = (MultiplexedStreamError)ex.ErrorCode switch
+                        {
+                            MultiplexedStreamError.ConnectionAborted =>
+                                new ConnectionLostException(ex),
+                            MultiplexedStreamError.ConnectionShutdown =>
+                                new OperationCanceledException("connection shutdown", ex),
+                            MultiplexedStreamError.ConnectionShutdownByPeer =>
+                                new ConnectionClosedException("connection shutdown by peer", ex),
+                            MultiplexedStreamError.DispatchCanceled =>
+                                new OperationCanceledException("dispatch canceled by peer", ex),
+                            _ => ex
+                        };
+
+                        // TODO: confirm there is no need to AbortRead the stream.
+
+                        break; // done
+                    }
+                    catch (OperationCanceledException ex)
+                    {
+                        stream.AbortRead((byte)MultiplexedStreamError.InvocationCanceled);
+                        completeReason = ex;
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        // TODO: error code!
+                        Console.WriteLine($"stream.ReadAsync failed with {ex}");
+                        stream.AbortRead((byte)124);
+                        completeReason = ex;
+                        break;
+                    }
+
+                    if (count == 0)
+                    {
+                        break; // done
+                    }
+
+                    writer.Advance(count);
+
+                    try
+                    {
+                        FlushResult flushResult = await writer.FlushAsync(cancel).ConfigureAwait(false);
+
+                        // We don't expose writer to anybody, so who would call CancelPendingFlush?
+                        Debug.Assert(!flushResult.IsCanceled);
+
+                        if (flushResult.IsCompleted)
+                        {
+                            // reader no longer reading
+                            stream.AbortRead((byte)MultiplexedStreamError.StreamingCanceledByReader);
+                            break;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // TODO: error code?
+                        stream.AbortRead((byte)MultiplexedStreamError.StreamingCanceledByReader);
+                        completeReason = ex;
+                        break;
+                    }
+                }
+
+                await writer.CompleteAsync(completeReason).ConfigureAwait(false);
+
+                // TODO: stream should be completed at this point, but there is no way to tell.
             }
         }
     }

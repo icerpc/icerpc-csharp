@@ -1,10 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
+using System.Buffers;
+using System.IO.Pipelines;
 
 namespace IceRpc.Tests.Internal
 {
@@ -154,7 +157,7 @@ namespace IceRpc.Tests.Internal
             await connection.ConnectAsync();
 
             IncomingRequest request = CreateIncomingRequest(connection, twoway);
-            OutgoingResponse response = CreateOutgoingResponse();
+            OutgoingResponse response = CreateOutgoingResponse(request);
 
             var router = new Router();
             using var loggerFactory = new TestLoggerFactory();
@@ -254,35 +257,37 @@ namespace IceRpc.Tests.Internal
         }
 
         private static IncomingRequest CreateIncomingRequest(Connection connection, bool twoway) =>
-            new(Protocol.Ice2, path: "/dummy", operation: "foo")
+            new(
+                Protocol.Ice2,
+                path: "/dummy",
+                operation: "foo",
+                PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
+                Encoding.Ice20,
+                responseWriter: new DelayedPipeWriterDecorator())
             {
                 Connection = connection,
-                IsOneway = !twoway,
-                Payload = new byte[15],
-                PayloadEncoding = Encoding.Ice20
+                IsOneway = !twoway
             };
 
-        private static IncomingResponse CreateIncomingResponse() =>
-            new(Protocol.Ice2, ResultType.Success)
-            {
-                Payload = new byte[10],
-                PayloadEncoding = Encoding.Ice20
-            };
+        private static IncomingResponse CreateIncomingResponse() => new(
+            Protocol.Ice2,
+            ResultType.Success,
+            PipeReader.Create(new ReadOnlySequence<byte>(new byte[10])),
+            Encoding.Ice20);
 
         private static OutgoingRequest CreateOutgoingRequest(Connection connection, bool twoway) =>
-            new(Protocol.Ice2, path: "/dummy", operation: "foo")
+            new(Proxy.FromPath("/dummy"), operation: "foo")
             {
                 Connection = connection,
                 IsOneway = !twoway,
-                Payload = new ReadOnlyMemory<byte>[] { new byte[15] },
+                PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
                 PayloadEncoding = Encoding.Ice20
             };
 
-        private static OutgoingResponse CreateOutgoingResponse() =>
-            new(Protocol.Ice2, ResultType.Success)
+        private static OutgoingResponse CreateOutgoingResponse(IncomingRequest request) =>
+            new(request)
             {
-                Payload = new ReadOnlyMemory<byte>[] { new byte[10] },
-                PayloadEncoding = Encoding.Ice20
+                PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(new byte[10]))
             };
     }
 }

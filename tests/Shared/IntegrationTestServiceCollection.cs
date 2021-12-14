@@ -93,6 +93,6 @@ namespace IceRpc.Tests
 
         public static IServiceCollection UseVoidDispatcher(this IServiceCollection collection) =>
             collection.AddTransient<IDispatcher>(_ => new InlineDispatcher((request, cancel) =>
-                new(OutgoingResponse.ForPayload(request, ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty))));
+                new(new OutgoingResponse(request))));
     }
 }

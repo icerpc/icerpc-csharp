@@ -4,6 +4,7 @@ using IceRpc.Configure;
 using IceRpc.Slice;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.IO.Pipelines;
 
 namespace IceRpc.Tests.Slice
 {
@@ -646,7 +647,7 @@ namespace IceRpc.Tests.Slice
         public async Task OperationTag_DuplicateTag()
         {
             // Build a request payload with 2 tagged values
-            ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload =
+            PipeReader requestPayload =
                 _prx.Proxy.GetIceEncoding().CreatePayloadFromArgs(
                     (15, "test"),
                     (IceEncoder encoder, in (int? N, string? S) value) =>
@@ -668,7 +669,7 @@ namespace IceRpc.Tests.Slice
                         }
                     });
 
-            (IncomingResponse response, StreamParamReceiver? _) =
+            IncomingResponse response =
                 await _prx.Proxy.InvokeAsync("opVoid", _prx.Proxy.Encoding, requestPayload);
 
             Assert.DoesNotThrowAsync(async () => await response.CheckVoidReturnValueAsync(

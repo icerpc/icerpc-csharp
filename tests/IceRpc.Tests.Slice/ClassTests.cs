@@ -27,11 +27,12 @@ namespace IceRpc.Tests.Slice
                         router.Map<IClassOperationsUnexpectedClass>(new InlineDispatcher(
                             (request, cancel) =>
                             {
-                                var response = OutgoingResponse.ForPayload(
-                                    request,
-                                    IceRpc.Slice.Ice11Encoding.CreatePayloadFromSingleReturnValue(
+                                var response = new OutgoingResponse(request)
+                                {
+                                    PayloadSource = IceRpc.Slice.Ice11Encoding.CreatePayloadFromSingleReturnValue(
                                         new MyClassAlsoEmpty(),
-                                        (encoder, ae) => encoder.EncodeClass(ae)));
+                                        (encoder, ae) => encoder.EncodeClass(ae))
+                                };
                                 return new(response);
                             }));
                         return router;
