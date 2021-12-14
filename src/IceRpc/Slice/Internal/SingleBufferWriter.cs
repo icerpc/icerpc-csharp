@@ -13,6 +13,7 @@ namespace IceRpc.Slice.Internal
 
         private int _written;
 
+        /// <summary>Returns the written portion of the underlying buffer.</summary>
         internal Memory<byte> WrittenBuffer => _initialBuffer[0.._written];
 
         /// <inheritdoc/>
@@ -21,7 +22,7 @@ namespace IceRpc.Slice.Internal
             if (sizeHint > _available.Length)
             {
                 throw new ArgumentException(
-                    @$"requested {sizeHint} bytes from SingleMemoryBuffer when only {
+                    @$"requested at least {sizeHint} bytes from SingleMemoryBuffer when only {
                         _available.Length} bytes are available");
             }
             return _available;
@@ -37,6 +38,8 @@ namespace IceRpc.Slice.Internal
             _available = _initialBuffer[_written..];
         }
 
+        /// <summary>Constructs a new single buffer writer over a buffer.</summary>
+        /// <param name="buffer">The underlying buffer.</param>
         internal SingleBufferWriter(Memory<byte> buffer)
         {
             _initialBuffer = buffer;

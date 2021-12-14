@@ -37,7 +37,7 @@ namespace IceRpc.Internal
                     Span<byte> sizePlaceHolder = encoder.GetPlaceHolderSpan(2);
                     int startPos = encoder.EncodedBytes;
                     action(encoder);
-                    Ice20Encoder.EncodeFixedLengthSize(encoder.EncodedBytes - startPos, sizePlaceHolder);
+                    Ice20Encoder.EncodeSize(encoder.EncodedBytes - startPos, sizePlaceHolder);
                     count++;
                 }
             }
@@ -52,7 +52,7 @@ namespace IceRpc.Internal
                 }
             }
 
-            Ice20Encoder.EncodeFixedLengthSize(count, countPlaceHolder);
+            Ice20Encoder.EncodeSize(count, countPlaceHolder);
         }
     }
 }

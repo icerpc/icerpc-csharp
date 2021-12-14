@@ -57,7 +57,7 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceHolder = GetPlaceHolderSpan(4);
             int startPos = EncodedBytes;
             encodeAction(this, v);
-            EncodeFixedLengthSize(EncodedBytes - startPos, sizePlaceHolder);
+            EncodeSize(EncodedBytes - startPos, sizePlaceHolder);
         }
 
         /// <inheritdoc/>
@@ -86,7 +86,7 @@ namespace IceRpc.Slice
         /// <summary>Encodes a size into a span of bytes using a fixed number of bytes.</summary>
         /// <param name="size">The size to encode.</param>
         /// <param name="into">The destination byte buffer, which must be 1, 2, 4 or 8 bytes long.</param>
-        internal static void EncodeFixedLengthSize(long size, Span<byte> into)
+        internal static void EncodeSize(long size, Span<byte> into)
         {
             if (size < 0)
             {
@@ -114,10 +114,9 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceHolder = GetPlaceHolderSpan(2);
             int startPos = EncodedBytes;
             encodeAction(this, value);
-            EncodeFixedLengthSize(EncodedBytes - startPos, sizePlaceHolder);
+            EncodeSize(EncodedBytes - startPos, sizePlaceHolder);
         }
 
-        internal override void EncodeFixedLengthSize(int size, Span<byte> into) =>
-            Ice20Encoder.EncodeFixedLengthSize(size, into);
+        internal override void EncodeFixedLengthSize(int size, Span<byte> into) => EncodeSize(size, into);
     }
 }

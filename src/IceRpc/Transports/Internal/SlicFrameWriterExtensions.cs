@@ -86,7 +86,7 @@ namespace IceRpc.Transports.Internal
             {
                 encode?.Invoke(encoder);
             }
-            Ice20Encoder.EncodeFixedLengthSize(encoder.EncodedBytes - startPos, sizePlaceHolder.Span);
+            Ice20Encoder.EncodeSize(encoder.EncodedBytes - startPos, sizePlaceHolder.Span);
 
             // TODO: all this copying is naturally temporary
             await pipe.Writer.CompleteAsync().ConfigureAwait(false);

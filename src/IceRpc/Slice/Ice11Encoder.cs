@@ -665,7 +665,8 @@ namespace IceRpc.Slice
             // The place holder for the Slice size. Used only for the sliced format.
             internal Memory<byte> SliceSizePlaceHolder;
 
-            // The starting position for computing the size of the slice. It includes the size length.
+            // The starting position for computing the size of the slice. It's just before the SliceSizePlaceHolder as
+            // the size includes the size length.
             internal int SliceSizeStartPos;
         }
 
