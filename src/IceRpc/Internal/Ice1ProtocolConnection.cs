@@ -447,25 +447,10 @@ namespace IceRpc.Internal
                 }
                 else
                 {
-                    // Perform the sending. When an Ice1 frame is sent over a connection (such as a TCP
-                    // connection), we need to send the entire frame even when cancel gets canceled since the
-                    // recipient cannot read a partial frame and then keep going.
-
                     request.InitialPayloadSink.SetDecoratee(output);
-
-                    // Use the PayloadSink to send PayloadSource
-                    await request.PayloadSource.CopyToAsync(
-                        request.PayloadSink,
-                        CancellationToken.None).ConfigureAwait(false);
-
-                    // We need to call Flush in case PayloadSource was empty and CopyToAsync didn't do anything.
-                    _ = await request.PayloadSink.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                    await SendPayloadAsync(request, output, CancellationToken.None).ConfigureAwait(false);
                 }
 
-                await request.PayloadSource.CompleteAsync().ConfigureAwait(false);
-                await request.PayloadSink.CompleteAsync().ConfigureAwait(false);
-
-                // Mark the request as sent and, if it's a twoway request, keep track of it.
                 request.IsSent = true;
             }
             catch (ObjectDisposedException exception)
@@ -600,15 +585,10 @@ namespace IceRpc.Internal
                         encoder.EncodeFixedLengthSize(bufferWriter.Size + payloadSize, frameSizeStart);
                         bufferWriter.Complete();
 
-                        await response.PayloadSource.CopyToAsync(
-                            response.PayloadSink,
+                        await SendPayloadAsync(
+                            response,
+                            request.ResponseWriter,
                             CancellationToken.None).ConfigureAwait(false);
-
-                        // We need to call Flush in case PayloadSource was empty and CopyToAsync didn't do anything.
-                        _ = await response.PayloadSink.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-
-                        await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
-                        await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
@@ -778,6 +758,32 @@ namespace IceRpc.Internal
 
             payload = SliceBuffers(payload, payloadSizeLength);
             return (payloadSize, encodingMajor, encodingMinor);
+        }
+
+        /// <summary>Sends the payload source of an outgoing frame.</summary>
+        private static async ValueTask SendPayloadAsync(
+            OutgoingFrame outgoingFrame,
+            PipeWriter frameWriter,
+            CancellationToken cancel)
+        {
+            // Perform the sending. When an Ice1 frame is sent over a connection (such as a TCP
+            // connection), we need to send the entire frame even when cancel gets canceled since the
+            // recipient cannot read a partial frame and then keep going.
+
+            // Use the PayloadSink to send PayloadSource
+            await outgoingFrame.PayloadSource.CopyToAsync(
+                outgoingFrame.PayloadSink,
+                cancel).ConfigureAwait(false);
+
+            // We need to call FlushAsync in case PayloadSource was empty and CopyToAsync didn't do anything.
+            _ = await outgoingFrame.PayloadSink.FlushAsync(cancel).ConfigureAwait(false);
+
+            await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
+            await outgoingFrame.PayloadSink.CompleteAsync().ConfigureAwait(false);
+
+            // Need to call CompleteAsync on frameWriter in case PayloadSink.CompleteAsync calls no-op Complete om
+            // frameWriter.
+            await frameWriter.CompleteAsync().ConfigureAwait(false);
         }
 
         // Helper method that removes a few bytes from the first buffer. The implementation is simple and limited.
