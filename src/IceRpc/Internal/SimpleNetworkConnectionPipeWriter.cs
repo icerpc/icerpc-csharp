@@ -18,8 +18,40 @@ namespace IceRpc.Internal
 
         public override void Complete(Exception? exception = null)
         {
-            _isWriterCompleted = true;
-            base.Complete(exception);
+            if (exception == null)
+            {
+                // no-op
+            }
+            else
+            {
+                _isWriterCompleted = true;
+                base.Complete(exception);
+            }
+        }
+
+        public override async ValueTask CompleteAsync(Exception? exception = null)
+        {
+            if (!_isWriterCompleted)
+            {
+                if (exception == null)
+                {
+                    try
+                    {
+                        _ = await FlushAsync(CompleteCancellationToken).ConfigureAwait(false);
+                        _isWriterCompleted = true;
+                        base.Complete();
+                    }
+                    catch (Exception ex)
+                    {
+                        Complete(ex);
+                        throw;
+                    }
+                }
+                else
+                {
+                    Complete(exception);
+                }
+            }
         }
 
         public override Task CopyFromAsync(

@@ -323,12 +323,6 @@ namespace IceRpc.Internal
                 throw new NotSupportedException(
                     "the payload of an ice1 request must be encoded with a supported Slice encoding");
             }
-            else if (request.PayloadSourceStream != null)
-            {
-                // Since the payload is encoded with a Slice encoding, PayloadSourceStream can only come from a
-                // Slice stream parameter/return.
-                throw new NotSupportedException("stream parameters are not supported with ice1");
-            }
             else if (request.Fields.Count > 0 || request.FieldsDefaults.Count > 0)
             {
                 throw new NotSupportedException($"{nameof(Protocol.Ice1)} doesn't support fields");
@@ -414,19 +408,17 @@ namespace IceRpc.Internal
 
                 request.InitialPayloadSink.SetDecoratee(output);
 
+                CancellationToken sendCancellationToken = CancellationToken.None;
+
                 if (_isUdp)
                 {
                     // Cancellation is ok with UDP since datagrams are independent of each others.
+                    sendCancellationToken = cancel;
                     output.CompleteCancellationToken = cancel;
-
-                    // Send the whole frame in one shot.
-                    await SendPayloadAsync(request, output, cancel).ConfigureAwait(false);
                 }
-                else
-                {
-                    await SendPayloadAsync(request, output, CancellationToken.None).ConfigureAwait(false);
-                }
+                // else use CancellationToken.None
 
+                await SendPayloadAsync(request, output, sendCancellationToken).ConfigureAwait(false);
                 request.IsSent = true;
             }
             catch (ObjectDisposedException exception)
@@ -484,12 +476,6 @@ namespace IceRpc.Internal
                         {
                             throw new NotSupportedException(
                                 "the payload of an ice1 request must be encoded with a supported Slice encoding");
-                        }
-                        else if (response.PayloadSourceStream != null)
-                        {
-                            // Since the payload is encoded with a Slice encoding, PayloadSourceStream can only come from
-                            // a Slice stream parameter/return.
-                            throw new NotSupportedException("stream return values are not supported with ice1");
                         }
 
                         (int payloadSize, bool isCanceled, bool isCompleted) =
@@ -737,30 +723,38 @@ namespace IceRpc.Internal
         }
 
         /// <summary>Sends the payload source of an outgoing frame.</summary>
-        private async ValueTask SendPayloadAsync(
+        private static async ValueTask SendPayloadAsync(
             OutgoingFrame outgoingFrame,
             PipeWriter frameWriter,
             CancellationToken cancel)
         {
+            if (outgoingFrame.PayloadSourceStream != null)
+            {
+                // Since the payload is encoded with a Slice encoding, PayloadSourceStream can only come from
+                // a Slice stream parameter/return.
+                throw new NotSupportedException("stream parameters and return values are not supported with ice1");
+            }
+
             // TODO: add CopyFrom optimization.
 
-            // Use the PayloadSink to send PayloadSource
-            await outgoingFrame.PayloadSource.CopyToAsync(
-                outgoingFrame.PayloadSink,
-                cancel).ConfigureAwait(false);
-
-            // We need to call FlushAsync in case PayloadSource was empty and CopyToAsync didn't do anything.
-            _ = await outgoingFrame.PayloadSink.FlushAsync(cancel).ConfigureAwait(false);
+            try
+            {
+                // Use the PayloadSink to send PayloadSource. This does nothing if PayloadSource is empty.
+                await outgoingFrame.PayloadSource.CopyToAsync(
+                    outgoingFrame.PayloadSink,
+                    cancel).ConfigureAwait(false);
+            }
+            catch (TaskCanceledException) // CopyToAsync returns a canceled task if cancel is cancelled
+            {
+                throw new OperationCanceledException();
+            }
 
             await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
             await outgoingFrame.PayloadSink.CompleteAsync().ConfigureAwait(false);
 
-            if (_isUdp)
-            {
-                // Need to call CompleteAsync on frameWriter in case PayloadSink.CompleteAsync calls no-op Complete on
-                // frameWriter.
-                await frameWriter.CompleteAsync().ConfigureAwait(false);
-            }
+            // Need to call CompleteAsync on frameWriter in case PayloadSink.CompleteAsync calls no-op Complete on
+            // frameWriter.
+            await frameWriter.CompleteAsync().ConfigureAwait(false);
         }
 
         // Helper method that removes a few bytes from the first buffer. The implementation is simple and limited.
