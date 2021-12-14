@@ -8,46 +8,24 @@ namespace IceRpc.Internal
 {
     /// <summary>Implements a PipeWriter over a simple network connection. This is a pipe writer for a single request
     /// or response.</summary>
-    internal class SimpleNetworkConnectionPipeWriter : PipeWriter
+    internal class SimpleNetworkConnectionPipeWriter : BufferedPipeWriter
     {
-        // TODO: consolidate PipeWrite helper code with MultiplexedStreamPipeWriter with base class?
-
-        public override bool CanGetUnflushedBytes => PipeWriter.CanGetUnflushedBytes;
-        public override long UnflushedBytes => PipeWriter.UnflushedBytes;
-
-        private PipeWriter PipeWriter
-        {
-            get
-            {
-                ThrowIfCompleted();
-
-                // TODO: the relevant PipeOptions should be supplied to the MultiplexedStreamPipeWriter constructor.
-                _pipe ??= new Pipe();
-                return _pipe.Writer;
-            }
-        }
-
         private readonly ISimpleNetworkConnection _connection;
         private bool _isReaderCompleted;
         private bool _isWriterCompleted;
 
-        private Pipe? _pipe;
-
-        public override void Advance(int bytes) => PipeWriter.Advance(bytes);
-
         public override void CancelPendingFlush() => throw new NotImplementedException();
 
-        public override void Complete(Exception? _ = null)
+        public override void Complete(Exception? exception = null)
         {
             _isWriterCompleted = true;
-
-            if (_pipe != null)
-            {
-                _pipe.Writer.Complete();
-                _pipe.Reader.Complete();
-                _pipe = null;
-            }
+            base.Complete(exception);
         }
+
+        public override Task CopyFromAsync(
+            PipeReader source,
+            bool completeWhenDone,
+            CancellationToken cancel) => throw new NotImplementedException();
 
         public override async ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken)
         {
@@ -55,12 +33,11 @@ namespace IceRpc.Internal
 
             if (!_isReaderCompleted)
             {
-                if (_pipe is Pipe pipe)
+                if (PipeReader is PipeReader pipeReader)
                 {
-                    // We're flushing our own internal pipe here.
-                    _ = await pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                    await FlushWriterAsync().ConfigureAwait(false);
 
-                    if (pipe.Reader.TryRead(out ReadResult result))
+                    if (pipeReader.TryRead(out ReadResult result))
                     {
                         try
                         {
@@ -85,7 +62,7 @@ namespace IceRpc.Internal
                         finally
                         {
                             // The unflushed bytes are all consumed no matter what.
-                            pipe.Reader.AdvanceTo(result.Buffer.End);
+                            pipeReader.AdvanceTo(result.Buffer.End);
                         }
                     }
                 }
@@ -93,10 +70,6 @@ namespace IceRpc.Internal
 
             return new FlushResult(isCanceled: false, isCompleted: _isReaderCompleted);
         }
-
-        public override Memory<byte> GetMemory(int sizeHint) => PipeWriter.GetMemory(sizeHint);
-        public override Span<byte> GetSpan(int sizeHint) => PipeWriter.GetSpan(sizeHint);
-
         public override async ValueTask<FlushResult> WriteAsync(
             ReadOnlyMemory<byte> source,
             CancellationToken cancellationToken)
