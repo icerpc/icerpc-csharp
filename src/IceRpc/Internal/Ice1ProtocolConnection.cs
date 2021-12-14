@@ -384,7 +384,8 @@ namespace IceRpc.Internal
                         $"expected {payloadSize} bytes in ice1 request payload source, but it's empty");
                 }
 
-                var output = new SimpleNetworkConnectionPipeWriter(_networkConnection);
+                AsyncCompletePipeWriter output = _isUdp ? new UdpPipeWriter(_networkConnection) :
+                    new SimpleNetworkConnectionPipeWriter(_networkConnection);
 
                 var bufferWriter = new BufferWriter(output);
                 var encoder = new Ice11Encoder(bufferWriter);
@@ -411,43 +412,18 @@ namespace IceRpc.Internal
                 encoder.EncodeFixedLengthSize(bufferWriter.Size + payloadSize, frameSizeStart);
                 bufferWriter.Complete();
 
+                request.InitialPayloadSink.SetDecoratee(output);
+
                 if (_isUdp)
                 {
-                    ReadResult readResult;
+                    // Cancellation is ok with UDP since datagrams are independent of each others.
+                    output.CompleteCancellationToken = cancel;
 
-                    do
-                    {
-                        readResult = await request.PayloadSource.ReadAsync(cancel).ConfigureAwait(false);
-
-                        if (readResult.IsCanceled)
-                        {
-                            throw new OperationCanceledException();
-                        }
-                    } while (!readResult.IsCompleted);
-
-                    if (!readResult.Buffer.IsEmpty)
-                    {
-                        // TODO: better SimpleNetworkConnection.WriteAsync
-
-                        if (readResult.Buffer.IsSingleSegment)
-                        {
-                            output.Write(readResult.Buffer.FirstSpan); // makes one copy
-                        }
-                        else
-                        {
-                            output.Write(readResult.Buffer.ToArray().AsSpan()); // makes two copies!
-                        }
-
-                        request.PayloadSource.AdvanceTo(readResult.Buffer.End);
-                    }
-
-                    // Send UDP request, hopefully in a single chunk.
-                    // TODO: add UdpPipeWriter
-                    await output.FlushAsync(cancel).ConfigureAwait(false);
+                    // Send the whole frame in one shot.
+                    await SendPayloadAsync(request, output, cancel).ConfigureAwait(false);
                 }
                 else
                 {
-                    request.InitialPayloadSink.SetDecoratee(output);
                     await SendPayloadAsync(request, output, CancellationToken.None).ConfigureAwait(false);
                 }
 
@@ -761,14 +737,12 @@ namespace IceRpc.Internal
         }
 
         /// <summary>Sends the payload source of an outgoing frame.</summary>
-        private static async ValueTask SendPayloadAsync(
+        private async ValueTask SendPayloadAsync(
             OutgoingFrame outgoingFrame,
             PipeWriter frameWriter,
             CancellationToken cancel)
         {
-            // Perform the sending. When an Ice1 frame is sent over a connection (such as a TCP
-            // connection), we need to send the entire frame even when cancel gets canceled since the
-            // recipient cannot read a partial frame and then keep going.
+            // TODO: add CopyFrom optimization.
 
             // Use the PayloadSink to send PayloadSource
             await outgoingFrame.PayloadSource.CopyToAsync(
@@ -781,9 +755,12 @@ namespace IceRpc.Internal
             await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
             await outgoingFrame.PayloadSink.CompleteAsync().ConfigureAwait(false);
 
-            // Need to call CompleteAsync on frameWriter in case PayloadSink.CompleteAsync calls no-op Complete om
-            // frameWriter.
-            await frameWriter.CompleteAsync().ConfigureAwait(false);
+            if (_isUdp)
+            {
+                // Need to call CompleteAsync on frameWriter in case PayloadSink.CompleteAsync calls no-op Complete on
+                // frameWriter.
+                await frameWriter.CompleteAsync().ConfigureAwait(false);
+            }
         }
 
         // Helper method that removes a few bytes from the first buffer. The implementation is simple and limited.
