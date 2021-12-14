@@ -11,8 +11,7 @@
   <ItemGroup>
     <Compile Include="..\Shared\IntegrationTestServiceCollection.cs" Link="IntegrationTestServiceCollection.cs" />
     <Compile Include="..\Shared\LogAttribute.cs" Link="LogAttribute.cs" />
-    <Compile Include="..\Shared\NetworkConnectionTestServiceCollection.cs" Link="NetworkConnectionTestServiceCollection.cs" />
-    <Compile Include="..\Shared\TestHelper.cs" Link="TestHelper.cs" />
+    <Compile Include="..\Shared\TransportServiceCollection.cs" Link="TransportServiceCollection.cs" />
     <Compile Include="..\Shared\TestLogger.cs" Link="TestLogger.cs" />
   </ItemGroup>
 
@@ -37,6 +36,15 @@
 
   <ItemGroup>
     <Folder Include="generated\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="certs\server.p12">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="certs\cacert.der">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

@@ -4,13 +4,15 @@ using IceRpc.Configure;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Collections.Immutable;
 using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Tests
 {
-    public class NetworkConnectionTestServiceCollection : ServiceCollection
+    public class TransportServiceCollection : ServiceCollection
     {
-        public NetworkConnectionTestServiceCollection()
+        public TransportServiceCollection()
         {
             this.AddScoped<ColocTransport>();
 
@@ -31,12 +33,11 @@ namespace IceRpc.Tests
                     AuthenticationOptions = serviceProvider.GetService<SslClientAuthenticationOptions>()
                 });
 
-            // Default protocol is Ice2
+            // The default protocol is Ice2
             this.AddScoped(_ => Protocol.Ice2);
 
-            // The default server endpoint is the server coloc transport default endpoint.
-            this.AddScoped(serviceProvider =>
-                serviceProvider.GetRequiredService<ColocTransport>().ServerTransport.DefaultEndpoint);
+            // Use coloc as the default transport.
+            this.UseTransport("coloc");
 
             // The default simple server transport is based on the transport of the service collection endpoint.
             this.AddScoped(serviceProvider =>
@@ -94,41 +95,85 @@ namespace IceRpc.Tests
         }
     }
 
-    public static class NetworkConnectionTestServiceProviderExtensions
+    public static class TransportServiceCollectionExtensions
     {
-        public static Task<IMultiplexedNetworkConnection> GetMultiplexedClientConnectionAsync(
-            this IServiceProvider serviceProvider) =>
-            GetClientConnectionAsync<IMultiplexedNetworkConnection>(serviceProvider);
+        public static IServiceCollection UseColoc(
+            this IServiceCollection collection,
+            ColocTransport transport,
+            int port) =>
+            collection.AddScoped(_ => transport).UseTransport("coloc", port);
 
-        public static Task<IMultiplexedNetworkConnection> GetMultiplexedServerConnectionAsync(
-            this IServiceProvider serviceProvider) =>
-            GetServerConnectionAsync<IMultiplexedNetworkConnection>(serviceProvider);
-
-        public static Task<ISimpleNetworkConnection> GetSimpleClientConnectionAsync(
-            this IServiceProvider serviceProvider) =>
-            GetClientConnectionAsync<ISimpleNetworkConnection>(serviceProvider);
-
-        public static Task<ISimpleNetworkConnection> GetSimpleServerConnectionAsync(
-            this IServiceProvider serviceProvider) =>
-            GetServerConnectionAsync<ISimpleNetworkConnection>(serviceProvider);
-
-        private static async Task<T> GetClientConnectionAsync<T>(
-            IServiceProvider serviceProvider) where T : INetworkConnection
+        public static IServiceCollection UseTls(
+            this IServiceCollection collection,
+            string caFile = "cacert.der",
+            string certificateFile = "server.p12")
         {
-            Endpoint endpoint = serviceProvider.GetRequiredService<IListener<T>>().Endpoint;
-            T connection = serviceProvider.GetRequiredService<IClientTransport<T>>().CreateConnection(
-                endpoint,
-                serviceProvider.GetRequiredService<ILogger>());
-            await connection.ConnectAsync(default);
-            return connection;
+            // The certificate target host name is 127.0.0.1
+            collection.AddTransient<Endpoint>(_ => $"ice+tcp://127.0.0.1:0");
+
+            collection.AddScoped(_ => new SslClientAuthenticationOptions()
+            {
+                RemoteCertificateValidationCallback =
+                    CertificateValidaton.GetServerCertificateValidationCallback(
+                        certificateAuthorities: new X509Certificate2Collection
+                        {
+                            new X509Certificate2(Path.Combine(Environment.CurrentDirectory, "certs", caFile))
+                        })
+            });
+
+            collection.AddScoped(_ => new SslServerAuthenticationOptions()
+            {
+                ServerCertificate = new X509Certificate2(
+                    Path.Combine(Environment.CurrentDirectory, "certs", certificateFile),
+                    "password")
+            });
+
+            return collection;
         }
 
-        private static async Task<T> GetServerConnectionAsync<T>(
-            IServiceProvider serviceProvider) where T : INetworkConnection
-        {
-            T connection = await serviceProvider.GetRequiredService<IListener<T>>().AcceptAsync();
-            await connection.ConnectAsync(default);
-            return connection;
-        }
+        public static IServiceCollection UseTransport(
+            this IServiceCollection collection,
+            string transport,
+            int port = 0) =>
+            collection.AddScoped(serviceProvider =>
+            {
+                // Get the default endpoint for the given transport.
+                Endpoint endpoint = transport switch
+                {
+                    "tcp" => $"ice+tcp://[::1]:{port}",
+                    "ssl" => $"ice+tcp://[::1]:{port}",
+                    "udp" => $"ice+udp://[::1]:{port}",
+                    "coloc" => $"ice+coloc://coloctest:{port}",
+                    _ => Server.DefaultSimpleServerTransport.DefaultEndpoint with { Port = (ushort)port }
+                };
+
+                // Set the endpoint protocol to the configured protocol.
+                if (endpoint.Transport == "udp")
+                {
+                    // UDP is only supported with Ice1
+                    endpoint = endpoint with { Protocol = Protocol.Ice1 };
+                }
+                else
+                {
+                    endpoint = endpoint with { Protocol = serviceProvider.GetRequiredService<Protocol>() };
+                }
+
+                // For tcp or ssl, set the "tls" parameter to true if authentication options are configured, to false
+                // otherwise.
+                if (endpoint.Transport == "tcp" || endpoint.Transport == "ssl")
+                {
+                    // If server authentication options are set, use TLS
+                    bool tls = serviceProvider.GetService<SslServerAuthenticationOptions>() != null;
+                    if (endpoint.Protocol != Protocol.Ice1)
+                    {
+                        endpoint = endpoint with
+                        {
+                            Params = ImmutableList.Create(new EndpointParam("tls", tls.ToString().ToLowerInvariant()))
+                        };
+                    }
+                }
+
+                return endpoint;
+            });
     }
 }

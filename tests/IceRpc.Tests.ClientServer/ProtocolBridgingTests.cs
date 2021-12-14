@@ -38,15 +38,13 @@ namespace IceRpc.Tests.ClientServer
                 // Use the same colocated transport instance to ensure we can invoke on the proxy returned by
                 // the forwarder.
                 var colocTransport = new ColocTransport();
-                targetServiceCollection.AddTransient<Endpoint>(_ => "ice+coloc://target");
-                forwarderServiceCollection.AddTransient<Endpoint>(_ => "ice+coloc://forwarder");
-                targetServiceCollection.AddTransient(_ => colocTransport);
-                forwarderServiceCollection.AddTransient(_ => colocTransport);
+                targetServiceCollection.UseColoc(colocTransport, port: 1);
+                forwarderServiceCollection.UseColoc(colocTransport, port: 2);
             }
             else
             {
-                targetServiceCollection.UseTcp();
-                forwarderServiceCollection.UseTcp();
+                targetServiceCollection.UseTransport("tcp");
+                forwarderServiceCollection.UseTransport("tcp");
             }
 
             targetServiceCollection.AddTransient<IInvoker>(serviceProvider =>

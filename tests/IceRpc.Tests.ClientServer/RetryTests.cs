@@ -434,7 +434,7 @@ namespace IceRpc.Tests.ClientServer
         public async Task Retry_RetryBufferMaxSize()
         {
             await using ServiceProvider serviceProvider = new RetryIntegrationTestServiceCollection()
-                .UseTcp()
+                .UseTransport("tcp")
                 .AddTransient(_ => new RetryOptions { MaxAttempts = 5, BufferMaxSize = 2048 })
                 .BuildServiceProvider();
             RetryTest service = serviceProvider.GetRequiredService<RetryTest>();

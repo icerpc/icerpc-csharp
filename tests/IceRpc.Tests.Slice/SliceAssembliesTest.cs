@@ -61,8 +61,6 @@ namespace IceRpc.Tests.Slice
         [Test]
         public async Task SliceAssemblies_AssembliesMiddlewareAsync()
         {
-            Endpoint endpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(ProtocolCode.Ice1));
-
             {
                 await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                     .UseProtocol(ProtocolCode.Ice1)

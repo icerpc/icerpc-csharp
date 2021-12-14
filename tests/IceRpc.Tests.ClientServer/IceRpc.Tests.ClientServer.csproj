@@ -10,8 +10,7 @@
 
   <ItemGroup>
     <Compile Include="..\Shared\IntegrationTestServiceCollection.cs" Link="IntegrationTestServiceCollection.cs" />
-    <Compile Include="..\Shared\NetworkConnectionTestServiceCollection.cs" Link="NetworkConnectionTestServiceCollection.cs" />
-    <Compile Include="..\Shared\TestHelper.cs" Link="TestHelper.cs" />
+    <Compile Include="..\Shared\TransportServiceCollection.cs" Link="TransportServiceCollection.cs" />
     <Compile Include="..\Shared\LogAttribute.cs" Link="LogAttribute.cs" />
     <Compile Update="generated\RetryTests.cs">
       <SliceCompileSource>RetryTests.ice</SliceCompileSource>

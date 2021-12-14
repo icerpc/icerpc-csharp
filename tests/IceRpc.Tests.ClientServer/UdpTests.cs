@@ -16,7 +16,7 @@ namespace IceRpc.Tests.ClientServer
         {
             var source = new TaskCompletionSource<string>();
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-                .AddTransient<Endpoint>(_ => "ice+udp://[::0]:0")
+                .UseTransport("udp")
                 .AddTransient<IDispatcher>(_ => new InlineDispatcher((request, cancel) =>
                     {
                         source.TrySetResult(request.Operation);
@@ -55,7 +55,7 @@ namespace IceRpc.Tests.ClientServer
         public async Task Udp_ConnectSuccess()
         {
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-                .AddTransient<Endpoint>(_ => "ice+udp://[::0]:0")
+                .UseTransport("udp")
                 .BuildServiceProvider();
             await serviceProvider.GetRequiredService<Connection>().ConnectAsync();
         }

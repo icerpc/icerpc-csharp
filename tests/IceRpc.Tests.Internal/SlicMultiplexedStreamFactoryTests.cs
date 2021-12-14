@@ -9,7 +9,7 @@ namespace IceRpc.Tests.Internal
     [Timeout(5000)]
     public class SlicMultiplexedNetworkConnectionTests
     {
-        [TestCase]
+        [Test]
         public async Task SlicMultiplexedNetworkConnectionTests_Options()
         {
             var clientOptions = new SlicOptions

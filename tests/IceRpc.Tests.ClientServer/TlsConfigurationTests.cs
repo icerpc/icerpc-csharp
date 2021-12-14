@@ -373,7 +373,7 @@ namespace IceRpc.Tests.ClientServer
                     "localhost" => System.OperatingSystem.IsWindows() ? "[::1]" : "127.0.0.1",
                     _ => hostname
                 };
-                this.UseTcp();
+                this.UseTransport("tcp");
                 this.UseVoidDispatcher();
                 this.AddTransient<Endpoint>(_ => $"ice+tcp://{serverHost}:0");
             }

@@ -11,15 +11,17 @@ namespace IceRpc.Tests.Internal
 {
     // Test the multi-stream interface.
     [Timeout(5000)]
+    [Parallelizable(ParallelScope.All)]
+    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public class MultiplexedNetworkConnectionTests
     {
-        private readonly ServiceProvider _serviceProvider;
-        private readonly IMultiplexedNetworkConnection _serverConnection;
         private readonly IMultiplexedNetworkConnection _clientConnection;
+        private readonly IMultiplexedNetworkConnection _serverConnection;
+        private readonly ServiceProvider _serviceProvider;
 
         public MultiplexedNetworkConnectionTests()
         {
-            _serviceProvider = new NetworkConnectionTestServiceCollection()
+            _serviceProvider = new InternalTestServiceCollection()
                 .AddTransient(_ => new SlicOptions()
                     {
                         BidirectionalStreamMaxCount = 15,
@@ -32,7 +34,7 @@ namespace IceRpc.Tests.Internal
             _serverConnection = serverTask.Result;
         }
 
-        [OneTimeTearDown]
+        [TearDown]
         public async ValueTask DisposeAsync()
         {
             await _clientConnection.DisposeAsync();

@@ -5,10 +5,10 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests.ClientServer
 {
-    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    [TestFixture(ProtocolCode.Ice1, "ice+tcp://[::0]")]
-    [TestFixture(ProtocolCode.Ice2, "ice+tcp://[::0]")]
+    [TestFixture(ProtocolCode.Ice1)]
+    [TestFixture(ProtocolCode.Ice2)]
     [Parallelizable(ParallelScope.All)]
+    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Timeout(5000)]
     public class StressTests
     {
@@ -16,11 +16,11 @@ namespace IceRpc.Tests.ClientServer
         private readonly StressTest _service = new();
         private readonly IStressTestPrx _prx;
 
-        public StressTests(ProtocolCode protocol, string endpoint)
+        public StressTests(ProtocolCode protocol)
         {
             _serviceProvider = new IntegrationTestServiceCollection()
-                .AddTransient<Endpoint>(_ => endpoint)
                 .AddTransient<IDispatcher>(_ => _service)
+                .UseTransport("tcp")
                 .UseProtocol(protocol)
                 .AddTransient(_ => new Configure.ConnectionOptions { IncomingFrameMaxSize = 2048 * 1024 })
                 .BuildServiceProvider();
