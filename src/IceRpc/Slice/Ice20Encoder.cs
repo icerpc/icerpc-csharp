@@ -54,10 +54,10 @@ namespace IceRpc.Slice
             EncodeAction<IceEncoder, T> encodeAction)
         {
             EncodeVarInt(tag); // the key
-            Span<byte> sizePlaceHolder = GetPlaceHolderSpan(4);
-            int startPos = EncodedBytes;
+            Span<byte> sizePlaceholder = GetPlaceholderSpan(4);
+            int startPos = EncodedByteCount;
             encodeAction(this, v);
-            EncodeSize(EncodedBytes - startPos, sizePlaceHolder);
+            EncodeSize(EncodedByteCount - startPos, sizePlaceholder);
         }
 
         /// <inheritdoc/>
@@ -70,9 +70,9 @@ namespace IceRpc.Slice
         {
             EncodeVarInt(tag); // the key
             EncodeSize(size);
-            int startPos = EncodedBytes;
+            int startPos = EncodedByteCount;
             encodeAction(this, v);
-            int actualSize = EncodedBytes - startPos;
+            int actualSize = EncodedByteCount - startPos;
             if (actualSize != size)
             {
                 throw new ArgumentException($"value of size ({size}) does not match encoded size ({actualSize})",
@@ -111,10 +111,10 @@ namespace IceRpc.Slice
         internal void EncodeField<T>(int key, T value, EncodeAction<Ice20Encoder, T> encodeAction)
         {
             EncodeVarInt(key);
-            Span<byte> sizePlaceHolder = GetPlaceHolderSpan(2);
-            int startPos = EncodedBytes;
+            Span<byte> sizePlaceholder = GetPlaceholderSpan(2);
+            int startPos = EncodedByteCount;
             encodeAction(this, value);
-            EncodeSize(EncodedBytes - startPos, sizePlaceHolder);
+            EncodeSize(EncodedByteCount - startPos, sizePlaceholder);
         }
 
         internal override void EncodeFixedLengthSize(int size, Span<byte> into) => EncodeSize(size, into);

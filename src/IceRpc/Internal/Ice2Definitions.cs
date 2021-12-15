@@ -23,7 +23,7 @@ namespace IceRpc.Internal
             // can be larger than necessary, which is fine
             int sizeLength = Ice20Encoder.GetSizeLength(fieldsDefaults.Count + (fields?.Count ?? 0));
 
-            Span<byte> countPlaceHolder = encoder.GetPlaceHolderSpan(sizeLength);
+            Span<byte> countPlaceholder = encoder.GetPlaceholderSpan(sizeLength);
 
             int count = 0; // the number of fields
 
@@ -34,10 +34,10 @@ namespace IceRpc.Internal
                 foreach ((int key, Action<IceEncoder> action) in fields)
                 {
                     encoder.EncodeVarInt(key);
-                    Span<byte> sizePlaceHolder = encoder.GetPlaceHolderSpan(2);
-                    int startPos = encoder.EncodedBytes;
+                    Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
+                    int startPos = encoder.EncodedByteCount;
                     action(encoder);
-                    Ice20Encoder.EncodeSize(encoder.EncodedBytes - startPos, sizePlaceHolder);
+                    Ice20Encoder.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
                     count++;
                 }
             }
@@ -52,7 +52,7 @@ namespace IceRpc.Internal
                 }
             }
 
-            Ice20Encoder.EncodeSize(count, countPlaceHolder);
+            Ice20Encoder.EncodeSize(count, countPlaceholder);
         }
     }
 }

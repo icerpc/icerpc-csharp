@@ -388,7 +388,7 @@ namespace IceRpc.Internal
                 encoder.EncodeIce1FrameType(Ice1FrameType.Request);
                 encoder.EncodeByte(0); // compression status
 
-                Memory<byte> sizePlaceHolder = encoder.GetPlaceHolderMemory(4);
+                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
 
                 encoder.EncodeInt(requestId);
                 (byte encodingMajor, byte encodingMinor) = payloadEncoding.ToMajorMinor();
@@ -403,21 +403,11 @@ namespace IceRpc.Internal
                     encodingMinor);
                 requestHeader.Encode(encoder);
 
-                encoder.EncodeFixedLengthSize(encoder.EncodedBytes + payloadSize, sizePlaceHolder.Span);
+                encoder.EncodeFixedLengthSize(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
 
                 request.InitialPayloadSink.SetDecoratee(output);
 
-                CancellationToken sendCancellationToken = CancellationToken.None;
-
-                if (_isUdp)
-                {
-                    // Cancellation is ok with UDP since datagrams are independent of each others.
-                    sendCancellationToken = cancel;
-                    output.CompleteCancellationToken = cancel;
-                }
-                // else use CancellationToken.None
-
-                await SendPayloadAsync(request, output, sendCancellationToken).ConfigureAwait(false);
+                await SendPayloadAsync(request, output, cancel).ConfigureAwait(false);
                 request.IsSent = true;
             }
             catch (ObjectDisposedException exception)
@@ -500,7 +490,7 @@ namespace IceRpc.Internal
                         encoder.WriteByteSpan(Ice1Definitions.FramePrologue);
                         encoder.EncodeIce1FrameType(Ice1FrameType.Reply);
                         encoder.EncodeByte(0); // compression status
-                        Memory<byte> sizePlaceHolder = encoder.GetPlaceHolderMemory(4);
+                        Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
 
                         encoder.EncodeInt(requestId);
                         (byte encodingMajor, byte encodingMinor) = payloadEncoding.ToMajorMinor();
@@ -543,12 +533,12 @@ namespace IceRpc.Internal
                             responseHeader.Encode(encoder);
                         }
 
-                        encoder.EncodeFixedLengthSize(encoder.EncodedBytes + payloadSize, sizePlaceHolder.Span);
+                        encoder.EncodeFixedLengthSize(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
 
                         await SendPayloadAsync(
                             response,
-                            request.ResponseWriter,
-                            CancellationToken.None).ConfigureAwait(false);
+                            (AsyncCompletePipeWriter)request.ResponseWriter,
+                            cancel).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
@@ -721,9 +711,9 @@ namespace IceRpc.Internal
         }
 
         /// <summary>Sends the payload source of an outgoing frame.</summary>
-        private static async ValueTask SendPayloadAsync(
+        private async ValueTask SendPayloadAsync(
             OutgoingFrame outgoingFrame,
-            PipeWriter frameWriter,
+            AsyncCompletePipeWriter frameWriter,
             CancellationToken cancel)
         {
             if (outgoingFrame.PayloadSourceStream != null)
@@ -733,7 +723,27 @@ namespace IceRpc.Internal
                 throw new NotSupportedException("stream parameters and return values are not supported with ice1");
             }
 
-            // TODO: add CopyFrom optimization.
+            // We first fetch the full payload with the cancellation token.
+            while (true)
+            {
+                ReadResult readResult = await outgoingFrame.PayloadSource.ReadAsync(cancel).ConfigureAwait(false);
+
+                // Don't consume anything
+                outgoingFrame.PayloadSource.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+
+                // Keep going until we've read the full payload.
+                if (readResult.IsCompleted)
+                {
+                    break;
+                }
+            }
+
+            // Next we switch to CancellationToken.None unless we use UDP
+            if (!_isUdp)
+            {
+                cancel = CancellationToken.None;
+            }
+            frameWriter.CompleteCancellationToken = cancel;
 
             try
             {

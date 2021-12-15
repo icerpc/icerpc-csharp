@@ -229,12 +229,12 @@ namespace IceRpc.Slice
             if (tagFormat == TagFormat.FSize)
             {
                 EncodeTaggedParamHeader(tag, tagFormat);
-                Span<byte> placeHolder = GetPlaceHolderSpan(4);
-                int startPos = EncodedBytes;
+                Span<byte> placeHolder = GetPlaceholderSpan(4);
+                int startPos = EncodedByteCount;
                 encodeAction(this, v);
 
                 // We don't include the size-length in the size we encode.
-                EncodeFixedLengthSize(EncodedBytes - startPos, placeHolder);
+                EncodeFixedLengthSize(EncodedByteCount - startPos, placeHolder);
             }
             else
             {
@@ -283,9 +283,9 @@ namespace IceRpc.Slice
                 EncodeSize(size);
             }
 
-            int startPos = EncodedBytes;
+            int startPos = EncodedByteCount;
             encodeAction(this, v);
-            int actualSize = EncodedBytes - startPos;
+            int actualSize = EncodedByteCount - startPos;
             if (actualSize != size)
             {
                 throw new ArgumentException($"value of size ({size}) does not match encoded size ({actualSize})",
@@ -318,7 +318,7 @@ namespace IceRpc.Slice
             if ((_current.SliceFlags & SliceFlags.HasSliceSize) != 0)
             {
                 // Size includes the size length.
-                EncodeFixedLengthSize(EncodedBytes - _current.SliceSizeStartPos, _current.SliceSizePlaceHolder.Span);
+                EncodeFixedLengthSize(EncodedByteCount - _current.SliceSizeStartPos, _current.SliceSizePlaceholder.Span);
             }
 
             if (_current.IndirectionTable?.Count > 0)
@@ -336,7 +336,7 @@ namespace IceRpc.Slice
             }
 
             // Update SliceFlags in case they were updated.
-            _current.SliceFlagsPlaceHolder.Span[0] = (byte)_current.SliceFlags;
+            _current.SliceFlagsPlaceholder.Span[0] = (byte)_current.SliceFlags;
         }
 
         /// <summary>Marks the start of the encoding of a class or remote exception slice.</summary>
@@ -348,15 +348,15 @@ namespace IceRpc.Slice
             Debug.Assert(_current.InstanceType != InstanceType.None);
 
             _current.SliceFlags = default;
-            _current.SliceFlagsPlaceHolder = GetPlaceHolderMemory(1);
+            _current.SliceFlagsPlaceholder = GetPlaceholderMemory(1);
 
             if (_classFormat == FormatType.Sliced)
             {
                 EncodeTypeId(typeId, compactId);
                 // Encode the slice size if using the sliced format.
                 _current.SliceFlags |= SliceFlags.HasSliceSize;
-                _current.SliceSizeStartPos = EncodedBytes; // size includes size-length
-                _current.SliceSizePlaceHolder = GetPlaceHolderMemory(4);
+                _current.SliceSizeStartPos = EncodedByteCount; // size includes size-length
+                _current.SliceSizePlaceholder = GetPlaceholderMemory(4);
             }
             else if (_current.FirstSlice)
             {
@@ -479,8 +479,8 @@ namespace IceRpc.Slice
 
                 this.EncodeTransportCode(transportCode);
 
-                int startPos = EncodedBytes; // size includes size-length
-                Span<byte> sizePlaceHolder = GetPlaceHolderSpan(4); // encapsulation size
+                int startPos = EncodedByteCount; // size includes size-length
+                Span<byte> sizePlaceholder = GetPlaceholderSpan(4); // encapsulation size
                 EncodeByte(1); // encoding version major
                 EncodeByte(1); // encoding version minor
 
@@ -512,7 +512,7 @@ namespace IceRpc.Slice
                         break;
                 }
 
-                EncodeFixedLengthSize(EncodedBytes - startPos, sizePlaceHolder);
+                EncodeFixedLengthSize(EncodedByteCount - startPos, sizePlaceholder);
             }
         }
 
@@ -660,12 +660,12 @@ namespace IceRpc.Slice
             internal SliceFlags SliceFlags;
 
             // The slice flags byte.
-            internal Memory<byte> SliceFlagsPlaceHolder;
+            internal Memory<byte> SliceFlagsPlaceholder;
 
             // The place holder for the Slice size. Used only for the sliced format.
-            internal Memory<byte> SliceSizePlaceHolder;
+            internal Memory<byte> SliceSizePlaceholder;
 
-            // The starting position for computing the size of the slice. It's just before the SliceSizePlaceHolder as
+            // The starting position for computing the size of the slice. It's just before the SliceSizePlaceholder as
             // the size includes the size length.
             internal int SliceSizeStartPos;
         }

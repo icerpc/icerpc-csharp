@@ -316,8 +316,8 @@ namespace IceRpc.Internal
                 var encoder = new Ice20Encoder(requestWriter);
 
                 // Write the Ice2 request header.
-                Memory<byte> sizePlaceHolder = encoder.GetPlaceHolderMemory(2);
-                int headerStartPos = encoder.EncodedBytes; // does not include the size
+                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
+                int headerStartPos = encoder.EncodedByteCount; // does not include the size
 
                 // DateTime.MaxValue represents an infinite deadline and it is encoded as -1
                 long deadline = request.Deadline == DateTime.MaxValue ? -1 :
@@ -350,7 +350,7 @@ namespace IceRpc.Internal
                 encoder.EncodeFields(request.Fields, request.FieldsDefaults);
 
                 // We're done with the header encoding, write the header size.
-                Ice20Encoder.EncodeSize(encoder.EncodedBytes - headerStartPos, sizePlaceHolder.Span);
+                Ice20Encoder.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
 
                 await SendPayloadAsync(request, requestWriter, cancel).ConfigureAwait(false);
                 request.IsSent = true;
@@ -390,8 +390,8 @@ namespace IceRpc.Internal
                 var encoder = new Ice20Encoder(responseWriter);
 
                 // Write the Ice2 response header.
-                Memory<byte> sizePlaceHolder = encoder.GetPlaceHolderMemory(2);
-                int headerStartPos = encoder.EncodedBytes;
+                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
+                int headerStartPos = encoder.EncodedByteCount;
 
                 new Ice2ResponseHeader(
                     response.ResultType,
@@ -401,7 +401,7 @@ namespace IceRpc.Internal
                 encoder.EncodeFields(response.Fields, response.FieldsDefaults);
 
                 // We're done with the header encoding, write the header size.
-                Ice20Encoder.EncodeSize(encoder.EncodedBytes - headerStartPos, sizePlaceHolder.Span);
+                Ice20Encoder.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
 
                 await SendPayloadAsync(response, responseWriter, cancel).ConfigureAwait(false);
             }
@@ -615,10 +615,10 @@ namespace IceRpc.Internal
 
             var encoder = new Ice20Encoder(bufferWriter);
             encoder.EncodeByte((byte)frameType);
-            Memory<byte> sizePlaceHolder = encoder.GetPlaceHolderMemory(4); // TODO: reduce bytes
-            int startPos = encoder.EncodedBytes; // does not include the size
+            Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4); // TODO: reduce bytes
+            int startPos = encoder.EncodedByteCount; // does not include the size
             frameEncodeAction?.Invoke(encoder);
-            Ice20Encoder.EncodeSize(encoder.EncodedBytes - startPos, sizePlaceHolder.Span);
+            Ice20Encoder.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
 
             buffer = bufferWriter.WrittenBuffer;
 

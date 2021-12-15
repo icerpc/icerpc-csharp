@@ -17,10 +17,10 @@ namespace IceRpc.Slice
         internal const ulong VarULongMinValue = 0;
         internal const ulong VarULongMaxValue = 4_611_686_018_427_387_903; // 2^62 - 1
 
-        private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
-
         /// <summary>The number of bytes encoded by this encoder into the underlying buffer writer.</summary>
-        public int EncodedBytes { get; private set; }
+        internal int EncodedByteCount { get; private set; }
+
+        private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
 
         private readonly IBufferWriter<byte> _bufferWriter;
 
@@ -293,7 +293,12 @@ namespace IceRpc.Slice
 
         internal static void EncodeInt(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
 
-        internal Memory<byte> GetPlaceHolderMemory(int size)
+        /// <summary>Gets a placeholder to be filled-in later.</summary>
+        /// <param name="size">The size of the placeholder, typically a small number like 4.</param>
+        /// <returns>A buffer of length <paramref name="size"/>.</returns>
+        /// <remarks>We make the assumption to the underlying buffer writer allows rewriting memory it provided even
+        /// after successive calls to GetMemory/GetSpan and Advance.</remarks>
+        internal Memory<byte> GetPlaceholderMemory(int size)
         {
             Debug.Assert(size > 0);
             Memory<byte> placeHolder = _bufferWriter.GetMemory(size)[0..size];
@@ -301,7 +306,12 @@ namespace IceRpc.Slice
             return placeHolder;
         }
 
-        internal Span<byte> GetPlaceHolderSpan(int size)
+        /// <summary>Gets a placeholder to be filled-in later.</summary>
+        /// <param name="size">The size of the placeholder, typically a small number like 4.</param>
+        /// <returns>A buffer of length <paramref name="size"/>.</returns>
+        /// <remarks>We make the assumption to the underlying buffer writer allows rewriting memory it provided even
+        /// after successive calls to GetMemory/GetSpan and Advance.</remarks>
+        internal Span<byte> GetPlaceholderSpan(int size)
         {
             Debug.Assert(size > 0);
             Span<byte> placeHolder = _bufferWriter.GetSpan(size)[0..size];
@@ -309,10 +319,11 @@ namespace IceRpc.Slice
             return placeHolder;
         }
 
+        /// <summary>Copies a span of bytes to the buffer writer.</summary>
         internal void WriteByteSpan(ReadOnlySpan<byte> span)
         {
             _bufferWriter.Write(span);
-            EncodedBytes += span.Length;
+            EncodedByteCount += span.Length;
         }
 
         // Constructs a Ice encoder
@@ -321,7 +332,7 @@ namespace IceRpc.Slice
         private protected void Advance(int count)
         {
             _bufferWriter.Advance(count);
-            EncodedBytes += count;
+            EncodedByteCount += count;
         }
 
         internal abstract void EncodeFixedLengthSize(int size, Span<byte> into);

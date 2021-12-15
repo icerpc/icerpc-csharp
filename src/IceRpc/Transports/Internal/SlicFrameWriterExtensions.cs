@@ -75,8 +75,8 @@ namespace IceRpc.Transports.Internal
 
             var encoder = new Ice20Encoder(pipe.Writer);
             encoder.EncodeByte((byte)type);
-            Memory<byte> sizePlaceHolder = encoder.GetPlaceHolderMemory(4);
-            int startPos = encoder.EncodedBytes;
+            Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
+            int startPos = encoder.EncodedByteCount;
 
             if (stream != null)
             {
@@ -86,7 +86,7 @@ namespace IceRpc.Transports.Internal
             {
                 encode?.Invoke(encoder);
             }
-            Ice20Encoder.EncodeSize(encoder.EncodedBytes - startPos, sizePlaceHolder.Span);
+            Ice20Encoder.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
 
             // TODO: all this copying is naturally temporary
             await pipe.Writer.CompleteAsync().ConfigureAwait(false);

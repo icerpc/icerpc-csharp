@@ -7,7 +7,8 @@ namespace IceRpc.Internal
 {
     /// <summary>Implements the buffering methods of a PipeWriter using a lazily created Pipe.</summary>
     /// <remarks>This class could derive directly from PipeWriter: it does not use or implement the property and
-    /// method of AsyncCompletePipeWriter.</remarks>
+    /// method of AsyncCompletePipeWriter, and would derive directly from PipeWriter if classes supported multiple
+    /// inheritance.</remarks>
     internal abstract class BufferedPipeWriter : AsyncCompletePipeWriter
     {
         public override bool CanGetUnflushedBytes => PipeWriter.CanGetUnflushedBytes;

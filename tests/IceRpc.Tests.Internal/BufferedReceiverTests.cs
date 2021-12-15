@@ -71,7 +71,6 @@ namespace IceRpc.Tests.Internal
         [TestCase(200, 100)]
         public async ValueTask BufferedReceiver_ReceiveSizeAsync(int receiveSize, int bufferSize)
         {
-            // TODO: I wish I knew what receiveSize and bufferSize means in this test
             Memory<byte> sourceBuffer = new byte[4096];
             var bufferWriter = new SingleBufferWriter(sourceBuffer);
             var encoder = new Ice20Encoder(bufferWriter);
