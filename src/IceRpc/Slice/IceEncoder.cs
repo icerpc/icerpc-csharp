@@ -27,6 +27,8 @@ namespace IceRpc.Slice
 
         private readonly IBufferWriter<byte> _bufferWriter;
 
+        private System.Text.Encoder? _utf8Encoder; // initialized lazily
+
         // Encode methods for basic types
 
         /// <summary>Encodes a boolean.</summary>
@@ -84,21 +86,21 @@ namespace IceRpc.Slice
 
                 if (maxSize <= currentSpan.Length)
                 {
-                    // We can encode it directly in currentSpan
+                    // Encode directly into currentSpan
                     int size = _utf8.GetBytes(v, currentSpan);
                     Encoding.EncodeSize(size, sizePlaceholder);
                     Advance(size);
                 }
                 else
                 {
-                    // Encode piecemeal with an Encoder
-                    ReadOnlySpan<char> chars = v.AsSpan();
-                    System.Text.Encoder encoder = _utf8.GetEncoder();
+                    // Encode piecemeal using _utf8Encoder
+                    _utf8Encoder ??= _utf8.GetEncoder();
                     int size = 0;
+                    ReadOnlySpan<char> chars = v.AsSpan();
 
                     while (true)
                     {
-                        encoder.Convert(
+                        _utf8Encoder.Convert(
                             chars,
                             currentSpan,
                             flush: chars.IsEmpty,
@@ -111,6 +113,7 @@ namespace IceRpc.Slice
 
                         if (completed)
                         {
+                            _utf8Encoder.Reset();
                             Encoding.EncodeSize(size, sizePlaceholder);
                             break;
                         }
