@@ -101,7 +101,7 @@ namespace IceRpc.Slice
                         encoder.Convert(
                             chars,
                             currentSpan,
-                            flush: false,
+                            flush: chars.IsEmpty,
                             out int charsUsed,
                             out int bytesUsed,
                             out bool completed);
