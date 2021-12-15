@@ -78,8 +78,9 @@ namespace IceRpc.Slice
             }
             else
             {
-                // A UTF-16 character can be encoded on up to 3 UTF-8 bytes, so each span must be at least 3 bytes long.
-                const int minSpanSize = 3;
+                // A Unicode character can be encoded on up to 4 UTF-8 bytes, so each span must be at least 4 bytes
+                // long.
+                const int minSpanSize = 4;
 
                 int maxSize = _utf8.GetMaxByteCount(v.Length);
                 int sizeLength = GetSizeLength(maxSize);
