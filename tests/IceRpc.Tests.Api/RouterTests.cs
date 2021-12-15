@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Api
@@ -9,7 +10,7 @@ namespace IceRpc.Tests.Api
     [Timeout(30000)]
     [Parallelizable(scope: ParallelScope.All)]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    public sealed class RouterTests : IAsyncDisposable
+    public sealed class RouterTests
     {
         private static readonly IDispatcher _failDispatcher = new InlineDispatcher(
                 async (current, cancel) =>
@@ -21,21 +22,19 @@ namespace IceRpc.Tests.Api
         private static readonly IDispatcher _service = new Greeter();
 
         private readonly Connection _connection;
-
         private readonly Router _router = new();
-        private readonly Server _server;
+        private readonly ServiceProvider _serviceProvider;
 
         public RouterTests()
         {
-            _server = new Server
-            {
-                Dispatcher = _router,
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-            _server.Listen();
-
-            _connection = new Connection { RemoteEndpoint = _server.Endpoint };
+            _serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<IDispatcher>(_ => _router)
+                .BuildServiceProvider();
+            _connection = _serviceProvider.GetRequiredService<Connection>();
         }
+
+        [TearDown]
+        public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
 
         [Test]
         public void Router_BadPath()
@@ -228,13 +227,6 @@ namespace IceRpc.Tests.Api
             await BaseCPrx.FromConnection(_connection).IcePingAsync();
             await DerivedCPrx.FromConnection(_connection).IcePingAsync();
             await MostDerivedCPrx.FromConnection(_connection).IcePingAsync();
-        }
-
-        [TearDown]
-        public async ValueTask DisposeAsync()
-        {
-            await _server.DisposeAsync();
-            await _connection.DisposeAsync();
         }
 
         public class Greeter : Service, IGreeter

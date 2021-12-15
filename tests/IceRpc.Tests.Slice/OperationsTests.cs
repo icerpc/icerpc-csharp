@@ -1,48 +1,33 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice
 {
-    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
     [TestFixture(ProtocolCode.Ice1)]
     [TestFixture(ProtocolCode.Ice2)]
     public sealed class OperationsTests : IAsyncDisposable
     {
-        private readonly Connection _connection;
-        private readonly Server _server;
+        private readonly ServiceProvider _serviceProvider;
         private readonly OperationsPrx _prx;
         private readonly DerivedOperationsPrx _derivedPrx;
 
-        // TODO: in this Slice test, the protocol code is used to select the encoding of the payload. We should instead
-        // use the ice2 protocol all the time and pass a parameter for the encoding.
         public OperationsTests(ProtocolCode protocol)
         {
-            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
-            _server = new Server
-            {
-                Dispatcher = new Operations(),
-                Endpoint = serverEndpoint
-            };
-            _server.Listen();
-            _connection = new Connection
-            {
-                RemoteEndpoint = serverEndpoint
-            };
-            _prx = OperationsPrx.FromConnection(_connection);
+            _serviceProvider = new IntegrationTestServiceCollection()
+                .UseProtocol(protocol)
+                .AddTransient<IDispatcher, Operations>()
+                .BuildServiceProvider();
+
+            _prx = OperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
             _derivedPrx = new DerivedOperationsPrx(_prx.Proxy);
-
-            Assert.AreEqual(protocol, _prx.Proxy.Protocol.Code);
         }
 
-        [TearDown]
-        public async ValueTask DisposeAsync()
-        {
-            await _server.DisposeAsync();
-            await _connection.DisposeAsync();
-        }
+        [OneTimeTearDown]
+        public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
 
         [Test]
         public async Task Operations_BuiltinTypesAsync()
@@ -112,18 +97,10 @@ namespace IceRpc.Tests.Slice
         [Test]
         public async Task Operations_OperationNotFoundExceptionAsync()
         {
-            Endpoint endpoint = TestHelper.GetUniqueColocEndpoint();
-            await using var server = new Server
-            {
-                Dispatcher = new NoOperations(),
-                Endpoint = endpoint
-            };
-            server.Listen();
-            await using var connection = new Connection
-            {
-                RemoteEndpoint = endpoint
-            };
-            var prx = OperationsPrx.FromConnection(connection);
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<IDispatcher, NoOperations>()
+                .BuildServiceProvider();
+            var prx = OperationsPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
             Assert.ThrowsAsync<OperationNotFoundException>(async () => await prx.OpBoolAsync(true, false));
         }
 

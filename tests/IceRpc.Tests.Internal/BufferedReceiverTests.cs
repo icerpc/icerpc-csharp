@@ -10,7 +10,7 @@ namespace IceRpc.Tests.Internal
     [Parallelizable(scope: ParallelScope.All)]
     public class BufferedReceiverTests
     {
-        [TestCase]
+        [Test]
         public void BufferedReceiver_Dispose()
         {
             var receiver = new BufferedReceiver((Memory<byte> buffer, CancellationToken cancel) => default, 256);

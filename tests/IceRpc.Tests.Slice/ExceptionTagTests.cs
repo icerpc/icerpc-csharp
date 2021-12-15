@@ -2,41 +2,37 @@
 
 using IceRpc.Configure;
 using IceRpc.Slice;
-
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice
 {
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    public sealed class ExceptionTagTests : IAsyncDisposable
+    [TestFixture("1.1")]
+    [TestFixture("2.0")]
+    public sealed class ExceptionTagTests
     {
-        private readonly Connection _connection;
-        private readonly Server _server;
+        private readonly ServiceProvider _serviceProvider;
+        private readonly Proxy _prx;
 
-        public ExceptionTagTests()
+        public ExceptionTagTests(string encoding)
         {
-            _server = new Server
-            {
-                Dispatcher = new ExceptionTag(),
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-            _server.Listen();
-            _connection = new Connection { RemoteEndpoint = _server.Endpoint };
+            _serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<IDispatcher, ExceptionTag>()
+                .BuildServiceProvider();
+
+            _prx = ExceptionTagPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>()).Proxy;
+            _prx.Encoding = Encoding.FromString(encoding);
         }
 
         [OneTimeTearDown]
-        public async ValueTask DisposeAsync()
-        {
-            await _server.DisposeAsync();
-            await _connection.DisposeAsync();
-        }
+        public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
 
-        [TestCase("1.1")]
-        [TestCase("2.0")]
-        public void ExceptionTag_Minus(string encoding)
+        [Test]
+        public void ExceptionTag_Minus()
         {
-            ExceptionTagPrx prx = GetPrx(encoding);
+            var prx = new ExceptionTagPrx(_prx.Clone());
 
             // We decode TaggedException as a TaggedExceptionMinus using a custom activator
             var pipeline = new Pipeline();
@@ -71,11 +67,10 @@ namespace IceRpc.Tests.Slice
             Assert.AreEqual(ts, ex.MStruct.Value);
         }
 
-        [TestCase("1.1")]
-        [TestCase("2.0")]
-        public void ExceptionTag_Plus(string encoding)
+        [Test]
+        public void ExceptionTag_Plus()
         {
-            ExceptionTagPrx prx = GetPrx(encoding);
+            var prx = new ExceptionTagPrx(_prx.Clone());
 
             // We decode TaggedException as a TaggedExceptionPlus using a custom activator and get a null MFloat
             var pipeline = new Pipeline();
@@ -113,11 +108,10 @@ namespace IceRpc.Tests.Slice
             Assert.AreEqual(ts, ex.MStruct.Value);
         }
 
-        [TestCase("1.1")]
-        [TestCase("2.0")]
-        public void ExceptionTag_Throw(string encoding)
+        [Test]
+        public void ExceptionTag_Throw()
         {
-            ExceptionTagPrx prx = GetPrx(encoding);
+            var prx = new ExceptionTagPrx(_prx.Clone());
 
             var ts = new TaggedExceptionStruct("bar", null);
 
@@ -161,13 +155,6 @@ namespace IceRpc.Tests.Slice
                 Assert.That(ex.MStruct, Is.Not.Null);
                 Assert.AreEqual(ts, ex.MStruct.Value);
             }
-        }
-
-        private ExceptionTagPrx GetPrx(string encoding)
-        {
-            var prx = ExceptionTagPrx.FromConnection(_connection);
-            prx.Proxy.Encoding = Encoding.FromString(encoding);
-            return prx;
         }
 
         private class ActivatorMinus11 : IActivator<Ice11Decoder>

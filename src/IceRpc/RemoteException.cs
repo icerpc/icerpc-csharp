@@ -126,7 +126,7 @@ namespace IceRpc
                 {
                     var sb = new StringBuilder("could not find service '");
                     sb.Append(Origin.Path);
-                    sb.Append(" while attempting to dispatch operation '");
+                    sb.Append("' while attempting to dispatch operation '");
                     sb.Append(Origin.Operation);
                     sb.Append('\'');
                     return sb.ToString();

@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Net.Security;
 using System.Security.Authentication;
@@ -8,10 +9,9 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Tests.ClientServer
 {
-    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(ParallelScope.All)]
     [Timeout(30000)]
-    public class TlsConfigurationTests : ClientServerBaseTest
+    public class TlsConfigurationTests
     {
         [TestCase("c_rsa_ca1.p12", "s_rsa_ca1.p12", "cacert1.der")]
         [TestCase("cacert2.p12", "cacert2.p12", "cacert2.der")] // Using self-signed certs
@@ -20,8 +20,8 @@ namespace IceRpc.Tests.ClientServer
             string serverCertFile,
             string caFile)
         {
-            await using Server server = CreateServer(
-                tlsServerOptions: new()
+            await using ServiceProvider serviceProvider = new TlsIntegrationTestServiceCollection()
+                .AddTransient(_ => new SslServerAuthenticationOptions()
                 {
                     ServerCertificate = new X509Certificate2(GetCertificatePath(serverCertFile), "password"),
                     RemoteCertificateValidationCallback = CertificateValidaton.GetClientCertificateValidationCallback(
@@ -31,33 +31,24 @@ namespace IceRpc.Tests.ClientServer
                             new X509Certificate2(GetCertificatePath(caFile))
                         }),
                     ClientCertificateRequired = true,
-                });
-
-            await using var connection = new Connection
-            {
-                MultiplexedClientTransport = new SlicClientTransport(new TcpClientTransport(
-                    new TcpClientOptions
+                })
+                .AddTransient(_ => new SslClientAuthenticationOptions()
+                {
+                    ClientCertificates = new X509Certificate2Collection
                     {
-                        AuthenticationOptions = new()
+                        new X509Certificate2(GetCertificatePath(clientCertFile), "password")
+                    },
+                    RemoteCertificateValidationCallback = CertificateValidaton.GetServerCertificateValidationCallback(
+                        certificateAuthorities: new X509Certificate2Collection
                         {
-                            ClientCertificates = new X509Certificate2Collection
-                                {
-                                    new X509Certificate2(GetCertificatePath(clientCertFile), "password")
-                                },
-                            RemoteCertificateValidationCallback =
-                                CertificateValidaton.GetServerCertificateValidationCallback(
-                                    certificateAuthorities: new X509Certificate2Collection
-                                    {
-                                        new X509Certificate2(GetCertificatePath(caFile))
-                                    })
-                        }
-                    })),
-                RemoteEndpoint = server.Endpoint
-            };
-            var prx = ServicePrx.FromConnection(connection);
+                            new X509Certificate2(GetCertificatePath(caFile))
+                        })
+                })
+                .BuildServiceProvider();
 
+            ServicePrx prx = serviceProvider.GetProxy<ServicePrx>();
             Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-            Assert.That(connection.IsSecure, Is.True);
+            Assert.That(prx.Proxy.Connection!.IsSecure, Is.True);
         }
 
         [TestCase("c_rsa_ca1.p12", "s_rsa_ca1.p12")]
@@ -69,8 +60,9 @@ namespace IceRpc.Tests.ClientServer
         {
             bool clientValidationCallbackCalled = false;
             bool serverValidationCallbackCalled = false;
-            await using Server server = CreateServer(
-                tlsServerOptions: new()
+
+            await using ServiceProvider serviceProvider = new TlsIntegrationTestServiceCollection()
+                .AddTransient(_ => new SslServerAuthenticationOptions()
                 {
                     ServerCertificate = new X509Certificate2(GetCertificatePath(serverCertFile), "password"),
                     RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
@@ -79,32 +71,24 @@ namespace IceRpc.Tests.ClientServer
                         return true;
                     },
                     ClientCertificateRequired = true,
-                });
-
-            await using var connection = new Connection
-            {
-                MultiplexedClientTransport = new SlicClientTransport(new TcpClientTransport(
-                    new TcpClientOptions
+                })
+                .AddTransient(_ => new SslClientAuthenticationOptions()
+                {
+                    ClientCertificates = new X509Certificate2Collection
                     {
-                        AuthenticationOptions = new()
-                        {
-                            ClientCertificates = new X509Certificate2Collection
-                            {
-                                new X509Certificate2(GetCertificatePath(clientCertFile), "password")
-                            },
-                            RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
-                            {
-                                clientValidationCallbackCalled = true;
-                                return true;
-                            }
-                        }
-                    })),
-                RemoteEndpoint = server.Endpoint
-            };
-            var prx = ServicePrx.FromConnection(connection);
+                        new X509Certificate2(GetCertificatePath(clientCertFile), "password")
+                    },
+                    RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
+                    {
+                        clientValidationCallbackCalled = true;
+                        return true;
+                    }
+                })
+                .BuildServiceProvider();
 
+            ServicePrx prx = serviceProvider.GetProxy<ServicePrx>();
             Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-            Assert.That(connection.IsSecure, Is.True);
+            Assert.That(prx.Proxy.Connection!.IsSecure, Is.True);
             Assert.That(clientValidationCallbackCalled, Is.True);
             Assert.That(serverValidationCallbackCalled, Is.True);
         }
@@ -112,11 +96,11 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task TlsConfiguration_With_CertificateSelectionCallback()
         {
-            var cert0 = new X509Certificate2(GetCertificatePath("c_rsa_ca1.p12"), "password");
-            var cert1 = new X509Certificate2(GetCertificatePath("c_rsa_ca2.p12"), "password");
+            using var cert0 = new X509Certificate2(GetCertificatePath("c_rsa_ca1.p12"), "password");
+            using var cert1 = new X509Certificate2(GetCertificatePath("c_rsa_ca2.p12"), "password");
 
-            await using Server server = CreateServer(
-                tlsServerOptions: new()
+            await using ServiceProvider serviceProvider = new TlsIntegrationTestServiceCollection()
+                .AddTransient(_ => new SslServerAuthenticationOptions()
                 {
                     ServerCertificate = new X509Certificate2(GetCertificatePath("s_rsa_ca1.p12"), "password"),
                     RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
@@ -125,42 +109,33 @@ namespace IceRpc.Tests.ClientServer
                         return certificate!.GetCertHash().SequenceEqual(cert0.GetCertHash());
                     },
                     ClientCertificateRequired = true,
-                });
-
-            await using var connection = new Connection
-            {
-                MultiplexedClientTransport = new SlicClientTransport(new TcpClientTransport(
-                    new TcpClientOptions
+                })
+                .AddTransient(_ => new SslClientAuthenticationOptions()
+                {
+                    ClientCertificates = new X509Certificate2Collection
                     {
-                        AuthenticationOptions = new()
+                        cert0,
+                        cert1
+                    },
+                    LocalCertificateSelectionCallback =
+                        (sender, targetHost, certs, remoteCertificate, acceptableIssuers) =>
                         {
-                            ClientCertificates = new X509Certificate2Collection
-                            {
-                                cert0,
-                                cert1
-                            },
-                            LocalCertificateSelectionCallback =
-                                (sender, targetHost, certs, remoteCertificate, acceptableIssuers) =>
-                                {
-                                    Assert.AreEqual(2, certs.Count);
-                                    Assert.AreEqual(cert0, certs[0]);
-                                    Assert.AreEqual(cert1, certs[1]);
-                                    return certs[0];
-                                },
-                            RemoteCertificateValidationCallback =
-                                CertificateValidaton.GetServerCertificateValidationCallback(
-                                    certificateAuthorities: new X509Certificate2Collection
-                                    {
-                                        new X509Certificate2(GetCertificatePath("cacert1.der"))
-                                    }),
-                        }
-                    })),
-                RemoteEndpoint = server.Endpoint
-            };
-            var prx = ServicePrx.FromConnection(connection);
+                            Assert.AreEqual(2, certs.Count);
+                            Assert.AreEqual(cert0, certs[0]);
+                            Assert.AreEqual(cert1, certs[1]);
+                            return certs[0];
+                        },
+                    RemoteCertificateValidationCallback = CertificateValidaton.GetServerCertificateValidationCallback(
+                        certificateAuthorities: new X509Certificate2Collection
+                        {
+                            new X509Certificate2(GetCertificatePath("cacert1.der"))
+                        }),
+                })
+                .BuildServiceProvider();
 
+            ServicePrx prx = serviceProvider.GetProxy<ServicePrx>();
             Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-            Assert.That(connection.IsSecure, Is.True);
+            Assert.That(prx.Proxy.Connection!.IsSecure, Is.True);
         }
 
         // The client doesn't have a CA certificate to verify the server
@@ -171,32 +146,25 @@ namespace IceRpc.Tests.ClientServer
         [TestCase("s_rsa_ca1_exp.p12", "cacert1.der")]
         public async Task TlsConfiguration_Fail_WithUntrustedServer(string serverCertFile, string caFile)
         {
-            SslClientAuthenticationOptions? tlsClientOptions = null;
-            if (caFile.Length != 0)
+            IServiceCollection serviceCollection = new TlsIntegrationTestServiceCollection()
+                .AddTransient(_ => new SslServerAuthenticationOptions()
+                {
+                    ServerCertificate = new X509Certificate2(GetCertificatePath(serverCertFile), "password")
+                });
+            if (caFile.Length > 0)
             {
-                tlsClientOptions = new()
+                serviceCollection.AddTransient(_ => new SslClientAuthenticationOptions()
                 {
                     RemoteCertificateValidationCallback = CertificateValidaton.GetServerCertificateValidationCallback(
                         certificateAuthorities: new X509Certificate2Collection
                         {
                             new X509Certificate2(GetCertificatePath(caFile))
                         })
-                };
-            }
-
-            await using Server server = CreateServer(
-                tlsServerOptions: new()
-                {
-                    ServerCertificate = new X509Certificate2(GetCertificatePath(serverCertFile), "password")
                 });
+            }
+            await using ServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
 
-            await using var connection = new Connection
-            {
-                MultiplexedClientTransport = new SlicClientTransport(new TcpClientTransport()),
-                RemoteEndpoint = server.Endpoint
-            };
-            var prx = ServicePrx.FromConnection(connection);
-
+            ServicePrx prx = serviceProvider.GetProxy<ServicePrx>();
             Assert.ThrowsAsync<AuthenticationException>(async () => await prx.IcePingAsync());
         }
 
@@ -244,14 +212,11 @@ namespace IceRpc.Tests.ClientServer
                         });
             }
 
-            await using Server server = CreateServer(tlsServerOptions);
-            await using var connection = new Connection
-            {
-                MultiplexedClientTransport = new SlicClientTransport(
-                    new TcpClientTransport(new TcpClientOptions { AuthenticationOptions = tlsClientOptions })),
-                RemoteEndpoint = server.Endpoint
-            };
-            var prx = ServicePrx.FromConnection(connection);
+            await using ServiceProvider serviceProvider = new TlsIntegrationTestServiceCollection()
+                .AddTransient(_ => tlsServerOptions)
+                .AddTransient(_ => tlsClientOptions)
+                .BuildServiceProvider();
+            ServicePrx prx = serviceProvider.GetProxy<ServicePrx>();
 
             Assert.ThrowsAsync<ConnectionLostException>(async () => await prx.IcePingAsync());
         }
@@ -281,37 +246,50 @@ namespace IceRpc.Tests.ClientServer
             string targetHost,
             OperatingSystem mustSucceed)
         {
-            await using Server server = CreateServer(
-                targetHost,
-                tlsServerOptions: new()
+            string serverHost = targetHost switch
+            {
+                "localhost" => System.OperatingSystem.IsWindows() ? "[::1]" : "127.0.0.1",
+                _ => $"[{targetHost}]"
+            };
+
+            string clientHost = targetHost switch
+            {
+                "localhost" => targetHost,
+                _ => $"[{targetHost}]"
+            };
+
+            await using ServiceProvider serviceProvider = new TlsIntegrationTestServiceCollection(serverHost)
+                .AddTransient<Endpoint>(_ => $"ice+tcp://{serverHost}:0")
+                .AddTransient(_ => new SslServerAuthenticationOptions()
                 {
                     ServerCertificate = new X509Certificate2(GetCertificatePath(serverCertFile), "password")
-                });
-
-            await using var connection = new Connection
-            {
-                MultiplexedClientTransport = new SlicClientTransport(new TcpClientTransport(
-                    new TcpClientOptions
+                })
+                .AddTransient(_ => new SslClientAuthenticationOptions()
+                {
+                    RemoteCertificateValidationCallback =
+                        CertificateValidaton.GetServerCertificateValidationCallback(
+                            certificateAuthorities: new X509Certificate2Collection
+                            {
+                                new X509Certificate2(GetCertificatePath("cacert1.der"))
+                            })
+                })
+                .AddTransient<Connection>(serviceProvider =>
+                {
+                    Server server = serviceProvider.GetRequiredService<Server>();
+                    return new Connection
                     {
-                        AuthenticationOptions = new()
-                        {
-                            RemoteCertificateValidationCallback =
-                                CertificateValidaton.GetServerCertificateValidationCallback(
-                                    certificateAuthorities: new X509Certificate2Collection
-                                    {
-                                        new X509Certificate2(GetCertificatePath("cacert1.der"))
-                                    })
-                        }
-                    })),
-                RemoteEndpoint =
-                    $"ice+tcp://{TestHelper.EscapeIPv6Address(targetHost, server.Protocol)}:{server.Endpoint.Port}"
-            };
-            var prx = ServicePrx.FromConnection(connection);
+                        MultiplexedClientTransport =
+                            serviceProvider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
+                        RemoteEndpoint = $"ice+tcp://{clientHost}:{server.Endpoint.Port}"
+                    };
+                })
+                .BuildServiceProvider();
 
+            ServicePrx prx = serviceProvider.GetProxy<ServicePrx>();
             if ((GetOperatingSystem() & mustSucceed) != 0)
             {
                 Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-                Assert.That(connection.IsSecure, Is.True);
+                Assert.That(prx.Proxy.Connection!.IsSecure, Is.True);
             }
             else
             {
@@ -326,35 +304,25 @@ namespace IceRpc.Tests.ClientServer
             Justification = "Test code")]
         public async Task TlsConfiguration_With_CommonProtocol()
         {
-            await using Server server = CreateServer(
-                tlsServerOptions: new()
+            await using ServiceProvider serviceProvider = new TlsIntegrationTestServiceCollection()
+                .AddTransient(_ => new SslServerAuthenticationOptions()
                 {
                     ServerCertificate = new X509Certificate2(GetCertificatePath("s_rsa_ca1.p12"), "password"),
                     EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13
-                });
-
-            await using var connection = new Connection
-            {
-                MultiplexedClientTransport = new SlicClientTransport(new TcpClientTransport(
-                    new TcpClientOptions
-                    {
-                        AuthenticationOptions = new()
+                })
+                .AddTransient(_ => new SslClientAuthenticationOptions()
+                {
+                    RemoteCertificateValidationCallback = CertificateValidaton.GetServerCertificateValidationCallback(
+                        certificateAuthorities: new X509Certificate2Collection
                         {
-                            RemoteCertificateValidationCallback =
-                                CertificateValidaton.GetServerCertificateValidationCallback(
-                                    certificateAuthorities: new X509Certificate2Collection
-                                    {
-                                        new X509Certificate2(GetCertificatePath("cacert1.der"))
-                                    }),
-                            EnabledSslProtocols = SslProtocols.Tls12
-                        }
-                    })),
-                RemoteEndpoint = server.Endpoint
-            };
-            var prx = ServicePrx.FromConnection(connection);
+                            new X509Certificate2(GetCertificatePath("cacert1.der"))
+                        }),
+                    EnabledSslProtocols = SslProtocols.Tls12
+                })
+                .BuildServiceProvider();
 
+            ServicePrx prx = serviceProvider.GetProxy<ServicePrx>();
             Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-
             Assert.That(prx.Proxy.Connection!.IsSecure, Is.True);
             Assert.That(prx.Proxy.Connection!.NetworkConnectionInformation?.RemoteCertificate, Is.Not.Null);
         }
@@ -371,73 +339,44 @@ namespace IceRpc.Tests.ClientServer
         public async Task TlsConfiguration_Fail_NoCommonProtocol()
         {
             // This should throw the client and the server doesn't enable a common protocol.
-            await using Server server = CreateServer(
-                tlsServerOptions: new SslServerAuthenticationOptions()
+            await using ServiceProvider serviceProvider = new TlsIntegrationTestServiceCollection()
+                .AddTransient(_ => new SslServerAuthenticationOptions()
                 {
                     ServerCertificate = new X509Certificate2(GetCertificatePath("s_rsa_ca1.p12"), "password"),
                     EnabledSslProtocols = SslProtocols.Tls11
-                });
-
-            await using var connection = new Connection
-            {
-                MultiplexedClientTransport = new SlicClientTransport(new TcpClientTransport(
-                    new TcpClientOptions
-                    {
-                        AuthenticationOptions = new()
+                })
+                .AddTransient(_ => new SslClientAuthenticationOptions()
+                {
+                    RemoteCertificateValidationCallback = CertificateValidaton.GetServerCertificateValidationCallback(
+                        certificateAuthorities: new X509Certificate2Collection
                         {
-                            RemoteCertificateValidationCallback =
-                                CertificateValidaton.GetServerCertificateValidationCallback(
-                                    certificateAuthorities: new X509Certificate2Collection
-                                    {
-                                        new X509Certificate2(GetCertificatePath("cacert1.der"))
-                                    }),
-                            EnabledSslProtocols = SslProtocols.Tls12
-                        }
-                    })),
-                RemoteEndpoint = server.Endpoint
-            };
-            var prx = ServicePrx.FromConnection(connection);
+                            new X509Certificate2(GetCertificatePath("cacert1.der"))
+                        }),
+                    EnabledSslProtocols = SslProtocols.Tls12
+                })
+                .BuildServiceProvider();
 
+            ServicePrx prx = serviceProvider.GetProxy<ServicePrx>();
             Assert.ThrowsAsync<AuthenticationException>(async () => await prx.IcePingAsync());
         }
 
-        private static string GetCertificatesDir() =>
-           Path.Combine(Environment.CurrentDirectory, "certs");
-
         private static string GetCertificatePath(string file) =>
-            Path.Combine(GetCertificatesDir(), file);
+            Path.Combine(Environment.CurrentDirectory, "certs", file);
 
-        private Server CreateServer(SslServerAuthenticationOptions tlsServerOptions) =>
-            CreateServer(null, tlsServerOptions);
-
-        private Server CreateServer(string? hostname, SslServerAuthenticationOptions tlsServerOptions)
+        private class TlsIntegrationTestServiceCollection : IntegrationTestServiceCollection
         {
-            string serverHost = hostname switch
+            internal TlsIntegrationTestServiceCollection(string? hostname = null)
             {
-                null => "::1",
-                "localhost" => System.OperatingSystem.IsWindows() ? "::1" : "127.0.0.1",
-                _ => hostname
-            };
-
-            var server = new Server
-            {
-                Dispatcher = new Greeter(),
-                Endpoint = GetTestEndpoint(serverHost, tls: true),
-                MultiplexedServerTransport =
-                    new SlicServerTransport(new TcpServerTransport(new TcpServerOptions
-                    {
-                        AuthenticationOptions = tlsServerOptions
-                    }))
-            };
-
-            server.Listen();
-
-            return server;
-        }
-
-        internal class Greeter : Service, IGreeter
-        {
-            public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
+                string serverHost = hostname switch
+                {
+                    null => "[::1]",
+                    "localhost" => System.OperatingSystem.IsWindows() ? "[::1]" : "127.0.0.1",
+                    _ => hostname
+                };
+                this.UseTransport("tcp");
+                this.UseVoidDispatcher();
+                this.AddTransient<Endpoint>(_ => $"ice+tcp://{serverHost}:0");
+            }
         }
 
         [Flags]

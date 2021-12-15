@@ -2,7 +2,9 @@
 
 using IceRpc.Configure;
 using IceRpc.Internal;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
@@ -20,193 +22,209 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task Logging_RetryInterceptor()
         {
-            await WithConnectionAndLoggerFactory(async (connection, loggerFactory) =>
-            {
-                var policy = RetryPolicy.AfterDelay(TimeSpan.FromTicks(1));
-                OutgoingRequest request = CreateOutgoingRequest(connection, twoway: true);
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<ILoggerFactory>(_ => NullLoggerFactory.Instance)
+                .BuildServiceProvider();
+            Connection connection = serviceProvider.GetRequiredService<Connection>();
+            await connection.ConnectAsync();
 
-                var pipeline = new Pipeline();
-                pipeline.UseRetry(new RetryOptions { MaxAttempts = 3, LoggerFactory = loggerFactory });
-                pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
-                    {
-                        IncomingResponse response = await next.InvokeAsync(request, cancel);
-                        response.Features = response.Features.With(policy);
-                        return response;
-                    }));
+            var policy = RetryPolicy.AfterDelay(TimeSpan.FromTicks(1));
+            OutgoingRequest request = CreateOutgoingRequest(connection, twoway: true);
 
-                await pipeline.InvokeAsync(request, default);
+            using var loggerFactory = new TestLoggerFactory();
+            var pipeline = new Pipeline();
+            pipeline.UseRetry(new RetryOptions { MaxAttempts = 3, LoggerFactory = loggerFactory });
+            pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
+                {
+                    IncomingResponse response = await next.InvokeAsync(request, cancel);
+                    response.Features = response.Features.With(policy);
+                    return response;
+                }));
 
-                Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc"));
-                Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(2));
-                TestLoggerEntry entry = loggerFactory.Logger!.Entries[0];
-                CheckRequestEntry(
-                    entry,
-                    (int)RetryInterceptorEventIds.RetryRequest,
-                    LogLevel.Debug, // TODO: Should use Information instead?
-                    "retrying request because of retryable exception",
-                    request.Path,
-                    request.Operation,
-                    connection.NetworkConnectionInformation?.LocalEndpoint!,
-                    connection.NetworkConnectionInformation?.RemoteEndpoint!,
-                    exception: null);
+            await pipeline.InvokeAsync(request, default);
 
-                Assert.That(entry.State["RetryPolicy"], Is.EqualTo(policy));
-                Assert.That(entry.State["Attempt"], Is.EqualTo(2));
-                Assert.That(entry.State["MaxAttempts"], Is.EqualTo(3));
+            Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc"));
+            Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(2));
+            TestLoggerEntry entry = loggerFactory.Logger!.Entries[0];
+            CheckRequestEntry(
+                entry,
+                (int)RetryInterceptorEventIds.RetryRequest,
+                LogLevel.Information,
+                "retrying request because of retryable exception",
+                request.Path,
+                request.Operation,
+                connection.NetworkConnectionInformation?.LocalEndpoint!,
+                connection.NetworkConnectionInformation?.RemoteEndpoint!,
+                exception: null);
 
-                entry = loggerFactory.Logger!.Entries[1];
-                Assert.That(entry.State["Attempt"], Is.EqualTo(3));
-            });
+            Assert.That(entry.State["RetryPolicy"], Is.EqualTo(policy));
+            Assert.That(entry.State["Attempt"], Is.EqualTo(2));
+            Assert.That(entry.State["MaxAttempts"], Is.EqualTo(3));
+
+            entry = loggerFactory.Logger!.Entries[1];
+            Assert.That(entry.State["Attempt"], Is.EqualTo(3));
         }
 
         [TestCase(false)]
         [TestCase(true)]
         public async Task Logging_RequestInterceptor(bool twoway)
         {
-            await WithConnectionAndLoggerFactory(async (connection, loggerFactory) =>
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<ILoggerFactory>(_ => NullLoggerFactory.Instance)
+                .BuildServiceProvider();
+            Connection connection = serviceProvider.GetRequiredService<Connection>();
+            await connection.ConnectAsync();
+
+            OutgoingRequest request = CreateOutgoingRequest(connection, twoway);
+            IncomingResponse response = CreateIncomingResponse();
+
+            var pipeline = new Pipeline();
+            using var loggerFactory = new TestLoggerFactory();
+            pipeline.UseLogger(loggerFactory);
+            pipeline.Use(next => new InlineInvoker((request, cancel) => Task.FromResult(response)));
+
+            Assert.That(await pipeline.InvokeAsync(request, default), Is.EqualTo(response));
+
+            Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc"));
+            Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(twoway ? 2 : 1));
+
+            CheckRequestEntry(loggerFactory.Logger!.Entries[0],
+                              (int)LoggerInterceptorEventIds.SendingRequest,
+                              LogLevel.Information,
+                              "sending request",
+                              request.Path,
+                              request.Operation,
+                              connection.NetworkConnectionInformation?.LocalEndpoint!,
+                              connection.NetworkConnectionInformation?.RemoteEndpoint!,
+                              request.PayloadEncoding);
+
+            if (twoway)
             {
-                OutgoingRequest request = CreateOutgoingRequest(connection, twoway);
-                IncomingResponse response = CreateIncomingResponse();
+                CheckRequestEntry(loggerFactory.Logger!.Entries[1],
+                                  (int)LoggerInterceptorEventIds.ReceivedResponse,
+                                  LogLevel.Information,
+                                  "received response",
+                                  request.Path,
+                                  request.Operation,
+                                  connection.NetworkConnectionInformation?.LocalEndpoint!,
+                                  connection.NetworkConnectionInformation?.RemoteEndpoint!,
+                                  response.PayloadEncoding);
 
-                var pipeline = new Pipeline();
-                pipeline.UseLogger(loggerFactory);
-                pipeline.Use(next => new InlineInvoker((request, cancel) => Task.FromResult(response)));
-
-                Assert.That(await pipeline.InvokeAsync(request, default), Is.EqualTo(response));
-
-                Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc"));
-                Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(twoway ? 2 : 1));
-
-                CheckRequestEntry(loggerFactory.Logger!.Entries[0],
-                                (int)LoggerInterceptorEventIds.SendingRequest,
-                                LogLevel.Information,
-                                "sending request",
-                                request.Path,
-                                request.Operation,
-                                connection.NetworkConnectionInformation?.LocalEndpoint!,
-                                connection.NetworkConnectionInformation?.RemoteEndpoint!,
-                                request.PayloadEncoding);
-
-                if (twoway)
-                {
-                    CheckRequestEntry(loggerFactory.Logger!.Entries[1],
-                                    (int)LoggerInterceptorEventIds.ReceivedResponse,
-                                    LogLevel.Information,
-                                    "received response",
-                                    request.Path,
-                                    request.Operation,
-                                    connection.NetworkConnectionInformation?.LocalEndpoint!,
-                                    connection.NetworkConnectionInformation?.RemoteEndpoint!,
-                                    response.PayloadEncoding);
-
-                    Assert.That(loggerFactory.Logger!.Entries[1].State["ResultType"], Is.EqualTo(response.ResultType));
-                }
-            });
+                Assert.That(loggerFactory.Logger!.Entries[1].State["ResultType"], Is.EqualTo(response.ResultType));
+            }
         }
 
         [Test]
         public async Task Logging_RequestInterceptor_Exception()
         {
-            await WithConnectionAndLoggerFactory((connection, loggerFactory) =>
-            {
-                OutgoingRequest request = CreateOutgoingRequest(connection, twoway: true);
-                var exception = new ArgumentException();
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<ILoggerFactory>(_ => NullLoggerFactory.Instance)
+                .BuildServiceProvider();
+            Connection connection = serviceProvider.GetRequiredService<Connection>();
+            await connection.ConnectAsync();
 
-                var pipeline = new Pipeline();
-                pipeline.UseLogger(loggerFactory);
-                pipeline.Use(next => new InlineInvoker((request, cancel) => throw exception));
+            OutgoingRequest request = CreateOutgoingRequest(connection, twoway: true);
+            var exception = new ArgumentException();
 
-                Assert.CatchAsync<ArgumentException>(async () => await pipeline.InvokeAsync(request, default));
+            var pipeline = new Pipeline();
+            using var loggerFactory = new TestLoggerFactory();
+            pipeline.UseLogger(loggerFactory);
+            pipeline.Use(next => new InlineInvoker((request, cancel) => throw exception));
 
-                Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(2));
+            Assert.CatchAsync<ArgumentException>(async () => await pipeline.InvokeAsync(request, default));
 
-                CheckRequestEntry(loggerFactory.Logger!.Entries[1],
-                                (int)LoggerInterceptorEventIds.InvokeException,
-                                LogLevel.Information,
-                                "request invocation exception",
-                                request.Path,
-                                request.Operation,
-                                connection.NetworkConnectionInformation?.LocalEndpoint!,
-                                connection.NetworkConnectionInformation?.RemoteEndpoint!,
-                                exception: exception);
+            Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(2));
 
-                return Task.CompletedTask;
-            });
+            CheckRequestEntry(loggerFactory.Logger!.Entries[1],
+                              (int)LoggerInterceptorEventIds.InvokeException,
+                              LogLevel.Information,
+                              "request invocation exception",
+                              request.Path,
+                              request.Operation,
+                              connection.NetworkConnectionInformation?.LocalEndpoint!,
+                              connection.NetworkConnectionInformation?.RemoteEndpoint!,
+                              exception: exception);
         }
 
         [TestCase(false)]
         [TestCase(true)]
         public async Task Logging_RequestMiddleware(bool twoway)
         {
-            await WithConnectionAndLoggerFactory(async (connection, loggerFactory) =>
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<ILoggerFactory>(_ => NullLoggerFactory.Instance)
+                .BuildServiceProvider();
+            Connection connection = serviceProvider.GetRequiredService<Connection>();
+            await connection.ConnectAsync();
+
+            IncomingRequest request = CreateIncomingRequest(connection, twoway);
+            OutgoingResponse response = CreateOutgoingResponse(request);
+
+            var router = new Router();
+            using var loggerFactory = new TestLoggerFactory();
+            router.UseLogger(loggerFactory);
+            router.Use(next => new InlineDispatcher((request, cancel) => new(response)));
+
+            Assert.That(await ((IDispatcher)router).DispatchAsync(request, default), Is.EqualTo(response));
+
+            Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc"));
+            Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(twoway ? 2 : 1));
+
+            CheckRequestEntry(loggerFactory.Logger!.Entries[0],
+                              (int)LoggerMiddlewareEventIds.ReceivedRequest,
+                              LogLevel.Information,
+                              "received request",
+                              request.Path,
+                              request.Operation,
+                              connection.NetworkConnectionInformation?.RemoteEndpoint!,
+                              connection.NetworkConnectionInformation?.LocalEndpoint!,
+                              request.PayloadEncoding);
+
+            if (twoway)
             {
-                IncomingRequest request = CreateIncomingRequest(connection, twoway);
-                OutgoingResponse response = CreateOutgoingResponse(request);
+                CheckRequestEntry(loggerFactory.Logger!.Entries[1],
+                                  (int)LoggerMiddlewareEventIds.SendingResponse,
+                                  LogLevel.Information,
+                                  "sending response",
+                                  request.Path,
+                                  request.Operation,
+                                  connection.NetworkConnectionInformation?.RemoteEndpoint!,
+                                  connection.NetworkConnectionInformation?.LocalEndpoint!,
+                                  response.PayloadEncoding);
 
-                var router = new Router();
-                router.UseLogger(loggerFactory);
-                router.Use(next => new InlineDispatcher((request, cancel) => new(response)));
-
-                Assert.That(await ((IDispatcher)router).DispatchAsync(request, default), Is.EqualTo(response));
-
-                Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc"));
-                Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(twoway ? 2 : 1));
-
-                CheckRequestEntry(loggerFactory.Logger!.Entries[0],
-                                (int)LoggerMiddlewareEventIds.ReceivedRequest,
-                                LogLevel.Information,
-                                "received request",
-                                request.Path,
-                                request.Operation,
-                                connection.NetworkConnectionInformation?.RemoteEndpoint!,
-                                connection.NetworkConnectionInformation?.LocalEndpoint!,
-                                request.PayloadEncoding);
-
-                if (twoway)
-                {
-                    CheckRequestEntry(loggerFactory.Logger!.Entries[1],
-                                    (int)LoggerMiddlewareEventIds.SendingResponse,
-                                    LogLevel.Information,
-                                    "sending response",
-                                    request.Path,
-                                    request.Operation,
-                                    connection.NetworkConnectionInformation?.RemoteEndpoint!,
-                                    connection.NetworkConnectionInformation?.LocalEndpoint!,
-                                    response.PayloadEncoding);
-
-                    Assert.That(loggerFactory.Logger!.Entries[1].State["ResultType"], Is.EqualTo(response.ResultType));
-                }
-            });
+                Assert.That(loggerFactory.Logger!.Entries[1].State["ResultType"], Is.EqualTo(response.ResultType));
+            }
         }
 
         [Test]
         public async Task Logging_RequestMiddleware_Exception()
         {
-            await WithConnectionAndLoggerFactory((connection, loggerFactory) =>
-            {
-                IncomingRequest request = CreateIncomingRequest(connection, twoway: true);
-                var exception = new ArgumentException();
-                var router = new Router();
-                router.UseLogger(loggerFactory);
-                router.Use(next => new InlineDispatcher((request, cancel) => throw exception));
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<ILoggerFactory>(_ => NullLoggerFactory.Instance)
+                .BuildServiceProvider();
+            Connection connection = serviceProvider.GetRequiredService<Connection>();
+            await connection.ConnectAsync();
 
-                Assert.CatchAsync<ArgumentException>(
-                    async () => await ((IDispatcher)router).DispatchAsync(request, default));
+            IncomingRequest request = CreateIncomingRequest(connection, twoway: true);
+            var exception = new ArgumentException();
+            var router = new Router();
+            using var loggerFactory = new TestLoggerFactory();
+            router.UseLogger(loggerFactory);
+            router.Use(next => new InlineDispatcher((request, cancel) => throw exception));
 
-                Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(2));
+            Assert.CatchAsync<ArgumentException>(
+                async () => await ((IDispatcher)router).DispatchAsync(request, default));
 
-                CheckRequestEntry(loggerFactory.Logger!.Entries[1],
-                                (int)LoggerMiddlewareEventIds.DispatchException,
-                                LogLevel.Information,
-                                "request dispatch exception",
-                                request.Path,
-                                request.Operation,
-                                connection.NetworkConnectionInformation?.RemoteEndpoint!,
-                                connection.NetworkConnectionInformation?.LocalEndpoint!,
-                                exception: exception);
+            Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(2));
 
-                return Task.CompletedTask;
-            });
+            CheckRequestEntry(loggerFactory.Logger!.Entries[1],
+                              (int)LoggerMiddlewareEventIds.DispatchException,
+                              LogLevel.Information,
+                              "request dispatch exception",
+                              request.Path,
+                              request.Operation,
+                              connection.NetworkConnectionInformation?.RemoteEndpoint!,
+                              connection.NetworkConnectionInformation?.LocalEndpoint!,
+                              exception: exception);
         }
 
         private static void CheckRequestEntry(
@@ -223,6 +241,8 @@ namespace IceRpc.Tests.Internal
         {
             Assert.That(entry.EventId.Id, Is.EqualTo(eventId));
             Assert.That(entry.LogLevel, Is.EqualTo(level));
+            Assert.That(localEndpoint, Is.Not.Null);
+            Assert.That(remoteEndpoint, Is.Not.Null);
             Assert.That(entry.State["LocalEndpoint"], Is.EqualTo(localEndpoint.ToString()));
             Assert.That(entry.State["RemoteEndpoint"], Is.EqualTo(remoteEndpoint.ToString()));
             Assert.That(entry.State["Path"], Is.EqualTo(path));
@@ -269,15 +289,5 @@ namespace IceRpc.Tests.Internal
             {
                 PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(new byte[10]))
             };
-
-        private static async Task WithConnectionAndLoggerFactory(Func<Connection, TestLoggerFactory, Task> testAsync)
-        {
-            using var loggerFactory = new TestLoggerFactory();
-            await using var server = new Server { Endpoint = TestHelper.GetUniqueColocEndpoint() };
-            server.Listen();
-            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
-            await connection.ConnectAsync();
-            await testAsync(connection, loggerFactory);
-        }
     }
 }

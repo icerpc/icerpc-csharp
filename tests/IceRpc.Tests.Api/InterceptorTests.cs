@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
@@ -9,24 +10,21 @@ namespace IceRpc.Tests.Api
 {
     [Timeout(5000)]
     [Parallelizable(scope: ParallelScope.All)]
-    public sealed class InterceptorTests : IAsyncDisposable
+    public sealed class InterceptorTests
     {
-        private readonly Connection _connection;
+        private readonly ServiceProvider _serviceProvider;
         private readonly InterceptorTestPrx _prx;
-        private readonly Server _server;
 
         public InterceptorTests()
         {
-            _server = new Server
-            {
-                Endpoint = TestHelper.GetUniqueColocEndpoint(),
-                Dispatcher = new InterceptorTest()
-            };
-            _server.Listen();
-
-            _connection = new Connection { RemoteEndpoint = _server.Endpoint };
-            _prx = InterceptorTestPrx.FromConnection(_connection);
+            _serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<IDispatcher, InterceptorTest>()
+                .BuildServiceProvider();
+            _prx = InterceptorTestPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
         }
+
+        [OneTimeTearDown]
+        public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
 
         /// <summary>Throwing an exception from an invocation interceptor aborts the invocation, and the caller
         /// receives the exception.</summary>
@@ -150,19 +148,13 @@ namespace IceRpc.Tests.Api
             CollectionAssert.AreEqual(ctx, new SortedDictionary<string, string> { ["foo"] = "bar" });
         }
 
-        [OneTimeTearDown]
-        public async ValueTask DisposeAsync()
-        {
-            await _server.DisposeAsync();
-            await _connection.DisposeAsync();
-        }
-
-        internal class InterceptorTest : Service, IInterceptorTest
+        public class InterceptorTest : Service, IInterceptorTest
         {
             public ValueTask<IEnumerable<KeyValuePair<string, string>>> OpContextAsync(
                 Dispatch dispatch,
                 CancellationToken cancel) =>
                 new(dispatch.Context);
+
             public ValueTask<int> OpIntAsync(int value, Dispatch dispatch, CancellationToken cancel) => new(value);
         }
     }

@@ -2,13 +2,16 @@
 
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using System.IO.Pipelines;
 
 namespace IceRpc.Transports
 {
     /// <summary>Implements <see cref="IClientTransport{ISimpleNetworkConnection}"/> for the coloc transport.</summary>
-    public class ColocClientTransport : IClientTransport<ISimpleNetworkConnection>
+    internal class ColocClientTransport : IClientTransport<ISimpleNetworkConnection>
     {
+        private readonly ConcurrentDictionary<Endpoint, ColocListener> _listeners;
+
         /// <inheritdoc/>
         ISimpleNetworkConnection IClientTransport<ISimpleNetworkConnection>.CreateConnection(
             Endpoint remoteEndpoint,
@@ -20,7 +23,7 @@ namespace IceRpc.Transports
                     $"unknown parameter '{remoteEndpoint.Params[0].Name}' in endpoint '{remoteEndpoint}'");
             }
 
-            if (ColocListener.TryGetValue(remoteEndpoint, out ColocListener? listener))
+            if (_listeners.TryGetValue(remoteEndpoint, out ColocListener? listener))
             {
                 (PipeReader reader, PipeWriter writer) = listener.NewClientConnection();
                 return new ColocNetworkConnection(remoteEndpoint, isServer: false, reader, writer);
@@ -30,5 +33,8 @@ namespace IceRpc.Transports
                 throw new ConnectionRefusedException();
             }
         }
+
+        internal ColocClientTransport(ConcurrentDictionary<Endpoint, ColocListener> listeners) =>
+            _listeners = listeners;
     }
 }

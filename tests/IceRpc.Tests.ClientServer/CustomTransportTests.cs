@@ -31,10 +31,10 @@ namespace IceRpc.Tests.ClientServer
 
     public class CustomServerTransport : IServerTransport<IMultiplexedNetworkConnection>
     {
+        public Endpoint DefaultEndpoint => "ice+custom://[::0]";
+
         private readonly IServerTransport<IMultiplexedNetworkConnection> _transport =
             new SlicServerTransport(new TcpServerTransport());
-
-        public Endpoint DefaultEndpoint => "ice+custom://[::0]";
 
         public IListener<IMultiplexedNetworkConnection> Listen(Endpoint endpoint, ILogger logger)
         {

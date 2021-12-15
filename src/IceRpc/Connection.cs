@@ -42,11 +42,11 @@ namespace IceRpc
     {
         /// <summary>The default value for <see cref="MultiplexedClientTransport"/>.</summary>
         public static IClientTransport<IMultiplexedNetworkConnection> DefaultMultiplexedClientTransport { get; } =
-            new CompositeMultiplexedClientTransport().UseSlicOverColoc().UseSlicOverTcp();
+            new CompositeMultiplexedClientTransport().UseSlicOverTcp();
 
         /// <summary>The default value for <see cref="SimpleClientTransport"/>.</summary>
         public static IClientTransport<ISimpleNetworkConnection> DefaultSimpleClientTransport { get; } =
-            new CompositeSimpleClientTransport().UseColoc().UseTcp().UseUdp();
+            new CompositeSimpleClientTransport().UseTcp().UseUdp();
 
         /// <summary>This event is raised when the connection is closed. The connection object is passed as the
         /// event sender argument. The event handler should not throw.</summary>

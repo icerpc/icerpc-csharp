@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
 using System.Collections.Immutable;
@@ -14,8 +15,7 @@ namespace IceRpc.Tests.Slice.Stream
     [Log(LogAttributeLevel.Debug)]
     public sealed class StreamParamTests : IAsyncDisposable
     {
-        private readonly Connection _connection;
-        private readonly Server _server;
+        private readonly ServiceProvider _serviceProvider;
         private readonly IStreamParamOperationsPrx _prx;
         private readonly ReadOnlySequence<byte> _sendBuffer;
         private readonly StreamParamOperations _servant;
@@ -28,26 +28,14 @@ namespace IceRpc.Tests.Slice.Stream
 
             _servant = new StreamParamOperations(_sendBuffer);
 
-            _server = new Server
-            {
-                Dispatcher = _servant,
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-
-            _server.Listen();
-            _connection = new Connection
-            {
-                RemoteEndpoint = _server.Endpoint,
-            };
-            _prx = StreamParamOperationsPrx.FromConnection(_connection);
+            _serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<IDispatcher>(_ => _servant)
+                .BuildServiceProvider();
+            _prx = StreamParamOperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
         }
 
         [TearDown]
-        public async ValueTask DisposeAsync()
-        {
-            await _server.DisposeAsync();
-            await _connection.DisposeAsync();
-        }
+        public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
 
         [Test]
         public async Task StreamParam_Byte()

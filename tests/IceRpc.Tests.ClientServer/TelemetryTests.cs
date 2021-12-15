@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Diagnostics;
 
@@ -12,54 +13,51 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Telemetry_InvocationActivityAsync()
         {
-            await using var server = new Server
-            {
-                Endpoint = TestHelper.GetUniqueColocEndpoint(),
-                Dispatcher = new Greeter()
-            };
-            server.Listen();
+            Activity? invocationActivity = null;
+            bool called = false;
+
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<IDispatcher, Greeter>()
+                .AddTransient<IInvoker>(_ =>
+                {
+                    var pipeline = new Pipeline();
+                    pipeline.UseTelemetry();
+                    pipeline.Use(next => new InlineInvoker((request, cancel) =>
+                    {
+                        called = true;
+                        invocationActivity = Activity.Current;
+                        return next.InvokeAsync(request, cancel);
+                    }));
+                    return pipeline;
+                })
+                .BuildServiceProvider();
 
             {
-                await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
-                var pipeline = new Pipeline();
-                // The invocation activity is only created if the logger is enabled or Activity.Current is set.
-                var prx = GreeterPrx.FromConnection(connection);
-                Activity? invocationActivity = null;
-                bool called = false;
-                pipeline.UseTelemetry();
-                pipeline.Use(next => new InlineInvoker((request, cancel) =>
-                {
-                    called = true;
-                    invocationActivity = Activity.Current;
-                    return next.InvokeAsync(request, cancel);
-                }));
-                prx.Proxy.Invoker = pipeline;
+                await using AsyncServiceScope scope = serviceProvider.CreateAsyncScope();
+                GreeterPrx prx = scope.ServiceProvider.GetProxy<GreeterPrx>();
                 await prx.IcePingAsync();
                 Assert.That(called, Is.True);
                 Assert.That(invocationActivity, Is.Null);
             }
 
+            invocationActivity = null;
+            called = false;
+
             {
+                await using AsyncServiceScope scope = serviceProvider.CreateAsyncScope();
+                GreeterPrx prx = scope.ServiceProvider.GetProxy<GreeterPrx>();
+
                 // Starting the test activity ensures that Activity.Current is not null which in turn will
                 // trigger the creation of the Invocation activity.
                 using var testActivity = new Activity("TestActivity");
                 testActivity.Start();
                 Assert.That(Activity.Current, Is.Not.Null);
 
-                Activity? invocationActivity = null;
-                await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
-                var pipeline = new Pipeline();
-                var prx = GreeterPrx.FromConnection(connection);
-                prx.Proxy.Invoker = pipeline;
-                pipeline.UseTelemetry();
-                pipeline.Use(next => new InlineInvoker((request, cancel) =>
-                {
-                    invocationActivity = Activity.Current;
-                    return next.InvokeAsync(request, cancel);
-                }));
                 await prx.IcePingAsync();
+
+                Assert.That(called, Is.True);
                 Assert.That(invocationActivity, Is.Not.Null);
-                Assert.AreEqual("/IceRpc.Tests.ClientServer.Greeter/ice_ping", invocationActivity.DisplayName);
+                Assert.AreEqual("/IceRpc.Tests.ClientServer.Greeter/ice_ping", invocationActivity!.DisplayName);
                 Assert.AreEqual(testActivity, invocationActivity.Parent);
                 Assert.AreEqual(testActivity, Activity.Current);
                 testActivity.Stop();
@@ -70,38 +68,32 @@ namespace IceRpc.Tests.ClientServer
         public async Task Telemetry_DispatchActivityAsync()
         {
             {
-                var router = new Router();
                 Activity? dispatchActivity = null;
                 bool called = false;
-                router.UseTelemetry();
-                router.Use(next => new InlineDispatcher(
-                    async (current, cancel) =>
+
+                await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                    .AddTransient<IDispatcher>(_ =>
                     {
-                        called = true;
-                        dispatchActivity = Activity.Current;
-                        return await next.DispatchAsync(current, cancel);
-                    }));
-                router.Map<IGreeter>(new Greeter());
+                        var router = new Router();
+                        router.UseTelemetry();
+                        router.Use(next => new InlineDispatcher(
+                            async (current, cancel) =>
+                            {
+                                called = true;
+                                dispatchActivity = Activity.Current;
+                                return await next.DispatchAsync(current, cancel);
+                            }));
+                        router.Map<IGreeter>(new Greeter());
+                        return router;
+                    })
+                    .BuildServiceProvider();
 
-                await using var server = new Server
-                {
-                    Endpoint = TestHelper.GetUniqueColocEndpoint(),
-                    Dispatcher = router
-                };
-                server.Listen();
-
-                // The dispatch activity is only created if the logger is enabled, Activity.Current is set or
-                // the server has an ActivitySource with listeners.
-                await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
-                var prx = GreeterPrx.FromConnection(connection);
-                await prx.IcePingAsync();
+                await serviceProvider.GetProxy<GreeterPrx>().IcePingAsync();
                 Assert.That(called, Is.True);
                 Assert.That(dispatchActivity, Is.Null);
-                await server.ShutdownAsync();
             }
 
             {
-                Activity? dispatchActivity = null;
                 using var activitySource = new ActivitySource("TracingTestActivitySource");
 
                 // Add a listener to ensure the ActivitySource creates a non null activity for the dispatch
@@ -121,30 +113,32 @@ namespace IceRpc.Tests.ClientServer
                 };
                 ActivitySource.AddActivityListener(listener);
 
-                var router = new Router();
-                // Now configure the CustomTracer with an ActivitySource to trigger the creation of the Dispatch activity.
-                router.UseTelemetry(new TelemetryOptions { ActivitySource = activitySource });
-                router.Use(next => new InlineDispatcher(
-                    async (current, cancel) =>
-                    {
-                        dispatchActivity = Activity.Current;
-                        return await next.DispatchAsync(current, cancel);
-                    }));
-                router.Map<IGreeter>(new Greeter());
+                Activity? dispatchActivity = null;
+                bool called = false;
 
-                await using var server = new Server
-                {
-                    Endpoint = TestHelper.GetUniqueColocEndpoint(),
-                    Dispatcher = router,
-                };
-                server.Listen();
-                await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
-                var prx = GreeterPrx.FromConnection(connection);
-                await prx.IcePingAsync();
+                await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                    .AddTransient<IDispatcher>(_ =>
+                    {
+                        var router = new Router();
+                        router.UseTelemetry(new TelemetryOptions { ActivitySource = activitySource });
+                        router.Use(next => new InlineDispatcher(
+                            async (current, cancel) =>
+                            {
+                                called = true;
+                                dispatchActivity = Activity.Current;
+                                return await next.DispatchAsync(current, cancel);
+                            }));
+                        router.Map<IGreeter>(new Greeter());
+                        return router;
+                    })
+                    .BuildServiceProvider();
+
+                await serviceProvider.GetProxy<GreeterPrx>().IcePingAsync();
                 // Await the server shutdown to ensure the dispatch has finish
-                await server.ShutdownAsync();
+                await serviceProvider.GetRequiredService<Server>().ShutdownAsync();
+                Assert.That(called, Is.True);
                 Assert.That(dispatchActivity, Is.Not.Null);
-                Assert.AreEqual("/IceRpc.Tests.ClientServer.Greeter/ice_ping", dispatchActivity.DisplayName);
+                Assert.AreEqual("/IceRpc.Tests.ClientServer.Greeter/ice_ping", dispatchActivity!.DisplayName);
                 // Wait to receive the dispatch activity stop event
                 Assert.That(await waitForStopSemaphore.WaitAsync(TimeSpan.FromSeconds(30)), Is.True);
                 CollectionAssert.AreEqual(dispatchStartedActivities, dispatchStoppedActivities);
@@ -178,26 +172,37 @@ namespace IceRpc.Tests.ClientServer
             };
             ActivitySource.AddActivityListener(listener);
 
-            var router = new Router();
-            router.UseTelemetry(new TelemetryOptions { ActivitySource = activitySource });
-            router.Use(next => new InlineDispatcher(
-                async (current, cancel) =>
-                {
-                    dispatchActivity = Activity.Current;
-                    return await next.DispatchAsync(current, cancel);
-                }));
-            router.Map<IGreeter>(new Greeter());
-
-            await using var server = new Server
-            {
-                Endpoint = TestHelper.GetTestEndpoint(),
-                Dispatcher = router
-            };
-
-            server.Listen();
-
-            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
-            var prx = GreeterPrx.FromConnection(connection);
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                    .AddTransient<IDispatcher>(_ =>
+                    {
+                        var router = new Router();
+                        router.UseTelemetry(new TelemetryOptions { ActivitySource = activitySource });
+                        router.Use(next => new InlineDispatcher(
+                            async (current, cancel) =>
+                            {
+                                dispatchActivity = Activity.Current;
+                                return await next.DispatchAsync(current, cancel);
+                            }));
+                        router.Map<IGreeter>(new Greeter());
+                        return router;
+                    })
+                    .AddTransient<IInvoker>(_ =>
+                    {
+                        var pipeline = new Pipeline();
+                        pipeline.UseTelemetry();
+                        pipeline.Use(next => new InlineInvoker((request, cancel) =>
+                        {
+                            invocationActivity = Activity.Current;
+                            // Add some entries to the baggage to ensure that it is correctly propagated
+                            // to the server activity.
+                            invocationActivity?.AddBaggage("Foo", "Bar");
+                            invocationActivity?.AddBaggage("Foo", "Baz");
+                            invocationActivity?.AddBaggage("TraceLevel", "Information");
+                            return next.InvokeAsync(request, cancel);
+                        }));
+                        return pipeline;
+                    })
+                    .BuildServiceProvider();
 
             // Starting the test activity ensures that Activity.Current is not null which in turn will
             // trigger the creation of the Invocation activity.
@@ -205,30 +210,15 @@ namespace IceRpc.Tests.ClientServer
             testActivity.Start();
             Assert.That(Activity.Current, Is.Not.Null);
 
-            var pipeline = new Pipeline();
-            pipeline.UseTelemetry();
-            pipeline.Use(next => new InlineInvoker((request, cancel) =>
-            {
-                invocationActivity = Activity.Current;
-                // Add some entries to the baggage to ensure that it is correctly propagated
-                // to the server activity.
-                invocationActivity?.AddBaggage("Foo", "Bar");
-                invocationActivity?.AddBaggage("Foo", "Baz");
-                invocationActivity?.AddBaggage("TraceLevel", "Information");
-                return next.InvokeAsync(request, cancel);
-            }));
-            prx.Proxy.Invoker = pipeline;
-            await prx.IcePingAsync();
+            await serviceProvider.GetProxy<GreeterPrx>().IcePingAsync();
             // Await the server shutdown to ensure the dispatch has finish
-            await server.ShutdownAsync();
+            await serviceProvider.GetRequiredService<Server>().ShutdownAsync();
             Assert.That(invocationActivity, Is.Not.Null);
-            Assert.AreEqual(testActivity, invocationActivity.Parent);
+            Assert.AreEqual(testActivity, invocationActivity!.Parent);
             Assert.That(dispatchActivity, Is.Not.Null);
-            Assert.AreEqual(invocationActivity.Id, dispatchActivity.ParentId);
+            Assert.AreEqual(invocationActivity.Id, dispatchActivity!.ParentId);
 
-            CollectionAssert.AreEqual(
-                invocationActivity.Baggage,
-                dispatchActivity.Baggage);
+            CollectionAssert.AreEqual(invocationActivity.Baggage, dispatchActivity.Baggage);
 
             Assert.AreEqual("Baz", dispatchActivity.GetBaggageItem("Foo"));
             Assert.AreEqual("Information", dispatchActivity.GetBaggageItem("TraceLevel"));

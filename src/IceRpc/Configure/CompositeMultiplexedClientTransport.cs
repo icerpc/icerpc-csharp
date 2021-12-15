@@ -14,22 +14,6 @@ namespace IceRpc.Configure
     /// </summary>
     public static class CompositeMultiplexedClientTransportExtensions
     {
-        /// <summary>Adds the Slic over Coloc client transport to this composite client transport.</summary>
-        /// <param name="clientTransport">The transport being configured.</param>
-        /// <returns>The transport being configured.</returns>
-        public static CompositeClientTransport<IMultiplexedNetworkConnection> UseSlicOverColoc(
-            this CompositeClientTransport<IMultiplexedNetworkConnection> clientTransport) =>
-            clientTransport.UseSlicOverColoc(new());
-
-        /// <summary>Adds the Slic over Coloc client transport to this composite client transport.</summary>
-        /// <param name="clientTransport">The transport being configured.</param>
-        /// <param name="options">The transport options.</param>
-        /// <returns>The transport being configured.</returns>
-        public static CompositeClientTransport<IMultiplexedNetworkConnection> UseSlicOverColoc(
-            this CompositeClientTransport<IMultiplexedNetworkConnection> clientTransport,
-            SlicOptions options) =>
-            clientTransport.Add(TransportNames.Coloc, new SlicClientTransport(new ColocClientTransport(), options));
-
         /// <summary>Adds the Slic over TCP client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
         /// <returns>The transport being configured.</returns>

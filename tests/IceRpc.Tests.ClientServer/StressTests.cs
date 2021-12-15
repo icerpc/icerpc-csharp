@@ -1,52 +1,34 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.ClientServer
 {
-    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    [TestFixture(ProtocolCode.Ice1, "tcp")]
-    [TestFixture(ProtocolCode.Ice2, "tcp")]
+    [TestFixture(ProtocolCode.Ice1)]
+    [TestFixture(ProtocolCode.Ice2)]
     [Parallelizable(ParallelScope.All)]
+    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Timeout(5000)]
-    public class StressTests : ClientServerBaseTest
+    public class StressTests
     {
-        private Connection Connection { get; }
-        private Server Server { get; }
-        private string Transport { get; }
-        private IStressTestPrx Prx { get; }
-        private StressTest Servant { get; }
+        private readonly ServiceProvider _serviceProvider;
+        private readonly StressTest _service = new();
+        private readonly IStressTestPrx _prx;
 
-        public StressTests(ProtocolCode protocol, string transport)
+        public StressTests(ProtocolCode protocol)
         {
-            Transport = transport;
-            Servant = new StressTest();
-            Endpoint serverEndpoint = GetTestEndpoint(
-                protocol: Protocol.FromProtocolCode(protocol),
-                transport: Transport);
-            Server = new Server
-            {
-                Dispatcher = Servant,
-                Endpoint = serverEndpoint,
-                LoggerFactory = LogAttributeLoggerFactory.Instance,
-                ConnectionOptions = new Configure.ConnectionOptions { IncomingFrameMaxSize = 2048 * 1024 }
-            };
-            Connection = new Connection
-            {
-                RemoteEndpoint = serverEndpoint,
-                LoggerFactory = LogAttributeLoggerFactory.Instance,
-                Options = new Configure.ConnectionOptions { IncomingFrameMaxSize = 2048 * 1024 }
-            };
-            Prx = StressTestPrx.FromConnection(Connection);
-            Server.Listen();
+            _serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<IDispatcher>(_ => _service)
+                .UseTransport("tcp")
+                .UseProtocol(protocol)
+                .AddTransient(_ => new Configure.ConnectionOptions { IncomingFrameMaxSize = 2048 * 1024 })
+                .BuildServiceProvider();
+            _prx = _serviceProvider.GetProxy<StressTestPrx>();
         }
 
         [TearDown]
-        public async Task DisposeAsync()
-        {
-            await Server.DisposeAsync();
-            await Connection.ShutdownAsync();
-        }
+        public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
 
         [TestCase(0)]
         [TestCase(1024)]
@@ -56,8 +38,8 @@ namespace IceRpc.Tests.ClientServer
         public async Task Stress_Send_ByteSeq(int size)
         {
             byte[] data = new byte[size];
-            await Prx.OpSendByteSeqAsync(data);
-            CollectionAssert.AreEqual(data, Servant.OpSendByteSeqData);
+            await _prx.OpSendByteSeqAsync(data);
+            CollectionAssert.AreEqual(data, _service.OpSendByteSeqData);
         }
 
         [TestCase(0)]
@@ -67,8 +49,8 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(1024 * 1024)]
         public async Task Stress_Receive_ByteSeq(int size)
         {
-            var data = await Prx.OpReceiveByteSeqAsync(size);
-            CollectionAssert.AreEqual(Servant.OpReceiveByteSeqData, data);
+            byte[] data = await _prx.OpReceiveByteSeqAsync(size);
+            CollectionAssert.AreEqual(_service.OpReceiveByteSeqData, data);
         }
 
         public class StressTest : Service, IStressTest

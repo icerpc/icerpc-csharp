@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Api
@@ -18,29 +19,24 @@ namespace IceRpc.Tests.Api
         {
             DateTime? dispatchDeadline = null;
             DateTime? invocationDeadline = null;
-
-            var router = new Router();
-            router.Use(next => new InlineDispatcher(
-                    async (current, cancel) =>
-                    {
-                        dispatchDeadline = current.Deadline;
-                        await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
-                        return await next.DispatchAsync(current, cancel);
-                    }));
-
-            router.Map<IGreeter>(new Greeter());
-
-            await using var server = new Server
-            {
-                Dispatcher = router,
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-            server.Listen();
-
-            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<IDispatcher>(_ =>
+                {
+                    var router = new Router();
+                    router.Use(next => new InlineDispatcher(
+                        async (current, cancel) =>
+                        {
+                            dispatchDeadline = current.Deadline;
+                            await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
+                            return await next.DispatchAsync(current, cancel);
+                        }));
+                    router.Map<IGreeter>(new Greeter());
+                    return router;
+                })
+                .BuildServiceProvider();
 
             var pipeline = new Pipeline();
-            var prx = ServicePrx.FromConnection(connection, invoker: pipeline);
+            var prx = ServicePrx.FromConnection(serviceProvider.GetRequiredService<Connection>(), invoker: pipeline);
 
             pipeline.Use(next => new InlineInvoker((request, cancel) =>
             {
@@ -70,27 +66,22 @@ namespace IceRpc.Tests.Api
         {
             DateTime? dispatchDeadline = null;
             DateTime? invocationDeadline = null;
-
-            var router = new Router();
-            router.Use(next => new InlineDispatcher(
-                    async (current, cancel) =>
-                    {
-                        Assert.That(cancel.CanBeCanceled, Is.True);
-                        dispatchDeadline = current.Deadline;
-                        await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
-                        return await next.DispatchAsync(current, cancel);
-                    }));
-
-            router.Map<IGreeter>(new Greeter());
-
-            await using var server = new Server
-            {
-                Dispatcher = router,
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-            server.Listen();
-
-            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<IDispatcher>(_ =>
+                {
+                    var router = new Router();
+                    router.Use(next => new InlineDispatcher(
+                        async (current, cancel) =>
+                        {
+                            Assert.That(cancel.CanBeCanceled, Is.True);
+                            dispatchDeadline = current.Deadline;
+                            await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
+                            return await next.DispatchAsync(current, cancel);
+                        }));
+                    router.Map<IGreeter>(new Greeter());
+                    return router;
+                })
+                .BuildServiceProvider();
 
             // Setting a timeout with an interceptor
             var pipeline = new Pipeline();
@@ -100,7 +91,7 @@ namespace IceRpc.Tests.Api
                 invocationDeadline = request.Deadline;
                 return next.InvokeAsync(request, cancel);
             }));
-            var prx = ServicePrx.FromConnection(connection, invoker: pipeline);
+            var prx = ServicePrx.FromConnection(serviceProvider.GetRequiredService<Connection>(), invoker: pipeline);
             var expectedDeadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(timeout);
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync());
             Assert.That(dispatchDeadline, Is.Not.Null);
@@ -122,25 +113,23 @@ namespace IceRpc.Tests.Api
             DateTime? dispatchDeadline = null;
             DateTime? invocationDeadline = null;
 
-            var router = new Router();
-            router.Use(next => new InlineDispatcher(
-                    async (current, cancel) =>
-                    {
-                        dispatchDeadline = current.Deadline;
-                        await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
-                        return await next.DispatchAsync(current, cancel);
-                    }));
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<IDispatcher>(_ =>
+                {
+                    var router = new Router();
+                    router.Use(next => new InlineDispatcher(
+                        async (current, cancel) =>
+                        {
+                            dispatchDeadline = current.Deadline;
+                            await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
+                            return await next.DispatchAsync(current, cancel);
+                        }));
+                    router.Map<IGreeter>(new Greeter());
+                    return router;
+                })
+                .BuildServiceProvider();
 
-            router.Map<IGreeter>(new Greeter());
-
-            await using var server = new Server
-            {
-                Dispatcher = router,
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-            server.Listen();
-
-            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
+            var connection = serviceProvider.GetRequiredService<Connection>();
 
             var pipeline = new Pipeline();
             var prx = ServicePrx.FromConnection(connection, invoker: pipeline);

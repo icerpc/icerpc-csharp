@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using Multiplier = System.Int32;
 
@@ -48,49 +49,44 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task Dispatch_Features()
         {
-            var router = new Router();
-
             bool? responseFeature = null;
-
-            // This middleare reads the multiplier from the header field (key = 1) and sets a request feature. It also
-            // reads an expected response feature.
-            router.Use(next => new InlineDispatcher(
-                async (request, cancel) =>
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<IDispatcher>(_ =>
                 {
-                    int multiplier = request.Fields.Get(1, decoder => decoder.DecodeInt());
-                    if (multiplier != 0) // 0 == default(int)
-                    {
-                        if (request.Features.IsReadOnly)
+                    // This middleare reads the multiplier from the header field (key = 1) and sets a request feature. It also
+                    // reads an expected response feature.
+                    var router = new Router();
+                    router.Use(next => new InlineDispatcher(
+                        async (request, cancel) =>
                         {
-                            request.Features = new FeatureCollection(request.Features);
-                        }
-                        request.Features.Set(multiplier);
-                    }
-
-                    try
+                            int multiplier = request.Fields.Get(1, decoder => decoder.DecodeInt());
+                            if (multiplier != 0) // 0 == default(int)
                     {
-                        OutgoingResponse response = await next.DispatchAsync(request, cancel);
-                        responseFeature = response.Features.Get<bool>();
-                        return response;
-                    }
-                    catch (RemoteException remoteException)
-                    {
-                        responseFeature = remoteException.Features.Get<bool>();
-                        throw;
-                    }
-                }));
-            router.Map<IFeatureTest>(new FeatureTest());
+                                if (request.Features.IsReadOnly)
+                                {
+                                    request.Features = new FeatureCollection(request.Features);
+                                }
+                                request.Features.Set(multiplier);
+                            }
 
-            await using var server = new Server
-            {
-                Endpoint = TestHelper.GetUniqueColocEndpoint(),
-                Dispatcher = router
-            };
+                            try
+                            {
+                                OutgoingResponse response = await next.DispatchAsync(request, cancel);
+                                responseFeature = response.Features.Get<bool>();
+                                return response;
+                            }
+                            catch (RemoteException remoteException)
+                            {
+                                responseFeature = remoteException.Features.Get<bool>();
+                                throw;
+                            }
+                        }));
+                    router.Map<IFeatureTest>(new FeatureTest());
+                    return router;
+                })
+                .BuildServiceProvider();
 
-            server.Listen();
-
-            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
-            var prx = FeatureTestPrx.FromConnection(connection);
+            var prx = FeatureTestPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
 
             Multiplier multiplier = 10;
 

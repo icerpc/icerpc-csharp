@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.ClientServer
@@ -20,56 +21,53 @@ namespace IceRpc.Tests.ClientServer
             // This large value should be large enough to create multiple buffer for the request and responses headers.
             string largeValue = new('C', 4000);
 
-            var router = new Router();
-            router.Map<IGreeter>(new Greeter(largeValue));
-
-            router.Use(next =>
-                new InlineDispatcher(async (request, cancel) =>
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<Endpoint>(_ => endpoint)
+                .AddTransient<IDispatcher>(_ =>
                 {
-                    OutgoingResponse response = await next.DispatchAsync(request, cancel);
-                    if (response.Protocol == Protocol.Ice2 && response.Features.Get<string>() is string value)
-                    {
-                        response.Fields[1] = encoder => encoder.EncodeString(value);
-                    }
-                    return response;
-                }));
-
-            await using var server = new Server
-            {
-                Dispatcher = router,
-                Endpoint = endpoint
-            };
-            server.Listen();
-
-            var pipeline = new Pipeline();
-            pipeline.Use(next =>
-                new InlineInvoker(async (request, cancel) =>
+                    var router = new Router();
+                    router.Map<IGreeter>(new Greeter(largeValue));
+                    router.Use(next =>
+                        new InlineDispatcher(async (request, cancel) =>
+                        {
+                            OutgoingResponse response = await next.DispatchAsync(request, cancel);
+                            if (response.Protocol == Protocol.Ice2 && response.Features.Get<string>() is string value)
+                            {
+                                response.Fields[1] = encoder => encoder.EncodeString(value);
+                            }
+                            return response;
+                        }));
+                    return router;
+                })
+                .AddTransient<IInvoker>(_ =>
                 {
-                    IncomingResponse response = await next.InvokeAsync(request, cancel);
-                    if (response.Fields.Get(1, decoder => decoder.DecodeString()) is string stringValue)
-                    {
-                        response.Features = new FeatureCollection();
-                        response.Features.Set<string>(stringValue);
-                    }
-                    return response;
-                }));
+                    var pipeline = new Pipeline();
+                    pipeline.Use(next =>
+                        new InlineInvoker(async (request, cancel) =>
+                        {
+                            IncomingResponse response = await next.InvokeAsync(request, cancel);
+                            if (response.Fields.Get(1, decoder => decoder.DecodeString()) is string stringValue)
+                            {
+                                response.Features = new FeatureCollection();
+                                response.Features.Set<string>(stringValue);
+                            }
+                            return response;
+                        }));
+                    return pipeline;
+                })
+                .BuildServiceProvider();
 
-            await using var connection = new Connection
-            {
-                RemoteEndpoint = server.Endpoint
-            };
-            var greeter = GreeterPrx.FromConnection(connection);
-            greeter.Proxy.Invoker = pipeline;
+            GreeterPrx greeter = serviceProvider.GetProxy<GreeterPrx>();
 
             var invocation = new Invocation
             {
                 Context = new Dictionary<string, string> { ["foo"] = largeValue },
-                IsOneway = server.Endpoint.Transport == "udp"
+                IsOneway = serviceProvider.GetRequiredService<Endpoint>().Transport == "udp"
             };
 
             await greeter.SayHelloAsync(invocation);
 
-            if (connection.Protocol == Protocol.Ice2)
+            if (greeter.Proxy.Protocol == Protocol.Ice2)
             {
                 Assert.AreEqual(largeValue, invocation.ResponseFeatures.Get<string>());
             }
