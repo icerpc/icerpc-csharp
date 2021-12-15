@@ -38,7 +38,7 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, in args);
-            encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+            Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedBytes - startPos, sizePlaceHolder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
@@ -62,7 +62,7 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, arg);
-            encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+            Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedBytes - startPos, sizePlaceHolder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
@@ -87,7 +87,7 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, in returnValueTuple);
-            encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+            Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedBytes - startPos, sizePlaceHolder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
@@ -112,7 +112,7 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, returnValue);
-            encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+            Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedBytes - startPos, sizePlaceHolder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
@@ -164,6 +164,12 @@ namespace IceRpc.Slice
                 }
             }
         }
+
+        internal override void EncodeFixedLengthSize(int size, Span<byte> into) =>
+            Ice11Encoder.EncodeFixedLengthSize(size, into);
+
+        internal override void EncodeSize(int size, Span<byte> into) =>
+            Ice11Encoder.EncodeSize(size, into);
 
         internal override IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
             FeatureCollection features,

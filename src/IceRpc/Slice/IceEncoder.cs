@@ -11,15 +11,19 @@ namespace IceRpc.Slice
     /// <summary>Encodes data into one or more byte buffers using the Ice encoding.</summary>
     public abstract class IceEncoder
     {
+        /// <summary>The number of bytes encoded by this encoder into the underlying buffer writer.</summary>
+        public int EncodedBytes { get; private set; }
+
+        /// <summary>The Slice encoding associated with this encoder.</summary>
+        public abstract IceEncoding Encoding { get; }
+
         internal const long VarLongMinValue = -2_305_843_009_213_693_952; // -2^61
         internal const long VarLongMaxValue = 2_305_843_009_213_693_951; // 2^61 - 1
         internal const ulong VarULongMinValue = 0;
         internal const ulong VarULongMaxValue = 4_611_686_018_427_387_903; // 2^62 - 1
 
-        /// <summary>The number of bytes encoded by this encoder into the underlying buffer writer.</summary>
-        internal int EncodedByteCount { get; private set; }
-
-        private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
+        private static readonly System.Text.UTF8Encoding _utf8 =
+            new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true); // no BOM
 
         private readonly IBufferWriter<byte> _bufferWriter;
 
@@ -70,19 +74,53 @@ namespace IceRpc.Slice
             {
                 EncodeSize(0);
             }
-            // TODO: revwork to avoid copy
-            else if (v.Length <= 100)
-            {
-                Span<byte> data = stackalloc byte[_utf8.GetMaxByteCount(v.Length)];
-                int encoded = _utf8.GetBytes(v, data);
-                EncodeSize(encoded);
-                WriteByteSpan(data[0..encoded]);
-            }
             else
             {
-                byte[] data = _utf8.GetBytes(v);
-                EncodeSize(data.Length);
-                WriteByteSpan(data.AsSpan());
+                int maxSize = _utf8.GetMaxByteCount(v.Length);
+                int sizeLength = GetSizeLength(maxSize);
+                Span<byte> sizePlaceHolder = GetPlaceHolderSpan(sizeLength);
+
+                Span<byte> currentSpan = _bufferWriter.GetSpan();
+
+                if (maxSize <= currentSpan.Length)
+                {
+                    // We can encode it directly in currentSpan
+                    int size = _utf8.GetBytes(v, currentSpan);
+                    Encoding.EncodeSize(size, sizePlaceHolder);
+                    Advance(size);
+                }
+                else
+                {
+                    // Encode piecemeal with an Encoder
+                    ReadOnlySpan<char> chars = v.AsSpan();
+                    System.Text.Encoder encoder = _utf8.GetEncoder();
+                    int size = 0;
+
+                    while (true)
+                    {
+                        encoder.Convert(
+                            chars,
+                            currentSpan,
+                            flush: false,
+                            out int charsUsed,
+                            out int bytesUsed,
+                            out bool completed);
+
+                        size += bytesUsed;
+                        Advance(bytesUsed);
+
+                        if (completed)
+                        {
+                            Encoding.EncodeSize(size, sizePlaceHolder);
+                            break;
+                        }
+                        else
+                        {
+                            currentSpan = _bufferWriter.GetSpan();
+                            chars = chars[charsUsed..];
+                        }
+                    }
+                }
             }
         }
 
@@ -333,8 +371,6 @@ namespace IceRpc.Slice
             _bufferWriter.Advance(count);
             EncodedByteCount += count;
         }
-
-        internal abstract void EncodeFixedLengthSize(int size, Span<byte> into);
 
         /// <summary>Gets the minimum number of bytes needed to encode a long value with the varlong encoding as an
         /// exponent of 2.</summary>

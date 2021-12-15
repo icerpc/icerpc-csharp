@@ -16,6 +16,9 @@ namespace IceRpc.Slice
     /// <summary>Encoder for the Ice 1.1 encoding.</summary>
     public sealed class Ice11Encoder : IceEncoder
     {
+        /// <inheritdoc/>
+        public override IceEncoding Encoding => IceRpc.Encoding.Ice11;
+
         // The current class/exception format, can be either Compact or Sliced.
         private FormatType _classFormat;
 
@@ -368,6 +371,43 @@ namespace IceRpc.Slice
             }
         }
 
+        internal static void EncodeFixedLengthSize(int size, Span<byte> into)
+        {
+            if (into.Length != 4)
+            {
+                throw new ArgumentException($"into has {into.Length} bytes");
+            }
+            EncodeInt(size, into);
+        }
+
+        /// <summary>Encodes a variable-length size into a span.</summary>
+        internal static void EncodeSize(int size, Span<byte> into)
+        {
+            if (size < 0)
+            {
+                throw new ArgumentException("a size must be positive", nameof(size));
+            }
+
+            if (into.Length == 1)
+            {
+                if (size >= 255)
+                {
+                    throw new ArgumentException("size value is too large for into", nameof(size));
+                }
+
+                into[0] = (byte)size;
+            }
+            else if (into.Length == 5)
+            {
+                into[0] = 255;
+                EncodeInt(size, into[1..]);
+            }
+            else
+            {
+                throw new ArgumentException("into's size must be 1 or 5", nameof(into));
+            }
+        }
+
         /// <summary>Constructs an encoder for the Ice 1.1 encoding.</summary>
         internal Ice11Encoder(IBufferWriter<byte> bufferWriter, FormatType classFormat = default)
             : base(bufferWriter) =>
@@ -427,15 +467,6 @@ namespace IceRpc.Slice
             }
         }
 
-        internal override void EncodeFixedLengthSize(int size, Span<byte> into)
-        {
-            if (into.Length != 4)
-            {
-                throw new ArgumentException($"into has {into.Length} bytes");
-            }
-            IceEncoder.EncodeInt(size, into);
-        }
-
         /// <summary>Encodes an endpoint in a nested encapsulation.</summary>
         /// <param name="endpoint">The endpoint to encode.</param>
         private void EncodeEndpoint(Endpoint endpoint)
@@ -454,13 +485,13 @@ namespace IceRpc.Slice
                 this.EncodeTransportCode(transportCode);
                 EncodeInt(4 + 2 + bytes.Length); // encapsulation size includes size-length and 2 bytes for encoding
                 EncodeByte(1); // encoding version major
-                if (encoding == Encoding.Ice11)
+                if (encoding == IceRpc.Encoding.Ice11)
                 {
                     EncodeByte(1); // encoding version minor
                 }
                 else
                 {
-                    Debug.Assert(encoding == Encoding.Ice10);
+                    Debug.Assert(encoding == IceRpc.Encoding.Ice10);
                     EncodeByte(0); // encoding version minor
                 }
                 WriteByteSpan(bytes.Span);
