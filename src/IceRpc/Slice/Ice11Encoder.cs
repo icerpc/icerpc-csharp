@@ -231,12 +231,12 @@ namespace IceRpc.Slice
             if (tagFormat == TagFormat.FSize)
             {
                 EncodeTaggedParamHeader(tag, tagFormat);
-                Span<byte> placeHolder = GetPlaceholderSpan(4);
+                Span<byte> placeholder = GetPlaceholderSpan(4);
                 int startPos = EncodedByteCount;
                 encodeAction(this, v);
 
                 // We don't include the size-length in the size we encode.
-                EncodeFixedLengthSize(EncodedByteCount - startPos, placeHolder);
+                EncodeFixedLengthSize(EncodedByteCount - startPos, placeholder);
             }
             else
             {

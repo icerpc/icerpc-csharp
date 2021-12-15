@@ -336,27 +336,27 @@ namespace IceRpc.Slice
         /// <summary>Gets a placeholder to be filled-in later.</summary>
         /// <param name="size">The size of the placeholder, typically a small number like 4.</param>
         /// <returns>A buffer of length <paramref name="size"/>.</returns>
-        /// <remarks>We make the assumption to the underlying buffer writer allows rewriting memory it provided even
-        /// after successive calls to GetMemory/GetSpan and Advance.</remarks>
+        /// <remarks>We make the assumption the underlying buffer writer allows rewriting memory it provided even after
+        /// successive calls to GetMemory/GetSpan and Advance.</remarks>
         internal Memory<byte> GetPlaceholderMemory(int size)
         {
             Debug.Assert(size > 0);
-            Memory<byte> placeHolder = _bufferWriter.GetMemory(size)[0..size];
+            Memory<byte> placeholder = _bufferWriter.GetMemory(size)[0..size];
             Advance(size);
-            return placeHolder;
+            return placeholder;
         }
 
         /// <summary>Gets a placeholder to be filled-in later.</summary>
         /// <param name="size">The size of the placeholder, typically a small number like 4.</param>
         /// <returns>A buffer of length <paramref name="size"/>.</returns>
-        /// <remarks>We make the assumption to the underlying buffer writer allows rewriting memory it provided even
-        /// after successive calls to GetMemory/GetSpan and Advance.</remarks>
+        /// <remarks>We make the assumption the underlying buffer writer allows rewriting memory it provided even after
+        /// successive calls to GetMemory/GetSpan and Advance.</remarks>
         internal Span<byte> GetPlaceholderSpan(int size)
         {
             Debug.Assert(size > 0);
-            Span<byte> placeHolder = _bufferWriter.GetSpan(size)[0..size];
+            Span<byte> placeholder = _bufferWriter.GetSpan(size)[0..size];
             Advance(size);
-            return placeHolder;
+            return placeholder;
         }
 
         /// <summary>Copies a span of bytes to the buffer writer.</summary>
