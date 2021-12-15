@@ -78,11 +78,14 @@ namespace IceRpc.Slice
             }
             else
             {
+                // A UTF-16 character can be encoded on up to 3 UTF-8 bytes, so each span must be at least 3 bytes long.
+                const int minSpanSize = 3;
+
                 int maxSize = _utf8.GetMaxByteCount(v.Length);
                 int sizeLength = GetSizeLength(maxSize);
                 Span<byte> sizePlaceholder = GetPlaceholderSpan(sizeLength);
 
-                Span<byte> currentSpan = _bufferWriter.GetSpan();
+                Span<byte> currentSpan = _bufferWriter.GetSpan(minSpanSize);
 
                 if (maxSize <= currentSpan.Length)
                 {
@@ -94,7 +97,15 @@ namespace IceRpc.Slice
                 else
                 {
                     // Encode piecemeal using _utf8Encoder
-                    _utf8Encoder ??= _utf8.GetEncoder();
+                    if (_utf8Encoder == null)
+                    {
+                        _utf8Encoder = _utf8.GetEncoder();
+                    }
+                    else
+                    {
+                        _utf8Encoder.Reset();
+                    }
+
                     int size = 0;
                     ReadOnlySpan<char> chars = v.AsSpan();
 
@@ -108,18 +119,18 @@ namespace IceRpc.Slice
                             out int bytesUsed,
                             out bool completed);
 
+                        Debug.Assert(bytesUsed > 0);
                         size += bytesUsed;
                         Advance(bytesUsed);
 
                         if (completed)
                         {
-                            _utf8Encoder.Reset();
                             Encoding.EncodeSize(size, sizePlaceholder);
                             break;
                         }
                         else
                         {
-                            currentSpan = _bufferWriter.GetSpan();
+                            currentSpan = _bufferWriter.GetSpan(minSpanSize);
                             chars = chars[charsUsed..];
                         }
                     }

@@ -4,6 +4,8 @@ using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using NUnit.Framework;
 using System.Buffers;
+using System.Diagnostics;
+using System.IO.Pipelines;
 
 namespace IceRpc.Tests.SliceInternal
 {
@@ -179,11 +181,71 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase("旅ロ京青利セムレ弱改フヨス波府かばぼ意送でぼ調掲察たス日西重ケアナ住橋ユムミク順待ふかんぼ人奨貯鏡すびそ")] // Japanese
         public void Encoding_String(string p1)
         {
+            // simple test
             _encoder.EncodeString(p1);
-
             string r1 = _decoder.DecodeString();
-
             Assert.AreEqual(p1, r1);
+
+            if (p1.Length > 0)
+            {
+                // now with a custom memory pool with a tiny max buffer size
+                using var customPool = new TestMemoryPool(7);
+
+                // minimumSegmentSize is not the same as the sizeHint given to GetMemory/GetSpan; it refers to the
+                // minBufferSize given to Rent
+                var pipe = new Pipe(new PipeOptions(pool: customPool, minimumSegmentSize: 5));
+
+                IceEncoder encoder = _encoding.CreateIceEncoder(pipe.Writer);
+                for (int i = 0; i < 20; ++i)
+                {
+                    encoder.EncodeString(p1);
+                }
+                pipe.Writer.Complete();
+
+                pipe.Reader.TryRead(out ReadResult readResult);
+                ReadOnlyMemory<byte> buffer = readResult.Buffer.ToSingleBuffer();
+                IceDecoder decoder = _encoding == Encoding.Ice11 ? new Ice11Decoder(buffer) : new Ice20Decoder(buffer);
+
+                for (int i = 0; i < 20; ++i)
+                {
+                    r1 = decoder.DecodeString();
+                    Assert.AreEqual(p1, r1);
+                }
+            }
+        }
+
+        private class TestMemoryPool : MemoryPool<byte>
+        {
+            public override int MaxBufferSize { get; }
+
+            public override IMemoryOwner<byte> Rent(int minBufferSize = -1)
+            {
+                Debug.Assert(minBufferSize < MaxBufferSize);
+                return new MemoryOwnerDecorator(Shared.Rent(minBufferSize), MaxBufferSize);
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                // no-op
+            }
+
+            internal TestMemoryPool(int maxBufferSize) => MaxBufferSize = maxBufferSize;
+        }
+
+        private sealed class MemoryOwnerDecorator : IMemoryOwner<byte>
+        {
+            public Memory<byte> Memory { get; }
+
+            public void Dispose() => _decoratee.Dispose();
+
+            private readonly IMemoryOwner<byte> _decoratee;
+
+            internal MemoryOwnerDecorator(IMemoryOwner<byte> decoratee, int maxBufferSize)
+            {
+                _decoratee = decoratee;
+                Memory = decoratee.Memory.Length > maxBufferSize ?
+                    decoratee.Memory[0..maxBufferSize] : decoratee.Memory;
+            }
         }
     }
 }
