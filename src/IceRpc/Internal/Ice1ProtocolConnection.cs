@@ -2,7 +2,6 @@
 
 using IceRpc.Features.Internal;
 using IceRpc.Slice;
-using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using System.Buffers;
