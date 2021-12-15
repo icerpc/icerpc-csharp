@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
@@ -33,12 +32,16 @@ namespace IceRpc.Slice
             TupleEncodeAction<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default) where T : struct
         {
-            var bufferWriter = new BufferWriter();
-            var encoder = new Ice11Encoder(bufferWriter, classFormat);
-            BufferWriter.Position start = encoder.StartFixedLengthSize();
+            var pipe = new Pipe(); // TODO: pipe options
+
+            var encoder = new Ice11Encoder(pipe.Writer, classFormat);
+            Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+            int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, in args);
-            _ = encoder.EndFixedLengthSize(start);
-            return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.Finish().ToSingleBuffer()));
+            encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+
+            pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
+            return pipe.Reader;
         }
 
         /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
@@ -53,12 +56,16 @@ namespace IceRpc.Slice
             Action<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default)
         {
-            var bufferWriter = new BufferWriter();
-            var encoder = new Ice11Encoder(bufferWriter, classFormat);
-            BufferWriter.Position start = encoder.StartFixedLengthSize();
+            var pipe = new Pipe(); // TODO: pipe options
+
+            var encoder = new Ice11Encoder(pipe.Writer, classFormat);
+            Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+            int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, arg);
-            _ = encoder.EndFixedLengthSize(start);
-            return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.Finish().ToSingleBuffer()));
+            encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+
+            pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
+            return pipe.Reader;
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value tuple. Use this
@@ -74,12 +81,16 @@ namespace IceRpc.Slice
             TupleEncodeAction<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default) where T : struct
         {
-            var bufferWriter = new BufferWriter();
-            var encoder = new Ice11Encoder(bufferWriter, classFormat);
-            BufferWriter.Position start = encoder.StartFixedLengthSize();
+            var pipe = new Pipe(); // TODO: pipe options
+
+            var encoder = new Ice11Encoder(pipe.Writer, classFormat);
+            Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+            int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, in returnValueTuple);
-            _ = encoder.EndFixedLengthSize(start);
-            return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.Finish().ToSingleBuffer()));
+            encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+
+            pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
+            return pipe.Reader;
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value. Use this method
@@ -95,15 +106,20 @@ namespace IceRpc.Slice
             EncodeAction<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default)
         {
-            var bufferWriter = new BufferWriter();
-            var encoder = new Ice11Encoder(bufferWriter, classFormat);
-            BufferWriter.Position start = encoder.StartFixedLengthSize();
+            var pipe = new Pipe(); // TODO: pipe options
+
+            var encoder = new Ice11Encoder(pipe.Writer, classFormat);
+            Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+            int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, returnValue);
-            _ = encoder.EndFixedLengthSize(start);
-            return PipeReader.Create(new ReadOnlySequence<byte>(bufferWriter.Finish().ToSingleBuffer()));
+            encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+
+            pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
+            return pipe.Reader;
         }
 
-        internal override IceEncoder CreateIceEncoder(BufferWriter bufferWriter) => new Ice11Encoder(bufferWriter);
+        internal override IceEncoder CreateIceEncoder(IBufferWriter<byte> bufferWriter) =>
+            new Ice11Encoder(bufferWriter);
 
         internal override async ValueTask<(int Size, bool IsCanceled, bool IsCompleted)> DecodeSegmentSizeAsync(
             PipeReader reader,

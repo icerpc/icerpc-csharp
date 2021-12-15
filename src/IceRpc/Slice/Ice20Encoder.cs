@@ -2,8 +2,7 @@
 
 using IceRpc.Slice.Internal;
 using IceRpc.Transports.Internal;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
+using System.Buffers;
 
 namespace IceRpc.Slice
 {
@@ -52,9 +51,10 @@ namespace IceRpc.Slice
             EncodeAction<IceEncoder, T> encodeAction)
         {
             EncodeVarInt(tag); // the key
-            BufferWriter.Position pos = StartFixedLengthSize(); // use the default (4 bytes)
+            Span<byte> sizePlaceholder = GetPlaceholderSpan(4);
+            int startPos = EncodedByteCount;
             encodeAction(this, v);
-            EndFixedLengthSize(pos);
+            EncodeSize(EncodedByteCount - startPos, sizePlaceholder);
         }
 
         /// <inheritdoc/>
@@ -67,9 +67,9 @@ namespace IceRpc.Slice
         {
             EncodeVarInt(tag); // the key
             EncodeSize(size);
-            BufferWriter.Position startPos = BufferWriter.Tail;
+            int startPos = EncodedByteCount;
             encodeAction(this, v);
-            int actualSize = BufferWriter.Distance(startPos);
+            int actualSize = EncodedByteCount - startPos;
             if (actualSize != size)
             {
                 throw new ArgumentException($"value of size ({size}) does not match encoded size ({actualSize})",
@@ -83,33 +83,13 @@ namespace IceRpc.Slice
         /// <summary>Encodes a size into a span of bytes using a fixed number of bytes.</summary>
         /// <param name="size">The size to encode.</param>
         /// <param name="into">The destination byte buffer, which must be 1, 2, 4 or 8 bytes long.</param>
-        internal static void EncodeFixedLengthSize(long size, Span<byte> into)
+        internal static void EncodeSize(long size, Span<byte> into)
         {
-            int sizeLength = into.Length;
-            Debug.Assert(sizeLength == 1 || sizeLength == 2 || sizeLength == 4 || sizeLength == 8);
-
-            (uint encodedSizeExponent, long maxSize) = sizeLength switch
+            if (size < 0)
             {
-                1 => (0x00u, 63), // 2^6 - 1
-                2 => (0x01u, 16_383), // 2^14 - 1
-                4 => (0x02u, 1_073_741_823), // 2^30 - 1
-                _ => (0x03u, (long)VarULongMaxValue)
-            };
-
-            if (size < 0 || size > maxSize)
-            {
-                throw new ArgumentOutOfRangeException(
-                    $"size '{size}' cannot be encoded on {sizeLength} bytes",
-                    nameof(size));
+                throw new ArgumentOutOfRangeException(nameof(size), "size must be positive");
             }
-
-            Span<byte> ulongBuf = stackalloc byte[8];
-            ulong v = (ulong)size;
-            v <<= 2;
-
-            v |= encodedSizeExponent;
-            MemoryMarshal.Write(ulongBuf, ref v);
-            ulongBuf[0..sizeLength].CopyTo(into);
+            EncodeVarULong((ulong)size, into);
         }
 
         /// <summary>Computes the minimum number of bytes needed to encode a variable-length size with the 2.0 encoding.
@@ -120,52 +100,20 @@ namespace IceRpc.Slice
         internal static int GetSizeLength(long size) => GetVarULongEncodedSize(checked((ulong)size));
 
         /// <summary>Constructs an encoder for the Ice 2.0 encoding.</summary>
-        internal Ice20Encoder(BufferWriter bufferWriter)
+        internal Ice20Encoder(IBufferWriter<byte> bufferWriter)
             : base(bufferWriter)
         {
-        }
-
-        internal void EncodeFixedLengthSize(int size, BufferWriter.Position pos, int sizeLength)
-        {
-            Debug.Assert(pos.Offset >= 0);
-            Span<byte> data = stackalloc byte[sizeLength];
-            EncodeFixedLengthSize(size, data);
-            BufferWriter.RewriteByteSpan(data, pos);
         }
 
         internal void EncodeField<T>(int key, T value, EncodeAction<Ice20Encoder, T> encodeAction)
         {
             EncodeVarInt(key);
-            BufferWriter.Position pos = StartFixedLengthSize(2); // 2-bytes size place holder
+            Span<byte> sizePlaceholder = GetPlaceholderSpan(2);
+            int startPos = EncodedByteCount;
             encodeAction(this, value);
-            EndFixedLengthSize(pos, 2);
+            EncodeSize(EncodedByteCount - startPos, sizePlaceholder);
         }
 
-        /// <summary>Computes the amount of data encoded from the start position to the current position and writes that
-        /// size at the start position (as a fixed-length size). The size does not include its own encoded length.
-        /// </summary>
-        /// <param name="start">The start position.</param>
-        /// <param name="sizeLength">The number of bytes used to encode the size 1, 2 or 4.</param>
-        /// <returns>The size of the encoded data.</returns>
-        internal int EndFixedLengthSize(BufferWriter.Position start, int sizeLength)
-        {
-            int size = BufferWriter.Distance(start) - sizeLength;
-            EncodeFixedLengthSize(size, start, sizeLength);
-            return size;
-        }
-
-        /// <summary>Returns the current position and writes placeholder for a fixed-length size value. The
-        /// position must be used to rewrite the size later.</summary>
-        /// <param name="sizeLength">The number of bytes reserved to encode the fixed-length size.</param>
-        /// <returns>The position before writing the size.</returns>
-        internal BufferWriter.Position StartFixedLengthSize(int sizeLength)
-        {
-            BufferWriter.Position pos = BufferWriter.Tail;
-            BufferWriter.WriteByteSpan(stackalloc byte[sizeLength]); // placeholder for future size
-            return pos;
-        }
-
-        private protected override void EncodeFixedLengthSize(int size, Span<byte> into) =>
-            Ice20Encoder.EncodeFixedLengthSize(size, into);
+        internal override void EncodeFixedLengthSize(int size, Span<byte> into) => EncodeSize(size, into);
     }
 }

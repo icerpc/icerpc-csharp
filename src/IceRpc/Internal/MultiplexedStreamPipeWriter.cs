@@ -8,51 +8,27 @@ namespace IceRpc.Internal
 {
     /// <summary>Implements a PipeWriter over a multiplexed stream.</summary>
     // TODO: replace by transport-specific SlicPipeWriter/QuicPipeWriter etc. implementations.
-    internal class MultiplexedStreamPipeWriter : PipeWriter
+    internal class MultiplexedStreamPipeWriter : BufferedPipeWriter
     {
-        public override bool CanGetUnflushedBytes => PipeWriter.CanGetUnflushedBytes;
-        public override long UnflushedBytes => PipeWriter.UnflushedBytes;
-
-        private PipeWriter PipeWriter
-        {
-            get
-            {
-                ThrowIfCompleted();
-
-                // TODO: the relevant PipeOptions should be supplied to the MultiplexedStreamPipeWriter constructor.
-                _pipe ??= new Pipe();
-                return _pipe.Writer;
-            }
-        }
-
-        private bool _endStreamWritten; // true once endStream is written
         private bool _isReaderCompleted;
         private bool _isWriterCompleted;
 
-        private Pipe? _pipe;
-
         private readonly IMultiplexedStream _stream;
-
-        public override void Advance(int bytes) => PipeWriter.Advance(bytes);
 
         public override void CancelPendingFlush() => throw new NotImplementedException();
 
         public override void Complete(Exception? exception)
         {
-            if (exception == null && !_endStreamWritten)
+            if (exception == null)
             {
-                // no-op Complete. WriteEndStreamAndCompleteAsync should be called later.
+                // Ignored, no-op
+                // Unfortunately this is called by System.IO.Pipelines.PipeWriterStream.Dispose as a result of a
+                // stream Dispose.
             }
-            else
+            else if (!_isWriterCompleted)
             {
                 _isWriterCompleted = true;
-
-                if (_pipe != null)
-                {
-                    _pipe.Writer.Complete();
-                    _pipe.Reader.Complete();
-                    _pipe = null;
-                }
+                base.Complete(exception);
 
                 if (exception != null)
                 {
@@ -70,13 +46,38 @@ namespace IceRpc.Internal
             }
         }
 
-        // Use the default CompleteAsync(Exception? exception = default) that calls Complete above.
+        public override async ValueTask CompleteAsync(Exception? exception = default)
+        {
+            if (!_isWriterCompleted)
+            {
+                if (exception != null)
+                {
+                    Complete(exception);
+                }
+                else
+                {
+                    try
+                    {
+                        _ = await FlushAsyncCore(endStream: true, CompleteCancellationToken).ConfigureAwait(false);
+                        _isWriterCompleted = true;
+                        base.Complete();
+                    }
+                    catch (Exception ex)
+                    {
+                        Complete(ex);
+                        throw;
+                    }
+                }
+            }
+        }
+
+        public override Task CopyFromAsync(
+            PipeReader source,
+            bool completeWhenDone,
+            CancellationToken cancel) => throw new NotImplementedException();
 
         public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken) =>
             FlushAsyncCore(endStream: false, cancellationToken);
-
-        public override Memory<byte> GetMemory(int sizeHint) => PipeWriter.GetMemory(sizeHint);
-        public override Span<byte> GetSpan(int sizeHint) => PipeWriter.GetSpan(sizeHint);
 
         public override async ValueTask<FlushResult> WriteAsync(
             ReadOnlyMemory<byte> source,
@@ -106,48 +107,6 @@ namespace IceRpc.Internal
             return new FlushResult(isCanceled: false, isCompleted: _isReaderCompleted);
         }
 
-        /// <summary>Writes the endStream marker and completes this pipe writer.</summary>
-        /// <remarks>We cannot simply have a WriteEndStreamAsync to be called before Complete because StreamPipeWriter
-        /// over a DeflateStream writes bytes in Complete/CompleteAsync.</remarks>
-        public async ValueTask WriteEndStreamAndCompleteAsync(CancellationToken cancel)
-        {
-            try
-            {
-                _ = await FlushAsyncCore(endStream: true, cancel).ConfigureAwait(false);
-
-                if (!_isReaderCompleted && !_endStreamWritten) // flush didn't write anything
-                {
-                    try
-                    {
-                        // Write an empty buffer with endStream.
-                        await _stream.WriteAsync(
-                            default,
-                            endStream: true,
-                            cancel).ConfigureAwait(false);
-                    }
-                    catch (MultiplexedStreamAbortedException)
-                    {
-                        // TODO: confirm this is indeed correct; should we rethrow?
-                        _isReaderCompleted = true;
-                        throw;
-                    }
-                    finally
-                    {
-                        _endStreamWritten = true;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                await CompleteAsync(ex).ConfigureAwait(false);
-                throw;
-            }
-            finally
-            {
-                _isWriterCompleted = true;
-            }
-        }
-
         // We use the default implementation for protected CopyFromAsync(Stream, CancellationToken). This default
         // implementation calls GetMemory / Advance.
 
@@ -159,12 +118,13 @@ namespace IceRpc.Internal
 
             if (!_isReaderCompleted)
             {
-                if (_pipe is Pipe pipe)
-                {
-                    // We're flushing our own internal pipe here.
-                    _ = await pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                bool wroteEndStream = false;
 
-                    if (pipe.Reader.TryRead(out ReadResult result))
+                if (PipeReader is PipeReader pipeReader)
+                {
+                    await FlushWriterAsync().ConfigureAwait(false);
+
+                    if (pipeReader.TryRead(out ReadResult result))
                     {
                         try
                         {
@@ -192,11 +152,27 @@ namespace IceRpc.Internal
                         {
                             if (endStream)
                             {
-                                _endStreamWritten = true;
+                                wroteEndStream = true;
                             }
-
                             // The unflushed bytes are all consumed no matter what.
-                            pipe.Reader.AdvanceTo(result.Buffer.End);
+                            pipeReader.AdvanceTo(result.Buffer.End);
+                        }
+                    }
+
+                    if (!_isReaderCompleted && endStream && !wroteEndStream) // the above didn't write anything
+                    {
+                        try
+                        {
+                            // Write an empty buffer with endStream.
+                            await _stream.WriteAsync(
+                                default,
+                                endStream: true,
+                                cancellationToken).ConfigureAwait(false);
+                        }
+                        catch (MultiplexedStreamAbortedException)
+                        {
+                            _isReaderCompleted = true;
+                            throw;
                         }
                     }
                 }

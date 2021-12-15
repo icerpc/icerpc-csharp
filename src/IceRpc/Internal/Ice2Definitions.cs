@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice;
-using IceRpc.Slice.Internal;
 
 namespace IceRpc.Internal
 {
@@ -23,7 +22,7 @@ namespace IceRpc.Internal
             // can be larger than necessary, which is fine
             int sizeLength = Ice20Encoder.GetSizeLength(fieldsDefaults.Count + (fields?.Count ?? 0));
 
-            BufferWriter.Position start = encoder.StartFixedLengthSize(sizeLength);
+            Span<byte> countPlaceholder = encoder.GetPlaceholderSpan(sizeLength);
 
             int count = 0; // the number of fields
 
@@ -34,9 +33,10 @@ namespace IceRpc.Internal
                 foreach ((int key, Action<IceEncoder> action) in fields)
                 {
                     encoder.EncodeVarInt(key);
-                    BufferWriter.Position startValue = encoder.StartFixedLengthSize(2);
+                    Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
+                    int startPos = encoder.EncodedByteCount;
                     action(encoder);
-                    encoder.EndFixedLengthSize(startValue, 2);
+                    Ice20Encoder.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
                     count++;
                 }
             }
@@ -46,11 +46,12 @@ namespace IceRpc.Internal
                 {
                     encoder.EncodeVarInt(key);
                     encoder.EncodeSize(value.Length);
-                    encoder.BufferWriter.WriteByteSpan(value.Span);
+                    encoder.WriteByteSpan(value.Span);
                     count++;
                 }
             }
-            encoder.EncodeFixedLengthSize(count, start, sizeLength);
+
+            Ice20Encoder.EncodeSize(count, countPlaceholder);
         }
     }
 }

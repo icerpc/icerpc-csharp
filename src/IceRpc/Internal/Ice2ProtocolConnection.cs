@@ -313,12 +313,11 @@ namespace IceRpc.Internal
                     }
                 }
 
-                var bufferWriter = new BufferWriter();
-                var encoder = new Ice20Encoder(bufferWriter);
+                var encoder = new Ice20Encoder(requestWriter);
 
                 // Write the Ice2 request header.
-
-                BufferWriter.Position frameHeaderStart = encoder.StartFixedLengthSize(2);
+                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
+                int headerStartPos = encoder.EncodedByteCount; // does not include the size
 
                 // DateTime.MaxValue represents an infinite deadline and it is encoded as -1
                 long deadline = request.Deadline == DateTime.MaxValue ? -1 :
@@ -351,21 +350,10 @@ namespace IceRpc.Internal
                 encoder.EncodeFields(request.Fields, request.FieldsDefaults);
 
                 // We're done with the header encoding, write the header size.
-                _ = encoder.EndFixedLengthSize(frameHeaderStart, 2);
+                Ice20Encoder.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
 
-                // Send the header. TODO: delaying the sending (flushing) until we send the payload
-
-                FlushResult flushResult = await requestWriter.WriteAsync(
-                    bufferWriter.Finish().ToSingleBuffer(),
-                    cancel).ConfigureAwait(false);
-
-                Debug.Assert(!flushResult.IsCanceled); // not implemented yet, so always false.
-
-                if (!flushResult.IsCompleted) // we still have a reader
-                {
-                    await SendPayloadAsync(request, requestWriter, cancel).ConfigureAwait(false);
-                    request.IsSent = true;
-                }
+                await SendPayloadAsync(request, requestWriter, cancel).ConfigureAwait(false);
+                request.IsSent = true;
             }
             catch (Exception ex)
             {
@@ -399,12 +387,11 @@ namespace IceRpc.Internal
 
             try
             {
-                var bufferWriter = new BufferWriter();
-                var encoder = new Ice20Encoder(bufferWriter);
+                var encoder = new Ice20Encoder(responseWriter);
 
                 // Write the Ice2 response header.
-
-                BufferWriter.Position frameHeaderStart = encoder.StartFixedLengthSize(2);
+                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
+                int headerStartPos = encoder.EncodedByteCount;
 
                 new Ice2ResponseHeader(
                     response.ResultType,
@@ -414,20 +401,9 @@ namespace IceRpc.Internal
                 encoder.EncodeFields(response.Fields, response.FieldsDefaults);
 
                 // We're done with the header encoding, write the header size.
-                _ = encoder.EndFixedLengthSize(frameHeaderStart, 2);
+                Ice20Encoder.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
 
-                // Send the header. TODO: delay the sending (flushing) until we send the payload
-
-                FlushResult flushResult = await responseWriter.WriteAsync(
-                    bufferWriter.Finish().ToSingleBuffer(),
-                    cancel).ConfigureAwait(false);
-
-                Debug.Assert(!flushResult.IsCanceled); // not implemented yet, so always false.
-
-                if (!flushResult.IsCompleted) // we still have a reader
-                {
-                    await SendPayloadAsync(response, responseWriter, cancel).ConfigureAwait(false);
-                }
+                await SendPayloadAsync(response, responseWriter, cancel).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -634,14 +610,20 @@ namespace IceRpc.Internal
             Action<Ice20Encoder>? frameEncodeAction,
             CancellationToken cancel)
         {
-            var bufferWriter = new BufferWriter(new byte[1024]);
+            Memory<byte> buffer = new byte[1024]; // TODO: use pooled memory?
+            var bufferWriter = new SingleBufferWriter(buffer);
+
             var encoder = new Ice20Encoder(bufferWriter);
             encoder.EncodeByte((byte)frameType);
-            BufferWriter.Position sizePos = encoder.StartFixedLengthSize();
+            Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4); // TODO: reduce bytes
+            int startPos = encoder.EncodedByteCount; // does not include the size
             frameEncodeAction?.Invoke(encoder);
-            encoder.EndFixedLengthSize(sizePos);
+            Ice20Encoder.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
+
+            buffer = bufferWriter.WrittenBuffer;
+
             await _controlStream!.WriteAsync(
-                bufferWriter.Finish(),
+                new ReadOnlyMemory<byte>[] { buffer }, // TODO: better API
                 frameType == Ice2FrameType.GoAwayCompleted,
                 cancel).ConfigureAwait(false);
         }
@@ -652,13 +634,23 @@ namespace IceRpc.Internal
             MultiplexedStreamPipeWriter frameWriter,
             CancellationToken cancel)
         {
-            // TODO: CopyToAsync does not return a flushResult so we don't know if we still have a reader. It
-            // just returns with no exception when flushResult.IsCompleted is true. We could implement our own
-            // version.
-            await outgoingFrame.PayloadSource.CopyToAsync(outgoingFrame.PayloadSink, cancel).ConfigureAwait(false);
+            frameWriter.CompleteCancellationToken = cancel;
+
+            try
+            {
+                await outgoingFrame.PayloadSource.CopyToAsync(outgoingFrame.PayloadSink, cancel).ConfigureAwait(false);
+            }
+            catch (TaskCanceledException) // CopyToAsync returns a canceled task if cancel is canceled
+            {
+                throw new OperationCanceledException();
+            }
+
+            // We need to call FlushAsync in case PayloadSource was empty and CopyToAsync didn't do anything.
+            FlushResult flushResult = await outgoingFrame.PayloadSink.FlushAsync(cancel).ConfigureAwait(false);
+
             await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
 
-            if (outgoingFrame.PayloadSourceStream is PipeReader payloadSourceStream)
+            if (!flushResult.IsCompleted && outgoingFrame.PayloadSourceStream is PipeReader payloadSourceStream)
             {
                 // send payloadSourceStream in the background
                 _ = Task.Run(
@@ -668,6 +660,7 @@ namespace IceRpc.Internal
 
                         // TODO: better cancellation token?
                         CancellationToken cancel = CancellationToken.None;
+                        frameWriter.CompleteCancellationToken = cancel;
 
                         try
                         {
@@ -680,24 +673,26 @@ namespace IceRpc.Internal
                             completeReason = ex;
                         }
 
-                        // See comments below
                         await payloadSourceStream.CompleteAsync(completeReason).ConfigureAwait(false);
                         await outgoingFrame.PayloadSink.CompleteAsync(completeReason).ConfigureAwait(false);
+
                         if (completeReason == null)
                         {
-                            await frameWriter.WriteEndStreamAndCompleteAsync(cancel).ConfigureAwait(false);
+                            // Need to call it again directly on frameWriter in case the PayloadSink.CompleteAsync
+                            // ended up calling the no-op frameWriter.Complete.
+                            await frameWriter.CompleteAsync().ConfigureAwait(false);
                         }
                     },
                     CancellationToken.None);
             }
             else
             {
-                // This is a "fake" Complete that flushes buffers (e.g. a stream-based pipe writer) but does not write
-                // endStream or actually complete the frameWriter if successful.
+                // The implementation of frameWriter.CompleteAsync uses cancel set earlier.
                 await outgoingFrame.PayloadSink.CompleteAsync().ConfigureAwait(false);
 
-                // The actual WriteEndStream + Complete
-                await frameWriter.WriteEndStreamAndCompleteAsync(cancel).ConfigureAwait(false);
+                // Need to call it again directly on frameWriter in case the PayloadSink.CompleteAsync
+                // ended up calling the no-op frameWriter.Complete.
+                await frameWriter.CompleteAsync().ConfigureAwait(false);
             }
 
             // The caller CompleteAsync the payload source/sink if an exception is thrown by CopyToAsync.

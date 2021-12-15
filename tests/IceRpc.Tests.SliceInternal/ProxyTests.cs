@@ -16,17 +16,20 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase("1.1", "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
         public async Task Proxy_EncodingVersioning(string encodingStr, string str)
         {
+            Memory<byte> buffer = new byte[256];
+            var bufferWriter = new SingleBufferWriter(buffer);
+
             var encoding = IceEncoding.FromString(encodingStr);
-            IceEncoder encoder = encoding.CreateIceEncoder(new BufferWriter(new byte[256]));
+            IceEncoder encoder = encoding.CreateIceEncoder(bufferWriter);
 
             var proxy = Proxy.Parse(str);
             encoder.EncodeProxy(proxy);
-            ReadOnlyMemory<byte> data = encoder.BufferWriter.Finish().Span[0];
+            buffer = bufferWriter.WrittenBuffer;
 
             await using var connection = new Connection();
 
-            IceDecoder decoder = encoding == Encoding.Ice11 ? new Ice11Decoder(data, connection) :
-                new Ice20Decoder(data, connection);
+            IceDecoder decoder = encoding == Encoding.Ice11 ? new Ice11Decoder(buffer, connection) :
+                new Ice20Decoder(buffer, connection);
             Proxy proxy2 = decoder.DecodeProxy();
             decoder.CheckEndOfBuffer(skipTaggedParams: false);
             Assert.AreEqual(proxy, proxy2);
@@ -46,15 +49,18 @@ namespace IceRpc.Tests.SliceInternal
 
             var regular = Proxy.FromConnection(connection, "/bar");
 
+            Memory<byte> buffer = new byte[256];
+            var bufferWriter = new SingleBufferWriter(buffer);
+
             // Encodes the endpointless proxy
-            IceEncoder encoder = encoding.CreateIceEncoder(new BufferWriter(new byte[256]));
+            IceEncoder encoder = encoding.CreateIceEncoder(bufferWriter);
             encoder.EncodeProxy(endpointLess);
-            ReadOnlyMemory<byte> data = encoder.BufferWriter.Finish().Span[0];
+            buffer = bufferWriter.WrittenBuffer;
 
             // Decodes the endpointless proxy using the client connection. We get back a 1-endpoint proxy
             IceDecoder decoder = encoding == IceRpc.Encoding.Ice11 ?
-                new Ice11Decoder(data, connection) :
-                new Ice20Decoder(data, connection);
+                new Ice11Decoder(buffer, connection) :
+                new Ice20Decoder(buffer, connection);
 
             Proxy proxy1 = decoder.DecodeProxy();
             decoder.CheckEndOfBuffer(skipTaggedParams: false);

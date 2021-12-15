@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
@@ -20,7 +19,8 @@ namespace IceRpc.Slice
         public override PipeReader CreateEmptyPayload(bool hasStream = true) =>
             hasStream ? PipeReader.Create(_payloadWithZeroSize) : EmptyPipeReader.Instance;
 
-        internal override IceEncoder CreateIceEncoder(BufferWriter bufferWriter) => new Ice20Encoder(bufferWriter);
+        internal override IceEncoder CreateIceEncoder(IBufferWriter<byte> bufferWriter) =>
+            new Ice20Encoder(bufferWriter);
 
         internal override async ValueTask<(int Size, bool IsCanceled, bool IsCompleted)> DecodeSegmentSizeAsync(
             PipeReader reader,

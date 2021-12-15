@@ -43,7 +43,7 @@ namespace IceRpc.Slice
         {
             int count = v.Count();
             encoder.EncodeSize(count);
-            BitSequence bitSequence = encoder.BufferWriter.WriteBitSequence(count);
+            BitSequence bitSequence = encoder.EncodeBitSequence(count);
             int index = 0;
             foreach ((TKey key, TValue value) in v)
             {
@@ -93,7 +93,7 @@ namespace IceRpc.Slice
         {
             int count = v.Count(); // potentially slow Linq Count()
             encoder.EncodeSize(count);
-            BitSequence bitSequence = encoder.BufferWriter.WriteBitSequence(count);
+            BitSequence bitSequence = encoder.EncodeBitSequence(count);
             int index = 0;
             foreach (T item in v)
             {

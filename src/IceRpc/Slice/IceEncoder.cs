@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice.Internal;
+using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -16,9 +16,12 @@ namespace IceRpc.Slice
         internal const ulong VarULongMinValue = 0;
         internal const ulong VarULongMaxValue = 4_611_686_018_427_387_903; // 2^62 - 1
 
-        internal BufferWriter BufferWriter { get; }
+        /// <summary>The number of bytes encoded by this encoder into the underlying buffer writer.</summary>
+        internal int EncodedByteCount { get; private set; }
 
         private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
+
+        private readonly IBufferWriter<byte> _bufferWriter;
 
         // Encode methods for basic types
 
@@ -28,7 +31,12 @@ namespace IceRpc.Slice
 
         /// <summary>Encodes a byte.</summary>
         /// <param name="v">The byte to encode.</param>
-        public void EncodeByte(byte v) => BufferWriter.WriteByte(v);
+        public void EncodeByte(byte v)
+        {
+            Span<byte> span = _bufferWriter.GetSpan();
+            span[0] = v;
+            Advance(1);
+        }
 
         /// <summary>Encodes a double.</summary>
         /// <param name="v">The double to encode.</param>
@@ -62,18 +70,19 @@ namespace IceRpc.Slice
             {
                 EncodeSize(0);
             }
+            // TODO: revwork to avoid copy
             else if (v.Length <= 100)
             {
                 Span<byte> data = stackalloc byte[_utf8.GetMaxByteCount(v.Length)];
                 int encoded = _utf8.GetBytes(v, data);
                 EncodeSize(encoded);
-                BufferWriter.WriteByteSpan(data.Slice(0, encoded));
+                WriteByteSpan(data[0..encoded]);
             }
             else
             {
                 byte[] data = _utf8.GetBytes(v);
                 EncodeSize(data.Length);
-                BufferWriter.WriteByteSpan(data.AsSpan());
+                WriteByteSpan(data.AsSpan());
             }
         }
 
@@ -103,7 +112,7 @@ namespace IceRpc.Slice
             v |= (uint)encodedSizeExponent;
             Span<byte> data = stackalloc byte[sizeof(long)];
             MemoryMarshal.Write(data, ref v);
-            BufferWriter.WriteByteSpan(data.Slice(0, 1 << encodedSizeExponent));
+            WriteByteSpan(data[0..(1 << encodedSizeExponent)]);
         }
 
         /// <summary>Encodes a uint using IceRPC's variable-size integer encoding.</summary>
@@ -120,7 +129,7 @@ namespace IceRpc.Slice
             v |= (uint)encodedSizeExponent;
             Span<byte> data = stackalloc byte[sizeof(ulong)];
             MemoryMarshal.Write(data, ref v);
-            BufferWriter.WriteByteSpan(data.Slice(0, 1 << encodedSizeExponent));
+            WriteByteSpan(data[0..(1 << encodedSizeExponent)]);
         }
 
         // Encode methods for constructed types
@@ -149,7 +158,7 @@ namespace IceRpc.Slice
             EncodeSize(v.Length);
             if (!v.IsEmpty)
             {
-                BufferWriter.WriteByteSpan(MemoryMarshal.AsBytes(v));
+                WriteByteSpan(MemoryMarshal.AsBytes(v));
             }
         }
 
@@ -187,10 +196,68 @@ namespace IceRpc.Slice
         /// </returns>
         public static int GetVarULongEncodedSize(ulong value) => 1 << GetVarULongEncodedSizeExponent(value);
 
+        /// <summary>Encodes a var ulong into a span of bytes using a fixed number of bytes.</summary>
+        /// <param name="value">The value to encode.</param>
+        /// <param name="into">The destination byte buffer, which must be 1, 2, 4 or 8 bytes long.</param>
+        public static void EncodeVarULong(ulong value, Span<byte> into)
+        {
+            int sizeLength = into.Length;
+            Debug.Assert(sizeLength == 1 || sizeLength == 2 || sizeLength == 4 || sizeLength == 8);
+
+            (uint encodedSizeExponent, long maxSize) = sizeLength switch
+            {
+                1 => (0x00u, 63), // 2^6 - 1
+                2 => (0x01u, 16_383), // 2^14 - 1
+                4 => (0x02u, 1_073_741_823), // 2^30 - 1
+                _ => (0x03u, (long)VarULongMaxValue)
+            };
+
+            if (value > (ulong)maxSize)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    $"'{value}' cannot be encoded on {sizeLength} bytes");
+            }
+
+            Span<byte> ulongBuf = stackalloc byte[8];
+            value <<= 2;
+
+            value |= encodedSizeExponent;
+            MemoryMarshal.Write(ulongBuf, ref value);
+            ulongBuf[0..sizeLength].CopyTo(into);
+        }
+
         /// <summary>Encodes a sequence of bits and returns this sequence backed by the buffer.</summary>
         /// <param name="bitSize">The minimum number of bits in the sequence.</param>
         /// <returns>The bit sequence, with all bits set. The actual size of the sequence is a multiple of 8.</returns>
-        public BitSequence EncodeBitSequence(int bitSize) => BufferWriter.WriteBitSequence(bitSize);
+        public BitSequence EncodeBitSequence(int bitSize)
+        {
+            Debug.Assert(bitSize > 0);
+            int size = (bitSize >> 3) + ((bitSize & 0x07) != 0 ? 1 : 0);
+
+            Span<byte> firstSpan = _bufferWriter.GetSpan();
+
+            if (size <= firstSpan.Length)
+            {
+                firstSpan = firstSpan[0..size];
+                firstSpan.Fill(255);
+                Advance(size);
+                return new BitSequence(firstSpan);
+            }
+            else
+            {
+                firstSpan.Fill(255);
+                Advance(firstSpan.Length);
+
+                int remaining = size - firstSpan.Length;
+                Span<byte> secondSpan = _bufferWriter.GetSpan(remaining);
+                secondSpan = secondSpan[0..remaining];
+                secondSpan.Fill(255);
+                Advance(remaining);
+
+                return new BitSequence(firstSpan, secondSpan);
+            }
+        }
 
         /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is not known before
         /// encoding this value.</summary>
@@ -225,40 +292,49 @@ namespace IceRpc.Slice
 
         internal static void EncodeInt(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
 
-        /// <summary>Encodes a size on 4 bytes at the specified position.</summary>
-        internal void EncodeFixedLengthSize(int size, BufferWriter.Position pos)
+        /// <summary>Gets a placeholder to be filled-in later.</summary>
+        /// <param name="size">The size of the placeholder, typically a small number like 4.</param>
+        /// <returns>A buffer of length <paramref name="size"/>.</returns>
+        /// <remarks>We make the assumption to the underlying buffer writer allows rewriting memory it provided even
+        /// after successive calls to GetMemory/GetSpan and Advance.</remarks>
+        internal Memory<byte> GetPlaceholderMemory(int size)
         {
-            Debug.Assert(pos.Offset >= 0);
-            Span<byte> data = stackalloc byte[4];
-            EncodeFixedLengthSize(size, data);
-            BufferWriter.RewriteByteSpan(data, pos);
+            Debug.Assert(size > 0);
+            Memory<byte> placeHolder = _bufferWriter.GetMemory(size)[0..size];
+            Advance(size);
+            return placeHolder;
         }
 
-        /// <summary>Computes the amount of data encoded from the start position to the current position and writes that
-        /// size at the start position (as a 4-bytes size). The size does not include its own encoded length.</summary>
-        /// <param name="start">The start position.</param>
-        /// <returns>The size of the encoded data.</returns>
-        internal int EndFixedLengthSize(BufferWriter.Position start)
+        /// <summary>Gets a placeholder to be filled-in later.</summary>
+        /// <param name="size">The size of the placeholder, typically a small number like 4.</param>
+        /// <returns>A buffer of length <paramref name="size"/>.</returns>
+        /// <remarks>We make the assumption to the underlying buffer writer allows rewriting memory it provided even
+        /// after successive calls to GetMemory/GetSpan and Advance.</remarks>
+        internal Span<byte> GetPlaceholderSpan(int size)
         {
-            int size = BufferWriter.Distance(start) - 4;
-            EncodeFixedLengthSize(size, start);
-            return size;
+            Debug.Assert(size > 0);
+            Span<byte> placeHolder = _bufferWriter.GetSpan(size)[0..size];
+            Advance(size);
+            return placeHolder;
         }
 
-        /// <summary>Returns the current position and writes placeholder for 4 bytes. The position must be used to
-        /// rewrite the size later on 4 bytes.</summary>
-        /// <returns>The position before writing the size.</returns>
-        internal BufferWriter.Position StartFixedLengthSize()
+        /// <summary>Copies a span of bytes to the buffer writer.</summary>
+        internal void WriteByteSpan(ReadOnlySpan<byte> span)
         {
-            BufferWriter.Position pos = BufferWriter.Tail;
-            BufferWriter.WriteByteSpan(stackalloc byte[4]); // placeholder for future size
-            return pos;
+            _bufferWriter.Write(span);
+            EncodedByteCount += span.Length;
         }
 
         // Constructs a Ice encoder
-        private protected IceEncoder(BufferWriter bufferWriter) => BufferWriter = bufferWriter;
+        private protected IceEncoder(IBufferWriter<byte> bufferWriter) => _bufferWriter = bufferWriter;
 
-        private protected abstract void EncodeFixedLengthSize(int size, Span<byte> into);
+        private protected void Advance(int count)
+        {
+            _bufferWriter.Advance(count);
+            EncodedByteCount += count;
+        }
+
+        internal abstract void EncodeFixedLengthSize(int size, Span<byte> into);
 
         /// <summary>Gets the minimum number of bytes needed to encode a long value with the varlong encoding as an
         /// exponent of 2.</summary>
@@ -307,7 +383,7 @@ namespace IceRpc.Slice
             int elementSize = Unsafe.SizeOf<T>();
             Span<byte> data = stackalloc byte[elementSize];
             MemoryMarshal.Write(data, ref v);
-            BufferWriter.WriteByteSpan(data);
+            WriteByteSpan(data);
         }
     }
 }

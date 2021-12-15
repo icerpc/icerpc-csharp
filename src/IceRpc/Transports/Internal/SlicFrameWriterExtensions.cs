@@ -2,6 +2,9 @@
 
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
+using System.Buffers;
+using System.Diagnostics;
+using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {
@@ -60,17 +63,21 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel) =>
             WriteFrameAsync(writer, FrameType.UnidirectionalStreamReleased, stream, null, cancel);
 
-        private static ValueTask WriteFrameAsync(
+        private static async ValueTask WriteFrameAsync(
             ISlicFrameWriter writer,
             FrameType type,
             SlicMultiplexedStream? stream,
             Action<IceEncoder>? encode,
             CancellationToken cancel)
         {
-            var bufferWriter = new BufferWriter();
-            var encoder = new Ice20Encoder(bufferWriter);
+            // TODO: ISlicFrameWriter needs a better API!
+            var pipe = new Pipe();
+
+            var encoder = new Ice20Encoder(pipe.Writer);
             encoder.EncodeByte((byte)type);
-            BufferWriter.Position sizePos = encoder.StartFixedLengthSize();
+            Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
+            int startPos = encoder.EncodedByteCount;
+
             if (stream != null)
             {
                 encoder.EncodeVarULong((ulong)stream.Id);
@@ -79,8 +86,20 @@ namespace IceRpc.Transports.Internal
             {
                 encode?.Invoke(encoder);
             }
-            encoder.EndFixedLengthSize(sizePos);
-            return writer.WriteFrameAsync(stream, bufferWriter.Finish(), cancel);
+            Ice20Encoder.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
+
+            // TODO: all this copying is naturally temporary
+            await pipe.Writer.CompleteAsync().ConfigureAwait(false);
+            bool success = pipe.Reader.TryRead(out ReadResult result);
+            Debug.Assert(success);
+            Debug.Assert(result.IsCompleted);
+            byte[] buffer = result.Buffer.ToArray();
+            await pipe.Reader.CompleteAsync().ConfigureAwait(false);
+
+            await writer.WriteFrameAsync(
+                stream,
+                new ReadOnlyMemory<byte>[] { buffer },
+                cancel).ConfigureAwait(false);
         }
     }
 }
