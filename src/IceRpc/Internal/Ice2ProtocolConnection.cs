@@ -634,21 +634,31 @@ namespace IceRpc.Internal
             MultiplexedStreamPipeWriter frameWriter,
             CancellationToken cancel)
         {
-            frameWriter.CompleteCancellationToken = cancel;
-
-            try
+            if (outgoingFrame.PayloadSink is AsyncCompletePipeWriter optimizedSink)
             {
-                await outgoingFrame.PayloadSource.CopyToAsync(outgoingFrame.PayloadSink, cancel).ConfigureAwait(false);
+                await optimizedSink.CopyFromAsync(
+                    outgoingFrame.PayloadSource,
+                    completeWhenDone: outgoingFrame.PayloadSourceStream == null,
+                    cancel).ConfigureAwait(false);
             }
-            catch (TaskCanceledException) // CopyToAsync returns a canceled task if cancel is canceled
+            else
             {
-                throw new OperationCanceledException();
+                frameWriter.CompleteCancellationToken = cancel;
+
+                try
+                {
+                    await outgoingFrame.PayloadSource.CopyToAsync(outgoingFrame.PayloadSink, cancel).ConfigureAwait(false);
+                }
+                catch (TaskCanceledException) // CopyToAsync returns a canceled task if cancel is canceled
+                {
+                    throw new OperationCanceledException();
+                }
+
+                // We need to call FlushAsync in case PayloadSource was empty and CopyToAsync didn't do anything.
+                FlushResult flushResult = await outgoingFrame.PayloadSink.FlushAsync(cancel).ConfigureAwait(false);
+
+                await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
             }
-
-            // We need to call FlushAsync in case PayloadSource was empty and CopyToAsync didn't do anything.
-            FlushResult flushResult = await outgoingFrame.PayloadSink.FlushAsync(cancel).ConfigureAwait(false);
-
-            await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
 
             if (!flushResult.IsCompleted && outgoingFrame.PayloadSourceStream is PipeReader payloadSourceStream)
             {
