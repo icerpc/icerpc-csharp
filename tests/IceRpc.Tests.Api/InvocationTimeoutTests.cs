@@ -24,12 +24,12 @@ namespace IceRpc.Tests.Api
                 {
                     var router = new Router();
                     router.Use(next => new InlineDispatcher(
-                    async (current, cancel) =>
-                    {
-                        dispatchDeadline = current.Deadline;
-                        await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
-                        return await next.DispatchAsync(current, cancel);
-                    }));
+                        async (current, cancel) =>
+                        {
+                            dispatchDeadline = current.Deadline;
+                            await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
+                            return await next.DispatchAsync(current, cancel);
+                        }));
                     router.Map<IGreeter>(new Greeter());
                     return router;
                 })

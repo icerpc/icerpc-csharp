@@ -18,7 +18,7 @@ namespace IceRpc
         private long _currentRequests;
         private readonly PollingCounter _failedRequestsCounter;
         private long _failedRequests;
-        private IncrementingPollingCounter _requestsPerSecondCounter;
+        private readonly IncrementingPollingCounter _requestsPerSecondCounter;
         private readonly PollingCounter _totalRequestsCounter;
         private long _totalRequests;
 
@@ -74,11 +74,11 @@ namespace IceRpc
         /// <inheritdoc/>
         protected override void Dispose(bool disposing)
         {
-            _canceledRequestsCounter?.Dispose();
-            _currentRequestsCounter?.Dispose();
-            _failedRequestsCounter?.Dispose();
-            _requestsPerSecondCounter?.Dispose();
-            _totalRequestsCounter?.Dispose();
+            _canceledRequestsCounter.Dispose();
+            _currentRequestsCounter.Dispose();
+            _failedRequestsCounter.Dispose();
+            _requestsPerSecondCounter.Dispose();
+            _totalRequestsCounter.Dispose();
             base.Dispose(disposing);
         }
 

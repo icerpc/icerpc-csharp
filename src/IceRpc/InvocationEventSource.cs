@@ -74,11 +74,11 @@ namespace IceRpc
         /// <inheritdoc/>
         protected override void Dispose(bool disposing)
         {
-            _canceledRequestsCounter?.Dispose();
-            _currentRequestsCounter?.Dispose();
-            _failedRequestsCounter?.Dispose();
-            _requestsPerSecondCounter?.Dispose();
-            _totalRequestsCounter?.Dispose();
+            _canceledRequestsCounter.Dispose();
+            _currentRequestsCounter.Dispose();
+            _failedRequestsCounter.Dispose();
+            _requestsPerSecondCounter.Dispose();
+            _totalRequestsCounter.Dispose();
             base.Dispose(disposing);
         }
 

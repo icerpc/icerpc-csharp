@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
