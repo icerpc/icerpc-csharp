@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
@@ -10,10 +8,6 @@ namespace IceRpc.Transports.Internal
     internal class ColocListener : IListener<ISimpleNetworkConnection>
     {
         public Endpoint Endpoint { get; }
-
-        /// <summary>A dictionary that keeps track of all coloc listeners.</summary>
-        private static readonly IDictionary<Endpoint, ColocListener> _colocListenerDictionary =
-            new ConcurrentDictionary<Endpoint, ColocListener>();
 
         private readonly AsyncQueue<(PipeReader, PipeWriter)> _queue = new();
 
@@ -25,15 +19,9 @@ namespace IceRpc.Transports.Internal
 
         public override string ToString() => $"{base.ToString()} {Endpoint}";
 
-        internal static bool TryGetValue(
-            Endpoint endpoint,
-            [NotNullWhen(returnValue: true)] out ColocListener? listener) =>
-            _colocListenerDictionary.TryGetValue(endpoint, out listener);
-
         public ValueTask DisposeAsync()
         {
             _queue.TryComplete(new ObjectDisposedException(nameof(ColocListener)));
-            _colocListenerDictionary.Remove(Endpoint);
             return default;
         }
 
@@ -42,10 +30,6 @@ namespace IceRpc.Transports.Internal
             if (endpoint.Params.Count > 0)
             {
                 throw new FormatException($"unknown parameter '{endpoint.Params[0].Name}' in endpoint '{endpoint}'");
-            }
-            if (!_colocListenerDictionary.TryAdd(endpoint, this))
-            {
-                throw new TransportException($"endpoint '{endpoint}' is already in use");
             }
             Endpoint = endpoint;
         }

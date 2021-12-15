@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
@@ -27,43 +28,32 @@ namespace IceRpc.Tests.Api
         private const string _sayHelloOperation = "sayHello";
         private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
 
-        private readonly Connection _connection;
-        private readonly Server _server;
+        private readonly ServiceProvider _serviceProvider;
+        private readonly Proxy _proxy;
 
         public SliceFreeTests()
         {
-            var router = new Router();
-            router.Map(_joe, new Greeter(ResultType.Success, _doingWell));
-            router.Map(_austin, new Greeter(ResultType.Failure, _notGood));
-
-            _server = new Server
-            {
-                Dispatcher = router,
-                Endpoint = TestHelper.GetUniqueColocEndpoint(),
-                LoggerFactory = LogAttributeLoggerFactory.Instance
-            };
-
-            _server.Listen();
-            _connection = new Connection
-            {
-                RemoteEndpoint = _server.Endpoint,
-                LoggerFactory = LogAttributeLoggerFactory.Instance
-            };
+            _serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<IDispatcher>(_ =>
+                {
+                    var router = new Router();
+                    router.Map(_joe, new Greeter(ResultType.Success, _doingWell));
+                    router.Map(_austin, new Greeter(ResultType.Failure, _notGood));
+                    return router;
+                })
+                .BuildServiceProvider();
+            _proxy = _serviceProvider.GetRequiredService<Proxy>();
         }
 
         [OneTimeTearDown]
-        public async ValueTask DisposeAsync()
-        {
-            await _connection.DisposeAsync();
-            await _server.DisposeAsync();
-        }
+        public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
 
         [Test]
         public async Task SliceFree_InvokeAsync()
         {
             var payload = new ReadOnlySequence<byte>(_utf8.GetBytes(_greeting));
 
-            var joeProxy = Proxy.FromConnection(_connection, _joe);
+            var joeProxy = _proxy.WithPath(_joe);
             IncomingResponse response = await joeProxy.InvokeAsync(
                 _sayHelloOperation,
                 _customEncoding,
@@ -74,7 +64,7 @@ namespace IceRpc.Tests.Api
             await response.Payload.CompleteAsync(); // done with payload
             Assert.That(greetingResponse, Is.EqualTo(_doingWell));
 
-            var austinProxy = Proxy.FromConnection(_connection, _austin);
+            var austinProxy = _proxy.WithPath(_austin);
             response = await austinProxy.InvokeAsync(_sayHelloOperation, _customEncoding, PipeReader.Create(payload));
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
             Assert.That(response.PayloadEncoding, Is.EqualTo(_customEncoding));
@@ -88,7 +78,7 @@ namespace IceRpc.Tests.Api
         {
             var payload = new ReadOnlySequence<byte>(_utf8.GetBytes(_greeting));
 
-            var badProxy = Proxy.FromConnection(_connection, "/bad");
+            var badProxy = _proxy.WithPath("/bad");
             IncomingResponse response = await badProxy.InvokeAsync(
                 _sayHelloOperation,
                 _customEncoding,
@@ -99,7 +89,7 @@ namespace IceRpc.Tests.Api
             await response.Payload.CompleteAsync(); // done with payload
             // TODO: unfortunately there is currently no way to decode this response (2.0-encoded exception)
 
-            var joeProxy = Proxy.FromConnection(_connection, _joe);
+            var joeProxy = _proxy.WithPath(_joe);
             IServicePrx slicePrx = new ServicePrx(joeProxy);
 
             // the greeter does not implement ice_ping since ice_ping is a Slice operation:
@@ -110,7 +100,7 @@ namespace IceRpc.Tests.Api
         public async Task SliceFree_InvocationAsync()
         {
             var payload = new ReadOnlySequence<byte>(_utf8.GetBytes(_greeting));
-            var joeProxy = Proxy.FromConnection(_connection, _joe);
+            var joeProxy = _proxy.WithPath(_joe);
 
             var invocation = new Invocation { IsOneway = true };
 

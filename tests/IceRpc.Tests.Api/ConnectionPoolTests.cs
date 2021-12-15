@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Collections.Immutable;
 
@@ -9,25 +10,36 @@ namespace IceRpc.Tests.Api
     [Timeout(5000)]
     public class ConnectionPoolTests
     {
+        private readonly ServiceProvider _serviceProvider;
+        private readonly IClientTransport<IMultiplexedNetworkConnection> _clientTransport;
+        private readonly Endpoint _remoteEndpoint;
+
+        public ConnectionPoolTests()
+        {
+            _serviceProvider = new IntegrationTestServiceCollection().BuildServiceProvider();
+            _clientTransport = _serviceProvider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
+            _remoteEndpoint = _serviceProvider.GetRequiredService<Server>().Endpoint;
+        }
+
+        [OneTimeTearDown]
+        public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
+
         [Test]
         public async Task ConnectionPool_Dispatcher()
         {
-            await using var server = new Server()
-            {
-                Endpoint = "ice+coloc://foo"
-            };
-            server.Listen();
-
             var dispatcher = new InlineDispatcher((request, cancel) => default);
+
             await using var connectionPool = new ConnectionPool()
             {
-                Dispatcher = dispatcher
+                Dispatcher = dispatcher,
+                MultiplexedClientTransport = _clientTransport
             };
 
             Connection connection = await connectionPool.GetConnectionAsync(
-                server.Endpoint,
+                _remoteEndpoint,
                 ImmutableList<Endpoint>.Empty,
                 default);
+
             Assert.That(connection.Dispatcher, Is.EqualTo(dispatcher));
         }
 
@@ -41,14 +53,11 @@ namespace IceRpc.Tests.Api
             }
 
             {
-                await using var server = new Server()
-                {
-                    Endpoint = "ice+coloc://foo"
-                };
-                server.Listen();
-
-                var connectionPool = new ConnectionPool();
-                _ = await connectionPool.GetConnectionAsync(server.Endpoint, ImmutableList<Endpoint>.Empty, default);
+                var connectionPool = new ConnectionPool() { MultiplexedClientTransport = _clientTransport };
+                _ = await connectionPool.GetConnectionAsync(
+                    _remoteEndpoint,
+                    ImmutableList<Endpoint>.Empty,
+                    default);
                 await connectionPool.DisposeAsync();
                 await connectionPool.DisposeAsync();
             }
@@ -57,23 +66,18 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task ConnectionPool_ConnectionOptions()
         {
-            await using var server = new Server()
-            {
-                Endpoint = "ice+coloc://connectPoolTests"
-            };
-            server.Listen();
-
             await using var connectionPool = new ConnectionPool()
             {
                 ConnectionOptions = new()
                 {
                     IncomingFrameMaxSize = 2048,
                     KeepAlive = true
-                }
+                },
+                MultiplexedClientTransport = _clientTransport
             };
 
             Connection connection = await connectionPool.GetConnectionAsync(
-                server.Endpoint,
+                _remoteEndpoint,
                 ImmutableList<Endpoint>.Empty,
                 default);
 
@@ -84,26 +88,20 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task ConnectionPool_ConnectionReused()
         {
-            await using var server = new Server()
-            {
-                Endpoint = "ice+coloc://connectPoolTests"
-            };
-            server.Listen();
-
-            await using var connectionPool = new ConnectionPool();
+            await using var connectionPool = new ConnectionPool() { MultiplexedClientTransport = _clientTransport };
 
             Connection connection = await connectionPool.GetConnectionAsync(
-                server.Endpoint,
+                _remoteEndpoint,
                 ImmutableList<Endpoint>.Empty,
                 default);
 
             Connection connection1 = await connectionPool.GetConnectionAsync(
-                server.Endpoint,
+                _remoteEndpoint,
                 ImmutableList<Endpoint>.Empty,
                 default);
 
             Connection connection2 = await connectionPool.GetConnectionAsync(
-                server.Endpoint,
+                _remoteEndpoint,
                 ImmutableList<Endpoint>.Empty,
                 default);
 
@@ -112,38 +110,36 @@ namespace IceRpc.Tests.Api
 
         [TestCase("ice+coloc://connectPoolTests.1", "ice+coloc://connectPoolTests.2")]
         [TestCase("ice+coloc://connectPoolTests:1000", "ice+coloc://connectPoolTests:1002")]
-        [TestCase("ice+tcp://127.0.0.1:0?tls=true", "ice+tls://127.0.0.1:0?tls=false")]
-        [TestCase("ice+tcp://127.0.0.1:0?tls=true", "ice+tls://127.0.0.1:0")]
+        [TestCase("ice+tcp://127.0.0.1:0?tls=true", "ice+tcp://127.0.0.1:0?tls=false")]
+        [TestCase("ice+tcp://127.0.0.1:0?tls=true", "ice+tcp://127.0.0.1:0")]
         public async Task ConnectionPool_ConnectionNotReused(string endpoint1Str, string endpoint2Str)
         {
-            Endpoint endpoint1 = endpoint1Str;
-            Endpoint endpoint2 = endpoint2Str;
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .UseTls()
+                .AddTransient<Endpoint>(_ => endpoint1Str)
+                .BuildServiceProvider();
 
-            IServerTransport<IMultiplexedNetworkConnection> serverTransport = Server.DefaultMultiplexedServerTransport;
-            IClientTransport<IMultiplexedNetworkConnection> clientTransport =
-                Connection.DefaultMultiplexedClientTransport;
-
-            if (endpoint1.Transport == "tcp")
+            await using var server1 = new Server
             {
-                serverTransport = TestHelper.GetSecureMultiplexedServerTransport();
-                clientTransport = TestHelper.GetSecureMultiplexedClientTransport();
-            }
-
-            await using var server1 = new Server()
-            {
-                MultiplexedServerTransport = serverTransport,
-                Endpoint = endpoint1
+                Endpoint = endpoint1Str,
+                MultiplexedServerTransport =
+                    serviceProvider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>()
             };
             server1.Listen();
 
-            await using var server2 = new Server()
+            await using var server2 = new Server
             {
-                MultiplexedServerTransport = serverTransport,
-                Endpoint = endpoint2
+                Endpoint = endpoint2Str,
+                MultiplexedServerTransport =
+                    serviceProvider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>()
             };
             server2.Listen();
 
-            await using var connectionPool = new ConnectionPool { MultiplexedClientTransport = clientTransport };
+            await using var connectionPool = new ConnectionPool
+            {
+                MultiplexedClientTransport =
+                    serviceProvider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>()
+            };
 
             Connection connection1 = await connectionPool.GetConnectionAsync(
                 server1.Endpoint,

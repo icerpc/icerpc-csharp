@@ -9,7 +9,7 @@ namespace IceRpc.Tests.Internal
     [Timeout(5000)]
     public class SlicMultiplexedNetworkConnectionTests
     {
-        [TestCase]
+        [Test]
         public async Task SlicMultiplexedNetworkConnectionTests_Options()
         {
             var clientOptions = new SlicOptions
@@ -43,13 +43,15 @@ namespace IceRpc.Tests.Internal
             SlicOptions clientOptions,
             SlicOptions serverOptions)
         {
+            var colocTransport = new ColocTransport();
+
             IServerTransport<IMultiplexedNetworkConnection> serverTransport =
-                new SlicServerTransport(new ColocServerTransport(), serverOptions);
+                new SlicServerTransport(colocTransport.ServerTransport, serverOptions);
             await using IListener<IMultiplexedNetworkConnection> listener =
                 serverTransport.Listen("ice+coloc://127.0.0.1", LogAttributeLoggerFactory.Instance.Logger);
 
             IClientTransport<IMultiplexedNetworkConnection> clientTransport =
-                new SlicClientTransport(new ColocClientTransport(), clientOptions);
+                new SlicClientTransport(colocTransport.ClientTransport, clientOptions);
             IMultiplexedNetworkConnection clientConnection = clientTransport.CreateConnection(
                 "ice+coloc://127.0.0.1",
                 LogAttributeLoggerFactory.Instance.Logger);

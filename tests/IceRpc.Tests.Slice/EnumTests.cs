@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice
@@ -86,28 +87,29 @@ namespace IceRpc.Tests.Slice
         [TestCase(ProtocolCode.Ice2)]
         public async Task Enum_OperationsAsync(ProtocolCode protocol)
         {
-            await WithEnumOperationsServerAsync(
-                protocol,
-                async (prx) =>
-                {
-                    await TestAsync((p1, p2) => prx.OpMyEnumAsync(p1, p2), MyEnum.enum1, MyEnum.enum10);
-                    await TestAsync((p1, p2) => prx.OpMyFixedLengthEnumAsync(p1, p2),
-                                    MyFixedLengthEnum.senum1,
-                                    MyFixedLengthEnum.senum10);
-                    await TestAsync((p1, p2) => prx.OpMyUncheckedEnumAsync(p1, p2),
-                                    MyUncheckedEnum.E0 | MyUncheckedEnum.E1,
-                                    MyUncheckedEnum.E10 | MyUncheckedEnum.E3);
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .UseProtocol(protocol)
+                .AddTransient<IDispatcher, EnumOperations>()
+                .BuildServiceProvider();
+            var prx = EnumOperationsPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
 
-                    // For checked enums receiving an invalid enumerator throws InvalidDataException
-                    Assert.ThrowsAsync<InvalidDataException>(async () => await prx.OpInvalidMyEnumAsync());
-                    Assert.ThrowsAsync<InvalidDataException>(async () => await prx.OpInvalidMyFixedLengthEnumAsync());
+            await TestAsync((p1, p2) => prx.OpMyEnumAsync(p1, p2), MyEnum.enum1, MyEnum.enum10);
+            await TestAsync((p1, p2) => prx.OpMyFixedLengthEnumAsync(p1, p2),
+                            MyFixedLengthEnum.senum1,
+                            MyFixedLengthEnum.senum10);
+            await TestAsync((p1, p2) => prx.OpMyUncheckedEnumAsync(p1, p2),
+                            MyUncheckedEnum.E0 | MyUncheckedEnum.E1,
+                            MyUncheckedEnum.E10 | MyUncheckedEnum.E3);
 
-                    // Sending an invalid value for a checked enum results in an UnhandledException
-                    Assert.ThrowsAsync<UnhandledException>(
-                        async () => await prx.OpMyEnumAsync((MyEnum)3, MyEnum.enum1));
-                    Assert.ThrowsAsync<UnhandledException>(
-                    async () => await prx.OpMyFixedLengthEnumAsync(0, MyFixedLengthEnum.senum1));
-                });
+            // For checked enums receiving an invalid enumerator throws InvalidDataException
+            Assert.ThrowsAsync<InvalidDataException>(async () => await prx.OpInvalidMyEnumAsync());
+            Assert.ThrowsAsync<InvalidDataException>(async () => await prx.OpInvalidMyFixedLengthEnumAsync());
+
+            // Sending an invalid value for a checked enum results in an UnhandledException
+            Assert.ThrowsAsync<UnhandledException>(
+                async () => await prx.OpMyEnumAsync((MyEnum)3, MyEnum.enum1));
+            Assert.ThrowsAsync<UnhandledException>(
+            async () => await prx.OpMyFixedLengthEnumAsync(0, MyFixedLengthEnum.senum1));
 
             static async Task TestAsync<T>(Func<T, T, Task<(T, T)>> invoker, T p1, T p2)
             {
@@ -115,26 +117,6 @@ namespace IceRpc.Tests.Slice
                 Assert.AreEqual(p1, r1);
                 Assert.AreEqual(p2, r2);
             }
-        }
-
-        private static async Task WithEnumOperationsServerAsync(
-            ProtocolCode protocol,
-            Func<IEnumOperationsPrx, Task> closure)
-        {
-            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
-            await using var server = new Server
-            {
-                Dispatcher = new EnumOperations(),
-                Endpoint = serverEndpoint
-            };
-            server.Listen();
-            await using var connection = new Connection
-            {
-                RemoteEndpoint = serverEndpoint
-            };
-            var prx = EnumOperationsPrx.FromConnection(connection);
-            Assert.AreEqual(protocol, prx.Proxy.Protocol.Code);
-            await closure(prx);
         }
 
         public class EnumOperations : Service, IEnumOperations

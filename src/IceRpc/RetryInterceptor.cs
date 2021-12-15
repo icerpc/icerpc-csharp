@@ -184,7 +184,7 @@ namespace IceRpc
             int maxAttempts,
             Exception? ex)
         {
-            if (logger.IsEnabled(LogLevel.Debug))
+            if (logger.IsEnabled(LogLevel.Information))
             {
                 logger.LogRetryRequest(
                     connection?.NetworkConnectionInformation?.LocalEndpoint.ToString() ?? "undefined",
@@ -201,7 +201,7 @@ namespace IceRpc
         [LoggerMessage(
             EventId = (int)RetryInterceptorEventIds.RetryRequest,
             EventName = nameof(RetryInterceptorEventIds.RetryRequest),
-            Level = LogLevel.Debug,
+            Level = LogLevel.Information,
             Message = "retrying request because of retryable exception (LocalEndpoint={LocalEndpoint}, " +
                       "RemoteEndpoint={RemoteEndpoint}, Path={Path}, Operation={Operation}, " +
                       "RetryPolicy={RetryPolicy}, Attempt={Attempt}/{MaxAttempts})")]

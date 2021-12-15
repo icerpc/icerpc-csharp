@@ -2,6 +2,7 @@
 
 using IceRpc.Configure;
 using IceRpc.Slice;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Api
@@ -15,24 +16,12 @@ namespace IceRpc.Tests.Api
         [TestCase(ProtocolCode.Ice2)]
         public async Task Proxy_ServiceAsync(ProtocolCode protocol)
         {
-            // Tests the IceRpc::Service interface implemented by all typed proxies.
-            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(Protocol.FromProtocolCode(protocol));
-            // protocol == ProtocolCode.Ice1 ? "tcp -h 127.0.0.1 -p 0" : "ice+tcp://127.0.0.1:0?tls=false";
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .UseProtocol(protocol)
+                .AddTransient<IDispatcher, Greeter>()
+                .BuildServiceProvider();
 
-            await using var server = new Server
-            {
-                Dispatcher = new Greeter(),
-                Endpoint = serverEndpoint,
-                LoggerFactory = LogAttributeLoggerFactory.Instance
-            };
-            server.Listen();
-            await using var connection = new Connection
-            {
-                RemoteEndpoint = server.Endpoint,
-                LoggerFactory = LogAttributeLoggerFactory.Instance
-            };
-
-            var prx = GreeterPrx.FromConnection(connection);
+            var prx = GreeterPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
             await prx.IcePingAsync();
 
             string[] ids = new string[]
@@ -74,9 +63,6 @@ namespace IceRpc.Tests.Api
             await prx.IceIdsAsync(invocation);
             await prx.IceIsAAsync("::IceRpc::Tests::Api::Greeter", invocation);
             await prx.AsAsync<GreeterPrx>(invocation);
-
-            await connection.ShutdownAsync();
-            await server.ShutdownAsync();
         }
 
         [TestCase("ice+tcp://localhost:10000/test")]
@@ -270,15 +256,11 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task Proxy_InvokeAsync()
         {
-            await using var server = new Server
-            {
-                Dispatcher = new Greeter(),
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-            server.Listen();
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<IDispatcher, Greeter>()
+                .BuildServiceProvider();
 
-            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
-            var proxy = Proxy.FromConnection(connection, GreeterPrx.DefaultPath);
+            var proxy = Proxy.FromConnection(serviceProvider.GetRequiredService<Connection>(), GreeterPrx.DefaultPath);
 
             IncomingResponse response =
                 await proxy.InvokeAsync("SayHello",
@@ -296,15 +278,11 @@ namespace IceRpc.Tests.Api
         {
             var service = new ProxyTest();
 
-            await using var server = new Server
-            {
-                Dispatcher = service,
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-            server.Listen();
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<IDispatcher>(_ => service)
+                .BuildServiceProvider();
 
-            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
-            var prx = ProxyTestPrx.FromConnection(connection);
+            var prx = ProxyTestPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
 
             ProxyTestPrx? received = await prx.ReceiveProxyAsync();
             Assert.That(received, Is.Null);
@@ -332,35 +310,29 @@ namespace IceRpc.Tests.Api
             var service = new ProxyTest();
 
             // First verify that the invoker of a proxy received over an incoming request is by default null.
-            await using var server1 = new Server
-            {
-                Dispatcher = service,
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-            server1.Listen();
+            await using ServiceProvider serviceProvider1 = new IntegrationTestServiceCollection()
+                .AddTransient<IDispatcher>(_ => service)
+                .BuildServiceProvider();
 
-            await using var connection1 = new Connection { RemoteEndpoint = server1.Endpoint };
-            var prx = ProxyTestPrx.FromConnection(connection1);
+            var prx = ProxyTestPrx.FromConnection(serviceProvider1.GetRequiredService<Connection>());
             await prx.SendProxyAsync(prx);
             Assert.That(service.Prx, Is.Not.Null);
             Assert.That(service.Prx?.Proxy.Invoker, Is.Null);
 
             // Now with a router and the ProxyInvoker middleware - we set the invoker on the proxy received by the
             // service.
-            var router = new Router();
-            router.Map<IProxyTest>(service);
             var pipeline = new Pipeline();
-            router.UseProxyInvoker(pipeline);
 
-            await using var server2 = new Server
-            {
-                Dispatcher = router,
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-            server2.Listen();
-
-            await using var connection2 = new Connection { RemoteEndpoint = server2.Endpoint };
-            prx = ProxyTestPrx.FromConnection(connection2);
+            await using ServiceProvider serviceProvider2 = new IntegrationTestServiceCollection()
+                .AddTransient<IDispatcher>(_ =>
+                {
+                    var router = new Router();
+                    router.Map<IProxyTest>(service);
+                    router.UseProxyInvoker(pipeline);
+                    return router;
+                })
+                .BuildServiceProvider();
+            prx = ProxyTestPrx.FromConnection(serviceProvider2.GetRequiredService<Connection>());
 
             service.Prx = null;
             await prx.SendProxyAsync(prx);
@@ -390,19 +362,11 @@ namespace IceRpc.Tests.Api
         [TestCase("2.1")]
         public async Task Proxy_NotSupportedEncoding(string encoding)
         {
-            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint();
-            await using var server = new Server
-            {
-                Dispatcher = new Greeter(),
-                Endpoint = serverEndpoint
-            };
-            server.Listen();
-            await using var connection = new Connection
-            {
-                RemoteEndpoint = serverEndpoint
-            };
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<IDispatcher, Greeter>()
+                .BuildServiceProvider();
 
-            var prx = GreeterPrx.FromConnection(connection);
+            var prx = GreeterPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
             prx.Proxy.Encoding = Encoding.FromString(encoding);
             await prx.IcePingAsync(); // works fine, we use the protocol's encoding in this case
         }
@@ -436,26 +400,26 @@ namespace IceRpc.Tests.Api
             Assert.That(greeter.Proxy.Endpoint, Is.Null);
 
             dynamic? capture = null;
-            var router = new Router();
-            router.Use(next => new InlineDispatcher((request, cancel) =>
-            {
-                capture = new
+
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<IDispatcher>(_ =>
                 {
-                    ServerConnection = request.Connection,
-                    Service = ServicePrx.FromConnection(request.Connection),
-                    Greeter = GreeterPrx.FromConnection(request.Connection)
-                };
-                return new(new OutgoingResponse(request));
-            }));
+                    var router = new Router();
+                    router.Use(next => new InlineDispatcher((request, cancel) =>
+                    {
+                        capture = new
+                        {
+                            ServerConnection = request.Connection,
+                            Service = ServicePrx.FromConnection(request.Connection),
+                            Greeter = GreeterPrx.FromConnection(request.Connection)
+                        };
+                        return new(new OutgoingResponse(request));
+                    }));
+                    return router;
+                })
+                .BuildServiceProvider();
 
-            await using var server = new Server
-            {
-                Endpoint = "ice+tcp://127.0.0.1:0?tls=false",
-                Dispatcher = router
-            };
-            server.Listen();
-            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
-
+            Connection connection = serviceProvider.GetRequiredService<Connection>();
             proxy = Proxy.FromConnection(connection, ServicePrx.DefaultPath);
             Assert.AreEqual(ServicePrx.DefaultPath, proxy.Path);
             Assert.AreEqual(connection, proxy.Connection);
@@ -469,7 +433,7 @@ namespace IceRpc.Tests.Api
             await ServicePrx.FromConnection(connection).IcePingAsync();
 
             Assert.That(capture, Is.Not.Null);
-            Assert.AreEqual(ServicePrx.DefaultPath, capture.Service.Proxy.Path);
+            Assert.AreEqual(ServicePrx.DefaultPath, capture!.Service.Proxy.Path);
             Assert.AreEqual(capture.ServerConnection, capture.Service.Proxy.Connection);
             Assert.That(capture.Service.Proxy.Endpoint, Is.Null);
 
@@ -478,18 +442,16 @@ namespace IceRpc.Tests.Api
             Assert.That(capture.Greeter.Proxy.Endpoint, Is.Null);
         }
 
-        private class Greeter : Service, IGreeter
+        public class Greeter : Service, IGreeter
         {
-            public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
-                default;
+            public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }
 
         private class ProxyTest : Service, IProxyTest
         {
             internal ProxyTestPrx? Prx { get; set; }
 
-            public ValueTask<ProxyTestPrx?> ReceiveProxyAsync(Dispatch dispatch, CancellationToken cancel) =>
-                new(Prx);
+            public ValueTask<ProxyTestPrx?> ReceiveProxyAsync(Dispatch dispatch, CancellationToken cancel) => new(Prx);
 
             public ValueTask SendProxyAsync(ProxyTestPrx prx, Dispatch dispatch, CancellationToken cancel)
             {

@@ -7,13 +7,13 @@ namespace IceRpc.Transports
     /// <summary>A composite server transport.</summary>
     public class CompositeServerTransport<T> : IServerTransport<T> where T : INetworkConnection
     {
+        /// <inheritdoc/>
+        public Endpoint DefaultEndpoint =>
+            _defaultEndpoint ?? throw new InvalidOperationException("no transport configured");
+
         private Endpoint? _defaultEndpoint;
         private IReadOnlyDictionary<string, IServerTransport<T>>? _transports;
         private readonly Dictionary<string, IServerTransport<T>> _builder = new();
-
-        /// <inheritdoc/>
-        Endpoint IServerTransport<T>.DefaultEndpoint =>
-            _defaultEndpoint ?? throw new InvalidOperationException("no transport configured");
 
         /// <summary>Adds a new server transport to this composite server transport.</summary>
         /// <param name="name">The transport name.</param>

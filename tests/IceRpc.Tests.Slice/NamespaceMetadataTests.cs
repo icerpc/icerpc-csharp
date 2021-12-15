@@ -3,34 +3,32 @@
 using IceRpc.Tests.Slice.NamespaceMD.M1.M2.M3;
 using IceRpc.Tests.Slice.NamespaceMD.WithNamespace;
 using IceRpc.Tests.Slice.NamespaceMD.WithNamespace.N1.N2;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice
 {
     [Timeout(10000)]
-    public sealed class NamespaceMetadataTests : IAsyncDisposable
+    public sealed class NamespaceMetadataTests
     {
-        private readonly Connection _connection;
-        private readonly Server _server;
+        private readonly ServiceProvider _serviceProvider;
+        private readonly Proxy _prx;
 
         public NamespaceMetadataTests()
         {
-            _server = new Server
-            {
-                Dispatcher = new NamespaceMDOperations(),
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
-            };
-            _server.Listen();
-            _connection = new Connection
-            {
-                RemoteEndpoint = _server.Endpoint
-            };
+            _serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<IDispatcher, NamespaceMDOperations>()
+                .BuildServiceProvider();
+            _prx = NamespaceMDOperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>()).Proxy;
         }
+
+        [OneTimeTearDown]
+        public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
 
         [Test]
         public async Task NamespaceMetadata_Definitions()
         {
-            NamespaceMDOperationsPrx prx = NamespaceMDOperationsPrx.FromConnection(_connection);
+            var prx = new NamespaceMDOperationsPrx(_prx.Clone());
 
             C1 c1 = await prx.GetWithNamespaceC2AsC1Async();
             Assert.That(c1, Is.Not.Null);
@@ -45,13 +43,6 @@ namespace IceRpc.Tests.Slice
 
             prx.Proxy.Encoding = Encoding.Ice11;
             Assert.ThrowsAsync<E2>(async () => await prx.ThrowWithNamespaceE2Async());
-        }
-
-        [TearDown]
-        public async ValueTask DisposeAsync()
-        {
-            await _server.DisposeAsync();
-            await _connection.DisposeAsync();
         }
     }
 

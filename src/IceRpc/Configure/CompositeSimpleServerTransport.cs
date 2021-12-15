@@ -13,13 +13,6 @@ namespace IceRpc.Configure
     /// <summary>Extension methods for class <see cref="CompositeServerTransport{ISimpleNetworkConnection}"/>.</summary>
     public static class CompositeSimpleServerTransportExtensions
     {
-        /// <summary>Adds the coloc server transport to this composite server transport.</summary>
-        /// <param name="serverTransport">The transport being configured.</param>
-        /// <returns>The transport being configured.</returns>
-        public static CompositeServerTransport<ISimpleNetworkConnection> UseColoc(
-            this CompositeServerTransport<ISimpleNetworkConnection> serverTransport) =>
-            serverTransport.Add(TransportNames.Coloc, new ColocServerTransport());
-
         /// <summary>Adds the ssl server transport to this composite server transport.</summary>
         /// <param name="serverTransport">The transport being configured.</param>
         /// <param name="options">The TCP server options.</param>

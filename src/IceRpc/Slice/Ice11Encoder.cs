@@ -188,9 +188,8 @@ namespace IceRpc.Slice
                 }
                 else
                 {
-                    IEnumerable<Endpoint> endpoints = proxy.Endpoint.Transport == TransportNames.Coloc ?
-                        proxy.AltEndpoints : Enumerable.Empty<Endpoint>().Append(proxy.Endpoint).Concat(
-                            proxy.AltEndpoints);
+                    IEnumerable<Endpoint> endpoints = Enumerable.Empty<Endpoint>().Append(proxy.Endpoint).Concat(
+                        proxy.AltEndpoints);
 
                     if (endpoints.Any())
                     {
