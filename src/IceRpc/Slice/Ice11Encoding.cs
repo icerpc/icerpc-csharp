@@ -38,7 +38,7 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, in args);
-            Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedBytes - startPos, sizePlaceHolder);
+            Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
@@ -62,7 +62,7 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, arg);
-            Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedBytes - startPos, sizePlaceHolder);
+            Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
@@ -87,7 +87,7 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, in returnValueTuple);
-            Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedBytes - startPos, sizePlaceHolder);
+            Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
@@ -112,7 +112,7 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, returnValue);
-            Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedBytes - startPos, sizePlaceHolder);
+            Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;

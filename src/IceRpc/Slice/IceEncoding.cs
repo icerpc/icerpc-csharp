@@ -44,7 +44,7 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, arg);
-            EncodeFixedLengthSize(encoder.EncodedBytes - startPos, sizePlaceHolder);
+            EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
@@ -67,7 +67,7 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, in args);
-            EncodeFixedLengthSize(encoder.EncodedBytes - startPos, sizePlaceHolder);
+            EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
@@ -181,7 +181,7 @@ namespace IceRpc.Slice
                     int startPos,
                     Memory<byte> sizePlaceholder)
                 {
-                    EncodeFixedLengthSize(encoder.EncodedBytes - startPos, sizePlaceHolder.Span);
+                    EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
                     try
                     {
                         return await writer.FlushAsync().ConfigureAwait(false);
@@ -207,7 +207,7 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encoder.EncodeException(exception);
-            EncodeFixedLengthSize(encoder.EncodedBytes - startPos, sizePlaceHolder);
+            EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
@@ -230,7 +230,7 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, in returnValueTuple);
-            EncodeFixedLengthSize(encoder.EncodedBytes - startPos, sizePlaceHolder);
+            EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
@@ -253,7 +253,7 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, returnValue);
-            EncodeFixedLengthSize(encoder.EncodedBytes - startPos, sizePlaceHolder);
+            EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;

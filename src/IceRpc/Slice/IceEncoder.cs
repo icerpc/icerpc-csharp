@@ -11,9 +11,6 @@ namespace IceRpc.Slice
     /// <summary>Encodes data into one or more byte buffers using the Ice encoding.</summary>
     public abstract class IceEncoder
     {
-        /// <summary>The number of bytes encoded by this encoder into the underlying buffer writer.</summary>
-        public int EncodedBytes { get; private set; }
-
         /// <summary>The Slice encoding associated with this encoder.</summary>
         public abstract IceEncoding Encoding { get; }
 
@@ -21,6 +18,9 @@ namespace IceRpc.Slice
         internal const long VarLongMaxValue = 2_305_843_009_213_693_951; // 2^61 - 1
         internal const ulong VarULongMinValue = 0;
         internal const ulong VarULongMaxValue = 4_611_686_018_427_387_903; // 2^62 - 1
+
+        /// <summary>The number of bytes encoded by this encoder into the underlying buffer writer.</summary>
+        internal int EncodedByteCount { get; private set; }
 
         private static readonly System.Text.UTF8Encoding _utf8 =
             new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true); // no BOM
@@ -78,7 +78,7 @@ namespace IceRpc.Slice
             {
                 int maxSize = _utf8.GetMaxByteCount(v.Length);
                 int sizeLength = GetSizeLength(maxSize);
-                Span<byte> sizePlaceHolder = GetPlaceHolderSpan(sizeLength);
+                Span<byte> sizePlaceholder = GetPlaceholderSpan(sizeLength);
 
                 Span<byte> currentSpan = _bufferWriter.GetSpan();
 
@@ -86,7 +86,7 @@ namespace IceRpc.Slice
                 {
                     // We can encode it directly in currentSpan
                     int size = _utf8.GetBytes(v, currentSpan);
-                    Encoding.EncodeSize(size, sizePlaceHolder);
+                    Encoding.EncodeSize(size, sizePlaceholder);
                     Advance(size);
                 }
                 else
@@ -111,7 +111,7 @@ namespace IceRpc.Slice
 
                         if (completed)
                         {
-                            Encoding.EncodeSize(size, sizePlaceHolder);
+                            Encoding.EncodeSize(size, sizePlaceholder);
                             break;
                         }
                         else
