@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace IceRpc.Slice
 {
@@ -22,12 +23,12 @@ namespace IceRpc.Slice
         /// <summary>The number of bytes encoded by this encoder into the underlying buffer writer.</summary>
         internal int EncodedByteCount { get; private set; }
 
-        private static readonly System.Text.UTF8Encoding _utf8 =
+        private static readonly UTF8Encoding _utf8 =
             new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true); // no BOM
 
         private readonly IBufferWriter<byte> _bufferWriter;
 
-        private System.Text.Encoder? _utf8Encoder; // initialized lazily
+        private Encoder? _utf8Encoder; // initialized lazily
 
         // Encode methods for basic types
 
@@ -87,7 +88,6 @@ namespace IceRpc.Slice
                 Span<byte> sizePlaceholder = GetPlaceholderSpan(sizeLength);
 
                 Span<byte> currentSpan = _bufferWriter.GetSpan(minSpanSize);
-
                 if (maxSize <= currentSpan.Length)
                 {
                     // Encode directly into currentSpan
@@ -107,34 +107,13 @@ namespace IceRpc.Slice
                         _utf8Encoder.Reset();
                     }
 
-                    int size = 0;
                     ReadOnlySpan<char> chars = v.AsSpan();
+                    _utf8Encoder.Convert(chars, _bufferWriter, flush: true, out long bytesUsed, out bool completed);
 
-                    while (true)
-                    {
-                        _utf8Encoder.Convert(
-                            chars,
-                            currentSpan,
-                            flush: chars.IsEmpty,
-                            out int charsUsed,
-                            out int bytesUsed,
-                            out bool completed);
-
-                        Debug.Assert(bytesUsed > 0);
-                        size += bytesUsed;
-                        Advance(bytesUsed);
-
-                        if (completed)
-                        {
-                            Encoding.EncodeSize(size, sizePlaceholder);
-                            break;
-                        }
-                        else
-                        {
-                            currentSpan = _bufferWriter.GetSpan(minSpanSize);
-                            chars = chars[charsUsed..];
-                        }
-                    }
+                    Debug.Assert(completed); // completed is always true when flush is true
+                    int size = checked((int)bytesUsed);
+                    EncodedByteCount += size;
+                    Encoding.EncodeSize(size, sizePlaceholder);
                 }
             }
         }
