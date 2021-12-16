@@ -28,38 +28,33 @@ namespace IceRpc.Transports
             // This is the non-optimized implementation. Derived classes are expected to override this method with an
             // optimized implementation.
 
-            try
-            {
-                FlushResult result = await this.WriteAsync(source, cancel).ConfigureAwait(false);
-
-                if (complete)
-                {
-                    await CancellableCompleteAsync(exception: null, cancel).ConfigureAwait(false);
-                }
-
-                return result;
-            }
-            catch (Exception ex)
-            {
-                if (complete)
-                {
-                    await CancellableCompleteAsync(ex, cancel).ConfigureAwait(false);
-                }
-                throw;
-            }
-
-            async ValueTask CancellableCompleteAsync(Exception? exception, CancellationToken cancel)
+            if (complete)
             {
                 CancellationToken savedToken = CompleteCancellationToken;
                 CompleteCancellationToken = cancel;
                 try
                 {
-                    await CompleteAsync(exception).ConfigureAwait(false);
+                    FlushResult result;
+                    try
+                    {
+                        result = await this.WriteAsync(source, cancel).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        await CompleteAsync(ex).ConfigureAwait(false);
+                        throw;
+                    }
+                    await CompleteAsync().ConfigureAwait(false);
+                    return result;
                 }
                 finally
                 {
                     CompleteCancellationToken = savedToken;
                 }
+            }
+            else
+            {
+                return await this.WriteAsync(source, cancel).ConfigureAwait(false);
             }
         }
     }
