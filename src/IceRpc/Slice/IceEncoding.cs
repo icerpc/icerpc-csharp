@@ -44,7 +44,7 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, arg);
-            encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+            EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
@@ -67,7 +67,7 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, in args);
-            encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+            EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
@@ -181,7 +181,7 @@ namespace IceRpc.Slice
                     int startPos,
                     Memory<byte> sizePlaceholder)
                 {
-                    encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
+                    EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
                     try
                     {
                         return await writer.FlushAsync().ConfigureAwait(false);
@@ -207,7 +207,7 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encoder.EncodeException(exception);
-            encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+            EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
@@ -230,7 +230,7 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, in returnValueTuple);
-            encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+            EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
@@ -253,7 +253,7 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, returnValue);
-            encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+            EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
@@ -272,6 +272,16 @@ namespace IceRpc.Slice
         /// <param name="bufferWriter">The buffer writer.</param>
         /// <returns>A new encoder for the specified Ice encoding.</returns>
         internal abstract IceEncoder CreateIceEncoder(IBufferWriter<byte> bufferWriter);
+
+        /// <summary>Encodes a fixed-length size into a span.</summary>
+        /// <param name="size">The size to encode.</param>
+        /// <param name="into">The destination span. This method uses all its bytes.</param>
+        internal abstract void EncodeFixedLengthSize(int size, Span<byte> into);
+
+        /// <summary>Encodes a variable-length size into a span.</summary>
+        /// <param name="size">The size to encode.</param>
+        /// <param name="into">The destination span. This method uses all its bytes.</param>
+        internal abstract void EncodeSize(int size, Span<byte> into);
 
         private protected IceEncoding(string name)
             : base(name)

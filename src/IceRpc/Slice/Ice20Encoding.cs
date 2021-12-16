@@ -82,6 +82,12 @@ namespace IceRpc.Slice
             }
         }
 
+        internal override void EncodeFixedLengthSize(int size, Span<byte> into) =>
+            Ice20Encoder.EncodeSize(size, into);
+
+        internal override void EncodeSize(int size, Span<byte> into) =>
+            Ice20Encoder.EncodeSize(size, into);
+
         internal override IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
             FeatureCollection features,
             DefaultIceDecoderFactories defaultIceDecoderFactories) =>

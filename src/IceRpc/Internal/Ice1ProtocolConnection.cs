@@ -402,7 +402,7 @@ namespace IceRpc.Internal
                     encodingMinor);
                 requestHeader.Encode(encoder);
 
-                encoder.EncodeFixedLengthSize(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
+                Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
 
                 request.InitialPayloadSink.SetDecoratee(output);
 
@@ -532,7 +532,7 @@ namespace IceRpc.Internal
                             responseHeader.Encode(encoder);
                         }
 
-                        encoder.EncodeFixedLengthSize(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
+                        Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
 
                         await SendPayloadAsync(
                             response,
