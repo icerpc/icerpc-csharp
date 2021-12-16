@@ -2,6 +2,7 @@
 
 using IceRpc.Transports;
 using System.Buffers;
+using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Internal
@@ -81,11 +82,6 @@ namespace IceRpc.Internal
                 Complete(exception);
             }
         }
-
-        public override Task CopyFromAsync(
-            PipeReader source,
-            bool completeWhenDone,
-            CancellationToken cancel) => throw new NotImplementedException();
 
         public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken)
         {

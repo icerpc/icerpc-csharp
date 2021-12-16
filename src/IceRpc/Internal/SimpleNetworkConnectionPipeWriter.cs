@@ -54,11 +54,6 @@ namespace IceRpc.Internal
             }
         }
 
-        public override Task CopyFromAsync(
-            PipeReader source,
-            bool completeWhenDone,
-            CancellationToken cancel) => throw new NotImplementedException();
-
         public override async ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken)
         {
             ThrowIfCompleted();

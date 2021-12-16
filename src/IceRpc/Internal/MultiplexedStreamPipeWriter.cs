@@ -51,63 +51,6 @@ namespace IceRpc.Internal
         public override ValueTask CompleteAsync(Exception? exception = default) =>
             CompleteAsyncCore(exception, CompleteCancellationToken);
 
-        /// <inheritdoc/>
-        public override async Task CopyFromAsync(PipeReader source, bool completeWhenDone, CancellationToken cancel)
-        {
-            ThrowIfCompleted();
-
-            while (true)
-            {
-                ReadResult readResult = await source.ReadAsync(cancel).ConfigureAwait(false);
-
-                if (readResult.IsCanceled)
-                {
-                    throw new OperationCanceledException();
-                }
-
-                if (readResult.Buffer.IsEmpty)
-                {
-                    Debug.Assert(readResult.IsCompleted);
-                }
-                else
-                {
-                    FlushResult flushResult = await FlushAsyncCore(endStream: false, cancel).ConfigureAwait(false);
-
-                    if (flushResult.IsCompleted)
-                    {
-                        throw new
-                    }
-
-                    if (!(await FlushAsyncCore(endStream: false, cancel).ConfigureAwait(false)).IsCompleted)
-                    {
-                        try
-                        {
-                            await _stream.WriteAsync(
-                                new ReadOnlyMemory<byte>[] { readResult.Buffer.ToSingleBuffer() },
-                                endStream: completeWhenDone && readResult.IsCompleted,
-                                cancel).ConfigureAwait(false);
-                        }
-                        catch (MultiplexedStreamAbortedException)
-                        {
-                            _isReaderCompleted = true;
-                            throw;
-                        }
-                    }
-                    source.AdvanceTo(readResult.Buffer.End);
-                }
-
-                if (readResult.IsCompleted)
-                {
-                    break;
-                }
-            }
-
-            if (completeWhenDone)
-            {
-                await CompleteAsyncCore(exception: null, cancel).ConfigureAwait(false);
-            }
-        }
-
         public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken) =>
             FlushAsyncCore(endStream: false, cancellationToken);
 
@@ -128,10 +71,16 @@ namespace IceRpc.Internal
                             endStream: false,
                             cancellationToken).ConfigureAwait(false);
                     }
-                    catch (MultiplexedStreamAbortedException)
+                    catch (MultiplexedStreamAbortedException ex)
                     {
-                        // TODO: confirm this is indeed correct. Should we rethrow?
                         _isReaderCompleted = true;
+
+                        // TODO: Slic and Quic need an "application" error code that means normal reader completion
+                        // even when the writer has not completed (sent endStream) yet.
+                        if (ex.ErrorCode != (byte)MultiplexedStreamError.StreamingCanceledByReader)
+                        {
+                            throw;
+                        }
                     }
                 }
             }
@@ -202,10 +151,16 @@ namespace IceRpc.Internal
                                     cancellationToken).ConfigureAwait(false);
                             }
                         }
-                        catch (MultiplexedStreamAbortedException)
+                        catch (MultiplexedStreamAbortedException ex)
                         {
-                            // TODO: confirm this is indeed correct; should we rethrow?
                             _isReaderCompleted = true;
+
+                            // TODO: Slic and Quic need an "application" error code that means normal reader completion
+                            // even when the writer has not completed (sent endStream) yet.
+                            if (ex.ErrorCode != (byte)MultiplexedStreamError.StreamingCanceledByReader)
+                            {
+                                throw;
+                            }
                         }
                         finally
                         {
@@ -228,10 +183,16 @@ namespace IceRpc.Internal
                                 endStream: true,
                                 cancellationToken).ConfigureAwait(false);
                         }
-                        catch (MultiplexedStreamAbortedException)
+                        catch (MultiplexedStreamAbortedException ex)
                         {
                             _isReaderCompleted = true;
-                            throw;
+
+                            // TODO: Slic and Quic need an "application" error code that means normal reader completion
+                            // even when the writer has not completed (sent endStream) yet.
+                            if (ex.ErrorCode != (byte)MultiplexedStreamError.StreamingCanceledByReader)
+                            {
+                                throw;
+                            }
                         }
                     }
                 }

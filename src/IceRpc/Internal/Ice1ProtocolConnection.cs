@@ -742,26 +742,22 @@ namespace IceRpc.Internal
             {
                 cancel = CancellationToken.None;
             }
-            frameWriter.CompleteCancellationToken = cancel;
 
-            try
-            {
-                // Use the PayloadSink to send PayloadSource. This does nothing if PayloadSource is empty.
-                await outgoingFrame.PayloadSource.CopyToAsync(
+            FlushResult flushResult = outgoingFrame.PayloadSink is AsyncCompletePipeWriter asyncCompleteSink ?
+                await asyncCompleteSink.CopyFromAsync( // optimized path
+                    outgoingFrame.PayloadSource,
+                    completeWhenDone: true,
+                    cancel).ConfigureAwait(false) :
+                await frameWriter.CopyFromAsync( // default path
+                    outgoingFrame.PayloadSource,
                     outgoingFrame.PayloadSink,
+                    completeWhenDone: true,
                     cancel).ConfigureAwait(false);
-            }
-            catch (TaskCanceledException) // CopyToAsync returns a canceled task if cancel is canceled
-            {
-                throw new OperationCanceledException();
-            }
+
+            Debug.Assert(!flushResult.IsCanceled); // not implemented
+            Debug.Assert(!flushResult.IsCompleted); // the reader can't reject the frame without triggering an exception
 
             await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
-            await outgoingFrame.PayloadSink.CompleteAsync().ConfigureAwait(false);
-
-            // Need to call CompleteAsync on frameWriter in case PayloadSink.CompleteAsync calls no-op Complete on
-            // frameWriter.
-            await frameWriter.CompleteAsync().ConfigureAwait(false);
         }
 
         // Helper method that removes a few bytes from the first buffer. The implementation is simple and limited.
