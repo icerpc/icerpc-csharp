@@ -10,6 +10,9 @@ namespace IceRpc.Slice
     public sealed class Ice20Encoder : IceEncoder
     {
         /// <inheritdoc/>
+        public override IceEncoding Encoding => IceRpc.Encoding.Ice20;
+
+        /// <inheritdoc/>
         public override void EncodeException(RemoteException v) => v.Encode(this);
 
         /// <inheritdoc/>
@@ -113,7 +116,5 @@ namespace IceRpc.Slice
             encodeAction(this, value);
             EncodeSize(EncodedByteCount - startPos, sizePlaceholder);
         }
-
-        internal override void EncodeFixedLengthSize(int size, Span<byte> into) => EncodeSize(size, into);
     }
 }
