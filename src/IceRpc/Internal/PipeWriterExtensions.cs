@@ -10,8 +10,7 @@ namespace IceRpc.Internal
     internal static class PipeWriterExtensions
     {
         /// <summary>Copies source to a sink pipe writer. Also optionally completes this sink upon successful
-        /// completion, i.e. when the source is fully read.
-        /// </summary>
+        /// completion, i.e. when the source is fully read.</summary>
         /// <param name="sink">The sink pipe writer.</param>
         /// <param name="source">The source pipe reader.</param>
         /// <param name="completeWhenDone">When true, this method completes the writer after a successful copy.</param>

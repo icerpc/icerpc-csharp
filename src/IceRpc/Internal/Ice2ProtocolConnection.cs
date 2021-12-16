@@ -696,7 +696,7 @@ namespace IceRpc.Internal
 
                         await payloadSourceStream.CompleteAsync(completeReason).ConfigureAwait(false);
 
-                        if (completeReason != null)
+                        if (completeReason == null)
                         {
                             // It wasn't called by CopyFromAsync, so call it now.
                             await outgoingFrame.PayloadSink.CompleteAsync(completeReason).ConfigureAwait(false);
