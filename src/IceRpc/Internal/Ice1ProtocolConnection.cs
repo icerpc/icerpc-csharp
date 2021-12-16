@@ -757,8 +757,8 @@ namespace IceRpc.Internal
 
             if (outgoingFrame.PayloadSink is not AsyncCompletePipeWriter)
             {
-                // The CompleteAsync on the PayloadSink decorator can result in a no-op to Complete on frameWriter, so
-                // we call CompleteAsync again now. It's no-op if it was already called.
+                // The CompleteAsync on the PayloadSink decorator can result in a no-op call to Complete on frameWriter,
+                // so we call CompleteAsync again now. It's no-op if it was already called.
                 await frameWriter.CompleteAsync().ConfigureAwait(false);
             }
         }
