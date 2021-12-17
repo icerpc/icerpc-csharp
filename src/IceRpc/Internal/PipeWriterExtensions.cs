@@ -39,27 +39,16 @@ namespace IceRpc.Internal
                     throw new OperationCanceledException();
                 }
 
-                if (readResult.Buffer.IsEmpty)
+                try
                 {
-                    Debug.Assert(readResult.IsCanceled || readResult.IsCompleted);
-
-                    flushResult = await FlushAsync(
+                    flushResult = await WriteAsync(
+                        readResult.Buffer,
                         complete: completeWhenDone && readResult.IsCompleted,
                         cancel).ConfigureAwait(false);
                 }
-                else
+                finally
                 {
-                    try
-                    {
-                        flushResult = await WriteAsync(
-                            readResult.Buffer,
-                            complete: completeWhenDone && readResult.IsCompleted,
-                            cancel).ConfigureAwait(false);
-                    }
-                    finally
-                    {
-                        source.AdvanceTo(readResult.Buffer.End); // always fully consumed
-                    }
+                    source.AdvanceTo(readResult.Buffer.End); // always fully consumed
                 }
 
                 if (readResult.IsCompleted || readResult.IsCanceled ||
@@ -79,13 +68,6 @@ namespace IceRpc.Internal
             }
 
             return flushResult;
-
-            // Helper local function that takes the "optimized path" when asyncCompleteSink is not null.
-            ValueTask<FlushResult> FlushAsync(
-                bool complete,
-                CancellationToken cancel) =>
-                asyncCompleteSink?.WriteAsync(ReadOnlySequence<byte>.Empty, complete, cancel) ??
-                    sink.FlushAsync(cancel);
 
             // Helper local function that takes the "optimized path" when asyncCompleteSink is not null.
             ValueTask<FlushResult> WriteAsync(

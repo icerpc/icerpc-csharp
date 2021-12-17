@@ -1,9 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using System.Buffers;
-using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Internal
@@ -47,8 +45,30 @@ namespace IceRpc.Internal
             }
         }
 
-        public override ValueTask CompleteAsync(Exception? exception = default) =>
-            CompleteAsyncCore(exception, CompleteCancellationToken);
+        public override async ValueTask CompleteAsync(Exception? exception = default)
+        {
+            if (!_isWriterCompleted)
+            {
+                if (exception != null)
+                {
+                    Complete(exception);
+                }
+                else
+                {
+                    try
+                    {
+                        _ = await FlushAsyncCore(endStream: true, CompleteCancellationToken).ConfigureAwait(false);
+                        _isWriterCompleted = true;
+                        base.Complete();
+                    }
+                    catch (Exception ex)
+                    {
+                        Complete(ex);
+                        throw;
+                    }
+                }
+            }
+        }
 
         public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken) =>
             FlushAsyncCore(endStream: false, cancellationToken);
@@ -91,33 +111,6 @@ namespace IceRpc.Internal
         // implementation calls GetMemory / Advance.
 
         internal MultiplexedStreamPipeWriter(IMultiplexedStream stream) => _stream = stream;
-
-        private async ValueTask CompleteAsyncCore(Exception? exception, CancellationToken cancel)
-        {
-            #pragma warning disable CA1849 // don't want to call CompleteAsync here obviously
-            if (!_isWriterCompleted)
-            {
-                if (exception != null)
-                {
-                    Complete(exception);
-                }
-                else
-                {
-                    try
-                    {
-                        _ = await FlushAsyncCore(endStream: true, cancel).ConfigureAwait(false);
-                        _isWriterCompleted = true;
-                        base.Complete();
-                    }
-                    catch (Exception ex)
-                    {
-                        Complete(ex);
-                        throw;
-                    }
-                }
-            }
-            #pragma warning restore CA1849
-        }
 
         private async ValueTask<FlushResult> FlushAsyncCore(bool endStream, CancellationToken cancellationToken)
         {

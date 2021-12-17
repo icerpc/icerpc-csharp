@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports;
-using System.Buffers;
 using System.IO.Pipelines;
 
 namespace IceRpc.Internal
@@ -13,11 +11,8 @@ namespace IceRpc.Internal
     internal class PipeWriterStream : Stream
     {
         public override bool CanRead => false;
-
         public override bool CanSeek => false;
-
         public override bool CanWrite => true;
-
         public override long Length => throw new NotSupportedException();
 
         public override long Position
@@ -44,7 +39,6 @@ namespace IceRpc.Internal
         }
 
         public override void EndWrite(IAsyncResult asyncResult) => throw new NotSupportedException();
-
         public override void Flush() => throw new NotSupportedException();
 
         public override async Task FlushAsync(CancellationToken cancellationToken)
@@ -58,15 +52,9 @@ namespace IceRpc.Internal
         }
 
         public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
-
         public override void SetLength(long value) => throw new NotSupportedException();
-
-        public override void Write(byte[] buffer, int offset, int count) =>
-            Write(new ReadOnlySpan<byte>(buffer, offset, count));
-
-        public override void Write(ReadOnlySpan<byte> buffer) => _writer.Write(buffer); // makes a copy
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
 
         public override Task WriteAsync(
             byte[] buffer,
