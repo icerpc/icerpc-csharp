@@ -23,9 +23,8 @@ namespace IceRpc.Internal
         {
             if (exception == null)
             {
-                // Ignored, no-op
-                // Unfortunately this is called by System.IO.Pipelines.PipeWriterStream.Dispose as a result of a
-                // stream Dispose.
+                throw new InvalidOperationException(
+                    $"do not call {nameof(Complete)} on a {nameof(MultiplexedStreamPipeWriter)} with a null exception");
             }
             else if (!_isWriterCompleted)
             {

@@ -20,7 +20,9 @@ namespace IceRpc.Internal
         {
             if (exception == null)
             {
-                // no-op
+                throw new InvalidOperationException(
+                    @$"do not call {nameof(Complete)} on a {nameof(SimpleNetworkConnectionPipeWriter)
+                    } with a null exception");
             }
             else
             {

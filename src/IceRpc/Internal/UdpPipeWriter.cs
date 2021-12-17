@@ -20,7 +20,8 @@ namespace IceRpc.Internal
         {
             if (exception == null)
             {
-                // no-op
+                throw new InvalidOperationException(
+                    $"do not call {nameof(Complete)} on a {nameof(UdpPipeWriter)} with a null exception");
             }
             else
             {
@@ -68,7 +69,7 @@ namespace IceRpc.Internal
                             }
                         }
                         _isWriterCompleted = true;
-                        Complete();
+                        base.Complete();
                     }
                     catch (Exception ex)
                     {

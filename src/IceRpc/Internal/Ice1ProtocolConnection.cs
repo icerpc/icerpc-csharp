@@ -742,7 +742,6 @@ namespace IceRpc.Internal
             {
                 cancel = CancellationToken.None;
             }
-
             frameWriter.CompleteCancellationToken = cancel;
 
             FlushResult flushResult = await outgoingFrame.PayloadSink.CopyFromAsync(
@@ -754,13 +753,6 @@ namespace IceRpc.Internal
             Debug.Assert(!flushResult.IsCompleted); // the reader can't reject the frame without triggering an exception
 
             await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
-
-            if (outgoingFrame.PayloadSink is not AsyncCompletePipeWriter)
-            {
-                // The CompleteAsync on the PayloadSink decorator can result in a no-op call to Complete on frameWriter,
-                // so we call CompleteAsync again now. It's no-op if it was already called.
-                await frameWriter.CompleteAsync().ConfigureAwait(false);
-            }
         }
 
         // Helper method that removes a few bytes from the first buffer. The implementation is simple and limited.

@@ -8,11 +8,25 @@ namespace IceRpc.Transports
 {
     /// <summary>A PipeWriter that must be completed asynchronously using <see cref="PipeWriter.CompleteAsync"/>.
     /// </summary>
+    #pragma warning disable CA1001 // _stream's DisposeAsync calls CompleteAsync on this class, not the other around
     public abstract class AsyncCompletePipeWriter : PipeWriter
+    #pragma warning restore CA1001
     {
         /// <summary>The cancellation token used by <see cref="PipeWriter.CompleteAsync"/> for any async call it makes.
         /// </summary>
         public CancellationToken CompleteCancellationToken { get; set; }
+
+        private Stream? _stream;
+
+        /// <inheritdoc/>
+        public override Stream AsStream(bool leaveOpen = false)
+        {
+            if (leaveOpen)
+            {
+                throw new ArgumentException($"{nameof(leaveOpen)} must be false", nameof(leaveOpen));
+            }
+            return _stream ??= new PipeWriterStream(this);
+        }
 
         /// <summary>Writes a read only sequence of bytes to this writer and optionally completes this writer.</summary>
         /// <param name="source">The source sequence.</param>

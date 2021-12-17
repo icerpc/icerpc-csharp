@@ -644,13 +644,6 @@ namespace IceRpc.Internal
 
             await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
 
-            if (completeWhenDone && outgoingFrame.PayloadSink is not AsyncCompletePipeWriter)
-            {
-                // The CompleteAsync on the PayloadSink decorator can result in a no-op call to Complete on frameWriter,
-                // so we call CompleteAsync again now. It's no-op if it was already called.
-                await frameWriter.CompleteAsync().ConfigureAwait(false);
-            }
-
             Debug.Assert(!flushResult.IsCanceled); // not implemented yet
 
             if (flushResult.IsCompleted)
@@ -665,15 +658,15 @@ namespace IceRpc.Internal
 
             if (outgoingFrame.PayloadSourceStream is PipeReader payloadSourceStream)
             {
+                // TODO: better cancellation token?
+                cancel = CancellationToken.None;
+                frameWriter.CompleteCancellationToken = cancel;
+
                 // send payloadSourceStream in the background
                 _ = Task.Run(
                     async () =>
                     {
                         Exception? completeReason = null;
-
-                        // TODO: better cancellation token?
-                        CancellationToken cancel = CancellationToken.None;
-                        frameWriter.CompleteCancellationToken = cancel;
 
                         try
                         {
@@ -681,14 +674,6 @@ namespace IceRpc.Internal
                                 outgoingFrame.PayloadSourceStream,
                                 completeWhenDone: true,
                                 cancel).ConfigureAwait(false);
-
-                            if (outgoingFrame.PayloadSink is not AsyncCompletePipeWriter)
-                            {
-                                // The CompleteAsync on the PayloadSink decorator can result in a no-op call to Complete
-                                // on frameWriter, so we call CompleteAsync again now. It's no-op if it was already
-                                // called.
-                                await frameWriter.CompleteAsync().ConfigureAwait(false);
-                            }
                         }
                         catch (Exception ex)
                         {
@@ -703,7 +688,7 @@ namespace IceRpc.Internal
                             await outgoingFrame.PayloadSink.CompleteAsync(completeReason).ConfigureAwait(false);
                         }
                     },
-                    CancellationToken.None);
+                    cancel);
             }
         }
 
