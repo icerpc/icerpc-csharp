@@ -634,38 +634,45 @@ namespace IceRpc.Internal
             MultiplexedStreamPipeWriter frameWriter,
             CancellationToken cancel)
         {
+            bool completeWhenDone = outgoingFrame.PayloadSourceStream == null;
             frameWriter.CompleteCancellationToken = cancel;
 
-            try
-            {
-                await outgoingFrame.PayloadSource.CopyToAsync(outgoingFrame.PayloadSink, cancel).ConfigureAwait(false);
-            }
-            catch (TaskCanceledException) // CopyToAsync returns a canceled task if cancel is canceled
-            {
-                throw new OperationCanceledException();
-            }
-
-            // We need to call FlushAsync in case PayloadSource was empty and CopyToAsync didn't do anything.
-            FlushResult flushResult = await outgoingFrame.PayloadSink.FlushAsync(cancel).ConfigureAwait(false);
+            FlushResult flushResult = await outgoingFrame.PayloadSink.CopyFromAsync(
+                outgoingFrame.PayloadSource,
+                completeWhenDone,
+                cancel).ConfigureAwait(false);
 
             await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
 
-            if (!flushResult.IsCompleted && outgoingFrame.PayloadSourceStream is PipeReader payloadSourceStream)
+            Debug.Assert(!flushResult.IsCanceled); // not implemented yet
+
+            if (flushResult.IsCompleted)
             {
+                // The remote reader stopped reading the stream without error.
+                // TODO: which exception should we throw here?
+                throw new MultiplexedStreamAbortedException((byte)MultiplexedStreamError.StreamingCanceledByReader);
+            }
+
+            // The caller calls CompleteAsync on the payload source/sink if an exception is thrown by CopyFromAsync
+            // above.
+
+            if (outgoingFrame.PayloadSourceStream is PipeReader payloadSourceStream)
+            {
+                // TODO: better cancellation token?
+                cancel = CancellationToken.None;
+                frameWriter.CompleteCancellationToken = cancel;
+
                 // send payloadSourceStream in the background
                 _ = Task.Run(
                     async () =>
                     {
                         Exception? completeReason = null;
 
-                        // TODO: better cancellation token?
-                        CancellationToken cancel = CancellationToken.None;
-                        frameWriter.CompleteCancellationToken = cancel;
-
                         try
                         {
-                            await payloadSourceStream.CopyToAsync(
-                                outgoingFrame.PayloadSink,
+                            _ = await outgoingFrame.PayloadSink.CopyFromAsync(
+                                outgoingFrame.PayloadSourceStream,
+                                completeWhenDone: true,
                                 cancel).ConfigureAwait(false);
                         }
                         catch (Exception ex)
@@ -674,28 +681,15 @@ namespace IceRpc.Internal
                         }
 
                         await payloadSourceStream.CompleteAsync(completeReason).ConfigureAwait(false);
-                        await outgoingFrame.PayloadSink.CompleteAsync(completeReason).ConfigureAwait(false);
 
                         if (completeReason == null)
                         {
-                            // Need to call it again directly on frameWriter in case the PayloadSink.CompleteAsync
-                            // ended up calling the no-op frameWriter.Complete.
-                            await frameWriter.CompleteAsync().ConfigureAwait(false);
+                            // It wasn't called by CopyFromAsync, so call it now.
+                            await outgoingFrame.PayloadSink.CompleteAsync(completeReason).ConfigureAwait(false);
                         }
                     },
-                    CancellationToken.None);
+                    cancel);
             }
-            else
-            {
-                // The implementation of frameWriter.CompleteAsync uses cancel set earlier.
-                await outgoingFrame.PayloadSink.CompleteAsync().ConfigureAwait(false);
-
-                // Need to call it again directly on frameWriter in case the PayloadSink.CompleteAsync
-                // ended up calling the no-op frameWriter.Complete.
-                await frameWriter.CompleteAsync().ConfigureAwait(false);
-            }
-
-            // The caller CompleteAsync the payload source/sink if an exception is thrown by CopyToAsync.
         }
 
         private async Task WaitForShutdownAsync()

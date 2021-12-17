@@ -20,7 +20,9 @@ namespace IceRpc.Internal
         {
             if (exception == null)
             {
-                // no-op
+                throw new InvalidOperationException(
+                    @$"do not call {nameof(Complete)} on a {nameof(SimpleNetworkConnectionPipeWriter)
+                    } with a null exception");
             }
             else
             {
@@ -53,11 +55,6 @@ namespace IceRpc.Internal
                 }
             }
         }
-
-        public override Task CopyFromAsync(
-            PipeReader source,
-            bool completeWhenDone,
-            CancellationToken cancel) => throw new NotImplementedException();
 
         public override async ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken)
         {

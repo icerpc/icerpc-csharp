@@ -5,7 +5,9 @@ using System.IO.Pipelines;
 namespace IceRpc.Internal
 {
     /// <summary>A PipeWriter decorator where the decoratee is provided later through SetDecoratee.</summary>
+    #pragma warning disable CA1001 // _stream's DisposeAsync calls CompleteAsync on this class, not the other around
     internal class DelayedPipeWriterDecorator : PipeWriter
+    #pragma warning restore CA1001
     {
         public override bool CanGetUnflushedBytes => Decoratee.CanGetUnflushedBytes;
         public override long UnflushedBytes => Decoratee.UnflushedBytes;
@@ -13,11 +15,21 @@ namespace IceRpc.Internal
         private PipeWriter Decoratee => _decoratee ?? throw new InvalidOperationException("pipe writer not set yet");
         private PipeWriter? _decoratee;
 
+        private Stream? _stream;
+
         public override void Advance(int bytes) => Decoratee.Advance(bytes);
 
-        // TODO: we may want to implement and return a DelayedWriteStreamDecorator here.
-        // We can't just forward to Decoratee as it's legitimate to call AsStream before the decoratee is set.
-        // public override Stream AsStream(bool leaveOpen = false) => Decoratee.AsStream(leaveOpen);
+        /// <inheritdoc/>
+        public override Stream AsStream(bool leaveOpen = false)
+        {
+            // AsStream is usually called before the decoratee is set.
+
+            if (leaveOpen)
+            {
+                throw new ArgumentException($"{nameof(leaveOpen)} must be false", nameof(leaveOpen));
+            }
+            return _stream ??= new PipeWriterStream(this);
+        }
 
         public override void CancelPendingFlush() => Decoratee.CancelPendingFlush();
         public override void Complete(Exception? exception) => _decoratee?.Complete(exception);

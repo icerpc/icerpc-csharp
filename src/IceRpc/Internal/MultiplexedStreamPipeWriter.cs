@@ -21,9 +21,8 @@ namespace IceRpc.Internal
         {
             if (exception == null)
             {
-                // Ignored, no-op
-                // Unfortunately this is called by System.IO.Pipelines.PipeWriterStream.Dispose as a result of a
-                // stream Dispose.
+                throw new InvalidOperationException(
+                    $"do not call {nameof(Complete)} on a {nameof(MultiplexedStreamPipeWriter)} with a null exception");
             }
             else if (!_isWriterCompleted)
             {
@@ -71,11 +70,6 @@ namespace IceRpc.Internal
             }
         }
 
-        public override Task CopyFromAsync(
-            PipeReader source,
-            bool completeWhenDone,
-            CancellationToken cancel) => throw new NotImplementedException();
-
         public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken) =>
             FlushAsyncCore(endStream: false, cancellationToken);
 
@@ -96,10 +90,16 @@ namespace IceRpc.Internal
                             endStream: false,
                             cancellationToken).ConfigureAwait(false);
                     }
-                    catch (MultiplexedStreamAbortedException)
+                    catch (MultiplexedStreamAbortedException ex)
                     {
-                        // TODO: confirm this is indeed correct. Should we rethrow?
                         _isReaderCompleted = true;
+
+                        // TODO: Slic and Quic need an "application" error code that means normal reader completion
+                        // even when the writer has not completed (sent endStream) yet.
+                        if (ex.ErrorCode != (byte)MultiplexedStreamError.StreamingCanceledByReader)
+                        {
+                            throw;
+                        }
                     }
                 }
             }
@@ -143,10 +143,16 @@ namespace IceRpc.Internal
                                     cancellationToken).ConfigureAwait(false);
                             }
                         }
-                        catch (MultiplexedStreamAbortedException)
+                        catch (MultiplexedStreamAbortedException ex)
                         {
-                            // TODO: confirm this is indeed correct; should we rethrow?
                             _isReaderCompleted = true;
+
+                            // TODO: Slic and Quic need an "application" error code that means normal reader completion
+                            // even when the writer has not completed (sent endStream) yet.
+                            if (ex.ErrorCode != (byte)MultiplexedStreamError.StreamingCanceledByReader)
+                            {
+                                throw;
+                            }
                         }
                         finally
                         {
@@ -169,10 +175,16 @@ namespace IceRpc.Internal
                                 endStream: true,
                                 cancellationToken).ConfigureAwait(false);
                         }
-                        catch (MultiplexedStreamAbortedException)
+                        catch (MultiplexedStreamAbortedException ex)
                         {
                             _isReaderCompleted = true;
-                            throw;
+
+                            // TODO: Slic and Quic need an "application" error code that means normal reader completion
+                            // even when the writer has not completed (sent endStream) yet.
+                            if (ex.ErrorCode != (byte)MultiplexedStreamError.StreamingCanceledByReader)
+                            {
+                                throw;
+                            }
                         }
                     }
                 }

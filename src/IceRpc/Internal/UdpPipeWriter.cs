@@ -20,7 +20,8 @@ namespace IceRpc.Internal
         {
             if (exception == null)
             {
-                // no-op
+                throw new InvalidOperationException(
+                    $"do not call {nameof(Complete)} on a {nameof(UdpPipeWriter)} with a null exception");
             }
             else
             {
@@ -68,7 +69,7 @@ namespace IceRpc.Internal
                             }
                         }
                         _isWriterCompleted = true;
-                        Complete();
+                        base.Complete();
                     }
                     catch (Exception ex)
                     {
@@ -81,11 +82,6 @@ namespace IceRpc.Internal
                 Complete(exception);
             }
         }
-
-        public override Task CopyFromAsync(
-            PipeReader source,
-            bool completeWhenDone,
-            CancellationToken cancel) => throw new NotImplementedException();
 
         public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken)
         {
