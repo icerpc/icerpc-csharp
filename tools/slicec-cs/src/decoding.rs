@@ -483,7 +483,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
                     format!(
                         "\
 request.ToAsyncEnumerable<{param_type}>(
-    request.GetIceDecoderFactory(_defaultIceDecoderFactories),
+    request.GetActivator(_defaultActivator),
     {decode_func});",
                         param_type = param_type_str,
                         decode_func = decode_func(param_type, namespace).indent()
@@ -494,7 +494,7 @@ request.ToAsyncEnumerable<{param_type}>(
                         "\
 response.ToAsyncEnumerable<{param_type}>(
     invoker,
-    response.GetIceDecoderFactory(_defaultIceDecoderFactories),
+    response.GetActivator(_defaultActivator),
     {decode_func});",
                         param_type = param_type_str,
                         decode_func = decode_func(param_type, namespace).indent()

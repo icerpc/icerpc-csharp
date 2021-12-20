@@ -86,30 +86,32 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
 
         exception_class_builder.add_block(
             FunctionBuilder::new(&access, "", &exception_name, FunctionType::BlockBody)
-                .add_parameter("IceDecoder", "decoder", None, None) // 1.1
+                .add_parameter("IceDecoder", "decoder", None, None)
                 .add_base_parameter("decoder")
-                .set_body(initialize_non_nullable_fields(
-                    &members,
-                    FieldType::Exception,
-                ))
+                .set_body({
+                    let mut code = CodeBlock::new();
+                    if !has_base && !members.is_empty() && !exception_def.uses_classes() {
+                        writeln!(code, "\
+if (decoder.Encoding == IceRpc.Encoding.Ice11)
+{{
+    {initialize_non_nullable_fields}
+}}
+else
+{{
+    {decode_data_members}
+}}
+                        ",
+                        initialize_non_nullable_fields =
+                            initialize_non_nullable_fields(&members, FieldType::Exception).indent(),
+                        decode_data_members = decode_data_members(&members, namespace,  FieldType::Exception).indent())
+                    } else {
+                        code.writeln(&initialize_non_nullable_fields(&members, FieldType::Exception))
+                    }
+                    code
+                })
                 .add_never_editor_browsable_attribute()
                 .build(),
         );
-
-        if !has_base && !exception_def.uses_classes() {
-            // public constructor used for Ice 2.0 decoding
-            exception_class_builder.add_block(
-                FunctionBuilder::new(&access, "", &exception_name, FunctionType::BlockBody)
-                    .add_parameter("IceDecoder", "decoder", None, None)
-                    .add_base_parameter("decoder")
-                    .set_body(decode_data_members(
-                        &members,
-                        namespace,
-                        FieldType::Exception,
-                    ))
-                    .build(),
-            );
-        }
 
         // Remote exceptions are always "preserved".
         exception_class_builder.add_block(

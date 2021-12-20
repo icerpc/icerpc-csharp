@@ -383,9 +383,7 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
             // Verify the payload is indeed empty (it can contain tagged params that we have to skip).
             code.writeln(
                 "\
-await request.CheckEmptyArgsAsync(
-    request.GetIceDecoderFactory(_defaultIceDecoderFactories),
-    cancel).ConfigureAwait(false);",
+await request.CheckEmptyArgsAsync(cancel).ConfigureAwait(false);",
             );
         }
         [parameter] => {

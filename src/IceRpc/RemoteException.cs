@@ -83,7 +83,6 @@ namespace IceRpc
         // This implementation is only called on a plain RemoteException.
         protected virtual void IceDecode(IceDecoder decoder)
         {
-            Debug.Assert(decoder.Encoding == Encoding.Ice11);
         }
 
         /// <summary>Encodes a remote exception to an <see cref="Ice11Encoder"/>.</summary>
