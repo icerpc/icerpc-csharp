@@ -1,8 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
+using IceRpc.Features;
 using System.Buffers;
-using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 
@@ -17,6 +16,7 @@ namespace IceRpc.Slice.Internal
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <param name="activator">The Slice activator.</param>
+        /// <param name="decoderOptions">Options for the decorator created by this method.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The remote exception.</returns>
         /// <remarks>The reader is always completed when this method returns.</remarks>
@@ -26,6 +26,7 @@ namespace IceRpc.Slice.Internal
             Connection connection,
             IInvoker? invoker,
             IActivator activator,
+            IceDecoderOptions? decoderOptions,
             CancellationToken cancel)
         {
             RemoteException result;
@@ -45,7 +46,13 @@ namespace IceRpc.Slice.Internal
                     throw new InvalidDataException("empty remote exception");
                 }
 
-                var decoder = new IceDecoder(readResult.Buffer, encoding, connection, invoker, activator);
+                var decoder = new IceDecoder(
+                    readResult.Buffer,
+                    encoding,
+                    connection,
+                    invoker,
+                    activator,
+                    decoderOptions);
                 result = decoder.DecodeException();
 
                 if (result is not UnknownSlicedRemoteException)
@@ -116,6 +123,7 @@ namespace IceRpc.Slice.Internal
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
         /// <param name="activator">The Slice activator.</param>
+        /// <param name="decoderOptions">Options for the decorator created by this method.</param>
         /// <param name="decodeFunc">The decode function.</param>
         /// <param name="hasStream">When true, T is or includes a stream parameter or return value.</param>
         /// <param name="cancel">The cancellation token.</param>
@@ -129,6 +137,7 @@ namespace IceRpc.Slice.Internal
             Connection connection,
             IInvoker? invoker,
             IActivator activator,
+            IceDecoderOptions? decoderOptions,
             DecodeFunc<IceDecoder, T> decodeFunc,
             bool hasStream,
             CancellationToken cancel)
@@ -150,7 +159,13 @@ namespace IceRpc.Slice.Internal
                 // any tagged param or all the tagged params are null. We still decode such an empty segment to make
                 // sure decodeFunc is fine with it.
 
-                var decoder = new IceDecoder(readResult.Buffer, encoding, connection, invoker, activator);
+                var decoder = new IceDecoder(
+                    readResult.Buffer,
+                    encoding,
+                    connection,
+                    invoker,
+                    activator,
+                    decoderOptions);
                 value = decodeFunc(decoder);
                 decoder.CheckEndOfBuffer(skipTaggedParams: true);
 
@@ -216,6 +231,7 @@ namespace IceRpc.Slice.Internal
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
         /// <param name="activator">The Slice activator.</param>
+        /// <param name="decoderOptions">Options for the decorator created by this method.</param>
         /// <param name="decodeFunc">The function used to decode the streamed param.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <remarks>The implementation currently always uses segments.</remarks>
@@ -225,6 +241,7 @@ namespace IceRpc.Slice.Internal
             Connection connection,
             IInvoker? invoker,
             IActivator activator,
+            IceDecoderOptions? decoderOptions,
             Func<IceDecoder, T> decodeFunc,
             [EnumeratorCancellation] CancellationToken cancel = default)
         {
@@ -257,7 +274,14 @@ namespace IceRpc.Slice.Internal
                 if (!readResult.Buffer.IsEmpty)
                 {
                     // TODO: it would be nice to reuse the same decoder for all iterations
-                    var decoder = new IceDecoder(readResult.Buffer, encoding, connection, invoker, activator);
+                    var decoder = new IceDecoder(
+                        readResult.Buffer,
+                        encoding,
+                        connection,
+                        invoker,
+                        activator,
+                        decoderOptions);
+
                     T value = default!;
                     do
                     {

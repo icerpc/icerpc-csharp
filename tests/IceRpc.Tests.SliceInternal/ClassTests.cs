@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
-using IceRpc.Internal;
+using IceRpc.Features;
 using IceRpc.Slice;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -55,7 +55,7 @@ namespace IceRpc.Tests.SliceInternal
                 ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
                 ReadOnlyMemory<byte> data = readResult.Buffer.ToArray();
                 request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
-                var decoder = new Ice11Decoder(data);
+                var decoder = new IceDecoder(data, Encoding.Ice11);
 
                 // Skip payload size
                 decoder.Skip(4);
@@ -71,7 +71,7 @@ namespace IceRpc.Tests.SliceInternal
                 readResult = await response.Payload.ReadAllAsync(cancel);
                 Assert.That(readResult.Buffer.IsSingleSegment);
 
-                decoder = new Ice11Decoder(readResult.Buffer.First);
+                decoder = new IceDecoder(readResult.Buffer.First, Encoding.Ice11);
 
                 // Skip payload size
                 decoder.Skip(4);
@@ -94,7 +94,7 @@ namespace IceRpc.Tests.SliceInternal
                 ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
                 ReadOnlyMemory<byte> data = readResult.Buffer.ToArray();
                 request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
-                var decoder = new Ice11Decoder(data);
+                var decoder = new IceDecoder(data, Encoding.Ice11);
 
                 // Skip payload size
                 decoder.Skip(4);
@@ -109,7 +109,7 @@ namespace IceRpc.Tests.SliceInternal
                 readResult = await response.Payload.ReadAllAsync(cancel);
                 Assert.That(readResult.Buffer.IsSingleSegment);
 
-                decoder = new Ice11Decoder(readResult.Buffer.First);
+                decoder = new IceDecoder(readResult.Buffer.First, Encoding.Ice11);
 
                 // Skip payload size
                 decoder.Skip(4);
@@ -132,7 +132,7 @@ namespace IceRpc.Tests.SliceInternal
                 ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
                 ReadOnlyMemory<byte> data = readResult.Buffer.ToArray();
                 request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
-                var decoder = new Ice11Decoder(data);
+                var decoder = new IceDecoder(data, Encoding.Ice11);
 
                 // Skip payload size
                 decoder.Skip(4);
@@ -147,7 +147,7 @@ namespace IceRpc.Tests.SliceInternal
                 readResult = await response.Payload.ReadAllAsync(cancel);
                 Assert.That(readResult.Buffer.IsSingleSegment);
 
-                decoder = new Ice11Decoder(readResult.Buffer.First);
+                decoder = new IceDecoder(readResult.Buffer.First, Encoding.Ice11);
 
                 // Skip payload size
                 decoder.Skip(4);
@@ -169,7 +169,7 @@ namespace IceRpc.Tests.SliceInternal
                 ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
                 ReadOnlyMemory<byte> data = readResult.Buffer.ToArray();
                 request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
-                var decoder = new Ice11Decoder(data);
+                var decoder = new IceDecoder(data, Encoding.Ice11);
 
                 // Skip payload size
                 decoder.Skip(4);
@@ -184,7 +184,7 @@ namespace IceRpc.Tests.SliceInternal
                 readResult = await response.Payload.ReadAllAsync(cancel);
                 Assert.That(readResult.Buffer.IsSingleSegment);
 
-                decoder = new Ice11Decoder(readResult.Buffer.First);
+                decoder = new IceDecoder(readResult.Buffer.First, Encoding.Ice11);
 
                 // Skip payload size
                 decoder.Skip(4);
@@ -221,10 +221,8 @@ namespace IceRpc.Tests.SliceInternal
                     router.Use(next => new InlineDispatcher(
                         (request, cancel) =>
                         {
-                            request.Features = new FeatureCollection(request.Features);
-                            request.Features.Set<IIceDecoderFactory<Ice11Decoder>>(
-                                new Ice11DecoderFactory(Ice11Decoder.GetActivator(typeof(ClassTests).Assembly),
-                                                        serverClassGraphMaxDepth));
+                            request.Features = request.Features.With(
+                                new IceDecoderOptions { ClassGraphMaxDepth = serverClassGraphMaxDepth });
                             return next.DispatchAsync(request, cancel);
                         }));
                     return router;
@@ -238,10 +236,8 @@ namespace IceRpc.Tests.SliceInternal
                 async (request, cancel) =>
                 {
                     IncomingResponse response = await next.InvokeAsync(request, cancel);
-                    response.Features = new FeatureCollection(response.Features);
-                    response.Features.Set<IIceDecoderFactory<Ice11Decoder>>(
-                         new Ice11DecoderFactory(Ice11Decoder.GetActivator(typeof(ClassTests).Assembly),
-                                                 clientClassGraphMaxDepth));
+                    response.Features = response.Features.With(
+                        new IceDecoderOptions { ClassGraphMaxDepth = clientClassGraphMaxDepth });
 
                     return response;
                 }));

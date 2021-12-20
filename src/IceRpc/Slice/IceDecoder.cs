@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports.Internal;
@@ -69,19 +70,19 @@ namespace IceRpc.Slice
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
         /// <param name="activator">The activator.</param>
-        /// <param name="classGraphMaxDepth">The maximum depth for a graph of Slice class instances.</param>
+        /// <param name="options">Options for this decoder.</param>
         public IceDecoder(
             ReadOnlyMemory<byte> buffer,
             IceEncoding encoding,
             Connection? connection = null,
             IInvoker? invoker = null,
             IActivator? activator = null,
-            int classGraphMaxDepth = 100) // TODO: shouldn't be class-specific
+            IceDecoderOptions? options = null)
         {
             Encoding = encoding;
 
             _activator = activator;
-            _classGraphMaxDepth = classGraphMaxDepth;
+            _classGraphMaxDepth = options?.ClassGraphMaxDepth ?? 100;
             Connection = connection;
             Invoker = invoker;
             Pos = 0;
@@ -94,15 +95,15 @@ namespace IceRpc.Slice
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
         /// <param name="activator">The activator.</param>
-        /// <param name="classGraphMaxDepth">The maximum depth for a graph of Slice class instances.</param>
+        /// <param name="options">Options for this decoder.</param>
         public IceDecoder(
             ReadOnlySequence<byte> buffer,
             IceEncoding encoding,
             Connection? connection = null,
             IInvoker? invoker = null,
             IActivator? activator = null,
-            int classGraphMaxDepth = 100)
-            : this(buffer.ToSingleBuffer(), encoding, connection, invoker, activator, classGraphMaxDepth)
+            IceDecoderOptions? options = null)
+            : this(buffer.ToSingleBuffer(), encoding, connection, invoker, activator, options)
         {
         }
 

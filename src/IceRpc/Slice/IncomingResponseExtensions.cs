@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Slice.Internal;
 
 namespace IceRpc.Slice
@@ -30,6 +31,7 @@ namespace IceRpc.Slice
                     response.Connection,
                     invoker,
                     activator,
+                    response.Features.Get<IceDecoderOptions>(),
                     cancel).ConfigureAwait(false);
             }
         }
@@ -49,6 +51,7 @@ namespace IceRpc.Slice
                 response.Connection,
                 invoker,
                 activator,
+                response.Features.Get<IceDecoderOptions>(),
                 decodeFunc);
 
         /// <summary>Decodes a response payload.</summary>
@@ -73,6 +76,7 @@ namespace IceRpc.Slice
                     response.Connection,
                     invoker,
                     activator,
+                    response.Features.Get<IceDecoderOptions>(),
                     decodeFunc,
                     hasStream,
                     cancel).ConfigureAwait(false) :
@@ -81,6 +85,7 @@ namespace IceRpc.Slice
                     response.Connection,
                     invoker,
                     activator,
+                    response.Features.Get<IceDecoderOptions>(),
                     cancel).ConfigureAwait(false);
     }
 }

@@ -24,7 +24,7 @@ namespace IceRpc.Tests.SliceInternal
             var buffer = new byte[1024 * 1024];
             _bufferWriter = new SingleBufferWriter(buffer);
             _encoder = _encoding.CreateIceEncoder(_bufferWriter);
-            _decoder = _encoding == IceRpc.Encoding.Ice11 ? new Ice11Decoder(buffer) : new Ice20Decoder(buffer);
+            _decoder = new IceDecoder(buffer, _encoding);
         }
 
         [TestCase(0)]

@@ -14,9 +14,9 @@ namespace IceRpc.Tests.Slice
         [Test]
         public void Activator_CreateInstance()
         {
-            IActivator<Ice11Decoder> activator = Ice11Decoder.GetActivator(typeof(Ice11Decoder).Assembly);
+            IActivator activator = IceDecoder.GetActivator(typeof(IceDecoder).Assembly);
 
-            Ice11Decoder decoder = null!;
+            var decoder = new IceDecoder(ReadOnlyMemory<byte>.Empty, Encoding.Ice11);
 
             Assert.That(activator.CreateInstance("::IceRpc::ServiceNotFoundException", decoder), Is.Not.Null);
 
@@ -36,7 +36,7 @@ namespace IceRpc.Tests.Slice
             Assert.That(activator.CreateInstance("::IceRpc::Tests::ReferencedAssemblies::ExceptionC", decoder), Is.Null);
             Assert.That(activator.CreateInstance("::IceRpc::Tests::ReferencedAssemblies::ExceptionD", decoder), Is.Null);
 
-            activator = Ice11Decoder.GetActivator(typeof(ClassA).Assembly);
+            activator = IceDecoder.GetActivator(typeof(ClassA).Assembly);
             Assert.That(activator.CreateInstance(ClassA.IceTypeId, decoder), Is.Not.Null);
 
             Assert.That(activator.CreateInstance(ClassB.IceTypeId, decoder), Is.Null);
@@ -56,7 +56,7 @@ namespace IceRpc.Tests.Slice
             Assert.That(activator.CreateInstance("::IceRpc::Tests::ReferencedAssemblies::ExceptionD", decoder), Is.Null);
 
             // Create an activator that knows about A and B assemblies
-            activator = Ice11Decoder.GetActivator(new Assembly[]
+            activator = IceDecoder.GetActivator(new Assembly[]
             {
                 typeof(ClassA).Assembly,
                 typeof(ClassB).Assembly
@@ -80,7 +80,7 @@ namespace IceRpc.Tests.Slice
             Assert.That(activator.CreateInstance("::IceRpc::Tests::ReferencedAssemblies::ExceptionD", decoder), Is.Null);
 
             // Create an activator that knows about A, B and C assemblies
-            activator = Ice11Decoder.GetActivator(new Assembly[]
+            activator = IceDecoder.GetActivator(new Assembly[]
             {
                 typeof(ClassA).Assembly,
                 typeof(ClassB).Assembly,
@@ -105,7 +105,7 @@ namespace IceRpc.Tests.Slice
             Assert.That(activator.CreateInstance("::IceRpc::Tests::ReferencedAssemblies::ExceptionD", decoder), Is.Null);
 
             // Create an activator that knows about A, B, C and D assemblies
-            activator = Ice11Decoder.GetActivator(new Assembly[]
+            activator = IceDecoder.GetActivator(new Assembly[]
             {
                 typeof(ClassA).Assembly,
                 typeof(ClassB).Assembly,

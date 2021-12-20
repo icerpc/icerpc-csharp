@@ -26,7 +26,7 @@ namespace IceRpc.Tests.SliceInternal
             var buffer = new byte[256];
             _bufferWriter = new SingleBufferWriter(buffer);
             _encoder = _encoding.CreateIceEncoder(_bufferWriter);
-            _decoder = _encoding == IceRpc.Encoding.Ice11 ? new Ice11Decoder(buffer) : new Ice20Decoder(buffer);
+            _decoder = new IceDecoder(buffer, _encoding);
         }
 
         [TestCase(true)]
@@ -205,7 +205,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 pipe.Reader.TryRead(out ReadResult readResult);
                 ReadOnlyMemory<byte> buffer = readResult.Buffer.ToSingleBuffer();
-                IceDecoder decoder = _encoding == Encoding.Ice11 ? new Ice11Decoder(buffer) : new Ice20Decoder(buffer);
+                var decoder = new IceDecoder(buffer, _encoding);
 
                 for (int i = 0; i < 20; ++i)
                 {

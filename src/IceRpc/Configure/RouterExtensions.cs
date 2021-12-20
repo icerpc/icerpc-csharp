@@ -50,7 +50,7 @@ namespace IceRpc.Configure
         /// <param name="router">The router being configured.</param>
         /// <param name="assemblies">One or more assemblies that contain Slice generated code.</param>
         /// <returns>The router being configured.</returns>
-        /// <seealso cref="IActivator{T}"/>
+        /// <seealso cref="IActivator"/>
         public static Router UseSliceAssemblies(this Router router, params Assembly[] assemblies) =>
             router.Use(next => new SliceAssembliesMiddleware(next, assemblies));
 

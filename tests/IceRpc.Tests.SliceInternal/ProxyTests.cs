@@ -28,8 +28,7 @@ namespace IceRpc.Tests.SliceInternal
 
             await using var connection = new Connection();
 
-            IceDecoder decoder = encoding == Encoding.Ice11 ? new Ice11Decoder(buffer, connection) :
-                new Ice20Decoder(buffer, connection);
+            var decoder = new IceDecoder(buffer, encoding, connection);
             Proxy proxy2 = decoder.DecodeProxy();
             decoder.CheckEndOfBuffer(skipTaggedParams: false);
             Assert.AreEqual(proxy, proxy2);
@@ -58,9 +57,7 @@ namespace IceRpc.Tests.SliceInternal
             buffer = bufferWriter.WrittenBuffer;
 
             // Decodes the endpointless proxy using the client connection. We get back a 1-endpoint proxy
-            IceDecoder decoder = encoding == IceRpc.Encoding.Ice11 ?
-                new Ice11Decoder(buffer, connection) :
-                new Ice20Decoder(buffer, connection);
+            var decoder = new IceDecoder(buffer, encoding, connection);
 
             Proxy proxy1 = decoder.DecodeProxy();
             decoder.CheckEndOfBuffer(skipTaggedParams: false);
