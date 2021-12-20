@@ -45,7 +45,7 @@ namespace IceRpc.Slice
         public static ValueTask<T> ToArgsAsync<T>(
             this IncomingRequest request,
             IActivator defaultActivator,
-            DecodeFunc<IceDecoder, T> decodeFunc,
+            DecodeFunc<T> decodeFunc,
             bool hasStream,
             CancellationToken cancel) =>
             request.Payload.ReadValueAsync(

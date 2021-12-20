@@ -16,7 +16,7 @@ using static IceRpc.Slice.Internal.Ice11Definitions;
 namespace IceRpc.Slice
 {
     /// <summary>Decodes a byte buffer encoded using the Ice encoding.</summary>
-    public partial class IceDecoder
+    public sealed partial class IceDecoder
     {
         /// <summary>The Slice encoding decoded by this decoder.</summary>
         public IceEncoding Encoding { get; }
@@ -604,7 +604,7 @@ namespace IceRpc.Slice
         /// <param name="decodeFunc">A decode function that decodes the value of this tag.</param>
         /// <returns>The decoded value of the tagged parameter or data member, or null if not found.</returns>
         /// <remarks>When T is a value type, it should be a nullable value type such as int?.</remarks>
-        public T DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<IceDecoder, T> decodeFunc)
+        public T DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<T> decodeFunc)
         {
             if (Encoding == IceRpc.Encoding.Ice11)
             {

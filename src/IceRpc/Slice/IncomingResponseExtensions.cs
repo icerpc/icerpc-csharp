@@ -66,7 +66,7 @@ namespace IceRpc.Slice
             this IncomingResponse response,
             IInvoker? invoker,
             IActivator defaultActivator,
-            DecodeFunc<IceDecoder, T> decodeFunc,
+            DecodeFunc<T> decodeFunc,
             bool hasStream,
             CancellationToken cancel) =>
             response.ResultType == ResultType.Success ?

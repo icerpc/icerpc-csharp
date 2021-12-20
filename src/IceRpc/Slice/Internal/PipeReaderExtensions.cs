@@ -138,7 +138,7 @@ namespace IceRpc.Slice.Internal
             IInvoker? invoker,
             IActivator activator,
             int classGraphMaxDepth,
-            DecodeFunc<IceDecoder, T> decodeFunc,
+            DecodeFunc<T> decodeFunc,
             bool hasStream,
             CancellationToken cancel)
         {
