@@ -65,28 +65,27 @@ namespace IceRpc.Tests.Internal
             Assert.CatchAsync<OperationCanceledException>(async () => await task);
         }
 
-        // TODO: flow control doesn't appear to work as expected and this test sporadically fails. This needs to be
-        // investigated.
-        // [Test]
-        // public async Task SimpleNetworkConnection_SendCancellation()
-        // {
-        //     Memory<byte> buffer = new byte[1024 * 1024];
-        //     var buffers = new ReadOnlyMemory<byte>[] { buffer };
+        [Test]
+        public async Task SimpleNetworkConnection_SendCancellation()
+        {
+            // Send a buffer large enough to ensure TCP send blocks on all platforms.
+            Memory<byte> buffer = new byte[10 * 1024 * 1024];
+            var buffers = new ReadOnlyMemory<byte>[] { buffer };
 
-        //     using var source = new CancellationTokenSource();
-        //     while (!_clientConnection.WriteAsync(buffers, source.Token).AsTask().IsCompleted)
-        //     {
-        //         // Wait for send to block.
-        //     }
+            using var source = new CancellationTokenSource();
+            Task task;
+            while ((task = _clientConnection.WriteAsync(buffers, source.Token).AsTask()).IsCompleted)
+            {
+                // Wait for send to block.
+            }
 
-        //     Task task = _clientConnection.WriteAsync(buffers, source.Token).AsTask();
-        //     Assert.That(task.IsCompleted, Is.False);
-        //     await Task.Delay(500);
-        //     Assert.That(task.IsCompleted, Is.False);
+            Assert.That(task.IsCompleted, Is.False);
+            await Task.Delay(500);
+            Assert.That(task.IsCompleted, Is.False);
 
-        //     source.Cancel();
-        //     Assert.CatchAsync<OperationCanceledException>(async () => await task);
-        // }
+            source.Cancel();
+            Assert.CatchAsync<OperationCanceledException>(async () => await task);
+        }
 
         [Test]
         public async Task SimpleNetworkConnection_SendReceive()
