@@ -26,7 +26,7 @@ namespace IceRpc.Slice.Internal
             Connection connection,
             IInvoker? invoker,
             IActivator activator,
-            ClassGraphMaxDepth? classGraphMaxDepth,
+            int classGraphMaxDepth,
             CancellationToken cancel)
         {
             RemoteException result;
@@ -137,7 +137,7 @@ namespace IceRpc.Slice.Internal
             Connection connection,
             IInvoker? invoker,
             IActivator activator,
-            ClassGraphMaxDepth? classGraphMaxDepth,
+            int classGraphMaxDepth,
             DecodeFunc<IceDecoder, T> decodeFunc,
             bool hasStream,
             CancellationToken cancel)
@@ -241,7 +241,7 @@ namespace IceRpc.Slice.Internal
             Connection connection,
             IInvoker? invoker,
             IActivator activator,
-            ClassGraphMaxDepth? classGraphMaxDepth,
+            int classGraphMaxDepth,
             Func<IceDecoder, T> decodeFunc,
             [EnumeratorCancellation] CancellationToken cancel = default)
         {

@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
-using IceRpc.Features;
 using IceRpc.Slice;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -221,8 +220,7 @@ namespace IceRpc.Tests.SliceInternal
                     router.Use(next => new InlineDispatcher(
                         (request, cancel) =>
                         {
-                            request.Features = request.Features.With(
-                                new ClassGraphMaxDepth { Value = serverClassGraphMaxDepth });
+                            request.Features = request.Features.WithClassGraphMaxDepth(serverClassGraphMaxDepth);
                             return next.DispatchAsync(request, cancel);
                         }));
                     return router;
@@ -236,8 +234,7 @@ namespace IceRpc.Tests.SliceInternal
                 async (request, cancel) =>
                 {
                     IncomingResponse response = await next.InvokeAsync(request, cancel);
-                    response.Features = response.Features.With(
-                        new ClassGraphMaxDepth { Value = clientClassGraphMaxDepth });
+                    response.Features = response.Features.WithClassGraphMaxDepth(clientClassGraphMaxDepth);
 
                     return response;
                 }));

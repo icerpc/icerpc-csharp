@@ -77,12 +77,19 @@ namespace IceRpc.Slice
             Connection? connection = null,
             IInvoker? invoker = null,
             IActivator? activator = null,
-            ClassGraphMaxDepth? classGraphMaxDepth = null)
+            int classGraphMaxDepth = -1)
         {
             Encoding = encoding;
 
             _activator = activator;
-            _classGraphMaxDepth = classGraphMaxDepth?.Value ?? 100;
+            _classGraphMaxDepth = classGraphMaxDepth == -1 ? 100 : classGraphMaxDepth;
+            if (_classGraphMaxDepth < 1)
+            {
+                throw new ArgumentException(
+                    $"{nameof(classGraphMaxDepth)} must be -1 or greater than 1",
+                    nameof(classGraphMaxDepth));
+            }
+
             Connection = connection;
             Invoker = invoker;
             Pos = 0;
@@ -102,7 +109,7 @@ namespace IceRpc.Slice
             Connection? connection = null,
             IInvoker? invoker = null,
             IActivator? activator = null,
-            ClassGraphMaxDepth? classGraphMaxDepth = null)
+            int classGraphMaxDepth = -1)
             : this(buffer.ToSingleBuffer(), encoding, connection, invoker, activator, classGraphMaxDepth)
         {
         }

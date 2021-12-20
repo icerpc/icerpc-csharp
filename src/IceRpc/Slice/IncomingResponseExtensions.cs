@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Features;
 using IceRpc.Slice.Internal;
 
 namespace IceRpc.Slice
@@ -31,7 +30,7 @@ namespace IceRpc.Slice
                     response.Connection,
                     invoker,
                     activator,
-                    response.Features.Get<ClassGraphMaxDepth>(),
+                    response.Features.GetClassGraphMaxDepth(),
                     cancel).ConfigureAwait(false);
             }
         }
@@ -51,7 +50,7 @@ namespace IceRpc.Slice
                 response.Connection,
                 invoker,
                 activator,
-                response.Features.Get<ClassGraphMaxDepth>(),
+                response.Features.GetClassGraphMaxDepth(),
                 decodeFunc);
 
         /// <summary>Decodes a response payload.</summary>
@@ -76,7 +75,7 @@ namespace IceRpc.Slice
                     response.Connection,
                     invoker,
                     activator,
-                    response.Features.Get<ClassGraphMaxDepth>(),
+                    response.Features.GetClassGraphMaxDepth(),
                     decodeFunc,
                     hasStream,
                     cancel).ConfigureAwait(false) :
@@ -85,7 +84,7 @@ namespace IceRpc.Slice
                     response.Connection,
                     invoker,
                     activator,
-                    response.Features.Get<ClassGraphMaxDepth>(),
+                    response.Features.GetClassGraphMaxDepth(),
                     cancel).ConfigureAwait(false);
     }
 }
