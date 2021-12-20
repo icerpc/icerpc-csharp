@@ -5,31 +5,14 @@ namespace IceRpc.Slice
     /// <summary>Extension methods for incoming frames.</summary>
     public static class IncomingFrameExtensions
     {
-        /// <summary>Gets the frame Ice decoder factory for decoding the payload. The default Ice decoder factory
-        /// for the payload encoding is used if no factory is set with the frame <see cref="Features"/>.</summary>
+        /// <summary>Gets the Slice activator used to locate classes and exceptions during decoding.</summary>
         /// <param name="frame">The incoming frame.</param>
-        /// <param name="defaultIceDecoderFactories">The default Ice decoder factories.</param>
-        public static IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
-            this IncomingFrame frame,
-            DefaultIceDecoderFactories defaultIceDecoderFactories)
-        {
-            if (frame.PayloadEncoding is IceEncoding payloadEncoding)
-            {
-                return payloadEncoding.GetIceDecoderFactory(frame.Features, defaultIceDecoderFactories);
-            }
-            else
-            {
-                throw new NotSupportedException($"cannot decode payload encoded with {frame.PayloadEncoding}");
-            }
-        }
+        /// <param name="defaultActivator">The default activator</param>
+        public static IActivator GetActivator(this IncomingFrame frame, IActivator defaultActivator) =>
+            frame.Features.Get<IActivator>() ?? defaultActivator;
 
-        /// <summary>Gets the frame Ice decoder factory for decoding the payload. The default Ice decoder factory
-        /// is used if no factory is set with the frame <see cref="Features"/>.</summary>
-        /// <param name="frame">The incoming frame.</param>
-        /// <param name="defaultIceDecoderFactory">The default Ice decoder factory.</param>
-        public static IIceDecoderFactory<TDecoder> GetIceDecoderFactory<TDecoder>(
-            this IncomingFrame frame,
-            IIceDecoderFactory<TDecoder> defaultIceDecoderFactory) where TDecoder : IceDecoder =>
-                frame.Features.Get<IIceDecoderFactory<TDecoder>>() ?? defaultIceDecoderFactory;
+        internal static IceEncoding GetSlicePayloadEncoding(this IncomingFrame frame) =>
+            frame.PayloadEncoding is IceEncoding encoding ? encoding :
+                throw new NotSupportedException($"unsupported encoding '{frame.PayloadEncoding}'");
     }
 }

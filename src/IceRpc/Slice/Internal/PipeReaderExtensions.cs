@@ -13,24 +13,26 @@ namespace IceRpc.Slice.Internal
     {
         /// <summary>Reads/decodes a remote exception from a response payload represented by a pipe reader.</summary>
         /// <param name="reader">The pipe reader.</param>
+        /// <param name="encoding">The Slice encoding version.</param>
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
-        /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
+        /// <param name="activator">The Slice activator.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The remote exception.</returns>
         /// <remarks>The reader is always completed when this method returns.</remarks>
         internal static async ValueTask<RemoteException> ReadRemoteExceptionAsync(
             this PipeReader reader,
+            IceEncoding encoding,
             Connection connection,
             IInvoker? invoker,
-            IIceDecoderFactory<IceDecoder> iceDecoderFactory,
+            IActivator activator,
             CancellationToken cancel)
         {
             RemoteException result;
             try
             {
                 ReadResult readResult = await reader.ReadSegmentAsync(
-                    iceDecoderFactory.Encoding,
+                    encoding,
                     cancel).ConfigureAwait(false);
 
                 if (readResult.IsCanceled)
@@ -43,7 +45,7 @@ namespace IceRpc.Slice.Internal
                     throw new InvalidDataException("empty remote exception");
                 }
 
-                IceDecoder decoder = iceDecoderFactory.CreateIceDecoder(readResult.Buffer, connection, invoker);
+                var decoder = new IceDecoder(readResult.Buffer, encoding, connection, invoker, activator);
                 result = decoder.DecodeException();
 
                 if (result is not UnknownSlicedRemoteException)
@@ -108,12 +110,12 @@ namespace IceRpc.Slice.Internal
         }
 
         /// <summary>Reads/decodes a value from a pipe reader.</summary>
-        /// <paramtype name="TDecoder">The type of the Ice decoder.</paramtype>
         /// <paramtype name="T">The type of the value.</paramtype>
         /// <param name="reader">The pipe reader.</param>
+        /// <param name="encoding">The Slice encoding version.</param>
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
-        /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
+        /// <param name="activator">The Slice activator.</param>
         /// <param name="decodeFunc">The decode function.</param>
         /// <param name="hasStream">When true, T is or includes a stream parameter or return value.</param>
         /// <param name="cancel">The cancellation token.</param>
@@ -121,21 +123,22 @@ namespace IceRpc.Slice.Internal
         /// <remarks>This method marks the reader as completed when this method throws an exception or when it succeeds
         /// and hasStream is false. When this methods returns a T with a stream, the returned stream is responsible to
         /// complete the pipe reader.</remarks>
-        internal static async ValueTask<T> ReadValueAsync<TDecoder, T>(
+        internal static async ValueTask<T> ReadValueAsync<T>(
             this PipeReader reader,
+            IceEncoding encoding,
             Connection connection,
             IInvoker? invoker,
-            IIceDecoderFactory<TDecoder> iceDecoderFactory,
-            DecodeFunc<TDecoder, T> decodeFunc,
+            IActivator activator,
+            DecodeFunc<IceDecoder, T> decodeFunc,
             bool hasStream,
-            CancellationToken cancel) where TDecoder : IceDecoder
+            CancellationToken cancel)
         {
             T value;
 
             try
             {
                 ReadResult readResult = await reader.ReadSegmentAsync(
-                    iceDecoderFactory.Encoding,
+                    encoding,
                     cancel).ConfigureAwait(false);
 
                 if (readResult.IsCanceled)
@@ -147,7 +150,7 @@ namespace IceRpc.Slice.Internal
                 // any tagged param or all the tagged params are null. We still decode such an empty segment to make
                 // sure decodeFunc is fine with it.
 
-                TDecoder decoder = iceDecoderFactory.CreateIceDecoder(readResult.Buffer, connection, invoker);
+                var decoder = new IceDecoder(readResult.Buffer, encoding, connection, invoker, activator);
                 value = decodeFunc(decoder);
                 decoder.CheckEndOfBuffer(skipTaggedParams: true);
 
@@ -173,18 +176,18 @@ namespace IceRpc.Slice.Internal
 
         /// <summary>Reads/decodes empty args or a void return value.</summary>
         /// <param name="reader">The pipe reader.</param>
-        /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
+        /// <param name="encoding">The Slice encoding version.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <remarks>The reader is always completed when this method returns.</remarks>
         internal static async ValueTask ReadVoidAsync(
             this PipeReader reader,
-            IIceDecoderFactory<IceDecoder> iceDecoderFactory,
+            IceEncoding encoding,
             CancellationToken cancel)
         {
             try
             {
                 ReadResult readResult = await reader.ReadSegmentAsync(
-                    iceDecoderFactory.Encoding,
+                    encoding,
                     cancel).ConfigureAwait(false);
 
                 if (readResult.IsCanceled)
@@ -194,10 +197,7 @@ namespace IceRpc.Slice.Internal
 
                 if (!readResult.Buffer.IsEmpty)
                 {
-                    IceDecoder decoder = iceDecoderFactory.CreateIceDecoder(
-                        readResult.Buffer,
-                        invoker: null,
-                        connection: null);
+                    var decoder = new IceDecoder(readResult.Buffer, encoding);
                     decoder.CheckEndOfBuffer(skipTaggedParams: true);
                     reader.AdvanceTo(readResult.Buffer.End);
                 }
@@ -212,17 +212,19 @@ namespace IceRpc.Slice.Internal
 
         /// <summary>Creates an async enumerable over a pipe reader.</summary>
         /// <param name="reader">The pipe reader.</param>
+        /// <param name="encoding">The Slice encoding version.</param>
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
-        /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
+        /// <param name="activator">The Slice activator.</param>
         /// <param name="decodeFunc">The function used to decode the streamed param.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <remarks>The implementation currently always uses segments.</remarks>
         internal static async IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this PipeReader reader,
+            IceEncoding encoding,
             Connection connection,
             IInvoker? invoker,
-            IIceDecoderFactory<IceDecoder> iceDecoderFactory,
+            IActivator activator,
             Func<IceDecoder, T> decodeFunc,
             [EnumeratorCancellation] CancellationToken cancel = default)
         {
@@ -238,9 +240,7 @@ namespace IceRpc.Slice.Internal
 
                 try
                 {
-                    readResult = await reader.ReadSegmentAsync(
-                        iceDecoderFactory.Encoding,
-                        cancel).ConfigureAwait(false);
+                    readResult = await reader.ReadSegmentAsync(encoding, cancel).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -257,7 +257,7 @@ namespace IceRpc.Slice.Internal
                 if (!readResult.Buffer.IsEmpty)
                 {
                     // TODO: it would be nice to reuse the same decoder for all iterations
-                    IceDecoder decoder = iceDecoderFactory.CreateIceDecoder(readResult.Buffer, connection, invoker);
+                    var decoder = new IceDecoder(readResult.Buffer, encoding, connection, invoker, activator);
                     T value = default!;
                     do
                     {

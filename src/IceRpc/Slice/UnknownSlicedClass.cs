@@ -12,7 +12,7 @@ namespace IceRpc.Slice
         protected override ImmutableList<SliceInfo> IceUnknownSlices { get; set; } = ImmutableList<SliceInfo>.Empty;
 
         /// <inheritdoc/>
-        protected override void IceDecode(Ice11Decoder decoder)
+        protected override void IceDecode(IceDecoder decoder)
         {
         }
 

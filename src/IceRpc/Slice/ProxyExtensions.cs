@@ -80,7 +80,7 @@ namespace IceRpc.Slice
         /// <param name="payloadEncoding">The encoding of the request payload.</param>
         /// <param name="payloadSource">The payload source of the request.</param>
         /// <param name="payloadSourceStream">The payload source stream of the request.</param>
-        /// <param name="defaultIceDecoderFactories">The default Ice decoder factories.</param>
+        /// <param name="defaultActivator">The default Slice activator.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="idempotent">When true, the request is idempotent.</param>
         /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
@@ -96,7 +96,7 @@ namespace IceRpc.Slice
             IceEncoding payloadEncoding,
             PipeReader payloadSource,
             PipeReader? payloadSourceStream,
-            DefaultIceDecoderFactories defaultIceDecoderFactories,
+            IActivator defaultActivator,
             Invocation? invocation,
             bool idempotent = false,
             bool oneway = false,
@@ -121,7 +121,7 @@ namespace IceRpc.Slice
 
                 await response.CheckVoidReturnValueAsync(
                     proxy.Invoker,
-                    response.GetIceDecoderFactory(defaultIceDecoderFactories),
+                    response.GetActivator(defaultActivator),
                     cancel).ConfigureAwait(false);
             }
         }

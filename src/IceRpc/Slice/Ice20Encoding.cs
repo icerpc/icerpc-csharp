@@ -88,11 +88,6 @@ namespace IceRpc.Slice
         internal override void EncodeSize(int size, Span<byte> into) =>
             Ice20Encoder.EncodeSize(size, into);
 
-        internal override IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
-            FeatureCollection features,
-            DefaultIceDecoderFactories defaultIceDecoderFactories) =>
-            features.Get<IIceDecoderFactory<Ice20Decoder>>() ?? defaultIceDecoderFactories.Ice20DecoderFactory;
-
         private Ice20Encoding()
             : base(Ice20Name)
         {

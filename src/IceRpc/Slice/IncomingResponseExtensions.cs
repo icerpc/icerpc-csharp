@@ -11,24 +11,25 @@ namespace IceRpc.Slice
         /// <summary>Decodes a response when the corresponding operation returns void.</summary>
         /// <param name="response">The incoming response.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
-        /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
+        /// <param name="activator">The Slice activator.</param>
         /// <param name="cancel">The cancellation token.</param>
         public static async ValueTask CheckVoidReturnValueAsync(
             this IncomingResponse response,
             IInvoker? invoker,
-            IIceDecoderFactory<IceDecoder> iceDecoderFactory,
+            IActivator activator,
             CancellationToken cancel)
         {
             if (response.ResultType == ResultType.Success)
             {
-                await response.Payload.ReadVoidAsync(iceDecoderFactory, cancel).ConfigureAwait(false);
+                await response.Payload.ReadVoidAsync(response.GetSlicePayloadEncoding(), cancel).ConfigureAwait(false);
             }
             else
             {
                 throw await response.Payload.ReadRemoteExceptionAsync(
+                    response.GetSlicePayloadEncoding(),
                     response.Connection,
                     invoker,
-                    iceDecoderFactory,
+                    activator,
                     cancel).ConfigureAwait(false);
             }
         }
@@ -36,48 +37,50 @@ namespace IceRpc.Slice
         /// <summary>Creates an async enumerable over the payload reader of an incoming response.</summary>
         /// <param name="response">The response.</param>
         /// <param name="invoker">The invoker.</param>
-        /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
+        /// <param name="activator">The Slice activator.</param>
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
         public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this IncomingResponse response,
             IInvoker? invoker,
-            IIceDecoderFactory<IceDecoder> iceDecoderFactory,
+            IActivator activator,
             Func<IceDecoder, T> decodeFunc) =>
             response.Payload.ToAsyncEnumerable<T>(
+                response.GetSlicePayloadEncoding(),
                 response.Connection,
                 invoker,
-                iceDecoderFactory,
+                activator,
                 decodeFunc);
 
         /// <summary>Decodes a response payload.</summary>
-        /// <paramtype name="TDecoder">The type of the Ice decoder.</paramtype>
         /// <paramtype name="T">The type of the return value.</paramtype>
         /// <param name="response">The incoming response.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
-        /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
+        /// <param name="activator">The Slice activator.</param>
         /// <param name="decodeFunc">The decode function for the return value.</param>
         /// <param name="hasStream">When true, T is or includes a stream return.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The return value.</returns>
-        public static async ValueTask<T> ToReturnValueAsync<TDecoder, T>(
+        public static async ValueTask<T> ToReturnValueAsync<T>(
             this IncomingResponse response,
             IInvoker? invoker,
-            IIceDecoderFactory<TDecoder> iceDecoderFactory,
-            DecodeFunc<TDecoder, T> decodeFunc,
+            IActivator activator,
+            DecodeFunc<IceDecoder, T> decodeFunc,
             bool hasStream,
-            CancellationToken cancel) where TDecoder : IceDecoder =>
+            CancellationToken cancel) =>
             response.ResultType == ResultType.Success ?
                 await response.Payload.ReadValueAsync(
+                    response.GetSlicePayloadEncoding(),
                     response.Connection,
                     invoker,
-                    iceDecoderFactory,
+                    activator,
                     decodeFunc,
                     hasStream,
                     cancel).ConfigureAwait(false) :
                 throw await response.Payload.ReadRemoteExceptionAsync(
+                    response.GetSlicePayloadEncoding(),
                     response.Connection,
                     invoker,
-                    iceDecoderFactory,
+                    activator,
                     cancel).ConfigureAwait(false);
     }
 }

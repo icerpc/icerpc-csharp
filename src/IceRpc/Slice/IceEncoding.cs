@@ -264,10 +264,6 @@ namespace IceRpc.Slice
             PipeReader reader,
             CancellationToken cancel);
 
-        internal abstract IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
-            FeatureCollection features,
-            DefaultIceDecoderFactories defaultIceDecoderFactories);
-
         /// <summary>Creates an Ice encoder for this encoding.</summary>
         /// <param name="bufferWriter">The buffer writer.</param>
         /// <returns>A new encoder for the specified Ice encoding.</returns>

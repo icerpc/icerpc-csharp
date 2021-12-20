@@ -123,7 +123,7 @@ namespace IceRpc.Internal
 
                 try
                 {
-                    var decoder = new Ice11Decoder(buffer);
+                    var decoder = new IceDecoder(buffer, Encoding.Ice11);
 
                     var requestHeader = new Ice1RequestHeader(decoder);
                     if (requestHeader.IdentityAndFacet.Identity.Name.Length == 0)
@@ -239,7 +239,7 @@ namespace IceRpc.Internal
             try
             {
                 // Decode the response.
-                var decoder = new Ice11Decoder(buffer);
+                var decoder = new IceDecoder(buffer, Encoding.Ice11);
 
                 // we keep 4 extra bytes in the response buffer to be able to write the payload size before an ice1
                 // system exception

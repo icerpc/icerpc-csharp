@@ -110,7 +110,7 @@ namespace IceRpc.Internal
                         throw new InvalidDataException($"received ice2 request with empty header");
                     }
 
-                    var decoder = new Ice20Decoder(readResult.Buffer.ToSingleBuffer());
+                    var decoder = new IceDecoder(readResult.Buffer.ToSingleBuffer(), Encoding.Ice20);
                     header = new Ice2RequestHeader(decoder);
                     fields = decoder.DecodeFieldDictionary();
                     reader.AdvanceTo(readResult.Buffer.End);
@@ -235,7 +235,7 @@ namespace IceRpc.Internal
                     throw new InvalidDataException($"received ice2 response with empty header");
                 }
 
-                var decoder = new Ice20Decoder(readResult.Buffer.ToSingleBuffer());
+                var decoder = new IceDecoder(readResult.Buffer.ToSingleBuffer(), Encoding.Ice20);
                 header = new Ice2ResponseHeader(decoder);
                 fields = decoder.DecodeFieldDictionary();
                 responseReader.AdvanceTo(readResult.Buffer.End);
@@ -499,7 +499,7 @@ namespace IceRpc.Internal
 
             // Read the protocol parameters which are encoded as IceRpc.Fields.
 
-            var decoder = new Ice20Decoder(buffer);
+            var decoder = new IceDecoder(buffer, Encoding.Ice20);
             int dictionarySize = decoder.DecodeSize();
             for (int i = 0; i < dictionarySize; ++i)
             {
@@ -698,7 +698,7 @@ namespace IceRpc.Internal
             ReadOnlyMemory<byte> buffer = await ReceiveControlFrameAsync(
                 Ice2FrameType.GoAway,
                 CancellationToken.None).ConfigureAwait(false);
-            var goAwayFrame = new Ice2GoAwayBody(new Ice20Decoder(buffer));
+            var goAwayFrame = new Ice2GoAwayBody(new IceDecoder(buffer, Encoding.Ice20));
 
             // Raise the peer shutdown initiated event.
             try

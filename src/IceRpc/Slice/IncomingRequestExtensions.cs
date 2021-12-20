@@ -10,13 +10,11 @@ namespace IceRpc.Slice
     {
         /// <summary>Verifies that a request payload carries no argument or only unknown tagged arguments.</summary>
         /// <param name="request">The incoming request.</param>
-        /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>A value task that completes when the checking is complete.</returns>
         public static ValueTask CheckEmptyArgsAsync(
             this IncomingRequest request,
-            IIceDecoderFactory<IceDecoder> iceDecoderFactory,
-            CancellationToken cancel) => request.Payload.ReadVoidAsync(iceDecoderFactory, cancel);
+            CancellationToken cancel) => request.Payload.ReadVoidAsync(request.GetSlicePayloadEncoding(), cancel);
 
         /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared
         /// idempotent, the request is not marked idempotent. If the request is marked idempotent, it means the caller
@@ -37,40 +35,41 @@ namespace IceRpc.Slice
                 throw new NotSupportedException($"unknown protocol {request.Protocol}");
 
         /// <summary>Decodes the request's payload into a list of arguments.</summary>
-        /// <paramtype name="TDecoder">The type of the Ice decoder.</paramtype>
         /// <paramtype name="T">The type of the request parameters.</paramtype>
         /// <param name="request">The incoming request.</param>
-        /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
+        /// <param name="activator">The Slice activator.</param>
         /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
         /// <param name="hasStream">When true, T is or includes a stream.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The request arguments.</returns>
-        public static ValueTask<T> ToArgsAsync<TDecoder, T>(
+        public static ValueTask<T> ToArgsAsync<T>(
             this IncomingRequest request,
-            IIceDecoderFactory<TDecoder> iceDecoderFactory,
-            DecodeFunc<TDecoder, T> decodeFunc,
+            IActivator activator,
+            DecodeFunc<IceDecoder, T> decodeFunc,
             bool hasStream,
-            CancellationToken cancel) where TDecoder : IceDecoder =>
+            CancellationToken cancel) =>
             request.Payload.ReadValueAsync(
+                request.GetSlicePayloadEncoding(),
                 request.Connection,
                 request.ProxyInvoker,
-                iceDecoderFactory,
+                activator,
                 decodeFunc,
                 hasStream,
                 cancel);
 
         /// <summary>Creates an async enumerable over the payload reader of an incoming request.</summary>
         /// <param name="request">The request.</param>
-        /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
+        /// <param name="activator">The Slice activator.</param>
         /// <param name="decodeFunc">The function used to decode the streamed param.</param>
         public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this IncomingRequest request,
-            IIceDecoderFactory<IceDecoder> iceDecoderFactory,
+            IActivator activator,
             Func<IceDecoder, T> decodeFunc) =>
             request.Payload.ToAsyncEnumerable<T>(
+                request.GetSlicePayloadEncoding(),
                 request.Connection,
                 request.ProxyInvoker,
-                iceDecoderFactory,
+                activator,
                 decodeFunc);
     }
 }

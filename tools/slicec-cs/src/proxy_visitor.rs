@@ -84,8 +84,8 @@ impl<'a> Visitor for ProxyVisitor<'_> {
 /// <summary>The default path for services that implement Slice interface <c>{interface_name}</c>.</summary>
 {access} static readonly string DefaultPath = typeof({prx_impl}).GetDefaultPath();
 
-private static readonly DefaultIceDecoderFactories _defaultIceDecoderFactories =
-    new (typeof({prx_impl}).Assembly);
+private static readonly IActivator _defaultActivator =
+    IceDecoder.GetActivator(typeof({prx_impl}).Assembly);
 
 /// <summary>The proxy to the remote service.</summary>
 {access} IceRpc.Proxy Proxy {{ get; init; }}"#,
@@ -309,7 +309,7 @@ if ({invocation}?.RequestFeatures.Get<IceRpc.Features.CompressPayload>() == null
     }
 
     if void_return && stream_return.is_none() {
-        invoke_args.push("_defaultIceDecoderFactories".to_owned());
+        invoke_args.push("_defaultActivator".to_owned());
     }
 
     if !void_return {
@@ -545,11 +545,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         let members = operation.return_members();
         assert!(!members.is_empty());
 
-        let decoder = if operation.returns_classes() {
-            "response.GetIceDecoderFactory(_defaultIceDecoderFactories.Ice11DecoderFactory)"
-        } else {
-            "response.GetIceDecoderFactory(_defaultIceDecoderFactories)"
-        };
+        let activator = "response.GetActivator(_defaultActivator)";
 
         class_builder.add_block(format!(
             r#"
@@ -560,7 +556,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
     global::System.Threading.CancellationToken cancel) =>
     await response.ToReturnValueAsync(
         invoker,
-        {decoder},
+        {activator},
         {response_decode_func},
         {has_stream},
         cancel).ConfigureAwait(false);"#,
@@ -568,7 +564,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             access = access,
             escaped_name = operation.escape_identifier_with_suffix("Async"),
             return_type = members.to_tuple_type(namespace, TypeContext::Incoming, false),
-            decoder = decoder,
+            activator = activator,
             response_decode_func = response_decode_func(operation).indent().indent().indent(),
             has_stream = members.len() > 0 && members.last().unwrap().is_streamed,
         ).into());

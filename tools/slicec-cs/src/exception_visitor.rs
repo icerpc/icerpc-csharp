@@ -86,7 +86,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
 
         exception_class_builder.add_block(
             FunctionBuilder::new(&access, "", &exception_name, FunctionType::BlockBody)
-                .add_parameter("Ice11Decoder", "decoder", None, None)
+                .add_parameter("IceDecoder", "decoder", None, None) // 1.1
                 .add_base_parameter("decoder")
                 .set_body(initialize_non_nullable_fields(
                     &members,
@@ -100,7 +100,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
             // public constructor used for Ice 2.0 decoding
             exception_class_builder.add_block(
                 FunctionBuilder::new(&access, "", &exception_name, FunctionType::BlockBody)
-                    .add_parameter("Ice20Decoder", "decoder", None, None)
+                    .add_parameter("IceDecoder", "decoder", None, None)
                     .add_base_parameter("decoder")
                     .set_body(decode_data_members(
                         &members,
@@ -119,7 +119,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
                 "IceDecode",
                 FunctionType::BlockBody,
             )
-            .add_parameter("Ice11Decoder", "decoder", None, None)
+            .add_parameter("IceDecoder", "decoder", None, None)
             .set_body({
                 let mut code = CodeBlock::new();
                 code.writeln("decoder.IceStartSlice();");

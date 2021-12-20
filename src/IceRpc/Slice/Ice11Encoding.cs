@@ -171,11 +171,6 @@ namespace IceRpc.Slice
         internal override void EncodeSize(int size, Span<byte> into) =>
             Ice11Encoder.EncodeSize(size, into);
 
-        internal override IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
-            FeatureCollection features,
-            DefaultIceDecoderFactories defaultIceDecoderFactories) =>
-            features.Get<IIceDecoderFactory<Ice11Decoder>>() ?? defaultIceDecoderFactories.Ice11DecoderFactory;
-
         private Ice11Encoding()
             : base(Ice11Name)
         {

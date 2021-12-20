@@ -48,8 +48,8 @@ impl<'a> Visitor for DispatchVisitor<'_> {
         interface_builder.add_block(
             format!(
                 "\
-private static readonly DefaultIceDecoderFactories _defaultIceDecoderFactories =
-    new(typeof({}).Assembly);",
+private static readonly IActivator _defaultActivator =
+    IceDecoder.GetActivator(typeof({}).Assembly);",
                 interface_name
             )
             .into(),
@@ -102,11 +102,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
     for operation in operations {
         let parameters = operation.parameters();
 
-        let decoder_factory = if operation.sends_classes() {
-            "request.GetIceDecoderFactory(_defaultIceDecoderFactories.Ice11DecoderFactory)"
-        } else {
-            "request.GetIceDecoderFactory(_defaultIceDecoderFactories)"
-        };
+        let activator = "request.GetActivator(_defaultActivator)";
 
         let namespace = &operation.namespace();
 
@@ -118,7 +114,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
     IceRpc.IncomingRequest request,
     global::System.Threading.CancellationToken cancel) =>
     await request.ToArgsAsync(
-        {decoder_factory},
+        {activator},
         {decode_func},
         {has_stream},
         cancel).ConfigureAwait(false);",
@@ -127,7 +123,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             return_type = parameters.to_tuple_type(namespace, TypeContext::Incoming, false),
             operation_identifier = operation.identifier(),
             async_operation_name = operation.escape_identifier_with_suffix("Async"),
-            decoder_factory = decoder_factory,
+            activator = activator,
             decode_func = request_decode_func(operation).indent().indent(),
             has_stream = parameters.len() > 0 && parameters.last().unwrap().is_streamed,
         );

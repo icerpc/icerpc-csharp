@@ -82,7 +82,7 @@ impl<'a> Visitor for StructVisitor<'a> {
         builder.add_block(main_constructor.build());
 
         let (encoder, decoder) = if struct_def.uses_classes() {
-            ("Ice11Encoder", "Ice11Decoder")
+            ("Ice11Encoder", "IceDecoder")
         } else {
             ("IceEncoder", "IceDecoder")
         };

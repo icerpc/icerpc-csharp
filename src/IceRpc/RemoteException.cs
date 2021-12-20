@@ -65,25 +65,25 @@ namespace IceRpc
             _hasCustomMessage = message != null;
         }
 
-        /// <summary>Constructs a remote exception using an Ice 1.1 decoder.</summary>
-        /// <param name="decoder">The Ice 1.1 decoder.</param>
-        public RemoteException(Ice11Decoder decoder) => ConvertToUnhandled = true;
-
-        /// <summary>Constructs a remote exception using an Ice 2.0 decoder.</summary>
-        /// <param name="decoder">The Ice 2.0 decoder.</param>
-        public RemoteException(Ice20Decoder decoder)
-            : base(decoder.DecodeString())
+        /// <summary>Constructs a remote exception using a decoder.</summary>
+        /// <param name="decoder">The decoder.</param>
+        public RemoteException(IceDecoder decoder)
+            : base(decoder.Encoding == Encoding.Ice11 ? null : decoder.DecodeString())
         {
-            Origin = new RemoteExceptionOrigin(decoder);
-            _hasCustomMessage = true;
+            if (decoder.Encoding != Encoding.Ice11)
+            {
+                Origin = new RemoteExceptionOrigin(decoder);
+                _hasCustomMessage = true;
+            }
             ConvertToUnhandled = true;
         }
 
-        /// <summary>Decodes a remote exception from an <see cref="Ice11Decoder"/>.</summary>
-        /// <param name="decoder">The Ice 1.1 decoder.</param>
+        /// <summary>Decodes a remote exception from an <see cref="IceDecoder"/>.</summary>
+        /// <param name="decoder">The decoder.</param>
         // This implementation is only called on a plain RemoteException.
-        protected virtual void IceDecode(Ice11Decoder decoder)
+        protected virtual void IceDecode(IceDecoder decoder)
         {
+            Debug.Assert(decoder.Encoding == Encoding.Ice11);
         }
 
         /// <summary>Encodes a remote exception to an <see cref="Ice11Encoder"/>.</summary>
@@ -103,7 +103,7 @@ namespace IceRpc
             Origin.Encode(encoder);
         }
 
-        internal void Decode(Ice11Decoder decoder) => IceDecode(decoder);
+        internal void Decode(IceDecoder decoder) => IceDecode(decoder);
         internal void Encode(Ice11Encoder encoder) => IceEncode(encoder);
         internal void Encode(Ice20Encoder encoder) => IceEncode(encoder);
     }
