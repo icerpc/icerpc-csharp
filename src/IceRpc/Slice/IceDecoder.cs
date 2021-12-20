@@ -21,14 +21,8 @@ namespace IceRpc.Slice
         /// <summary>The Slice encoding decoded by this decoder.</summary>
         public IceEncoding Encoding { get; }
 
-        /// <summary>Connection used when decoding proxies.</summary>
-        internal Connection? Connection { get; }
-
-        /// <summary>Invoker used when decoding proxies.</summary>
-        internal IInvoker? Invoker { get; }
-
         /// <summary>The 0-based position (index) in the underlying buffer.</summary>
-        internal int Pos { get; private protected set; }
+        internal int Pos { get; private set; }
 
         /// <summary>Gets or creates an activator for the Slice types in the specified assembly and its referenced
         /// assemblies.</summary>
@@ -48,12 +42,20 @@ namespace IceRpc.Slice
         public static IActivator GetActivator(IEnumerable<Assembly> assemblies) =>
             Internal.Activator.Merge(assemblies.Select(assembly => ActivatorFactory.Instance.Get(assembly)));
 
+        private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
+
         private readonly IActivator? _activator;
 
         // The byte buffer we are decoding.
-        private protected readonly ReadOnlyMemory<byte> _buffer;
+        private readonly ReadOnlyMemory<byte> _buffer;
 
-        private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
+        private ClassContext _classContext;
+
+        // Connection used when decoding proxies
+        private readonly Connection? _connection;
+
+        // Invoker used when decoding proxies.
+        private readonly IInvoker? _invoker;
 
         // The sum of all the minimum sizes (in bytes) of the sequences decoded from this buffer. Must not exceed the
         // buffer size.
@@ -77,16 +79,10 @@ namespace IceRpc.Slice
             Encoding = encoding;
 
             _activator = activator;
-            _classGraphMaxDepth = classGraphMaxDepth == -1 ? 100 : classGraphMaxDepth;
-            if (_classGraphMaxDepth < 1)
-            {
-                throw new ArgumentException(
-                    $"{nameof(classGraphMaxDepth)} must be -1 or greater than 1",
-                    nameof(classGraphMaxDepth));
-            }
+            _classContext = new ClassContext(classGraphMaxDepth);
 
-            Connection = connection;
-            Invoker = invoker;
+            _connection = connection;
+            _invoker = invoker;
             Pos = 0;
             _buffer = buffer;
         }
@@ -380,7 +376,7 @@ namespace IceRpc.Slice
         /// <returns>The decoded proxy, or null.</returns>
         public Proxy? DecodeNullableProxy()
         {
-            if (Connection == null)
+            if (_connection == null)
             {
                 throw new InvalidOperationException("cannot decode a proxy from an decoder with a null Connection");
             }
@@ -462,7 +458,7 @@ namespace IceRpc.Slice
                             proxyData.EncodingMinor);
                         proxy.Endpoint = endpoint;
                         proxy.AltEndpoints = altEndpoints.ToImmutableList();
-                        proxy.Invoker = Invoker;
+                        proxy.Invoker = _invoker;
                         return proxy;
                     }
                     catch (InvalidDataException)
@@ -492,17 +488,18 @@ namespace IceRpc.Slice
 
                         if (endpoint == null)
                         {
-                            proxy = Proxy.FromConnection(Connection, identity.ToPath(), Invoker);
+                            proxy = Proxy.FromConnection(_connection, identity.ToPath(), _invoker);
                         }
                         else
                         {
                             proxy = new Proxy(identity.ToPath(), protocol);
                             proxy.Endpoint = endpoint;
                             proxy.AltEndpoints = altEndpoints.ToImmutableList();
-                            proxy.Invoker = Invoker;
+                            proxy.Invoker = _invoker;
                         }
 
-                        proxy.Encoding = IceRpc.Encoding.FromMajorMinor(proxyData.EncodingMajor, proxyData.EncodingMinor);
+                        proxy.Encoding = IceRpc.Encoding.FromMajorMinor(proxyData.EncodingMajor,
+                            proxyData.EncodingMinor);
                         return proxy;
                     }
                     catch (Exception ex)
@@ -540,14 +537,14 @@ namespace IceRpc.Slice
 
                     if (endpoint == null && protocol != Protocol.Ice1)
                     {
-                        proxy = Proxy.FromConnection(Connection, proxyData.Path, Invoker);
+                        proxy = Proxy.FromConnection(_connection, proxyData.Path, _invoker);
                     }
                     else
                     {
                         proxy = new Proxy(proxyData.Path, protocol);
                         proxy.Endpoint = endpoint;
                         proxy.AltEndpoints = altEndpoints;
-                        proxy.Invoker = Invoker;
+                        proxy.Invoker = _invoker;
                     }
 
                     proxy.Encoding = proxyData.Encoding is string encoding ?
@@ -747,14 +744,6 @@ namespace IceRpc.Slice
             return _buffer.Slice(startPos, size);
         }
 
-        private protected int ReadSpan(Span<byte> span)
-        {
-            int length = Math.Min(span.Length, _buffer.Length - Pos);
-            _buffer.Span.Slice(Pos, length).CopyTo(span);
-            Pos += length;
-            return length;
-        }
-
         /// <summary>Decodes an endpoint (Slice 1.1).</summary>
         /// <param name="protocol">The Ice protocol of this endpoint.</param>
         /// <returns>The endpoint decoded by this decoder.</returns>
@@ -766,7 +755,7 @@ namespace IceRpc.Slice
             // Ice11Encoder. The preferred and fallback encoding for new transports is TransportCode.Any, which uses an
             // EndpointData like Ice 2.0.
 
-            Debug.Assert(Connection != null);
+            Debug.Assert(_connection != null);
 
             Endpoint? endpoint = null;
             TransportCode transportCode = this.DecodeTransportCode();
@@ -902,9 +891,10 @@ namespace IceRpc.Slice
 
             bool withTagEndMarker = false;
 
-            if (_current.InstanceType != InstanceType.None)
+            if (_classContext.Current.InstanceType != InstanceType.None)
             {
-                if ((_current.SliceFlags & SliceFlags.HasTaggedMembers) == 0) // tagged member of a class or exception
+                // tagged member of a class or exception
+                if ((_classContext.Current.SliceFlags & SliceFlags.HasTaggedMembers) == 0)
                 {
                     // The current slice has no tagged parameter.
                     return false;
@@ -970,14 +960,14 @@ namespace IceRpc.Slice
         {
             if (Encoding == IceRpc.Encoding.Ice11)
             {
-                bool withTagEndMarker = (_current.InstanceType != InstanceType.None);
+                bool withTagEndMarker = (_classContext.Current.InstanceType != InstanceType.None);
 
                 while (true)
                 {
                     if (!withTagEndMarker && _buffer.Length - Pos <= 0)
                     {
-                        // When we don't use an end marker, the end of the buffer indicates the end of the tagged params /
-                        // members.
+                        // When we don't use an end marker, the end of the buffer indicates the end of the tagged params
+                        // or members.
                         break;
                     }
 
@@ -1015,6 +1005,14 @@ namespace IceRpc.Slice
                     Skip(DecodeSize());
                 }
             }
+        }
+
+        private int ReadSpan(Span<byte> span)
+        {
+            int length = Math.Min(span.Length, _buffer.Length - Pos);
+            _buffer.Span.Slice(Pos, length).CopyTo(span);
+            Pos += length;
+            return length;
         }
 
         private void SkipSize()

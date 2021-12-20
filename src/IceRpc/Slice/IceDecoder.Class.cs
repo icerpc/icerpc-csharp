@@ -14,42 +14,6 @@ namespace IceRpc.Slice
     // Class-related methods for IceDecoder.
     public partial class IceDecoder
     {
-
-        /// <summary>The sliced-off slices held by the current instance, if any.</summary>
-        internal ImmutableList<SliceInfo> UnknownSlices
-        {
-            get
-            {
-                Debug.Assert(_current.InstanceType == InstanceType.Class);
-                return _current.Slices?.ToImmutableList() ?? ImmutableList<SliceInfo>.Empty;
-            }
-        }
-
-        private readonly int _classGraphMaxDepth;
-
-        // Data for the class or exception instance that is currently getting decoded.
-        private InstanceData _current;
-
-        // The current depth when decoding nested class instances.
-        private int _classGraphDepth;
-
-        // Map of class instance ID to class instance.
-        // When decoding a buffer:
-        //  - Instance ID = 0 means null
-        //  - Instance ID = 1 means the instance is encoded inline afterwards
-        //  - Instance ID > 1 means a reference to a previously decoded instance, found in this map.
-        // Since the map is actually a list, we use instance ID - 2 to lookup an instance.
-        private List<AnyClass>? _instanceMap;
-
-        // See DecodeTypeId.
-        private int _posAfterLatestInsertedTypeId;
-
-        // Map of type ID index to type ID sequence, used only for classes.
-        // We assign a type ID index (starting with 1) to each type ID (type ID sequence) we decode, in order.
-        // Since this map is a list, we lookup a previously assigned type ID (type ID sequence) with
-        // _typeIdMap[index - 1].
-        private List<string>? _typeIdMap;
-
         /// <summary>Decodes a class instance.</summary>
         /// <returns>The decoded class instance.</returns>
         public T DecodeClass<T>() where T : AnyClass =>
@@ -60,6 +24,12 @@ namespace IceRpc.Slice
         /// <returns>The class instance, or null.</returns>
         public T? DecodeNullableClass<T>() where T : class
         {
+            if (Encoding != IceRpc.Encoding.Ice11)
+            {
+                throw new InvalidOperationException(
+                    $"{nameof(DecodeNullableClass)} is not compatible with encoding {Encoding}");
+            }
+
             AnyClass? obj = DecodeAnyClass();
             if (obj is T result)
             {
@@ -80,19 +50,26 @@ namespace IceRpc.Slice
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceEndSlice()
         {
-            // Note that IceEndSlice is not called when we call SkipSlice.
-            Debug.Assert(_current.InstanceType != InstanceType.None);
+            if (Encoding != IceRpc.Encoding.Ice11)
+            {
+                throw new InvalidOperationException(
+                    $"{nameof(IceEndSlice)} is not compatible with encoding {Encoding}");
+            }
 
-            if ((_current.SliceFlags & SliceFlags.HasTaggedMembers) != 0)
+            // Note that IceEndSlice is not called when we call SkipSlice.
+            Debug.Assert(_classContext.Current.InstanceType != InstanceType.None);
+
+            if ((_classContext.Current.SliceFlags & SliceFlags.HasTaggedMembers) != 0)
             {
                 SkipTaggedParams();
             }
-            if ((_current.SliceFlags & SliceFlags.HasIndirectionTable) != 0)
+            if ((_classContext.Current.SliceFlags & SliceFlags.HasIndirectionTable) != 0)
             {
-                Debug.Assert(_current.PosAfterIndirectionTable != null && _current.IndirectionTable != null);
-                Pos = _current.PosAfterIndirectionTable.Value;
-                _current.PosAfterIndirectionTable = null;
-                _current.IndirectionTable = null;
+                Debug.Assert(_classContext.Current.PosAfterIndirectionTable != null &&
+                             _classContext.Current.IndirectionTable != null);
+                Pos = _classContext.Current.PosAfterIndirectionTable.Value;
+                _classContext.Current.PosAfterIndirectionTable = null;
+                _classContext.Current.IndirectionTable = null;
             }
         }
 
@@ -100,10 +77,16 @@ namespace IceRpc.Slice
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceStartSlice()
         {
-            Debug.Assert(_current.InstanceType != InstanceType.None);
-            if (_current.FirstSlice)
+            if (Encoding != IceRpc.Encoding.Ice11)
             {
-                _current.FirstSlice = false;
+                throw new InvalidOperationException(
+                    $"{nameof(IceStartSlice)} is not compatible with encoding {Encoding}");
+            }
+
+            Debug.Assert(_classContext.Current.InstanceType != InstanceType.None);
+            if (_classContext.Current.FirstSlice)
+            {
+                _classContext.Current.FirstSlice = false;
             }
             else
             {
@@ -125,16 +108,16 @@ namespace IceRpc.Slice
             {
                 return null;
             }
-            else if (_current.InstanceType != InstanceType.None &&
-                (_current.SliceFlags & SliceFlags.HasIndirectionTable) != 0)
+            else if (_classContext.Current.InstanceType != InstanceType.None &&
+                (_classContext.Current.SliceFlags & SliceFlags.HasIndirectionTable) != 0)
             {
                 // When decoding an instance within a slice and there is an indirection table, we have an index within
                 // this indirection table.
                 // We need to decrement index since position 0 in the indirection table corresponds to index 1.
                 index--;
-                if (index < _current.IndirectionTable?.Length)
+                if (index < _classContext.Current.IndirectionTable?.Length)
                 {
-                    return _current.IndirectionTable[index];
+                    return _classContext.Current.IndirectionTable[index];
                 }
                 else
                 {
@@ -147,7 +130,7 @@ namespace IceRpc.Slice
             }
         }
 
-          private RemoteException DecodeExceptionClass()
+        private RemoteException DecodeExceptionClass()
         {
             Debug.Assert(Encoding == IceRpc.Encoding.Ice11);
 
@@ -195,8 +178,8 @@ namespace IceRpc.Slice
             }
             else
             {
-                Debug.Assert(_current.InstanceType == InstanceType.None);
-                _current.InstanceType = InstanceType.Exception;
+                Debug.Assert(_classContext.Current.InstanceType == InstanceType.None);
+                _classContext.Current.InstanceType = InstanceType.Exception;
 
                 RemoteException? remoteEx;
 
@@ -225,7 +208,7 @@ namespace IceRpc.Slice
 
                 if (remoteEx != null)
                 {
-                    _current.FirstSlice = true;
+                    _classContext.Current.FirstSlice = true;
                     remoteEx.Decode(this);
                 }
                 else
@@ -233,7 +216,7 @@ namespace IceRpc.Slice
                     remoteEx = new UnknownSlicedRemoteException(mostDerivedTypeId);
                 }
 
-                _current = default;
+                _classContext.Current = default;
                 return remoteEx;
             }
         }
@@ -265,18 +248,18 @@ namespace IceRpc.Slice
         /// </summary>
         private void DecodeIndirectionTableIntoCurrent()
         {
-            Debug.Assert(_current.IndirectionTable == null);
-            if ((_current.SliceFlags & SliceFlags.HasIndirectionTable) != 0)
+            Debug.Assert(_classContext.Current.IndirectionTable == null);
+            if ((_classContext.Current.SliceFlags & SliceFlags.HasIndirectionTable) != 0)
             {
-                if ((_current.SliceFlags & SliceFlags.HasSliceSize) == 0)
+                if ((_classContext.Current.SliceFlags & SliceFlags.HasSliceSize) == 0)
                 {
                     throw new InvalidDataException("slice has indirection table but does not have a size");
                 }
 
                 int savedPos = Pos;
-                Pos = savedPos + _current.SliceSize;
-                _current.IndirectionTable = DecodeIndirectionTable();
-                _current.PosAfterIndirectionTable = Pos;
+                Pos = savedPos + _classContext.Current.SliceSize;
+                _classContext.Current.IndirectionTable = DecodeIndirectionTable();
+                _classContext.Current.PosAfterIndirectionTable = Pos;
                 Pos = savedPos;
             }
         }
@@ -290,25 +273,25 @@ namespace IceRpc.Slice
 
             if (index > 1)
             {
-                if (_instanceMap != null && _instanceMap.Count > index - 2)
+                if (_classContext.InstanceMap != null && _classContext.InstanceMap.Count > index - 2)
                 {
-                    return _instanceMap[index - 2];
+                    return _classContext.InstanceMap[index - 2];
                 }
-                throw new InvalidDataException($"could not find index {index} in {nameof(_instanceMap)}");
+                throw new InvalidDataException($"could not find index {index} in {nameof(_classContext.InstanceMap)}");
             }
 
-            if (++_classGraphDepth > _classGraphMaxDepth)
+            if (++_classContext.ClassGraphDepth > _classContext.ClassGraphMaxDepth)
             {
                 throw new InvalidDataException("maximum class graph depth reached");
             }
 
             // Save current in case we're decoding a nested instance.
-            InstanceData previousCurrent = _current;
-            _current = default;
-            _current.InstanceType = InstanceType.Class;
+            InstanceData previousCurrent = _classContext.Current;
+            _classContext.Current = default;
+            _classContext.Current.InstanceType = InstanceType.Class;
 
             AnyClass? instance = null;
-            _instanceMap ??= new List<AnyClass>();
+            _classContext.InstanceMap ??= new List<AnyClass>();
 
             bool decodeIndirectionTable = true;
             do
@@ -334,21 +317,22 @@ namespace IceRpc.Slice
 
             // Add the instance to the map/list of instances. This must be done before decoding the instances (for
             // circular references).
-            _instanceMap.Add(instance);
+            _classContext.InstanceMap.Add(instance);
 
             // Decode all the deferred indirection tables now that the instance is inserted in _instanceMap.
-            if (_current.DeferredIndirectionTableList?.Count > 0)
+            if (_classContext.Current.DeferredIndirectionTableList?.Count > 0)
             {
                 int savedPos = Pos;
 
-                Debug.Assert(_current.Slices?.Count == _current.DeferredIndirectionTableList.Count);
-                for (int i = 0; i < _current.DeferredIndirectionTableList.Count; ++i)
+                Debug.Assert(_classContext.Current.Slices?.Count ==
+                    _classContext.Current.DeferredIndirectionTableList.Count);
+                for (int i = 0; i < _classContext.Current.DeferredIndirectionTableList.Count; ++i)
                 {
-                    int pos = _current.DeferredIndirectionTableList[i];
+                    int pos = _classContext.Current.DeferredIndirectionTableList[i];
                     if (pos > 0)
                     {
                         Pos = pos;
-                        _current.Slices[i].Instances = Array.AsReadOnly(DecodeIndirectionTable());
+                        _classContext.Current.Slices[i].Instances = Array.AsReadOnly(DecodeIndirectionTable());
                     }
                     // else remains empty
                 }
@@ -361,12 +345,12 @@ namespace IceRpc.Slice
                 DecodeIndirectionTableIntoCurrent();
             }
 
-            instance.UnknownSlices = UnknownSlices;
-            _current.FirstSlice = true;
+            instance.UnknownSlices = _classContext.Current.Slices?.ToImmutableList() ?? ImmutableList<SliceInfo>.Empty;
+            _classContext.Current.FirstSlice = true;
             instance.Decode(this);
 
-            _current = previousCurrent;
-            --_classGraphDepth;
+            _classContext.Current = previousCurrent;
+            --_classContext.ClassGraphDepth;
             return instance;
         }
 
@@ -374,18 +358,18 @@ namespace IceRpc.Slice
         /// <returns>The type ID or the compact ID of the current slice.</returns>
         private string? DecodeSliceHeaderIntoCurrent()
         {
-            _current.SliceFlags = (SliceFlags)DecodeByte();
+            _classContext.Current.SliceFlags = (SliceFlags)DecodeByte();
 
             string? typeId;
             // Decode the type ID. For class slices, the type ID is encoded as a string or as an index or as a compact
             // ID, for exceptions it's always encoded as a string.
-            if (_current.InstanceType == InstanceType.Class)
+            if (_classContext.Current.InstanceType == InstanceType.Class)
             {
-                typeId = DecodeTypeId(_current.SliceFlags.GetTypeIdKind());
+                typeId = DecodeTypeId(_classContext.Current.SliceFlags.GetTypeIdKind());
 
                 if (typeId == null)
                 {
-                    if ((_current.SliceFlags & SliceFlags.HasSliceSize) != 0)
+                    if ((_classContext.Current.SliceFlags & SliceFlags.HasSliceSize) != 0)
                     {
                         // A slice in compact format cannot carry a size.
                         throw new InvalidDataException("inconsistent slice flags");
@@ -399,18 +383,18 @@ namespace IceRpc.Slice
             }
 
             // Decode the slice size if available.
-            if ((_current.SliceFlags & SliceFlags.HasSliceSize) != 0)
+            if ((_classContext.Current.SliceFlags & SliceFlags.HasSliceSize) != 0)
             {
-                _current.SliceSize = DecodeSliceSize();
+                _classContext.Current.SliceSize = DecodeSliceSize();
             }
             else
             {
-                _current.SliceSize = 0;
+                _classContext.Current.SliceSize = 0;
             }
 
             // Clear other per-slice fields:
-            _current.IndirectionTable = null;
-            _current.PosAfterIndirectionTable = null;
+            _classContext.Current.IndirectionTable = null;
+            _classContext.Current.PosAfterIndirectionTable = null;
 
             return typeId;
         }
@@ -433,16 +417,16 @@ namespace IceRpc.Slice
         /// <returns>The type ID or the compact ID, if any.</returns>
         private string? DecodeTypeId(TypeIdKind typeIdKind)
         {
-            _typeIdMap ??= new List<string>();
+            _classContext.TypeIdMap ??= new List<string>();
 
             switch (typeIdKind)
             {
                 case TypeIdKind.Index:
                     int index = DecodeSize();
-                    if (index > 0 && index - 1 < _typeIdMap.Count)
+                    if (index > 0 && index - 1 < _classContext.TypeIdMap.Count)
                     {
                         // The encoded type-id indexes start at 1, not 0.
-                        return _typeIdMap[index - 1];
+                        return _classContext.TypeIdMap[index - 1];
                     }
                     throw new InvalidDataException($"decoded invalid type ID index {index}");
 
@@ -453,10 +437,10 @@ namespace IceRpc.Slice
                     // indirection table and later on when we decode it. We only want to add this typeId to the list and
                     // assign it an index when it's the first time we decode it, so we save the largest position we
                     // decode to figure out when to add to the list.
-                    if (Pos > _posAfterLatestInsertedTypeId)
+                    if (Pos > _classContext.PosAfterLatestInsertedTypeId)
                     {
-                        _posAfterLatestInsertedTypeId = Pos;
-                        _typeIdMap.Add(typeId);
+                        _classContext.PosAfterLatestInsertedTypeId = Pos;
+                        _classContext.TypeIdMap.Add(typeId);
                     }
                     return typeId;
 
@@ -476,7 +460,7 @@ namespace IceRpc.Slice
         private void SkipIndirectionTable()
         {
             // We should never skip an exception's indirection table
-            Debug.Assert(_current.InstanceType == InstanceType.Class);
+            Debug.Assert(_classContext.Current.InstanceType == InstanceType.Class);
 
             // We use DecodeSize and not DecodeAndCheckSeqSize here because we don't allocate memory for this sequence,
             // and since we are skipping this sequence to decode it later, we don't want to double-count its
@@ -491,7 +475,7 @@ namespace IceRpc.Slice
                 }
                 if (index == 1)
                 {
-                    if (++_classGraphDepth > _classGraphMaxDepth)
+                    if (++_classContext.ClassGraphDepth > _classContext.ClassGraphMaxDepth)
                     {
                         throw new InvalidDataException("maximum class graph depth reached");
                     }
@@ -520,7 +504,7 @@ namespace IceRpc.Slice
                         }
                     }
                     while ((sliceFlags & SliceFlags.IsLastSlice) == 0);
-                    _classGraphDepth--;
+                    _classContext.ClassGraphDepth--;
                 }
             }
         }
@@ -536,27 +520,27 @@ namespace IceRpc.Slice
                 throw new InvalidDataException("cannot skip a class slice with no type ID");
             }
 
-            if ((_current.SliceFlags & SliceFlags.HasSliceSize) == 0)
+            if ((_classContext.Current.SliceFlags & SliceFlags.HasSliceSize) == 0)
             {
-                string kind = _current.InstanceType.ToString().ToLowerInvariant();
+                string kind = _classContext.Current.InstanceType.ToString().ToLowerInvariant();
                 throw new InvalidDataException(@$"no {kind} found for type ID '{typeId
                         }' and compact format prevents slicing (the sender should use the sliced format instead)");
             }
 
-            bool hasTaggedMembers = (_current.SliceFlags & SliceFlags.HasTaggedMembers) != 0;
+            bool hasTaggedMembers = (_classContext.Current.SliceFlags & SliceFlags.HasTaggedMembers) != 0;
             byte[] bytes;
             int bytesCopied;
             if (hasTaggedMembers)
             {
                 // Don't include the tag end marker. It will be re-written by IceEndSlice when the sliced data is
                 // re-written.
-                bytes = new byte[_current.SliceSize - 1];
+                bytes = new byte[_classContext.Current.SliceSize - 1];
                 bytesCopied = ReadSpan(bytes);
                 Skip(1);
             }
             else
             {
-                bytes = new byte[_current.SliceSize];
+                bytes = new byte[_classContext.Current.SliceSize];
                 bytesCopied = ReadSpan(bytes);
             }
 
@@ -565,43 +549,88 @@ namespace IceRpc.Slice
                 throw new InvalidDataException("the slice size extends beyond the end of the buffer");
             }
 
-            bool hasIndirectionTable = (_current.SliceFlags & SliceFlags.HasIndirectionTable) != 0;
+            bool hasIndirectionTable = (_classContext.Current.SliceFlags & SliceFlags.HasIndirectionTable) != 0;
 
             // With the 1.1 encoding, SkipSlice for a class skips the indirection table and preserves its position in
             // _current.DeferredIndirectionTableList for later decoding.
-            if (_current.InstanceType == InstanceType.Class)
+            if (_classContext.Current.InstanceType == InstanceType.Class)
             {
-                _current.DeferredIndirectionTableList ??= new List<int>();
+                _classContext.Current.DeferredIndirectionTableList ??= new List<int>();
                 if (hasIndirectionTable)
                 {
                     int savedPos = Pos;
                     SkipIndirectionTable();
-                    _current.DeferredIndirectionTableList.Add(savedPos); // we want to later read the deepest first
+
+                    // we want to later read the deepest first
+                    _classContext.Current.DeferredIndirectionTableList.Add(savedPos);
                 }
                 else
                 {
-                    _current.DeferredIndirectionTableList.Add(0); // keep a slot for each slice
+                    _classContext.Current.DeferredIndirectionTableList.Add(0); // keep a slot for each slice
                 }
             }
             else if (hasIndirectionTable)
             {
-                Debug.Assert(_current.PosAfterIndirectionTable != null);
+                Debug.Assert(_classContext.Current.PosAfterIndirectionTable != null);
                 // Move past indirection table
-                Pos = _current.PosAfterIndirectionTable.Value;
-                _current.PosAfterIndirectionTable = null;
+                Pos = _classContext.Current.PosAfterIndirectionTable.Value;
+                _classContext.Current.PosAfterIndirectionTable = null;
             }
 
-            _current.Slices ??= new List<SliceInfo>();
+            _classContext.Current.Slices ??= new List<SliceInfo>();
             var info = new SliceInfo(typeId,
                                      new ReadOnlyMemory<byte>(bytes),
-                                     Array.AsReadOnly(_current.IndirectionTable ?? Array.Empty<AnyClass>()),
+                                     Array.AsReadOnly(_classContext.Current.IndirectionTable ??
+                                        Array.Empty<AnyClass>()),
                                      hasTaggedMembers);
-            _current.Slices.Add(info);
+            _classContext.Current.Slices.Add(info);
 
             // If we decoded the indirection table previously, we don't need it anymore since we're skipping this slice.
-            _current.IndirectionTable = null;
+            _classContext.Current.IndirectionTable = null;
 
-            return (_current.SliceFlags & SliceFlags.IsLastSlice) != 0;
+            return (_classContext.Current.SliceFlags & SliceFlags.IsLastSlice) != 0;
+        }
+
+        /// <summary>Holds various fields used for class and exception decoding with the Slice 1.1 encoding.</summary>
+        private struct ClassContext
+        {
+            internal readonly int ClassGraphMaxDepth;
+
+            // Data for the class or exception instance that is currently getting decoded.
+            internal InstanceData Current;
+
+            // The current depth when decoding nested class instances.
+            internal int ClassGraphDepth;
+
+            // Map of class instance ID to class instance.
+            // When decoding a buffer:
+            //  - Instance ID = 0 means null
+            //  - Instance ID = 1 means the instance is encoded inline afterwards
+            //  - Instance ID > 1 means a reference to a previously decoded instance, found in this map.
+            // Since the map is actually a list, we use instance ID - 2 to lookup an instance.
+            internal List<AnyClass>? InstanceMap;
+
+            // See DecodeTypeId.
+            internal int PosAfterLatestInsertedTypeId;
+
+            // Map of type ID index to type ID sequence, used only for classes.
+            // We assign a type ID index (starting with 1) to each type ID (type ID sequence) we decode, in order.
+            // Since this map is a list, we lookup a previously assigned type ID (type ID sequence) with
+            // _typeIdMap[index - 1].
+            internal List<string>? TypeIdMap;
+
+            internal ClassContext(int classGraphMaxDepth)
+                : this()
+            {
+                if (classGraphMaxDepth < 1 && classGraphMaxDepth != -1)
+                {
+                    throw new ArgumentException(
+                        $"{nameof(classGraphMaxDepth)} must be -1 or greater than 1",
+                        nameof(classGraphMaxDepth));
+                }
+
+                ClassGraphMaxDepth = classGraphMaxDepth == -1 ? 100 : classGraphMaxDepth;
+            }
         }
 
         private struct InstanceData
