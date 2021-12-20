@@ -565,14 +565,14 @@ namespace IceRpc.Internal
                 }
 
                 // Read the remainder of the size if needed.
-                int sizeLength = Ice20Decoder.DecodeSizeLength(buffer.Span[1]);
+                int sizeLength = Ice20Encoding.DecodeSizeLength(buffer.Span[1]);
                 if (sizeLength > 1)
                 {
                     await _remoteControlStream!.ReadUntilFullAsync(
                         buffer.Slice(2, sizeLength - 1), cancel).ConfigureAwait(false);
                 }
 
-                int frameSize = Ice20Decoder.DecodeSize(buffer[1..].AsReadOnlySpan()).Size;
+                int frameSize = Ice20Encoding.DecodeSize(buffer[1..].AsReadOnlySpan()).Size;
                 if (frameSize > _incomingFrameMaxSize)
                 {
                     throw new InvalidDataException(

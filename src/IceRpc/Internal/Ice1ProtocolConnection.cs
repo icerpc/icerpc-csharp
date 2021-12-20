@@ -698,7 +698,7 @@ namespace IceRpc.Internal
             {
                 encodingMajor = 2;
                 encodingMinor = 0;
-                (payloadSize, payloadSizeLength) = Ice20Decoder.DecodeSize(payload.Span[0].Span);
+                (payloadSize, payloadSizeLength) = Ice20Encoding.DecodeSize(payload.Span[0].Span);
             }
             else
             {

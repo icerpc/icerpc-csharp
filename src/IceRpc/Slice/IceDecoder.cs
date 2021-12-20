@@ -665,16 +665,12 @@ namespace IceRpc.Slice
         }
 
         internal static int DecodeInt(ReadOnlySpan<byte> from) => BitConverter.ToInt32(from);
-        internal static long DecodeLong(ReadOnlySpan<byte> from) => BitConverter.ToInt64(from);
-        internal static short DecodeShort(ReadOnlySpan<byte> from) => BitConverter.ToInt16(from);
 
         /// <summary>Decodes a string from a UTF-8 byte buffer. The size of the byte buffer corresponds to the number of
         /// UTF-8 code points in the string.</summary>
         /// <param name="from">The byte buffer.</param>
         /// <returns>The string decoded from the buffer.</returns>
         internal static string DecodeString(ReadOnlySpan<byte> from) => from.IsEmpty ? "" : _utf8.GetString(from);
-
-        internal static ushort DecodeUShort(ReadOnlySpan<byte> from) => BitConverter.ToUInt16(from);
 
         // Applies to all var type: varlong, varulong etc.
         internal static int DecodeVarLongLength(byte from) => 1 << (from & 0x03);

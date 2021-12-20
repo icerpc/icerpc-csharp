@@ -18,6 +18,6 @@ namespace IceRpc
             int key,
             Func<IceDecoder, T> decodeFunc) =>
             fields.TryGetValue(key, out ReadOnlyMemory<byte> value) ?
-                Ice20Decoder.DecodeBuffer(value, decodeFunc) : default(T?);
+                Ice20Encoding.DecodeBuffer(value, decodeFunc) : default(T?);
     }
 }
