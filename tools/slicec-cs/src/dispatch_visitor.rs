@@ -102,8 +102,6 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
     for operation in operations {
         let parameters = operation.parameters();
 
-        let activator = "request.GetActivator(_defaultActivator)";
-
         let namespace = &operation.namespace();
 
         // We need the async/await for proper type inference when returning tuples with nullable elements like string?.
@@ -114,7 +112,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
     IceRpc.IncomingRequest request,
     global::System.Threading.CancellationToken cancel) =>
     await request.ToArgsAsync(
-        {activator},
+        _defaultActivator,
         {decode_func},
         {has_stream},
         cancel).ConfigureAwait(false);",
@@ -123,7 +121,6 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             return_type = parameters.to_tuple_type(namespace, TypeContext::Incoming, false),
             operation_identifier = operation.identifier(),
             async_operation_name = operation.escape_identifier_with_suffix("Async"),
-            activator = activator,
             decode_func = request_decode_func(operation).indent().indent(),
             has_stream = parameters.len() > 0 && parameters.last().unwrap().is_streamed,
         );

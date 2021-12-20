@@ -37,14 +37,14 @@ namespace IceRpc.Slice
         /// <summary>Decodes the request's payload into a list of arguments.</summary>
         /// <paramtype name="T">The type of the request parameters.</paramtype>
         /// <param name="request">The incoming request.</param>
-        /// <param name="activator">The Slice activator.</param>
+        /// <param name="defaultActivator">The default activator.</param>
         /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
         /// <param name="hasStream">When true, T is or includes a stream.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The request arguments.</returns>
         public static ValueTask<T> ToArgsAsync<T>(
             this IncomingRequest request,
-            IActivator activator,
+            IActivator defaultActivator,
             DecodeFunc<IceDecoder, T> decodeFunc,
             bool hasStream,
             CancellationToken cancel) =>
@@ -52,7 +52,7 @@ namespace IceRpc.Slice
                 request.GetSlicePayloadEncoding(),
                 request.Connection,
                 request.ProxyInvoker,
-                activator,
+                request.Features.Get<IActivator>() ?? defaultActivator,
                 request.Features.GetClassGraphMaxDepth(),
                 decodeFunc,
                 hasStream,
@@ -60,17 +60,17 @@ namespace IceRpc.Slice
 
         /// <summary>Creates an async enumerable over the payload reader of an incoming request.</summary>
         /// <param name="request">The request.</param>
-        /// <param name="activator">The Slice activator.</param>
+        /// <param name="defaultActivator">The default activator.</param>
         /// <param name="decodeFunc">The function used to decode the streamed param.</param>
         public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this IncomingRequest request,
-            IActivator activator,
+            IActivator defaultActivator,
             Func<IceDecoder, T> decodeFunc) =>
             request.Payload.ToAsyncEnumerable<T>(
                 request.GetSlicePayloadEncoding(),
                 request.Connection,
                 request.ProxyInvoker,
-                activator,
+                request.Features.Get<IActivator>() ?? defaultActivator,
                 request.Features.GetClassGraphMaxDepth(),
                 decodeFunc);
     }

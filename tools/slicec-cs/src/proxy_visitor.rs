@@ -545,8 +545,6 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         let members = operation.return_members();
         assert!(!members.is_empty());
 
-        let activator = "response.GetActivator(_defaultActivator)";
-
         class_builder.add_block(format!(
             r#"
 /// <summary>The <see cref="ResponseDecodeFunc{{T}}"/> for the return value type of operation {name}.</summary>
@@ -556,7 +554,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
     global::System.Threading.CancellationToken cancel) =>
     await response.ToReturnValueAsync(
         invoker,
-        {activator},
+        _defaultActivator,
         {response_decode_func},
         {has_stream},
         cancel).ConfigureAwait(false);"#,
@@ -564,7 +562,6 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             access = access,
             escaped_name = operation.escape_identifier_with_suffix("Async"),
             return_type = members.to_tuple_type(namespace, TypeContext::Incoming, false),
-            activator = activator,
             response_decode_func = response_decode_func(operation).indent().indent().indent(),
             has_stream = members.len() > 0 && members.last().unwrap().is_streamed,
         ).into());
