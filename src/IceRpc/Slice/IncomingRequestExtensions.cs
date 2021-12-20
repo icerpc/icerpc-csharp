@@ -54,7 +54,7 @@ namespace IceRpc.Slice
                 request.Connection,
                 request.ProxyInvoker,
                 activator,
-                request.Features.Get<IceDecoderOptions>(),
+                request.Features.Get<ClassGraphMaxDepth>(),
                 decodeFunc,
                 hasStream,
                 cancel);
@@ -72,7 +72,7 @@ namespace IceRpc.Slice
                 request.Connection,
                 request.ProxyInvoker,
                 activator,
-                request.Features.Get<IceDecoderOptions>(),
+                request.Features.Get<ClassGraphMaxDepth>(),
                 decodeFunc);
     }
 }

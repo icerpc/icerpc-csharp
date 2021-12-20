@@ -70,19 +70,19 @@ namespace IceRpc.Slice
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
         /// <param name="activator">The activator.</param>
-        /// <param name="options">Options for this decoder.</param>
+        /// <param name="classGraphMaxDepth">The class graph max depth.</param>
         public IceDecoder(
             ReadOnlyMemory<byte> buffer,
             IceEncoding encoding,
             Connection? connection = null,
             IInvoker? invoker = null,
             IActivator? activator = null,
-            IceDecoderOptions? options = null)
+            ClassGraphMaxDepth? classGraphMaxDepth = null)
         {
             Encoding = encoding;
 
             _activator = activator;
-            _classGraphMaxDepth = options?.ClassGraphMaxDepth ?? 100;
+            _classGraphMaxDepth = classGraphMaxDepth?.Value ?? 100;
             Connection = connection;
             Invoker = invoker;
             Pos = 0;
@@ -95,15 +95,15 @@ namespace IceRpc.Slice
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
         /// <param name="activator">The activator.</param>
-        /// <param name="options">Options for this decoder.</param>
+        /// <param name="classGraphMaxDepth">The class graph max depth.</param>
         public IceDecoder(
             ReadOnlySequence<byte> buffer,
             IceEncoding encoding,
             Connection? connection = null,
             IInvoker? invoker = null,
             IActivator? activator = null,
-            IceDecoderOptions? options = null)
-            : this(buffer.ToSingleBuffer(), encoding, connection, invoker, activator, options)
+            ClassGraphMaxDepth? classGraphMaxDepth = null)
+            : this(buffer.ToSingleBuffer(), encoding, connection, invoker, activator, classGraphMaxDepth)
         {
         }
 

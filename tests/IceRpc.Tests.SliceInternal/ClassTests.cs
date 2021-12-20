@@ -222,7 +222,7 @@ namespace IceRpc.Tests.SliceInternal
                         (request, cancel) =>
                         {
                             request.Features = request.Features.With(
-                                new IceDecoderOptions { ClassGraphMaxDepth = serverClassGraphMaxDepth });
+                                new ClassGraphMaxDepth { Value = serverClassGraphMaxDepth });
                             return next.DispatchAsync(request, cancel);
                         }));
                     return router;
@@ -237,7 +237,7 @@ namespace IceRpc.Tests.SliceInternal
                 {
                     IncomingResponse response = await next.InvokeAsync(request, cancel);
                     response.Features = response.Features.With(
-                        new IceDecoderOptions { ClassGraphMaxDepth = clientClassGraphMaxDepth });
+                        new ClassGraphMaxDepth { Value = clientClassGraphMaxDepth });
 
                     return response;
                 }));
