@@ -47,11 +47,9 @@ namespace IceRpc.Slice.Internal
     /// <summary>Creates activators from assemblies by processing types in those assemblies.</summary>
     internal class ActivatorFactory
     {
+        internal static ActivatorFactory Instance { get; } = new ActivatorFactory();
+
         private readonly ConcurrentDictionary<Assembly, Activator> _cache = new();
-
-        private readonly Func<Type, bool> _typeFilter;
-
-        internal ActivatorFactory(Func<Type, bool> typeFilter) => _typeFilter = typeFilter;
 
         internal Activator Get(Assembly assembly)
         {
@@ -69,7 +67,7 @@ namespace IceRpc.Slice.Internal
 
                         foreach (Type type in assembly.GetExportedTypes())
                         {
-                            if (type.GetIceTypeId() is string typeId && _typeFilter(type))
+                            if (type.GetIceTypeId() is string typeId && IsMatchingType(type))
                             {
                                 var lazy = new Lazy<Func<IceDecoder, object>>(() => CreateFactory(type));
 
@@ -113,6 +111,14 @@ namespace IceRpc.Slice.Internal
                 return Expression.Lambda<Func<IceDecoder, object>>(
                     Expression.New(constructor, decoderParam), decoderParam).Compile();
             }
+
+            static bool IsMatchingType(Type type) =>
+                typeof(RemoteException).IsAssignableFrom(type) || typeof(AnyClass).IsAssignableFrom(type);
+        }
+
+        private ActivatorFactory()
+        {
+            // ensures it's a singleton.
         }
     }
 }

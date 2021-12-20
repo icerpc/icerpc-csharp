@@ -31,10 +31,6 @@ namespace IceRpc.Slice
         /// <summary>The 0-based position (index) in the underlying buffer.</summary>
         internal int Pos { get; private protected set; }
 
-        // TODO: probably don't need this factory, and definitely don't need the check
-        private static readonly ActivatorFactory _activatorFactory =
-            new(type => typeof(RemoteException).IsAssignableFrom(type) || typeof(AnyClass).IsAssignableFrom(type));
-
         /// <summary>Gets or creates an activator for the Slice types in the specified assembly and its referenced
         /// assemblies.</summary>
         /// <param name="assembly">The assembly.</param>
@@ -43,7 +39,7 @@ namespace IceRpc.Slice
         /// attribute). Types defined in assemblies referenced by <paramref name="assembly"/> are included as well,
         /// recursively. The types defined in the referenced assemblies of an assembly with no generated code are not
         /// considered.</returns>
-        public static IActivator GetActivator(Assembly assembly) => _activatorFactory.Get(assembly);
+        public static IActivator GetActivator(Assembly assembly) => ActivatorFactory.Instance.Get(assembly);
 
         /// <summary>Gets or creates an activator for the Slice types defined in the specified assemblies and their
         /// referenced assemblies.</summary>
@@ -51,7 +47,7 @@ namespace IceRpc.Slice
         /// <returns>An activator that activates the Slice types defined in <paramref name="assemblies"/> and their
         /// referenced assemblies. See <see cref="GetActivator(Assembly)"/>.</returns>
         public static IActivator GetActivator(IEnumerable<Assembly> assemblies) =>
-            Internal.Activator.Merge(assemblies.Select(assembly => _activatorFactory.Get(assembly)));
+            Internal.Activator.Merge(assemblies.Select(assembly => ActivatorFactory.Instance.Get(assembly)));
 
         private readonly IActivator? _activator;
 
