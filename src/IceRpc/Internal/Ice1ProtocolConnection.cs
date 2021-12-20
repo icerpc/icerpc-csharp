@@ -663,7 +663,7 @@ namespace IceRpc.Internal
 
                     // Check the header
                     Ice1Definitions.CheckHeader(buffer.Span[0..Ice1Definitions.HeaderSize]);
-                    int frameSize = IceDecoder.DecodeInt(buffer.AsReadOnlySpan().Slice(10, 4));
+                    int frameSize = IceEncoding.DecodeInt(buffer.AsReadOnlySpan().Slice(10, 4));
                     if (frameSize != Ice1Definitions.HeaderSize)
                     {
                         throw new InvalidDataException($"received ice1 frame with only '{frameSize}' bytes");
@@ -692,7 +692,7 @@ namespace IceRpc.Internal
                 encodingMajor = 1;
                 encodingMinor = 1;
                 payloadSizeLength = 4;
-                payloadSize = IceDecoder.DecodeInt(payload.Span[0].Span);
+                payloadSize = IceEncoding.DecodeInt(payload.Span[0].Span);
             }
             else if (payloadEncoding == Encoding.Ice20)
             {
@@ -875,7 +875,7 @@ namespace IceRpc.Internal
 
                     // Check the header
                     Ice1Definitions.CheckHeader(buffer.Span[0..Ice1Definitions.HeaderSize]);
-                    int frameSize = IceDecoder.DecodeInt(buffer[10..14].Span);
+                    int frameSize = IceEncoding.DecodeInt(buffer[10..14].Span);
                     if (_isUdp && frameSize != buffer.Length)
                     {
                         // TODO: implement protocol logging with decorators
@@ -981,14 +981,14 @@ namespace IceRpc.Internal
 
                         case Ice1FrameType.Request:
                         {
-                            int requestId = IceDecoder.DecodeInt(buffer.Span[0..4]);
+                            int requestId = IceEncoding.DecodeInt(buffer.Span[0..4]);
                             buffer = buffer[4..]; // consume these 4 bytes
                             return (requestId, buffer, memoryOwner);
                         }
 
                         case Ice1FrameType.RequestBatch:
                         {
-                            int invokeNum = IceDecoder.DecodeInt(buffer.Span[0..4]);
+                            int invokeNum = IceEncoding.DecodeInt(buffer.Span[0..4]);
 
                             // TODO: implement protocol logging with decorators
                             // _logger.LogReceivedIce1RequestBatchFrame(invokeNum);
@@ -1003,7 +1003,7 @@ namespace IceRpc.Internal
 
                         case Ice1FrameType.Reply:
                         {
-                            int requestId = IceDecoder.DecodeInt(buffer.Span[0..4]);
+                            int requestId = IceEncoding.DecodeInt(buffer.Span[0..4]);
                             // we keep these 4 bytes in buffer
 
                             lock (_mutex)

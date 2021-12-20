@@ -154,13 +154,13 @@ namespace IceRpc.Slice
 
                 if (buffer.IsSingleSegment)
                 {
-                    return IceDecoder.DecodeInt(buffer.FirstSpan);
+                    return IceEncoding.DecodeInt(buffer.FirstSpan);
                 }
                 else
                 {
                     Span<byte> span = stackalloc byte[sizeLength];
                     buffer.CopyTo(span);
-                    return IceDecoder.DecodeInt(span);
+                    return IceEncoding.DecodeInt(span);
                 }
             }
         }

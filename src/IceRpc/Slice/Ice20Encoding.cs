@@ -113,7 +113,7 @@ namespace IceRpc.Slice
             }
         }
 
-        internal static int DecodeSizeLength(byte b) => IceDecoder.DecodeVarLongLength(b);
+        internal static int DecodeSizeLength(byte b) => IceEncoding.DecodeVarLongLength(b);
 
         internal override void EncodeFixedLengthSize(int size, Span<byte> into) =>
             Ice20Encoder.EncodeSize(size, into);

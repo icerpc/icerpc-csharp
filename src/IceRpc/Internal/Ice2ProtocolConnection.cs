@@ -508,7 +508,7 @@ namespace IceRpc.Internal
                 {
                     checked
                     {
-                        _peerIncomingFrameMaxSize = (int)IceDecoder.DecodeVarULong(value.Span).Value;
+                        _peerIncomingFrameMaxSize = (int)IceEncoding.DecodeVarULong(value.Span).Value;
                     }
 
                     if (_peerIncomingFrameMaxSize < 1024)
