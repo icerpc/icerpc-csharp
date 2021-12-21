@@ -2,11 +2,11 @@
 
 using IceRpc.Configure;
 using IceRpc.Internal;
-using IceRpc.Slice;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
+using System.Diagnostics;
 
 namespace IceRpc.Tests.Internal
 {
@@ -58,14 +58,28 @@ namespace IceRpc.Tests.Internal
             await using var factory = new ConnectionFactory(new ConnectionTestServiceCollection("tcp", protocol));
 
             using var semaphore = new SemaphoreSlim(0);
-            EventHandler<ClosedEventArgs> handler = (sender, args) =>
+            EventHandler<ClosedEventArgs> handler1 = (sender, args) =>
             {
                 Assert.That(sender, Is.AssignableTo<Connection>());
+                if (args.Exception is not ConnectionClosedException)
+                {
+                    Console.Error.WriteLine($"XXX {args.Exception}");
+                }
                 Assert.That(args.Exception, Is.AssignableTo<ConnectionClosedException>());
                 semaphore.Release();
             };
-            factory.ClientConnection.Closed += handler;
-            factory.ServerConnection.Closed += handler;
+            EventHandler<ClosedEventArgs> handler2 = (sender, args) =>
+            {
+                Assert.That(sender, Is.AssignableTo<Connection>());
+                if (args.Exception is not ConnectionClosedException)
+                {
+                    Console.Error.WriteLine($"YYY {args.Exception}");
+                }
+                Assert.That(args.Exception, Is.AssignableTo<ConnectionClosedException>());
+                semaphore.Release();
+            };
+            factory.ClientConnection.Closed += handler1;
+            factory.ServerConnection.Closed += handler2;
 
             await (closeClientSide ? factory.ClientConnection : factory.ServerConnection).ShutdownAsync();
 
@@ -272,6 +286,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(ProtocolCode.Ice1, "tcp", true)]
         [TestCase(ProtocolCode.Ice2, "coloc", false)]
         [TestCase(ProtocolCode.Ice2, "coloc", true)]
+        [Log(LogAttributeLevel.Debug)]
         public async Task Connection_ShutdownAsync(ProtocolCode protocol, string transport, bool closeClientSide)
         {
             using var waitForDispatchSemaphore = new SemaphoreSlim(0);
@@ -294,25 +309,24 @@ namespace IceRpc.Tests.Internal
             // Shutdown the connection.
             Task shutdownTask =
                 (closeClientSide ? factory.ClientConnection : factory.ServerConnection).ShutdownAsync("message");
-            Assert.That(dispatchSemaphore.Release(), Is.EqualTo(0));
-            await shutdownTask;
 
             if (protocol == ProtocolCode.Ice1 && closeClientSide)
             {
-                // With Ice1, when closing the connection with a pending invocation, invocations are aborted
+                await shutdownTask;
+
+                // With Ice1, when closing the connection with a pending invocation, invocations are canceled
                 // immediately. The Ice1 protocol doesn't support reliably waiting for the response.
-                Assert.ThrowsAsync<ConnectionClosedException>(
-                    async () => await factory.ServicePrx.IcePingAsync());
+                Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
+                Assert.That(dispatchSemaphore.Release(), Is.EqualTo(0));
             }
             else
             {
+                Assert.That(dispatchSemaphore.Release(), Is.EqualTo(0));
+                await shutdownTask;
+
                 // Ensure the invocation is successful.
                 Assert.DoesNotThrowAsync(async () => await pingTask);
             }
-
-            // Next invocation on the connection should throw ConnectionClosedException.
-            Assert.ThrowsAsync<ConnectionClosedException>(
-                async () => await factory.ServicePrx.IcePingAsync());
         }
 
         [TestCase(false, ProtocolCode.Ice1)]
@@ -529,12 +543,13 @@ namespace IceRpc.Tests.Internal
                     var connection = new Connection
                     {
                         SimpleClientTransport =
-                                _serviceProvider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
+                            _serviceProvider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
                         MultiplexedClientTransport =
-                                _serviceProvider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
+                            _serviceProvider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
                         Options = clientConnectionOptions ?? new(),
                         LoggerFactory = _serviceProvider.GetRequiredService<ILoggerFactory>(),
-                        RemoteEndpoint = endpoint
+                        RemoteEndpoint = endpoint,
+                        Resumable = false
                     };
                     await connection.ConnectAsync(default);
                     return connection;

@@ -67,6 +67,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(2, 1024, 1024 * 1024)]
         [TestCase(3, 1024 * 1024, 1024)]
         [TestCase(3, 1024, 1024 * 1024)]
+        [Log(LogAttributeLevel.Debug)]
         public async Task MultiplexedStream_StreamSendReceiveAsync(int bufferCount, int sendSize, int recvSize)
         {
             await using ServiceProvider serviceProvider = new InternalTestServiceCollection().BuildServiceProvider();
@@ -99,12 +100,12 @@ namespace IceRpc.Tests.Internal
             IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
 
             int segment = 0;
-            int offset = 0;
+            int segmentOffset = 0;
             buffer = new byte[recvSize];
             ReadOnlyMemory<byte> receiveBuffer = ReadOnlyMemory<byte>.Empty;
             while (segment < bufferCount)
             {
-                ReadOnlyMemory<byte> sendBuffer = sendBuffers.Span[segment];
+                ReadOnlyMemory<byte> sendSegmentBuffer = sendBuffers.Span[segment];
 
                 if (receiveBuffer.Length == 0)
                 {
@@ -112,27 +113,31 @@ namespace IceRpc.Tests.Internal
                     receiveBuffer = buffer.AsMemory()[0..count];
                 }
 
-                if (receiveBuffer.Length < (sendBuffer.Length - offset))
+                int sendSegmentLength = sendSegmentBuffer.Length - segmentOffset;
+                if (receiveBuffer.Length < sendSegmentLength)
                 {
                     // Received buffer is smaller than the data from the send buffer segment
-                    Assert.That(receiveBuffer.ToArray(),
-                                Is.EqualTo(sendBuffer[offset..(offset + receiveBuffer.Length)].ToArray()));
-                    offset += receiveBuffer.Length;
-                    if (offset == sendBuffer.Length)
+                    Assert.That(
+                        receiveBuffer.ToArray(),
+                        Is.EqualTo(sendSegmentBuffer[segmentOffset..(segmentOffset + receiveBuffer.Length)].ToArray()));
+
+                    segmentOffset += receiveBuffer.Length;
+                    if (segmentOffset == sendSegmentBuffer.Length)
                     {
-                        offset = 0;
+                        segmentOffset = 0;
                         ++segment;
                     }
                     receiveBuffer = Memory<byte>.Empty;
                 }
                 else
                 {
-                    // Received buffer is larger or equal than from the send buffer segment
-                    int length = sendBuffer.Length - offset;
-                    Assert.That(receiveBuffer[0..length].ToArray(), Is.EqualTo(sendBuffer[offset..].ToArray()));
+                    // Received buffer is larger or equal than the send buffer segment
+                    Assert.That(
+                        receiveBuffer[0..sendSegmentLength].ToArray(),
+                        Is.EqualTo(sendSegmentBuffer[segmentOffset..].ToArray()));
                     ++segment;
-                    offset = 0;
-                    receiveBuffer = receiveBuffer[length..];
+                    segmentOffset = 0;
+                    receiveBuffer = receiveBuffer[sendSegmentLength..];
                 }
             }
         }

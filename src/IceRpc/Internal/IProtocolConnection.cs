@@ -15,7 +15,7 @@ namespace IceRpc.Internal
         bool HasInvocationsInProgress { get; }
 
         /// <summary>This event is raised when the protocol connection is notified of the peer shutdown.</summary>
-        event Action? PeerShutdownInitiated;
+        event Action<string>? PeerShutdownInitiated;
 
         /// <summary>Sends a ping frame to defer the idle timeout.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

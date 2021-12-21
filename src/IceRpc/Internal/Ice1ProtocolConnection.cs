@@ -37,7 +37,7 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
-        public event Action? PeerShutdownInitiated;
+        public event Action<string>? PeerShutdownInitiated;
 
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -70,7 +70,7 @@ namespace IceRpc.Internal
             _sendSemaphore.Complete(exception);
 
             // Unblock ShutdownAsync if it's waiting for invocations and dispatches to complete.
-            _dispatchesAndInvocationsCompleted.TrySetException(exception);
+            _dispatchesAndInvocationsCompleted.TrySetResult();
 
             CancelInvocations(exception);
             CancelDispatches();
@@ -586,17 +586,11 @@ namespace IceRpc.Internal
                 bool alreadyShuttingDown = false;
                 lock (_mutex)
                 {
-                    if (_shutdown)
+                    alreadyShuttingDown = _shutdown;
+                    _shutdown = true;
+                    if (_dispatches.Count == 0 && _invocations.Count == 0)
                     {
-                        alreadyShuttingDown = true;
-                    }
-                    else
-                    {
-                        _shutdown = true;
-                        if (_dispatches.Count == 0 && _invocations.Count == 0)
-                        {
-                            _dispatchesAndInvocationsCompleted.TrySetResult();
-                        }
+                        _dispatchesAndInvocationsCompleted.TrySetResult();
                     }
                 }
 
@@ -624,9 +618,12 @@ namespace IceRpc.Internal
                 _sendSemaphore.Complete(exception);
 
                 // Send the CloseConnection frame once all the dispatches are done.
-                await _networkConnection.WriteAsync(
-                    Ice1Definitions.CloseConnectionFrame,
-                    CancellationToken.None).ConfigureAwait(false);
+                if (!alreadyShuttingDown)
+                {
+                    await _networkConnection.WriteAsync(
+                        Ice1Definitions.CloseConnectionFrame,
+                        CancellationToken.None).ConfigureAwait(false);
+                }
 
                 // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the
                 // connection closure here. We can't just return and close the underlying transport since this could
@@ -954,7 +951,7 @@ namespace IceRpc.Internal
                             // Raise the peer shutdown initiated event.
                             try
                             {
-                                PeerShutdownInitiated?.Invoke();
+                                PeerShutdownInitiated?.Invoke("connection shutdown by peer");
                             }
                             catch (Exception ex)
                             {

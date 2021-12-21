@@ -14,17 +14,20 @@ namespace IceRpc
     /// <summary>The state of an IceRpc connection.</summary>
     public enum ConnectionState : byte
     {
-        /// <summary>The connection is not connected.</summary>
+        /// <summary>The connection is not connected. If will be connected on the first invocation or when <see
+        /// cref="Connection.ConnectAsync"/> is called.</summary>
         NotConnected,
         /// <summary>The connection establishment is in progress.</summary>
         Connecting,
         /// <summary>The connection is active and can send and receive messages.</summary>
         Active,
         /// <summary>The connection is being gracefully shutdown and waits for the peer to close its end of the
-        /// connection before to switch to the <c>Closed</c> state. The peer closes its end of the connection only once
+        /// connection before to switch to the <c>Closing</c> state. The peer closes its end of the connection only once
         /// its dispatch complete.</summary>
+        ShuttingDown,
+        /// <summary>The connection is being closed.</summary>
         Closing,
-        /// <summary>The connection is closed.</summary>
+        /// <summary>The connection is closed and it can't be resumed.</summary>
         Closed
     }
 
@@ -56,7 +59,7 @@ namespace IceRpc
         {
             add
             {
-                if (_state >= ConnectionState.Closed)
+                if (_state >= ConnectionState.Closing)
                 {
                     throw new InvalidOperationException("the connection is closed");
                 }
@@ -111,6 +114,14 @@ namespace IceRpc
             init => _initialRemoteEndpoint = value;
         }
 
+        /// <summary>Specifies if the connection can be resumed after being closed. If <c>true</c>, the connection will
+        /// be re-established by the next call to <see cref="ConnectAsync"/> of the next invocation on the connection.
+        /// The <see cref="State"/> is always switched back to <see cref="ConnectionState.NotConnected"/> after the
+        /// connection has been closed. If <c>false</c>, the <see cref="State"/> is <see
+        /// cref="ConnectionState.NotConnected"/> once the connection is closed and the connection can't be
+        /// resumed.</summary>
+        public bool Resumable { get; init; } = true;
+
         /// <summary>The state of the connection.</summary>
         public ConnectionState State
         {
@@ -123,14 +134,8 @@ namespace IceRpc
             }
         }
 
-        // The connect task is assigned when ConnectAsync is called, it's protected with _mutex.
-        private Task? _connectTask;
-
         private EventHandler<ClosedEventArgs>? _closed;
-
-        // The close task is assigned when ShutdownAsync or CloseAsync are called, it's protected with _mutex.
-        private Task? _closeTask;
-
+        private bool _disposed;
         // The initial remote endpoint for client connections.
         private readonly Endpoint? _initialRemoteEndpoint;
 
@@ -145,11 +150,13 @@ namespace IceRpc
 
         private IProtocolConnection? _protocolConnection;
 
-#pragma warning disable CA2213 // _protocolShutdownCancellationSource is disposed in CloseAsync
-        private readonly CancellationTokenSource _protocolShutdownCancellationSource = new();
-#pragma warning restore CA2213
+        private CancellationTokenSource? _protocolShutdownCancellationSource;
 
         private ConnectionState _state = ConnectionState.NotConnected;
+
+        // The state task is assigned when the state is updated to Connecting, Closing or Closed. It's completed
+        // once the state update completes. It's protected with _mutex.
+        private Task? _stateTask;
 
 #pragma warning disable CA2213 // _timer is disposed in CloseAsync
         private Timer? _timer;
@@ -161,8 +168,8 @@ namespace IceRpc
         }
 
         /// <summary>Closes the connection. This methods switches the connection state to <see
-        /// cref="ConnectionState.Closed"/>. If <see cref="Closed"/> event listeners are registered, it waits
-        /// for the events to be executed.</summary>
+        /// cref="ConnectionState.Closing"/>. The connection will be in the <see cref="ConnectionState.NotConnected"/>
+        /// if <see cref="Resumable"/> is <c>true</c>.</summary>
         /// <param name="message">A description of the connection close reason.</param>
         public Task CloseAsync(string? message = null) =>
             // TODO: the retry interceptor considers ConnectionClosedException as always retryable. Raising this
@@ -176,43 +183,48 @@ namespace IceRpc
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A task that indicates the completion of the connect operation.</returns>
         /// <exception cref="ObjectDisposedException">Thrown if the connection is already closed.</exception>
-        public Task ConnectAsync(CancellationToken cancel = default)
+        public async Task ConnectAsync(CancellationToken cancel = default)
         {
-            lock (_mutex)
+            // Loop until the connection is active or connection establishment fails.
+            while (true)
             {
-                if (_state == ConnectionState.Active)
+                Task? waitTask = null;
+                lock (_mutex)
                 {
-                    return Task.CompletedTask;
+                    if (_state == ConnectionState.NotConnected)
+                    {
+                        // Only the application can call ConnectAsync on a server connection (which is ok but not
+                        // particularly useful), and in this case, the connection state can only be active or >=
+                        // closing.
+                        Debug.Assert(!IsServer);
+
+                        Debug.Assert(_protocolConnection == null && RemoteEndpoint != null);
+
+                        _stateTask = Protocol == Protocol.Ice1 ?
+                            PerformConnectAsync(SimpleClientTransport,
+                                                Ice1Protocol.Instance.ProtocolConnectionFactory,
+                                                LogSimpleNetworkConnectionDecorator.Decorate) :
+                            PerformConnectAsync(MultiplexedClientTransport,
+                                                Ice2Protocol.Instance.ProtocolConnectionFactory,
+                                                LogMultiplexedNetworkConnectionDecorator.Decorate);
+
+                        Debug.Assert(_state == ConnectionState.Connecting);
+                    }
+                    else if (_state == ConnectionState.Active)
+                    {
+                        return;
+                    }
+                    else if (_disposed || _state == ConnectionState.Closed)
+                    {
+                        throw new ConnectionClosedException();
+                    }
+
+                    Debug.Assert(_stateTask != null);
+                    waitTask = _stateTask;
                 }
-                else if (_state >= ConnectionState.Closing)
-                {
-                    // TODO: resume the connection if it's resumable
-                    throw new ConnectionClosedException();
-                }
 
-                // Only the application can call ConnectAsync on a server connection (which is ok but not particularly
-                // useful), and in this case, the connection state can only be active or >= closing.
-                Debug.Assert(!IsServer);
-
-                if (_state == ConnectionState.NotConnected)
-                {
-                    Debug.Assert(!IsServer);
-                    Debug.Assert(_protocolConnection == null && RemoteEndpoint != null);
-
-                    _connectTask = Protocol == Protocol.Ice1 ?
-                        PerformConnectAsync(SimpleClientTransport,
-                                            Ice1Protocol.Instance.ProtocolConnectionFactory,
-                                            LogSimpleNetworkConnectionDecorator.Decorate) :
-                        PerformConnectAsync(MultiplexedClientTransport,
-                                            Ice2Protocol.Instance.ProtocolConnectionFactory,
-                                            LogMultiplexedNetworkConnectionDecorator.Decorate);
-                }
-
-                Debug.Assert(_state == ConnectionState.Connecting);
-                Debug.Assert(_connectTask != null);
+                await waitTask.WaitAsync(cancel).ConfigureAwait(false);
             }
-
-            return _connectTask.WaitAsync(cancel);
 
             Task PerformConnectAsync<T>(
                 IClientTransport<T> clientTransport,
@@ -259,6 +271,7 @@ namespace IceRpc
         /// <inheritdoc/>
         public async ValueTask DisposeAsync()
         {
+            _disposed = true;
             try
             {
                 await ShutdownAsync("connection disposed", new CancellationToken(canceled: true)).ConfigureAwait(false);
@@ -276,29 +289,46 @@ namespace IceRpc
         /// with the parameters of the provided endpoint; otherwise, <c>false</c>.</returns>
         /// <remarks>This method checks only the parameters of the endpoint; it does not check other properties.
         /// </remarks>
-        public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
-            IsServer == false &&
-            State == ConnectionState.Active &&
-            _networkConnection!.HasCompatibleParams(remoteEndpoint);
+        public bool HasCompatibleParams(Endpoint remoteEndpoint)
+        {
+            lock (_mutex)
+            {
+                return IsServer == false &&
+                       State == ConnectionState.Active &&
+                       _networkConnection!.HasCompatibleParams(remoteEndpoint);
+            }
+        }
 
         /// <inheritdoc/>
         public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            // Make sure the connection is connected.
-            await ConnectAsync(cancel).ConfigureAwait(false);
+            IProtocolConnection protocolConnection;
+            while (true)
+            {
+                lock (_mutex)
+                {
+                    if (_state == ConnectionState.Active)
+                    {
+                        protocolConnection = _protocolConnection!;
+                        break; // while
+                    }
+                }
+
+                await ConnectAsync(cancel).ConfigureAwait(false);
+            }
 
             // Send the request. This completes payload source; this also completes payload sink when the Send fails
             // with an exception or there is no payload source stream.
-            await _protocolConnection!.SendRequestAsync(request, cancel).ConfigureAwait(false);
+            await protocolConnection!.SendRequestAsync(request, cancel).ConfigureAwait(false);
 
-            // Wait for the response if two-way request, otherwise return a response with an empty payload.
+            // Wait for the response if it's a two-way request, otherwise return a response with an empty payload.
             IncomingResponse response = request.IsOneway ?
                 new IncomingResponse(
                     Protocol,
                     ResultType.Success,
                     EmptyPipeReader.Instance,
                     request.PayloadEncoding) :
-                await _protocolConnection.ReceiveResponseAsync(request, cancel).ConfigureAwait(false);
+                await protocolConnection.ReceiveResponseAsync(request, cancel).ConfigureAwait(false);
 
             response.Connection = this;
             return response;
@@ -321,16 +351,20 @@ namespace IceRpc
             // Server.
 
             Task shutdownTask;
+            CancellationTokenSource? cancellationTokenSource = null;
             lock (_mutex)
             {
-                // The connection might already be in the closing state if peer initiated shutdown. We still perform
-                // shutdown in this case to wait for shutdown completion.
-                if (_state == ConnectionState.Active || _state == ConnectionState.Closing)
+                if (_state == ConnectionState.Active)
                 {
-                    _state = ConnectionState.Closing;
-                    _closeTask ??= PerformShutdownAsync();
+                    _state = ConnectionState.ShuttingDown;
+                    _protocolShutdownCancellationSource = new();
+                    _stateTask = ShutdownAsyncCore(
+                        _protocolConnection!,
+                        message,
+                        _protocolShutdownCancellationSource.Token);
                 }
-                shutdownTask = _closeTask ?? CloseAsync(new ConnectionClosedException(message));
+                shutdownTask = _stateTask ?? CloseAsync(new ConnectionClosedException(message));
+                cancellationTokenSource = _protocolShutdownCancellationSource;
             }
 
             // If the application cancels ShutdownAsync, cancel the protocol ShutdownAsync call.
@@ -338,7 +372,7 @@ namespace IceRpc
                 {
                     try
                     {
-                        _protocolShutdownCancellationSource.Cancel();
+                        cancellationTokenSource?.Cancel();
                     }
                     catch (ObjectDisposedException)
                     {
@@ -347,34 +381,6 @@ namespace IceRpc
 
             // Wait for the shutdown to complete.
             await shutdownTask.ConfigureAwait(false);
-
-            async Task PerformShutdownAsync()
-            {
-                // Yield before continuing to ensure the code below isn't executed with the mutex locked and
-                // that _closeTask is assigned before any synchronous continuations are ran.
-                await Task.Yield();
-
-                using var closeCancellationSource = new CancellationTokenSource(Options.CloseTimeout);
-                try
-                {
-                    // Shutdown the connection. The _shutdownCancellationSource is used to speed up the shutdown
-                    // if the application cancels ShutdownAsync.
-                    await _protocolConnection!
-                        .ShutdownAsync(message, _protocolShutdownCancellationSource.Token)
-                        .WaitAsync(closeCancellationSource.Token).ConfigureAwait(false);
-
-                    // Close the connection.
-                    await CloseAsync(new ConnectionClosedException(message)).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    await CloseAsync(new ConnectionClosedException("shutdown timed out")).ConfigureAwait(false);
-                }
-                catch (Exception exception)
-                {
-                    await CloseAsync(exception).ConfigureAwait(false);
-                }
-            }
         }
 
         /// <inheritdoc/>
@@ -418,43 +424,50 @@ namespace IceRpc
 
                 lock (_mutex)
                 {
-                    if (_state == ConnectionState.Closed)
+                    if (_state == ConnectionState.Closing)
                     {
                         // This can occur if the connection is disposed while the connection is being initialized.
                         throw new ConnectionClosedException();
                     }
 
                     _state = ConnectionState.Active;
+                    _stateTask = null;
 
                     _closed += closedEventHandler;
 
                     // Switch the connection to the Closing state as soon as the protocol receives a notification that
                     // peer initiated shutdown. This is in particular useful for the connection pool to not return a
                     // connection which is being shutdown.
-                    _protocolConnection.PeerShutdownInitiated += () =>
+                    _protocolConnection.PeerShutdownInitiated += message =>
                         {
                             lock (_mutex)
                             {
                                 if (_state == ConnectionState.Active)
                                 {
-                                    _state = ConnectionState.Closing;
+                                    _state = ConnectionState.ShuttingDown;
+                                    _protocolShutdownCancellationSource = new();
+                                    _stateTask = ShutdownAsyncCore(
+                                        _protocolConnection,
+                                        message,
+                                        _protocolShutdownCancellationSource.Token);
                                 }
                             }
                         };
 
                     // Setup a timer to check for the connection idle time every IdleTimeout / 2 period. If the
-                    // transport doesn't support idle timeout (e.g.: the colocated transport), IdleTimeout will
-                    // be infinite.
+                    // transport doesn't support idle timeout (e.g.: the colocated transport), IdleTimeout will be
+                    // infinite.
                     TimeSpan idleTimeout = NetworkConnectionInformation!.Value.IdleTimeout;
                     if (idleTimeout != TimeSpan.MaxValue && idleTimeout != Timeout.InfiniteTimeSpan)
                     {
                         _timer = new Timer(value => Monitor(), null, idleTimeout / 2, idleTimeout / 2);
                     }
 
-                    // Start the receive request task. The task accepts new incoming requests and
-                    // processes them. It only completes once the connection is closed.
-                    _ = Task.Run(() => AcceptIncomingRequestAsync(Dispatcher ?? NullDispatcher.Instance),
-                                 CancellationToken.None);
+                    // Start the receive request task. The task accepts new incoming requests and processes them. It
+                    // only completes once the connection is closed.
+                    _ = Task.Run(
+                        () => AcceptIncomingRequestAsync(_protocolConnection, Dispatcher ?? NullDispatcher.Instance),
+                        CancellationToken.None);
                 }
             }
             catch (OperationCanceledException)
@@ -518,12 +531,12 @@ namespace IceRpc
         /// but before it's dispatched, a new accept incoming request task is started to allow multiple
         /// incoming requests to be dispatched. The protocol implementation can limit the number of concurrent
         /// dispatch by no longer accepting a new request when a limit is reached.</summary>
-        private async Task AcceptIncomingRequestAsync(IDispatcher dispatcher)
+        private async Task AcceptIncomingRequestAsync(IProtocolConnection protocolConnection, IDispatcher dispatcher)
         {
             IncomingRequest request;
             try
             {
-                request = await _protocolConnection!.ReceiveRequestAsync().ConfigureAwait(false);
+                request = await protocolConnection.ReceiveRequestAsync().ConfigureAwait(false);
             }
             catch (Exception exception)
             {
@@ -532,7 +545,7 @@ namespace IceRpc
             }
 
             // Start a new task to accept a new incoming request before dispatching this one.
-            _ = Task.Run(() => AcceptIncomingRequestAsync(dispatcher));
+            _ = Task.Run(() => AcceptIncomingRequestAsync(protocolConnection, dispatcher));
 
             OutgoingResponse? response = null;
 
@@ -590,7 +603,7 @@ namespace IceRpc
                     }
                 }
 
-                await _protocolConnection.SendResponseAsync(
+                await protocolConnection.SendResponseAsync(
                     response,
                     request,
                     CancellationToken.None).ConfigureAwait(false);
@@ -623,20 +636,28 @@ namespace IceRpc
         /// re-established once this method returns by calling <see cref="ConnectAsync"/>.</summary>
         private async Task CloseAsync(Exception exception)
         {
+            Task waitTask;
             lock (_mutex)
             {
-                if (_state != ConnectionState.Closed)
+                if (_state == ConnectionState.NotConnected)
+                {
+                    return;
+                }
+                else if (_state != ConnectionState.Closing)
                 {
                     // It's important to set the state before performing the close. The close of the streams
                     // will trigger the failure of the associated invocations whose interceptor might access
                     // the connection state (e.g.: the retry interceptor or the connection pool checks the
                     // connection state).
-                    _state = ConnectionState.Closed;
-                    _closeTask = PerformCloseAsync();
+                    _state = ConnectionState.Closing;
+                    _stateTask = PerformCloseAsync();
                 }
+
+                Debug.Assert(_stateTask != null);
+                waitTask = _stateTask;
             }
 
-            await _closeTask!.ConfigureAwait(false);
+            await waitTask.ConfigureAwait(false);
 
             async Task PerformCloseAsync()
             {
@@ -647,6 +668,7 @@ namespace IceRpc
                 try
                 {
                     _protocolConnection?.Dispose();
+                    _protocolConnection = null;
                 }
                 catch (Exception ex)
                 {
@@ -659,6 +681,7 @@ namespace IceRpc
                     try
                     {
                         await networkConnection.DisposeAsync().ConfigureAwait(false);
+                        _networkConnection = null;
                     }
                     catch (Exception ex)
                     {
@@ -670,19 +693,63 @@ namespace IceRpc
                 if (_timer != null)
                 {
                     await _timer.DisposeAsync().ConfigureAwait(false);
+                    _timer = null;
                 }
 
-                _protocolShutdownCancellationSource.Dispose();
+                _protocolShutdownCancellationSource?.Dispose();
+                _protocolShutdownCancellationSource = null;
+
+                lock (_mutex)
+                {
+                    // A connection can be resumed if it hasn't been disposed and it's not a server connection.
+                    bool resumable = !IsServer && Resumable && !_disposed;
+                    _state = resumable ? ConnectionState.NotConnected : ConnectionState.Closed;
+                    _stateTask = null;
+                }
 
                 // Raise the Closed event, this will call user code so we shouldn't hold the mutex.
-                try
+                if (State == ConnectionState.Closed)
                 {
-                    _closed?.Invoke(this, new ClosedEventArgs(exception));
+                    try
+                    {
+                        _closed?.Invoke(this, new ClosedEventArgs(exception));
+                    }
+                    catch
+                    {
+                        // Ignore, application event handlers shouldn't raise exceptions.
+                    }
                 }
-                catch
-                {
-                    // Ignore, application event handlers shouldn't raise exceptions.
-                }
+            }
+        }
+
+        private async Task ShutdownAsyncCore(
+            IProtocolConnection protocolConnection,
+            string message,
+            CancellationToken cancel)
+        {
+            // Yield before continuing to ensure the code below isn't executed with the mutex locked and that _stateTask
+            // is assigned before any synchronous continuations are ran.
+            await Task.Yield();
+
+            using var closeCancellationSource = new CancellationTokenSource(Options.CloseTimeout);
+            try
+            {
+                // Shutdown the connection.
+                await protocolConnection
+                    .ShutdownAsync(message, cancel)
+                    .WaitAsync(closeCancellationSource.Token)
+                    .ConfigureAwait(false);
+
+                // Close the connection.
+                await CloseAsync(new ConnectionClosedException(message)).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                await CloseAsync(new ConnectionClosedException("shutdown timed out")).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                await CloseAsync(exception).ConfigureAwait(false);
             }
         }
     }
