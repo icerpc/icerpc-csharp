@@ -78,18 +78,12 @@ namespace IceRpc
         /// dispatcher is set.</value>
         public IDispatcher? Dispatcher { get; init; }
 
-        /// <summary>The logger factory used to create loggers to log connection-related activities.</summary>
-        public ILoggerFactory LoggerFactory { get; init; } = NullLoggerFactory.Instance;
-
-        /// <summary>The <see cref="IClientTransport{IMultiplexedNetworkConnection}"/> used by this connection to
-        /// create multiplexed network connections.</summary>
-        public IClientTransport<IMultiplexedNetworkConnection> MultiplexedClientTransport { get; init; } =
-            DefaultMultiplexedClientTransport;
-
-        /// <summary>The <see cref="IClientTransport{ISimpleNetworkConnection}"/> used by this connection to create
-        /// simple network connections.</summary>
-        public IClientTransport<ISimpleNetworkConnection> SimpleClientTransport { get; init; } =
-            DefaultSimpleClientTransport;
+        /// <summary>Specifies if the connection can be resumed after being closed. If <c>true</c>, the connection will
+        /// be re-established by the next call to <see cref="ConnectAsync"/> or the next invocation. The <see
+        /// cref="State"/> is always switched back to <see cref="ConnectionState.NotConnected"/> after the connection
+        /// closure. If <c>false</c>, the <see cref="State"/> is <see cref="ConnectionState.Closed"/> once the
+        /// connection is closed and the connection won't be resumed.</summary>
+        public bool IsResumable { get; init; } = true;
 
         /// <summary><c>true</c> if the connection uses a secure transport, <c>false</c> otherwise.</summary>
         /// <remarks><c>false</c> can mean the connection is not yet connected and its security will be determined
@@ -99,6 +93,14 @@ namespace IceRpc
         /// <summary><c>true</c> for a connection accepted by a server and <c>false</c> for a connection created by a
         /// client.</summary>
         public bool IsServer => _protocol != null;
+
+        /// <summary>The logger factory used to create loggers to log connection-related activities.</summary>
+        public ILoggerFactory LoggerFactory { get; init; } = NullLoggerFactory.Instance;
+
+        /// <summary>The <see cref="IClientTransport{IMultiplexedNetworkConnection}"/> used by this connection to
+        /// create multiplexed network connections.</summary>
+        public IClientTransport<IMultiplexedNetworkConnection> MultiplexedClientTransport { get; init; } =
+            DefaultMultiplexedClientTransport;
 
         /// <summary>The network connection information or <c>null</c> if the connection is not connected.</summary>
         public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
@@ -118,12 +120,10 @@ namespace IceRpc
             init => _initialRemoteEndpoint = value;
         }
 
-        /// <summary>Specifies if the connection can be resumed after being closed. If <c>true</c>, the connection will
-        /// be re-established by the next call to <see cref="ConnectAsync"/> or the next invocation. The <see
-        /// cref="State"/> is always switched back to <see cref="ConnectionState.NotConnected"/> after the connection
-        /// closure. If <c>false</c>, the <see cref="State"/> is <see cref="ConnectionState.Closed"/> once the
-        /// connection is closed and the connection won't be resumed.</summary>
-        public bool IsResumable { get; init; } = true;
+        /// <summary>The <see cref="IClientTransport{ISimpleNetworkConnection}"/> used by this connection to create
+        /// simple network connections.</summary>
+        public IClientTransport<ISimpleNetworkConnection> SimpleClientTransport { get; init; } =
+            DefaultSimpleClientTransport;
 
         /// <summary>The state of the connection.</summary>
         public ConnectionState State
@@ -417,6 +417,7 @@ namespace IceRpc
             _networkConnection = connection;
             _protocol = protocol;
             _state = ConnectionState.Connecting;
+            IsResumable = false;
         }
 
         /// <summary>Establishes a connection. This method is used for both client and server connections.</summary>
@@ -726,9 +727,8 @@ namespace IceRpc
 
                 lock (_mutex)
                 {
-                    // A connection can be resumed if it hasn't been disposed and it's not a server connection.
-                    bool isResumable = !IsServer && IsResumable && !_disposed;
-                    _state = isResumable ? ConnectionState.NotConnected : ConnectionState.Closed;
+                    // A connection can be resumed if it hasn't been disposed and it's configured to be resumable.
+                    _state = IsResumable && !_disposed ? ConnectionState.NotConnected : ConnectionState.Closed;
                     _stateTask = null;
                 }
 

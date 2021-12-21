@@ -290,7 +290,7 @@ namespace IceRpc.Tests.Internal
             Assert.That(clientConnection.IsResumable, Is.True);
 
             Assert.That(serverConnection, Is.Not.Null);
-            Assert.That(clientConnection.IsResumable, Is.False);
+            Assert.That(serverConnection.IsResumable, Is.False);
 
             if (closeClientSide)
             {
@@ -300,7 +300,7 @@ namespace IceRpc.Tests.Internal
             else
             {
                 await serverConnection!.ShutdownAsync(default);
-                Assert.That(serverConnection.State, Is.EqualTo(ConnectionState.NotConnected));
+                Assert.That(serverConnection.State, Is.EqualTo(ConnectionState.Closed));
             }
 
             await prx.IcePingAsync();
@@ -317,7 +317,7 @@ namespace IceRpc.Tests.Internal
             await using var factory = new ConnectionFactory(
                 new ConnectionTestServiceCollection(
                     protocol: protocol,
-                    dispatcher: new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request))));
+                    dispatcher: new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)))));
 
             Assert.That(factory.ClientConnection.IsResumable, Is.False);
             Assert.That(factory.ServerConnection.IsResumable, Is.False);
@@ -586,7 +586,7 @@ namespace IceRpc.Tests.Internal
                     {
                         Dispatcher = _serviceProvider.GetService<IDispatcher>(),
                         Options = serverConnectionOptions ?? new(),
-                        LoggerFactory = _serviceProvider.GetRequiredService<ILoggerFactory>()
+                        LoggerFactory = _serviceProvider.GetRequiredService<ILoggerFactory>(),
                     };
                     await connection.ConnectAsync<T>(networkConnection,
                                                      protocolConnectionFactory,
@@ -598,6 +598,7 @@ namespace IceRpc.Tests.Internal
                 {
                     var connection = new Connection
                     {
+                        IsResumable = false,
                         SimpleClientTransport =
                             _serviceProvider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
                         MultiplexedClientTransport =
