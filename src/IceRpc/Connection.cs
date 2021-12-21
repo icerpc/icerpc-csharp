@@ -15,7 +15,8 @@ namespace IceRpc
     public enum ConnectionState : byte
     {
         /// <summary>The connection is not connected. If will be connected on the first invocation or when <see
-        /// cref="Connection.ConnectAsync"/> is called.</summary>
+        /// cref="Connection.ConnectAsync"/> is called. A connection is in this state after creation or if it's closed
+        /// and resumable.</summary>
         NotConnected,
         /// <summary>The connection establishment is in progress.</summary>
         Connecting,
@@ -59,11 +60,14 @@ namespace IceRpc
         {
             add
             {
-                if (_state >= ConnectionState.Closing)
+                lock (_mutex)
                 {
-                    throw new InvalidOperationException("the connection is closed");
+                    if (_state == ConnectionState.Closed)
+                    {
+                        throw new InvalidOperationException("the connection is closed");
+                    }
+                    _closed += value;
                 }
-                _closed += value;
             }
             remove => _closed -= value;
         }
@@ -115,11 +119,10 @@ namespace IceRpc
         }
 
         /// <summary>Specifies if the connection can be resumed after being closed. If <c>true</c>, the connection will
-        /// be re-established by the next call to <see cref="ConnectAsync"/> of the next invocation on the connection.
-        /// The <see cref="State"/> is always switched back to <see cref="ConnectionState.NotConnected"/> after the
-        /// connection has been closed. If <c>false</c>, the <see cref="State"/> is <see
-        /// cref="ConnectionState.NotConnected"/> once the connection is closed and the connection can't be
-        /// resumed.</summary>
+        /// be re-established by the next call to <see cref="ConnectAsync"/> or the next invocation. The <see
+        /// cref="State"/> is always switched back to <see cref="ConnectionState.NotConnected"/> after the connection
+        /// closure. If <c>false</c>, the <see cref="State"/> is <see cref="ConnectionState.Closed"/> once the
+        /// connection is closed and the connection won't be resumed.</summary>
         public bool Resumable { get; init; } = true;
 
         /// <summary>The state of the connection.</summary>
@@ -135,7 +138,10 @@ namespace IceRpc
         }
 
         private EventHandler<ClosedEventArgs>? _closed;
+
+        // True once DisposeAsync is called. Once disposed the connection can't be resumed.
         private bool _disposed;
+
         // The initial remote endpoint for client connections.
         private readonly Endpoint? _initialRemoteEndpoint;
 
@@ -154,7 +160,7 @@ namespace IceRpc
 
         private ConnectionState _state = ConnectionState.NotConnected;
 
-        // The state task is assigned when the state is updated to Connecting, Closing or Closed. It's completed
+        // The state task is assigned when the state is updated to Connecting, ShuttingDown, Closing. It's completed
         // once the state update completes. It's protected with _mutex.
         private Task? _stateTask;
 
@@ -169,7 +175,8 @@ namespace IceRpc
 
         /// <summary>Closes the connection. This methods switches the connection state to <see
         /// cref="ConnectionState.Closing"/>. The connection will be in the <see cref="ConnectionState.NotConnected"/>
-        /// if <see cref="Resumable"/> is <c>true</c>.</summary>
+        /// state if <see cref="Resumable"/> is <c>true</c>, otherwise it will be <see
+        /// cref="ConnectionState.Closed"/></summary>
         /// <param name="message">A description of the connection close reason.</param>
         public Task CloseAsync(string? message = null) =>
             // TODO: the retry interceptor considers ConnectionClosedException as always retryable. Raising this
@@ -182,7 +189,7 @@ namespace IceRpc
         /// <summary>Establishes the connection.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A task that indicates the completion of the connect operation.</returns>
-        /// <exception cref="ObjectDisposedException">Thrown if the connection is already closed.</exception>
+        /// <exception cref="ConnectionClosedException">Thrown if the connection is already closed.</exception>
         public async Task ConnectAsync(CancellationToken cancel = default)
         {
             // Loop until the connection is active or connection establishment fails.
@@ -271,14 +278,32 @@ namespace IceRpc
         /// <inheritdoc/>
         public async ValueTask DisposeAsync()
         {
-            _disposed = true;
-            try
+            Task? waitTask;
+            lock (_mutex)
             {
-                await ShutdownAsync("connection disposed", new CancellationToken(canceled: true)).ConfigureAwait(false);
+                if (_disposed)
+                {
+                    waitTask = _stateTask;
+                }
+                else
+                {
+                    _disposed = true;
+
+                    // Perform a speedy graceful shutdown by canceling invocations and dispatches in progress.
+                    waitTask = ShutdownAsync("connection disposed", new CancellationToken(canceled: true));
+                }
             }
-            catch (Exception ex)
+
+            if (waitTask != null)
             {
-                Debug.Assert(false, $"dispose exception {ex}");
+                try
+                {
+                    await waitTask.ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    Debug.Assert(false, $"dispose exception {ex}");
+                }
             }
         }
 
@@ -302,6 +327,8 @@ namespace IceRpc
         /// <inheritdoc/>
         public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
+            // A connection can be closed concurrently so as long as ConnectAsync succeeds, we loop to get the
+            // protocol connection.
             IProtocolConnection protocolConnection;
             while (true)
             {
@@ -424,9 +451,9 @@ namespace IceRpc
 
                 lock (_mutex)
                 {
-                    if (_state == ConnectionState.Closing)
+                    if (_state >= ConnectionState.Closing)
                     {
-                        // This can occur if the connection is disposed while the connection is being initialized.
+                        // This can occur if the connection is closed while the connection is being connected.
                         throw new ConnectionClosedException();
                     }
 
@@ -435,9 +462,9 @@ namespace IceRpc
 
                     _closed += closedEventHandler;
 
-                    // Switch the connection to the Closing state as soon as the protocol receives a notification that
-                    // peer initiated shutdown. This is in particular useful for the connection pool to not return a
-                    // connection which is being shutdown.
+                    // Switch the connection to the ShuttingDown state as soon as the protocol receives a notification
+                    // that peer initiated shutdown. This is in particular useful for the connection pool to not return
+                    // a connection which is being shutdown.
                     _protocolConnection.PeerShutdownInitiated += message =>
                         {
                             lock (_mutex)
