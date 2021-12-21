@@ -47,7 +47,7 @@ namespace IceRpc.Slice
         private readonly IActivator? _activator;
 
         // The byte buffer we are decoding.
-        private readonly ReadOnlyMemory<byte> _buffer;
+        private readonly ReadOnlySpan<byte> _buffer;
 
         private ClassContext _classContext;
 
@@ -84,7 +84,7 @@ namespace IceRpc.Slice
             _connection = connection;
             _invoker = invoker;
             Pos = 0;
-            _buffer = buffer;
+            _buffer = buffer.Span;
 
             _minTotalSeqSize = 0;
         }
@@ -111,17 +111,17 @@ namespace IceRpc.Slice
 
         /// <summary>Decodes a bool.</summary>
         /// <returns>The bool decoded by this decoder.</returns>
-        public bool DecodeBool() => _buffer.Span[Pos++] == 1;
+        public bool DecodeBool() => _buffer[Pos++] == 1;
 
         /// <summary>Decodes a byte.</summary>
         /// <returns>The byte decoded by this decoder.</returns>
-        public byte DecodeByte() => _buffer.Span[Pos++];
+        public byte DecodeByte() => _buffer[Pos++];
 
         /// <summary>Decodes a double.</summary>
         /// <returns>The double decoded by this decoder.</returns>
         public double DecodeDouble()
         {
-            double value = BitConverter.ToDouble(_buffer.Span.Slice(Pos, sizeof(double)));
+            double value = BitConverter.ToDouble(_buffer.Slice(Pos, sizeof(double)));
             Pos += sizeof(double);
             return value;
         }
@@ -149,7 +149,7 @@ namespace IceRpc.Slice
         /// <returns>The float decoded by this decoder.</returns>
         public float DecodeFloat()
         {
-            float value = BitConverter.ToSingle(_buffer.Span.Slice(Pos, sizeof(float)));
+            float value = BitConverter.ToSingle(_buffer.Slice(Pos, sizeof(float)));
             Pos += sizeof(float);
             return value;
         }
@@ -158,7 +158,7 @@ namespace IceRpc.Slice
         /// <returns>The int decoded by this decoder.</returns>
         public int DecodeInt()
         {
-            int value = BitConverter.ToInt32(_buffer.Span.Slice(Pos, sizeof(int)));
+            int value = BitConverter.ToInt32(_buffer.Slice(Pos, sizeof(int)));
             Pos += sizeof(int);
             return value;
         }
@@ -167,7 +167,7 @@ namespace IceRpc.Slice
         /// <returns>The long decoded by this decoder.</returns>
         public long DecodeLong()
         {
-            long value = BitConverter.ToInt64(_buffer.Span.Slice(Pos, sizeof(long)));
+            long value = BitConverter.ToInt64(_buffer.Slice(Pos, sizeof(long)));
             Pos += sizeof(long);
             return value;
         }
@@ -176,7 +176,7 @@ namespace IceRpc.Slice
         /// <returns>The short decoded by this decoder.</returns>
         public short DecodeShort()
         {
-            short value = BitConverter.ToInt16(_buffer.Span.Slice(Pos, sizeof(short)));
+            short value = BitConverter.ToInt16(_buffer.Slice(Pos, sizeof(short)));
             Pos += sizeof(short);
             return value;
         }
@@ -226,7 +226,7 @@ namespace IceRpc.Slice
             }
             else
             {
-                string value = DecodeString(_buffer.Slice(Pos, size).Span);
+                string value = DecodeString(_buffer.Slice(Pos, size));
                 Pos += size;
                 return value;
             }
@@ -238,7 +238,7 @@ namespace IceRpc.Slice
         /// <returns>The uint decoded by this decoder.</returns>
         public uint DecodeUInt()
         {
-            uint value = BitConverter.ToUInt32(_buffer.Span.Slice(Pos, sizeof(uint)));
+            uint value = BitConverter.ToUInt32(_buffer.Slice(Pos, sizeof(uint)));
             Pos += sizeof(uint);
             return value;
         }
@@ -247,7 +247,7 @@ namespace IceRpc.Slice
         /// <returns>The ulong decoded by this decoder.</returns>
         public ulong DecodeULong()
         {
-            ulong value = BitConverter.ToUInt64(_buffer.Span.Slice(Pos, sizeof(ulong)));
+            ulong value = BitConverter.ToUInt64(_buffer.Slice(Pos, sizeof(ulong)));
             Pos += sizeof(ulong);
             return value;
         }
@@ -256,7 +256,7 @@ namespace IceRpc.Slice
         /// <returns>The ushort decoded by this decoder.</returns>
         public ushort DecodeUShort()
         {
-            ushort value = BitConverter.ToUInt16(_buffer.Span.Slice(Pos, sizeof(ushort)));
+            ushort value = BitConverter.ToUInt16(_buffer.Slice(Pos, sizeof(ushort)));
             Pos += sizeof(ushort);
             return value;
         }
@@ -283,7 +283,7 @@ namespace IceRpc.Slice
         /// </summary>
         /// <returns>The long decoded by this decoder.</returns>
         public long DecodeVarLong() =>
-            (_buffer.Span[Pos] & 0x03) switch
+            (_buffer[Pos] & 0x03) switch
             {
                 0 => (sbyte)DecodeByte() >> 2,
                 1 => DecodeShort() >> 2,
@@ -313,7 +313,7 @@ namespace IceRpc.Slice
         /// </summary>
         /// <returns>The ulong decoded by this decoder.</returns>
         public ulong DecodeVarULong() =>
-            (_buffer.Span[Pos] & 0x03) switch
+            (_buffer[Pos] & 0x03) switch
             {
                 0 => (uint)DecodeByte() >> 2,   // cast to uint to use operator >> for uint instead of int, which is
                 1 => (uint)DecodeUShort() >> 2, // later implicitly converted to ulong
@@ -552,7 +552,7 @@ namespace IceRpc.Slice
             int elementSize = Unsafe.SizeOf<T>();
             var value = new T[DecodeAndCheckSeqSize(elementSize)];
             int byteCount = elementSize * value.Length;
-            _buffer.Span.Slice(Pos, byteCount).CopyTo(MemoryMarshal.Cast<T, byte>(value));
+            _buffer.Slice(Pos, byteCount).CopyTo(MemoryMarshal.Cast<T, byte>(value));
             Pos += byteCount;
 
             if (checkElement != null)
@@ -576,7 +576,7 @@ namespace IceRpc.Slice
             int size = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0);
             int startPos = Pos;
             Pos += size;
-            return new ReadOnlyBitSequence(_buffer.Span.Slice(startPos, size));
+            return new ReadOnlyBitSequence(_buffer.Slice(startPos, size));
         }
 
         /// <summary>Decodes fields.</summary>
@@ -647,7 +647,7 @@ namespace IceRpc.Slice
                     if (tag == requestedTag)
                     {
                         // Found requested tag, so skip size:
-                        Skip(IceEncoding.DecodeVarLongLength(_buffer.Span[Pos]));
+                        Skip(IceEncoding.DecodeVarLongLength(_buffer[Pos]));
                         return decodeFunc(ref this);
                     }
                     else if (tag > requestedTag)
@@ -692,7 +692,7 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Reads size bytes from the underlying buffer.</summary>
-        internal ReadOnlyMemory<byte> ReadBytes(int size)
+        internal ReadOnlySpan<byte> ReadBytes(int size)
         {
             Debug.Assert(size > 0);
             var result = _buffer.Slice(Pos, size);
@@ -738,7 +738,7 @@ namespace IceRpc.Slice
             return sz;
         }
 
-        internal ReadOnlyMemory<byte> DecodeBitSequenceMemory(int bitSequenceSize)
+        internal ReadOnlySpan<byte> DecodeBitSequenceSpan(int bitSequenceSize)
         {
             int size = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0);
             int startPos = Pos;
@@ -847,7 +847,7 @@ namespace IceRpc.Slice
                                     new EndpointParam("-t",
                                                       ((short)transportCode).ToString(CultureInfo.InvariantCulture)),
                                     new EndpointParam("-e", encoding.ToString()),
-                                    new EndpointParam("-v", Convert.ToBase64String(_buffer.Slice(Pos, size).Span)));
+                                    new EndpointParam("-v", Convert.ToBase64String(_buffer.Slice(Pos, size))));
 
                             Pos += size;
 
@@ -1012,7 +1012,7 @@ namespace IceRpc.Slice
         private int ReadSpan(Span<byte> span)
         {
             int length = Math.Min(span.Length, _buffer.Length - Pos);
-            _buffer.Span.Slice(Pos, length).CopyTo(span);
+            _buffer.Slice(Pos, length).CopyTo(span);
             Pos += length;
             return length;
         }

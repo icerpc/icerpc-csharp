@@ -76,8 +76,8 @@ namespace IceRpc
                 // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values
 
                 byte traceIdVersion = decoder.DecodeByte();
-                var traceId = ActivityTraceId.CreateFromBytes(decoder.ReadBytes(16).Span);
-                var spanId = ActivitySpanId.CreateFromBytes(decoder.ReadBytes(8).Span);
+                var traceId = ActivityTraceId.CreateFromBytes(decoder.ReadBytes(16));
+                var spanId = ActivitySpanId.CreateFromBytes(decoder.ReadBytes(8));
                 var traceFlags = (ActivityTraceFlags)decoder.DecodeByte();
 
                 activity.SetParentId(traceId, spanId, traceFlags);

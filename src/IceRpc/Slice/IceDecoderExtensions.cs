@@ -91,8 +91,8 @@ namespace IceRpc.Slice
             }
             else
             {
-                ReadOnlyMemory<byte> bitSequenceMemory = decoder.DecodeBitSequenceMemory(count);
-                var bitSequence = new ReadOnlyBitSequence(bitSequenceMemory.Span);
+                ReadOnlySpan<byte> bitSequenceSpan = decoder.DecodeBitSequenceSpan(count);
+                var bitSequence = new ReadOnlyBitSequence(bitSequenceSpan);
                 var array = new T[count];
                 for (int i = 0; i < count; ++i)
                 {
