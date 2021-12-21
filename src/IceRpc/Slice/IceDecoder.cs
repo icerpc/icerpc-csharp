@@ -323,28 +323,6 @@ namespace IceRpc.Slice
 
         // Decode methods for constructed types
 
-        /// <summary>Decodes a sequence of fixed-size numeric values and returns an array.</summary>
-        /// <param name="checkElement">A delegate used to check each element of the array (optional).</param>
-        /// <returns>The sequence decoded by this decoder, as an array.</returns>
-        public T[] DecodeArray<T>(Action<T>? checkElement = null) where T : struct
-        {
-            int elementSize = Unsafe.SizeOf<T>();
-            var value = new T[DecodeAndCheckSeqSize(elementSize)];
-            int byteCount = elementSize * value.Length;
-            _buffer.Span.Slice(Pos, byteCount).CopyTo(MemoryMarshal.Cast<T, byte>(value));
-            Pos += byteCount;
-
-            if (checkElement != null)
-            {
-                foreach (T e in value)
-                {
-                    checkElement(e);
-                }
-            }
-
-            return value;
-        }
-
         /// <summary>Decodes a remote exception.</summary>
         /// <returns>The remote exception.</returns>
         public RemoteException DecodeException()
@@ -565,6 +543,28 @@ namespace IceRpc.Slice
         /// <returns>The decoded proxy</returns>
         public Proxy DecodeProxy() =>
             DecodeNullableProxy() ?? throw new InvalidDataException("decoded null for a non-nullable proxy");
+
+        /// <summary>Decodes a sequence of fixed-size numeric values and returns an array.</summary>
+        /// <param name="checkElement">A delegate used to check each element of the array (optional).</param>
+        /// <returns>The sequence decoded by this decoder, as an array.</returns>
+        public T[] DecodeSequence<T>(Action<T>? checkElement = null) where T : struct
+        {
+            int elementSize = Unsafe.SizeOf<T>();
+            var value = new T[DecodeAndCheckSeqSize(elementSize)];
+            int byteCount = elementSize * value.Length;
+            _buffer.Span.Slice(Pos, byteCount).CopyTo(MemoryMarshal.Cast<T, byte>(value));
+            Pos += byteCount;
+
+            if (checkElement != null)
+            {
+                foreach (T e in value)
+                {
+                    checkElement(e);
+                }
+            }
+
+            return value;
+        }
 
         // Other methods
 

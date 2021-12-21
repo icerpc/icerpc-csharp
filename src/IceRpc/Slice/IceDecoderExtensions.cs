@@ -1,8 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Collections;
-using System.Diagnostics;
-
 namespace IceRpc.Slice
 {
     /// <summary>Provides extension methods for class IceDecoder.</summary>
@@ -84,14 +81,26 @@ namespace IceRpc.Slice
         /// <summary>Decodes a sequence that encodes null values using a bit sequence.</summary>
         /// <param name="decoder">The Ice decoder.</param>
         /// <param name="decodeFunc">The decode function for each non-null element of the sequence.</param>
-        /// <returns>A collection that provides the size of the sequence and allows you to decode the sequence from the
-        /// the buffer. The returned collection does not fully implement ICollection{T}, in particular you can only
-        /// call GetEnumerator() once on this collection. You would typically use this collection to construct a
-        /// List{T} or some other generic collection that can be constructed from an IEnumerable{T}.</returns>
-        public static ICollection<T> DecodeSequenceWithBitSequence<T>(
-            this ref IceDecoder decoder,
-            DecodeFunc<T> decodeFunc) =>
-            new CollectionWithBitSequence<T>(decoder, decodeFunc);
+        /// <returns>An array of T.</returns>
+        public static T[] DecodeSequenceWithBitSequence<T>(this ref IceDecoder decoder, DecodeFunc<T> decodeFunc)
+        {
+            int count = decoder.DecodeAndCheckSeqSize(0);
+            if (count == 0)
+            {
+                return Array.Empty<T>();
+            }
+            else
+            {
+                ReadOnlyMemory<byte> bitSequenceMemory = decoder.DecodeBitSequenceMemory(count);
+                var bitSequence = new ReadOnlyBitSequence(bitSequenceMemory.Span);
+                var array = new T[count];
+                for (int i = 0; i < count; ++i)
+                {
+                    array[i] = bitSequence[i] ? decodeFunc(ref decoder) : default!;
+                }
+                return array;
+            }
+        }
 
         /// <summary>Decodes a sorted dictionary.</summary>
         /// <param name="decoder">The Ice decoder.</param>
@@ -154,144 +163,6 @@ namespace IceRpc.Slice
                 dict.Add(key, value);
             }
             return dict;
-        }
-
-        // Helper base class for the concrete collection implementations.
-        private abstract class CollectionBase<T> : ICollection<T>
-        {
-            public struct Enumerator : IEnumerator<T>
-            {
-                public T Current
-                {
-                    get
-                    {
-                        if (_pos == 0 || _pos > _collection.Count)
-                        {
-                            throw new InvalidOperationException();
-                        }
-                        return _current;
-                    }
-
-                    private set => _current = value;
-                }
-
-                object? IEnumerator.Current => Current;
-
-                private readonly CollectionBase<T> _collection;
-                private T _current;
-                private int _pos;
-
-                public void Dispose()
-                {
-                }
-
-                public bool MoveNext()
-                {
-                    if (_pos < _collection.Count)
-                    {
-                        Current = _collection.Decode(_pos);
-                        _pos++;
-                        return true;
-                    }
-                    else
-                    {
-                        return false;
-                    }
-                }
-
-                public void Reset() => throw new NotImplementedException();
-
-                // Disable these warnings as the _current field is never read before it is initialized in MoveNext.
-                // Declaring this field as nullable is not an option for a generic T that can be used with reference
-                // and value types.
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor.
-                internal Enumerator(CollectionBase<T> collection)
-#pragma warning restore CS8618
-                {
-                    _collection = collection;
-#pragma warning disable CS8601 // Possible null reference assignment.
-                    _current = default;
-#pragma warning restore CS8601
-                    _pos = 0;
-                }
-            }
-
-            public int Count { get; }
-            public bool IsReadOnly => true;
-            protected IceDecoder Decoder;
-
-            private bool _enumeratorRetrieved;
-
-            public void Add(T item) => throw new NotSupportedException();
-            public void Clear() => throw new NotSupportedException();
-            public bool Contains(T item) => throw new NotSupportedException();
-
-            public void CopyTo(T[] array, int arrayIndex)
-            {
-                foreach (T value in this)
-                {
-                    array[arrayIndex++] = value;
-                }
-            }
-            public IEnumerator<T> GetEnumerator()
-            {
-                if (_enumeratorRetrieved)
-                {
-                    throw new NotSupportedException("cannot get a second enumerator for this enumerable");
-                }
-                _enumeratorRetrieved = true;
-                return new Enumerator(this);
-            }
-
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-            public bool Remove(T item) => throw new NotSupportedException();
-            public void Reset() => throw new NotSupportedException();
-
-            private protected abstract T Decode(int pos);
-
-            protected CollectionBase(IceDecoder decoder, int minElementSize)
-            {
-                Count = decoder.DecodeAndCheckSeqSize(minElementSize);
-                Decoder = decoder;
-            }
-        }
-
-        // Collection<T> holds the size of a Slice sequence and decodes the sequence elements on-demand. It does not
-        // fully implement IEnumerable<T> and ICollection<T> (i.e. some methods throw NotSupportedException) because
-        // it's not resettable: you can't use it to decode the same bytes multiple times.
-        private sealed class Collection<T> : CollectionBase<T>
-        {
-            private readonly DecodeFunc<T> _decodeFunc;
-            internal Collection(IceDecoder decoder, int minElementSize, DecodeFunc<T> decodeFunc)
-                : base(decoder, minElementSize) => _decodeFunc = decodeFunc;
-
-            private protected override T Decode(int pos)
-            {
-                Debug.Assert(pos < Count);
-                return _decodeFunc(ref Decoder);
-            }
-        }
-
-        // A collection that encodes nulls with a bit sequence.
-        private sealed class CollectionWithBitSequence<T> : CollectionBase<T>
-        {
-            private readonly ReadOnlyMemory<byte> _bitSequenceMemory;
-            readonly DecodeFunc<T> _decodeFunc;
-
-            internal CollectionWithBitSequence(IceDecoder decoder, DecodeFunc<T> decodeFunc)
-                : base(decoder, 0)
-            {
-                _bitSequenceMemory = decoder.DecodeBitSequenceMemory(Count);
-                _decodeFunc = decodeFunc;
-            }
-
-            private protected override T Decode(int pos)
-            {
-                Debug.Assert(pos < Count);
-                var bitSequence = new ReadOnlyBitSequence(_bitSequenceMemory.Span);
-                return bitSequence[pos] ? _decodeFunc(ref Decoder) : default!;
-            }
         }
     }
 }

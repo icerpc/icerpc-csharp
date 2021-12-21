@@ -207,7 +207,7 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str) -> Cod
                 // We always read an array even when mapped to a collection, as it's expected to be
                 // faster than unmarshaling the collection elements one by one.
                 format!(
-                    "decoder.DecodeArray<{}>()",
+                    "decoder.DecodeSequence<{}>()",
                     element_type.to_type_string(namespace, TypeContext::Incoming, true)
                 )
             }
@@ -216,13 +216,13 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str) -> Cod
                 // faster than unmarshaling the collection elements one by one.
                 if enum_def.is_unchecked {
                     format!(
-                        "decoder.DecodeArray<{}>()",
+                        "decoder.DecodeSequence<{}>()",
                         element_type.to_type_string(namespace, TypeContext::Incoming, true)
                     )
                 } else {
                     format!(
                         "\
-decoder.DecodeArray(
+decoder.DecodeSequence(
     ({enum_type_name} e) => _ = {helper}.As{name}(({underlying_type})e))",
                         enum_type_name =
                             element_type.to_type_string(namespace, TypeContext::Incoming, false),
@@ -280,7 +280,7 @@ global::System.Linq.Enumerable.Reverse(
             code,
             "\
 decoder.DecodeSequenceWithBitSequence(
-    {}).ToArray()",
+    {})",
             decode_func(element_type, namespace).indent()
         )
     } else {
@@ -288,7 +288,7 @@ decoder.DecodeSequenceWithBitSequence(
             Types::Primitive(primitive) if primitive.is_fixed_size() => {
                 write!(
                     code,
-                    "decoder.DecodeArray<{}>()",
+                    "decoder.DecodeSequence<{}>()",
                     element_type.to_type_string(namespace, TypeContext::Incoming, true)
                 )
             }
@@ -296,14 +296,14 @@ decoder.DecodeSequenceWithBitSequence(
                 if enum_def.is_unchecked {
                     write!(
                         code,
-                        "decoder.DecodeArray<{}>()",
+                        "decoder.DecodeSequence<{}>()",
                         element_type.to_type_string(namespace, TypeContext::Incoming, true)
                     )
                 } else {
                     write!(
                         code,
                         "\
-decoder.DecodeArray(
+decoder.DecodeSequence(
     ({enum_type} e) => _ = {helper}.As{name}(({underlying_type})e))",
                         enum_type =
                             element_type.to_type_string(namespace, TypeContext::Incoming, false),
@@ -319,7 +319,7 @@ decoder.DecodeArray(
                     "\
 decoder.DecodeSequence(
     minElementSize: {},
-    {}).ToArray()",
+    {})",
                     element_type.min_wire_size(),
                     decode_func(element_type, namespace).indent()
                 )
