@@ -16,8 +16,8 @@ namespace IceRpc
         public static T? Get<T>(
             this IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields,
             int key,
-            Func<Ice20Decoder, T> decodeFunc) =>
+            DecodeFunc<T> decodeFunc) =>
             fields.TryGetValue(key, out ReadOnlyMemory<byte> value) ?
-                Ice20Decoder.DecodeBuffer(value, decodeFunc) : default(T?);
+                Ice20Encoding.DecodeBuffer(value, decodeFunc) : default(T?);
     }
 }

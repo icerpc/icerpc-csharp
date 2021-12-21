@@ -110,9 +110,7 @@ namespace IceRpc.Internal
                         throw new InvalidDataException($"received ice2 request with empty header");
                     }
 
-                    var decoder = new Ice20Decoder(readResult.Buffer.ToSingleBuffer());
-                    header = new Ice2RequestHeader(decoder);
-                    fields = decoder.DecodeFieldDictionary();
+                    (header, fields) = DecodeHeader(readResult.Buffer);
                     reader.AdvanceTo(readResult.Buffer.End);
 
                     if (readResult.IsCompleted)
@@ -129,11 +127,12 @@ namespace IceRpc.Internal
                     // Decode Context from Fields and set corresponding feature.
                     if (fields.Get(
                         (int)FieldKey.Context,
-                        decoder => decoder.DecodeDictionary(
+                        (ref IceDecoder decoder) => decoder.DecodeDictionary(
                             minKeySize: 1,
                             minValueSize: 1,
-                            keyDecodeFunc: decoder => decoder.DecodeString(),
-                            valueDecodeFunc: decoder => decoder.DecodeString())) is Dictionary<string, string> context)
+                            keyDecodeFunc: (ref IceDecoder decoder) => decoder.DecodeString(),
+                            valueDecodeFunc: (ref IceDecoder decoder) => decoder.DecodeString()))
+                                is Dictionary<string, string> context)
                     {
                         features = features.WithContext(context);
                     }
@@ -205,6 +204,13 @@ namespace IceRpc.Internal
                         return request;
                     }
                 }
+
+                static (Ice2RequestHeader, IReadOnlyDictionary<int, ReadOnlyMemory<byte>>) DecodeHeader(
+                    ReadOnlySequence<byte> buffer)
+                {
+                    var decoder = new IceDecoder(buffer, Encoding.Ice20);
+                    return (new Ice2RequestHeader(ref decoder), decoder.DecodeFieldDictionary());
+                }
             }
         }
 
@@ -235,13 +241,11 @@ namespace IceRpc.Internal
                     throw new InvalidDataException($"received ice2 response with empty header");
                 }
 
-                var decoder = new Ice20Decoder(readResult.Buffer.ToSingleBuffer());
-                header = new Ice2ResponseHeader(decoder);
-                fields = decoder.DecodeFieldDictionary();
+                (header, fields) = DecodeHeader(readResult.Buffer);
                 responseReader.AdvanceTo(readResult.Buffer.End);
 
                 RetryPolicy? retryPolicy = fields.Get(
-                    (int)FieldKey.RetryPolicy, decoder => new RetryPolicy(decoder));
+                    (int)FieldKey.RetryPolicy, (ref IceDecoder decoder) => new RetryPolicy(ref decoder));
                 if (retryPolicy != null)
                 {
                     features = features.With(retryPolicy);
@@ -271,6 +275,13 @@ namespace IceRpc.Internal
             };
 
             return response;
+
+            static (Ice2ResponseHeader, IReadOnlyDictionary<int, ReadOnlyMemory<byte>>) DecodeHeader(
+                ReadOnlySequence<byte> buffer)
+            {
+                var decoder = new IceDecoder(buffer, Encoding.Ice20);
+                return (new Ice2ResponseHeader(ref decoder), decoder.DecodeFieldDictionary());
+            }
         }
 
         /// <inheritdoc/>
@@ -498,35 +509,7 @@ namespace IceRpc.Internal
                 cancel).ConfigureAwait(false);
 
             // Read the protocol parameters which are encoded as IceRpc.Fields.
-
-            var decoder = new Ice20Decoder(buffer);
-            int dictionarySize = decoder.DecodeSize();
-            for (int i = 0; i < dictionarySize; ++i)
-            {
-                (int key, ReadOnlyMemory<byte> value) = decoder.DecodeField();
-                if (key == (int)Ice2ParameterKey.IncomingFrameMaxSize)
-                {
-                    checked
-                    {
-                        _peerIncomingFrameMaxSize = (int)IceDecoder.DecodeVarULong(value.Span).Value;
-                    }
-
-                    if (_peerIncomingFrameMaxSize < 1024)
-                    {
-                        throw new InvalidDataException($@"the peer's IncomingFrameMaxSize ({
-                            _peerIncomingFrameMaxSize} bytes) value is inferior to 1KB");
-                    }
-                }
-                else
-                {
-                    // Ignore unsupported parameters.
-                }
-            }
-
-            if (_peerIncomingFrameMaxSize == null)
-            {
-                throw new InvalidDataException("missing IncomingFrameMaxSize Ice2 connection parameter");
-            }
+            _peerIncomingFrameMaxSize = DecodePeerIncomingFrameMaxSize(buffer);
 
             _ = Task.Run(
                 async () =>
@@ -545,6 +528,34 @@ namespace IceRpc.Internal
                     }
                 },
                 CancellationToken.None);
+
+            static int DecodePeerIncomingFrameMaxSize(ReadOnlyMemory<byte> buffer)
+            {
+                var decoder = new IceDecoder(buffer, Encoding.Ice20);
+                int dictionarySize = decoder.DecodeSize();
+
+                for (int i = 0; i < dictionarySize; ++i)
+                {
+                    (int key, ReadOnlyMemory<byte> value) = decoder.DecodeField();
+                    if (key == (int)Ice2ParameterKey.IncomingFrameMaxSize)
+                    {
+                        int peerIncomingFrameMaxSize = checked((int)IceEncoding.DecodeVarULong(value.Span).Value);
+
+                        if (peerIncomingFrameMaxSize < 1024)
+                        {
+                            throw new InvalidDataException($@"the peer's IncomingFrameMaxSize ({
+                                peerIncomingFrameMaxSize} bytes) value is inferior to 1KB");
+                        }
+                        return peerIncomingFrameMaxSize;
+                    }
+                    else
+                    {
+                        // Ignore unsupported parameters.
+                    }
+                }
+
+                throw new InvalidDataException("missing IncomingFrameMaxSize Ice2 connection parameter");
+            }
         }
 
         private async ValueTask<ReadOnlyMemory<byte>> ReceiveControlFrameAsync(
@@ -565,14 +576,14 @@ namespace IceRpc.Internal
                 }
 
                 // Read the remainder of the size if needed.
-                int sizeLength = Ice20Decoder.DecodeSizeLength(buffer.Span[1]);
+                int sizeLength = Ice20Encoding.DecodeSizeLength(buffer.Span[1]);
                 if (sizeLength > 1)
                 {
                     await _remoteControlStream!.ReadUntilFullAsync(
                         buffer.Slice(2, sizeLength - 1), cancel).ConfigureAwait(false);
                 }
 
-                int frameSize = Ice20Decoder.DecodeSize(buffer[1..].AsReadOnlySpan()).Size;
+                int frameSize = Ice20Encoding.DecodeSize(buffer[1..].AsReadOnlySpan()).Size;
                 if (frameSize > _incomingFrameMaxSize)
                 {
                     throw new InvalidDataException(
@@ -698,7 +709,8 @@ namespace IceRpc.Internal
             ReadOnlyMemory<byte> buffer = await ReceiveControlFrameAsync(
                 Ice2FrameType.GoAway,
                 CancellationToken.None).ConfigureAwait(false);
-            var goAwayFrame = new Ice2GoAwayBody(new Ice20Decoder(buffer));
+
+            Ice2GoAwayBody goAwayFrame = DecodeIce2GoAwayBody(buffer);
 
             // Raise the peer shutdown initiated event.
             try
@@ -804,6 +816,13 @@ namespace IceRpc.Internal
             {
                 throw new InvalidDataException($"{nameof(Ice2FrameType.GoAwayCompleted)} frame is not empty");
             }
+
+            Ice2GoAwayBody DecodeIce2GoAwayBody(ReadOnlyMemory<byte> buffer)
+            {
+                var decoder = new IceDecoder(buffer, Encoding.Ice20);
+                return new Ice2GoAwayBody(ref decoder);
+            }
+
         }
     }
 }

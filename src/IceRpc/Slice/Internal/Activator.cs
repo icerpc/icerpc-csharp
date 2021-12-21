@@ -8,19 +8,21 @@ using System.Reflection;
 
 namespace IceRpc.Slice.Internal
 {
-    /// <summary>The default implementation of <see cref="IActivator{T}"/>, which uses a dictionary.</summary>
-    internal class Activator<T> : IActivator<T> where T : IceDecoder
+    internal delegate object ActivateObject(ref IceDecoder decoder);
+
+    /// <summary>The default implementation of <see cref="IActivator"/>, which uses a dictionary.</summary>
+    internal class Activator : IActivator
     {
-        internal static Activator<T> Empty { get; } =
-            new Activator<T>(ImmutableDictionary<string, Lazy<Func<T, object>>>.Empty);
+        internal static Activator Empty { get; } =
+            new Activator(ImmutableDictionary<string, Lazy<ActivateObject>>.Empty);
 
-        private readonly IReadOnlyDictionary<string, Lazy<Func<T, object>>> _dict;
+        private readonly IReadOnlyDictionary<string, Lazy<ActivateObject>> _dict;
 
-        object? IActivator<T>.CreateInstance(string typeId, T decoder) =>
-            _dict.TryGetValue(typeId, out Lazy<Func<T, object>>? factory) ? factory.Value(decoder) : null;
+        object? IActivator.CreateInstance(string typeId, ref IceDecoder decoder) =>
+            _dict.TryGetValue(typeId, out Lazy<ActivateObject>? factory) ? factory.Value(ref decoder) : null;
 
         /// <summary>Merge activators into a single activator; duplicate entries are ignored.</summary>
-        internal static Activator<T> Merge(IEnumerable<Activator<T>> activators)
+        internal static Activator Merge(IEnumerable<Activator> activators)
         {
             if (activators.Count() == 1)
             {
@@ -28,34 +30,32 @@ namespace IceRpc.Slice.Internal
             }
             else
             {
-                var dict = new Dictionary<string, Lazy<Func<T, object>>>();
+                var dict = new Dictionary<string, Lazy<ActivateObject>>();
 
-                foreach (Activator<T> activator in activators)
+                foreach (Activator activator in activators)
                 {
-                    foreach ((string typeId, Lazy<Func<T, object>> factory) in activator._dict)
+                    foreach ((string typeId, Lazy<ActivateObject> factory) in activator._dict)
                     {
                         dict[typeId] = factory;
                     }
                 }
-                return dict.Count == 0 ? Empty : new Activator<T>(dict);
+                return dict.Count == 0 ? Empty : new Activator(dict);
             }
         }
 
-        internal Activator(IReadOnlyDictionary<string, Lazy<Func<T, object>>> dict) => _dict = dict;
+        internal Activator(IReadOnlyDictionary<string, Lazy<ActivateObject>> dict) => _dict = dict;
     }
 
     /// <summary>Creates activators from assemblies by processing types in those assemblies.</summary>
-    internal class ActivatorFactory<T> where T : IceDecoder
+    internal class ActivatorFactory
     {
-        private readonly ConcurrentDictionary<Assembly, Activator<T>> _cache = new();
+        internal static ActivatorFactory Instance { get; } = new ActivatorFactory();
 
-        private readonly Func<Type, bool> _typeFilter;
+        private readonly ConcurrentDictionary<Assembly, Activator> _cache = new();
 
-        internal ActivatorFactory(Func<Type, bool> typeFilter) => _typeFilter = typeFilter;
-
-        internal Activator<T> Get(Assembly assembly)
+        internal Activator Get(Assembly assembly)
         {
-            if (_cache.TryGetValue(assembly, out Activator<T>? activator))
+            if (_cache.TryGetValue(assembly, out Activator? activator))
             {
                 return activator;
             }
@@ -65,13 +65,13 @@ namespace IceRpc.Slice.Internal
                     assembly,
                     assembly =>
                     {
-                        var dict = new Dictionary<string, Lazy<Func<T, object>>>();
+                        var dict = new Dictionary<string, Lazy<ActivateObject>>();
 
                         foreach (Type type in assembly.GetExportedTypes())
                         {
-                            if (type.GetIceTypeId() is string typeId && _typeFilter(type))
+                            if (type.GetIceTypeId() is string typeId && IsMatchingType(type))
                             {
-                                var lazy = new Lazy<Func<T, object>>(() => CreateFactory(type));
+                                var lazy = new Lazy<ActivateObject>(() => CreateFactory(type));
 
                                 dict.Add(typeId, lazy);
 
@@ -83,24 +83,24 @@ namespace IceRpc.Slice.Internal
                         }
 
                         // Merge with the activators of the referenced assemblies (recursive call)
-                        return Activator<T>.Merge(
+                        return Activator.Merge(
                             assembly.GetReferencedAssemblies().Select(
                                 assemblyName => Get(AppDomain.CurrentDomain.Load(assemblyName))).Append(
-                                    new Activator<T>(dict)));
+                                    new Activator(dict)));
                     });
             }
             else
             {
                 // We don't cache an assembly with no Slice attribute, and don't load/process its referenced assemblies.
-                return Activator<T>.Empty;
+                return Activator.Empty;
             }
 
-            static Func<T, object> CreateFactory(Type type)
+            static ActivateObject CreateFactory(Type type)
             {
                 ConstructorInfo? constructor = type.GetConstructor(
                     BindingFlags.Instance | BindingFlags.Public,
                     null,
-                    new Type[] { typeof(T) },
+                    new Type[] { typeof(IceDecoder).MakeByRefType() },
                     null);
 
                 if (constructor == null)
@@ -108,11 +108,19 @@ namespace IceRpc.Slice.Internal
                     throw new InvalidOperationException($"cannot get Ice decoding constructor for '{type}'");
                 }
 
-                ParameterExpression decoderParam = Expression.Parameter(typeof(T), "decoder");
+                ParameterExpression decoderParam = Expression.Parameter(typeof(IceDecoder).MakeByRefType(), "decoder");
 
-                return Expression.Lambda<Func<T, object>>(
+                return Expression.Lambda<ActivateObject>(
                     Expression.New(constructor, decoderParam), decoderParam).Compile();
             }
+
+            static bool IsMatchingType(Type type) =>
+                typeof(RemoteException).IsAssignableFrom(type) || typeof(AnyClass).IsAssignableFrom(type);
+        }
+
+        private ActivatorFactory()
+        {
+            // ensures it's a singleton.
         }
     }
 }

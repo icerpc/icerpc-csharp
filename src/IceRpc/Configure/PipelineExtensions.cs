@@ -75,7 +75,7 @@ namespace IceRpc.Configure
         /// <param name="pipeline">The pipeline being configured.</param>
         /// <param name="assemblies">One or more assemblies that contain Slice generated code.</param>
         /// <returns>The pipeline being configured.</returns>
-        /// <seealso cref="IActivator{T}"/>
+        /// <seealso cref="IActivator"/>
         public static Pipeline UseSliceAssemblies(this Pipeline pipeline, params Assembly[] assemblies) =>
             pipeline.Use(next => new SliceAssembliesInterceptor(next, assemblies));
 

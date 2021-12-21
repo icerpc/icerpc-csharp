@@ -35,7 +35,7 @@ namespace IceRpc.Slice
         /// <summary>Decodes a nullable typed proxy.</summary>
         /// <param name="decoder">The decoder.</param>
         /// <returns>The decoded proxy, or null.</returns>
-        public static T? DecodeNullablePrx<T>(this IceDecoder decoder) where T : struct, IPrx =>
+        public static T? DecodeNullablePrx<T>(ref this IceDecoder decoder) where T : struct, IPrx =>
             decoder.DecodeNullableProxy() is Proxy proxy ? new T { Proxy = proxy } : null;
     }
 }

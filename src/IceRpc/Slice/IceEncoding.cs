@@ -264,14 +264,28 @@ namespace IceRpc.Slice
             PipeReader reader,
             CancellationToken cancel);
 
-        internal abstract IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
-            FeatureCollection features,
-            DefaultIceDecoderFactories defaultIceDecoderFactories);
-
         /// <summary>Creates an Ice encoder for this encoding.</summary>
         /// <param name="bufferWriter">The buffer writer.</param>
         /// <returns>A new encoder for the specified Ice encoding.</returns>
         internal abstract IceEncoder CreateIceEncoder(IBufferWriter<byte> bufferWriter);
+
+        internal static int DecodeInt(ReadOnlySpan<byte> from) => BitConverter.ToInt32(from);
+
+        // Applies to all var type: varlong, varulong etc.
+        internal static int DecodeVarLongLength(byte from) => 1 << (from & 0x03);
+
+        internal static (ulong Value, int ValueLength) DecodeVarULong(ReadOnlySpan<byte> from)
+        {
+            ulong value = (from[0] & 0x03) switch
+            {
+                0 => (uint)from[0] >> 2,
+                1 => (uint)BitConverter.ToUInt16(from) >> 2,
+                2 => BitConverter.ToUInt32(from) >> 2,
+                _ => BitConverter.ToUInt64(from) >> 2
+            };
+
+            return (value, DecodeVarLongLength(from[0]));
+        }
 
         /// <summary>Encodes a fixed-length size into a span.</summary>
         /// <param name="size">The size to encode.</param>

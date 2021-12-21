@@ -7,8 +7,7 @@ namespace IceRpc.Slice
     /// <summary>An interceptor that overwrites which assemblies contain Slice types.</summary>
     public class SliceAssembliesInterceptor : IInvoker
     {
-        private readonly IIceDecoderFactory<Ice11Decoder> _decoderFactory11;
-        private readonly IIceDecoderFactory<Ice20Decoder> _decoderFactory20;
+        private readonly IActivator _activator;
         private readonly IInvoker _next;
 
         /// <summary>Constructs a new Slice assemblies interceptor.</summary>
@@ -16,23 +15,14 @@ namespace IceRpc.Slice
         /// <param name="assemblies">The assemblies that contain Slice types.</param>
         public SliceAssembliesInterceptor(IInvoker next, params Assembly[] assemblies)
         {
-            _decoderFactory11 = new Ice11DecoderFactory(Ice11Decoder.GetActivator(assemblies));
-            _decoderFactory20 = new Ice20DecoderFactory(Ice20Decoder.GetActivator(assemblies));
+            _activator = IceDecoder.GetActivator(assemblies);
             _next = next;
         }
 
         async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
             IncomingResponse response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
-
-            if (response.Features.IsReadOnly)
-            {
-                response.Features = new FeatureCollection(response.Features);
-            }
-            // Do not use type inference for the generic parameter, we retrieve the feature using the interface type,
-            // not the implementation type.
-            response.Features.Set<IIceDecoderFactory<Ice11Decoder>>(_decoderFactory11);
-            response.Features.Set<IIceDecoderFactory<Ice20Decoder>>(_decoderFactory20);
+            response.Features = response.Features.With(_activator);
             return response;
         }
     }

@@ -70,14 +70,14 @@ namespace IceRpc
         {
             if (request.Fields.TryGetValue((int)FieldKey.TraceContext, out ReadOnlyMemory<byte> buffer))
             {
-                var decoder = new Ice20Decoder(buffer);
+                var decoder = new IceDecoder(buffer, Encoding.Ice20);
 
                 // Read W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,
                 // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values
 
                 byte traceIdVersion = decoder.DecodeByte();
-                var traceId = ActivityTraceId.CreateFromBytes(decoder.ReadBytes(16).Span);
-                var spanId = ActivitySpanId.CreateFromBytes(decoder.ReadBytes(8).Span);
+                var traceId = ActivityTraceId.CreateFromBytes(decoder.ReadBytes(16));
+                var spanId = ActivitySpanId.CreateFromBytes(decoder.ReadBytes(8));
                 var traceFlags = (ActivityTraceFlags)decoder.DecodeByte();
 
                 activity.SetParentId(traceId, spanId, traceFlags);
@@ -88,7 +88,7 @@ namespace IceRpc
                 // The min element size is 2 bytes for a struct with two empty strings.
                 IEnumerable<(string key, string value)> baggage = decoder.DecodeSequence(
                     minElementSize: 2,
-                    decoder =>
+                    (ref IceDecoder decoder) =>
                     {
                         string key = decoder.DecodeString();
                         string value = decoder.DecodeString();
