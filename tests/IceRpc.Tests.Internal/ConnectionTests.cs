@@ -290,12 +290,13 @@ namespace IceRpc.Tests.Internal
             Assert.That(clientConnection.IsResumable, Is.True);
 
             Assert.That(serverConnection, Is.Not.Null);
-            Assert.That(serverConnection.IsResumable, Is.False);
+            Assert.That(serverConnection!.IsResumable, Is.False);
 
             if (closeClientSide)
             {
                 await clientConnection.ShutdownAsync(default);
                 Assert.That(clientConnection.State, Is.EqualTo(ConnectionState.NotConnected));
+                Assert.That(serverConnection!.State, Is.GreaterThan(ConnectionState.Active));
             }
             else
             {
@@ -303,7 +304,12 @@ namespace IceRpc.Tests.Internal
                 Assert.That(serverConnection.State, Is.EqualTo(ConnectionState.Closed));
             }
 
-            await prx.IcePingAsync();
+            Assert.That(
+                clientConnection.State,
+                Is.GreaterThan(ConnectionState.Active).Or.EqualTo(ConnectionState.NotConnected));
+
+            Assert.DoesNotThrowAsync(() => prx.IcePingAsync());
+
             Assert.That(prx.Proxy.Connection, Is.EqualTo(clientConnection));
             Assert.That(clientConnection.State, Is.EqualTo(ConnectionState.Active));
         }

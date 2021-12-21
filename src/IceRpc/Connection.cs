@@ -203,7 +203,10 @@ namespace IceRpc
                         // closing.
                         Debug.Assert(!IsServer);
 
-                        Debug.Assert(_protocolConnection == null && RemoteEndpoint != null);
+                        Debug.Assert(
+                            _networkConnection == null &&
+                            _protocolConnection == null &&
+                            RemoteEndpoint != null);
 
                         _stateTask = Protocol == Protocol.Ice1 ?
                             PerformConnectAsync(SimpleClientTransport,
@@ -344,7 +347,7 @@ namespace IceRpc
 
             // Send the request. This completes payload source; this also completes payload sink when the Send fails
             // with an exception or there is no payload source stream.
-            await protocolConnection!.SendRequestAsync(request, cancel).ConfigureAwait(false);
+            await protocolConnection.SendRequestAsync(request, cancel).ConfigureAwait(false);
 
             // Wait for the response if it's a two-way request, otherwise return a response with an empty payload.
             IncomingResponse response = request.IsOneway ?
@@ -566,7 +569,14 @@ namespace IceRpc
             }
             catch (Exception exception)
             {
-                _ = CloseAsync(exception);
+                // Unexpected exception, if the connection hasn't been resumed already, close the connection.
+                lock (_mutex)
+                {
+                    if (protocolConnection == _protocolConnection)
+                    {
+                        _ = CloseAsync(exception);
+                    }
+                }
                 return;
             }
 
@@ -652,14 +662,20 @@ namespace IceRpc
             }
             catch (Exception exception)
             {
-                // Unexpected exception, close the connection.
-                await CloseAsync(exception).ConfigureAwait(false);
+                lock (_mutex)
+                {
+                    // Unexpected exception, if the connection hasn't been resumed already, close the connection.
+                    if (protocolConnection == _protocolConnection)
+                    {
+                        _ = CloseAsync(exception);
+                    }
+                }
             }
         }
 
-        /// <summary>Closes the connection. This will forcefully close the connection if the connection hasn't
-        /// been shutdown gracefully. Resources allocated for the connection are freed. The connection can be
-        /// re-established once this method returns by calling <see cref="ConnectAsync"/>.</summary>
+        /// <summary>Closes the connection. This will forcefully close the connection if the connection hasn't been
+        /// shutdown gracefully. Resources allocated for the connection are freed. The connection can be re-established
+        /// once this method returns by calling <see cref="ConnectAsync"/>.</summary>
         private async Task CloseAsync(Exception exception)
         {
             Task waitTask;
@@ -694,7 +710,6 @@ namespace IceRpc
                 try
                 {
                     _protocolConnection?.Dispose();
-                    _protocolConnection = null;
                 }
                 catch (Exception ex)
                 {
@@ -707,7 +722,6 @@ namespace IceRpc
                     try
                     {
                         await networkConnection.DisposeAsync().ConfigureAwait(false);
-                        _networkConnection = null;
                     }
                     catch (Exception ex)
                     {
@@ -719,17 +733,20 @@ namespace IceRpc
                 if (_timer != null)
                 {
                     await _timer.DisposeAsync().ConfigureAwait(false);
-                    _timer = null;
                 }
 
                 _protocolShutdownCancellationSource?.Dispose();
-                _protocolShutdownCancellationSource = null;
 
                 lock (_mutex)
                 {
                     // A connection can be resumed if it hasn't been disposed and it's configured to be resumable.
                     _state = IsResumable && !_disposed ? ConnectionState.NotConnected : ConnectionState.Closed;
+
                     _stateTask = null;
+                    _protocolConnection = null;
+                    _networkConnection = null;
+                    _timer = null;
+                    _protocolShutdownCancellationSource = null;
                 }
 
                 // Raise the Closed event, this will call user code so we shouldn't hold the mutex.
