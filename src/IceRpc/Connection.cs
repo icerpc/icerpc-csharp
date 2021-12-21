@@ -123,7 +123,7 @@ namespace IceRpc
         /// cref="State"/> is always switched back to <see cref="ConnectionState.NotConnected"/> after the connection
         /// closure. If <c>false</c>, the <see cref="State"/> is <see cref="ConnectionState.Closed"/> once the
         /// connection is closed and the connection won't be resumed.</summary>
-        public bool Resumable { get; init; } = true;
+        public bool IsResumable { get; init; } = true;
 
         /// <summary>The state of the connection.</summary>
         public ConnectionState State
@@ -173,7 +173,7 @@ namespace IceRpc
 
         /// <summary>Closes the connection. This methods switches the connection state to <see
         /// cref="ConnectionState.Closing"/>. The connection will be in the <see cref="ConnectionState.NotConnected"/>
-        /// state if <see cref="Resumable"/> is <c>true</c>, otherwise it will be <see
+        /// state if <see cref="IsResumable"/> is <c>true</c>, otherwise it will be <see
         /// cref="ConnectionState.Closed"/></summary>
         /// <param name="message">A description of the connection close reason.</param>
         public Task CloseAsync(string? message = null) =>
@@ -727,8 +727,8 @@ namespace IceRpc
                 lock (_mutex)
                 {
                     // A connection can be resumed if it hasn't been disposed and it's not a server connection.
-                    bool resumable = !IsServer && Resumable && !_disposed;
-                    _state = resumable ? ConnectionState.NotConnected : ConnectionState.Closed;
+                    bool isResumable = !IsServer && IsResumable && !_disposed;
+                    _state = isResumable ? ConnectionState.NotConnected : ConnectionState.Closed;
                     _stateTask = null;
                 }
 
