@@ -680,35 +680,6 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Decodes a field.</summary>
-        /// <returns>The key and value of the field.</returns>
-        internal (int Key, ReadOnlyMemory<byte> Value) DecodeField()
-        {
-            int key = DecodeVarInt();
-            int entrySize = DecodeSize();
-            byte[] value = _buffer.Slice(Pos, entrySize).ToArray(); // make a copy
-            Pos += entrySize;
-            return (key, value);
-        }
-
-        /// <summary>Reads size bytes from the underlying buffer.</summary>
-        internal ReadOnlySpan<byte> ReadBytes(int size)
-        {
-            Debug.Assert(size > 0);
-            var result = _buffer.Slice(Pos, size);
-            Pos += size;
-            return result;
-        }
-
-        internal void Skip(int size)
-        {
-            if (size < 0 || size > _buffer.Length - Pos)
-            {
-                throw new IndexOutOfRangeException($"cannot skip {size} bytes");
-            }
-            Pos += size;
-        }
-
         /// <summary>Decodes a sequence size and makes sure there is enough space in the underlying buffer to decode the
         /// sequence. This validation is performed to make sure we do not allocate a large container based on an
         /// invalid encoded size.</summary>
@@ -744,6 +715,35 @@ namespace IceRpc.Slice
             int startPos = Pos;
             Pos += size;
             return _buffer.Slice(startPos, size);
+        }
+
+        /// <summary>Decodes a field.</summary>
+        /// <returns>The key and value of the field.</returns>
+        internal (int Key, ReadOnlyMemory<byte> Value) DecodeField()
+        {
+            int key = DecodeVarInt();
+            int entrySize = DecodeSize();
+            byte[] value = _buffer.Slice(Pos, entrySize).ToArray(); // make a copy
+            Pos += entrySize;
+            return (key, value);
+        }
+
+        /// <summary>Reads size bytes from the underlying buffer.</summary>
+        internal ReadOnlySpan<byte> ReadBytes(int size)
+        {
+            Debug.Assert(size > 0);
+            var result = _buffer.Slice(Pos, size);
+            Pos += size;
+            return result;
+        }
+
+        internal void Skip(int size)
+        {
+            if (size < 0 || size > _buffer.Length - Pos)
+            {
+                throw new IndexOutOfRangeException($"cannot skip {size} bytes");
+            }
+            Pos += size;
         }
 
         /// <summary>Decodes an endpoint (Slice 1.1).</summary>

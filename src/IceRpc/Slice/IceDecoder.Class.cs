@@ -99,6 +99,8 @@ namespace IceRpc.Slice
         /// <returns>The class instance. Can be null.</returns>
         private AnyClass? DecodeAnyClass()
         {
+            Debug.Assert(Encoding == IceRpc.Encoding.Ice11);
+
             int index = DecodeSize();
             if (index < 0)
             {
