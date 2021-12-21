@@ -267,6 +267,7 @@ namespace IceRpc.Tests.Api
         [TestCase(true, ProtocolCode.Ice1)]
         [TestCase(false, ProtocolCode.Ice2)]
         [TestCase(true, ProtocolCode.Ice2)]
+        [Log(LogAttributeLevel.Debug)]
         // Canceling the cancellation token (source) of ShutdownAsync results in a DispatchException when the operation
         // completes with an OperationCanceledException. It also test calling DisposeAsync is called instead of
         // shutdown, which call ShutdownAsync with a canceled token.
@@ -292,6 +293,7 @@ namespace IceRpc.Tests.Api
                 Endpoint = serverEndpoint,
                 SimpleServerTransport = colocTransport.ServerTransport,
                 MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport),
+                LoggerFactory = LogAttributeLoggerFactory.Instance
             };
 
             server.Listen();
@@ -300,7 +302,8 @@ namespace IceRpc.Tests.Api
             {
                 SimpleClientTransport = colocTransport.ClientTransport,
                 MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
-                RemoteEndpoint = serverEndpoint
+                RemoteEndpoint = serverEndpoint,
+                LoggerFactory = LogAttributeLoggerFactory.Instance
             };
 
             var proxy = GreeterPrx.FromConnection(connection);
