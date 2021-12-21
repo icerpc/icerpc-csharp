@@ -346,7 +346,7 @@ namespace IceRpc.Slice.Internal
 
                         Debug.Assert(written); // TODO: deal better with this situation
                     }
-                    while (decoder.Pos < buffer.Length);
+                    while (decoder.Consumed < buffer.Length);
                 }
             }
         }

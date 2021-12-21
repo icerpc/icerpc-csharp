@@ -67,7 +67,7 @@ namespace IceRpc.Slice
             {
                 Debug.Assert(_classContext.Current.PosAfterIndirectionTable != null &&
                              _classContext.Current.IndirectionTable != null);
-                Pos = _classContext.Current.PosAfterIndirectionTable.Value;
+                Consumed = _classContext.Current.PosAfterIndirectionTable.Value;
                 _classContext.Current.PosAfterIndirectionTable = null;
                 _classContext.Current.IndirectionTable = null;
             }
@@ -258,11 +258,11 @@ namespace IceRpc.Slice
                     throw new InvalidDataException("slice has indirection table but does not have a size");
                 }
 
-                int savedPos = Pos;
-                Pos = savedPos + _classContext.Current.SliceSize;
+                int savedPos = Consumed;
+                Consumed = savedPos + _classContext.Current.SliceSize;
                 _classContext.Current.IndirectionTable = DecodeIndirectionTable();
-                _classContext.Current.PosAfterIndirectionTable = Pos;
-                Pos = savedPos;
+                _classContext.Current.PosAfterIndirectionTable = Consumed;
+                Consumed = savedPos;
             }
         }
 
@@ -324,7 +324,7 @@ namespace IceRpc.Slice
             // Decode all the deferred indirection tables now that the instance is inserted in _instanceMap.
             if (_classContext.Current.DeferredIndirectionTableList?.Count > 0)
             {
-                int savedPos = Pos;
+                int savedPos = Consumed;
 
                 Debug.Assert(_classContext.Current.Slices?.Count ==
                     _classContext.Current.DeferredIndirectionTableList.Count);
@@ -333,13 +333,13 @@ namespace IceRpc.Slice
                     int pos = _classContext.Current.DeferredIndirectionTableList[i];
                     if (pos > 0)
                     {
-                        Pos = pos;
+                        Consumed = pos;
                         _classContext.Current.Slices[i].Instances = Array.AsReadOnly(DecodeIndirectionTable());
                     }
                     // else remains empty
                 }
 
-                Pos = savedPos;
+                Consumed = savedPos;
             }
 
             if (decodeIndirectionTable)
@@ -439,9 +439,9 @@ namespace IceRpc.Slice
                     // indirection table and later on when we decode it. We only want to add this typeId to the list and
                     // assign it an index when it's the first time we decode it, so we save the largest position we
                     // decode to figure out when to add to the list.
-                    if (Pos > _classContext.PosAfterLatestInsertedTypeId)
+                    if (Consumed > _classContext.PosAfterLatestInsertedTypeId)
                     {
-                        _classContext.PosAfterLatestInsertedTypeId = Pos;
+                        _classContext.PosAfterLatestInsertedTypeId = Consumed;
                         _classContext.TypeIdMap.Add(typeId);
                     }
                     return typeId;
@@ -497,7 +497,7 @@ namespace IceRpc.Slice
                             throw new InvalidDataException("size of slice missing");
                         }
                         int sliceSize = DecodeSliceSize();
-                        Pos += sliceSize; // we need a temporary sliceSize because DecodeSliceSize updates _pos.
+                        Consumed += sliceSize; // we need a temporary sliceSize because DecodeSliceSize updates _pos.
 
                         // If this slice has an indirection table, skip it too.
                         if ((sliceFlags & SliceFlags.HasIndirectionTable) != 0)
@@ -560,7 +560,7 @@ namespace IceRpc.Slice
                 _classContext.Current.DeferredIndirectionTableList ??= new List<int>();
                 if (hasIndirectionTable)
                 {
-                    int savedPos = Pos;
+                    int savedPos = Consumed;
                     SkipIndirectionTable();
 
                     // we want to later read the deepest first
@@ -575,7 +575,7 @@ namespace IceRpc.Slice
             {
                 Debug.Assert(_classContext.Current.PosAfterIndirectionTable != null);
                 // Move past indirection table
-                Pos = _classContext.Current.PosAfterIndirectionTable.Value;
+                Consumed = _classContext.Current.PosAfterIndirectionTable.Value;
                 _classContext.Current.PosAfterIndirectionTable = null;
             }
 
