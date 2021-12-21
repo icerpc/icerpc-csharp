@@ -60,8 +60,12 @@ namespace IceRpc.Tests.SliceInternal
                 activator,
                 slicedTypeIds: ImmutableList.Create(MyMostDerivedClass.IceTypeId));
 
-            decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
-            Assert.Throws<InvalidDataException>(() => decoder.DecodeClass<MyMostDerivedClass>());
+            Assert.Throws<InvalidDataException>(() =>
+            {
+                var decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
+                decoder.DecodeClass<MyMostDerivedClass>();
+            });
+
             decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
             MyDerivedClass r1 = decoder.DecodeClass<MyDerivedClass>();
             Assert.That(r1.UnknownSlices, Is.Empty);
@@ -73,8 +77,12 @@ namespace IceRpc.Tests.SliceInternal
                 activator,
                 slicedTypeIds: ImmutableList.Create(MyMostDerivedClass.IceTypeId, MyDerivedClass.IceTypeId));
 
-            decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
-            Assert.Throws<InvalidDataException>(() => decoder.DecodeClass<MyDerivedClass>());
+            Assert.Throws<InvalidDataException>(() =>
+            {
+                var decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
+                decoder.DecodeClass<MyDerivedClass>();
+            });
+
             decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
             MyBaseClass r2 = decoder.DecodeClass<MyBaseClass>();
             Assert.That(r2.UnknownSlices, Is.Empty);
@@ -88,10 +96,17 @@ namespace IceRpc.Tests.SliceInternal
                         MyDerivedClass.IceTypeId,
                         MyBaseClass.IceTypeId));
 
-            decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
-            Assert.Throws<InvalidDataException>(() => decoder.DecodeClass<MyBaseClass>());
-            decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
-            Assert.DoesNotThrow(() => decoder.DecodeClass<AnyClass>());
+            Assert.Throws<InvalidDataException>(() =>
+            {
+                var decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
+                decoder.DecodeClass<MyBaseClass>();
+            });
+
+            Assert.DoesNotThrow(() =>
+            {
+                var decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
+                decoder.DecodeClass<AnyClass>();
+            });
         }
 
         [Test]
@@ -125,8 +140,13 @@ namespace IceRpc.Tests.SliceInternal
             var slicingActivator = new SlicingActivator(
                 activator,
                 slicedTypeIds: ImmutableList.Create("3"));
-            decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
-            Assert.Throws<InvalidDataException>(() => decoder.DecodeClass<MyCompactMostDerivedClass>());
+
+            Assert.Throws<InvalidDataException>(() =>
+            {
+                var decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
+                decoder.DecodeClass<MyCompactMostDerivedClass>();
+            });
+
             decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
             MyCompactDerivedClass r1 = decoder.DecodeClass<MyCompactDerivedClass>();
             Assert.That(r1.UnknownSlices, Is.Empty);
@@ -137,8 +157,13 @@ namespace IceRpc.Tests.SliceInternal
             slicingActivator = slicingActivator = new SlicingActivator(
                 activator,
                 slicedTypeIds: ImmutableList.Create("3", "2"));
-            decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
-            Assert.Throws<InvalidDataException>(() => decoder.DecodeClass<MyCompactDerivedClass>());
+
+            Assert.Throws<InvalidDataException>(() =>
+            {
+                var decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
+                decoder.DecodeClass<MyCompactDerivedClass>();
+            });
+
             decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
             MyCompactBaseClass r2 = decoder.DecodeClass<MyCompactBaseClass>();
             Assert.That(r2.UnknownSlices, Is.Empty);
@@ -148,10 +173,18 @@ namespace IceRpc.Tests.SliceInternal
             slicingActivator = slicingActivator = new SlicingActivator(
                 activator,
                 slicedTypeIds: ImmutableList.Create("3", "2", "1"));
-            decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
-            Assert.Throws<InvalidDataException>(() => decoder.DecodeClass<MyCompactBaseClass>());
-            decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
-            Assert.DoesNotThrow(() => decoder.DecodeClass<AnyClass>());
+
+            Assert.Throws<InvalidDataException>(() =>
+            {
+                var decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
+                decoder.DecodeClass<MyCompactBaseClass>();
+            });
+
+            Assert.DoesNotThrow(() =>
+            {
+                var decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
+                decoder.DecodeClass<AnyClass>();
+            });
         }
 
         [Test]
@@ -260,10 +293,13 @@ namespace IceRpc.Tests.SliceInternal
                 activator,
                 slicedTypeIds: ImmutableList.Create(MyPreservedDerivedClass1.IceTypeId));
 
-            var decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
-            Assert.Throws<InvalidDataException>(() => decoder.DecodeClass<MyPreservedDerivedClass1>());
+            Assert.Throws<InvalidDataException>(() =>
+            {
+                var decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
+                decoder.DecodeClass<MyPreservedDerivedClass1>();
+            });
 
-            decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
+            var decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
             MyBaseClass r1 = decoder.DecodeClass<MyBaseClass>();
             Assert.That(r1.UnknownSlices, Is.Not.Empty);
 
@@ -308,9 +344,13 @@ namespace IceRpc.Tests.SliceInternal
                 activator,
                 slicedTypeIds: ImmutableList.Create("56"));
 
+            Assert.Throws<InvalidDataException>(() =>
+            {
+                var decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
+                decoder.DecodeClass<MyPreservedDerivedClass2>();
+            });
+
             var decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
-            Assert.Throws<InvalidDataException>(() => decoder.DecodeClass<MyPreservedDerivedClass2>());
-            decoder = new IceDecoder(buffer, Encoding.Ice11, activator: slicingActivator);
             MyBaseClass r1 = decoder.DecodeClass<MyBaseClass>();
 
             // Marshal the sliced class

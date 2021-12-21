@@ -54,34 +54,43 @@ namespace IceRpc.Tests.SliceInternal
                 ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
                 ReadOnlyMemory<byte> data = readResult.Buffer.ToArray();
                 request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
-                var decoder = new IceDecoder(data, Encoding.Ice11);
 
-                // Skip payload size
-                decoder.Skip(4);
-
-                // Read the instance marker
-                Assert.AreEqual(1, decoder.DecodeSize());
-                var sliceFlags = (SliceFlags)decoder.DecodeByte();
-                // The Slice includes a size for the sliced format
-                Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
-
+                DecodeBefore(data);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
-
                 readResult = await response.Payload.ReadAllAsync(cancel);
                 Assert.That(readResult.Buffer.IsSingleSegment);
+                DecodeAfter(readResult.Buffer.First);
 
-                decoder = new IceDecoder(readResult.Buffer.First, Encoding.Ice11);
-
-                // Skip payload size
-                decoder.Skip(4);
-
-                // Read the instance marker
-                Assert.AreEqual(1, decoder.DecodeSize());
-                sliceFlags = (SliceFlags)decoder.DecodeByte();
-                // The Slice includes a size for the sliced format
-                Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
                 response.Payload.AdvanceTo(readResult.Buffer.Start);
                 return response;
+
+                static void DecodeBefore(ReadOnlyMemory<byte> data)
+                {
+                    var decoder = new IceDecoder(data, Encoding.Ice11);
+
+                    // Skip payload size
+                    decoder.Skip(4);
+
+                    // Read the instance marker
+                    Assert.AreEqual(1, decoder.DecodeSize());
+                    var sliceFlags = (SliceFlags)decoder.DecodeByte();
+                    // The Slice includes a size for the sliced format
+                    Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
+                }
+
+                static void DecodeAfter(ReadOnlyMemory<byte> data)
+                {
+                    var decoder = new IceDecoder(data, Encoding.Ice11);
+
+                    // Skip payload size
+                    decoder.Skip(4);
+
+                    // Read the instance marker
+                    Assert.AreEqual(1, decoder.DecodeSize());
+                    var sliceFlags = (SliceFlags)decoder.DecodeByte();
+                    // The Slice includes a size for the sliced format
+                    Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
+                }
             }));
             await prx1.OpMyClassAsync(new MyClassCustomFormat("foo"));
 
@@ -93,33 +102,43 @@ namespace IceRpc.Tests.SliceInternal
                 ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
                 ReadOnlyMemory<byte> data = readResult.Buffer.ToArray();
                 request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
-                var decoder = new IceDecoder(data, Encoding.Ice11);
 
-                // Skip payload size
-                decoder.Skip(4);
-
-                // Read the instance marker
-                Assert.AreEqual(1, decoder.DecodeSize());
-                var sliceFlags = (SliceFlags)decoder.DecodeByte();
-                // The Slice does not include a size when using the compact format
-                Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
+                DecodeBefore(data);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
-
                 readResult = await response.Payload.ReadAllAsync(cancel);
                 Assert.That(readResult.Buffer.IsSingleSegment);
+                DecodeAfter(readResult.Buffer.First);
 
-                decoder = new IceDecoder(readResult.Buffer.First, Encoding.Ice11);
-
-                // Skip payload size
-                decoder.Skip(4);
-
-                // Read the instance marker
-                Assert.AreEqual(1, decoder.DecodeSize());
-                sliceFlags = (SliceFlags)decoder.DecodeByte();
-                // The Slice does not include a size when using the compact format
-                Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
                 response.Payload.AdvanceTo(readResult.Buffer.Start);
                 return response;
+
+                static void DecodeBefore(ReadOnlyMemory<byte> data)
+                {
+                    var decoder = new IceDecoder(data, Encoding.Ice11);
+
+                    // Skip payload size
+                    decoder.Skip(4);
+
+                    // Read the instance marker
+                    Assert.AreEqual(1, decoder.DecodeSize());
+                    var sliceFlags = (SliceFlags)decoder.DecodeByte();
+                    // The Slice does not include a size when using the compact format
+                    Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
+                }
+
+                static void DecodeAfter(ReadOnlyMemory<byte> data)
+                {
+                    var decoder = new IceDecoder(data, Encoding.Ice11);
+
+                    // Skip payload size
+                    decoder.Skip(4);
+
+                    // Read the instance marker
+                    Assert.AreEqual(1, decoder.DecodeSize());
+                    var sliceFlags = (SliceFlags)decoder.DecodeByte();
+                    // The Slice does not include a size when using the compact format
+                    Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
+                }
             }));
             await prx2.OpMyClassAsync(new MyClassCustomFormat("foo"));
 
@@ -131,33 +150,43 @@ namespace IceRpc.Tests.SliceInternal
                 ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
                 ReadOnlyMemory<byte> data = readResult.Buffer.ToArray();
                 request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
-                var decoder = new IceDecoder(data, Encoding.Ice11);
 
-                // Skip payload size
-                decoder.Skip(4);
-
-                // Read the instance marker
-                Assert.AreEqual(1, decoder.DecodeSize());
-                var sliceFlags = (SliceFlags)decoder.DecodeByte();
-                // The Slice does not include a size when using the compact format
-                Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
+                DecodeBefore(data);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
-
                 readResult = await response.Payload.ReadAllAsync(cancel);
                 Assert.That(readResult.Buffer.IsSingleSegment);
+                DecodeAfter(readResult.Buffer.First);
 
-                decoder = new IceDecoder(readResult.Buffer.First, Encoding.Ice11);
-
-                // Skip payload size
-                decoder.Skip(4);
-
-                // Read the instance marker
-                Assert.AreEqual(1, decoder.DecodeSize());
-                sliceFlags = (SliceFlags)decoder.DecodeByte();
-                // The Slice does not include a size when using the compact format
-                Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
                 response.Payload.AdvanceTo(readResult.Buffer.Start);
                 return response;
+
+                static void DecodeBefore(ReadOnlyMemory<byte> data)
+                {
+                    var decoder = new IceDecoder(data, Encoding.Ice11);
+
+                    // Skip payload size
+                    decoder.Skip(4);
+
+                    // Read the instance marker
+                    Assert.AreEqual(1, decoder.DecodeSize());
+                    var sliceFlags = (SliceFlags)decoder.DecodeByte();
+                    // The Slice does not include a size when using the compact format
+                    Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
+                }
+
+                static void DecodeAfter(ReadOnlyMemory<byte> data)
+                {
+                    var decoder = new IceDecoder(data, Encoding.Ice11);
+
+                    // Skip payload size
+                    decoder.Skip(4);
+
+                    // Read the instance marker
+                    Assert.AreEqual(1, decoder.DecodeSize());
+                    var sliceFlags = (SliceFlags)decoder.DecodeByte();
+                    // The Slice does not include a size when using the compact format
+                    Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
+                }
             }));
             await prx3.OpMyClassAsync(new MyClassCustomFormat("foo"));
 
@@ -168,33 +197,43 @@ namespace IceRpc.Tests.SliceInternal
                 ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
                 ReadOnlyMemory<byte> data = readResult.Buffer.ToArray();
                 request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
-                var decoder = new IceDecoder(data, Encoding.Ice11);
 
-                // Skip payload size
-                decoder.Skip(4);
-
-                // Read the instance marker
-                Assert.AreEqual(1, decoder.DecodeSize());
-                var sliceFlags = (SliceFlags)decoder.DecodeByte();
-                // The Slice includes a size for the sliced format
-                Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
+                DecodeBefore(data);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
-
                 readResult = await response.Payload.ReadAllAsync(cancel);
                 Assert.That(readResult.Buffer.IsSingleSegment);
+                DecodeAfter(readResult.Buffer.First);
 
-                decoder = new IceDecoder(readResult.Buffer.First, Encoding.Ice11);
-
-                // Skip payload size
-                decoder.Skip(4);
-
-                // Read the instance marker
-                Assert.AreEqual(1, decoder.DecodeSize());
-                sliceFlags = (SliceFlags)decoder.DecodeByte();
-                // The Slice includes a size for the sliced format
-                Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
                 response.Payload.AdvanceTo(readResult.Buffer.Start);
                 return response;
+
+                static void DecodeBefore(ReadOnlyMemory<byte> data)
+                {
+                    var decoder = new IceDecoder(data, Encoding.Ice11);
+
+                    // Skip payload size
+                    decoder.Skip(4);
+
+                    // Read the instance marker
+                    Assert.AreEqual(1, decoder.DecodeSize());
+                    var sliceFlags = (SliceFlags)decoder.DecodeByte();
+                    // The Slice includes a size for the sliced format
+                    Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
+                }
+
+                static void DecodeAfter(ReadOnlyMemory<byte> data)
+                {
+                    var decoder = new IceDecoder(data, Encoding.Ice11);
+
+                    // Skip payload size
+                    decoder.Skip(4);
+
+                    // Read the instance marker
+                    Assert.AreEqual(1, decoder.DecodeSize());
+                    var sliceFlags = (SliceFlags)decoder.DecodeByte();
+                    // The Slice includes a size for the sliced format
+                    Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
+                }
             }));
             await prx3.OpMyClassSlicedFormatAsync(new MyClassCustomFormat("foo"));
         }

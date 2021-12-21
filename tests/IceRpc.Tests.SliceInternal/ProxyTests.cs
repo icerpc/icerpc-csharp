@@ -28,10 +28,16 @@ namespace IceRpc.Tests.SliceInternal
 
             await using var connection = new Connection();
 
-            var decoder = new IceDecoder(buffer, encoding, connection);
-            Proxy proxy2 = decoder.DecodeProxy();
-            decoder.CheckEndOfBuffer(skipTaggedParams: false);
+            Proxy proxy2 = DecodeProxy();
             Assert.AreEqual(proxy, proxy2);
+
+            Proxy DecodeProxy()
+            {
+                var decoder = new IceDecoder(buffer, encoding, connection);
+                Proxy p = decoder.DecodeProxy();
+                decoder.CheckEndOfBuffer(skipTaggedParams: false);
+                return p;
+            }
         }
 
         [TestCase("2.0")]
@@ -56,14 +62,20 @@ namespace IceRpc.Tests.SliceInternal
             encoder.EncodeProxy(endpointLess);
             buffer = bufferWriter.WrittenBuffer;
 
-            // Decodes the endpointless proxy using the client connection. We get back a 1-endpoint proxy
-            var decoder = new IceDecoder(buffer, encoding, connection);
-
-            Proxy proxy1 = decoder.DecodeProxy();
-            decoder.CheckEndOfBuffer(skipTaggedParams: false);
+            Proxy proxy1 = DecodeProxy();
 
             Assert.AreEqual(regular.Connection, proxy1.Connection);
             Assert.AreEqual(proxy1.Endpoint, regular.Connection!.RemoteEndpoint);
+
+            Proxy DecodeProxy()
+            {
+                // Decodes the endpointless proxy using the client connection. We get back a 1-endpoint proxy
+                var decoder = new IceDecoder(buffer, encoding, connection);
+
+                Proxy p = decoder.DecodeProxy();
+                decoder.CheckEndOfBuffer(skipTaggedParams: false);
+                return p;
+            }
         }
     }
 }

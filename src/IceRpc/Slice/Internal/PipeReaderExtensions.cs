@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Buffers;
+using System.Diagnostics;
 using System.IO.Pipelines;
-using System.Linq;
-using System.Runtime.CompilerServices;
+using System.Threading.Channels;
 
 namespace IceRpc.Slice.Internal
 {
@@ -253,7 +253,7 @@ namespace IceRpc.Slice.Internal
         /// <param name="decodeFunc">The function used to decode the streamed param.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <remarks>The implementation currently always uses segments.</remarks>
-        internal static async IAsyncEnumerable<T> ToAsyncEnumerable<T>(
+        internal static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this PipeReader reader,
             IceEncoding encoding,
             Connection connection,
@@ -261,71 +261,93 @@ namespace IceRpc.Slice.Internal
             IActivator activator,
             int classGraphMaxDepth,
             DecodeFunc<T> decodeFunc,
-            [EnumeratorCancellation] CancellationToken cancel = default)
+            CancellationToken cancel = default)
         {
+            // TODO: consider mapping incoming stream to ChannelReader<T>
+
             // when CancelPendingRead is called on _reader, ReadSegmentAsync returns a ReadResult with
             // IsCanceled set to true.
             _ = cancel.Register(() => reader.CancelPendingRead());
 
-            while (true)
+            var channel = Channel.CreateUnbounded<T>(); // TODO: switch to bounded with options
+
+            _ = Task.Run(() => FillChannelWriterAsync(channel.Writer), cancel);
+
+            // cancel on ReadAllAsync has attribute[EnumeratorCancellation]
+            return channel.Reader.ReadAllAsync(cancel);
+
+            async Task FillChannelWriterAsync(ChannelWriter<T> channelWriter)
             {
-                // Each iteration decodes a segment with n values.
-
-                ReadResult readResult;
-
-                try
+                while (true)
                 {
-                    readResult = await reader.ReadSegmentAsync(encoding, cancel).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    await reader.CompleteAsync(ex).ConfigureAwait(false);
-                    yield break; // done
-                }
+                    // Each iteration decodes a segment with n values.
 
-                if (readResult.IsCanceled)
-                {
-                    await reader.CompleteAsync(new OperationCanceledException()).ConfigureAwait(false);
-                    yield break; // done
-                }
+                    ReadResult readResult;
 
-                if (!readResult.Buffer.IsEmpty)
-                {
                     try
                     {
-                        return Decode(readResult.Buffer).ToAsyncEnumerable();
+                        readResult = await reader.ReadSegmentAsync(encoding, cancel).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
+                        channelWriter.Complete(ex);
                         await reader.CompleteAsync(ex).ConfigureAwait(false);
-                        yield break; // done
+                        break; // done
+                    }
+
+                    if (readResult.IsCanceled)
+                    {
+                        reader.AdvanceTo(readResult.Buffer.End);
+                        var ex = new OperationCanceledException();
+                        channelWriter.Complete(ex);
+                        await reader.CompleteAsync(ex).ConfigureAwait(false);
+                        break; // done
+                    }
+
+                    if (!readResult.Buffer.IsEmpty)
+                    {
+                        try
+                        {
+                            Decode(readResult.Buffer);
+                        }
+                        catch (Exception ex)
+                        {
+                            channelWriter.Complete(ex);
+                            await reader.CompleteAsync(ex).ConfigureAwait(false);
+                            break;
+                        }
+                        finally
+                        {
+                            reader.AdvanceTo(readResult.Buffer.End);
+                        }
+                    }
+
+                    if (readResult.IsCompleted)
+                    {
+                        channelWriter.Complete();
+                        await reader.CompleteAsync().ConfigureAwait(false);
+                        break; // done
                     }
                 }
 
-                if (readResult.IsCompleted)
+                void Decode(ReadOnlySequence<byte> buffer)
                 {
-                    await reader.CompleteAsync().ConfigureAwait(false);
-                    yield break; // done
-                }
-            }
+                    var decoder = new IceDecoder(
+                        buffer,
+                        encoding,
+                        connection,
+                        invoker,
+                        activator,
+                        classGraphMaxDepth);
 
-            IEnumerable<T> Decode(ReadOnlySequence<byte> buffer)
-            {
-                var decoder = new IceDecoder(
-                    buffer,
-                    encoding,
-                    connection,
-                    invoker,
-                    activator,
-                    classGraphMaxDepth);
+                    do
+                    {
+                        bool written = channelWriter.TryWrite(decodeFunc(ref decoder));
 
-                T value = default!;
-                do
-                {
-                    value = decodeFunc(ref decoder);
-                    yield return value;
+                        Debug.Assert(written); // TODO: deal better with this situation
+                    }
+                    while (decoder.Pos < buffer.Length);
                 }
-                while (decoder.Pos < buffer.Length);
             }
         }
     }
