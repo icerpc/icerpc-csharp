@@ -70,7 +70,7 @@ namespace IceRpc.Internal
             _sendSemaphore.Complete(exception);
 
             // Unblock ShutdownAsync if it's waiting for invocations and dispatches to complete.
-            _dispatchesAndInvocationsCompleted.TrySetResult();
+            _dispatchesAndInvocationsCompleted.TrySetException(exception);
 
             CancelInvocations(exception);
             CancelDispatches();
@@ -586,11 +586,17 @@ namespace IceRpc.Internal
                 bool alreadyShuttingDown = false;
                 lock (_mutex)
                 {
-                    alreadyShuttingDown = _shutdown;
-                    _shutdown = true;
-                    if (_dispatches.Count == 0 && _invocations.Count == 0)
+                    if (_shutdown)
                     {
-                        _dispatchesAndInvocationsCompleted.TrySetResult();
+                        alreadyShuttingDown = true;
+                    }
+                    else
+                    {
+                        _shutdown = true;
+                        if (_dispatches.Count == 0 && _invocations.Count == 0)
+                        {
+                            _dispatchesAndInvocationsCompleted.TrySetResult();
+                        }
                     }
                 }
 
@@ -598,28 +604,25 @@ namespace IceRpc.Internal
                 {
                     // Cancel pending invocations immediately. Wait for dispatches to complete however.
                     CancelInvocations(new OperationCanceledException(message));
-                }
 
-                try
-                {
-                    // Wait for dispatches to complete.
-                    await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    // Try to speed up dispatch completion.
-                    CancelDispatches();
+                    try
+                    {
+                        // Wait for dispatches to complete.
+                        await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Try to speed up dispatch completion.
+                        CancelDispatches();
 
-                    // Wait again for the dispatches to complete.
-                    await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
-                }
+                        // Wait again for the dispatches to complete.
+                        await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
+                    }
 
-                // Cancel any pending requests waiting for sending.
-                _sendSemaphore.Complete(exception);
+                    // Cancel any pending requests waiting for sending.
+                    _sendSemaphore.Complete(exception);
 
-                // Send the CloseConnection frame once all the dispatches are done.
-                if (!alreadyShuttingDown)
-                {
+                    // Send the CloseConnection frame once all the dispatches are done.
                     await _networkConnection.WriteAsync(
                         Ice1Definitions.CloseConnectionFrame,
                         CancellationToken.None).ConfigureAwait(false);

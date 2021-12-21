@@ -592,7 +592,7 @@ namespace IceRpc.Tests.Internal
                     {
                         Dispatcher = _serviceProvider.GetService<IDispatcher>(),
                         Options = serverConnectionOptions ?? new(),
-                        LoggerFactory = _serviceProvider.GetRequiredService<ILoggerFactory>(),
+                        LoggerFactory = _serviceProvider.GetRequiredService<ILoggerFactory>()
                     };
                     await connection.ConnectAsync<T>(networkConnection,
                                                      protocolConnectionFactory,
@@ -611,7 +611,7 @@ namespace IceRpc.Tests.Internal
                             _serviceProvider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
                         Options = clientConnectionOptions ?? new(),
                         LoggerFactory = _serviceProvider.GetRequiredService<ILoggerFactory>(),
-                        RemoteEndpoint = endpoint,
+                        RemoteEndpoint = endpoint
                     };
                     await connection.ConnectAsync(default);
                     return connection;
