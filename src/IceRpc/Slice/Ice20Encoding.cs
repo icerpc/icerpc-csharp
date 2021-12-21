@@ -29,10 +29,10 @@ namespace IceRpc.Slice
         /// <returns>The decoded value.</returns>
         /// <exception cref="InvalidDataException">Thrown when <paramref name="decodeFunc"/> finds invalid data.
         /// </exception>
-        internal static T DecodeBuffer<T>(ReadOnlyMemory<byte> buffer, Func<IceDecoder, T> decodeFunc)
+        internal static T DecodeBuffer<T>(ReadOnlyMemory<byte> buffer, DecodeFunc<T> decodeFunc)
         {
             var decoder = new IceDecoder(buffer, Encoding.Ice20);
-            T result = decodeFunc(decoder);
+            T result = decodeFunc(ref decoder);
             decoder.CheckEndOfBuffer(skipTaggedParams: false);
             return result;
         }

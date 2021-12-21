@@ -24,7 +24,7 @@ namespace IceRpc.Transports.Internal
             uint version = decoder.DecodeVarUInt();
             if (version == SlicDefinitions.V1)
             {
-                return (version, new InitializeBody(decoder));
+                return (version, new InitializeBody(ref decoder));
             }
             else
             {
@@ -40,10 +40,12 @@ namespace IceRpc.Transports.Internal
         {
             using IMemoryOwner<byte> owner = await ReadFrameDataAsync(reader, dataSize, cancel).ConfigureAwait(false);
             Memory<byte> buffer = owner.Memory[..dataSize];
+
+            var decoder = new IceDecoder(buffer, Encoding.Ice20);
             return type switch
             {
-                FrameType.InitializeAck => (new InitializeAckBody(new IceDecoder(buffer, Encoding.Ice20)), null),
-                FrameType.Version => (null, new VersionBody(new IceDecoder(buffer, Encoding.Ice20))),
+                FrameType.InitializeAck => (new InitializeAckBody(ref decoder), null),
+                FrameType.Version => (null, new VersionBody(ref decoder)),
                 _ => throw new InvalidDataException($"unexpected Slic frame '{type}'")
             };
         }
@@ -52,19 +54,19 @@ namespace IceRpc.Transports.Internal
             this ISlicFrameReader reader,
             int dataSize,
             CancellationToken cancel) =>
-            ReadFrameDataAsync(reader, dataSize, decoder => new StreamResetBody(decoder), cancel);
+            ReadFrameDataAsync(reader, dataSize, (ref IceDecoder decoder) => new StreamResetBody(ref decoder), cancel);
 
         internal static ValueTask<StreamConsumedBody> ReadStreamConsumedAsync(
             this ISlicFrameReader reader,
             int dataSize,
             CancellationToken cancel) =>
-            ReadFrameDataAsync(reader, dataSize, decoder => new StreamConsumedBody(decoder), cancel);
+            ReadFrameDataAsync(reader, dataSize, (ref IceDecoder decoder) => new StreamConsumedBody(ref decoder), cancel);
 
         internal static ValueTask<StreamStopSendingBody> ReadStreamStopSendingAsync(
             this ISlicFrameReader reader,
             int dataSize,
             CancellationToken cancel) =>
-            ReadFrameDataAsync(reader, dataSize, decoder => new StreamStopSendingBody(decoder), cancel);
+            ReadFrameDataAsync(reader, dataSize, (ref IceDecoder decoder) => new StreamStopSendingBody(ref decoder), cancel);
 
         internal static ValueTask ReadUnidirectionalStreamReleasedAsync(
             this ISlicFrameReader reader,
@@ -93,11 +95,12 @@ namespace IceRpc.Transports.Internal
         private static async ValueTask<T> ReadFrameDataAsync<T>(
             ISlicFrameReader reader,
             int size,
-            Func<IceDecoder, T> decodeFunc,
+            DecodeFunc<T> decodeFunc,
             CancellationToken cancel)
         {
             using IMemoryOwner<byte> data = await ReadFrameDataAsync(reader, size, cancel).ConfigureAwait(false);
-            return decodeFunc(new IceDecoder(data.Memory[0..size], Encoding.Ice20));
+            var decoder = new IceDecoder(data.Memory[0..size], Encoding.Ice20);
+            return decodeFunc(ref decoder);
         }
     }
 }

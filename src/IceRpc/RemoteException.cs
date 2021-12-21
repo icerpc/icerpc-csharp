@@ -67,12 +67,12 @@ namespace IceRpc
 
         /// <summary>Constructs a remote exception using a decoder.</summary>
         /// <param name="decoder">The decoder.</param>
-        public RemoteException(IceDecoder decoder)
+        public RemoteException(ref IceDecoder decoder)
             : base(decoder.Encoding == Encoding.Ice11 ? null : decoder.DecodeString())
         {
             if (decoder.Encoding != Encoding.Ice11)
             {
-                Origin = new RemoteExceptionOrigin(decoder);
+                Origin = new RemoteExceptionOrigin(ref decoder);
                 _hasCustomMessage = true;
             }
             ConvertToUnhandled = true;
@@ -81,7 +81,7 @@ namespace IceRpc
         /// <summary>Decodes a remote exception from an <see cref="IceDecoder"/>.</summary>
         /// <param name="decoder">The decoder.</param>
         // This implementation is only called on a plain RemoteException.
-        protected virtual void IceDecode(IceDecoder decoder)
+        protected virtual void IceDecode(ref IceDecoder decoder)
         {
         }
 
@@ -102,7 +102,7 @@ namespace IceRpc
             Origin.Encode(encoder);
         }
 
-        internal void Decode(IceDecoder decoder) => IceDecode(decoder);
+        internal void Decode(ref IceDecoder decoder) => IceDecode(ref decoder);
         internal void Encode(Ice11Encoder encoder) => IceEncode(encoder);
         internal void Encode(Ice20Encoder encoder) => IceEncode(encoder);
     }

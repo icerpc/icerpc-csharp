@@ -18,7 +18,7 @@ namespace IceRpc.Tests.SliceInternal
         private readonly IceEncoding _encoding;
         private readonly SingleBufferWriter _bufferWriter;
         private readonly IceEncoder _encoder;
-        private readonly IceDecoder _decoder;
+        private IceDecoder _decoder;
 
         public BuiltInTypesTests(string encoding)
         {

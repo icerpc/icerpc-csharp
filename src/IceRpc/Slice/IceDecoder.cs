@@ -16,7 +16,7 @@ using static IceRpc.Slice.Internal.Ice11Definitions;
 namespace IceRpc.Slice
 {
     /// <summary>Decodes a byte buffer encoded using the Ice encoding.</summary>
-    public sealed partial class IceDecoder
+    public partial record struct IceDecoder
     {
         /// <summary>The Slice encoding decoded by this decoder.</summary>
         public IceEncoding Encoding { get; }
@@ -85,6 +85,8 @@ namespace IceRpc.Slice
             _invoker = invoker;
             Pos = 0;
             _buffer = buffer;
+
+            _minTotalSeqSize = 0;
         }
 
         /// <summary>Constructs a new Ice decoder over a byte buffer.</summary>
@@ -354,13 +356,13 @@ namespace IceRpc.Slice
             else
             {
                 string typeId = DecodeString();
-                var remoteEx = _activator?.CreateInstance(typeId, this) as RemoteException;
+                var remoteEx = _activator?.CreateInstance(typeId, ref this) as RemoteException;
 
                 if (remoteEx == null)
                 {
                     // If we can't decode this exception, we return an UnknownSlicedRemoteException instead of throwing
                     // "can't decode remote exception".
-                    return new UnknownSlicedRemoteException(typeId, this);
+                    return new UnknownSlicedRemoteException(typeId, ref this);
                 }
                 else
                 {
@@ -383,13 +385,13 @@ namespace IceRpc.Slice
 
             if (Encoding == IceRpc.Encoding.Ice11)
             {
-                var identity = new Identity(this);
+                var identity = new Identity(ref this);
                 if (identity.Name.Length == 0) // such identity means received a null proxy with the 1.1 encoding
                 {
                     return null;
                 }
 
-                var proxyData = new ProxyData11(this);
+                var proxyData = new ProxyData11(ref this);
 
                 if (proxyData.ProtocolMajor == 0)
                 {
@@ -488,7 +490,7 @@ namespace IceRpc.Slice
 
                         if (endpoint == null)
                         {
-                            proxy = Proxy.FromConnection(_connection, identity.ToPath(), _invoker);
+                            proxy = Proxy.FromConnection(_connection!, identity.ToPath(), _invoker);
                         }
                         else
                         {
@@ -511,7 +513,7 @@ namespace IceRpc.Slice
             }
             else
             {
-                var proxyData = new ProxyData20(this);
+                var proxyData = new ProxyData20(ref this);
 
                 if (proxyData.Path == null)
                 {
@@ -537,7 +539,7 @@ namespace IceRpc.Slice
 
                     if (endpoint == null && protocol != Protocol.Ice1)
                     {
-                        proxy = Proxy.FromConnection(_connection, proxyData.Path, _invoker);
+                        proxy = Proxy.FromConnection(_connection!, proxyData.Path, _invoker);
                     }
                     else
                     {
@@ -618,7 +620,7 @@ namespace IceRpc.Slice
                     {
                         Skip(4);
                     }
-                    return decodeFunc(this);
+                    return decodeFunc(ref this);
                 }
                 else
                 {
@@ -646,7 +648,7 @@ namespace IceRpc.Slice
                     {
                         // Found requested tag, so skip size:
                         Skip(IceEncoding.DecodeVarLongLength(_buffer.Span[Pos]));
-                        return decodeFunc(this);
+                        return decodeFunc(ref this);
                     }
                     else if (tag > requestedTag)
                     {
@@ -835,7 +837,7 @@ namespace IceRpc.Slice
                         }
 
                         case TransportCode.Any:
-                            endpoint = new EndpointData(this).ToEndpoint();
+                            endpoint = new EndpointData(ref this).ToEndpoint();
                             break;
 
                         default:
@@ -860,7 +862,7 @@ namespace IceRpc.Slice
                 }
                 else if (transportCode == TransportCode.Any)
                 {
-                    endpoint = new EndpointData(this).ToEndpoint();
+                    endpoint = new EndpointData(ref this).ToEndpoint();
                 }
 
                 if (endpoint != null)

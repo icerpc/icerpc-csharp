@@ -44,7 +44,7 @@ namespace IceRpc.Slice
             this IncomingResponse response,
             IInvoker? invoker,
             IActivator defaultActivator,
-            Func<IceDecoder, T> decodeFunc) =>
+            DecodeFunc<T> decodeFunc) =>
             response.Payload.ToAsyncEnumerable<T>(
                 response.GetSlicePayloadEncoding(),
                 response.Connection,

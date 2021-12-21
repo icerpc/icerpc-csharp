@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
 using System.IO.Compression;
 using System.IO.Pipelines;
 
@@ -16,7 +17,7 @@ namespace IceRpc.Internal
                 // TODO: switch to class for CompressionField?
                 CompressionField compressionField = frame.Fields.Get(
                     (int)FieldKey.Compression,
-                    decoder => new CompressionField(decoder));
+                    (ref IceDecoder decoder) => new CompressionField(ref decoder));
 
                 if (compressionField != default) // default means not set
                 {

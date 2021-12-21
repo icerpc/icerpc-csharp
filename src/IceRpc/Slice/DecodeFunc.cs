@@ -6,5 +6,5 @@ namespace IceRpc.Slice
     /// <typeparam name="T">The type of the value to decode.</typeparam>
     /// <param name="decoder">The Ice decoder.</param>
     /// <returns>The value.</returns>
-    public delegate T DecodeFunc<T>(IceDecoder decoder);
+    public delegate T DecodeFunc<T>(ref IceDecoder decoder);
 }

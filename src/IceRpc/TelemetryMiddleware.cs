@@ -88,7 +88,7 @@ namespace IceRpc
                 // The min element size is 2 bytes for a struct with two empty strings.
                 IEnumerable<(string key, string value)> baggage = decoder.DecodeSequence(
                     minElementSize: 2,
-                    decoder =>
+                    (ref IceDecoder decoder) =>
                     {
                         string key = decoder.DecodeString();
                         string value = decoder.DecodeString();

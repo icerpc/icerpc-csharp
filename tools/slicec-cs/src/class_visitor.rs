@@ -134,9 +134,9 @@ impl<'a> Visitor for ClassVisitor<'_> {
             );
         }
 
-        decode_constructor.add_parameter("IceDecoder", "decoder", None, None);
+        decode_constructor.add_parameter("ref IceDecoder", "decoder", None, None);
         if has_base_class {
-            decode_constructor.add_base_parameter("decoder");
+            decode_constructor.add_base_parameter("ref decoder");
         }
         decode_constructor
             .set_body(initialize_non_nullable_fields(&members, FieldType::Class))
@@ -262,14 +262,14 @@ protected override global::System.Collections.Immutable.ImmutableList<IceRpc.Sli
         "IceDecode",
         FunctionType::BlockBody,
     )
-    .add_parameter("IceDecoder", "decoder", None, None)
+    .add_parameter("ref IceDecoder", "decoder", None, None)
     .set_body({
         let mut code = CodeBlock::new();
         code.writeln("decoder.IceStartSlice();");
         code.writeln(&decode_data_members(&members, namespace, FieldType::Class));
         code.writeln("decoder.IceEndSlice();");
         if has_base_class {
-            code.writeln("base.IceDecode(decoder);");
+            code.writeln("base.IceDecode(ref decoder);");
         }
         code
     })

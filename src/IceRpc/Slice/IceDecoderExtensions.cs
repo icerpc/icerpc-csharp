@@ -16,7 +16,7 @@ namespace IceRpc.Slice
         /// <param name="valueDecodeFunc">The decode function for each value of the dictionary.</param>
         /// <returns>The dictionary decoded by this decoder.</returns>
         public static Dictionary<TKey, TValue> DecodeDictionary<TKey, TValue>(
-            this IceDecoder decoder,
+            this ref IceDecoder decoder,
             int minKeySize,
             int minValueSize,
             DecodeFunc<TKey> keyDecodeFunc,
@@ -27,8 +27,8 @@ namespace IceRpc.Slice
             var dict = new Dictionary<TKey, TValue>(sz);
             for (int i = 0; i < sz; ++i)
             {
-                TKey key = keyDecodeFunc(decoder);
-                TValue value = valueDecodeFunc(decoder);
+                TKey key = keyDecodeFunc(ref decoder);
+                TValue value = valueDecodeFunc(ref decoder);
                 dict.Add(key, value);
             }
             return dict;
@@ -41,7 +41,7 @@ namespace IceRpc.Slice
         /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
         /// <returns>The dictionary decoded by this decoder.</returns>
         public static Dictionary<TKey, TValue?> DecodeDictionaryWithBitSequence<TKey, TValue>(
-            this IceDecoder decoder,
+            this ref IceDecoder decoder,
             int minKeySize,
             DecodeFunc<TKey> keyDecodeFunc,
             DecodeFunc<TValue?> valueDecodeFunc)
@@ -59,15 +59,27 @@ namespace IceRpc.Slice
         /// <param name="decoder">The Ice decoder.</param>
         /// <param name="minElementSize">The minimum size of each element of the sequence, in bytes.</param>
         /// <param name="decodeFunc">The decode function for each element of the sequence.</param>
-        /// <returns>A collection that provides the size of the sequence and allows you to decode the sequence from the
-        /// the buffer. The return value does not fully implement ICollection{T}, in particular you can only call
-        /// GetEnumerator() once on this collection. You would typically use this collection to construct a List{T} or
-        /// some other generic collection that can be constructed from an IEnumerable{T}.</returns>
-        public static ICollection<T> DecodeSequence<T>(
-            this IceDecoder decoder,
+        /// <returns>An array of T.</returns>
+        public static T[] DecodeSequence<T>(
+            this ref IceDecoder decoder,
             int minElementSize,
-            DecodeFunc<T> decodeFunc) =>
-            new Collection<T>(decoder, minElementSize, decodeFunc);
+            DecodeFunc<T> decodeFunc)
+        {
+            int count = decoder.DecodeAndCheckSeqSize(minElementSize);
+            if (count == 0)
+            {
+                return Array.Empty<T>();
+            }
+            else
+            {
+                var array = new T[count];
+                for (int i = 0; i < count; ++i)
+                {
+                    array[i] = decodeFunc(ref decoder);
+                }
+                return array;
+            }
+        }
 
         /// <summary>Decodes a sequence that encodes null values using a bit sequence.</summary>
         /// <param name="decoder">The Ice decoder.</param>
@@ -77,7 +89,7 @@ namespace IceRpc.Slice
         /// call GetEnumerator() once on this collection. You would typically use this collection to construct a
         /// List{T} or some other generic collection that can be constructed from an IEnumerable{T}.</returns>
         public static ICollection<T> DecodeSequenceWithBitSequence<T>(
-            this IceDecoder decoder,
+            this ref IceDecoder decoder,
             DecodeFunc<T> decodeFunc) =>
             new CollectionWithBitSequence<T>(decoder, decodeFunc);
 
@@ -89,7 +101,7 @@ namespace IceRpc.Slice
         /// <param name="valueDecodeFunc">The decode function for each value of the dictionary.</param>
         /// <returns>The sorted dictionary decoded by this decoder.</returns>
         public static SortedDictionary<TKey, TValue> DecodeSortedDictionary<TKey, TValue>(
-            this IceDecoder decoder,
+            this ref IceDecoder decoder,
             int minKeySize,
             int minValueSize,
             DecodeFunc<TKey> keyDecodeFunc,
@@ -100,8 +112,8 @@ namespace IceRpc.Slice
             var dict = new SortedDictionary<TKey, TValue>();
             for (int i = 0; i < sz; ++i)
             {
-                TKey key = keyDecodeFunc(decoder);
-                TValue value = valueDecodeFunc(decoder);
+                TKey key = keyDecodeFunc(ref decoder);
+                TValue value = valueDecodeFunc(ref decoder);
                 dict.Add(key, value);
             }
             return dict;
@@ -114,7 +126,7 @@ namespace IceRpc.Slice
         /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
         /// <returns>The sorted dictionary decoded by this decoder.</returns>
         public static SortedDictionary<TKey, TValue?> DecodeSortedDictionaryWithBitSequence<TKey, TValue>(
-            this IceDecoder decoder,
+            this ref IceDecoder decoder,
             int minKeySize,
             DecodeFunc<TKey> keyDecodeFunc,
             DecodeFunc<TValue?> valueDecodeFunc)
@@ -126,7 +138,7 @@ namespace IceRpc.Slice
                 valueDecodeFunc);
 
         private static TDict DecodeDictionaryWithBitSequence<TDict, TKey, TValue>(
-            this IceDecoder decoder,
+            this ref IceDecoder decoder,
             TDict dict,
             int size,
             DecodeFunc<TKey> keyDecodeFunc,
@@ -137,8 +149,8 @@ namespace IceRpc.Slice
             ReadOnlyBitSequence bitSequence = decoder.DecodeBitSequence(size);
             for (int i = 0; i < size; ++i)
             {
-                TKey key = keyDecodeFunc(decoder);
-                TValue? value = bitSequence[i] ? valueDecodeFunc(decoder) : default(TValue?);
+                TKey key = keyDecodeFunc(ref decoder);
+                TValue? value = bitSequence[i] ? valueDecodeFunc(ref decoder) : default(TValue?);
                 dict.Add(key, value);
             }
             return dict;
@@ -206,7 +218,7 @@ namespace IceRpc.Slice
 
             public int Count { get; }
             public bool IsReadOnly => true;
-            protected IceDecoder Decoder { get; }
+            protected IceDecoder Decoder;
 
             private bool _enumeratorRetrieved;
 
@@ -257,7 +269,7 @@ namespace IceRpc.Slice
             private protected override T Decode(int pos)
             {
                 Debug.Assert(pos < Count);
-                return _decodeFunc(Decoder);
+                return _decodeFunc(ref Decoder);
             }
         }
 
@@ -278,7 +290,7 @@ namespace IceRpc.Slice
             {
                 Debug.Assert(pos < Count);
                 var bitSequence = new ReadOnlyBitSequence(_bitSequenceMemory.Span);
-                return bitSequence[pos] ? _decodeFunc(Decoder) : default!;
+                return bitSequence[pos] ? _decodeFunc(ref Decoder) : default!;
             }
         }
     }

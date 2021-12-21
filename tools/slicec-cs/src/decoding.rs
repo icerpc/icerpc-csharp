@@ -96,7 +96,7 @@ fn decode_member(
         TypeRefs::Struct(struct_ref) => {
             write!(
                 code,
-                "new {}(decoder)",
+                "new {}(ref decoder)",
                 struct_ref.escape_scoped_identifier(namespace),
             );
         }
@@ -107,7 +107,7 @@ fn decode_member(
         TypeRefs::Enum(enum_ref) => {
             write!(
                 code,
-                "{}.Decode{}(decoder)",
+                "{}.Decode{}(ref decoder)",
                 enum_ref.helper_name(namespace),
                 enum_ref.identifier(),
             );
@@ -341,30 +341,30 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
     let mut code: CodeBlock = match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) => {
             if type_ref.is_optional {
-                format!("decoder => decoder.DecodeNullablePrx<{}>()", type_name)
+                format!("(ref IceDecoder decoder) => decoder.DecodeNullablePrx<{}>()", type_name)
             } else {
-                format!("decoder => new {}(decoder.DecodeProxy())", type_name)
+                format!("(ref IceDecoder decoder) => new {}(decoder.DecodeProxy())", type_name)
             }
         }
         _ if type_ref.is_class_type() => {
             // is_class_type is either Typeref::Class or Primitive::AnyClass
             if type_ref.is_optional {
                 format!(
-                    "decoder => decoder.DecodeNullableClass<{}>()",
+                    "(ref IceDecoder decoder) => decoder.DecodeNullableClass<{}>()",
                     type_ref.to_type_string(namespace, TypeContext::Incoming, true)
                 )
             } else {
-                format!("decoder => decoder.DecodeClass<{}>()", type_name)
+                format!("(ref IceDecoder decoder) => decoder.DecodeClass<{}>()", type_name)
             }
         }
         TypeRefs::Primitive(primitive_ref) => {
             // Primitive::AnyClass is handled above by is_clas_type branch
-            format!("decoder => decoder.Decode{}()", primitive_ref.type_suffix())
+            format!("(ref IceDecoder decoder) => decoder.Decode{}()", primitive_ref.type_suffix())
         }
         TypeRefs::Sequence(sequence_ref) => {
             format!(
                 "\
-decoder =>
+(ref IceDecoder decoder) =>
     {}",
                 decode_sequence(sequence_ref, namespace).indent()
             )
@@ -372,22 +372,22 @@ decoder =>
         TypeRefs::Dictionary(dictionary_ref) => {
             format!(
                 "\
-decoder =>
+(ref IceDecoder decoder) =>
     {}",
                 decode_dictionary(dictionary_ref, namespace).indent()
             )
         }
         TypeRefs::Enum(enum_ref) => {
             format!(
-                "decoder => {}.Decode{}(decoder)",
+                "(ref IceDecoder decoder) => {}.Decode{}(ref decoder)",
                 enum_ref.helper_name(namespace),
                 enum_ref.identifier()
             )
         }
         TypeRefs::Struct(_) => {
-            format!("decoder => new {}(decoder)", type_name)
+            format!("(ref IceDecoder decoder) => new {}(ref decoder)", type_name)
         }
-        TypeRefs::Class(_) => panic!("unexpected, see is_cass_type above"),
+        TypeRefs::Class(_) => panic!("unexpected, see is_class_type above"),
     }
     .into();
 

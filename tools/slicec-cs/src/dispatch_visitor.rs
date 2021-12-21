@@ -272,7 +272,7 @@ fn request_decode_func(operation: &Operation) -> CodeBlock {
         decode_func(param.data_type(), namespace)
     } else {
         format!(
-            "decoder =>
+            "(ref IceDecoder decoder) =>
 {{
     {}
 }}",

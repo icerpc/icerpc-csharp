@@ -86,8 +86,8 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
 
         exception_class_builder.add_block(
             FunctionBuilder::new(&access, "", &exception_name, FunctionType::BlockBody)
-                .add_parameter("IceDecoder", "decoder", None, None)
-                .add_base_parameter("decoder")
+                .add_parameter("ref IceDecoder", "decoder", None, None)
+                .add_base_parameter("ref decoder")
                 .set_body({
                     let mut code = CodeBlock::new();
                     if !has_base && !members.is_empty() && !exception_def.uses_classes() {
@@ -121,7 +121,7 @@ else
                 "IceDecode",
                 FunctionType::BlockBody,
             )
-            .add_parameter("IceDecoder", "decoder", None, None)
+            .add_parameter("ref IceDecoder", "decoder", None, None)
             .set_body({
                 let mut code = CodeBlock::new();
                 code.writeln("decoder.IceStartSlice();");
@@ -133,7 +133,7 @@ else
                 code.writeln("decoder.IceEndSlice();");
 
                 if has_base {
-                    code.writeln("base.IceDecode(decoder);");
+                    code.writeln("base.IceDecode(ref decoder);");
                 }
                 code
             })

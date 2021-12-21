@@ -24,8 +24,8 @@ namespace IceRpc.Tests.SliceInternal
                 _slicedTypeIds = slicedTypeIds ?? ImmutableList<string>.Empty;
             }
 
-            object? IActivator.CreateInstance(string typeId, IceDecoder decoder) =>
-                _slicedTypeIds.Contains(typeId) ? null : _decoratee.CreateInstance(typeId, decoder);
+            object? IActivator.CreateInstance(string typeId, ref IceDecoder decoder) =>
+                _slicedTypeIds.Contains(typeId) ? null : _decoratee.CreateInstance(typeId, ref decoder);
         }
 
         [Test]

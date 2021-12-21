@@ -12,7 +12,7 @@ using static IceRpc.Slice.Internal.Ice11Definitions;
 namespace IceRpc.Slice
 {
     // Class-related methods for IceDecoder.
-    public sealed partial class IceDecoder
+    public partial record struct IceDecoder
     {
         /// <summary>Decodes a class instance.</summary>
         /// <returns>The decoded class instance.</returns>
@@ -153,7 +153,7 @@ namespace IceRpc.Slice
                     case ReplyStatus.ObjectNotExistException:
                     case ReplyStatus.OperationNotExistException:
 
-                        var requestFailed = new Ice1RequestFailedExceptionData(this);
+                        var requestFailed = new Ice1RequestFailedExceptionData(ref this);
 
                         if (requestFailed.IdentityAndFacet.OptionalFacet.Count > 1)
                         {
@@ -198,7 +198,7 @@ namespace IceRpc.Slice
 
                     DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
 
-                    remoteEx = _activator?.CreateInstance(typeId, this) as RemoteException;
+                    remoteEx = _activator?.CreateInstance(typeId, ref this) as RemoteException;
                     if (remoteEx == null && SkipSlice(typeId)) // Slice off what we don't understand.
                     {
                         break;
@@ -209,7 +209,7 @@ namespace IceRpc.Slice
                 if (remoteEx != null)
                 {
                     _classContext.Current.FirstSlice = true;
-                    remoteEx.Decode(this);
+                    remoteEx.Decode(ref this);
                 }
                 else
                 {
@@ -303,7 +303,7 @@ namespace IceRpc.Slice
                 // not created yet.
                 if (typeId != null)
                 {
-                    instance = _activator?.CreateInstance(typeId, this) as AnyClass;
+                    instance = _activator?.CreateInstance(typeId, ref this) as AnyClass;
                 }
 
                 if (instance == null && SkipSlice(typeId)) // Slice off what we don't understand.
@@ -317,7 +317,7 @@ namespace IceRpc.Slice
 
             // Add the instance to the map/list of instances. This must be done before decoding the instances (for
             // circular references).
-            _classContext.InstanceMap.Add(instance);
+            _classContext.InstanceMap!.Add(instance);
 
             // Decode all the deferred indirection tables now that the instance is inserted in _instanceMap.
             if (_classContext.Current.DeferredIndirectionTableList?.Count > 0)
@@ -347,7 +347,7 @@ namespace IceRpc.Slice
 
             instance.UnknownSlices = _classContext.Current.Slices?.ToImmutableList() ?? ImmutableList<SliceInfo>.Empty;
             _classContext.Current.FirstSlice = true;
-            instance.Decode(this);
+            instance.Decode(ref this);
 
             _classContext.Current = previousCurrent;
             --_classContext.ClassGraphDepth;

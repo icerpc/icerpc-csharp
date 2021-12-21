@@ -111,7 +111,7 @@ namespace IceRpc.Internal
                     }
 
                     var decoder = new IceDecoder(readResult.Buffer.ToSingleBuffer(), Encoding.Ice20);
-                    header = new Ice2RequestHeader(decoder);
+                    header = new Ice2RequestHeader(ref decoder);
                     fields = decoder.DecodeFieldDictionary();
                     reader.AdvanceTo(readResult.Buffer.End);
 
@@ -129,11 +129,12 @@ namespace IceRpc.Internal
                     // Decode Context from Fields and set corresponding feature.
                     if (fields.Get(
                         (int)FieldKey.Context,
-                        decoder => decoder.DecodeDictionary(
+                        (ref IceDecoder decoder) => decoder.DecodeDictionary(
                             minKeySize: 1,
                             minValueSize: 1,
-                            keyDecodeFunc: decoder => decoder.DecodeString(),
-                            valueDecodeFunc: decoder => decoder.DecodeString())) is Dictionary<string, string> context)
+                            keyDecodeFunc: (ref IceDecoder decoder) => decoder.DecodeString(),
+                            valueDecodeFunc: (ref IceDecoder decoder) => decoder.DecodeString()))
+                                is Dictionary<string, string> context)
                     {
                         features = features.WithContext(context);
                     }
@@ -236,12 +237,12 @@ namespace IceRpc.Internal
                 }
 
                 var decoder = new IceDecoder(readResult.Buffer.ToSingleBuffer(), Encoding.Ice20);
-                header = new Ice2ResponseHeader(decoder);
+                header = new Ice2ResponseHeader(ref decoder);
                 fields = decoder.DecodeFieldDictionary();
                 responseReader.AdvanceTo(readResult.Buffer.End);
 
                 RetryPolicy? retryPolicy = fields.Get(
-                    (int)FieldKey.RetryPolicy, decoder => new RetryPolicy(decoder));
+                    (int)FieldKey.RetryPolicy, (ref IceDecoder decoder) => new RetryPolicy(ref decoder));
                 if (retryPolicy != null)
                 {
                     features = features.With(retryPolicy);
@@ -698,7 +699,9 @@ namespace IceRpc.Internal
             ReadOnlyMemory<byte> buffer = await ReceiveControlFrameAsync(
                 Ice2FrameType.GoAway,
                 CancellationToken.None).ConfigureAwait(false);
-            var goAwayFrame = new Ice2GoAwayBody(new IceDecoder(buffer, Encoding.Ice20));
+
+            var decoder = new IceDecoder(buffer, Encoding.Ice20);
+            var goAwayFrame = new Ice2GoAwayBody(ref decoder);
 
             // Raise the peer shutdown initiated event.
             try

@@ -621,7 +621,7 @@ fn response_decode_func(operation: &Operation) -> CodeBlock {
     } else {
         format!(
             "\
-decoder =>
+(ref IceDecoder decoder) =>
 {{
     {decode}
 }}",

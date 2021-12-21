@@ -65,7 +65,7 @@ namespace IceRpc.Slice
         public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this IncomingRequest request,
             IActivator defaultActivator,
-            Func<IceDecoder, T> decodeFunc) =>
+            DecodeFunc<T> decodeFunc) =>
             request.Payload.ToAsyncEnumerable<T>(
                 request.GetSlicePayloadEncoding(),
                 request.Connection,

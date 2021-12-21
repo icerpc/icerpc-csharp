@@ -16,7 +16,7 @@ namespace IceRpc.Tests.SliceInternal
         private readonly IceEncoding _encoding;
         private readonly SingleBufferWriter _bufferWriter;
         private readonly IceEncoder _encoder;
-        private readonly IceDecoder _decoder;
+        private IceDecoder _decoder;
 
         public BuiltInTypesSequencesTests(string encoding)
         {
@@ -117,7 +117,7 @@ namespace IceRpc.Tests.SliceInternal
         {
             IEnumerable<string> p1 = Enumerable.Range(0, size).Select(i => $"string-{i}");
             _encoder.EncodeSequence(p1, (encoder, value) => encoder.EncodeString(value));
-            IEnumerable<string> r1 = _decoder.DecodeSequence(1, decoder => decoder.DecodeString());
+            IEnumerable<string> r1 = _decoder.DecodeSequence(1, (ref IceDecoder decoder) => decoder.DecodeString());
 
             CollectionAssert.AreEqual(p1, r1);
             Assert.AreEqual(_decoder.Pos, _bufferWriter.WrittenBuffer.Length);

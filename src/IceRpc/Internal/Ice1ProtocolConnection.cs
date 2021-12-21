@@ -125,7 +125,7 @@ namespace IceRpc.Internal
                 {
                     var decoder = new IceDecoder(buffer, Encoding.Ice11);
 
-                    var requestHeader = new Ice1RequestHeader(decoder);
+                    var requestHeader = new Ice1RequestHeader(ref decoder);
                     if (requestHeader.IdentityAndFacet.Identity.Name.Length == 0)
                     {
                         throw new InvalidDataException("received ice1 request with empty identity name");
@@ -253,7 +253,7 @@ namespace IceRpc.Internal
 
                 if (replyStatus <= ReplyStatus.UserException)
                 {
-                    var responseHeader = new Ice1ResponseHeader(decoder);
+                    var responseHeader = new Ice1ResponseHeader(ref decoder);
                     payloadSize = responseHeader.EncapsulationSize - 6;
                     payloadEncoding = Encoding.FromMajorMinor(
                         responseHeader.PayloadEncodingMajor,

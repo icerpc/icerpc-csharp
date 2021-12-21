@@ -166,7 +166,7 @@ namespace IceRpc.Slice.Internal
                     invoker,
                     activator,
                     classGraphMaxDepth);
-                value = decodeFunc(decoder);
+                value = decodeFunc(ref decoder);
                 decoder.CheckEndOfBuffer(skipTaggedParams: true);
 
                 if (!readResult.Buffer.IsEmpty)
@@ -242,7 +242,7 @@ namespace IceRpc.Slice.Internal
             IInvoker? invoker,
             IActivator activator,
             int classGraphMaxDepth,
-            Func<IceDecoder, T> decodeFunc,
+            DecodeFunc<T> decodeFunc,
             [EnumeratorCancellation] CancellationToken cancel = default)
         {
             // when CancelPendingRead is called on _reader, ReadSegmentAsync returns a ReadResult with
@@ -287,7 +287,7 @@ namespace IceRpc.Slice.Internal
                     {
                         try
                         {
-                            value = decodeFunc(decoder);
+                            value = decodeFunc(ref decoder);
                         }
                         catch (Exception ex)
                         {
