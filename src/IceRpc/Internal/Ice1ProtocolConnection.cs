@@ -123,9 +123,8 @@ namespace IceRpc.Internal
 
                 try
                 {
-                    var decoder = new IceDecoder(buffer, Encoding.Ice11);
+                    Ice1RequestHeader requestHeader = DecodeHeader(ref buffer);
 
-                    var requestHeader = new Ice1RequestHeader(ref decoder);
                     if (requestHeader.IdentityAndFacet.Identity.Name.Length == 0)
                     {
                         throw new InvalidDataException("received ice1 request with empty identity name");
@@ -134,10 +133,6 @@ namespace IceRpc.Internal
                     {
                         throw new InvalidDataException("received request with empty operation name");
                     }
-
-                    // The payload plus 4 bytes from the encapsulation header used to store the payload size encoded
-                    // with payload encoding.
-                    buffer = buffer[(decoder.Pos - 4)..];
 
                     // The payload size is the encapsulation size less the 6 bytes of the encapsulation header.
                     int payloadSize = requestHeader.EncapsulationSize - 6;
@@ -196,6 +191,18 @@ namespace IceRpc.Internal
                     throw;
                 }
             }
+
+            static Ice1RequestHeader DecodeHeader(ref Memory<byte> buffer)
+            {
+                var decoder = new IceDecoder(buffer, Encoding.Ice11);
+                var requestHeader = new Ice1RequestHeader(ref decoder);
+
+                // The payload plus 4 bytes from the encapsulation header used to store the payload size encoded
+                // with payload encoding.
+                buffer = buffer[(decoder.Pos - 4)..];
+
+                return requestHeader;
+            }
         }
 
         /// <inheritdoc/>
@@ -238,6 +245,40 @@ namespace IceRpc.Internal
 
             try
             {
+                (ReplyStatus replyStatus, int payloadSize, Encoding payloadEncoding) = DecodeHeader(ref buffer);
+
+                ResultType resultType = replyStatus == ReplyStatus.OK ? ResultType.Success : ResultType.Failure;
+
+                // We write the payload size in the first 4 bytes of the buffer.
+                EncodePayloadSize(payloadSize, payloadEncoding, buffer.Span[0..4]);
+
+                FeatureCollection features = FeatureCollection.Empty;
+
+                // For compatibility with ZeroC Ice
+                if (replyStatus == ReplyStatus.ObjectNotExistException &&
+                    (request.Proxy.Endpoint == null || request.Proxy.Endpoint.Transport == TransportNames.Loc)) // "indirect" proxy
+                {
+                    features = features.With(RetryPolicy.OtherReplica);
+                }
+
+                return new IncomingResponse(
+                    Protocol.Ice1,
+                    resultType,
+                    new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
+                    payloadEncoding)
+                {
+                    Features = features,
+                };
+            }
+            catch
+            {
+                disposable.Dispose();
+                throw;
+            }
+
+            static (ReplyStatus ReplyStatus, int PayloadSize, Encoding PayloadEncoding) DecodeHeader(
+                ref Memory<byte> buffer)
+            {
                 // Decode the response.
                 var decoder = new IceDecoder(buffer, Encoding.Ice11);
 
@@ -246,7 +287,6 @@ namespace IceRpc.Internal
                 decoder.Skip(4);
 
                 ReplyStatus replyStatus = decoder.DecodeReplyStatus();
-                ResultType resultType = replyStatus == ReplyStatus.OK ? ResultType.Success : ResultType.Failure;
 
                 int payloadSize;
                 Encoding payloadEncoding;
@@ -286,31 +326,7 @@ namespace IceRpc.Internal
                     // buffer stays the same
                 }
 
-                // We write the payload size in the first 4 bytes of the buffer.
-                EncodePayloadSize(payloadSize, payloadEncoding, buffer.Span[0..4]);
-
-                FeatureCollection features = FeatureCollection.Empty;
-
-                // For compatibility with ZeroC Ice
-                if (replyStatus == ReplyStatus.ObjectNotExistException &&
-                    (request.Proxy.Endpoint == null || request.Proxy.Endpoint.Transport == TransportNames.Loc)) // "indirect" proxy
-                {
-                    features = features.With(RetryPolicy.OtherReplica);
-                }
-
-                return new IncomingResponse(
-                    Protocol.Ice1,
-                    resultType,
-                    new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
-                    payloadEncoding)
-                {
-                    Features = features,
-                };
-            }
-            catch
-            {
-                disposable.Dispose();
-                throw;
+                return (replyStatus, payloadSize, payloadEncoding);
             }
         }
 

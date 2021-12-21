@@ -110,9 +110,7 @@ namespace IceRpc.Internal
                         throw new InvalidDataException($"received ice2 request with empty header");
                     }
 
-                    var decoder = new IceDecoder(readResult.Buffer.ToSingleBuffer(), Encoding.Ice20);
-                    header = new Ice2RequestHeader(ref decoder);
-                    fields = decoder.DecodeFieldDictionary();
+                    (header, fields) = DecodeHeader(readResult.Buffer);
                     reader.AdvanceTo(readResult.Buffer.End);
 
                     if (readResult.IsCompleted)
@@ -206,6 +204,13 @@ namespace IceRpc.Internal
                         return request;
                     }
                 }
+
+                static (Ice2RequestHeader, IReadOnlyDictionary<int, ReadOnlyMemory<byte>>) DecodeHeader(
+                    ReadOnlySequence<byte> buffer)
+                {
+                    var decoder = new IceDecoder(buffer, Encoding.Ice20);
+                    return (new Ice2RequestHeader(ref decoder), decoder.DecodeFieldDictionary());
+                }
             }
         }
 
@@ -236,9 +241,7 @@ namespace IceRpc.Internal
                     throw new InvalidDataException($"received ice2 response with empty header");
                 }
 
-                var decoder = new IceDecoder(readResult.Buffer.ToSingleBuffer(), Encoding.Ice20);
-                header = new Ice2ResponseHeader(ref decoder);
-                fields = decoder.DecodeFieldDictionary();
+                (header, fields) = DecodeHeader(readResult.Buffer);
                 responseReader.AdvanceTo(readResult.Buffer.End);
 
                 RetryPolicy? retryPolicy = fields.Get(
@@ -272,6 +275,13 @@ namespace IceRpc.Internal
             };
 
             return response;
+
+            static (Ice2ResponseHeader, IReadOnlyDictionary<int, ReadOnlyMemory<byte>>) DecodeHeader(
+                ReadOnlySequence<byte> buffer)
+            {
+                var decoder = new IceDecoder(buffer, Encoding.Ice20);
+                return (new Ice2ResponseHeader(ref decoder), decoder.DecodeFieldDictionary());
+            }
         }
 
         /// <inheritdoc/>
@@ -499,35 +509,7 @@ namespace IceRpc.Internal
                 cancel).ConfigureAwait(false);
 
             // Read the protocol parameters which are encoded as IceRpc.Fields.
-
-            var decoder = new IceDecoder(buffer, Encoding.Ice20);
-            int dictionarySize = decoder.DecodeSize();
-            for (int i = 0; i < dictionarySize; ++i)
-            {
-                (int key, ReadOnlyMemory<byte> value) = decoder.DecodeField();
-                if (key == (int)Ice2ParameterKey.IncomingFrameMaxSize)
-                {
-                    checked
-                    {
-                        _peerIncomingFrameMaxSize = (int)IceEncoding.DecodeVarULong(value.Span).Value;
-                    }
-
-                    if (_peerIncomingFrameMaxSize < 1024)
-                    {
-                        throw new InvalidDataException($@"the peer's IncomingFrameMaxSize ({
-                            _peerIncomingFrameMaxSize} bytes) value is inferior to 1KB");
-                    }
-                }
-                else
-                {
-                    // Ignore unsupported parameters.
-                }
-            }
-
-            if (_peerIncomingFrameMaxSize == null)
-            {
-                throw new InvalidDataException("missing IncomingFrameMaxSize Ice2 connection parameter");
-            }
+            _peerIncomingFrameMaxSize = DecodePeerIncomingFrameMaxSize(buffer);
 
             _ = Task.Run(
                 async () =>
@@ -546,6 +528,34 @@ namespace IceRpc.Internal
                     }
                 },
                 CancellationToken.None);
+
+            static int DecodePeerIncomingFrameMaxSize(ReadOnlyMemory<byte> buffer)
+            {
+                var decoder = new IceDecoder(buffer, Encoding.Ice20);
+                int dictionarySize = decoder.DecodeSize();
+
+                for (int i = 0; i < dictionarySize; ++i)
+                {
+                    (int key, ReadOnlyMemory<byte> value) = decoder.DecodeField();
+                    if (key == (int)Ice2ParameterKey.IncomingFrameMaxSize)
+                    {
+                        int peerIncomingFrameMaxSize = checked((int)IceEncoding.DecodeVarULong(value.Span).Value);
+
+                        if (peerIncomingFrameMaxSize < 1024)
+                        {
+                            throw new InvalidDataException($@"the peer's IncomingFrameMaxSize ({
+                                peerIncomingFrameMaxSize} bytes) value is inferior to 1KB");
+                        }
+                        return peerIncomingFrameMaxSize;
+                    }
+                    else
+                    {
+                        // Ignore unsupported parameters.
+                    }
+                }
+
+                throw new InvalidDataException("missing IncomingFrameMaxSize Ice2 connection parameter");
+            }
         }
 
         private async ValueTask<ReadOnlyMemory<byte>> ReceiveControlFrameAsync(
@@ -700,8 +710,7 @@ namespace IceRpc.Internal
                 Ice2FrameType.GoAway,
                 CancellationToken.None).ConfigureAwait(false);
 
-            var decoder = new IceDecoder(buffer, Encoding.Ice20);
-            var goAwayFrame = new Ice2GoAwayBody(ref decoder);
+            Ice2GoAwayBody goAwayFrame = DecodeIce2GoAwayBody(buffer);
 
             // Raise the peer shutdown initiated event.
             try
@@ -807,6 +816,13 @@ namespace IceRpc.Internal
             {
                 throw new InvalidDataException($"{nameof(Ice2FrameType.GoAwayCompleted)} frame is not empty");
             }
+
+            Ice2GoAwayBody DecodeIce2GoAwayBody(ReadOnlyMemory<byte> buffer)
+            {
+                var decoder = new IceDecoder(buffer, Encoding.Ice20);
+                return new Ice2GoAwayBody(ref decoder);
+            }
+
         }
     }
 }

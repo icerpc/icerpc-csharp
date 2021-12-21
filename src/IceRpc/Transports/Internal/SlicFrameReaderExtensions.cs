@@ -20,15 +20,20 @@ namespace IceRpc.Transports.Internal
             }
 
             using IMemoryOwner<byte> owner = await ReadFrameDataAsync(reader, dataSize, cancel).ConfigureAwait(false);
-            var decoder = new IceDecoder(owner.Memory[..dataSize], Encoding.Ice20);
-            uint version = decoder.DecodeVarUInt();
-            if (version == SlicDefinitions.V1)
+            return Decode(owner.Memory[..dataSize]);
+
+            static (uint, InitializeBody?) Decode(ReadOnlyMemory<byte> buffer)
             {
-                return (version, new InitializeBody(ref decoder));
-            }
-            else
-            {
-                return (version, null);
+                var decoder = new IceDecoder(buffer, Encoding.Ice20);
+                uint version = decoder.DecodeVarUInt();
+                if (version == SlicDefinitions.V1)
+                {
+                    return (version, new InitializeBody(ref decoder));
+                }
+                else
+                {
+                    return (version, null);
+                }
             }
         }
 
@@ -39,15 +44,18 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel)
         {
             using IMemoryOwner<byte> owner = await ReadFrameDataAsync(reader, dataSize, cancel).ConfigureAwait(false);
-            Memory<byte> buffer = owner.Memory[..dataSize];
+            return Decode(owner.Memory[..dataSize], type);
 
-            var decoder = new IceDecoder(buffer, Encoding.Ice20);
-            return type switch
+            static (InitializeAckBody?, VersionBody?) Decode(ReadOnlyMemory<byte> buffer, FrameType type)
             {
-                FrameType.InitializeAck => (new InitializeAckBody(ref decoder), null),
-                FrameType.Version => (null, new VersionBody(ref decoder)),
-                _ => throw new InvalidDataException($"unexpected Slic frame '{type}'")
-            };
+                var decoder = new IceDecoder(buffer, Encoding.Ice20);
+                return type switch
+                {
+                    FrameType.InitializeAck => (new InitializeAckBody(ref decoder), null),
+                    FrameType.Version => (null, new VersionBody(ref decoder)),
+                    _ => throw new InvalidDataException($"unexpected Slic frame '{type}'")
+                };
+            }
         }
 
         internal static ValueTask<StreamResetBody> ReadStreamResetAsync(
@@ -99,8 +107,13 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel)
         {
             using IMemoryOwner<byte> data = await ReadFrameDataAsync(reader, size, cancel).ConfigureAwait(false);
-            var decoder = new IceDecoder(data.Memory[0..size], Encoding.Ice20);
-            return decodeFunc(ref decoder);
+            return Decode(data.Memory[0..size], decodeFunc);
+
+            static T Decode(ReadOnlyMemory<byte> buffer, DecodeFunc<T> decodeFunc)
+            {
+                var decoder = new IceDecoder(buffer, Encoding.Ice20);
+                return decodeFunc(ref decoder);
+            }
         }
     }
 }

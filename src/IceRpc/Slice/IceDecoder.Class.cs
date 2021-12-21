@@ -12,7 +12,7 @@ using static IceRpc.Slice.Internal.Ice11Definitions;
 namespace IceRpc.Slice
 {
     // Class-related methods for IceDecoder.
-    public partial record struct IceDecoder
+    public ref partial struct IceDecoder
     {
         /// <summary>Decodes a class instance.</summary>
         /// <returns>The decoded class instance.</returns>

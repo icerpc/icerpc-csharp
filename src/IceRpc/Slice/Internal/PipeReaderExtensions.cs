@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Features;
 using System.Buffers;
 using System.IO.Pipelines;
+using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace IceRpc.Slice.Internal
@@ -46,21 +46,7 @@ namespace IceRpc.Slice.Internal
                     throw new InvalidDataException("empty remote exception");
                 }
 
-                var decoder = new IceDecoder(
-                    readResult.Buffer,
-                    encoding,
-                    connection,
-                    invoker,
-                    activator,
-                    classGraphMaxDepth);
-                result = decoder.DecodeException();
-
-                if (result is not UnknownSlicedRemoteException)
-                {
-                    decoder.CheckEndOfBuffer(skipTaggedParams: false);
-                }
-                // else, we did not decode the full exception from the buffer
-
+                result = Decode(readResult.Buffer);
                 reader.AdvanceTo(readResult.Buffer.End);
             }
             catch (Exception ex)
@@ -72,6 +58,28 @@ namespace IceRpc.Slice.Internal
             // If there are any bytes in the pipe reader after the exception, we ignore them.
             await reader.CompleteAsync().ConfigureAwait(false);
             return result;
+
+            RemoteException Decode(ReadOnlySequence<byte> buffer)
+            {
+                RemoteException remoteException;
+
+                var decoder = new IceDecoder(
+                    buffer,
+                    encoding,
+                    connection,
+                    invoker,
+                    activator,
+                    classGraphMaxDepth);
+                remoteException = decoder.DecodeException();
+
+                if (remoteException is not UnknownSlicedRemoteException)
+                {
+                    decoder.CheckEndOfBuffer(skipTaggedParams: false);
+                }
+                // else, we did not decode the full exception from the buffer
+
+                return remoteException;
+            }
         }
 
         /// <summary>Reads a segment from a pipe reader.</summary>
@@ -158,16 +166,7 @@ namespace IceRpc.Slice.Internal
                 // The segment can be empty, for example args with only tagged parameters where the sender does not know
                 // any tagged param or all the tagged params are null. We still decode such an empty segment to make
                 // sure decodeFunc is fine with it.
-
-                var decoder = new IceDecoder(
-                    readResult.Buffer,
-                    encoding,
-                    connection,
-                    invoker,
-                    activator,
-                    classGraphMaxDepth);
-                value = decodeFunc(ref decoder);
-                decoder.CheckEndOfBuffer(skipTaggedParams: true);
+                value = Decode(readResult.Buffer);
 
                 if (!readResult.Buffer.IsEmpty)
                 {
@@ -187,6 +186,20 @@ namespace IceRpc.Slice.Internal
                 await reader.CompleteAsync().ConfigureAwait(false);
             }
             return value;
+
+            T Decode(ReadOnlySequence<byte> buffer)
+            {
+                var decoder = new IceDecoder(
+                    buffer,
+                    encoding,
+                    connection,
+                    invoker,
+                    activator,
+                    classGraphMaxDepth);
+                T value = decodeFunc(ref decoder);
+                decoder.CheckEndOfBuffer(skipTaggedParams: true);
+                return value;
+            }
         }
 
         /// <summary>Reads/decodes empty args or a void return value.</summary>
@@ -212,8 +225,7 @@ namespace IceRpc.Slice.Internal
 
                 if (!readResult.Buffer.IsEmpty)
                 {
-                    var decoder = new IceDecoder(readResult.Buffer, encoding);
-                    decoder.CheckEndOfBuffer(skipTaggedParams: true);
+                    Decode(readResult.Buffer);
                     reader.AdvanceTo(readResult.Buffer.End);
                 }
             }
@@ -223,6 +235,12 @@ namespace IceRpc.Slice.Internal
                 throw;
             }
             await reader.CompleteAsync().ConfigureAwait(false);
+
+            void Decode(ReadOnlySequence<byte> buffer)
+            {
+                var decoder = new IceDecoder(buffer, encoding);
+                decoder.CheckEndOfBuffer(skipTaggedParams: true);
+            }
         }
 
         /// <summary>Creates an async enumerable over a pipe reader.</summary>
@@ -273,31 +291,15 @@ namespace IceRpc.Slice.Internal
 
                 if (!readResult.Buffer.IsEmpty)
                 {
-                    // TODO: it would be nice to reuse the same decoder for all iterations
-                    var decoder = new IceDecoder(
-                        readResult.Buffer,
-                        encoding,
-                        connection,
-                        invoker,
-                        activator,
-                        classGraphMaxDepth);
-
-                    T value = default!;
-                    do
+                    try
                     {
-                        try
-                        {
-                            value = decodeFunc(ref decoder);
-                        }
-                        catch (Exception ex)
-                        {
-                            await reader.CompleteAsync(ex).ConfigureAwait(false);
-                            yield break; // done
-                        }
-
-                        yield return value;
+                        return Decode(readResult.Buffer).ToAsyncEnumerable();
                     }
-                    while (decoder.Pos < readResult.Buffer.Length);
+                    catch (Exception ex)
+                    {
+                        await reader.CompleteAsync(ex).ConfigureAwait(false);
+                        yield break; // done
+                    }
                 }
 
                 if (readResult.IsCompleted)
@@ -305,6 +307,25 @@ namespace IceRpc.Slice.Internal
                     await reader.CompleteAsync().ConfigureAwait(false);
                     yield break; // done
                 }
+            }
+
+            IEnumerable<T> Decode(ReadOnlySequence<byte> buffer)
+            {
+                var decoder = new IceDecoder(
+                    buffer,
+                    encoding,
+                    connection,
+                    invoker,
+                    activator,
+                    classGraphMaxDepth);
+
+                T value = default!;
+                do
+                {
+                    value = decodeFunc(ref decoder);
+                    yield return value;
+                }
+                while (decoder.Pos < buffer.Length);
             }
         }
     }
