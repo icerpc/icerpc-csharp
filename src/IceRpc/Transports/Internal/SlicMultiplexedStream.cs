@@ -295,7 +295,6 @@ namespace IceRpc.Transports.Internal
                     new ReadOnlyMemory<byte>[] { SlicDefinitions.FrameHeader.ToArray() },
                     true,
                     cancel).ConfigureAwait(false);
-                Debug.Assert(IsStarted);
                 return;
             }
 

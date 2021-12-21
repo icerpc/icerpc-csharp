@@ -67,7 +67,6 @@ namespace IceRpc.Tests.Internal
         [TestCase(2, 1024, 1024 * 1024)]
         [TestCase(3, 1024 * 1024, 1024)]
         [TestCase(3, 1024, 1024 * 1024)]
-        [Log(LogAttributeLevel.Debug)]
         public async Task MultiplexedStream_StreamSendReceiveAsync(int bufferCount, int sendSize, int recvSize)
         {
             await using ServiceProvider serviceProvider = new InternalTestServiceCollection().BuildServiceProvider();

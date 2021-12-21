@@ -164,9 +164,7 @@ namespace IceRpc
         // once the state update completes. It's protected with _mutex.
         private Task? _stateTask;
 
-#pragma warning disable CA2213 // _timer is disposed in CloseAsync
         private Timer? _timer;
-#pragma warning restore CA2213
 
         /// <summary>Constructs a new client connection.</summary>
         public Connection()

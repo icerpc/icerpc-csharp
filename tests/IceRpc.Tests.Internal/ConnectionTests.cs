@@ -58,28 +58,14 @@ namespace IceRpc.Tests.Internal
             await using var factory = new ConnectionFactory(new ConnectionTestServiceCollection("tcp", protocol));
 
             using var semaphore = new SemaphoreSlim(0);
-            EventHandler<ClosedEventArgs> handler1 = (sender, args) =>
+            EventHandler<ClosedEventArgs> handler = (sender, args) =>
             {
                 Assert.That(sender, Is.AssignableTo<Connection>());
-                if (args.Exception is not ConnectionClosedException)
-                {
-                    Console.Error.WriteLine($"XXX {args.Exception}");
-                }
                 Assert.That(args.Exception, Is.AssignableTo<ConnectionClosedException>());
                 semaphore.Release();
             };
-            EventHandler<ClosedEventArgs> handler2 = (sender, args) =>
-            {
-                Assert.That(sender, Is.AssignableTo<Connection>());
-                if (args.Exception is not ConnectionClosedException)
-                {
-                    Console.Error.WriteLine($"YYY {args.Exception}");
-                }
-                Assert.That(args.Exception, Is.AssignableTo<ConnectionClosedException>());
-                semaphore.Release();
-            };
-            factory.ClientConnection.Closed += handler1;
-            factory.ServerConnection.Closed += handler2;
+            factory.ClientConnection.Closed += handler;
+            factory.ServerConnection.Closed += handler;
 
             await (closeClientSide ? factory.ClientConnection : factory.ServerConnection).ShutdownAsync();
 
@@ -136,7 +122,6 @@ namespace IceRpc.Tests.Internal
         [TestCase("tcp", false)]
         [TestCase("tcp", true)]
         [TestCase("udp", false)]
-        [Log(LogAttributeLevel.Trace)]
         public async Task Connection_InformationAsync(string transport, bool secure)
         {
             var serviceCollection = new InternalTestServiceCollection();
@@ -286,7 +271,6 @@ namespace IceRpc.Tests.Internal
         [TestCase(ProtocolCode.Ice1, "tcp", true)]
         [TestCase(ProtocolCode.Ice2, "coloc", false)]
         [TestCase(ProtocolCode.Ice2, "coloc", true)]
-        [Log(LogAttributeLevel.Debug)]
         public async Task Connection_ShutdownAsync(ProtocolCode protocol, string transport, bool closeClientSide)
         {
             using var waitForDispatchSemaphore = new SemaphoreSlim(0);
