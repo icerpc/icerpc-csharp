@@ -532,8 +532,23 @@ namespace IceRpc.Slice
 
         /// <summary>Decodes a bit sequence.</summary>
         /// <param name="bitSequenceSize">The minimum number of bits in the sequence.</param>
-        /// <returns>The read-only bit sequence decoded by this decoder.</returns>
-        // TODO: switch to BitSequenceReader
+        /// <returns>A bit sequence reader over the bit sequence.</returns>
+
+        public BitSequenceReader DecodeBitSequence(int bitSequenceSize)
+        {
+            if (bitSequenceSize <= 0)
+            {
+                throw new ArgumentException("bitSequenceSize must be greater than 0", nameof(bitSequenceSize));
+            }
+
+            int size = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0);
+            ReadOnlySequence<byte> bitSequence = _reader.UnreadSequence.Slice(0, size);
+            _reader.Advance(size);
+            Debug.Assert(bitSequence.Length == size);
+            return new BitSequenceReader(bitSequence);
+        }
+
+        /*
         public ReadOnlyBitSequence DecodeBitSequence(int bitSequenceSize)
         {
             int size = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0);
@@ -555,6 +570,7 @@ namespace IceRpc.Slice
 
             return new ReadOnlyBitSequence(span);
         }
+        */
 
         /// <summary>Decodes a tagged parameter or data member.</summary>
         /// <param name="tag">The tag.</param>

@@ -14,16 +14,14 @@ pub fn decode_data_members(
 
     let (required_members, tagged_members) = get_sorted_members(members);
 
-    let mut bit_sequence_index: i64 = -1;
     let bit_sequence_size = get_bit_sequence_size(members);
 
     if bit_sequence_size > 0 {
         writeln!(
             code,
-            "var bitSequence = decoder.DecodeBitSequence({});",
+            "var bitSequenceReader = decoder.DecodeBitSequence({});",
             bit_sequence_size
         );
-        bit_sequence_index = 0;
     }
 
     // Decode required members
@@ -31,7 +29,6 @@ pub fn decode_data_members(
         let param = format!("this.{}", member.field_name(field_type));
         code.writeln(&decode_member(
             member,
-            &mut bit_sequence_index,
             namespace,
             &param,
         ));
@@ -43,14 +40,11 @@ pub fn decode_data_members(
         code.writeln(&decode_tagged_member(member, namespace, &param));
     }
 
-    assert!(bit_sequence_size == 0 || bit_sequence_index == bit_sequence_size as i64);
-
     code
 }
 
 fn decode_member(
     member: &impl Member,
-    bit_sequence_index: &mut i64,
     namespace: &str,
     param: &str,
 ) -> CodeBlock {
@@ -73,9 +67,7 @@ fn decode_member(
                 return code;
             }
             _ => {
-                assert!(*bit_sequence_index >= 0);
-                write!(code, "bitSequence[{}] ? ", *bit_sequence_index);
-                *bit_sequence_index += 1;
+                write!(code, "bitSequenceReader.Read() ? ");
                 // keep going
             }
         }
@@ -419,16 +411,14 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
 
     let (required_members, tagged_members) = get_sorted_members(&non_streamed_members);
 
-    let mut bit_sequence_index: i64 = -1;
     let bit_sequence_size = get_bit_sequence_size(&non_streamed_members);
 
     if bit_sequence_size > 0 {
         writeln!(
             code,
-            "var bitSequence = decoder.DecodeBitSequence({});",
+            "var bitSequenceReader = decoder.DecodeBitSequence({});",
             bit_sequence_size
         );
-        bit_sequence_index = 0;
     }
 
     for member in required_members {
@@ -440,14 +430,11 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
                 .to_type_string(namespace, TypeContext::Incoming, false),
             decode = decode_member(
                 member,
-                &mut bit_sequence_index,
                 namespace,
                 &member.parameter_name_with_prefix("iceP_"),
             )
         )
     }
-
-    assert!(bit_sequence_index == -1 || bit_sequence_index == bit_sequence_size as i64);
 
     for member in tagged_members {
         writeln!(

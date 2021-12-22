@@ -114,11 +114,11 @@ namespace IceRpc.Slice
             }
             else
             {
-                ReadOnlyBitSequence bitSequence = decoder.DecodeBitSequence(count);
+                BitSequenceReader bitSequenceReader = decoder.DecodeBitSequence(count);
                 var array = new T[count];
                 for (int i = 0; i < count; ++i)
                 {
-                    array[i] = bitSequence[i] ? decodeFunc(ref decoder) : default!;
+                    array[i] = bitSequenceReader.Read() ? decodeFunc(ref decoder) : default!;
                 }
                 return array;
             }
@@ -177,11 +177,11 @@ namespace IceRpc.Slice
             where TDict : IDictionary<TKey, TValue?>
             where TKey : notnull
         {
-            ReadOnlyBitSequence bitSequence = decoder.DecodeBitSequence(size);
+            BitSequenceReader bitSequenceReader = decoder.DecodeBitSequence(size);
             for (int i = 0; i < size; ++i)
             {
                 TKey key = keyDecodeFunc(ref decoder);
-                TValue? value = bitSequence[i] ? valueDecodeFunc(ref decoder) : default(TValue?);
+                TValue? value = bitSequenceReader.Read() ? valueDecodeFunc(ref decoder) : default(TValue?);
                 dict.Add(key, value);
             }
             return dict;
