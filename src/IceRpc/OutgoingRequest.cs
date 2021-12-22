@@ -46,29 +46,34 @@ namespace IceRpc
         /// <summary>The path of the target service.</summary>
         public string Path { get; }
 
+        /// <inheritdoc/>
+        public override PipeWriter PayloadSink
+        {
+            get => _payloadSink ??= DelayedRequestWriter = new DelayedPipeWriterDecorator();
+            set => _payloadSink = value;
+        }
+
         /// <summary>The proxy that is sending this request.</summary>
         public Proxy Proxy { get; }
 
-        /// <summary>The payload sink that an interceptor would see unless some other interceptor decorates it.
-        /// </summary>
-        internal DelayedPipeWriterDecorator InitialPayloadSink { get; }
+        /// <summary>The delayed request writer used as the initial payload sink. It can be null if the payload sink
+        /// is never accessed by an interceptor.</summary>
+        internal DelayedPipeWriterDecorator? DelayedRequestWriter { get; private set; }
 
         /// <summary>A pipe reader used to read the response. The protocol connection implementation may or may not set
         /// this property when sending the request.</summary>
         internal PipeReader? ResponseReader { get; set; }
 
+        private PipeWriter? _payloadSink;
+
         /// <summary>Constructs an outgoing request.</summary>
         /// <param name="proxy">The <see cref="Proxy"/> used to send the request.</param>
         /// <param name="operation">The operation of the request.</param>
         public OutgoingRequest(Proxy proxy, string operation) :
-            base(proxy.Protocol, new DelayedPipeWriterDecorator())
+            base(proxy.Protocol)
         {
             AltEndpoints = proxy.AltEndpoints;
             Connection = proxy.Connection;
-
-            // We keep it to initialize it later
-            InitialPayloadSink = (DelayedPipeWriterDecorator)PayloadSink;
-
             Endpoint = proxy.Endpoint;
             Proxy = proxy;
             Path = proxy.Path;

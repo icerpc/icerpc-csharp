@@ -8,130 +8,86 @@ namespace IceRpc.Internal
 {
     /// <summary>Implements a PipeWriter over a simple network connection. This is a pipe writer for a single request
     /// or response.</summary>
-    internal class SimpleNetworkConnectionPipeWriter : BufferedPipeWriter
+    internal class SimpleNetworkConnectionPipeWriter : PipeWriter, IDisposable
     {
         private readonly ISimpleNetworkConnection _connection;
-        private bool _isReaderCompleted;
-        private bool _isWriterCompleted;
+        public override bool CanGetUnflushedBytes => _pipe.Writer.CanGetUnflushedBytes;
+        public override long UnflushedBytes => _pipe.Writer.UnflushedBytes;
+
+        private readonly Pipe _pipe = new();
+
+        public override void Advance(int bytes) => _pipe.Writer.Advance(bytes);
 
         public override void CancelPendingFlush() => throw new NotImplementedException();
 
         public override void Complete(Exception? exception = null)
         {
-            if (exception == null)
-            {
-                throw new InvalidOperationException(
-                    @$"do not call {nameof(Complete)} on a {nameof(SimpleNetworkConnectionPipeWriter)
-                    } with a null exception");
-            }
-            else
-            {
-                _isWriterCompleted = true;
-                base.Complete(exception);
-            }
         }
 
-        public override async ValueTask CompleteAsync(Exception? exception = null)
+        public override ValueTask CompleteAsync(Exception? exception = null) => new();
+
+        public void Dispose()
         {
-            if (!_isWriterCompleted)
+            _pipe.Writer.Complete();
+            _pipe.Reader.Complete();
+        }
+
+        public override ValueTask<FlushResult> FlushAsync(CancellationToken cancel) =>
+            WriteAsync(ReadOnlyMemory<byte>.Empty, cancel);
+
+        public override Memory<byte> GetMemory(int sizeHint = 0) => _pipe.Writer.GetMemory(sizeHint);
+
+        public override Span<byte> GetSpan(int sizeHint = 0) => _pipe.Writer.GetSpan(sizeHint);
+
+        public override async ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancel)
+        {
+            // We're flushing our own internal pipe here.
+            _ = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+
+            // If there's data to read from the internal pipe, read the data and write it before the given data.
+            if (_pipe.Reader.TryRead(out ReadResult result))
             {
-                if (exception == null)
+                ReadOnlyMemory<byte>[] buffers;
+                if (source.IsEmpty && result.Buffer.IsSingleSegment)
                 {
-                    try
-                    {
-                        _ = await FlushAsync(CompleteCancellationToken).ConfigureAwait(false);
-                        _isWriterCompleted = true;
-                        base.Complete();
-                    }
-                    catch (Exception ex)
-                    {
-                        Complete(ex);
-                        throw;
-                    }
+                    buffers = new ReadOnlyMemory<byte>[] { result.Buffer.First };
                 }
                 else
                 {
-                    Complete(exception);
-                }
-            }
-        }
-
-        public override async ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken)
-        {
-            ThrowIfCompleted();
-
-            if (!_isReaderCompleted)
-            {
-                if (PipeReader is PipeReader pipeReader)
-                {
-                    await FlushWriterAsync().ConfigureAwait(false);
-
-                    if (pipeReader.TryRead(out ReadResult result))
+                    int count = 0;
+                    buffers = new ReadOnlyMemory<byte>[16];
+                    foreach (ReadOnlyMemory<byte> buffer in result.Buffer)
                     {
-                        try
+                        buffers[count++] = buffer;
+
+                        if (count == buffers.Length)
                         {
-                            if (result.Buffer.IsSingleSegment)
-                            {
-                                await _connection.WriteAsync(
-                                    new ReadOnlyMemory<byte>[] { result.Buffer.First },
-                                    cancellationToken).ConfigureAwait(false);
-                            }
-                            else
-                            {
-                                await _connection.WriteAsync(
-                                    new ReadOnlyMemory<byte>[] { result.Buffer.ToArray() },
-                                    cancellationToken).ConfigureAwait(false);
-                            }
-                        }
-                        catch
-                        {
-                            _isReaderCompleted = true;
-                            throw;
-                        }
-                        finally
-                        {
-                            // The unflushed bytes are all consumed no matter what.
-                            pipeReader.AdvanceTo(result.Buffer.End);
+                            // Expand the buffers array.
+                            Memory<ReadOnlyMemory<byte>> tmp = buffers;
+                            buffers = new ReadOnlyMemory<byte>[buffers.Length + 16];
+                            tmp.CopyTo(buffers);
                         }
                     }
+                    if (!source.IsEmpty)
+                    {
+                        buffers[count++] = source;
+                    }
                 }
+
+                await _connection.WriteAsync(buffers, cancel).ConfigureAwait(false);
+
+                // The unflushed bytes are all consumed no matter what.
+                _pipe.Reader.AdvanceTo(result.Buffer.End);
             }
-
-            return new FlushResult(isCanceled: false, isCompleted: _isReaderCompleted);
-        }
-        public override async ValueTask<FlushResult> WriteAsync(
-            ReadOnlyMemory<byte> source,
-            CancellationToken cancellationToken)
-        {
-            ThrowIfCompleted();
-
-            if (!(await FlushAsync(cancellationToken).ConfigureAwait(false)).IsCompleted)
+            else
             {
-                try
-                {
-                    await _connection.WriteAsync(
-                        new ReadOnlyMemory<byte>[] { source },
-                        cancellationToken).ConfigureAwait(false);
-                }
-                catch
-                {
-                    _isReaderCompleted = true;
-                    throw;
-                }
+                await _connection.WriteAsync(new ReadOnlyMemory<byte>[] { source }, cancel).ConfigureAwait(false);
             }
 
-            return new FlushResult(isCanceled: false, isCompleted: _isReaderCompleted);
+            return new FlushResult(isCanceled: false, isCompleted: false);
         }
 
         internal SimpleNetworkConnectionPipeWriter(ISimpleNetworkConnection connection) =>
             _connection = connection;
-
-        private void ThrowIfCompleted()
-        {
-            if (_isWriterCompleted)
-            {
-                throw new InvalidOperationException("pipe writer is completed");
-            }
-        }
     }
 }

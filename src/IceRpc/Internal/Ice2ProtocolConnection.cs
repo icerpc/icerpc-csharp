@@ -294,7 +294,18 @@ namespace IceRpc.Internal
                 // Create the stream.
                 stream = _networkConnection.CreateStream(!request.IsOneway);
                 requestWriter = new MultiplexedStreamPipeWriter(stream);
-                request.InitialPayloadSink.SetDecoratee(requestWriter);
+
+                // If the delayed request writer is null, the payload sink has been accessed by an interceptor and
+                // we can assign it to the stream pipe writer. Otherwise, set the stream pipe writer on the delayed
+                // pipe writer decorator.
+                if (request.DelayedRequestWriter == null)
+                {
+                    request.PayloadSink = requestWriter;
+                }
+                else
+                {
+                    request.DelayedRequestWriter.SetDecoratee(requestWriter);
+                }
 
                 // Keep track of the invocation for the shutdown logic.
                 if (!request.IsOneway || request.PayloadSourceStream != null)

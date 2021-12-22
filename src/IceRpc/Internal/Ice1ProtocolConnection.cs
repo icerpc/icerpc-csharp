@@ -51,6 +51,7 @@ namespace IceRpc.Internal
         private readonly object _mutex = new();
 
         private readonly ISimpleNetworkConnection _networkConnection;
+        private readonly SimpleNetworkConnectionPipeWriter _networkConnectionWriter;
         private int _nextRequestId;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly AsyncSemaphore _sendSemaphore = new(1);
@@ -74,6 +75,8 @@ namespace IceRpc.Internal
 
             CancelInvocations(exception);
             CancelDispatches();
+
+            _networkConnectionWriter.Dispose();
         }
 
         /// <inheritdoc/>
@@ -154,8 +157,7 @@ namespace IceRpc.Internal
                         operation: requestHeader.Operation,
                         payload: new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
                         payloadEncoding,
-                        responseWriter: requestId == 0 ?
-                            InvalidPipeWriter.Instance : new SimpleNetworkConnectionPipeWriter(_networkConnection))
+                        responseWriter: requestId == 0 ? InvalidPipeWriter.Instance : _networkConnectionWriter)
                     {
                         IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
                         IsOneway = requestId == 0,
@@ -393,10 +395,7 @@ namespace IceRpc.Internal
                         $"expected {payloadSize} bytes in ice1 request payload source, but it's empty");
                 }
 
-                AsyncCompletePipeWriter output = _isUdp ? new UdpPipeWriter(_networkConnection) :
-                    new SimpleNetworkConnectionPipeWriter(_networkConnection);
-
-                var encoder = new Ice11Encoder(output);
+                var encoder = new Ice11Encoder(_networkConnectionWriter);
 
                 // Write the Ice1 request header.
                 encoder.WriteByteSpan(Ice1Definitions.FramePrologue);
@@ -420,10 +419,23 @@ namespace IceRpc.Internal
 
                 Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
 
-                request.InitialPayloadSink.SetDecoratee(output);
+                // If the delayed request writer is null, the payload sink hasn't been accessed by an interceptor and we
+                // can assign it to the network connection pipe writer. Otherwise, set the network connection pipe
+                // writer on the delayed pipe writer decorator.
+                if (request.DelayedRequestWriter == null)
+                {
+                    request.PayloadSink = _networkConnectionWriter;
+                }
+                else
+                {
+                    request.DelayedRequestWriter.SetDecoratee(_networkConnectionWriter);
+                }
 
-                await SendPayloadAsync(request, output, cancel).ConfigureAwait(false);
+                await SendPayloadAsync(request, payloadSize, cancel).ConfigureAwait(false);
                 request.IsSent = true;
+
+                await request.PayloadSource.CompleteAsync().ConfigureAwait(false);
+                await request.PayloadSink.CompleteAsync().ConfigureAwait(false);
             }
             catch (ObjectDisposedException exception)
             {
@@ -550,10 +562,10 @@ namespace IceRpc.Internal
 
                         Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
 
-                        await SendPayloadAsync(
-                            response,
-                            (AsyncCompletePipeWriter)request.ResponseWriter,
-                            cancel).ConfigureAwait(false);
+                        await SendPayloadAsync(response, payloadSize, cancel).ConfigureAwait(false);
+
+                        await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
+                        await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
@@ -660,6 +672,7 @@ namespace IceRpc.Internal
             _incomingFrameMaxSize = incomingFrameMaxSize;
             _memoryPool = MemoryPool<byte>.Shared; // TODO: should be configurable by caller
             _networkConnection = simpleNetworkConnection;
+            _networkConnectionWriter = new SimpleNetworkConnectionPipeWriter(_networkConnection);
         }
 
         internal async Task InitializeAsync(bool isServer, CancellationToken cancel)
@@ -693,43 +706,8 @@ namespace IceRpc.Internal
             }
         }
 
-        /// <summary>Decodes the first byte of the payload to get its size.</summary>
-        private static (int PayloadSize, byte EncodingMajor, byte EncodingMinor) DecodePayloadSize(
-            ref ReadOnlyMemory<ReadOnlyMemory<byte>> payload,
-            Encoding payloadEncoding)
-        {
-            int payloadSize;
-            int payloadSizeLength;
-            byte encodingMajor;
-            byte encodingMinor;
-
-            if (payloadEncoding == Encoding.Ice11)
-            {
-                encodingMajor = 1;
-                encodingMinor = 1;
-                payloadSizeLength = 4;
-                payloadSize = IceEncoding.DecodeInt(payload.Span[0].Span);
-            }
-            else if (payloadEncoding == Encoding.Ice20)
-            {
-                encodingMajor = 2;
-                encodingMinor = 0;
-                (payloadSize, payloadSizeLength) = Ice20Encoding.DecodeSize(payload.Span[0].Span);
-            }
-            else
-            {
-                throw new NotSupportedException("an ice1 payload must be encoded with Slice 1.1 or Slice 2.0");
-            }
-
-            payload = SliceBuffers(payload, payloadSizeLength);
-            return (payloadSize, encodingMajor, encodingMinor);
-        }
-
         /// <summary>Sends the payload source of an outgoing frame.</summary>
-        private async ValueTask SendPayloadAsync(
-            OutgoingFrame outgoingFrame,
-            AsyncCompletePipeWriter frameWriter,
-            CancellationToken cancel)
+        private async Task SendPayloadAsync(OutgoingFrame outgoingFrame, int payloadSize, CancellationToken cancel)
         {
             if (outgoingFrame.PayloadSourceStream != null)
             {
@@ -738,59 +716,19 @@ namespace IceRpc.Internal
                 throw new NotSupportedException("stream parameters and return values are not supported with ice1");
             }
 
-            // We first fetch the full payload with the cancellation token.
-            while (true)
-            {
-                ReadResult readResult = await outgoingFrame.PayloadSource.ReadAsync(cancel).ConfigureAwait(false);
-
-                // Don't consume anything
-                outgoingFrame.PayloadSource.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-
-                // Keep going until we've read the full payload.
-                if (readResult.IsCompleted)
-                {
-                    break;
-                }
-            }
-
-            // Next we switch to CancellationToken.None unless we use UDP
+            // We switch to CancellationToken.None unless we use UDP
             if (!_isUdp)
             {
                 cancel = CancellationToken.None;
             }
-            frameWriter.CompleteCancellationToken = cancel;
 
-            FlushResult flushResult = await outgoingFrame.PayloadSink.CopyFromAsync(
-                outgoingFrame.PayloadSource,
-                completeWhenDone: true,
-                cancel).ConfigureAwait(false);
-
-            Debug.Assert(!flushResult.IsCanceled); // not implemented
-            Debug.Assert(!flushResult.IsCompleted); // the reader can't reject the frame without triggering an exception
-
-            await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
-        }
-
-        // Helper method that removes a few bytes from the first buffer. The implementation is simple and limited.
-        private static ReadOnlyMemory<ReadOnlyMemory<byte>> SliceBuffers(
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
-            int start)
-        {
-            if (buffers.Length > 1 || buffers.Span[0].Length > start)
+            if (payloadSize > 0)
             {
-                var result = new ReadOnlyMemory<byte>[buffers.Length];
-                result[0] = buffers.Span[0][start..];
-                Debug.Assert(result[0].Length > 0);
-                for (int i = 1; i < buffers.Length; ++i)
-                {
-                    result[i] = buffers.Span[i];
-                }
-                return result;
+                await outgoingFrame.PayloadSource.CopyToAsync(outgoingFrame.PayloadSink, cancel).ConfigureAwait(false);
             }
             else
             {
-                Debug.Assert(buffers.Length == 1 && buffers.Span[0].Length == start);
-                return ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty;
+                await _networkConnectionWriter.WriteAsync(ReadOnlyMemory<byte>.Empty, cancel).ConfigureAwait(false);
             }
         }
 
