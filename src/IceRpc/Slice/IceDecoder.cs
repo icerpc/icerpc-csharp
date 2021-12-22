@@ -800,17 +800,22 @@ namespace IceRpc.Slice
                         default:
                         {
                             // Create an endpoint for transport opaque
+
+                            using IMemoryOwner<byte>? memoryOwner =
+                                _reader.UnreadSpan.Length < size ? MemoryPool<byte>.Shared.Rent(size) : null;
+
                             ReadOnlySpan<byte> vSpan;
-                            if (_reader.UnreadSpan.Length >= size)
+
+                            if (memoryOwner?.Memory is Memory<byte> buffer)
                             {
-                                vSpan = _reader.UnreadSpan[0..size];
-                                _reader.Advance(size);
+                                Span<byte> span = buffer.Span[0..size];
+                                CopyTo(span);
+                                vSpan = span;
                             }
                             else
                             {
-                                Span<byte> span = new byte[size]; // TODO: limit size
-                                CopyTo(span);
-                                vSpan = span;
+                                vSpan = _reader.UnreadSpan[0..size];
+                                _reader.Advance(size);
                             }
 
                             var endpointParams = ImmutableList.Create(
