@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Collections.Immutable;
+
 namespace IceRpc.Slice
 {
     /// <summary>Provides extension methods for class IceDecoder.</summary>
@@ -52,6 +54,27 @@ namespace IceRpc.Slice
                 valueDecodeFunc);
         }
 
+        /// <summary>Decodes fields.</summary>
+        /// <param name="decoder">The Ice decoder.</param>
+        /// <returns>The fields as an immutable dictionary.</returns>
+        public static ImmutableDictionary<int, ReadOnlyMemory<byte>> DecodeFieldDictionary(this ref IceDecoder decoder)
+        {
+            int size = decoder.DecodeSize();
+            if (size == 0)
+            {
+                return ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
+            }
+            else
+            {
+                var builder = ImmutableDictionary.CreateBuilder<int, ReadOnlyMemory<byte>>();
+                for (int i = 0; i < size; ++i)
+                {
+                    builder.Add(decoder.DecodeVarInt(), decoder.DecodeSequence<byte>());
+                }
+                return builder.ToImmutable();
+            }
+        }
+
         /// <summary>Decodes a sequence.</summary>
         /// <param name="decoder">The Ice decoder.</param>
         /// <param name="minElementSize">The minimum size of each element of the sequence, in bytes.</param>
@@ -91,8 +114,7 @@ namespace IceRpc.Slice
             }
             else
             {
-                ReadOnlySpan<byte> bitSequenceSpan = decoder.DecodeBitSequenceSpan(count);
-                var bitSequence = new ReadOnlyBitSequence(bitSequenceSpan);
+                ReadOnlyBitSequence bitSequence = decoder.DecodeBitSequence(count);
                 var array = new T[count];
                 for (int i = 0; i < count; ++i)
                 {

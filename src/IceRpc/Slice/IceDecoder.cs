@@ -31,11 +31,7 @@ namespace IceRpc.Slice
             new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true); // no BOM
 
         /// <summary>The 0-based position (index) in the underlying buffer.</summary>
-        internal int Consumed
-        {
-            get => (int)_reader.Consumed;
-            private set => throw new NotImplementedException();
-        }
+        internal long Consumed => _reader.Consumed;
 
         /// <summary>Gets or creates an activator for the Slice types in the specified assembly and its referenced
         /// assemblies.</summary>
@@ -56,9 +52,6 @@ namespace IceRpc.Slice
             Internal.Activator.Merge(assemblies.Select(assembly => ActivatorFactory.Instance.Get(assembly)));
 
         private readonly IActivator? _activator;
-
-        // The byte buffer we are decoding.
-        private readonly ReadOnlySpan<byte> _buffer;
 
         private ClassContext _classContext;
 
@@ -112,7 +105,6 @@ namespace IceRpc.Slice
             Encoding = encoding;
 
             _activator = activator;
-            _buffer = default;
             _classContext = new ClassContext(classGraphMaxDepth);
             _connection = connection;
             _invoker = invoker;
@@ -142,26 +134,6 @@ namespace IceRpc.Slice
         public float DecodeFloat() =>
             SequenceMarshal.TryRead(ref _reader, out float value) ? value : throw _endOfBufferException;
 
-        /// <summary>Decodes a size encoded on a fixed number of bytes.</summary>
-        /// <returns>The size decoded by this decoder.</returns>
-        // TODO: remove or make an extension
-        public int DecodeFixedLengthSize()
-        {
-            if (Encoding == IceRpc.Encoding.Ice11)
-            {
-                int size = DecodeInt();
-                if (size < 0)
-                {
-                    throw new InvalidDataException($"decoded invalid size: {size}");
-                }
-                return size;
-            }
-            else
-            {
-                return DecodeSize();
-            }
-        }
-
         /// <summary>Decodes an int.</summary>
         /// <returns>The int decoded by this decoder.</returns>
         public int DecodeInt() =>
@@ -170,17 +142,20 @@ namespace IceRpc.Slice
         /// <summary>Decodes a long.</summary>
         /// <returns>The long decoded by this decoder.</returns>
         public long DecodeLong() =>
-            SequenceMarshal.TryRead(ref _reader, out long  value) ? value : throw _endOfBufferException;
+            SequenceMarshal.TryRead(ref _reader, out long value) ? value : throw _endOfBufferException;
 
         /// <summary>Decodes a short.</summary>
         /// <returns>The short decoded by this decoder.</returns>
         public short DecodeShort() =>
-            SequenceMarshal.TryRead(ref _reader, out short  value) ? value : throw _endOfBufferException;
+            SequenceMarshal.TryRead(ref _reader, out short value) ? value : throw _endOfBufferException;
 
         /// <summary>Decodes a size encoded on a variable number of bytes.</summary>
         /// <returns>The size decoded by this decoder.</returns>
         public int DecodeSize()
         {
+            // The implementation does not use any internal or private property and therefore DecodeSize could be an
+            // extension method. It's an instance method because it's considered fundamental.
+
             if (Encoding == IceRpc.Encoding.Ice11)
             {
                 byte firstByte = DecodeByte();
@@ -223,7 +198,7 @@ namespace IceRpc.Slice
             else
             {
                 string result;
-                if (_reader.UnreadSpan.Length <= size)
+                if (_reader.UnreadSpan.Length >= size)
                 {
                     result = _utf8.GetString(_reader.UnreadSpan[0..size]);
                 }
@@ -264,7 +239,7 @@ namespace IceRpc.Slice
         {
             try
             {
-               return checked((int)DecodeVarLong());
+                return checked((int)DecodeVarLong());
             }
             catch (OverflowException ex)
             {
@@ -324,20 +299,19 @@ namespace IceRpc.Slice
             else
             {
                 string typeId = DecodeString();
-                var remoteEx = _activator?.CreateInstance(typeId, ref this) as RemoteException;
 
-                if (remoteEx == null)
-                {
-                    // If we can't decode this exception, we return an UnknownSlicedRemoteException instead of throwing
-                    // "can't decode remote exception".
-                    return new UnknownSlicedRemoteException(typeId, ref this);
-                }
-                else
+                if (_activator?.CreateInstance(typeId, ref this) is RemoteException remoteException)
                 {
                     // TODO: consider calling this Skip for the remaining exception tagged members from the generated
                     // code to make the exception decoding constructor usable directly. See protocol bridging code.
                     SkipTaggedParams();
-                    return remoteEx;
+                    return remoteException;
+                }
+                else
+                {
+                    // If we can't decode this exception, we return an UnknownSlicedRemoteException instead of throwing
+                    // "can't decode remote exception".
+                    return new UnknownSlicedRemoteException(typeId, ref this);
                 }
             }
         }
@@ -477,7 +451,6 @@ namespace IceRpc.Slice
                         throw new InvalidDataException("received invalid proxy", ex);
                     }
                 }
-
             }
             else
             {
@@ -544,15 +517,7 @@ namespace IceRpc.Slice
 
             Span<byte> destination = MemoryMarshal.Cast<T, byte>(value);
             Debug.Assert(destination.Length == elementSize * value.Length);
-
-            if (_reader.TryCopyTo(destination))
-            {
-                _reader.Advance(destination.Length);
-            }
-            else
-            {
-                throw _endOfBufferException;
-            }
+            CopyTo(destination);
 
             if (checkElement != null)
             {
@@ -570,33 +535,27 @@ namespace IceRpc.Slice
         /// <summary>Decodes a bit sequence.</summary>
         /// <param name="bitSequenceSize">The minimum number of bits in the sequence.</param>
         /// <returns>The read-only bit sequence decoded by this decoder.</returns>
+        // TODO: switch to BitSequenceReader
         public ReadOnlyBitSequence DecodeBitSequence(int bitSequenceSize)
         {
             int size = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0);
-            int startPos = Consumed;
-            Consumed += size;
-            return new ReadOnlyBitSequence(_buffer.Slice(startPos, size));
-        }
 
-        /// <summary>Decodes fields.</summary>
-        /// <returns>The fields as an immutable dictionary.</returns>
-        public ImmutableDictionary<int, ReadOnlyMemory<byte>> DecodeFieldDictionary()
-        {
-            int size = DecodeSize();
-            if (size == 0)
+            ReadOnlySpan<byte> span;
+
+            if (_reader.UnreadSpan.Length >= size)
             {
-                return ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
+                span = _reader.UnreadSpan[0..size];
+                _reader.Advance(size);
             }
             else
             {
-                var builder = ImmutableDictionary.CreateBuilder<int, ReadOnlyMemory<byte>>();
-                for (int i = 0; i < size; ++i)
-                {
-                    (int key, ReadOnlyMemory<byte> value) = DecodeField();
-                    builder.Add(key, value);
-                }
-                return builder.ToImmutable();
+                // TODO: avoid using un-pooled temporary memory.
+                var destination = new byte[size];
+                CopyTo(destination);
+                span = destination;
             }
+
+            return new ReadOnlyBitSequence(span);
         }
 
         /// <summary>Decodes a tagged parameter or data member.</summary>
@@ -633,26 +592,21 @@ namespace IceRpc.Slice
 
                 int requestedTag = tag;
 
-                while (true)
+                while (!_reader.End)
                 {
-                    if (_buffer.Length - Consumed <= 0)
-                    {
-                        return default!; // End of buffer indicates end of tagged parameters.
-                    }
-
-                    int savedPos = Consumed;
+                    long startPos = _reader.Consumed;
                     tag = DecodeVarInt();
 
                     if (tag == requestedTag)
                     {
                         // Found requested tag, so skip size:
-                        Skip(IceEncoding.DecodeVarLongLength(_buffer[Consumed]));
+                        Skip(PeekVarLongLength());
                         return decodeFunc(ref this);
                     }
                     else if (tag > requestedTag)
                     {
-                        Consumed = savedPos; // rewind
-                        return default!;
+                        _reader.Rewind(_reader.Consumed - startPos); // rewind
+                        break; // while
                     }
                     else
                     {
@@ -660,6 +614,7 @@ namespace IceRpc.Slice
                         // and continue while loop
                     }
                 }
+                return default!;
             }
         }
 
@@ -673,9 +628,23 @@ namespace IceRpc.Slice
                 SkipTaggedParams();
             }
 
-            if (Consumed != _buffer.Length)
+            if (!_reader.End)
             {
-                throw new InvalidDataException($"{_buffer.Length - Consumed} bytes remaining in the buffer");
+                throw new InvalidDataException($"{_reader.Remaining} bytes remaining in the buffer");
+            }
+        }
+
+        /// <summary>Copy bytes from the reader into the destination to fill destination, and advance the reader.
+        /// </summary>
+        internal void CopyTo(Span<byte> destination)
+        {
+            if (_reader.TryCopyTo(destination))
+            {
+                _reader.Advance(destination.Length);
+            }
+            else
+            {
+                throw _endOfBufferException;
             }
         }
 
@@ -708,37 +677,9 @@ namespace IceRpc.Slice
             return size;
         }
 
-        internal ReadOnlySpan<byte> DecodeBitSequenceSpan(int bitSequenceSize)
-        {
-            int size = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0);
-            int startPos = Consumed;
-            Consumed += size;
-            return _buffer.Slice(startPos, size);
-        }
-
-        /// <summary>Decodes a field.</summary>
-        /// <returns>The key and value of the field.</returns>
-        internal (int Key, ReadOnlyMemory<byte> Value) DecodeField()
-        {
-            int key = DecodeVarInt();
-            int entrySize = DecodeSize();
-            byte[] value = _buffer.Slice(Consumed, entrySize).ToArray(); // make a copy
-            Consumed += entrySize;
-            return (key, value);
-        }
-
-        /// <summary>Reads size bytes from the underlying buffer.</summary>
-        internal ReadOnlySpan<byte> ReadBytes(int size)
-        {
-            Debug.Assert(size > 0);
-            var result = _buffer.Slice(Consumed, size);
-            Consumed += size;
-            return result;
-        }
-
         internal void Skip(int count)
         {
-            if (_reader.Remaining < count)
+            if (_reader.Remaining >= count)
             {
                 _reader.Advance(count);
             }
@@ -770,7 +711,7 @@ namespace IceRpc.Slice
                 throw new InvalidDataException($"the 1.1 encapsulation's size ({size}) is too small");
             }
 
-            if (size - 4 > _buffer.Length - Consumed)
+            if (size - 4 > _reader.Remaining)
             {
                 throw new InvalidDataException(
                     $"the encapsulation's size ({size}) extends beyond the end of the buffer");
@@ -783,7 +724,7 @@ namespace IceRpc.Slice
 
             if (encoding == IceRpc.Encoding.Ice11 || encoding == IceRpc.Encoding.Ice10)
             {
-                int oldPos = Consumed;
+                long oldPos = _reader.Consumed;
 
                 if (protocol == Protocol.Ice1)
                 {
@@ -845,19 +786,30 @@ namespace IceRpc.Slice
                         default:
                         {
                             // Create an endpoint for transport opaque
+                            ReadOnlySpan<byte> vSpan;
+                            if (_reader.UnreadSpan.Length >= size)
+                            {
+                                vSpan = _reader.UnreadSpan[0..size];
+                                _reader.Advance(size);
+                            }
+                            else
+                            {
+                                Span<byte> span = new byte[size]; // TODO: limit size
+                                CopyTo(span);
+                                vSpan = span;
+                            }
+
                             var endpointParams = ImmutableList.Create(
-                                    new EndpointParam("-t",
-                                                      ((short)transportCode).ToString(CultureInfo.InvariantCulture)),
-                                    new EndpointParam("-e", encoding.ToString()),
-                                    new EndpointParam("-v", Convert.ToBase64String(_buffer.Slice(Consumed, size))));
+                                new EndpointParam("-t", ((short)transportCode).ToString(CultureInfo.InvariantCulture)),
+                                new EndpointParam("-e", encoding.ToString()),
+                                new EndpointParam("-v", Convert.ToBase64String(vSpan)));
 
-                            Consumed += size;
-
-                            endpoint = new Endpoint(Protocol.Ice1,
-                                                    TransportNames.Opaque,
-                                                    host: "",
-                                                    port: 0,
-                                                    endpointParams);
+                            endpoint = new Endpoint(
+                                Protocol.Ice1,
+                                TransportNames.Opaque,
+                                host: "",
+                                port: 0,
+                                endpointParams);
                             break;
                         }
                     }
@@ -870,9 +822,10 @@ namespace IceRpc.Slice
                 if (endpoint != null)
                 {
                     // Make sure we read the full encapsulation.
-                    if (Consumed != oldPos + size)
+                    if (_reader.Consumed != oldPos + size)
                     {
-                        throw new InvalidDataException($"{oldPos + size - Consumed} bytes left in endpoint encapsulation");
+                        throw new InvalidDataException(
+                            $"{oldPos + size - _reader.Consumed} bytes left in endpoint encapsulation");
                     }
                 }
             }
@@ -910,17 +863,17 @@ namespace IceRpc.Slice
 
             while (true)
             {
-                if (!withTagEndMarker && _buffer.Length - Consumed <= 0)
+                if (!withTagEndMarker && _reader.End)
                 {
                     return false; // End of buffer indicates end of tagged parameters.
                 }
 
-                int savedPos = Consumed;
+                long savedPos = _reader.Consumed;
 
                 int v = DecodeByte();
                 if (withTagEndMarker && v == TagEndMarker)
                 {
-                    Consumed = savedPos; // rewind
+                    _reader.Rewind(_reader.Consumed - savedPos);
                     return false;
                 }
 
@@ -933,7 +886,7 @@ namespace IceRpc.Slice
 
                 if (tag > requestedTag)
                 {
-                    Consumed = savedPos; // rewind
+                    _reader.Rewind(_reader.Consumed - savedPos);
                     return false; // No tagged parameter with the requested tag.
                 }
                 else if (tag < requestedTag)
@@ -967,11 +920,11 @@ namespace IceRpc.Slice
         {
             if (Encoding == IceRpc.Encoding.Ice11)
             {
-                bool withTagEndMarker = (_classContext.Current.InstanceType != InstanceType.None);
+                bool withTagEndMarker = _classContext.Current.InstanceType != InstanceType.None;
 
                 while (true)
                 {
-                    if (!withTagEndMarker && _buffer.Length - Consumed <= 0)
+                    if (!withTagEndMarker && _reader.End)
                     {
                         // When we don't use an end marker, the end of the buffer indicates the end of the tagged params
                         // or members.
@@ -998,13 +951,8 @@ namespace IceRpc.Slice
             {
                 // TODO: the current version is for paramaters, return values and exception data members. It relies on
                 // the end of buffer to detect the end of the tag "dictionary", and does not use TagEndMarker.
-                while (true)
+                while (!_reader.End)
                 {
-                    if (_buffer.Length - Consumed <= 0)
-                    {
-                        break; // end of buffer, done
-                    }
-
                     // Skip tag
                     _ = DecodeVarInt();
 
@@ -1012,14 +960,6 @@ namespace IceRpc.Slice
                     Skip(DecodeSize());
                 }
             }
-        }
-
-        private int ReadSpan(Span<byte> span)
-        {
-            int length = Math.Min(span.Length, _buffer.Length - Consumed);
-            _buffer.Slice(Consumed, length).CopyTo(span);
-            Consumed += length;
-            return length;
         }
 
         private void SkipSize()
@@ -1058,7 +998,12 @@ namespace IceRpc.Slice
                     Skip(DecodeSize());
                     break;
                 case TagFormat.FSize:
-                    Skip(DecodeFixedLengthSize());
+                    int size = DecodeInt();
+                    if (size < 0)
+                    {
+                        throw new InvalidDataException($"decoded invalid size: {size}");
+                    }
+                    Skip(size);
                     break;
                 default:
                     throw new InvalidDataException(

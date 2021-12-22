@@ -199,7 +199,7 @@ namespace IceRpc.Internal
 
                 // The payload plus 4 bytes from the encapsulation header used to store the payload size encoded
                 // with payload encoding.
-                buffer = buffer[(decoder.Consumed - 4)..];
+                buffer = buffer[((int)decoder.Consumed - 4)..];
 
                 return requestHeader;
             }
@@ -301,7 +301,7 @@ namespace IceRpc.Internal
 
                     if (payloadEncoding == Encoding.Ice11 && replyStatus == ReplyStatus.UserException)
                     {
-                        buffer = buffer[(decoder.Consumed - 5)..];
+                        buffer = buffer[((int)decoder.Consumed - 5)..];
 
                         // We encode the reply status (UserException) right after the payload size
                         buffer.Span[4] = (byte)ReplyStatus.UserException;
@@ -309,7 +309,7 @@ namespace IceRpc.Internal
                     }
                     else
                     {
-                        buffer = buffer[(decoder.Consumed - 4)..]; // no reply status
+                        buffer = buffer[((int)decoder.Consumed - 4)..]; // no reply status
                     }
 
                     if (payloadSize != buffer.Length - 4)
