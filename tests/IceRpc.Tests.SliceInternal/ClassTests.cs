@@ -52,19 +52,17 @@ namespace IceRpc.Tests.SliceInternal
             pipeline1.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
-                ReadOnlyMemory<byte> data = readResult.Buffer.ToArray();
-                request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
 
-                DecodeBefore(data);
+                DecodeBefore(readResult.Buffer);
+                request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 readResult = await response.Payload.ReadAllAsync(cancel);
-                Assert.That(readResult.Buffer.IsSingleSegment);
-                DecodeAfter(readResult.Buffer.First);
-
+                DecodeAfter(readResult.Buffer);
                 response.Payload.AdvanceTo(readResult.Buffer.Start);
+
                 return response;
 
-                static void DecodeBefore(ReadOnlyMemory<byte> data)
+                static void DecodeBefore(ReadOnlySequence<byte> data)
                 {
                     var decoder = new IceDecoder(data, Encoding.Ice11);
 
@@ -78,7 +76,7 @@ namespace IceRpc.Tests.SliceInternal
                     Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
                 }
 
-                static void DecodeAfter(ReadOnlyMemory<byte> data)
+                static void DecodeAfter(ReadOnlySequence<byte> data)
                 {
                     var decoder = new IceDecoder(data, Encoding.Ice11);
 
@@ -100,19 +98,15 @@ namespace IceRpc.Tests.SliceInternal
             pipeline2.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
-                ReadOnlyMemory<byte> data = readResult.Buffer.ToArray();
+                DecodeBefore(readResult.Buffer);
                 request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
-
-                DecodeBefore(data);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 readResult = await response.Payload.ReadAllAsync(cancel);
-                Assert.That(readResult.Buffer.IsSingleSegment);
-                DecodeAfter(readResult.Buffer.First);
-
+                DecodeAfter(readResult.Buffer);
                 response.Payload.AdvanceTo(readResult.Buffer.Start);
                 return response;
 
-                static void DecodeBefore(ReadOnlyMemory<byte> data)
+                static void DecodeBefore(ReadOnlySequence<byte> data)
                 {
                     var decoder = new IceDecoder(data, Encoding.Ice11);
 
@@ -126,7 +120,7 @@ namespace IceRpc.Tests.SliceInternal
                     Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
                 }
 
-                static void DecodeAfter(ReadOnlyMemory<byte> data)
+                static void DecodeAfter(ReadOnlySequence<byte> data)
                 {
                     var decoder = new IceDecoder(data, Encoding.Ice11);
 
@@ -148,19 +142,15 @@ namespace IceRpc.Tests.SliceInternal
             pipeline3.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
-                ReadOnlyMemory<byte> data = readResult.Buffer.ToArray();
+                DecodeBefore(readResult.Buffer);
                 request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
-
-                DecodeBefore(data);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 readResult = await response.Payload.ReadAllAsync(cancel);
-                Assert.That(readResult.Buffer.IsSingleSegment);
-                DecodeAfter(readResult.Buffer.First);
-
+                DecodeAfter(readResult.Buffer);
                 response.Payload.AdvanceTo(readResult.Buffer.Start);
                 return response;
 
-                static void DecodeBefore(ReadOnlyMemory<byte> data)
+                static void DecodeBefore(ReadOnlySequence<byte> data)
                 {
                     var decoder = new IceDecoder(data, Encoding.Ice11);
 
@@ -174,7 +164,7 @@ namespace IceRpc.Tests.SliceInternal
                     Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
                 }
 
-                static void DecodeAfter(ReadOnlyMemory<byte> data)
+                static void DecodeAfter(ReadOnlySequence<byte> data)
                 {
                     var decoder = new IceDecoder(data, Encoding.Ice11);
 
@@ -195,19 +185,16 @@ namespace IceRpc.Tests.SliceInternal
             pipeline4.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
-                ReadOnlyMemory<byte> data = readResult.Buffer.ToArray();
+                DecodeBefore(readResult.Buffer);
                 request.PayloadSource.AdvanceTo(readResult.Buffer.Start);
-
-                DecodeBefore(data);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 readResult = await response.Payload.ReadAllAsync(cancel);
-                Assert.That(readResult.Buffer.IsSingleSegment);
-                DecodeAfter(readResult.Buffer.First);
+                DecodeAfter(readResult.Buffer);
 
                 response.Payload.AdvanceTo(readResult.Buffer.Start);
                 return response;
 
-                static void DecodeBefore(ReadOnlyMemory<byte> data)
+                static void DecodeBefore(ReadOnlySequence<byte> data)
                 {
                     var decoder = new IceDecoder(data, Encoding.Ice11);
 
@@ -221,7 +208,7 @@ namespace IceRpc.Tests.SliceInternal
                     Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
                 }
 
-                static void DecodeAfter(ReadOnlyMemory<byte> data)
+                static void DecodeAfter(ReadOnlySequence<byte> data)
                 {
                     var decoder = new IceDecoder(data, Encoding.Ice11);
 
