@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
@@ -38,16 +39,15 @@ namespace IceRpc.Slice
             T arg,
             EncodeAction<IceEncoder, T> encodeAction)
         {
-            var pipe = new Pipe(); // TODO: pipe options
+            var pipeReader = new PayloadPipeReader();
 
-            IceEncoder encoder = CreateIceEncoder(pipe.Writer);
+            IceEncoder encoder = CreateIceEncoder(pipeReader);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, arg);
             EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
-            pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
-            return pipe.Reader;
+            return pipeReader;
         }
 
         /// <summary>Creates the payload of a request from the request's arguments. Use this method is for operations
@@ -61,16 +61,15 @@ namespace IceRpc.Slice
             in T args,
             TupleEncodeAction<IceEncoder, T> encodeAction) where T : struct
         {
-            var pipe = new Pipe(); // TODO: pipe options
+            var pipeReader = new PayloadPipeReader();
 
-            IceEncoder encoder = CreateIceEncoder(pipe.Writer);
+            IceEncoder encoder = CreateIceEncoder(pipeReader);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, in args);
             EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
-            pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
-            return pipe.Reader;
+            return pipeReader;
         }
 
         /// <summary>Creates a payload source stream from an async enumerable.</summary>
@@ -201,16 +200,15 @@ namespace IceRpc.Slice
         /// <returns>A new payload.</returns>
         public PipeReader CreatePayloadFromRemoteException(RemoteException exception)
         {
-            var pipe = new Pipe(); // TODO: pipe options
+            var pipeReader = new PayloadPipeReader();
 
-            IceEncoder encoder = CreateIceEncoder(pipe.Writer);
+            IceEncoder encoder = CreateIceEncoder(pipeReader);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encoder.EncodeException(exception);
             EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
-            pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
-            return pipe.Reader;
+            return pipeReader;
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value tuple. Use this
@@ -224,16 +222,15 @@ namespace IceRpc.Slice
             in T returnValueTuple,
             TupleEncodeAction<IceEncoder, T> encodeAction) where T : struct
         {
-            var pipe = new Pipe(); // TODO: pipe options
+            var pipeReader = new PayloadPipeReader();
 
-            IceEncoder encoder = CreateIceEncoder(pipe.Writer);
+            IceEncoder encoder = CreateIceEncoder(pipeReader);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, in returnValueTuple);
             EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
-            pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
-            return pipe.Reader;
+            return pipeReader;
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value. Use this method
@@ -247,16 +244,15 @@ namespace IceRpc.Slice
             T returnValue,
             EncodeAction<IceEncoder, T> encodeAction)
         {
-            var pipe = new Pipe(); // TODO: pipe options
+            var pipeReader = new PayloadPipeReader();
 
-            IceEncoder encoder = CreateIceEncoder(pipe.Writer);
+            IceEncoder encoder = CreateIceEncoder(pipeReader);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, returnValue);
             EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
-            pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
-            return pipe.Reader;
+            return pipeReader;
         }
 
         /// <summary>Decodes the size of a segment read from a PipeReader.</summary>

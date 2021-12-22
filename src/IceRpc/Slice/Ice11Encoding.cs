@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
@@ -32,16 +33,15 @@ namespace IceRpc.Slice
             TupleEncodeAction<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default) where T : struct
         {
-            var pipe = new Pipe(); // TODO: pipe options
+            var pipeReader = new PayloadPipeReader();
 
-            var encoder = new Ice11Encoder(pipe.Writer, classFormat);
+            var encoder = new Ice11Encoder(pipeReader, classFormat);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, in args);
             Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
-            pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
-            return pipe.Reader;
+            return pipeReader;
         }
 
         /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
@@ -56,16 +56,15 @@ namespace IceRpc.Slice
             Action<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default)
         {
-            var pipe = new Pipe(); // TODO: pipe options
+            var pipeReader = new PayloadPipeReader();
 
-            var encoder = new Ice11Encoder(pipe.Writer, classFormat);
+            var encoder = new Ice11Encoder(pipeReader, classFormat);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, arg);
             Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
-            pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
-            return pipe.Reader;
+            return pipeReader;
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value tuple. Use this
@@ -81,16 +80,15 @@ namespace IceRpc.Slice
             TupleEncodeAction<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default) where T : struct
         {
-            var pipe = new Pipe(); // TODO: pipe options
+            var pipeReader = new PayloadPipeReader();
 
-            var encoder = new Ice11Encoder(pipe.Writer, classFormat);
+            var encoder = new Ice11Encoder(pipeReader, classFormat);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, in returnValueTuple);
             Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
-            pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
-            return pipe.Reader;
+            return pipeReader;
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value. Use this method
@@ -106,16 +104,15 @@ namespace IceRpc.Slice
             EncodeAction<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default)
         {
-            var pipe = new Pipe(); // TODO: pipe options
+            var pipeReader = new PayloadPipeReader();
 
-            var encoder = new Ice11Encoder(pipe.Writer, classFormat);
+            var encoder = new Ice11Encoder(pipeReader, classFormat);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, returnValue);
             Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
-            pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
-            return pipe.Reader;
+            return pipeReader;
         }
 
         internal override IceEncoder CreateIceEncoder(IBufferWriter<byte> bufferWriter) =>
