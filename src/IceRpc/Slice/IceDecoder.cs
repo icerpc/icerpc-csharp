@@ -22,15 +22,15 @@ namespace IceRpc.Slice
         /// <summary>The Slice encoding decoded by this decoder.</summary>
         public IceEncoding Encoding { get; }
 
+        /// <summary>The number of bytes decoded in the underlying buffer.</summary>
+        internal long Consumed => _reader.Consumed;
+
         /// <summary>The exception thrown when attempting to decode at/past the end of the buffer.</summary>
         private static readonly InvalidOperationException _endOfBufferException =
             new("attempting to decode past the end of the decoder buffer");
 
         private static readonly UTF8Encoding _utf8 =
             new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true); // no BOM
-
-        /// <summary>The number of bytes decoded in the underlying buffer.</summary>
-        internal long Consumed => _reader.Consumed;
 
         /// <summary>Gets or creates an activator for the Slice types in the specified assembly and its referenced
         /// assemblies.</summary>
