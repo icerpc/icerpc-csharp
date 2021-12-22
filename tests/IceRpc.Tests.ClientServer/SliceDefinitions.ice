@@ -4,7 +4,7 @@ module IceRpc::Tests::ClientServer
 {
     interface Greeter
     {
-        void sayHello();
+        void sayHello(string message);
     }
 
     interface StressTest
