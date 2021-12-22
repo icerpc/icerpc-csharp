@@ -219,7 +219,6 @@ namespace IceRpc
                         MultiplexedClientTransport = MultiplexedClientTransport,
                         Options = ConnectionOptions,
                         RemoteEndpoint = endpoint,
-                        IsResumable = false,
                         SimpleClientTransport = SimpleClientTransport,
                     };
                     if (!_connections.TryGetValue(endpoint, out connections))

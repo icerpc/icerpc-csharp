@@ -274,6 +274,7 @@ namespace IceRpc.Tests.Internal
             // Don't use the connection factory since it doesn't create resumable connections.
             Connection? serverConnection = null;
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .UseResumableConnection()
                 .UseProtocol(protocol)
                 .AddTransient<IDispatcher>(_ => new InlineDispatcher((request, cancel) =>
                     {

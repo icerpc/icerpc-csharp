@@ -82,8 +82,9 @@ namespace IceRpc
         /// be re-established by the next call to <see cref="ConnectAsync"/> or the next invocation. The <see
         /// cref="State"/> is always switched back to <see cref="ConnectionState.NotConnected"/> after the connection
         /// closure. If <c>false</c>, the <see cref="State"/> is <see cref="ConnectionState.Closed"/> once the
-        /// connection is closed and the connection won't be resumed.</summary>
-        public bool IsResumable { get; init; } = true;
+        /// connection is closed and the connection won't be resumed. A connection is not resumable by
+        /// default.</summary>
+        public bool IsResumable { get; init; }
 
         /// <summary><c>true</c> if the connection uses a secure transport, <c>false</c> otherwise.</summary>
         /// <remarks><c>false</c> can mean the connection is not yet connected and its security will be determined
@@ -172,9 +173,9 @@ namespace IceRpc
         }
 
         /// <summary>Closes the connection. This methods switches the connection state to <see
-        /// cref="ConnectionState.Closing"/>. The connection will be in the <see cref="ConnectionState.NotConnected"/>
-        /// state if <see cref="IsResumable"/> is <c>true</c>, otherwise it will be <see
-        /// cref="ConnectionState.Closed"/></summary>
+        /// cref="ConnectionState.Closing"/>. Once the returned task is completed, the connection will be in the <see
+        /// cref="ConnectionState.NotConnected"/> state if <see cref="IsResumable"/> is <c>true</c>, otherwise it will
+        /// be <see cref="ConnectionState.Closed"/>.</summary>
         /// <param name="message">A description of the connection close reason.</param>
         public Task CloseAsync(string? message = null) =>
             // TODO: the retry interceptor considers ConnectionClosedException as always retryable. Raising this
@@ -420,7 +421,6 @@ namespace IceRpc
             _networkConnection = connection;
             _protocol = protocol;
             _state = ConnectionState.Connecting;
-            IsResumable = false;
         }
 
         /// <summary>Establishes a connection. This method is used for both client and server connections.</summary>
