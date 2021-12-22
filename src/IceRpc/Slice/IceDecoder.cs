@@ -6,6 +6,7 @@ using IceRpc.Transports.Internal;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -24,10 +25,6 @@ namespace IceRpc.Slice
 
         /// <summary>The number of bytes decoded in the underlying buffer.</summary>
         internal long Consumed => _reader.Consumed;
-
-        /// <summary>The exception thrown when attempting to decode at/past the end of the buffer.</summary>
-        private static readonly InvalidOperationException _endOfBufferException =
-            new("attempting to decode past the end of the decoder buffer");
 
         private static readonly UTF8Encoding _utf8 =
             new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true); // no BOM
@@ -115,37 +112,37 @@ namespace IceRpc.Slice
         /// <summary>Decodes a bool.</summary>
         /// <returns>The bool decoded by this decoder.</returns>
         public bool DecodeBool() =>
-            _reader.TryRead(out byte value) ? value != 0 : throw _endOfBufferException;
+            _reader.TryRead(out byte value) ? value != 0 : throw new EndOfBufferException();
 
         /// <summary>Decodes a byte.</summary>
         /// <returns>The byte decoded by this decoder.</returns>
         public byte DecodeByte() =>
-            _reader.TryRead(out byte value) ? value : throw _endOfBufferException;
+            _reader.TryRead(out byte value) ? value : throw new EndOfBufferException();
 
         /// <summary>Decodes a double.</summary>
         /// <returns>The double decoded by this decoder.</returns>
         public double DecodeDouble() =>
-            SequenceMarshal.TryRead(ref _reader, out double value) ? value : throw _endOfBufferException;
+            SequenceMarshal.TryRead(ref _reader, out double value) ? value : throw new EndOfBufferException();
 
         /// <summary>Decodes a float.</summary>
         /// <returns>The float decoded by this decoder.</returns>
         public float DecodeFloat() =>
-            SequenceMarshal.TryRead(ref _reader, out float value) ? value : throw _endOfBufferException;
+            SequenceMarshal.TryRead(ref _reader, out float value) ? value : throw new EndOfBufferException();
 
         /// <summary>Decodes an int.</summary>
         /// <returns>The int decoded by this decoder.</returns>
         public int DecodeInt() =>
-            SequenceMarshal.TryRead(ref _reader, out int value) ? value : throw _endOfBufferException;
+            SequenceMarshal.TryRead(ref _reader, out int value) ? value : throw new EndOfBufferException();
 
         /// <summary>Decodes a long.</summary>
         /// <returns>The long decoded by this decoder.</returns>
         public long DecodeLong() =>
-            SequenceMarshal.TryRead(ref _reader, out long value) ? value : throw _endOfBufferException;
+            SequenceMarshal.TryRead(ref _reader, out long value) ? value : throw new EndOfBufferException();
 
         /// <summary>Decodes a short.</summary>
         /// <returns>The short decoded by this decoder.</returns>
         public short DecodeShort() =>
-            SequenceMarshal.TryRead(ref _reader, out short value) ? value : throw _endOfBufferException;
+            SequenceMarshal.TryRead(ref _reader, out short value) ? value : throw new EndOfBufferException();
 
         /// <summary>Decodes a size encoded on a variable number of bytes.</summary>
         /// <returns>The size decoded by this decoder.</returns>
@@ -205,7 +202,7 @@ namespace IceRpc.Slice
                     ReadOnlySequence<byte> bytes = _reader.UnreadSequence;
                     if (size > bytes.Length)
                     {
-                        throw _endOfBufferException;
+                        throw new EndOfBufferException();
                     }
                     result = _utf8.GetString(bytes.Slice(0, size));
                 }
@@ -218,17 +215,17 @@ namespace IceRpc.Slice
         /// <summary>Decodes a uint.</summary>
         /// <returns>The uint decoded by this decoder.</returns>
         public uint DecodeUInt() =>
-            SequenceMarshal.TryRead(ref _reader, out uint value) ? value : throw _endOfBufferException;
+            SequenceMarshal.TryRead(ref _reader, out uint value) ? value : throw new EndOfBufferException();
 
         /// <summary>Decodes a ulong.</summary>
         /// <returns>The ulong decoded by this decoder.</returns>
         public ulong DecodeULong() =>
-            SequenceMarshal.TryRead(ref _reader, out ulong value) ? value : throw _endOfBufferException;
+            SequenceMarshal.TryRead(ref _reader, out ulong value) ? value : throw new EndOfBufferException();
 
         /// <summary>Decodes a ushort.</summary>
         /// <returns>The ushort decoded by this decoder.</returns>
         public ushort DecodeUShort() =>
-            SequenceMarshal.TryRead(ref _reader, out ushort value) ? value : throw _endOfBufferException;
+            SequenceMarshal.TryRead(ref _reader, out ushort value) ? value : throw new EndOfBufferException();
 
         /// <summary>Decodes an int. This int is encoded using Ice's variable-size integer encoding.
         /// </summary>
@@ -530,6 +527,21 @@ namespace IceRpc.Slice
 
         // Other methods
 
+        /// <summary>Copy bytes from the underlying reader into the destination to fill completely destination.
+        /// </summary>
+        /// <remarks>This method also moves the reader's Consumed property.</remarks>
+        public void CopyTo(Span<byte> destination)
+        {
+            if (_reader.TryCopyTo(destination))
+            {
+                _reader.Advance(destination.Length);
+            }
+            else
+            {
+                throw new EndOfBufferException();
+            }
+        }
+
         /// <summary>Decodes a bit sequence.</summary>
         /// <param name="bitSequenceSize">The minimum number of bits in the sequence.</param>
         /// <returns>A bit sequence reader over the bit sequence.</returns>
@@ -624,20 +636,6 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Copy bytes from the reader into the destination to fill destination, and advance the reader.
-        /// </summary>
-        internal void CopyTo(Span<byte> destination)
-        {
-            if (_reader.TryCopyTo(destination))
-            {
-                _reader.Advance(destination.Length);
-            }
-            else
-            {
-                throw _endOfBufferException;
-            }
-        }
-
         /// <summary>Decodes a sequence size and makes sure there is enough space in the underlying buffer to decode the
         /// sequence. This validation is performed to make sure we do not allocate a large container based on an
         /// invalid encoded size.</summary>
@@ -675,7 +673,7 @@ namespace IceRpc.Slice
             }
             else
             {
-                throw _endOfBufferException;
+                throw new EndOfBufferException();
             }
         }
 
@@ -924,7 +922,7 @@ namespace IceRpc.Slice
             }
         }
 
-        private byte PeekByte() => _reader.TryPeek(out byte value) ? value : throw _endOfBufferException;
+        private byte PeekByte() => _reader.TryPeek(out byte value) ? value : throw new EndOfBufferException();
 
         /// <summary>Skips the remaining tagged parameters, return value _or_ data members.</summary>
         private void SkipTaggedParams()
@@ -1008,6 +1006,15 @@ namespace IceRpc.Slice
                 default:
                     throw new InvalidDataException(
                         $"cannot skip tagged parameter or data member with tag format '{format}'");
+            }
+        }
+
+        /// <summary>The exception thrown when attempting to decode at/past the end of the buffer.</summary>
+        private class EndOfBufferException : InvalidOperationException
+        {
+            internal EndOfBufferException()
+                : base("attempting to decode past the end of the decoder buffer")
+            {
             }
         }
     }
