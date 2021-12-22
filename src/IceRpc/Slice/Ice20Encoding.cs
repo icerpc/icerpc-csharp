@@ -22,6 +22,21 @@ namespace IceRpc.Slice
         internal override IceEncoder CreateIceEncoder(IBufferWriter<byte> bufferWriter) =>
             new Ice20Encoder(bufferWriter);
 
+        // <summary>Decodes a buffer.</summary>
+        /// <typeparam name="T">The decoded type.</typeparam>
+        /// <param name="buffer">The byte buffer.</param>
+        /// <param name="decodeFunc">The decode function for buffer.</param>
+        /// <returns>The decoded value.</returns>
+        /// <exception cref="InvalidDataException">Thrown when <paramref name="decodeFunc"/> finds invalid data.
+        /// </exception>
+        internal static T DecodeBuffer<T>(ReadOnlyMemory<byte> buffer, DecodeFunc<T> decodeFunc)
+        {
+            var decoder = new IceDecoder(buffer, Encoding.Ice20);
+            T result = decodeFunc(ref decoder);
+            decoder.CheckEndOfBuffer(skipTaggedParams: false);
+            return result;
+        }
+
         internal override async ValueTask<(int Size, bool IsCanceled, bool IsCompleted)> DecodeSegmentSizeAsync(
             PipeReader reader,
             CancellationToken cancel)
@@ -41,7 +56,7 @@ namespace IceRpc.Slice
             }
             else
             {
-                int sizeLength = Ice20Decoder.DecodeSizeLength(readResult.Buffer.FirstSpan[0]);
+                int sizeLength = DecodeSizeLength(readResult.Buffer.FirstSpan[0]);
                 Debug.Assert(sizeLength > 0);
 
                 if (sizeLength > readResult.Buffer.Length)
@@ -61,37 +76,50 @@ namespace IceRpc.Slice
                 }
 
                 ReadOnlySequence<byte> buffer = readResult.Buffer.Slice(readResult.Buffer.Start, sizeLength);
-                int size = DecodeSize(buffer);
+                int size = DecodeSizeFromSequence(buffer);
                 bool isCompleted = readResult.IsCompleted && readResult.Buffer.Length == sizeLength;
                 reader.AdvanceTo(buffer.End);
                 return (size, false, isCompleted);
             }
 
-            static int DecodeSize(ReadOnlySequence<byte> buffer)
+            static int DecodeSizeFromSequence(ReadOnlySequence<byte> buffer)
             {
                 if (buffer.IsSingleSegment)
                 {
-                    return Ice20Decoder.DecodeSize(buffer.FirstSpan).Size;
+                    return DecodeSize(buffer.FirstSpan).Size;
                 }
                 else
                 {
                     Span<byte> span = stackalloc byte[(int)buffer.Length];
                     buffer.CopyTo(span);
-                    return Ice20Decoder.DecodeSize(span).Size;
+                    return DecodeSize(span).Size;
                 }
             }
         }
+
+        internal static (int Size, int SizeLength) DecodeSize(ReadOnlySpan<byte> from)
+        {
+            ulong size = (from[0] & 0x03) switch
+            {
+                0 => (uint)from[0] >> 2,
+                1 => (uint)BitConverter.ToUInt16(from) >> 2,
+                2 => BitConverter.ToUInt32(from) >> 2,
+                _ => BitConverter.ToUInt64(from) >> 2
+            };
+
+            checked // make sure we don't overflow
+            {
+                return ((int)size, DecodeSizeLength(from[0]));
+            }
+        }
+
+        internal static int DecodeSizeLength(byte b) => IceEncoding.DecodeVarLongLength(b);
 
         internal override void EncodeFixedLengthSize(int size, Span<byte> into) =>
             Ice20Encoder.EncodeSize(size, into);
 
         internal override void EncodeSize(int size, Span<byte> into) =>
             Ice20Encoder.EncodeSize(size, into);
-
-        internal override IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
-            FeatureCollection features,
-            DefaultIceDecoderFactories defaultIceDecoderFactories) =>
-            features.Get<IIceDecoderFactory<Ice20Decoder>>() ?? defaultIceDecoderFactories.Ice20DecoderFactory;
 
         private Ice20Encoding()
             : base(Ice20Name)

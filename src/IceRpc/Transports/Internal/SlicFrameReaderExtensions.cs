@@ -20,15 +20,20 @@ namespace IceRpc.Transports.Internal
             }
 
             using IMemoryOwner<byte> owner = await ReadFrameDataAsync(reader, dataSize, cancel).ConfigureAwait(false);
-            var decoder = new Ice20Decoder(owner.Memory[..dataSize]);
-            uint version = decoder.DecodeVarUInt();
-            if (version == SlicDefinitions.V1)
+            return Decode(owner.Memory[..dataSize]);
+
+            static (uint, InitializeBody?) Decode(ReadOnlyMemory<byte> buffer)
             {
-                return (version, new InitializeBody(decoder));
-            }
-            else
-            {
-                return (version, null);
+                var decoder = new IceDecoder(buffer, Encoding.Ice20);
+                uint version = decoder.DecodeVarUInt();
+                if (version == SlicDefinitions.V1)
+                {
+                    return (version, new InitializeBody(ref decoder));
+                }
+                else
+                {
+                    return (version, null);
+                }
             }
         }
 
@@ -39,32 +44,37 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel)
         {
             using IMemoryOwner<byte> owner = await ReadFrameDataAsync(reader, dataSize, cancel).ConfigureAwait(false);
-            Memory<byte> buffer = owner.Memory[..dataSize];
-            return type switch
+            return Decode(owner.Memory[..dataSize], type);
+
+            static (InitializeAckBody?, VersionBody?) Decode(ReadOnlyMemory<byte> buffer, FrameType type)
             {
-                FrameType.InitializeAck => (new InitializeAckBody(new Ice20Decoder(buffer)), null),
-                FrameType.Version => (null, new VersionBody(new Ice20Decoder(buffer))),
-                _ => throw new InvalidDataException($"unexpected Slic frame '{type}'")
-            };
+                var decoder = new IceDecoder(buffer, Encoding.Ice20);
+                return type switch
+                {
+                    FrameType.InitializeAck => (new InitializeAckBody(ref decoder), null),
+                    FrameType.Version => (null, new VersionBody(ref decoder)),
+                    _ => throw new InvalidDataException($"unexpected Slic frame '{type}'")
+                };
+            }
         }
 
         internal static ValueTask<StreamResetBody> ReadStreamResetAsync(
             this ISlicFrameReader reader,
             int dataSize,
             CancellationToken cancel) =>
-            ReadFrameDataAsync(reader, dataSize, decoder => new StreamResetBody(decoder), cancel);
+            ReadFrameDataAsync(reader, dataSize, (ref IceDecoder decoder) => new StreamResetBody(ref decoder), cancel);
 
         internal static ValueTask<StreamConsumedBody> ReadStreamConsumedAsync(
             this ISlicFrameReader reader,
             int dataSize,
             CancellationToken cancel) =>
-            ReadFrameDataAsync(reader, dataSize, decoder => new StreamConsumedBody(decoder), cancel);
+            ReadFrameDataAsync(reader, dataSize, (ref IceDecoder decoder) => new StreamConsumedBody(ref decoder), cancel);
 
         internal static ValueTask<StreamStopSendingBody> ReadStreamStopSendingAsync(
             this ISlicFrameReader reader,
             int dataSize,
             CancellationToken cancel) =>
-            ReadFrameDataAsync(reader, dataSize, decoder => new StreamStopSendingBody(decoder), cancel);
+            ReadFrameDataAsync(reader, dataSize, (ref IceDecoder decoder) => new StreamStopSendingBody(ref decoder), cancel);
 
         internal static ValueTask ReadUnidirectionalStreamReleasedAsync(
             this ISlicFrameReader reader,
@@ -93,11 +103,17 @@ namespace IceRpc.Transports.Internal
         private static async ValueTask<T> ReadFrameDataAsync<T>(
             ISlicFrameReader reader,
             int size,
-            Func<Ice20Decoder, T> decodeFunc,
+            DecodeFunc<T> decodeFunc,
             CancellationToken cancel)
         {
             using IMemoryOwner<byte> data = await ReadFrameDataAsync(reader, size, cancel).ConfigureAwait(false);
-            return decodeFunc(new Ice20Decoder(data.Memory[0..size]));
+            return Decode(data.Memory[0..size], decodeFunc);
+
+            static T Decode(ReadOnlyMemory<byte> buffer, DecodeFunc<T> decodeFunc)
+            {
+                var decoder = new IceDecoder(buffer, Encoding.Ice20);
+                return decodeFunc(ref decoder);
+            }
         }
     }
 }

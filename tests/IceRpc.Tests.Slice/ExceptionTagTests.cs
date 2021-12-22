@@ -40,17 +40,7 @@ namespace IceRpc.Tests.Slice
             {
                 var response = await next.InvokeAsync(request, cancel);
 
-                response.Features = new FeatureCollection(request.Features);
-                if (prx.Proxy.Encoding == Encoding.Ice11)
-                {
-                    response.Features.Set<IIceDecoderFactory<Ice11Decoder>>(
-                        new Ice11DecoderFactory(new ActivatorMinus11()));
-                }
-                else
-                {
-                    response.Features.Set<IIceDecoderFactory<Ice20Decoder>>(
-                        new Ice20DecoderFactory(new ActivatorMinus20()));
-                }
+                response.Features = response.Features.With<IActivator>(new ActivatorMinus());
                 return response;
             }));
 
@@ -78,17 +68,7 @@ namespace IceRpc.Tests.Slice
             {
                 var response = await next.InvokeAsync(request, cancel);
 
-                response.Features = new FeatureCollection(request.Features);
-                if (prx.Proxy.Encoding == Encoding.Ice11)
-                {
-                    response.Features.Set<IIceDecoderFactory<Ice11Decoder>>(
-                        new Ice11DecoderFactory(new ActivatorPlus11()));
-                }
-                else
-                {
-                    response.Features.Set<IIceDecoderFactory<Ice20Decoder>>(
-                        new Ice20DecoderFactory(new ActivatorPlus20()));
-                }
+                response.Features = response.Features.With<IActivator>(new ActivatorPlus());
                 return response;
             }));
 
@@ -157,39 +137,21 @@ namespace IceRpc.Tests.Slice
             }
         }
 
-        private class ActivatorMinus11 : IActivator<Ice11Decoder>
+        private class ActivatorMinus : IActivator
         {
-            public object? CreateInstance(string typeId, Ice11Decoder decoder)
+            public object? CreateInstance(string typeId, ref IceDecoder decoder)
             {
                 Assert.AreEqual(typeof(TaggedException).GetIceTypeId(), typeId);
-                return new TaggedExceptionMinus(decoder);
+                return new TaggedExceptionMinus(ref decoder);
             }
         }
 
-        private class ActivatorMinus20 : IActivator<Ice20Decoder>
+        private class ActivatorPlus : IActivator
         {
-            public object? CreateInstance(string typeId, Ice20Decoder decoder)
+            public object? CreateInstance(string typeId, ref IceDecoder decoder)
             {
                 Assert.AreEqual(typeof(TaggedException).GetIceTypeId(), typeId);
-                return new TaggedExceptionMinus(decoder);
-            }
-        }
-
-        private class ActivatorPlus11 : IActivator<Ice11Decoder>
-        {
-            public object? CreateInstance(string typeId, Ice11Decoder decoder)
-            {
-                Assert.AreEqual(typeof(TaggedException).GetIceTypeId(), typeId);
-                return new TaggedExceptionPlus(decoder);
-            }
-        }
-
-        private class ActivatorPlus20 : IActivator<Ice20Decoder>
-        {
-            public object? CreateInstance(string typeId, Ice20Decoder decoder)
-            {
-                Assert.AreEqual(typeof(TaggedException).GetIceTypeId(), typeId);
-                return new TaggedExceptionPlus(decoder);
+                return new TaggedExceptionPlus(ref decoder);
             }
         }
     }

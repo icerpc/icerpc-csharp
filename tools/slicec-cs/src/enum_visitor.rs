@@ -137,7 +137,7 @@ fn enum_helper(enum_def: &Enum) -> CodeBlock {
     builder.add_block(
         format!(
             r#"
-{access} static {escaped_identifier} Decode{identifier}(this IceDecoder decoder) =>
+{access} static {escaped_identifier} Decode{identifier}(this ref IceDecoder decoder) =>
     As{identifier}({decode_enum});"#,
             access = access,
             identifier = enum_def.identifier(),

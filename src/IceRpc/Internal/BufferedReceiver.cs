@@ -103,14 +103,14 @@ namespace IceRpc.Internal
                 remaining = _bufferLimitOffset - _bufferOffset;
             }
 
-            int sizeLength = Ice20Decoder.DecodeSizeLength(_buffer.Span[_bufferOffset]);
+            int sizeLength = Ice20Encoding.DecodeSizeLength(_buffer.Span[_bufferOffset]);
             if (remaining < sizeLength)
             {
                 // Read more data if there's not enough data in the buffer to decode the size.
                 await ReceiveMoreAsync(sizeLength, cancel).ConfigureAwait(false);
             }
 
-            int size = Ice20Decoder.DecodeSize(_buffer.Span[_bufferOffset..]).Size;
+            int size = Ice20Encoding.DecodeSize(_buffer.Span[_bufferOffset..]).Size;
             _bufferOffset += sizeLength;
             return size;
         }
@@ -126,14 +126,14 @@ namespace IceRpc.Internal
                 remaining = _bufferLimitOffset - _bufferOffset;
             }
 
-            int valueLength = IceDecoder.DecodeVarLongLength(_buffer.Span[_bufferOffset]);
+            int valueLength = IceEncoding.DecodeVarLongLength(_buffer.Span[_bufferOffset]);
             if (remaining < valueLength)
             {
                 // Read more data if there's not enough data in the buffer to decode the varulong.
                 await ReceiveMoreAsync(valueLength, cancel).ConfigureAwait(false);
             }
 
-            ulong value = IceDecoder.DecodeVarULong(_buffer.Span[_bufferOffset..]).Value;
+            ulong value = IceEncoding.DecodeVarULong(_buffer.Span[_bufferOffset..]).Value;
             _bufferOffset += valueLength;
             return (value, valueLength);
         }

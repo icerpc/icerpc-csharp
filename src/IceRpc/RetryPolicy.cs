@@ -41,7 +41,7 @@ namespace IceRpc
             _ => "unknown"
         };
 
-        internal RetryPolicy(IceDecoder decoder)
+        internal RetryPolicy(ref IceDecoder decoder)
         {
             Retryable = decoder.DecodeRetryable();
             Delay = Retryable == Retryable.AfterDelay ?

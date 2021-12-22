@@ -41,7 +41,9 @@ namespace IceRpc.Tests.Slice
 
             Connection connection = _serviceProvider.GetRequiredService<Connection>();
             _prx = ClassOperationsPrx.FromConnection(connection);
+            _prx.Proxy.Encoding = Encoding.Ice11; // TODO: should not be necessary
             _prxUnexpectedClass = ClassOperationsUnexpectedClassPrx.FromConnection(connection);
+            _prxUnexpectedClass.Proxy.Encoding = Encoding.Ice11;
         }
 
         [OneTimeTearDown]

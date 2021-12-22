@@ -24,8 +24,8 @@ namespace IceRpc.Tests.Slice
             // This should fail the client has no factory for ClassB and compact format prevents slicing
             var pipeline = new Pipeline();
             prx.Proxy.Invoker = pipeline;
-            // Setup response decode factories excluding ClassB assembly
-            SetupResponseIceDecoderFactory(pipeline);
+            // Setup response activator excluding ClassB assembly
+            SetupResponseActivator(pipeline);
             Assert.ThrowsAsync<InvalidDataException>(async () => await prx.OpAAsync(new ClassB("A", "B")));
 
             // Repeat but this time use SliceAssemblies interceptor to include ClassB factory
@@ -35,24 +35,18 @@ namespace IceRpc.Tests.Slice
             pipeline.UseSliceAssemblies(typeof(ClassB).Assembly);
             // Clear the default factories, so that ClassB cannot be found, we install this interceptor after the
             // SliceAssemblies interceptor: this way, it intercepts responses before the SliceAssemblies interceptor.
-            SetupResponseIceDecoderFactory(pipeline);
+            SetupResponseActivator(pipeline);
             await prx.OpAAsync(new ClassB("A", "B"));
 
-            // Set the response decode factories so that ClassB is not available
-            static void SetupResponseIceDecoderFactory(Pipeline pipeline)
+            // Set the response activator so that ClassB is not available
+            static void SetupResponseActivator(Pipeline pipeline)
             {
-                var decoderFactory11 = new Ice11DecoderFactory(Ice11Decoder.GetActivator(typeof(ClassA).Assembly));
-                var decoderFactory20 = new Ice20DecoderFactory(Ice20Decoder.GetActivator(typeof(ClassA).Assembly));
+                IActivator activator = IceDecoder.GetActivator(typeof(ClassA).Assembly);
                 pipeline.Use(next => new InlineInvoker(
                 async (request, cancel) =>
                 {
                     IncomingResponse response = await next.InvokeAsync(request, cancel);
-                    if (response.Features.IsReadOnly)
-                    {
-                        response.Features = new FeatureCollection(response.Features);
-                    }
-                    response.Features.Set<IIceDecoderFactory<Ice11Decoder>>(decoderFactory11);
-                    response.Features.Set<IIceDecoderFactory<Ice20Decoder>>(decoderFactory20);
+                    response.Features = response.Features.With(activator);
                     return response;
                 }));
             }
@@ -67,7 +61,7 @@ namespace IceRpc.Tests.Slice
                     .AddTransient<IDispatcher>(_ =>
                     {
                         var router = new Router();
-                        SetupRequestIceDecoderFactory(router);
+                        SetupRequestActivator(router);
                         router.Map<IAssembliesOperations>(new AssembliesOperations());
                         return router;
                     })
@@ -85,7 +79,7 @@ namespace IceRpc.Tests.Slice
                     .AddTransient<IDispatcher>(_ =>
                     {
                         var router = new Router();
-                        SetupRequestIceDecoderFactory(router);
+                        SetupRequestActivator(router);
                         router.UseSliceAssemblies(typeof(ClassB).Assembly);
                         router.Map<IAssembliesOperations>(new AssembliesOperations());
                         return router;
@@ -97,19 +91,13 @@ namespace IceRpc.Tests.Slice
             }
 
             // Set the request decode factories so that ClassB is not available
-            static void SetupRequestIceDecoderFactory(Router router)
+            static void SetupRequestActivator(Router router)
             {
-                var decoderFactory11 = new Ice11DecoderFactory(Ice11Decoder.GetActivator(typeof(ClassA).Assembly));
-                var decoderFactory20 = new Ice20DecoderFactory(Ice20Decoder.GetActivator(typeof(ClassA).Assembly));
+                IActivator activator = IceDecoder.GetActivator(typeof(ClassA).Assembly);;
                 router.Use(next => new InlineDispatcher(
                 (request, cancel) =>
                 {
-                    if (request.Features.IsReadOnly)
-                    {
-                        request.Features = new FeatureCollection(request.Features);
-                    }
-                    request.Features.Set<IIceDecoderFactory<Ice11Decoder>>(decoderFactory11);
-                    request.Features.Set<IIceDecoderFactory<Ice20Decoder>>(decoderFactory20);
+                    request.Features = request.Features.With(activator);
                     return next.DispatchAsync(request, cancel);
                 }));
             }
