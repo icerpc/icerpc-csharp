@@ -548,30 +548,6 @@ namespace IceRpc.Slice
             return new BitSequenceReader(bitSequence);
         }
 
-        /*
-        public ReadOnlyBitSequence DecodeBitSequence(int bitSequenceSize)
-        {
-            int size = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0);
-
-            ReadOnlySpan<byte> span;
-
-            if (_reader.UnreadSpan.Length >= size)
-            {
-                span = _reader.UnreadSpan[0..size];
-                _reader.Advance(size);
-            }
-            else
-            {
-                // TODO: avoid using un-pooled temporary memory.
-                var destination = new byte[size];
-                CopyTo(destination);
-                span = destination;
-            }
-
-            return new ReadOnlyBitSequence(span);
-        }
-        */
-
         /// <summary>Decodes a tagged parameter or data member.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="tagFormat">The expected tag format of this tag when found in the underlying buffer.</param>
