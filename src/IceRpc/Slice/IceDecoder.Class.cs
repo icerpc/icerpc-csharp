@@ -325,7 +325,7 @@ namespace IceRpc.Slice
             // Decode all the deferred indirection tables now that the instance is inserted in _instanceMap.
             if (_classContext.Current.DeferredIndirectionTableList?.Count > 0)
             {
-                long savedPos = Consumed;
+                long savedPos = _reader.Consumed;
 
                 Debug.Assert(_classContext.Current.Slices?.Count ==
                     _classContext.Current.DeferredIndirectionTableList.Count);
@@ -448,9 +448,9 @@ namespace IceRpc.Slice
                     // indirection table and later on when we decode it. We only want to add this typeId to the list and
                     // assign it an index when it's the first time we decode it, so we save the largest position we
                     // decode to figure out when to add to the list.
-                    if (Consumed > _classContext.PosAfterLatestInsertedTypeId)
+                    if (_reader.Consumed > _classContext.PosAfterLatestInsertedTypeId)
                     {
-                        _classContext.PosAfterLatestInsertedTypeId = Consumed;
+                        _classContext.PosAfterLatestInsertedTypeId = _reader.Consumed;
                         _classContext.TypeIdMap.Add(typeId);
                     }
                     return typeId;
@@ -562,7 +562,7 @@ namespace IceRpc.Slice
                 _classContext.Current.DeferredIndirectionTableList ??= new List<long>();
                 if (hasIndirectionTable)
                 {
-                    long savedPos = Consumed;
+                    long savedPos = _reader.Consumed;
                     SkipIndirectionTable();
 
                     // we want to later read the deepest first

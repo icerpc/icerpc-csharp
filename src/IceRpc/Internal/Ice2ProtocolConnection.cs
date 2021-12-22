@@ -539,8 +539,7 @@ namespace IceRpc.Internal
                     int key = decoder.DecodeVarInt();
                     if (key == (int)Ice2ParameterKey.IncomingFrameMaxSize)
                     {
-                        // Skip size
-                        _ = decoder.DecodeSize();
+                        decoder.SkipSize();
 
                         int peerIncomingFrameMaxSize = checked((int)decoder.DecodeVarUInt());
 

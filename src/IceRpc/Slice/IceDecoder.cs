@@ -1,17 +1,16 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Buffers;
-using System.Collections.Immutable;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
-
 using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports.Internal;
+using System.Buffers;
+using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text;
 
 using static IceRpc.Slice.Internal.Ice11Definitions;
 
@@ -30,7 +29,7 @@ namespace IceRpc.Slice
         private static readonly UTF8Encoding _utf8 =
             new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true); // no BOM
 
-        /// <summary>The 0-based position (index) in the underlying buffer.</summary>
+        /// <summary>The number of bytes decoded in the underlying buffer.</summary>
         internal long Consumed => _reader.Consumed;
 
         /// <summary>Gets or creates an activator for the Slice types in the specified assembly and its referenced
@@ -55,7 +54,7 @@ namespace IceRpc.Slice
 
         private ClassContext _classContext;
 
-        // Connection used when decoding proxies
+        // Connection used when decoding proxies.
         private readonly Connection? _connection;
 
         // Invoker used when decoding proxies.
@@ -66,26 +65,7 @@ namespace IceRpc.Slice
         private int _minTotalSeqSize;
 
         // The sequence reader.
-        // It must remain a read-write field as we often pass this field by reference.
         private SequenceReader<byte> _reader;
-
-        /// <summary>Constructs a new Ice decoder over a byte buffer.</summary>
-        /// <param name="buffer">The byte buffer.</param>
-        /// <param name="encoding">The Slice encoding version.</param>
-        /// <param name="connection">The connection.</param>
-        /// <param name="invoker">The invoker.</param>
-        /// <param name="activator">The activator.</param>
-        /// <param name="classGraphMaxDepth">The class graph max depth.</param>
-        public IceDecoder(
-            ReadOnlyMemory<byte> buffer,
-            IceEncoding encoding,
-            Connection? connection = null,
-            IInvoker? invoker = null,
-            IActivator? activator = null,
-            int classGraphMaxDepth = -1)
-            : this(new ReadOnlySequence<byte>(buffer), encoding, connection, invoker, activator, classGraphMaxDepth)
-        {
-        }
 
         /// <summary>Constructs a new Ice decoder over a byte buffer.</summary>
         /// <param name="buffer">The byte buffer.</param>
@@ -110,6 +90,24 @@ namespace IceRpc.Slice
             _invoker = invoker;
             _minTotalSeqSize = 0;
             _reader = new SequenceReader<byte>(buffer);
+        }
+
+        /// <summary>Constructs a new Ice decoder over a byte buffer.</summary>
+        /// <param name="buffer">The byte buffer.</param>
+        /// <param name="encoding">The Slice encoding version.</param>
+        /// <param name="connection">The connection.</param>
+        /// <param name="invoker">The invoker.</param>
+        /// <param name="activator">The activator.</param>
+        /// <param name="classGraphMaxDepth">The class graph max depth.</param>
+        public IceDecoder(
+            ReadOnlyMemory<byte> buffer,
+            IceEncoding encoding,
+            Connection? connection = null,
+            IInvoker? invoker = null,
+            IActivator? activator = null,
+            int classGraphMaxDepth = -1)
+            : this(new ReadOnlySequence<byte>(buffer), encoding, connection, invoker, activator, classGraphMaxDepth)
+        {
         }
 
         // Decode methods for basic types
@@ -600,7 +598,7 @@ namespace IceRpc.Slice
                     if (tag == requestedTag)
                     {
                         // Found requested tag, so skip size:
-                        Skip(PeekVarLongLength());
+                        SkipSize();
                         return decodeFunc(ref this);
                     }
                     else if (tag > requestedTag)
@@ -686,6 +684,22 @@ namespace IceRpc.Slice
             else
             {
                 throw _endOfBufferException;
+            }
+        }
+
+        internal void SkipSize()
+        {
+            if (Encoding == IceRpc.Encoding.Ice11)
+            {
+                byte b = DecodeByte();
+                if (b == 255)
+                {
+                    Skip(4);
+                }
+            }
+            else
+            {
+                Skip(IceEncoding.DecodeVarLongLength(PeekByte()));
             }
         }
 
@@ -902,6 +916,7 @@ namespace IceRpc.Slice
 
                     // When expected format is VInt, format can be any of F1 through F8. Note that the exact format
                     // received does not matter in this case.
+
                     if (format != expectedFormat &&
                         (expectedFormat != TagFormat.VInt || (int)format > (int)TagFormat.F8))
                     {
@@ -913,7 +928,6 @@ namespace IceRpc.Slice
         }
 
         private byte PeekByte() => _reader.TryPeek(out byte value) ? value : throw _endOfBufferException;
-        private int PeekVarLongLength() => 1 << (PeekByte() & 0x03);
 
         /// <summary>Skips the remaining tagged parameters, return value _or_ data members.</summary>
         private void SkipTaggedParams()
@@ -959,17 +973,6 @@ namespace IceRpc.Slice
                     // Skip tagged value
                     Skip(DecodeSize());
                 }
-            }
-        }
-
-        private void SkipSize()
-        {
-            Debug.Assert(Encoding == IceRpc.Encoding.Ice11);
-
-            byte b = DecodeByte();
-            if (b == 255)
-            {
-                Skip(4);
             }
         }
 
