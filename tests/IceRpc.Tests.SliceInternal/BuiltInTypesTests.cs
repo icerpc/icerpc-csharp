@@ -218,14 +218,14 @@ namespace IceRpc.Tests.SliceInternal
                 pipe.Writer.Complete();
 
                 pipe.Reader.TryRead(out ReadResult readResult);
-                ReadOnlyMemory<byte> buffer = readResult.Buffer.ToSingleBuffer();
-                decoder = new IceDecoder(buffer, _encoding);
+                decoder = new IceDecoder(readResult.Buffer, _encoding);
 
                 for (int i = 0; i < 20; ++i)
                 {
                     r1 = decoder.DecodeString();
                     Assert.AreEqual(p1, r1);
                 }
+                pipe.Reader.AdvanceTo(readResult.Buffer.End);
             }
         }
 
