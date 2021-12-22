@@ -10,7 +10,7 @@ namespace IceRpc.Internal
     {
         bool IProtocolConnection.HasDispatchesInProgress => _decoratee.HasDispatchesInProgress;
         bool IProtocolConnection.HasInvocationsInProgress => _decoratee.HasInvocationsInProgress;
-        event Action? IProtocolConnection.PeerShutdownInitiated
+        event Action<string>? IProtocolConnection.PeerShutdownInitiated
         {
             add => _decoratee.PeerShutdownInitiated += value;
             remove => _decoratee.PeerShutdownInitiated -= value;

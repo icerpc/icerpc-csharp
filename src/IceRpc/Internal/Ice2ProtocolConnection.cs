@@ -37,7 +37,7 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
-        public event Action? PeerShutdownInitiated;
+        public event Action<string>? PeerShutdownInitiated;
 
         private IMultiplexedStream? _controlStream;
         private readonly HashSet<IncomingRequest> _dispatches = new();
@@ -715,7 +715,7 @@ namespace IceRpc.Internal
             // Raise the peer shutdown initiated event.
             try
             {
-                PeerShutdownInitiated?.Invoke();
+                PeerShutdownInitiated?.Invoke(goAwayFrame.Message);
             }
             catch (Exception ex)
             {

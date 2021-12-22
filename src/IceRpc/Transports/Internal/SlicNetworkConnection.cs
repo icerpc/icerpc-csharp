@@ -310,6 +310,7 @@ namespace IceRpc.Transports.Internal
                     // If the stream is still not started, release the semaphore.
                     streamSemaphore.Release();
                 }
+                throw;
             }
         }
 

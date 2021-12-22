@@ -49,7 +49,8 @@ namespace IceRpc.Tests
                     SimpleClientTransport = simpleClientTransport,
                     MultiplexedClientTransport = multiplexedClientTransport,
                     Options = serviceProvider.GetService<ConnectionOptions>() ?? new(),
-                    LoggerFactory = serviceProvider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance
+                    LoggerFactory = serviceProvider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance,
+                    IsResumable = serviceProvider.GetService<ResumableConnection>() != null
                 };
             });
 
@@ -77,6 +78,23 @@ namespace IceRpc.Tests
                 path: "/",
                 invoker: serviceProvider.GetService<IInvoker>()));
         }
+
+        internal class ResumableConnection
+        {
+        }
+    }
+
+    public static class IntegrationTestServiceCollectionExtensions
+    {
+        public static IServiceCollection UseProtocol(this IServiceCollection collection, ProtocolCode protocolCode) =>
+            collection.AddScoped(_ => Protocol.FromProtocolCode(protocolCode));
+
+        public static IServiceCollection UseVoidDispatcher(this IServiceCollection collection) =>
+            collection.AddTransient<IDispatcher>(_ => new InlineDispatcher((request, cancel) =>
+                new(new OutgoingResponse(request))));
+
+        public static IServiceCollection UseResumableConnection(this IServiceCollection collection) =>
+            collection.AddTransient(_ => new IntegrationTestServiceCollection.ResumableConnection());
     }
 
     public static class IntegrationTestServiceProviderExtensions
@@ -86,12 +104,5 @@ namespace IceRpc.Tests
             Proxy proxy = serviceProvider.GetRequiredService<Proxy>().Clone();
             return new T { Proxy = proxy.WithPath(path ?? typeof(T).GetDefaultPath()) };
         }
-
-        public static IServiceCollection UseProtocol(this IServiceCollection collection, ProtocolCode protocolCode) =>
-            collection.AddScoped(_ => Protocol.FromProtocolCode(protocolCode));
-
-        public static IServiceCollection UseVoidDispatcher(this IServiceCollection collection) =>
-            collection.AddTransient<IDispatcher>(_ => new InlineDispatcher((request, cancel) =>
-                new(new OutgoingResponse(request))));
     }
 }

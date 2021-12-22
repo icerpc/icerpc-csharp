@@ -209,15 +209,9 @@ namespace IceRpc
                     connection = connections.FirstOrDefault(connection => connection.State <= ConnectionState.Active);
                 }
 
-                if (connection != null)
+                if (connection == null)
                 {
-                    if (connection.State == ConnectionState.Active)
-                    {
-                        return connection;
-                    }
-                }
-                else
-                {
+                    // Connections from the connection pool are not resumable.
                     connection = new Connection
                     {
                         Dispatcher = Dispatcher,

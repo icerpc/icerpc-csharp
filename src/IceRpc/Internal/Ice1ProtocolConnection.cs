@@ -37,7 +37,7 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
-        public event Action? PeerShutdownInitiated;
+        public event Action<string>? PeerShutdownInitiated;
 
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -620,29 +620,29 @@ namespace IceRpc.Internal
                 {
                     // Cancel pending invocations immediately. Wait for dispatches to complete however.
                     CancelInvocations(new OperationCanceledException(message));
+
+                    try
+                    {
+                        // Wait for dispatches to complete.
+                        await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Try to speed up dispatch completion.
+                        CancelDispatches();
+
+                        // Wait again for the dispatches to complete.
+                        await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
+                    }
+
+                    // Cancel any pending requests waiting for sending.
+                    _sendSemaphore.Complete(exception);
+
+                    // Send the CloseConnection frame once all the dispatches are done.
+                    await _networkConnection.WriteAsync(
+                        Ice1Definitions.CloseConnectionFrame,
+                        CancellationToken.None).ConfigureAwait(false);
                 }
-
-                try
-                {
-                    // Wait for dispatches to complete.
-                    await _dispatchesAndInvocationsCompleted.Task.WaitAsync(cancel).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    // Try to speed up dispatch completion.
-                    CancelDispatches();
-
-                    // Wait again for the dispatches to complete.
-                    await _dispatchesAndInvocationsCompleted.Task.ConfigureAwait(false);
-                }
-
-                // Cancel any pending requests waiting for sending.
-                _sendSemaphore.Complete(exception);
-
-                // Send the CloseConnection frame once all the dispatches are done.
-                await _networkConnection.WriteAsync(
-                    Ice1Definitions.CloseConnectionFrame,
-                    CancellationToken.None).ConfigureAwait(false);
 
                 // When the peer receives the CloseConnection frame, the peer closes the connection. We wait for the
                 // connection closure here. We can't just return and close the underlying transport since this could
@@ -970,7 +970,7 @@ namespace IceRpc.Internal
                             // Raise the peer shutdown initiated event.
                             try
                             {
-                                PeerShutdownInitiated?.Invoke();
+                                PeerShutdownInitiated?.Invoke("connection shutdown by peer");
                             }
                             catch (Exception ex)
                             {

@@ -46,9 +46,6 @@ namespace IceRpc.Tests.ClientServer
             // closed exception.
             await proxy.IcePingAsync(new Invocation { IsOneway = true });
             await Task.Delay(500);
-
-            Assert.CatchAsync<ConnectionClosedException>(async () =>
-                await proxy.IcePingAsync(new Invocation { IsOneway = true }));
         }
 
         [Test]

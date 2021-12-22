@@ -619,16 +619,16 @@ namespace IceRpc.Transports.Internal
 
         private bool TrySetState(State state)
         {
-            if (((State)Interlocked.Or(ref _state, (int)state)).HasFlag(state))
+            var previousState = (State)Interlocked.Or(ref _state, (int)state);
+            State newState = previousState | state;
+            if (previousState == newState)
             {
                 // The given state was already set.
                 return false;
             }
-
-            // If the state is updated, check if we need to call shutdown.
-            var newState = (State)Thread.VolatileRead(ref _state);
-            if (newState.HasFlag(State.ReadCompleted | State.WriteCompleted))
+            else if (newState == (State.ReadCompleted | State.WriteCompleted))
             {
+                // The stream reads and writes are completed, shutdown the stream.
                 try
                 {
                     Shutdown();

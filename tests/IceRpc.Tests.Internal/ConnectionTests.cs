@@ -2,11 +2,11 @@
 
 using IceRpc.Configure;
 using IceRpc.Internal;
-using IceRpc.Slice;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
+using System.Diagnostics;
 
 namespace IceRpc.Tests.Internal
 {
@@ -122,7 +122,6 @@ namespace IceRpc.Tests.Internal
         [TestCase("tcp", false)]
         [TestCase("tcp", true)]
         [TestCase("udp", false)]
-        [Log(LogAttributeLevel.Trace)]
         public async Task Connection_InformationAsync(string transport, bool secure)
         {
             var serviceCollection = new InternalTestServiceCollection();
@@ -266,6 +265,85 @@ namespace IceRpc.Tests.Internal
             await pingTask;
         }
 
+        [TestCase(ProtocolCode.Ice2, false)]
+        [TestCase(ProtocolCode.Ice1, false)]
+        [TestCase(ProtocolCode.Ice2, true)]
+        [TestCase(ProtocolCode.Ice1, true)]
+        public async Task Connection_Resumable(ProtocolCode protocol, bool closeClientSide)
+        {
+            // Don't use the connection factory since it doesn't create resumable connections.
+            Connection? serverConnection = null;
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .UseResumableConnection()
+                .UseProtocol(protocol)
+                .AddTransient<IDispatcher>(_ => new InlineDispatcher((request, cancel) =>
+                    {
+                        serverConnection = request.Connection;
+                        return new(new OutgoingResponse(request));
+                    }))
+                .BuildServiceProvider();
+
+            ServicePrx prx = serviceProvider.GetProxy<ServicePrx>();
+
+            await prx.IcePingAsync(default);
+
+            Connection clientConnection = prx.Proxy.Connection!;
+            Assert.That(clientConnection.IsResumable, Is.True);
+
+            Assert.That(serverConnection, Is.Not.Null);
+            Assert.That(serverConnection!.IsResumable, Is.False);
+
+            if (closeClientSide)
+            {
+                await clientConnection.ShutdownAsync(default);
+                Assert.That(clientConnection.State, Is.EqualTo(ConnectionState.NotConnected));
+                Assert.That(serverConnection!.State, Is.GreaterThan(ConnectionState.Active));
+            }
+            else
+            {
+                await serverConnection!.ShutdownAsync(default);
+                Assert.That(serverConnection.State, Is.EqualTo(ConnectionState.Closed));
+            }
+
+            Assert.That(
+                clientConnection.State,
+                Is.GreaterThan(ConnectionState.Active).Or.EqualTo(ConnectionState.NotConnected));
+
+            Assert.DoesNotThrowAsync(() => prx.IcePingAsync());
+
+            Assert.That(prx.Proxy.Connection, Is.EqualTo(clientConnection));
+            Assert.That(clientConnection.State, Is.EqualTo(ConnectionState.Active));
+        }
+
+        [TestCase(ProtocolCode.Ice2, false)]
+        [TestCase(ProtocolCode.Ice1, false)]
+        [TestCase(ProtocolCode.Ice2, true)]
+        [TestCase(ProtocolCode.Ice1, true)]
+        public async Task Connection_NotResumable(ProtocolCode protocol, bool closeClientSide)
+        {
+            await using var factory = new ConnectionFactory(
+                new ConnectionTestServiceCollection(
+                    protocol: protocol,
+                    dispatcher: new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)))));
+
+            Assert.That(factory.ClientConnection.IsResumable, Is.False);
+            Assert.That(factory.ServerConnection.IsResumable, Is.False);
+
+            await factory.ServicePrx.IcePingAsync(default);
+            if (closeClientSide)
+            {
+                await factory.ClientConnection.ShutdownAsync(default);
+                Assert.That(factory.ClientConnection.State, Is.EqualTo(ConnectionState.Closed));
+            }
+            else
+            {
+                await factory.ServerConnection.ShutdownAsync(default);
+                Assert.That(factory.ServerConnection.State, Is.EqualTo(ConnectionState.Closed));
+            }
+
+            Assert.ThrowsAsync<ConnectionClosedException>(() => factory.ServicePrx.IcePingAsync());
+        }
+
         [TestCase(ProtocolCode.Ice2, "tcp", false)]
         [TestCase(ProtocolCode.Ice2, "tcp", true)]
         [TestCase(ProtocolCode.Ice1, "tcp", false)]
@@ -294,25 +372,24 @@ namespace IceRpc.Tests.Internal
             // Shutdown the connection.
             Task shutdownTask =
                 (closeClientSide ? factory.ClientConnection : factory.ServerConnection).ShutdownAsync("message");
-            Assert.That(dispatchSemaphore.Release(), Is.EqualTo(0));
-            await shutdownTask;
 
             if (protocol == ProtocolCode.Ice1 && closeClientSide)
             {
-                // With Ice1, when closing the connection with a pending invocation, invocations are aborted
+                await shutdownTask;
+
+                // With Ice1, when closing the connection with a pending invocation, invocations are canceled
                 // immediately. The Ice1 protocol doesn't support reliably waiting for the response.
-                Assert.ThrowsAsync<ConnectionClosedException>(
-                    async () => await factory.ServicePrx.IcePingAsync());
+                Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
+                Assert.That(dispatchSemaphore.Release(), Is.EqualTo(0));
             }
             else
             {
+                Assert.That(dispatchSemaphore.Release(), Is.EqualTo(0));
+                await shutdownTask;
+
                 // Ensure the invocation is successful.
                 Assert.DoesNotThrowAsync(async () => await pingTask);
             }
-
-            // Next invocation on the connection should throw ConnectionClosedException.
-            Assert.ThrowsAsync<ConnectionClosedException>(
-                async () => await factory.ServicePrx.IcePingAsync());
         }
 
         [TestCase(false, ProtocolCode.Ice1)]
@@ -528,10 +605,11 @@ namespace IceRpc.Tests.Internal
                 {
                     var connection = new Connection
                     {
+                        IsResumable = false,
                         SimpleClientTransport =
-                                _serviceProvider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
+                            _serviceProvider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
                         MultiplexedClientTransport =
-                                _serviceProvider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
+                            _serviceProvider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
                         Options = clientConnectionOptions ?? new(),
                         LoggerFactory = _serviceProvider.GetRequiredService<ILoggerFactory>(),
                         RemoteEndpoint = endpoint
