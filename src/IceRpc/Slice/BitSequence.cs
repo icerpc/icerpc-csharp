@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Buffers;
 using System.Text;
 
 namespace IceRpc.Slice
@@ -45,10 +46,6 @@ namespace IceRpc.Slice
             SecondSpan = secondSpan;
         }
 
-        /// <inheritdoc/>
-        public override string ToString() =>
-            new ReadOnlyBitSequence(FirstSpan).ToString() + "\n" + new ReadOnlyBitSequence(SecondSpan).ToString();
-
         private Span<byte> GetByteAsSpan(int index)
         {
             int byteIndex = index >> 3;
@@ -64,32 +61,40 @@ namespace IceRpc.Slice
         }
     }
 
-    /// <summary>Presents a <see cref="ReadOnlySpan{T}"/> of bytes as a continuous read-only sequence of bits.</summary>
-    public readonly ref struct ReadOnlyBitSequence
+    /// <summary>A reader for a bit sequence.</summary>
+    public ref struct BitSequenceReader
     {
-        /// <summary>Gets a bit in the bit sequence.</summary>
-        /// <param name="index">The index of the bit to get. Must be between 0 and Length - 1.</param>
-        /// <value>True when the bit is set, false when the bit is unset.</value>
-        public bool this[int index] => (Span[index >> 3] & (1 << (index & 0x7))) != 0;
+        private byte _currentByte;
+        private int _index; // between 0 and 7
+        private SequenceReader<byte> _sequenceReader;
 
-        /// <summary>The length of the bit sequence.</summary>
-        public int Length => Span.Length * 8;
-
-        /// <summary>The underlying span of bytes.</summary>
-        public readonly ReadOnlySpan<byte> Span;
-
-        /// <summary>Constructs a read-only bit sequence over a read-only span of bytes.</summary>
-        public ReadOnlyBitSequence(ReadOnlySpan<byte> span) => Span = span;
-
-        /// <inheritdoc/>
-        public override string ToString()
+        /// <summary>Constructs a bit sequence reader over a bit sequence.</summary>
+        /// <param name="bitSequence">The bit sequence, as a buffer of bytes.</param>
+        public BitSequenceReader(ReadOnlySequence<byte> bitSequence)
         {
-            var sb = new StringBuilder();
-            foreach (byte b in Span)
+            _sequenceReader = new SequenceReader<byte>(bitSequence);
+            _index = 0;
+            if (!_sequenceReader.TryRead(out _currentByte))
             {
-                sb.Append(Convert.ToString(b, 2).PadLeft(8, '0')).Append(' ');
+                throw new ArgumentException(
+                    "cannot create a bit sequence reader over an empty byte sequence",
+                    nameof(bitSequence));
             }
-            return sb.ToString();
+        }
+
+        /// <summary>Reads the next bit in the bit sequence.</summary>
+        /// <returns>True when the next bit is set; otherwise, false.</returns>
+        public bool Read()
+        {
+            if (_index == 8)
+            {
+                _index = 0;
+                if (!_sequenceReader.TryRead(out _currentByte))
+                {
+                    throw new InvalidOperationException("attempting to read past the end of the bit sequence");
+                }
+            }
+            return (_currentByte & (1 << _index++)) != 0;
         }
     }
 }

@@ -536,10 +536,12 @@ namespace IceRpc.Internal
 
                 for (int i = 0; i < dictionarySize; ++i)
                 {
-                    (int key, ReadOnlyMemory<byte> value) = decoder.DecodeField();
+                    int key = decoder.DecodeVarInt();
                     if (key == (int)Ice2ParameterKey.IncomingFrameMaxSize)
                     {
-                        int peerIncomingFrameMaxSize = checked((int)IceEncoding.DecodeVarULong(value.Span).Value);
+                        decoder.SkipSize();
+
+                        int peerIncomingFrameMaxSize = checked((int)decoder.DecodeVarUInt());
 
                         if (peerIncomingFrameMaxSize < 1024)
                         {
@@ -551,6 +553,7 @@ namespace IceRpc.Internal
                     else
                     {
                         // Ignore unsupported parameters.
+                        decoder.Skip(decoder.DecodeSize());
                     }
                 }
 

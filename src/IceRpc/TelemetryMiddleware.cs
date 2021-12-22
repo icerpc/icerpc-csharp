@@ -3,6 +3,7 @@
 using IceRpc.Slice;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Buffers;
 using System.Diagnostics;
 
 namespace IceRpc
@@ -76,8 +77,17 @@ namespace IceRpc
                 // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values
 
                 byte traceIdVersion = decoder.DecodeByte();
-                var traceId = ActivityTraceId.CreateFromBytes(decoder.ReadBytes(16));
-                var spanId = ActivitySpanId.CreateFromBytes(decoder.ReadBytes(8));
+
+                // Unfortunately we can't use stackalloc.
+                using IMemoryOwner<byte> memoryOwner = MemoryPool<byte>.Shared.Rent(16);
+                Span<byte> traceIdSpan = memoryOwner.Memory.Span[0..16];
+                decoder.CopyTo(traceIdSpan);
+                var traceId = ActivityTraceId.CreateFromBytes(traceIdSpan);
+
+                Span<byte> spanIdSpan = memoryOwner.Memory.Span[0..8];
+                decoder.CopyTo(spanIdSpan);
+                var spanId = ActivitySpanId.CreateFromBytes(spanIdSpan);
+
                 var traceFlags = (ActivityTraceFlags)decoder.DecodeByte();
 
                 activity.SetParentId(traceId, spanId, traceFlags);

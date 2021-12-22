@@ -31,7 +31,7 @@ namespace IceRpc.Slice
         /// </exception>
         internal static T DecodeBuffer<T>(ReadOnlyMemory<byte> buffer, DecodeFunc<T> decodeFunc)
         {
-            var decoder = new IceDecoder(buffer, Encoding.Ice20);
+            var decoder = new IceDecoder(buffer, Ice20);
             T result = decodeFunc(ref decoder);
             decoder.CheckEndOfBuffer(skipTaggedParams: false);
             return result;
@@ -113,7 +113,7 @@ namespace IceRpc.Slice
             }
         }
 
-        internal static int DecodeSizeLength(byte b) => IceEncoding.DecodeVarLongLength(b);
+        internal static int DecodeSizeLength(byte b) => DecodeVarLongLength(b);
 
         internal override void EncodeFixedLengthSize(int size, Span<byte> into) =>
             Ice20Encoder.EncodeSize(size, into);
