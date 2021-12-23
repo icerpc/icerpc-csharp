@@ -39,6 +39,7 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public event Action<string>? PeerShutdownInitiated;
 
+        private ReadOnlyMemory<byte>[] _buffers = new ReadOnlyMemory<byte>[8];
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly HashSet<IncomingRequest> _dispatches = new();
@@ -51,8 +52,8 @@ namespace IceRpc.Internal
         private readonly object _mutex = new();
 
         private readonly ISimpleNetworkConnection _networkConnection;
-        private readonly SimpleNetworkConnectionPipeWriter _networkConnectionWriter;
         private int _nextRequestId;
+        private readonly Pipe _pipe;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly AsyncSemaphore _sendSemaphore = new(1);
         private bool _shutdown;
@@ -76,7 +77,8 @@ namespace IceRpc.Internal
             CancelInvocations(exception);
             CancelDispatches();
 
-            _networkConnectionWriter.Dispose();
+            _pipe.Writer.Complete();
+            _pipe.Reader.Complete();
         }
 
         /// <inheritdoc/>
@@ -157,7 +159,7 @@ namespace IceRpc.Internal
                         operation: requestHeader.Operation,
                         payload: new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
                         payloadEncoding,
-                        responseWriter: requestId == 0 ? InvalidPipeWriter.Instance : _networkConnectionWriter)
+                        responseWriter: requestId == 0 ? InvalidPipeWriter.Instance : _pipe.Writer)
                     {
                         IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
                         IsOneway = requestId == 0,
@@ -378,6 +380,7 @@ namespace IceRpc.Internal
                 }
             }
 
+            PipeWriter? payloadSink = null;
             try
             {
                 (int payloadSize, bool isCanceled, bool isCompleted) = await payloadEncoding.DecodeSegmentSizeAsync(
@@ -395,7 +398,7 @@ namespace IceRpc.Internal
                         $"expected {payloadSize} bytes in ice1 request payload source, but it's empty");
                 }
 
-                var encoder = new Ice11Encoder(_networkConnectionWriter);
+                var encoder = new Ice11Encoder(_pipe.Writer);
 
                 // Write the Ice1 request header.
                 encoder.WriteByteSpan(Ice1Definitions.FramePrologue);
@@ -415,6 +418,7 @@ namespace IceRpc.Internal
                     encapsulationSize: payloadSize + 6,
                     encodingMajor,
                     encodingMinor);
+
                 requestHeader.Encode(encoder);
 
                 Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
@@ -422,37 +426,29 @@ namespace IceRpc.Internal
                 // If the delayed request writer is null, the payload sink hasn't been accessed by an interceptor and we
                 // can assign it to the network connection pipe writer. Otherwise, set the network connection pipe
                 // writer on the delayed pipe writer decorator.
-                if (request.DelayedRequestWriter == null)
+                if (request.DelayedRequestWriter != null)
                 {
-                    request.PayloadSink = _networkConnectionWriter;
-                }
-                else
-                {
-                    request.DelayedRequestWriter.SetDecoratee(_networkConnectionWriter);
+                    request.DelayedRequestWriter.SetDecoratee(_pipe.Writer);
+                    payloadSink = request.PayloadSink;
                 }
 
-                await SendPayloadAsync(request, payloadSize, cancel).ConfigureAwait(false);
+                await SendPayloadAsync(request, payloadSink, payloadSize, cancel).ConfigureAwait(false);
+
+                await CompleteSendAsync(request, payloadSink).ConfigureAwait(false);
+
                 request.IsSent = true;
-
-                await request.PayloadSource.CompleteAsync().ConfigureAwait(false);
-                await request.PayloadSink.CompleteAsync().ConfigureAwait(false);
             }
-            catch (ObjectDisposedException exception)
+            catch (ObjectDisposedException ex)
             {
                 // If the network connection has been disposed, we raise ConnectionLostException to ensure the
                 // request is retried by the retry interceptor.
                 // TODO: this is clunky but required for retries to work because the retry interceptor only retries
                 // a request if the exception is a transport exception.
-                var ex = new ConnectionLostException(exception);
-                await request.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
-                await request.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
-                throw ex;
+                await CompleteSendAsync(request, payloadSink, new ConnectionLostException(ex)).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                await request.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
-                await request.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
-                throw;
+                await CompleteSendAsync(request, payloadSink, new ConnectionLostException(ex)).ConfigureAwait(false);
             }
             finally
             {
@@ -476,8 +472,11 @@ namespace IceRpc.Internal
                 // Send the response if the request is not a one-way request.
                 if (request.IsOneway)
                 {
+                    if (response.PayloadSink != _pipe.Writer)
+                    {
+                        await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
+                    }
                     await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
-                    await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
                 }
                 else
                 {
@@ -486,6 +485,7 @@ namespace IceRpc.Internal
                     // Wait for sending of other frames to complete. The semaphore is used as an asynchronous
                     // queue to serialize the sending of frames.
                     await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+                    PipeWriter? payloadSink = null;
                     try
                     {
                         if (request.PayloadEncoding is not IceEncoding payloadEncoding)
@@ -510,7 +510,7 @@ namespace IceRpc.Internal
                                 $"expected {payloadSize} bytes in response payload source, but it's empty");
                         }
 
-                        var encoder = new Ice11Encoder(request.ResponseWriter);
+                        var encoder = new Ice11Encoder(_pipe.Writer);
 
                         // Write the response header.
 
@@ -562,16 +562,18 @@ namespace IceRpc.Internal
 
                         Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
 
-                        await SendPayloadAsync(response, payloadSize, cancel).ConfigureAwait(false);
+                        if (response.PayloadSink != _pipe.Writer)
+                        {
+                            payloadSink = response.PayloadSink;
+                        }
 
-                        await response.PayloadSource.CompleteAsync().ConfigureAwait(false);
-                        await response.PayloadSink.CompleteAsync().ConfigureAwait(false);
+                        await SendPayloadAsync(response, payloadSink, payloadSize, cancel).ConfigureAwait(false);
+
+                        await CompleteSendAsync(response, payloadSink).ConfigureAwait(false);
                     }
-                    catch (Exception ex)
+                    catch (Exception exception)
                     {
-                        await response.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
-                        await response.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
-                        throw;
+                        await CompleteSendAsync(response, payloadSink, exception).ConfigureAwait(false);
                     }
                     finally
                     {
@@ -672,7 +674,11 @@ namespace IceRpc.Internal
             _incomingFrameMaxSize = incomingFrameMaxSize;
             _memoryPool = MemoryPool<byte>.Shared; // TODO: should be configurable by caller
             _networkConnection = simpleNetworkConnection;
-            _networkConnectionWriter = new SimpleNetworkConnectionPipeWriter(_networkConnection);
+
+            // TODO: set PipeOptions. Ideally, the pipe writer threeshould should depend on the underlying network
+            // connection send buffer size. For example, with SSL writes should be limited to 16KB to fit within
+            // an SSL record.
+            _pipe = new Pipe();
         }
 
         internal async Task InitializeAsync(bool isServer, CancellationToken cancel)
@@ -706,8 +712,28 @@ namespace IceRpc.Internal
             }
         }
 
+        static async ValueTask CompleteSendAsync(
+            OutgoingFrame frame,
+            PipeWriter? payloadSink,
+            Exception? exception = null)
+        {
+            await frame.PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
+            if (payloadSink != null)
+            {
+                await payloadSink.CompleteAsync(exception).ConfigureAwait(false);
+            }
+            if (exception != null)
+            {
+                throw exception;
+            }
+        }
+
         /// <summary>Sends the payload source of an outgoing frame.</summary>
-        private async Task SendPayloadAsync(OutgoingFrame outgoingFrame, int payloadSize, CancellationToken cancel)
+        private async Task SendPayloadAsync(
+            OutgoingFrame outgoingFrame,
+            PipeWriter? payloadSink,
+            int payloadSize,
+            CancellationToken cancel)
         {
             if (outgoingFrame.PayloadSourceStream != null)
             {
@@ -716,19 +742,100 @@ namespace IceRpc.Internal
                 throw new NotSupportedException("stream parameters and return values are not supported with ice1");
             }
 
-            // We switch to CancellationToken.None unless we use UDP
-            if (!_isUdp)
+            // Flush the header written to the pipe.
+            _ = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+
+            if (_isUdp)
             {
+                // Read the full payload source. This ensures the payload write will complete with a single WriteAsync
+                // on the network connection.
+                while (true)
+                {
+                    ReadResult readResult = await outgoingFrame.PayloadSource.ReadAsync(cancel).ConfigureAwait(false);
+
+                    // Don't consume anything
+                    outgoingFrame.PayloadSource.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+
+                    // Keep going until we've read the full payload.
+                    if (readResult.IsCompleted)
+                    {
+                        break;
+                    }
+                }
+
+                // We switch to CancellationToken.None unless we use UDP
                 cancel = CancellationToken.None;
             }
 
-            if (payloadSize > 0)
+            if (payloadSink == null)
             {
-                await outgoingFrame.PayloadSource.CopyToAsync(outgoingFrame.PayloadSink, cancel).ConfigureAwait(false);
+                // Read the frame header encoded on the pipe.
+                if (!_pipe.Reader.TryRead(out ReadResult result) || result.IsCompleted)
+                {
+                    // The connection has been closed.
+                    return;
+                }
+                Debug.Assert(!result.IsCanceled);
+
+                // Write the header to the buffers.
+                int index = WriteToBuffers(result.Buffer, 0);
+
+                // Next, write the header and the payload source to the network connection.
+                await WriteAsync(outgoingFrame.PayloadSource, index).ConfigureAwait(false);
+
+                // Advance the pipe reader only once the network connection write completes.
+                _pipe.Reader.AdvanceTo(result.Buffer.End);
             }
             else
             {
-                await _networkConnectionWriter.WriteAsync(ReadOnlyMemory<byte>.Empty, cancel).ConfigureAwait(false);
+                // Otherwise, copy the payload source to the payload sink which will end up writing to the pipe.
+                _ = outgoingFrame.PayloadSource.CopyToAsync(payloadSink, CancellationToken.None);
+
+                // And write the data from the pipe to the network connection.
+                await WriteAsync(_pipe.Reader, 0).ConfigureAwait(false);
+            }
+
+            async ValueTask WriteAsync(PipeReader reader, int index)
+            {
+                while (true)
+                {
+                    ReadResult result = await reader.ReadAsync(cancel).ConfigureAwait(false);
+                    index = WriteToBuffers(result.Buffer, index);
+
+                    await _networkConnection.WriteAsync(_buffers.AsMemory()[0..index], cancel).ConfigureAwait(false);
+
+                    reader.AdvanceTo(result.Buffer.End);
+                    if (result.IsCompleted)
+                    {
+                        break;
+                    }
+
+                    Debug.Assert(!_isUdp);
+                    index = 0;
+                }
+            }
+
+            int WriteToBuffers(ReadOnlySequence<byte> sequence, int index)
+            {
+                if (sequence.IsSingleSegment)
+                {
+                    _buffers[index++] = sequence.First;
+                }
+                else
+                {
+                    foreach (ReadOnlyMemory<byte> buffer in sequence)
+                    {
+                        _buffers[index++] = buffer;
+                        if (index == _buffers.Length)
+                        {
+                            // Expand the buffers array.
+                            Memory<ReadOnlyMemory<byte>> tmp = _buffers;
+                            _buffers = new ReadOnlyMemory<byte>[_buffers.Length + 16];
+                            tmp.CopyTo(_buffers);
+                        }
+                    }
+                }
+                return index;
             }
         }
 
