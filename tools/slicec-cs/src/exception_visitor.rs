@@ -140,6 +140,7 @@ else
             .build(),
         );
 
+
         exception_class_builder.add_block(
             FunctionBuilder::new(
                 "protected override",
@@ -147,51 +148,54 @@ else
                 "IceEncode",
                 FunctionType::BlockBody,
             )
-            .add_parameter("Ice11Encoder", "encoder", None, None)
+            .add_parameter("IceEncoder", "encoder", None, None)
             .set_body({
                 let mut code = CodeBlock::new();
-                code.writeln("encoder.IceStartSlice(_iceTypeId);");
-                code.writeln(&encode_data_members(
-                    &members,
-                    namespace,
-                    FieldType::Exception,
-                ));
-
-                if has_base {
-                    code.writeln("encoder.IceEndSlice(lastSlice: false);");
-                    code.writeln("base.IceEncode(encoder);");
+                // TODO:  && !exception_def.uses_classes()
+                if !has_base {
+                    writeln!(
+                        code,
+                        "\
+if (encoder.Encoding == IceRpc.Encoding.Ice11)
+{{
+    encoder.IceStartSlice(_iceTypeId);
+    {encode_data_members}
+    encoder.IceEndSlice(lastSlice: true);
+}}
+else
+{{
+    base.IceEncode(encoder);
+}}",
+                        encode_data_members =
+                            &encode_data_members(&members, namespace, FieldType::Exception,)
+                    );
                 } else {
-                    code.writeln("encoder.IceEndSlice(lastSlice: true);")
+                    writeln!(
+                        code,
+                        "\
+if (encoder.Encoding == IceRpc.Encoding.Ice11)
+{{
+    encoder.IceStartSlice(_iceTypeId);
+    {encode_data_members}
+    encoder.IceEndSlice(lastSlice: false);
+    base.IceEncode(encoder);
+}}
+else
+{{
+    encoder.EncodeString(_iceTypeId);
+    encoder.EncodeString(Message);
+    Origin.Encode(encoder);
+    {encode_data_members}
+}}",
+                        encode_data_members =
+                            &encode_data_members(&members, namespace, FieldType::Exception,)
+                    );
                 }
 
                 code
             })
             .build(),
         );
-
-        if !has_base && !exception_def.uses_classes() {
-            exception_class_builder.add_block(
-                FunctionBuilder::new(
-                    "protected override",
-                    "void",
-                    "IceEncode",
-                    FunctionType::BlockBody,
-                )
-                .add_parameter("Ice20Encoder", "encoder", None, None)
-                .set_body(
-                    format!(
-                        "\
-encoder.EncodeString(_iceTypeId);
-encoder.EncodeString(Message);
-Origin.Encode(encoder);
-{}",
-                        &encode_data_members(&members, namespace, FieldType::Exception)
-                    )
-                    .into(),
-                )
-                .build(),
-            );
-        }
 
         self.generated_code
             .insert_scoped(exception_def, exception_class_builder.build().into());
