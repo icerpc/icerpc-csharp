@@ -434,7 +434,7 @@ namespace IceRpc.Internal
 
                 await SendPayloadAsync(request, payloadSink, payloadSize, cancel).ConfigureAwait(false);
 
-                await CompleteSendAsync(request, payloadSink).ConfigureAwait(false);
+                await CompleteSendAsync(request).ConfigureAwait(false);
 
                 request.IsSent = true;
             }
@@ -444,11 +444,11 @@ namespace IceRpc.Internal
                 // request is retried by the retry interceptor.
                 // TODO: this is clunky but required for retries to work because the retry interceptor only retries
                 // a request if the exception is a transport exception.
-                await CompleteSendAsync(request, payloadSink, new ConnectionLostException(ex)).ConfigureAwait(false);
+                await CompleteSendAsync(request, new ConnectionLostException(ex)).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                await CompleteSendAsync(request, payloadSink, new ConnectionLostException(ex)).ConfigureAwait(false);
+                await CompleteSendAsync(request, ex).ConfigureAwait(false);
             }
             finally
             {
@@ -569,11 +569,11 @@ namespace IceRpc.Internal
 
                         await SendPayloadAsync(response, payloadSink, payloadSize, cancel).ConfigureAwait(false);
 
-                        await CompleteSendAsync(response, payloadSink).ConfigureAwait(false);
+                        await CompleteSendAsync(response).ConfigureAwait(false);
                     }
                     catch (Exception exception)
                     {
-                        await CompleteSendAsync(response, payloadSink, exception).ConfigureAwait(false);
+                        await CompleteSendAsync(response, exception).ConfigureAwait(false);
                     }
                     finally
                     {
@@ -712,16 +712,12 @@ namespace IceRpc.Internal
             }
         }
 
-        static async ValueTask CompleteSendAsync(
-            OutgoingFrame frame,
-            PipeWriter? payloadSink,
-            Exception? exception = null)
+        async ValueTask CompleteSendAsync(OutgoingFrame frame, Exception? exception = null)
         {
             await frame.PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
-            if (payloadSink != null)
-            {
-                await payloadSink.CompleteAsync(exception).ConfigureAwait(false);
-            }
+            await _pipe.Reader.CompleteAsync(exception).ConfigureAwait(false);
+            await _pipe.Writer.CompleteAsync(exception).ConfigureAwait(false);
+            _pipe.Reset();
             if (exception != null)
             {
                 throw exception;
@@ -745,39 +741,17 @@ namespace IceRpc.Internal
             // Flush the header written to the pipe.
             _ = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
 
-            if (_isUdp)
-            {
-                // Read the full payload source. This ensures the payload write will complete with a single WriteAsync
-                // on the network connection.
-                while (true)
-                {
-                    ReadResult readResult = await outgoingFrame.PayloadSource.ReadAsync(cancel).ConfigureAwait(false);
-
-                    // Don't consume anything
-                    outgoingFrame.PayloadSource.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-
-                    // Keep going until we've read the full payload.
-                    if (readResult.IsCompleted)
-                    {
-                        break;
-                    }
-                }
-
-                // We switch to CancellationToken.None unless we use UDP
-                cancel = CancellationToken.None;
-            }
-
             if (payloadSink == null)
             {
-                // Read the frame header encoded on the pipe.
+                // If there's no payload sink, we can directly read and send the payload source over the connection.
+
+                // Get the frame header encoded on the pipe and write it to the buffers.
                 if (!_pipe.Reader.TryRead(out ReadResult result) || result.IsCompleted)
                 {
                     // The connection has been closed.
                     return;
                 }
                 Debug.Assert(!result.IsCanceled);
-
-                // Write the header to the buffers.
                 int index = WriteToBuffers(result.Buffer, 0);
 
                 // Next, write the header and the payload source to the network connection.
@@ -789,29 +763,75 @@ namespace IceRpc.Internal
             else
             {
                 // Otherwise, copy the payload source to the payload sink which will end up writing to the pipe.
-                _ = outgoingFrame.PayloadSource.CopyToAsync(payloadSink, CancellationToken.None);
+                _ = CopySourceToSinkAsync(outgoingFrame.PayloadSource, payloadSink);
 
                 // And write the data from the pipe to the network connection.
                 await WriteAsync(_pipe.Reader, 0).ConfigureAwait(false);
+
+                static async Task CopySourceToSinkAsync(PipeReader source, PipeWriter sink)
+                {
+                    // Copy the source to the sink.
+                    await source.CopyToAsync(sink, CancellationToken.None).ConfigureAwait(false);
+
+                    // Once the source is full copied, complete the sink.
+                    await sink.CompleteAsync().ConfigureAwait(false);
+                }
             }
 
             async ValueTask WriteAsync(PipeReader reader, int index)
             {
-                while (true)
+                if (_isUdp)
                 {
+                    // Read the full source without consuming it.
+                    while (true)
+                    {
+                        ReadResult readResult = await reader.ReadAsync(cancel).ConfigureAwait(false);
+
+                        // Don't consume anything
+                        reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+
+                        // Keep going until we've read all the data.
+                        if (readResult.IsCompleted)
+                        {
+                            break;
+                        }
+                    }
+
+                    // We've read the full source so ReadAsync should return the full sequence to write to the network
+                    // connection.
                     ReadResult result = await reader.ReadAsync(cancel).ConfigureAwait(false);
+                    Debug.Assert(result.IsCompleted);
+
+                    // Add the data to the buffers.
                     index = WriteToBuffers(result.Buffer, index);
 
                     await _networkConnection.WriteAsync(_buffers.AsMemory()[0..index], cancel).ConfigureAwait(false);
 
                     reader.AdvanceTo(result.Buffer.End);
-                    if (result.IsCompleted)
+                }
+                else
+                {
+                    // Unlike UDP, we read the source by chunks and send each each chunk separately.
+                    while (true)
                     {
-                        break;
-                    }
+                        ReadResult result = await reader.ReadAsync(cancel).ConfigureAwait(false);
 
-                    Debug.Assert(!_isUdp);
-                    index = 0;
+                        // Add the data to the buffers.
+                        index = WriteToBuffers(result.Buffer, index);
+
+                        await _networkConnection.WriteAsync(
+                            _buffers.AsMemory()[0..index],
+                            CancellationToken.None).ConfigureAwait(false);
+
+                        reader.AdvanceTo(result.Buffer.End);
+                        if (result.IsCompleted)
+                        {
+                            break;
+                        }
+
+                        Debug.Assert(!_isUdp);
+                        index = 0;
+                    }
                 }
             }
 
