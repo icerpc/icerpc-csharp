@@ -23,22 +23,22 @@ namespace IceRpc.Slice
         /// with multiple parameters.</summary>
         /// <typeparam name="T">The type of the operation's parameters.</typeparam>
         /// <param name="args">The arguments to write into the payload.</param>
-        /// <param name="encodeAction">The <see cref="TupleEncodeAction{TEncoder, T}"/> that encodes the arguments into
+        /// <param name="encodeAction">The <see cref="TupleEncodeAction{T}"/> that encodes the arguments into
         /// the payload.</param>
         /// <param name="classFormat">The class format.</param>
         /// <returns>A new payload encoded with encoding Ice 1.1.</returns>
         public static PipeReader CreatePayloadFromArgs<T>(
             in T args,
-            TupleEncodeAction<Ice11Encoder, T> encodeAction,
+            TupleEncodeAction<T> encodeAction,
             FormatType classFormat = default) where T : struct
         {
             var pipe = new Pipe(); // TODO: pipe options
 
-            var encoder = new Ice11Encoder(pipe.Writer, classFormat);
+            var encoder = new IceEncoder(pipe.Writer, Encoding.Ice11, classFormat);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, in args);
-            Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+            IceEncoder.EncodeInt(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
@@ -53,16 +53,16 @@ namespace IceRpc.Slice
         /// <returns>A new payload encoded with encoding Ice 1.1.</returns>
         public static PipeReader CreatePayloadFromSingleArg<T>(
             T arg,
-            Action<Ice11Encoder, T> encodeAction,
+            EncodeAction<T> encodeAction,
             FormatType classFormat = default)
         {
             var pipe = new Pipe(); // TODO: pipe options
 
-            var encoder = new Ice11Encoder(pipe.Writer, classFormat);
+            var encoder = new IceEncoder(pipe.Writer, Encoding.Ice11, classFormat);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, arg);
-            Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+            IceEncoder.EncodeInt(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
@@ -72,22 +72,22 @@ namespace IceRpc.Slice
         /// method when the operation returns a tuple.</summary>
         /// <typeparam name="T">The type of the operation's return value tuple.</typeparam>
         /// <param name="returnValueTuple">The return values to write into the payload.</param>
-        /// <param name="encodeAction">The <see cref="TupleEncodeAction{TEncoder, T}"/> that encodes the arguments into
+        /// <param name="encodeAction">The <see cref="TupleEncodeAction{T}"/> that encodes the arguments into
         /// the payload.</param>
         /// <param name="classFormat">The class format.</param>
         /// <returns>A new payload encoded with the Ice 1.1 encoding.</returns>
         public static PipeReader CreatePayloadFromReturnValueTuple<T>(
             in T returnValueTuple,
-            TupleEncodeAction<Ice11Encoder, T> encodeAction,
+            TupleEncodeAction<T> encodeAction,
             FormatType classFormat = default) where T : struct
         {
             var pipe = new Pipe(); // TODO: pipe options
 
-            var encoder = new Ice11Encoder(pipe.Writer, classFormat);
+            var encoder = new IceEncoder(pipe.Writer, Encoding.Ice11, classFormat);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, in returnValueTuple);
-            Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+            IceEncoder.EncodeInt(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
@@ -97,29 +97,26 @@ namespace IceRpc.Slice
         /// when the operation returns a single value.</summary>
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
         /// <param name="returnValue">The return value to write into the payload.</param>
-        /// <param name="encodeAction">The <see cref="EncodeAction{TEncoder, T}"/> that encodes the argument into the
+        /// <param name="encodeAction">The <see cref="EncodeAction{T}"/> that encodes the argument into the
         /// payload.</param>
         /// <param name="classFormat">The class format.</param>
         /// <returns>A new payload with the Ice 1.1 encoding.</returns>
         public static PipeReader CreatePayloadFromSingleReturnValue<T>(
             T returnValue,
-            EncodeAction<Ice11Encoder, T> encodeAction,
+            EncodeAction<T> encodeAction,
             FormatType classFormat = default)
         {
             var pipe = new Pipe(); // TODO: pipe options
 
-            var encoder = new Ice11Encoder(pipe.Writer, classFormat);
+            var encoder = new IceEncoder(pipe.Writer, Encoding.Ice11, classFormat);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, returnValue);
-            Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+            IceEncoder.EncodeInt(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
         }
-
-        internal override IceEncoder CreateIceEncoder(IBufferWriter<byte> bufferWriter) =>
-            new Ice11Encoder(bufferWriter);
 
         internal override async ValueTask<(int Size, bool IsCanceled, bool IsCompleted)> DecodeSegmentSizeAsync(
             PipeReader reader,
@@ -154,22 +151,22 @@ namespace IceRpc.Slice
 
                 if (buffer.IsSingleSegment)
                 {
-                    return IceEncoding.DecodeInt(buffer.FirstSpan);
+                    return DecodeInt(buffer.FirstSpan);
                 }
                 else
                 {
                     Span<byte> span = stackalloc byte[sizeLength];
                     buffer.CopyTo(span);
-                    return IceEncoding.DecodeInt(span);
+                    return DecodeInt(span);
                 }
             }
         }
 
         internal override void EncodeFixedLengthSize(int size, Span<byte> into) =>
-            Ice11Encoder.EncodeFixedLengthSize(size, into);
+            IceEncoder.EncodeInt(size, into);
 
         internal override void EncodeSize(int size, Span<byte> into) =>
-            Ice11Encoder.EncodeSize(size, into);
+            IceEncoder.EncodeSize11(size, into);
 
         private Ice11Encoding()
             : base(Ice11Name)

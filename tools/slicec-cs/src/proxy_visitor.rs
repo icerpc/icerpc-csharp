@@ -585,16 +585,11 @@ fn request_encode_action(operation: &Operation) -> CodeBlock {
     } else {
         format!(
             "\
-({encoder} encoder,
+(IceEncoder encoder,
  {_in}{param_type} value) =>
 {{
     {encode}
 }}",
-            encoder = if operation.sends_classes() {
-                "Ice11Encoder"
-            } else {
-                "IceEncoder"
-            },
             _in = if params.len() == 1 { "" } else { "in " },
             param_type = params.to_tuple_type(&namespace, TypeContext::Outgoing, false),
             encode = encode_operation(operation, false).indent()

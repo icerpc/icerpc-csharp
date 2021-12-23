@@ -19,9 +19,6 @@ namespace IceRpc.Slice
         public override PipeReader CreateEmptyPayload(bool hasStream = true) =>
             hasStream ? PipeReader.Create(_payloadWithZeroSize) : EmptyPipeReader.Instance;
 
-        internal override IceEncoder CreateIceEncoder(IBufferWriter<byte> bufferWriter) =>
-            new Ice20Encoder(bufferWriter);
-
         // <summary>Decodes a buffer.</summary>
         /// <typeparam name="T">The decoded type.</typeparam>
         /// <param name="buffer">The byte buffer.</param>
@@ -116,10 +113,10 @@ namespace IceRpc.Slice
         internal static int DecodeSizeLength(byte b) => DecodeVarLongLength(b);
 
         internal override void EncodeFixedLengthSize(int size, Span<byte> into) =>
-            Ice20Encoder.EncodeSize(size, into);
+            IceEncoder.EncodeSize20(size, into);
 
         internal override void EncodeSize(int size, Span<byte> into) =>
-            Ice20Encoder.EncodeSize(size, into);
+            IceEncoder.EncodeSize20(size, into);
 
         private Ice20Encoding()
             : base(Ice20Name)

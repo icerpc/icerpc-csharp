@@ -20,7 +20,7 @@ namespace IceRpc.Tests.SliceInternal
             var bufferWriter = new SingleBufferWriter(buffer);
 
             var encoding = IceEncoding.FromString(encodingStr);
-            IceEncoder encoder = encoding.CreateIceEncoder(bufferWriter);
+            IceEncoder encoder = new IceEncoder(bufferWriter, encoding);
 
             var proxy = Proxy.Parse(str);
             encoder.EncodeProxy(proxy);
@@ -58,7 +58,7 @@ namespace IceRpc.Tests.SliceInternal
             var bufferWriter = new SingleBufferWriter(buffer);
 
             // Encodes the endpointless proxy
-            IceEncoder encoder = encoding.CreateIceEncoder(bufferWriter);
+            IceEncoder encoder = new IceEncoder(bufferWriter, encoding);
             encoder.EncodeProxy(endpointLess);
             buffer = bufferWriter.WrittenBuffer;
 

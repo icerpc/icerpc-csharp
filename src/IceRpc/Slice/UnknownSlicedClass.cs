@@ -17,7 +17,7 @@ namespace IceRpc.Slice
         }
 
         /// <inheritdoc/>
-        protected override void IceEncode(Ice11Encoder encoder) =>
+        protected override void IceEncode(IceEncoder encoder) =>
             encoder.EncodeUnknownSlices(UnknownSlices, fullySliced: true);
 
         internal UnknownSlicedClass()

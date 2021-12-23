@@ -6,17 +6,15 @@ namespace IceRpc.Slice
     public static class IceEncoderExtensions
     {
         /// <summary>Encodes a dictionary.</summary>
-        /// <paramtype name="TEncoder">The type of the Ice encoder.</paramtype>
         /// <param name="encoder">The Ice encoder.</param>
         /// <param name="v">The dictionary to encode.</param>
         /// <param name="keyEncodeAction">The encode action for the keys.</param>
         /// <param name="valueEncodeAction">The encode action for the values.</param>
-        public static void EncodeDictionary<TEncoder, TKey, TValue>(
-            this TEncoder encoder,
+        public static void EncodeDictionary<TKey, TValue>(
+            this IceEncoder encoder,
             IEnumerable<KeyValuePair<TKey, TValue>> v,
-            EncodeAction<TEncoder, TKey> keyEncodeAction,
-            EncodeAction<TEncoder, TValue> valueEncodeAction)
-            where TEncoder : IceEncoder
+            EncodeAction<TKey> keyEncodeAction,
+            EncodeAction<TValue> valueEncodeAction)
             where TKey : notnull
         {
             encoder.EncodeSize(v.Count());
@@ -28,17 +26,15 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Encodes a dictionary with null values encoded using a bit sequence.</summary>
-        /// <paramtype name="TEncoder">The type of the Ice encoder.</paramtype>
         /// <param name="encoder">The Ice encoder.</param>
         /// <param name="v">The dictionary to encode.</param>
         /// <param name="keyEncodeAction">The encode action for the keys.</param>
         /// <param name="valueEncodeAction">The encode action for the non-null values.</param>
-        public static void EncodeDictionaryWithBitSequence<TEncoder, TKey, TValue>(
-            this TEncoder encoder,
+        public static void EncodeDictionaryWithBitSequence<TKey, TValue>(
+            this IceEncoder encoder,
             IEnumerable<KeyValuePair<TKey, TValue>> v,
-            EncodeAction<TEncoder, TKey> keyEncodeAction,
-            EncodeAction<TEncoder, TValue> valueEncodeAction)
-            where TEncoder : IceEncoder
+            EncodeAction<TKey> keyEncodeAction,
+            EncodeAction<TValue> valueEncodeAction)
             where TKey : notnull
         {
             int count = v.Count();
@@ -61,16 +57,15 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Encodes a sequence.</summary>
-        /// <paramtype name="TEncoder">The type of the Ice encoder.</paramtype>
         /// <paramtype name="T">The type of the sequence elements. It is non-nullable except for nullable class and
         /// proxy types.</paramtype>
         /// <param name="encoder">The Ice encoder.</param>
         /// <param name="v">The sequence to encode.</param>
         /// <param name="encodeAction">The encode action for an element.</param>
         public static void EncodeSequence<TEncoder, T>(
-            this TEncoder encoder,
+            this IceEncoder encoder,
             IEnumerable<T> v,
-            EncodeAction<TEncoder, T> encodeAction) where TEncoder : IceEncoder
+            EncodeAction<T> encodeAction)
         {
             encoder.EncodeSize(v.Count()); // potentially slow Linq Count()
             foreach (T item in v)
@@ -80,16 +75,15 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Encodes a sequence with null values encoded using a bit sequence.</summary>
-        /// <paramtype name="TEncoder">The type of the Ice encoder.</paramtype>
         /// <paramtype name="T">The nullable type of the sequence elements.</paramtype>
         /// <param name="encoder">The Ice encoder.</param>
         /// <param name="v">The sequence to encode.</param>
         /// <param name="encodeAction">The encode action for a non-null value.</param>
         /// <remarks>This method always encodes a bit sequence.</remarks>
         public static void EncodeSequenceWithBitSequence<TEncoder, T>(
-            this TEncoder encoder,
+            this IceEncoder encoder,
             IEnumerable<T> v,
-            EncodeAction<TEncoder, T> encodeAction) where TEncoder : IceEncoder
+            EncodeAction<T> encodeAction)
         {
             int count = v.Count(); // potentially slow Linq Count()
             encoder.EncodeSize(count);

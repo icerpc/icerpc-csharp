@@ -51,8 +51,8 @@ namespace IceRpc.Transports.Internal
             Memory<byte> headerData = MemoryMarshal.AsMemory(buffers.Span[0]);
             headerData = headerData[(SlicDefinitions.FrameHeader.Length - sizeLength - streamIdLength - 1)..];
             headerData.Span[0] = (byte)(endStream ? FrameType.StreamLast : FrameType.Stream);
-            Ice20Encoder.EncodeSize(bufferSize, headerData.Span.Slice(1, sizeLength));
-            Ice20Encoder.EncodeSize(stream.Id, headerData.Span.Slice(1 + sizeLength, streamIdLength));
+            Ice20Encoder.EncodeSize20(bufferSize, headerData.Span.Slice(1, sizeLength));
+            Ice20Encoder.EncodeSize20(stream.Id, headerData.Span.Slice(1 + sizeLength, streamIdLength));
             MemoryMarshal.AsMemory(buffers).Span[0] = headerData;
 
             await WriteFrameAsync(stream, buffers, cancel).ConfigureAwait(false);

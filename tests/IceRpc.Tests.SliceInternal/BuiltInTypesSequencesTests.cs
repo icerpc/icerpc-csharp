@@ -23,7 +23,7 @@ namespace IceRpc.Tests.SliceInternal
             _encoding = IceEncoding.FromString(encoding);
             _buffer = new byte[1024 * 1024];
             _bufferWriter = new SingleBufferWriter(_buffer);
-            _encoder = _encoding.CreateIceEncoder(_bufferWriter);
+            _encoder = new IceEncoder(_bufferWriter, _encoding);
         }
 
         [TestCase(0)]

@@ -85,26 +85,25 @@ namespace IceRpc
         {
         }
 
-        /// <summary>Encodes a remote exception to an <see cref="Ice11Encoder"/>.</summary>
-        /// <param name="encoder">The Ice 1.1 encoder.</param>
-        protected virtual void IceEncode(Ice11Encoder encoder)
+        /// <summary>Encodes a remote exception to an <see cref="IceEncoder"/>.</summary>
+        /// <param name="encoder">The Ice encoder.</param>
+        protected virtual void IceEncode(IceEncoder encoder)
         {
-            encoder.IceStartSlice(_iceTypeId);
-            encoder.IceEndSlice(lastSlice: true);
-        }
-
-        /// <summary>Encodes a remote exception to an <see cref="Ice20Encoder"/>.</summary>
-        /// <param name="encoder">The Ice 2.0 encoder.</param>
-        protected virtual void IceEncode(Ice20Encoder encoder)
-        {
-            encoder.EncodeString(_iceTypeId);
-            encoder.EncodeString(Message);
-            Origin.Encode(encoder);
+            if (encoder.Encoding == Encoding.Ice11)
+            {
+                encoder.IceStartSlice(_iceTypeId);
+                encoder.IceEndSlice(lastSlice: true);
+            }
+            else
+            {
+                encoder.EncodeString(_iceTypeId);
+                encoder.EncodeString(Message);
+                Origin.Encode(encoder);
+            }
         }
 
         internal void Decode(ref IceDecoder decoder) => IceDecode(ref decoder);
-        internal void Encode(Ice11Encoder encoder) => IceEncode(encoder);
-        internal void Encode(Ice20Encoder encoder) => IceEncode(encoder);
+        internal void Encode(IceEncoder encoder) => IceEncode(encoder);
     }
 
     public readonly partial record struct RemoteExceptionOrigin

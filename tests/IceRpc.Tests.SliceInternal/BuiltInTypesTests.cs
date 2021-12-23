@@ -25,7 +25,7 @@ namespace IceRpc.Tests.SliceInternal
             _encoding = IceEncoding.FromString(encoding);
             _buffer = new byte[256];
             _bufferWriter = new SingleBufferWriter(_buffer);
-            _encoder = _encoding.CreateIceEncoder(_bufferWriter);
+            _encoder = new IceEncoder(_bufferWriter, _encoding);
         }
 
         [TestCase(true)]
@@ -210,7 +210,7 @@ namespace IceRpc.Tests.SliceInternal
                 // minBufferSize given to Rent
                 var pipe = new Pipe(new PipeOptions(pool: customPool, minimumSegmentSize: 5));
 
-                IceEncoder encoder = _encoding.CreateIceEncoder(pipe.Writer);
+                var encoder = new IceEncoder(pipe.Writer, _encoding);
                 for (int i = 0; i < 20; ++i)
                 {
                     encoder.EncodeString(p1);

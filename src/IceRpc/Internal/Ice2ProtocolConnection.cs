@@ -324,7 +324,7 @@ namespace IceRpc.Internal
                     }
                 }
 
-                var encoder = new Ice20Encoder(requestWriter);
+                var encoder = new IceEncoder(requestWriter, Encoding.Ice20);
 
                 // Write the Ice2 request header.
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
@@ -361,7 +361,7 @@ namespace IceRpc.Internal
                 encoder.EncodeFields(request.Fields, request.FieldsDefaults);
 
                 // We're done with the header encoding, write the header size.
-                Ice20Encoder.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
+                IceEncoder.EncodeSize20(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
 
                 await SendPayloadAsync(request, requestWriter, cancel).ConfigureAwait(false);
                 request.IsSent = true;
@@ -398,7 +398,7 @@ namespace IceRpc.Internal
 
             try
             {
-                var encoder = new Ice20Encoder(responseWriter);
+                var encoder = new IceEncoder(responseWriter, Encoding.Ice20);
 
                 // Write the Ice2 response header.
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
@@ -412,7 +412,7 @@ namespace IceRpc.Internal
                 encoder.EncodeFields(response.Fields, response.FieldsDefaults);
 
                 // We're done with the header encoding, write the header size.
-                Ice20Encoder.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
+                IceEncoder.EncodeSize20(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
 
                 await SendPayloadAsync(response, responseWriter, cancel).ConfigureAwait(false);
             }
@@ -621,18 +621,18 @@ namespace IceRpc.Internal
 
         private async Task SendControlFrameAsync(
             Ice2FrameType frameType,
-            Action<Ice20Encoder>? frameEncodeAction,
+            Action<IceEncoder>? frameEncodeAction,
             CancellationToken cancel)
         {
             Memory<byte> buffer = new byte[1024]; // TODO: use pooled memory?
             var bufferWriter = new SingleBufferWriter(buffer);
 
-            var encoder = new Ice20Encoder(bufferWriter);
+            var encoder = new IceEncoder(bufferWriter, Encoding.Ice20);
             encoder.EncodeByte((byte)frameType);
             Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4); // TODO: reduce bytes
             int startPos = encoder.EncodedByteCount; // does not include the size
             frameEncodeAction?.Invoke(encoder);
-            Ice20Encoder.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
+            IceEncoder.EncodeSize20(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
 
             buffer = bufferWriter.WrittenBuffer;
 

@@ -31,16 +31,16 @@ namespace IceRpc.Slice
         /// takes a single parameter.</summary>
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
         /// <param name="arg">The argument to write into the payload.</param>
-        /// <param name="encodeAction">The <see cref="EncodeAction{TEncoder, T}"/> that encodes the argument into the
+        /// <param name="encodeAction">The <see cref="EncodeAction{T}"/> that encodes the argument into the
         /// payload.</param>
         /// <returns>A new payload.</returns>
         public PipeReader CreatePayloadFromSingleArg<T>(
             T arg,
-            EncodeAction<IceEncoder, T> encodeAction)
+            EncodeAction<T> encodeAction)
         {
             var pipe = new Pipe(); // TODO: pipe options
 
-            IceEncoder encoder = CreateIceEncoder(pipe.Writer);
+            var encoder = new IceEncoder(pipe.Writer, this);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, arg);
@@ -54,16 +54,16 @@ namespace IceRpc.Slice
         /// with multiple parameters.</summary>
         /// <typeparam name="T">The type of the operation's parameters.</typeparam>
         /// <param name="args">The arguments to write into the payload.</param>
-        /// <param name="encodeAction">The <see cref="TupleEncodeAction{TEncoder, T}"/> that encodes the arguments into
+        /// <param name="encodeAction">The <see cref="TupleEncodeAction{T}"/> that encodes the arguments into
         /// the payload.</param>
         /// <returns>A new payload.</returns>
         public PipeReader CreatePayloadFromArgs<T>(
             in T args,
-            TupleEncodeAction<IceEncoder, T> encodeAction) where T : struct
+            TupleEncodeAction<T> encodeAction) where T : struct
         {
             var pipe = new Pipe(); // TODO: pipe options
 
-            IceEncoder encoder = CreateIceEncoder(pipe.Writer);
+            var encoder = new IceEncoder(pipe.Writer, this);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, in args);
@@ -76,7 +76,7 @@ namespace IceRpc.Slice
         /// <summary>Creates a payload source stream from an async enumerable.</summary>
         public PipeReader CreatePayloadSourceStream<T>(
             IAsyncEnumerable<T> asyncEnumerable,
-            EncodeAction<IceEncoder, T> encodeAction)
+            EncodeAction<T> encodeAction)
         {
             var pipe = new Pipe(); // TODO: pipe options, pipe pooling
 
@@ -170,7 +170,7 @@ namespace IceRpc.Slice
 
                 (IceEncoder Encoder, int StartPos, Memory<byte> SizePlaceholder) StartSegment()
                 {
-                    IceEncoder encoder = CreateIceEncoder(writer);
+                    var encoder = new IceEncoder(writer, this);
                     Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
                     int startPos = encoder.EncodedByteCount;
                     return (encoder, startPos, sizePlaceholder);
@@ -203,7 +203,7 @@ namespace IceRpc.Slice
         {
             var pipe = new Pipe(); // TODO: pipe options
 
-            IceEncoder encoder = CreateIceEncoder(pipe.Writer);
+            var encoder = new IceEncoder(pipe.Writer, this);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encoder.EncodeException(exception);
@@ -217,16 +217,16 @@ namespace IceRpc.Slice
         /// method when the operation returns a tuple.</summary>
         /// <typeparam name="T">The type of the operation's return value tuple.</typeparam>
         /// <param name="returnValueTuple">The return values to write into the payload.</param>
-        /// <param name="encodeAction">The <see cref="TupleEncodeAction{TEncoder, T}"/> that encodes the arguments into
+        /// <param name="encodeAction">The <see cref="TupleEncodeAction{T}"/> that encodes the arguments into
         /// the payload.</param>
         /// <returns>A new payload.</returns>
         public PipeReader CreatePayloadFromReturnValueTuple<T>(
             in T returnValueTuple,
-            TupleEncodeAction<IceEncoder, T> encodeAction) where T : struct
+            TupleEncodeAction<T> encodeAction) where T : struct
         {
             var pipe = new Pipe(); // TODO: pipe options
 
-            IceEncoder encoder = CreateIceEncoder(pipe.Writer);
+            var encoder = new IceEncoder(pipe.Writer, this);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, in returnValueTuple);
@@ -240,16 +240,16 @@ namespace IceRpc.Slice
         /// when the operation returns a single value.</summary>
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
         /// <param name="returnValue">The return value to write into the payload.</param>
-        /// <param name="encodeAction">The <see cref="EncodeAction{TEncoder, T}"/> that encodes the argument into the
+        /// <param name="encodeAction">The <see cref="EncodeAction{T}"/> that encodes the argument into the
         /// payload.</param>
         /// <returns>A new payload.</returns>
         public PipeReader CreatePayloadFromSingleReturnValue<T>(
             T returnValue,
-            EncodeAction<IceEncoder, T> encodeAction)
+            EncodeAction<T> encodeAction)
         {
             var pipe = new Pipe(); // TODO: pipe options
 
-            IceEncoder encoder = CreateIceEncoder(pipe.Writer);
+            var encoder = new IceEncoder(pipe.Writer, this);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, returnValue);
@@ -263,11 +263,6 @@ namespace IceRpc.Slice
         internal abstract ValueTask<(int Size, bool IsCanceled, bool IsCompleted)> DecodeSegmentSizeAsync(
             PipeReader reader,
             CancellationToken cancel);
-
-        /// <summary>Creates an Ice encoder for this encoding.</summary>
-        /// <param name="bufferWriter">The buffer writer.</param>
-        /// <returns>A new encoder for the specified Ice encoding.</returns>
-        internal abstract IceEncoder CreateIceEncoder(IBufferWriter<byte> bufferWriter);
 
         internal static int DecodeInt(ReadOnlySpan<byte> from) => BitConverter.ToInt32(from);
 

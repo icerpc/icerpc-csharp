@@ -13,12 +13,8 @@ using static IceRpc.Slice.Internal.Ice11Definitions;
 
 namespace IceRpc.Slice
 {
-    /// <summary>Encoder for the Ice 1.1 encoding.</summary>
-    public sealed class Ice11Encoder : IceEncoder
+    public partial class IceEncoder
     {
-        /// <inheritdoc/>
-        public override IceEncoding Encoding => IceRpc.Encoding.Ice11;
-
         // The current class/exception format, can be either Compact or Sliced.
         private FormatType _classFormat;
 
@@ -40,7 +36,7 @@ namespace IceRpc.Slice
         public void EncodeClass(AnyClass v) => EncodeNullableClass(v);
 
         /// <inheritdoc/>
-        public override void EncodeException(RemoteException v)
+        private void EncodeExceptionClass(RemoteException v)
         {
             Debug.Assert(_current.InstanceType == InstanceType.None);
 
@@ -131,172 +127,6 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <inheritdoc/>
-        public override void EncodeNullableProxy(Proxy? proxy)
-        {
-            if (proxy == null)
-            {
-                Identity.Empty.Encode(this);
-            }
-            else
-            {
-                if (proxy.Connection?.IsServer ?? false)
-                {
-                    throw new InvalidOperationException("cannot encode a proxy bound to a server connection");
-                }
-
-                IdentityAndFacet identityAndFacet;
-
-                try
-                {
-                    identityAndFacet = IdentityAndFacet.FromPath(proxy.Path);
-                }
-                catch (FormatException ex)
-                {
-                    throw new InvalidOperationException(
-                        $"cannot encode proxy with path '{proxy.Path}' using encoding 1.1",
-                        ex);
-                }
-
-                if (identityAndFacet.Identity.Name.Length == 0)
-                {
-                    throw new InvalidOperationException(
-                        $"cannot encode proxy with path '{proxy.Path}' using encoding 1.1");
-                }
-
-                identityAndFacet.Identity.Encode(this);
-
-                (byte encodingMajor, byte encodingMinor) = proxy.Encoding.ToMajorMinor();
-
-                var proxyData = new ProxyData11(
-                    identityAndFacet.OptionalFacet,
-                    proxy.Protocol == Protocol.Ice1 && (proxy.Endpoint?.Transport == TransportNames.Udp) ?
-                        InvocationMode.Datagram : InvocationMode.Twoway,
-                    secure: false,
-                    protocolMajor: (byte)proxy.Protocol.Code,
-                    protocolMinor: 0,
-                    encodingMajor,
-                    encodingMinor);
-                proxyData.Encode(this);
-
-                if (proxy.Endpoint == null)
-                {
-                    EncodeSize(0); // 0 endpoints
-                    EncodeString(""); // empty adapter ID
-                }
-                else if (proxy.Protocol == Protocol.Ice1 && proxy.Endpoint.Transport == TransportNames.Loc)
-                {
-                    EncodeSize(0); // 0 endpoints
-                    EncodeString(proxy.Endpoint.Host); // adapter ID unless well-known
-                }
-                else
-                {
-                    IEnumerable<Endpoint> endpoints = Enumerable.Empty<Endpoint>().Append(proxy.Endpoint).Concat(
-                        proxy.AltEndpoints);
-
-                    if (endpoints.Any())
-                    {
-                        this.EncodeSequence(endpoints, (encoder, endpoint) => encoder.EncodeEndpoint(endpoint));
-                    }
-                    else // encoded as an endpointless proxy
-                    {
-                        EncodeSize(0); // 0 endpoints
-                        EncodeString(""); // empty adapter ID
-                    }
-                }
-            }
-        }
-
-        /// <inheritdoc/>
-        public override void EncodeSize(int v)
-        {
-            if (v < 255)
-            {
-                EncodeByte((byte)v);
-            }
-            else
-            {
-                EncodeByte(255);
-                EncodeInt(v);
-            }
-        }
-
-        /// <inheritdoc/>
-        public override void EncodeTagged<T>(
-            int tag,
-            TagFormat tagFormat,
-            T v,
-            EncodeAction<IceEncoder, T> encodeAction)
-        {
-            if (tagFormat == TagFormat.FSize)
-            {
-                EncodeTaggedParamHeader(tag, tagFormat);
-                Span<byte> placeholder = GetPlaceholderSpan(4);
-                int startPos = EncodedByteCount;
-                encodeAction(this, v);
-
-                // We don't include the size-length in the size we encode.
-                EncodeFixedLengthSize(EncodedByteCount - startPos, placeholder);
-            }
-            else
-            {
-                // A VSize where the size is optimized out. Used here for strings (and only strings) because we cannot
-                // easily compute the number of UTF-8 bytes in a C# string before encoding it.
-                Debug.Assert(tagFormat == TagFormat.OVSize);
-
-                EncodeTaggedParamHeader(tag, TagFormat.VSize);
-                encodeAction(this, v);
-            }
-        }
-
-        /// <inheritdoc/>
-        public override void EncodeTagged<T>(
-            int tag,
-            TagFormat tagFormat,
-            int size,
-            T v,
-            EncodeAction<IceEncoder, T> encodeAction)
-        {
-            Debug.Assert(tagFormat != TagFormat.FSize);
-            Debug.Assert(size > 0);
-
-            bool encodeSize = tagFormat == TagFormat.VSize;
-
-            tagFormat = tagFormat switch
-            {
-                TagFormat.VInt => size switch
-                {
-                    1 => TagFormat.F1,
-                    2 => TagFormat.F2,
-                    4 => TagFormat.F4,
-                    8 => TagFormat.F8,
-                    _ => throw new ArgumentException($"invalid value for size: {size}", nameof(size))
-                },
-
-                TagFormat.OVSize => TagFormat.VSize, // size encoding is optimized out
-
-                _ => tagFormat
-            };
-
-            EncodeTaggedParamHeader(tag, tagFormat);
-
-            if (encodeSize)
-            {
-                EncodeSize(size);
-            }
-
-            int startPos = EncodedByteCount;
-            encodeAction(this, v);
-            int actualSize = EncodedByteCount - startPos;
-            if (actualSize != size)
-            {
-                throw new ArgumentException($"value of size ({size}) does not match encoded size ({actualSize})",
-                                            nameof(size));
-            }
-        }
-
-        /// <inheritdoc/>
-        public override int GetSizeLength(int size) => size < 255 ? 1 : 5;
 
         /// <summary>Marks the end of the encoding of a class or exception slice.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -370,48 +200,6 @@ namespace IceRpc.Slice
                 _current.FirstSlice = false;
             }
         }
-
-        internal static void EncodeFixedLengthSize(int size, Span<byte> into)
-        {
-            if (into.Length != 4)
-            {
-                throw new ArgumentException($"into has {into.Length} bytes");
-            }
-            EncodeInt(size, into);
-        }
-
-        /// <summary>Encodes a variable-length size into a span.</summary>
-        internal static void EncodeSize(int size, Span<byte> into)
-        {
-            if (size < 0)
-            {
-                throw new ArgumentException("a size must be positive", nameof(size));
-            }
-
-            if (into.Length == 1)
-            {
-                if (size >= 255)
-                {
-                    throw new ArgumentException("size value is too large for into", nameof(size));
-                }
-
-                into[0] = (byte)size;
-            }
-            else if (into.Length == 5)
-            {
-                into[0] = 255;
-                EncodeInt(size, into[1..]);
-            }
-            else
-            {
-                throw new ArgumentException("into's size must be 1 or 5", nameof(into));
-            }
-        }
-
-        /// <summary>Constructs an encoder for the Ice 1.1 encoding.</summary>
-        internal Ice11Encoder(IBufferWriter<byte> bufferWriter, FormatType classFormat = default)
-            : base(bufferWriter) =>
-            _classFormat = classFormat;
 
         /// <summary>Encodes sliced-off slices.</summary>
         /// <param name="unknownSlices">The sliced-off slices to encode.</param>
@@ -542,7 +330,7 @@ namespace IceRpc.Slice
                         break;
                 }
 
-                EncodeFixedLengthSize(EncodedByteCount - startPos, sizePlaceholder);
+                EncodeInt(EncodedByteCount - startPos, sizePlaceholder);
             }
         }
 

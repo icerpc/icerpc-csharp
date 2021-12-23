@@ -297,20 +297,13 @@ pub fn response_encode_action(operation: &Operation) -> CodeBlock {
     if use_default_encode_action {
         encode_action(returns.first().unwrap().data_type(), namespace, true, true)
     } else {
-        let encoder_class = if operation.returns_classes() {
-            "Ice11Encoder"
-        } else {
-            "IceEncoder"
-        };
-
         format!(
             "\
-({encoder} encoder,
+(IceEncoder encoder,
  {_in}{tuple_type} value) =>
 {{
     {encode_action}
 }}",
-            encoder = encoder_class,
             _in = if returns.len() == 1 { "" } else { "in " },
             tuple_type = returns.to_tuple_type(namespace, TypeContext::Outgoing, false),
             encode_action = encode_operation(operation, true).indent(),

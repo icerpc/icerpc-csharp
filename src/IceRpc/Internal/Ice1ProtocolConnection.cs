@@ -396,7 +396,7 @@ namespace IceRpc.Internal
                 AsyncCompletePipeWriter output = _isUdp ? new UdpPipeWriter(_networkConnection) :
                     new SimpleNetworkConnectionPipeWriter(_networkConnection);
 
-                var encoder = new Ice11Encoder(output);
+                var encoder = new IceEncoder(output, Encoding.Ice11);
 
                 // Write the Ice1 request header.
                 encoder.WriteByteSpan(Ice1Definitions.FramePrologue);
@@ -418,7 +418,7 @@ namespace IceRpc.Internal
                     encodingMinor);
                 requestHeader.Encode(encoder);
 
-                Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
+                IceEncoder.EncodeInt(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
 
                 request.InitialPayloadSink.SetDecoratee(output);
 
@@ -498,7 +498,7 @@ namespace IceRpc.Internal
                                 $"expected {payloadSize} bytes in response payload source, but it's empty");
                         }
 
-                        var encoder = new Ice11Encoder(request.ResponseWriter);
+                        var encoder = new IceEncoder(request.ResponseWriter, Encoding.Ice11);
 
                         // Write the response header.
 
@@ -548,7 +548,7 @@ namespace IceRpc.Internal
                             responseHeader.Encode(encoder);
                         }
 
-                        Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
+                        IceEncoder.EncodeInt(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
 
                         await SendPayloadAsync(
                             response,
@@ -805,7 +805,7 @@ namespace IceRpc.Internal
             }
             else if (payloadEncoding == Encoding.Ice20)
             {
-                Ice20Encoder.EncodeSize(payloadSize, buffer);
+                Ice20Encoder.EncodeSize20(payloadSize, buffer);
             }
             else
             {

@@ -701,7 +701,7 @@ namespace IceRpc.Slice
             Debug.Assert(Encoding == IceRpc.Encoding.Ice11);
 
             // The Ice 1.1 encoding of ice1 endpoints is transport-specific, and hard-coded here and in the
-            // Ice11Encoder. The preferred and fallback encoding for new transports is TransportCode.Any, which uses an
+            // IceEncoder. The preferred and fallback encoding for new transports is TransportCode.Any, which uses an
             // EndpointData like Ice 2.0.
 
             Debug.Assert(_connection != null);

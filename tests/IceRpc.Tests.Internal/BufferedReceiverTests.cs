@@ -73,7 +73,7 @@ namespace IceRpc.Tests.Internal
         {
             Memory<byte> sourceBuffer = new byte[4096];
             var bufferWriter = new SingleBufferWriter(sourceBuffer);
-            var encoder = new Ice20Encoder(bufferWriter);
+            var encoder = new IceEncoder(bufferWriter, Encoding.Ice20);
             var values = new List<int>();
             encoder.EncodeSize(0);
             values.Add(0);
@@ -104,7 +104,7 @@ namespace IceRpc.Tests.Internal
         {
             Memory<byte> sourceBuffer = new byte[4096];
             var bufferWriter = new SingleBufferWriter(sourceBuffer);
-            var encoder = new Ice20Encoder(bufferWriter);
+            var encoder = new IceEncoder(bufferWriter, Encoding.Ice20);
             var values = new List<ulong>();
             encoder.EncodeSize(0);
             values.Add(0);

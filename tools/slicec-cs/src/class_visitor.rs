@@ -227,7 +227,7 @@ protected override global::System.Collections.Immutable.ImmutableList<IceRpc.Sli
         "IceEncode",
         FunctionType::BlockBody,
     )
-    .add_parameter("Ice11Encoder", "encoder", None, None)
+    .add_parameter("IceEncoder", "encoder", None, None)
     .set_body({
         let mut code = CodeBlock::new();
 

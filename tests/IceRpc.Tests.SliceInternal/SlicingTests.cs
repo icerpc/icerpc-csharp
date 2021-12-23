@@ -33,7 +33,7 @@ namespace IceRpc.Tests.SliceInternal
         {
             Memory<byte> buffer = new byte[1024 * 1024];
             var bufferWriter = new SingleBufferWriter(buffer);
-            var encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
+            var encoder = new IceEncoder(bufferWriter, Encoding.Ice11, classFormat: FormatType.Sliced);
 
             var p1 = new MyMostDerivedClass("most-derived", "derived", "base");
             encoder.EncodeClass(p1);
@@ -114,7 +114,7 @@ namespace IceRpc.Tests.SliceInternal
         {
             Memory<byte> buffer = new byte[1024 * 1024];
             var bufferWriter = new SingleBufferWriter(buffer);
-            var encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
+            var encoder = new IceEncoder(bufferWriter, Encoding.Ice11, classFormat: FormatType.Sliced);
 
             var p1 = new MyCompactMostDerivedClass("most-derived", "derived", "base");
             encoder.EncodeClass(p1);
@@ -192,7 +192,7 @@ namespace IceRpc.Tests.SliceInternal
         {
             Memory<byte> buffer = new byte[1024 * 1024];
             var bufferWriter = new SingleBufferWriter(buffer);
-            var encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
+            var encoder = new IceEncoder(bufferWriter, Encoding.Ice11, classFormat: FormatType.Sliced);
 
             var p1 = new MyMostDerivedException("most-derived", "derived", "base");
             encoder.EncodeException(p1);
@@ -262,7 +262,7 @@ namespace IceRpc.Tests.SliceInternal
             // Marshal the exception again -- there is no Slice preservation for exceptions
             buffer = new byte[1024 * 1024];
             bufferWriter = new SingleBufferWriter(buffer);
-            encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
+            encoder = new IceEncoder(bufferWriter, Encoding.Ice11, classFormat: FormatType.Sliced);
             encoder.EncodeException(r);
             buffer = bufferWriter.WrittenBuffer;
 
@@ -277,7 +277,7 @@ namespace IceRpc.Tests.SliceInternal
         {
             Memory<byte> buffer = new byte[1024 * 1024];
             var bufferWriter = new SingleBufferWriter(buffer);
-            var encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
+            var encoder = new IceEncoder(bufferWriter, Encoding.Ice11, classFormat: FormatType.Sliced);
 
             var p2 = new MyPreservedDerivedClass1("p2-m1", "p2-m2", new MyBaseClass("base"));
             var p1 = new MyPreservedDerivedClass1("p1-m1", "p1-m2", p2);
@@ -306,7 +306,7 @@ namespace IceRpc.Tests.SliceInternal
             // Marshal the sliced class
             buffer = new byte[1024 * 1024];
             bufferWriter = new SingleBufferWriter(buffer);
-            encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
+            encoder = new IceEncoder(bufferWriter, Encoding.Ice11, classFormat: FormatType.Sliced);
             encoder.EncodeClass(r1);
             buffer = bufferWriter.WrittenBuffer;
 
@@ -328,7 +328,7 @@ namespace IceRpc.Tests.SliceInternal
         {
             Memory<byte> buffer = new byte[1024 * 1024];
             var bufferWriter = new SingleBufferWriter(buffer);
-            var encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
+            var encoder = new IceEncoder(bufferWriter, Encoding.Ice11, classFormat: FormatType.Sliced);
 
             var p2 = new MyPreservedDerivedClass2("p2-m1", "p2-m2", new MyBaseClass("base"));
             var p1 = new MyPreservedDerivedClass2("p1-m1", "p1-m2", p2);
@@ -356,7 +356,7 @@ namespace IceRpc.Tests.SliceInternal
             // Marshal the sliced class
             buffer = new byte[1024 * 1024];
             bufferWriter = new SingleBufferWriter(buffer);
-            encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
+            encoder = new IceEncoder(bufferWriter, Encoding.Ice11, classFormat: FormatType.Sliced);
             encoder.EncodeClass(r1);
             buffer = bufferWriter.WrittenBuffer;
 
