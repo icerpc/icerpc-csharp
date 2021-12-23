@@ -4,7 +4,7 @@ module IceRpc::Tests::Api
 {
     interface Greeter
     {
-        void SayHello();
+        void sayHello(string message);
     }
 
     interface InterceptorTest

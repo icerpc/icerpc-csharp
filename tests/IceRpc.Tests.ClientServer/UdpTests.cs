@@ -116,7 +116,7 @@ namespace IceRpc.Tests.ClientServer
                 })
                 .BuildServiceProvider();
 
-            _ = new Greeter();
+            _ = new Greeter(); // TODO: otherwise, the compiler does not see the ussable from AddTransient above
 
             GreeterPrx proxy = serviceProvider.GetProxy<GreeterPrx>();
             await proxy.SayHelloAsync(Message, new Invocation { IsOneway = true });

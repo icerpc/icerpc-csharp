@@ -26,7 +26,7 @@ namespace IceRpc.Tests.Api
                 .BuildServiceProvider();
 
             var prx = GreeterPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
-            Assert.ThrowsAsync<UnhandledException>(() => prx.SayHelloAsync());
+            Assert.ThrowsAsync<UnhandledException>(() => prx.SayHelloAsync("hello"));
             Assert.That(service.Called, Is.False);
         }
 
@@ -75,7 +75,7 @@ namespace IceRpc.Tests.Api
         {
             public bool Called { get; private set; }
 
-            public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel)
+            public ValueTask SayHelloAsync(string message, Dispatch dispatch, CancellationToken cancel)
             {
                 Called = true;
                 return default;
