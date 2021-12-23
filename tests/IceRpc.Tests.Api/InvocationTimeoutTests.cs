@@ -161,7 +161,7 @@ namespace IceRpc.Tests.Api
 
         private class Greeter : Service, IGreeter
         {
-            public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
+            public ValueTask SayHelloAsync(string message, Dispatch dispatch, CancellationToken cancel) =>
                 throw new NotImplementedException();
         }
     }

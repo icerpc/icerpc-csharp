@@ -67,7 +67,7 @@ namespace IceRpc.Tests.ClientServer
                 IsOneway = serviceProvider.GetRequiredService<Endpoint>().Transport == "udp"
             };
 
-            await greeter.SayHelloAsync(invocation);
+            await greeter.SayHelloAsync("hello", invocation);
 
             if (greeter.Proxy.Protocol == Protocol.Ice2)
             {
@@ -79,7 +79,7 @@ namespace IceRpc.Tests.ClientServer
         {
             private readonly string _expectedValue;
 
-            public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel)
+            public ValueTask SayHelloAsync(string message, Dispatch dispatch, CancellationToken cancel)
             {
                 Assert.AreEqual(_expectedValue, dispatch.Context["foo"]);
                 dispatch.ResponseFeatures = new FeatureCollection();

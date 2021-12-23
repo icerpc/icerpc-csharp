@@ -263,7 +263,7 @@ namespace IceRpc.Tests.Api
             var proxy = Proxy.FromConnection(serviceProvider.GetRequiredService<Connection>(), GreeterPrx.DefaultPath);
 
             IncomingResponse response =
-                await proxy.InvokeAsync("SayHello",
+                await proxy.InvokeAsync("ice_ping",
                                         proxy.Encoding,
                                         payloadSource: Encoding.Ice20.CreateEmptyPayload());
 
@@ -444,7 +444,7 @@ namespace IceRpc.Tests.Api
 
         public class Greeter : Service, IGreeter
         {
-            public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
+            public ValueTask SayHelloAsync(string message, Dispatch dispatch, CancellationToken cancel) => default;
         }
 
         private class ProxyTest : Service, IProxyTest

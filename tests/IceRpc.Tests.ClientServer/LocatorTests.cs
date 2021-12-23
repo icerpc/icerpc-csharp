@@ -127,20 +127,21 @@ namespace IceRpc.Tests.ClientServer
             // We don't cache the connection in order to use the locator interceptor for each invocation.
             _pipeline.UseBinder(_pool, cacheConnection: false);
 
-            Assert.ThrowsAsync<NoEndpointException>(async () => await indirectGreeter.SayHelloAsync());
+            Assert.ThrowsAsync<NoEndpointException>(async () => await indirectGreeter.SayHelloAsync("hello"));
             Assert.That(_called, Is.False);
             locator.RegisterAdapter("adapt", _greeter);
-            Assert.DoesNotThrowAsync(async () => await indirectGreeter.SayHelloAsync());
+            Assert.DoesNotThrowAsync(async () => await indirectGreeter.SayHelloAsync("hello"));
             Assert.That(_called, Is.True);
             _called = false;
 
             Assert.That(locator.UnregisterAdapter("adapt"), Is.True);
 
             // We still find it in the cache and can still call it
-            Assert.DoesNotThrowAsync(async () => await indirectGreeter.SayHelloAsync());
+            Assert.DoesNotThrowAsync(async () => await indirectGreeter.SayHelloAsync("hello"));
 
             // Force a retry to get re-resolution
             Assert.ThrowsAsync<ServiceNotFoundException>(async () => await indirectGreeter.SayHelloAsync(
+                "hello",
                 new Invocation
                 {
                     Context = new SortedDictionary<string, string>
@@ -148,15 +149,15 @@ namespace IceRpc.Tests.ClientServer
                         ["retry"] = "yes"
                     }
                 }));
-            Assert.ThrowsAsync<NoEndpointException>(async () => await indirectGreeter.SayHelloAsync());
+            Assert.ThrowsAsync<NoEndpointException>(async () => await indirectGreeter.SayHelloAsync("hello"));
 
             // Same with well-known greeter
 
-            Assert.ThrowsAsync<NoEndpointException>(async () => await wellKnownGreeter.SayHelloAsync());
+            Assert.ThrowsAsync<NoEndpointException>(async () => await wellKnownGreeter.SayHelloAsync("hello"));
             locator.RegisterWellKnownProxy(GreeterIdentity, indirectGreeter);
             locator.RegisterAdapter("adapt", _greeter);
             _called = false;
-            Assert.DoesNotThrowAsync(async () => await wellKnownGreeter.SayHelloAsync());
+            Assert.DoesNotThrowAsync(async () => await wellKnownGreeter.SayHelloAsync("hello"));
             Assert.That(_called, Is.True);
 
             Assert.That(locator.UnregisterWellKnownProxy(GreeterIdentity), Is.True);
@@ -164,10 +165,11 @@ namespace IceRpc.Tests.ClientServer
             if (cacheMaxSize > 1)
             {
                 // We still find it in the cache and can still call it.
-                Assert.DoesNotThrowAsync(async () => await wellKnownGreeter.SayHelloAsync());
+                Assert.DoesNotThrowAsync(async () => await wellKnownGreeter.SayHelloAsync("hello"));
 
                 // Force a retry to get re-resolution.
                 Assert.ThrowsAsync<ServiceNotFoundException>(async () => await wellKnownGreeter.SayHelloAsync(
+                    "hello",
                     new Invocation
                     {
                         Context = new SortedDictionary<string, string>
@@ -177,7 +179,7 @@ namespace IceRpc.Tests.ClientServer
                     }));
             }
 
-            Assert.ThrowsAsync<NoEndpointException>(async () => await wellKnownGreeter.SayHelloAsync());
+            Assert.ThrowsAsync<NoEndpointException>(async () => await wellKnownGreeter.SayHelloAsync("hello"));
         }
 
         [TestCase("foo:tcp -h host1 -p 10000")]
@@ -296,7 +298,7 @@ namespace IceRpc.Tests.ClientServer
 
         private class Greeter : Service, IGreeter
         {
-            public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel)
+            public ValueTask SayHelloAsync(string message, Dispatch dispatch, CancellationToken cancel)
             {
                 if (dispatch.Context.ContainsKey("retry"))
                 {

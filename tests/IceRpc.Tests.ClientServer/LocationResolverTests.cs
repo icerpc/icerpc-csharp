@@ -42,13 +42,13 @@ namespace IceRpc.Tests.ClientServer
                         .UseBinder(_pool);
             }
 
-            await indirect.SayHelloAsync();
+            await indirect.SayHelloAsync("hello");
             Assert.That(indirect.Proxy.Connection, Is.Not.Null);
 
             foreach (string badProxy in badProxies)
             {
                 var badGreeter = GreeterPrx.Parse(badProxy, pipeline);
-                Assert.ThrowsAsync<NoEndpointException>(async () => await badGreeter.SayHelloAsync());
+                Assert.ThrowsAsync<NoEndpointException>(async () => await badGreeter.SayHelloAsync("hello"));
             }
         }
 
@@ -114,7 +114,7 @@ namespace IceRpc.Tests.ClientServer
 
         private class Greeter : Service, IGreeter
         {
-            public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
+            public ValueTask SayHelloAsync(string message, Dispatch dispatch, CancellationToken cancel) => default;
         }
     }
 }

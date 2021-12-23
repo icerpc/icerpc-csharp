@@ -73,7 +73,7 @@ namespace IceRpc.Tests.ClientServer
             var tasks = new List<Task>();
             for (int i = 0; i < 10; ++i)
             {
-                tasks.Add(greeter.SayHelloAsync());
+                tasks.Add(greeter.SayHelloAsync("hello"));
             }
             await Task.WhenAll(tasks);
 
@@ -119,7 +119,7 @@ namespace IceRpc.Tests.ClientServer
             var tasks = new List<Task>();
             for (int i = 0; i < 10; ++i)
             {
-                tasks.Add(greeter.SayHelloAsync(new Invocation { Timeout = TimeSpan.FromSeconds(1) }));
+                tasks.Add(greeter.SayHelloAsync("hello", new Invocation { Timeout = TimeSpan.FromSeconds(1) }));
             }
 
             Assert.ThrowsAsync<OperationCanceledException>(async () => await Task.WhenAll(tasks));
@@ -165,7 +165,7 @@ namespace IceRpc.Tests.ClientServer
 
             for (int i = 0; i < 10; ++i)
             {
-                Assert.ThrowsAsync<DispatchException>(async () => await greeter.SayHelloAsync());
+                Assert.ThrowsAsync<DispatchException>(async () => await greeter.SayHelloAsync("hello"));
             }
 
             Assert.DoesNotThrowAsync(async () => await dispatchEventListener.WaitForCounterEventsAsync());
@@ -174,18 +174,18 @@ namespace IceRpc.Tests.ClientServer
 
         private class Greeter1 : Service, IGreeter
         {
-            public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
+            public ValueTask SayHelloAsync(string message, Dispatch dispatch, CancellationToken cancel) => default;
         }
 
         private class Greeter2 : Service, IGreeter
         {
-            public async ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
+            public async ValueTask SayHelloAsync(string message, Dispatch dispatch, CancellationToken cancel) =>
                 await Task.Delay(TimeSpan.FromSeconds(10), cancel);
         }
 
         private class Greeter3 : Service, IGreeter
         {
-            public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
+            public ValueTask SayHelloAsync(string message, Dispatch dispatch, CancellationToken cancel) =>
                 throw new DispatchException("failed");
         }
 

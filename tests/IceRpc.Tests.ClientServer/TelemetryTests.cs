@@ -229,7 +229,7 @@ namespace IceRpc.Tests.ClientServer
 
         public class Greeter : Service, IGreeter
         {
-            public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
+            public ValueTask SayHelloAsync(string message, Dispatch dispatch, CancellationToken cancel) => default;
         }
     }
 }

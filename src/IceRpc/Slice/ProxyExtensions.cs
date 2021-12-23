@@ -50,6 +50,13 @@ namespace IceRpc.Slice
             bool idempotent = false,
             CancellationToken cancel = default)
         {
+            if (invocation?.IsOneway == true)
+            {
+                throw new ArgumentException(
+                    "cannot send request for an operation with a return value as oneway",
+                    nameof(invocation));
+            }
+
             Task<IncomingResponse> responseTask =
                 proxy.InvokeAsync(
                     operation,
