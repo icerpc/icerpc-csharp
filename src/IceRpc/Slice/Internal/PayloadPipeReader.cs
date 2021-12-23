@@ -9,7 +9,7 @@ namespace IceRpc.Slice.Internal
     internal sealed class PayloadPipeReader : PipeReader
     {
         private bool _isReaderCompleted;
-        private readonly SequenceBufferWriter _bufferWriter;
+        private readonly IDisposable _disposable;
         private ReadOnlySequence<byte> _sequence;
 
         public override bool TryRead(out ReadResult result)
@@ -48,16 +48,20 @@ namespace IceRpc.Slice.Internal
             if (!_isReaderCompleted)
             {
                 _isReaderCompleted = true;
-                _bufferWriter.Dispose();
+                _disposable.Dispose();
             }
         }
 
-        internal PayloadPipeReader(SequenceBufferWriter bufferWriter)
+        internal PayloadPipeReader(SequenceBufferWriter bufferWriter) :
+            this(bufferWriter.Sequence, bufferWriter)
         {
-            _bufferWriter = bufferWriter;
-            _sequence = _bufferWriter.Sequence;
+
         }
 
-        internal void Reset() => _sequence = _bufferWriter.Sequence;
+        internal PayloadPipeReader(ReadOnlySequence<byte> sequence, IDisposable disposable)
+        {
+            _disposable = disposable;
+            _sequence = sequence;
+        }
     }
 }
