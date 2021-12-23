@@ -79,16 +79,12 @@ namespace IceRpc.Slice
             }
             else
             {
-                // A Unicode character can be encoded on up to 4 UTF-8 bytes, so each span must be at least 4 bytes
-                // long.
-                const int minSpanSize = 4;
-
                 int maxSize = _utf8.GetMaxByteCount(v.Length);
                 int sizeLength = GetSizeLength(maxSize);
                 Span<byte> sizePlaceholder = GetPlaceholderSpan(sizeLength);
 
-                Span<byte> currentSpan = _bufferWriter.GetSpan(minSpanSize);
-                if (maxSize <= currentSpan.Length)
+                Span<byte> currentSpan = _bufferWriter.GetSpan();
+                if (currentSpan.Length >= maxSize)
                 {
                     // Encode directly into currentSpan
                     int size = _utf8.GetBytes(v, currentSpan);
