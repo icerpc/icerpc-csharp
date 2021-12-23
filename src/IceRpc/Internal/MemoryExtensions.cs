@@ -47,19 +47,5 @@ namespace IceRpc.Internal
             }
             return segments;
         }
-
-        internal static ReadOnlyMemory<byte> ToSingleBuffer(this ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
-        {
-            if (buffers.Length == 1)
-            {
-                return buffers.Span[0];
-            }
-            else
-            {
-                byte[] data = new byte[buffers.GetByteCount()];
-                buffers.CopyTo(data);
-                return data;
-            }
-        }
     }
 }
