@@ -728,7 +728,7 @@ namespace IceRpc.Internal
             _pipe.Reset();
             if (exception != null)
             {
-                throw exception;
+                throw ExceptionUtil.Throw(exception);
             }
         }
 
@@ -816,9 +816,14 @@ namespace IceRpc.Internal
                 index = AddToBuffers(result.Buffer, index);
 
                 // Write the buffers to the network connection.
-                await _networkConnection.WriteAsync(_buffers.AsMemory()[0..index], cancel).ConfigureAwait(false);
-
-                reader.AdvanceTo(result.Buffer.End);
+                try
+                {
+                    await _networkConnection.WriteAsync(_buffers.AsMemory()[0..index], cancel).ConfigureAwait(false);
+                }
+                finally
+                {
+                    reader.AdvanceTo(result.Buffer.End);
+                }
             }
             else
             {
@@ -832,11 +837,17 @@ namespace IceRpc.Internal
 
                     // Write the buffers on the network connection. The write on the network connection is only
                     // cancelable when using UDP.
-                    await _networkConnection.WriteAsync(
-                        _buffers.AsMemory()[0..index],
-                        CancellationToken.None).ConfigureAwait(false);
+                    try
+                    {
+                        await _networkConnection.WriteAsync(
+                            _buffers.AsMemory()[0..index],
+                            CancellationToken.None).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        reader.AdvanceTo(result.Buffer.End);
+                    }
 
-                    reader.AdvanceTo(result.Buffer.End);
                     if (result.IsCompleted)
                     {
                         break;
