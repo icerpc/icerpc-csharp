@@ -87,7 +87,7 @@ namespace IceRpc
 
         /// <summary>Encodes a remote exception to an <see cref="IceEncoder"/>.</summary>
         /// <param name="encoder">The Ice encoder.</param>
-        protected virtual void IceEncode(IceEncoder encoder)
+        protected virtual void IceEncode(ref IceEncoder encoder)
         {
             if (encoder.Encoding == Encoding.Ice11)
             {
@@ -98,12 +98,12 @@ namespace IceRpc
             {
                 encoder.EncodeString(_iceTypeId);
                 encoder.EncodeString(Message);
-                Origin.Encode(encoder);
+                Origin.Encode(ref encoder);
             }
         }
 
         internal void Decode(ref IceDecoder decoder) => IceDecode(ref decoder);
-        internal void Encode(IceEncoder encoder) => IceEncode(encoder);
+        internal void Encode(ref IceEncoder encoder) => IceEncode(ref encoder);
     }
 
     public readonly partial record struct RemoteExceptionOrigin

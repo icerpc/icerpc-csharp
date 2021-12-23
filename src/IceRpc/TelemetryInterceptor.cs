@@ -107,7 +107,7 @@ namespace IceRpc
 
                 request.Fields.Add(
                     (int)FieldKey.TraceContext,
-                    encoder =>
+                    (ref IceEncoder encoder) =>
                     {
                         // W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,
                         // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values
@@ -123,7 +123,9 @@ namespace IceRpc
                         encoder.EncodeString(activity.TraceStateString ?? "");
 
                         // Baggage encoded as a sequence<BaggageEntry>
-                        encoder.EncodeSequence(activity.Baggage, (encoder, entry) =>
+                        encoder.EncodeSequence(
+                            activity.Baggage,
+                            (ref IceEncoder encoder, KeyValuePair<string, string?> entry) =>
                         {
                             encoder.EncodeString(entry.Key);
                             encoder.EncodeString(entry.Value ?? "");

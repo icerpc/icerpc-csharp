@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice;
-using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
@@ -19,10 +18,10 @@ namespace IceRpc.Transports.Internal
                 writer,
                 FrameType.Initialize,
                 stream: null,
-                encoder =>
+                (ref IceEncoder encoder) =>
                 {
                     encoder.EncodeVarUInt(version);
-                    frame.Encode(encoder);
+                    frame.Encode(ref encoder);
                 },
                 cancel);
 
@@ -84,7 +83,7 @@ namespace IceRpc.Transports.Internal
             }
             if (encode != null)
             {
-                encode?.Invoke(encoder);
+                encode?.Invoke(ref encoder);
             }
             IceEncoder.EncodeSize20(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
 

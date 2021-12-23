@@ -12,7 +12,7 @@ using System.Text;
 namespace IceRpc.Slice
 {
     /// <summary>Encodes data into one or more byte buffers using the Ice encoding.</summary>
-    public sealed partial class IceEncoder
+    public partial record struct IceEncoder
     {
         /// <summary>The Slice encoding associated with this encoder.</summary>
         public IceEncoding Encoding { get; }
@@ -41,6 +41,7 @@ namespace IceRpc.Slice
             IBufferWriter<byte> bufferWriter,
             IceEncoding encoding,
             FormatType classFormat = default)
+                : this()
         {
             Encoding = encoding;
             _bufferWriter = bufferWriter;
@@ -211,7 +212,7 @@ namespace IceRpc.Slice
             }
             else
             {
-                v.Encode(this);
+                v.Encode(ref this);
             }
         }
 
@@ -223,7 +224,7 @@ namespace IceRpc.Slice
             {
                 if (proxy == null)
                 {
-                    Identity.Empty.Encode(this);
+                    Identity.Empty.Encode(ref this);
                 }
                 else
                 {
@@ -251,7 +252,7 @@ namespace IceRpc.Slice
                             $"cannot encode proxy with path '{proxy.Path}' using encoding 1.1");
                     }
 
-                    identityAndFacet.Identity.Encode(this);
+                    identityAndFacet.Identity.Encode(ref this);
 
                     (byte encodingMajor, byte encodingMinor) = proxy.Encoding.ToMajorMinor();
 
@@ -264,7 +265,7 @@ namespace IceRpc.Slice
                         protocolMinor: 0,
                         encodingMajor,
                         encodingMinor);
-                    proxyData.Encode(this);
+                    proxyData.Encode(ref this);
 
                     if (proxy.Endpoint == null)
                     {
@@ -283,7 +284,9 @@ namespace IceRpc.Slice
 
                         if (endpoints.Any())
                         {
-                            this.EncodeSequence(endpoints, (encoder, endpoint) => encoder.EncodeEndpoint(endpoint));
+                            this.EncodeSequence(
+                                endpoints,
+                                (ref IceEncoder encoder, Endpoint endpoint) => encoder.EncodeEndpoint(endpoint));
                         }
                         else // encoded as an endpointless proxy
                         {
@@ -298,7 +301,7 @@ namespace IceRpc.Slice
                 if (proxy == null)
                 {
                     ProxyData20 proxyData = default;
-                    proxyData.Encode(this);
+                    proxyData.Encode(ref this);
                 }
                 else
                 {
@@ -316,7 +319,7 @@ namespace IceRpc.Slice
                                 proxy.AltEndpoints.Count == 0 ? null :
                                     proxy.AltEndpoints.Select(e => e.ToEndpointData()).ToArray());
 
-                    proxyData.Encode(this);
+                    proxyData.Encode(ref this);
                 }
             }
         }
@@ -351,7 +354,9 @@ namespace IceRpc.Slice
             }
             else
             {
-                this.EncodeSequence(v, (encoder, element) => encoder.EncodeFixedSizeNumeric(element));
+                this.EncodeSequence(
+                    v,
+                    (ref IceEncoder encoder, T element) => encoder.EncodeFixedSizeNumeric(element));
             }
         }
 
@@ -453,7 +458,7 @@ namespace IceRpc.Slice
                     EncodeTaggedParamHeader(tag, tagFormat);
                     Span<byte> placeholder = GetPlaceholderSpan(4);
                     int startPos = EncodedByteCount;
-                    encodeAction(this, v);
+                    encodeAction(ref this, v);
 
                     // We don't include the size-length in the size we encode.
                     EncodeInt(EncodedByteCount - startPos, placeholder);
@@ -465,7 +470,7 @@ namespace IceRpc.Slice
                     Debug.Assert(tagFormat == TagFormat.OVSize);
 
                     EncodeTaggedParamHeader(tag, TagFormat.VSize);
-                    encodeAction(this, v);
+                    encodeAction(ref this, v);
                 }
             }
             else
@@ -473,7 +478,7 @@ namespace IceRpc.Slice
                 EncodeVarInt(tag); // the key
                 Span<byte> sizePlaceholder = GetPlaceholderSpan(4);
                 int startPos = EncodedByteCount;
-                encodeAction(this, v);
+                encodeAction(ref this, v);
                 EncodeSize20(EncodedByteCount - startPos, sizePlaceholder);
             }
         }
@@ -525,14 +530,14 @@ namespace IceRpc.Slice
                 }
 
                 startPos = EncodedByteCount;
-                encodeAction(this, v);
+                encodeAction(ref this, v);
             }
             else
             {
                 EncodeVarInt(tag); // the key
                 EncodeSize(size);
                 startPos = EncodedByteCount;
-                encodeAction(this, v);
+                encodeAction(ref this, v);
             }
 
             int actualSize = EncodedByteCount - startPos;
@@ -600,7 +605,7 @@ namespace IceRpc.Slice
             EncodeVarInt(key);
             Span<byte> sizePlaceholder = GetPlaceholderSpan(2);
             int startPos = EncodedByteCount;
-            encodeAction(this, value);
+            encodeAction(ref this, value);
             EncodeSize20(EncodedByteCount - startPos, sizePlaceholder);
         }
 

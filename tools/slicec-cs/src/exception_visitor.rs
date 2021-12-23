@@ -147,7 +147,7 @@ else
                 "IceEncode",
                 FunctionType::BlockBody,
             )
-            .add_parameter("IceEncoder", "encoder", None, None)
+            .add_parameter("ref IceEncoder", "encoder", None, None)
             .set_body({
                 let mut code = CodeBlock::new();
                 // TODO: don't need if (encoder.Encoding ==) when exception has classes
@@ -160,11 +160,11 @@ if (encoder.Encoding == IceRpc.Encoding.Ice11)
     encoder.IceStartSlice(_iceTypeId);
     {encode_data_members}
     encoder.IceEndSlice(lastSlice: false);
-    base.IceEncode(encoder);
+    base.IceEncode(ref encoder);
 }}
 else
 {{
-    base.IceEncode(encoder);
+    base.IceEncode(ref encoder);
 }}",
                         encode_data_members =
                             &encode_data_members(&members, namespace, FieldType::Exception,)
@@ -183,7 +183,7 @@ else
 {{
     encoder.EncodeString(_iceTypeId);
     encoder.EncodeString(Message);
-    Origin.Encode(encoder);
+    Origin.Encode(ref encoder);
     {encode_data_members}
 }}",
                         encode_data_members =

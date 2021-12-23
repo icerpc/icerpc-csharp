@@ -11,7 +11,7 @@ namespace IceRpc.Slice
         /// <param name="keyEncodeAction">The encode action for the keys.</param>
         /// <param name="valueEncodeAction">The encode action for the values.</param>
         public static void EncodeDictionary<TKey, TValue>(
-            this IceEncoder encoder,
+            this ref IceEncoder encoder,
             IEnumerable<KeyValuePair<TKey, TValue>> v,
             EncodeAction<TKey> keyEncodeAction,
             EncodeAction<TValue> valueEncodeAction)
@@ -20,8 +20,8 @@ namespace IceRpc.Slice
             encoder.EncodeSize(v.Count());
             foreach ((TKey key, TValue value) in v)
             {
-                keyEncodeAction(encoder, key);
-                valueEncodeAction(encoder, value);
+                keyEncodeAction(ref encoder, key);
+                valueEncodeAction(ref encoder, value);
             }
         }
 
@@ -31,7 +31,7 @@ namespace IceRpc.Slice
         /// <param name="keyEncodeAction">The encode action for the keys.</param>
         /// <param name="valueEncodeAction">The encode action for the non-null values.</param>
         public static void EncodeDictionaryWithBitSequence<TKey, TValue>(
-            this IceEncoder encoder,
+            this ref IceEncoder encoder,
             IEnumerable<KeyValuePair<TKey, TValue>> v,
             EncodeAction<TKey> keyEncodeAction,
             EncodeAction<TValue> valueEncodeAction)
@@ -43,14 +43,14 @@ namespace IceRpc.Slice
             int index = 0;
             foreach ((TKey key, TValue value) in v)
             {
-                keyEncodeAction(encoder, key);
+                keyEncodeAction(ref encoder, key);
                 if (value == null)
                 {
                     bitSequence[index] = false;
                 }
                 else
                 {
-                    valueEncodeAction(encoder, value);
+                    valueEncodeAction(ref encoder, value);
                 }
                 index++;
             }
@@ -63,14 +63,14 @@ namespace IceRpc.Slice
         /// <param name="v">The sequence to encode.</param>
         /// <param name="encodeAction">The encode action for an element.</param>
         public static void EncodeSequence<T>(
-            this IceEncoder encoder,
+            this ref IceEncoder encoder,
             IEnumerable<T> v,
             EncodeAction<T> encodeAction)
         {
             encoder.EncodeSize(v.Count()); // potentially slow Linq Count()
             foreach (T item in v)
             {
-                encodeAction(encoder, item);
+                encodeAction(ref encoder, item);
             }
         }
 
@@ -81,7 +81,7 @@ namespace IceRpc.Slice
         /// <param name="encodeAction">The encode action for a non-null value.</param>
         /// <remarks>This method always encodes a bit sequence.</remarks>
         public static void EncodeSequenceWithBitSequence<T>(
-            this IceEncoder encoder,
+            this ref IceEncoder encoder,
             IEnumerable<T> v,
             EncodeAction<T> encodeAction)
         {
@@ -97,7 +97,7 @@ namespace IceRpc.Slice
                 }
                 else
                 {
-                    encodeAction(encoder, item);
+                    encodeAction(ref encoder, item);
                 }
                 index++;
             }

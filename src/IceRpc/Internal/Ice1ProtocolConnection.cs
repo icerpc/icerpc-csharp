@@ -416,7 +416,7 @@ namespace IceRpc.Internal
                     encapsulationSize: payloadSize + 6,
                     encodingMajor,
                     encodingMinor);
-                requestHeader.Encode(encoder);
+                requestHeader.Encode(ref encoder);
 
                 IceEncoder.EncodeInt(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
 
@@ -545,7 +545,7 @@ namespace IceRpc.Internal
                             var responseHeader = new Ice1ResponseHeader(encapsulationSize: payloadSize + 6,
                                                                         encodingMajor,
                                                                         encodingMinor);
-                            responseHeader.Encode(encoder);
+                            responseHeader.Encode(ref encoder);
                         }
 
                         IceEncoder.EncodeInt(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);

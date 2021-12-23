@@ -33,9 +33,9 @@ namespace IceRpc
 
         /// <summary>Encodes this instance by encoding its data members to the <see cref="IceEncoder"/>.</summary>
         /// <param name="encoder">The Ice 1.1 encoder.</param>
-        protected abstract void IceEncode(IceEncoder encoder);
+        protected abstract void IceEncode(ref IceEncoder encoder);
 
         internal void Decode(ref IceDecoder decoder) => IceDecode(ref decoder);
-        internal void Encode(IceEncoder encoder) => IceEncode(encoder);
+        internal void Encode(ref IceEncoder encoder) => IceEncode(ref encoder);
     }
 }

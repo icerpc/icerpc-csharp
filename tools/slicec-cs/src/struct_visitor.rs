@@ -114,7 +114,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                 FunctionType::BlockBody,
             )
             .add_comment("summary", "Encodes the fields of this struct.")
-            .add_parameter("IceEncoder", "encoder", None, Some("The encoder."))
+            .add_parameter("ref IceEncoder", "encoder", None, Some("The encoder."))
             .set_body(encode_data_members(
                 &members,
                 &namespace,

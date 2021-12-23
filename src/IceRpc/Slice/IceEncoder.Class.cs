@@ -13,7 +13,7 @@ using static IceRpc.Slice.Internal.Ice11Definitions;
 
 namespace IceRpc.Slice
 {
-    public sealed partial class IceEncoder
+    public partial record struct IceEncoder
     {
         /// <summary>Encodes a class instance.</summary>
         /// <param name="v">The class instance to encode.</param>
@@ -54,7 +54,7 @@ namespace IceRpc.Slice
                         var requestFailed = new Ice1RequestFailedExceptionData(
                             identityAndFacet,
                             remoteException.Origin.Operation);
-                        requestFailed.Encode(this);
+                        requestFailed.Encode(ref this);
                         break;
 
                     default:
@@ -70,7 +70,7 @@ namespace IceRpc.Slice
                 _classContext.ClassFormat = FormatType.Sliced; // always encode exceptions in sliced format
                 _classContext.Current.InstanceType = InstanceType.Exception;
                 _classContext.Current.FirstSlice = true;
-                v.Encode(this);
+                v.Encode(ref this);
                 _classContext.Current = default;
             }
         }
@@ -309,7 +309,7 @@ namespace IceRpc.Slice
 
                     default:
                         Debug.Assert(transportCode == TransportCode.Any);
-                        endpoint.ToEndpointData().Encode(this);
+                        endpoint.ToEndpointData().Encode(ref this);
                         break;
                 }
 
@@ -350,7 +350,7 @@ namespace IceRpc.Slice
                     EncodeUnknownSlices(v.UnknownSlices, fullySliced: false);
                     _classContext.Current.FirstSlice = false;
                 }
-                v.Encode(this);
+                v.Encode(ref this);
 
                 // Restore previous _current.
                 _classContext.Current = previousCurrent;

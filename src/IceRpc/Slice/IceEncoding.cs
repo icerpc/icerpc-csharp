@@ -43,7 +43,7 @@ namespace IceRpc.Slice
             var encoder = new IceEncoder(pipe.Writer, this);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
-            encodeAction(encoder, arg);
+            encodeAction(ref encoder, arg);
             EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
@@ -66,7 +66,7 @@ namespace IceRpc.Slice
             var encoder = new IceEncoder(pipe.Writer, this);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
-            encodeAction(encoder, in args);
+            encodeAction(ref encoder, in args);
             EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
@@ -93,7 +93,9 @@ namespace IceRpc.Slice
                 IAsyncEnumerator<T> asyncEnumerator = asyncEnumerable.GetAsyncEnumerator(cancelationSource.Token);
                 await using var _ = asyncEnumerator.ConfigureAwait(false);
 
-                (IceEncoder encoder, int startPos, Memory<byte> sizePlaceholder) = StartSegment();
+                var encoder = new IceEncoder(writer, this);
+
+                (int startPos, Memory<byte> sizePlaceholder) = StartSegment(ref encoder);
 
                 while (true)
                 {
@@ -102,13 +104,15 @@ namespace IceRpc.Slice
                     {
                         if (moveNext.Result)
                         {
-                            encodeAction(encoder, asyncEnumerator.Current);
+                            encodeAction(ref encoder, asyncEnumerator.Current);
                         }
                         else
                         {
                             if (encoder.EncodedByteCount != startPos)
                             {
-                                await FinishSegmentAsync(encoder, startPos, sizePlaceholder).ConfigureAwait(false);
+                                await FinishSegmentAsync(
+                                    encoder.EncodedByteCount - startPos,
+                                    sizePlaceholder).ConfigureAwait(false);
                             }
                             break; // End iteration
                         }
@@ -119,8 +123,7 @@ namespace IceRpc.Slice
                         if (encoder.EncodedByteCount != startPos)
                         {
                             FlushResult flushResult = await FinishSegmentAsync(
-                                encoder,
-                                startPos,
+                                encoder.EncodedByteCount - startPos,
                                 sizePlaceholder).ConfigureAwait(false);
 
                             // nobody can call CancelPendingFlush on this writer
@@ -132,12 +135,13 @@ namespace IceRpc.Slice
                                 break; // End iteration
                             }
 
-                            (encoder, startPos, sizePlaceholder) = StartSegment();
+                            encoder = new IceEncoder(writer, this);
+                            (startPos, sizePlaceholder) = StartSegment(ref encoder);
                         }
 
                         if (await moveNext.ConfigureAwait(false))
                         {
-                            encodeAction(encoder, asyncEnumerator.Current);
+                            encodeAction(ref encoder, asyncEnumerator.Current);
                         }
                         else
                         {
@@ -149,8 +153,7 @@ namespace IceRpc.Slice
                     if (encoder.EncodedByteCount > 32 * 1024)
                     {
                         FlushResult flushResult = await FinishSegmentAsync(
-                                encoder,
-                                startPos,
+                                encoder.EncodedByteCount - startPos,
                                 sizePlaceholder).ConfigureAwait(false);
 
                         // nobody can call CancelPendingFlush on this writer
@@ -161,27 +164,26 @@ namespace IceRpc.Slice
                             break; // End iteration
                         }
 
-                        (encoder, startPos, sizePlaceholder) = StartSegment();
+                        encoder = new IceEncoder(writer, this);
+                        (startPos, sizePlaceholder) = StartSegment(ref encoder);
                     }
                 }
 
                 // Write end of stream
                 await writer.CompleteAsync().ConfigureAwait(false);
 
-                (IceEncoder Encoder, int StartPos, Memory<byte> SizePlaceholder) StartSegment()
+                (int StartPos, Memory<byte> SizePlaceholder) StartSegment(ref IceEncoder encoder)
                 {
-                    var encoder = new IceEncoder(writer, this);
                     Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
                     int startPos = encoder.EncodedByteCount;
-                    return (encoder, startPos, sizePlaceholder);
+                    return (startPos, sizePlaceholder);
                 }
 
                 async ValueTask<FlushResult> FinishSegmentAsync(
-                    IceEncoder encoder,
-                    int startPos,
+                    int size,
                     Memory<byte> sizePlaceholder)
                 {
-                    EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
+                    EncodeFixedLengthSize(size, sizePlaceholder.Span);
                     try
                     {
                         return await writer.FlushAsync().ConfigureAwait(false);
@@ -229,7 +231,7 @@ namespace IceRpc.Slice
             var encoder = new IceEncoder(pipe.Writer, this);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
-            encodeAction(encoder, in returnValueTuple);
+            encodeAction(ref encoder, in returnValueTuple);
             EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
@@ -252,7 +254,7 @@ namespace IceRpc.Slice
             var encoder = new IceEncoder(pipe.Writer, this);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
-            encodeAction(encoder, returnValue);
+            encodeAction(ref encoder, returnValue);
             EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.

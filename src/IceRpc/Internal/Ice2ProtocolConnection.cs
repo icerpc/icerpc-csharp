@@ -341,7 +341,7 @@ namespace IceRpc.Internal
                     deadline,
                     request.PayloadEncoding == Ice2Definitions.Encoding ? "" : request.PayloadEncoding.ToString());
 
-                header.Encode(encoder);
+                header.Encode(ref encoder);
 
                 // If the context feature is set to a non empty context, or if the fields defaults contains a context
                 // entry and the context feature is set, marshal the context feature in the request fields. The context
@@ -352,9 +352,10 @@ namespace IceRpc.Internal
                 {
                     // Encodes context
                     request.Fields[(int)FieldKey.Context] =
-                        encoder => encoder.EncodeDictionary(context,
-                                                            (encoder, value) => encoder.EncodeString(value),
-                                                            (encoder, value) => encoder.EncodeString(value));
+                        (ref IceEncoder encoder) => encoder.EncodeDictionary(
+                            context,
+                            (ref IceEncoder encoder, string value) => encoder.EncodeString(value),
+                            (ref IceEncoder encoder, string value) => encoder.EncodeString(value));
                 }
                 // else context remains empty (not set)
 
@@ -407,7 +408,7 @@ namespace IceRpc.Internal
                 new Ice2ResponseHeader(
                     response.ResultType,
                     response.PayloadEncoding == Ice2Definitions.Encoding ? "" :
-                        response.PayloadEncoding.ToString()).Encode(encoder);
+                        response.PayloadEncoding.ToString()).Encode(ref encoder);
 
                 encoder.EncodeFields(response.Fields, response.FieldsDefaults);
 
@@ -462,10 +463,10 @@ namespace IceRpc.Internal
                 // Send GoAway frame
                 await SendControlFrameAsync(
                     Ice2FrameType.GoAway,
-                    encoder => new Ice2GoAwayBody(
+                    (ref IceEncoder encoder) => new Ice2GoAwayBody(
                         _lastRemoteBidirectionalStreamId,
                         _lastRemoteUnidirectionalStreamId,
-                        message).Encode(encoder),
+                        message).Encode(ref encoder),
                     CancellationToken.None).ConfigureAwait(false);
             }
 
@@ -489,15 +490,16 @@ namespace IceRpc.Internal
 
             await SendControlFrameAsync(
                 Ice2FrameType.Initialize,
-                encoder =>
+                (ref IceEncoder encoder) =>
                 {
                     // Encode the transport parameters as Fields
                     encoder.EncodeSize(1);
 
                     // Transmit out local incoming frame maximum size
-                    encoder.EncodeField((int)Ice2ParameterKey.IncomingFrameMaxSize,
-                                        (ulong)_incomingFrameMaxSize,
-                                        (encoder, value) => encoder.EncodeVarULong(value));
+                    encoder.EncodeField(
+                        (int)Ice2ParameterKey.IncomingFrameMaxSize,
+                        (ulong)_incomingFrameMaxSize,
+                        (ref IceEncoder encoder, ulong value) => encoder.EncodeVarULong(value));
                 },
                 cancel).ConfigureAwait(false);
 
@@ -631,7 +633,7 @@ namespace IceRpc.Internal
             encoder.EncodeByte((byte)frameType);
             Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4); // TODO: reduce bytes
             int startPos = encoder.EncodedByteCount; // does not include the size
-            frameEncodeAction?.Invoke(encoder);
+            frameEncodeAction?.Invoke(ref encoder);
             IceEncoder.EncodeSize20(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
 
             buffer = bufferWriter.WrittenBuffer;
@@ -761,10 +763,10 @@ namespace IceRpc.Internal
                 // Send GoAway frame if not already shutting down.
                 await SendControlFrameAsync(
                     Ice2FrameType.GoAway,
-                    encoder => new Ice2GoAwayBody(
+                    (ref IceEncoder encoder) => new Ice2GoAwayBody(
                         _lastRemoteBidirectionalStreamId,
                         _lastRemoteUnidirectionalStreamId,
-                        goAwayFrame.Message).Encode(encoder),
+                        goAwayFrame.Message).Encode(ref encoder),
                     CancellationToken.None).ConfigureAwait(false);
             }
 

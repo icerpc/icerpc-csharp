@@ -650,7 +650,7 @@ namespace IceRpc.Tests.Slice
             PipeReader requestPayload =
                 _prx.Proxy.GetIceEncoding().CreatePayloadFromArgs(
                     (15, "test"),
-                    (IceEncoder encoder, in (int? N, string? S) value) =>
+                    (ref IceEncoder encoder, in (int? N, string? S) value) =>
                     {
                         if (value.N != null)
                         {
@@ -658,14 +658,14 @@ namespace IceRpc.Tests.Slice
                                                  TagFormat.F4,
                                                  size: 4,
                                                  value.N.Value,
-                                                 (encoder, v) => encoder.EncodeInt(v));
+                                                 (ref IceEncoder encoder, int v) => encoder.EncodeInt(v));
                         }
                         if (value.S != null)
                         {
                             encoder.EncodeTagged(1, // duplicate tag ignored by the server
                                                  TagFormat.OVSize,
                                                  value.S,
-                                                 (encoder, v) => encoder.EncodeString(v));
+                                                 (ref IceEncoder encoder, string v) => encoder.EncodeString(v));
                         }
                     });
 

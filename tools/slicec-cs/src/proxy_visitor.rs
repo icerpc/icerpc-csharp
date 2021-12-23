@@ -585,7 +585,7 @@ fn request_encode_action(operation: &Operation) -> CodeBlock {
     } else {
         format!(
             "\
-(IceEncoder encoder,
+(ref IceEncoder encoder,
  {_in}{param_type} value) =>
 {{
     {encode}

@@ -15,7 +15,7 @@ namespace IceRpc.Internal
         /// <param name="fields">The fields.</param>
         /// <param name="fieldsDefaults">The fields defaults.</param>
         internal static void EncodeFields(
-            this IceEncoder encoder,
+            this ref IceEncoder encoder,
             Dictionary<int, EncodeAction>? fields,
             IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fieldsDefaults)
         {
@@ -35,7 +35,7 @@ namespace IceRpc.Internal
                     encoder.EncodeVarInt(key);
                     Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
                     int startPos = encoder.EncodedByteCount;
-                    action(encoder);
+                    action(ref encoder);
                     IceEncoder.EncodeSize20(encoder.EncodedByteCount - startPos, sizePlaceholder);
                     count++;
                 }

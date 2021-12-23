@@ -299,7 +299,7 @@ pub fn response_encode_action(operation: &Operation) -> CodeBlock {
     } else {
         format!(
             "\
-(IceEncoder encoder,
+(ref IceEncoder encoder,
  {_in}{tuple_type} value) =>
 {{
     {encode_action}
