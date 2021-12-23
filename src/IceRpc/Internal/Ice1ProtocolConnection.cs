@@ -39,6 +39,7 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public event Action<string>? PeerShutdownInitiated;
 
+        // Cached buffers used to call WriteAsync on the network connection.
         private ReadOnlyMemory<byte>[] _buffers = new ReadOnlyMemory<byte>[8];
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -380,7 +381,6 @@ namespace IceRpc.Internal
                 }
             }
 
-            PipeWriter? payloadSink = null;
             try
             {
                 (int payloadSize, bool isCanceled, bool isCompleted) = await payloadEncoding.DecodeSegmentSizeAsync(
@@ -423,16 +423,19 @@ namespace IceRpc.Internal
 
                 Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
 
-                // If the delayed request writer is null, the payload sink hasn't been accessed by an interceptor and we
-                // can assign it to the network connection pipe writer. Otherwise, set the network connection pipe
-                // writer on the delayed pipe writer decorator.
-                if (request.DelayedRequestWriter != null)
+                if (request.DelayedRequestWriter == null)
                 {
-                    request.DelayedRequestWriter.SetDecoratee(_pipe.Writer);
-                    payloadSink = request.PayloadSink;
+                    // If the delayed request writer is null, there's no payload sink. We can directly send the payload
+                    // over the network connection.
+                    await SendPayloadAsync(request, cancel).ConfigureAwait(false);
                 }
-
-                await SendPayloadAsync(request, payloadSink, payloadSize, cancel).ConfigureAwait(false);
+                else
+                {
+                    // Otherwise, send the payload over the payload sink which is connected to the connection's pipe
+                    // writer.
+                    request.DelayedRequestWriter.SetDecoratee(_pipe.Writer);
+                    await SendPayloadAsync(request, request.PayloadSink, cancel).ConfigureAwait(false);
+                }
 
                 await CompleteSendAsync(request).ConfigureAwait(false);
 
@@ -485,7 +488,6 @@ namespace IceRpc.Internal
                     // Wait for sending of other frames to complete. The semaphore is used as an asynchronous
                     // queue to serialize the sending of frames.
                     await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
-                    PipeWriter? payloadSink = null;
                     try
                     {
                         if (request.PayloadEncoding is not IceEncoding payloadEncoding)
@@ -562,12 +564,18 @@ namespace IceRpc.Internal
 
                         Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
 
-                        if (response.PayloadSink != _pipe.Writer)
+                        if (response.PayloadSink == _pipe.Writer)
                         {
-                            payloadSink = response.PayloadSink;
+                            // If the response payload sink is the connection's pipe writer. We can directly send the
+                            // payload over the network connection.
+                            await SendPayloadAsync(response, cancel).ConfigureAwait(false);
                         }
-
-                        await SendPayloadAsync(response, payloadSink, payloadSize, cancel).ConfigureAwait(false);
+                        else
+                        {
+                            // Otherwise, send the payload over the payload sink which is connected to the connection's
+                            // pipe writer.
+                            await SendPayloadAsync(response, response.PayloadSink, cancel).ConfigureAwait(false);
+                        }
 
                         await CompleteSendAsync(response).ConfigureAwait(false);
                     }
@@ -712,7 +720,7 @@ namespace IceRpc.Internal
             }
         }
 
-        async ValueTask CompleteSendAsync(OutgoingFrame frame, Exception? exception = null)
+        private async ValueTask CompleteSendAsync(OutgoingFrame frame, Exception? exception = null)
         {
             await frame.PayloadSource.CompleteAsync(exception).ConfigureAwait(false);
             await _pipe.Reader.CompleteAsync(exception).ConfigureAwait(false);
@@ -724,12 +732,8 @@ namespace IceRpc.Internal
             }
         }
 
-        /// <summary>Sends the payload source of an outgoing frame.</summary>
-        private async Task SendPayloadAsync(
-            OutgoingFrame outgoingFrame,
-            PipeWriter? payloadSink,
-            int payloadSize,
-            CancellationToken cancel)
+        /// <summary>Sends the payload source of an outgoing frame directly on the network connection.</summary>
+        private async Task SendPayloadAsync(OutgoingFrame outgoingFrame, CancellationToken cancel)
         {
             if (outgoingFrame.PayloadSourceStream != null)
             {
@@ -741,122 +745,132 @@ namespace IceRpc.Internal
             // Flush the header written to the pipe.
             _ = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
 
-            if (payloadSink == null)
+            // Get the frame header encoded on the pipe and write it to the buffers.
+            if (!_pipe.Reader.TryRead(out ReadResult result) || result.IsCompleted)
             {
-                // If there's no payload sink, we can directly read and send the payload source over the connection.
+                // The connection has been closed.
+                return;
+            }
+            Debug.Assert(!result.IsCanceled);
+            int index = AddToBuffers(result.Buffer, 0);
 
-                // Get the frame header encoded on the pipe and write it to the buffers.
-                if (!_pipe.Reader.TryRead(out ReadResult result) || result.IsCompleted)
+            // Next, write the header and the payload source to the network connection.
+            await WriteAsync(outgoingFrame.PayloadSource, index, cancel).ConfigureAwait(false);
+
+            // Advance the pipe reader only once the network connection write completes.
+            _pipe.Reader.AdvanceTo(result.Buffer.End);
+        }
+
+        /// <summary>Sends the payload source of an outgoing frame using the given sink.</summary>
+        private async Task SendPayloadAsync(OutgoingFrame outgoingFrame, PipeWriter sink, CancellationToken cancel)
+        {
+            if (outgoingFrame.PayloadSourceStream != null)
+            {
+                // Since the payload is encoded with a Slice encoding, PayloadSourceStream can only come from
+                // a Slice stream parameter/return.
+                throw new NotSupportedException("stream parameters and return values are not supported with ice1");
+            }
+
+            // Otherwise, copy the payload source to the sink which will end up writing to the pipe.
+            _ = CopySourceToSinkAsync(outgoingFrame.PayloadSource, sink);
+
+            // And write the data from the pipe to the network connection.
+            await WriteAsync(_pipe.Reader, 0, cancel).ConfigureAwait(false);
+
+            static async Task CopySourceToSinkAsync(PipeReader source, PipeWriter sink)
+            {
+                // Copy the source to the sink.
+                await source.CopyToAsync(sink, CancellationToken.None).ConfigureAwait(false);
+
+                // Once the source is full copied, complete the sink.
+                await sink.CompleteAsync().ConfigureAwait(false);
+            }
+        }
+
+        private async ValueTask WriteAsync(PipeReader reader, int index, CancellationToken cancel)
+        {
+            if (_isUdp)
+            {
+                // Read the full source without consuming it.
+                while (true)
                 {
-                    // The connection has been closed.
-                    return;
+                    ReadResult readResult = await reader.ReadAsync(cancel).ConfigureAwait(false);
+
+                    // Don't consume anything
+                    reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+
+                    // Keep going until we've read all the data.
+                    if (readResult.IsCompleted)
+                    {
+                        break;
+                    }
                 }
-                Debug.Assert(!result.IsCanceled);
-                int index = WriteToBuffers(result.Buffer, 0);
 
-                // Next, write the header and the payload source to the network connection.
-                await WriteAsync(outgoingFrame.PayloadSource, index).ConfigureAwait(false);
+                // We've read the full source so ReadAsync should return the full sequence to write to the network
+                // connection. It's important to get all the data from the reader because we have to perform a single
+                // write on the UDP network connection.
+                ReadResult result = await reader.ReadAsync(cancel).ConfigureAwait(false);
+                Debug.Assert(result.IsCompleted);
 
-                // Advance the pipe reader only once the network connection write completes.
-                _pipe.Reader.AdvanceTo(result.Buffer.End);
+                // Add the data to the buffers.
+                index = AddToBuffers(result.Buffer, index);
+
+                // Write the buffers to the network connection.
+                await _networkConnection.WriteAsync(_buffers.AsMemory()[0..index], cancel).ConfigureAwait(false);
+
+                reader.AdvanceTo(result.Buffer.End);
             }
             else
             {
-                // Otherwise, copy the payload source to the payload sink which will end up writing to the pipe.
-                _ = CopySourceToSinkAsync(outgoingFrame.PayloadSource, payloadSink);
-
-                // And write the data from the pipe to the network connection.
-                await WriteAsync(_pipe.Reader, 0).ConfigureAwait(false);
-
-                static async Task CopySourceToSinkAsync(PipeReader source, PipeWriter sink)
+                // Unlike UDP, we read the source by chunks and send each each chunk separately.
+                while (true)
                 {
-                    // Copy the source to the sink.
-                    await source.CopyToAsync(sink, CancellationToken.None).ConfigureAwait(false);
-
-                    // Once the source is full copied, complete the sink.
-                    await sink.CompleteAsync().ConfigureAwait(false);
-                }
-            }
-
-            async ValueTask WriteAsync(PipeReader reader, int index)
-            {
-                if (_isUdp)
-                {
-                    // Read the full source without consuming it.
-                    while (true)
-                    {
-                        ReadResult readResult = await reader.ReadAsync(cancel).ConfigureAwait(false);
-
-                        // Don't consume anything
-                        reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-
-                        // Keep going until we've read all the data.
-                        if (readResult.IsCompleted)
-                        {
-                            break;
-                        }
-                    }
-
-                    // We've read the full source so ReadAsync should return the full sequence to write to the network
-                    // connection.
                     ReadResult result = await reader.ReadAsync(cancel).ConfigureAwait(false);
-                    Debug.Assert(result.IsCompleted);
 
                     // Add the data to the buffers.
-                    index = WriteToBuffers(result.Buffer, index);
+                    index = AddToBuffers(result.Buffer, index);
 
-                    await _networkConnection.WriteAsync(_buffers.AsMemory()[0..index], cancel).ConfigureAwait(false);
+                    // Write the buffers on the network connection. The write on the network connection is only
+                    // cancelable when using UDP.
+                    await _networkConnection.WriteAsync(
+                        _buffers.AsMemory()[0..index],
+                        CancellationToken.None).ConfigureAwait(false);
 
                     reader.AdvanceTo(result.Buffer.End);
-                }
-                else
-                {
-                    // Unlike UDP, we read the source by chunks and send each each chunk separately.
-                    while (true)
+                    if (result.IsCompleted)
                     {
-                        ReadResult result = await reader.ReadAsync(cancel).ConfigureAwait(false);
-
-                        // Add the data to the buffers.
-                        index = WriteToBuffers(result.Buffer, index);
-
-                        await _networkConnection.WriteAsync(
-                            _buffers.AsMemory()[0..index],
-                            CancellationToken.None).ConfigureAwait(false);
-
-                        reader.AdvanceTo(result.Buffer.End);
-                        if (result.IsCompleted)
-                        {
-                            break;
-                        }
-
-                        Debug.Assert(!_isUdp);
-                        index = 0;
+                        break;
                     }
+
+                    Debug.Assert(!_isUdp);
+                    index = 0;
                 }
             }
+        }
 
-            int WriteToBuffers(ReadOnlySequence<byte> sequence, int index)
+        /// <summary>Add the readonly sequence segments to the buffers that will be written on the network
+        /// connection.</summary>
+        private int AddToBuffers(ReadOnlySequence<byte> sequence, int bufferIndex)
+        {
+            if (sequence.IsSingleSegment)
             {
-                if (sequence.IsSingleSegment)
+                _buffers[bufferIndex++] = sequence.First;
+            }
+            else
+            {
+                foreach (ReadOnlyMemory<byte> buffer in sequence)
                 {
-                    _buffers[index++] = sequence.First;
-                }
-                else
-                {
-                    foreach (ReadOnlyMemory<byte> buffer in sequence)
+                    _buffers[bufferIndex++] = buffer;
+                    if (bufferIndex == _buffers.Length)
                     {
-                        _buffers[index++] = buffer;
-                        if (index == _buffers.Length)
-                        {
-                            // Expand the buffers array.
-                            Memory<ReadOnlyMemory<byte>> tmp = _buffers;
-                            _buffers = new ReadOnlyMemory<byte>[_buffers.Length + 16];
-                            tmp.CopyTo(_buffers);
-                        }
+                        // Expand the buffers array if it's not large enough to store all the segments.
+                        Memory<ReadOnlyMemory<byte>> tmp = _buffers;
+                        _buffers = new ReadOnlyMemory<byte>[_buffers.Length + 16];
+                        tmp.CopyTo(_buffers);
                     }
                 }
-                return index;
             }
+            return bufferIndex;
         }
 
         /// <summary>Encodes a payload size into a buffer with the specified encoding.</summary>
