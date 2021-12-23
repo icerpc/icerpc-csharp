@@ -18,23 +18,22 @@ namespace IceRpc.Tests.SliceInternal
         private readonly Memory<byte> _buffer;
         private readonly IceEncoding _encoding;
         private readonly SingleBufferWriter _bufferWriter;
-        private readonly IceEncoder _encoder;
 
         public BuiltInTypesTests(string encoding)
         {
             _encoding = IceEncoding.FromString(encoding);
             _buffer = new byte[256];
             _bufferWriter = new SingleBufferWriter(_buffer);
-            _encoder = new IceEncoder(_bufferWriter, _encoding);
         }
 
         [TestCase(true)]
         [TestCase(false)]
         public void Encoding_Bool(bool p1)
         {
+            var encoder = new IceEncoder(_bufferWriter, _encoding);
             var decoder = new IceDecoder(_buffer, _encoding);
 
-            _encoder.EncodeBool(p1);
+            encoder.EncodeBool(p1);
             bool r1 = decoder.DecodeBool();
 
             Assert.AreEqual(p1, r1);
@@ -47,8 +46,9 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(byte.MaxValue)]
         public void Encoding_Byte(byte p1)
         {
+            var encoder = new IceEncoder(_bufferWriter, _encoding);
             var decoder = new IceDecoder(_buffer, _encoding);
-            _encoder.EncodeByte(p1);
+            encoder.EncodeByte(p1);
             byte r1 = decoder.DecodeByte();
 
             Assert.AreEqual(p1, r1);
@@ -61,8 +61,9 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(short.MaxValue)]
         public void Encoding_Short(short p1)
         {
+            var encoder = new IceEncoder(_bufferWriter, _encoding);
             var decoder = new IceDecoder(_buffer, _encoding);
-            _encoder.EncodeShort(p1);
+            encoder.EncodeShort(p1);
             short r1 = decoder.DecodeShort();
 
             Assert.AreEqual(p1, r1);
@@ -74,8 +75,9 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(ushort.MaxValue)]
         public void Encoding_UShort(ushort p1)
         {
+            var encoder = new IceEncoder(_bufferWriter, _encoding);
             var decoder = new IceDecoder(_buffer, _encoding);
-            _encoder.EncodeUShort(p1);
+            encoder.EncodeUShort(p1);
             ushort r1 = decoder.DecodeUShort();
 
             Assert.AreEqual(p1, r1);
@@ -88,8 +90,9 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(int.MaxValue)]
         public void Encoding_Int(int p1)
         {
+            var encoder = new IceEncoder(_bufferWriter, _encoding);
             var decoder = new IceDecoder(_buffer, _encoding);
-            _encoder.EncodeInt(p1);
+            encoder.EncodeInt(p1);
             int r1 = decoder.DecodeInt();
 
             Assert.AreEqual(p1, r1);
@@ -102,8 +105,9 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(uint.MaxValue)]
         public void Encoding_UInt(uint p1)
         {
+            var encoder = new IceEncoder(_bufferWriter, _encoding);
             var decoder = new IceDecoder(_buffer, _encoding);
-            _encoder.EncodeUInt(p1);
+            encoder.EncodeUInt(p1);
             uint r1 = decoder.DecodeUInt();
 
             Assert.AreEqual(p1, r1);
@@ -114,8 +118,9 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(long.MaxValue)]
         public void Encoding_Long(long p1)
         {
+            var encoder = new IceEncoder(_bufferWriter, _encoding);
             var decoder = new IceDecoder(_buffer, _encoding);
-            _encoder.EncodeLong(p1);
+            encoder.EncodeLong(p1);
 
             long r1 = decoder.DecodeLong();
 
@@ -128,8 +133,9 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(ulong.MinValue)]
         public void Encoding_ULong(ulong p1)
         {
+            var encoder = new IceEncoder(_bufferWriter, _encoding);
             var decoder = new IceDecoder(_buffer, _encoding);
-            _encoder.EncodeULong(p1);
+            encoder.EncodeULong(p1);
             ulong r1 = decoder.DecodeULong();
 
             Assert.AreEqual(p1, r1);
@@ -140,8 +146,9 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(IceEncoder.VarULongMinValue)]
         public void Encoding_VarULong(ulong p1)
         {
+            var encoder = new IceEncoder(_bufferWriter, _encoding);
             var decoder = new IceDecoder(_buffer, _encoding);
-            _encoder.EncodeVarULong(p1);
+            encoder.EncodeVarULong(p1);
             ulong r1 = decoder.DecodeVarULong();
 
             Assert.AreEqual(p1, r1);
@@ -151,8 +158,9 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(IceEncoder.VarLongMinValue)]
         public void Encoding_VarLong(long p1)
         {
+            var encoder = new IceEncoder(_bufferWriter, _encoding);
             var decoder = new IceDecoder(_buffer, _encoding);
-            _encoder.EncodeVarLong(p1);
+            encoder.EncodeVarLong(p1);
             long r1 = decoder.DecodeVarLong();
 
             Assert.AreEqual(p1, r1);
@@ -163,8 +171,9 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(float.MaxValue)]
         public void Encoding_Float(float p1)
         {
+            var encoder = new IceEncoder(_bufferWriter, _encoding);
             var decoder = new IceDecoder(_buffer, _encoding);
-            _encoder.EncodeFloat(p1);
+            encoder.EncodeFloat(p1);
             float r1 = decoder.DecodeFloat();
 
             Assert.AreEqual(p1, r1);
@@ -177,8 +186,9 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(double.MaxValue)]
         public void Encoding_Double(double p1)
         {
+            var encoder = new IceEncoder(_bufferWriter, _encoding);
             var decoder = new IceDecoder(_buffer, _encoding);
-            _encoder.EncodeDouble(p1);
+            encoder.EncodeDouble(p1);
 
             double r1 = decoder.DecodeDouble();
 
@@ -194,10 +204,11 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase("😁😂😃😄😅😆😉😊😋😌😍😏😒😓😔😖")] // each character encoded with surrogates
         public void Encoding_String(string p1)
         {
+            var encoder = new IceEncoder(_bufferWriter, _encoding);
             var decoder = new IceDecoder(_buffer, _encoding);
 
             // simple test
-            _encoder.EncodeString(p1);
+            encoder.EncodeString(p1);
             string r1 = decoder.DecodeString();
             Assert.AreEqual(p1, r1);
 
@@ -210,7 +221,7 @@ namespace IceRpc.Tests.SliceInternal
                 // minBufferSize given to Rent
                 var pipe = new Pipe(new PipeOptions(pool: customPool, minimumSegmentSize: 5));
 
-                var encoder = new IceEncoder(pipe.Writer, _encoding);
+                encoder = new IceEncoder(pipe.Writer, _encoding);
                 for (int i = 0; i < 20; ++i)
                 {
                     encoder.EncodeString(p1);
