@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 using NUnit.Framework;
 using System.Buffers;
@@ -17,12 +18,12 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(512)]
         public void PayloadPipeReader_WriteAndRead_OneSegment(int size)
         {
-            var payloadReader = new PayloadPipeReader();
-            IBufferWriter<byte> payloadWriter = payloadReader;
+            using var payloadWriter = new SequenceBufferWriter();
             Memory<byte> buffer = payloadWriter.GetMemory(size)[0..size];
             new Random().NextBytes(buffer.Span);
             payloadWriter.Advance(size);
 
+            var payloadReader = new PayloadPipeReader(payloadWriter);
             Assert.That(payloadReader.TryRead(out ReadResult result), Is.True);
             Assert.That(result.IsCompleted);
             Assert.That(result.Buffer.Length, Is.EqualTo(size));
@@ -40,8 +41,7 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(256, 1024)]
         public void PayloadPipeReader_WriteAndRead_MultipleSegments(int size1, int size2)
         {
-            var payloadReader = new PayloadPipeReader();
-            IBufferWriter<byte> payloadWriter = payloadReader;
+            using var payloadWriter = new SequenceBufferWriter();
 
             Memory<byte> buffer1 = payloadWriter.GetMemory(size1)[0..size1];
             new Random().NextBytes(buffer1.Span);
@@ -51,6 +51,7 @@ namespace IceRpc.Tests.SliceInternal
             new Random().NextBytes(buffer2.Span);
             payloadWriter.Advance(size2);
 
+            var payloadReader = new PayloadPipeReader(payloadWriter);
             Assert.That(payloadReader.TryRead(out ReadResult result), Is.True);
             Assert.That(result.IsCompleted);
             Assert.That(result.Buffer.Length, Is.EqualTo(size1 + size2));

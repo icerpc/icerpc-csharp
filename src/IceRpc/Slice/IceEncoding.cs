@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.Diagnostics;
@@ -39,15 +40,15 @@ namespace IceRpc.Slice
             T arg,
             EncodeAction<IceEncoder, T> encodeAction)
         {
-            var pipeReader = new PayloadPipeReader();
+            var bufferWriter = new SequenceBufferWriter();
 
-            IceEncoder encoder = CreateIceEncoder(pipeReader);
+            IceEncoder encoder = CreateIceEncoder(bufferWriter);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, arg);
             EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
-            return pipeReader;
+            return new PayloadPipeReader(bufferWriter);
         }
 
         /// <summary>Creates the payload of a request from the request's arguments. Use this method is for operations
@@ -61,15 +62,15 @@ namespace IceRpc.Slice
             in T args,
             TupleEncodeAction<IceEncoder, T> encodeAction) where T : struct
         {
-            var pipeReader = new PayloadPipeReader();
+            var bufferWriter = new SequenceBufferWriter();
 
-            IceEncoder encoder = CreateIceEncoder(pipeReader);
+            IceEncoder encoder = CreateIceEncoder(bufferWriter);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, in args);
             EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
-            return pipeReader;
+            return new PayloadPipeReader(bufferWriter);
         }
 
         /// <summary>Creates a payload source stream from an async enumerable.</summary>
@@ -200,15 +201,15 @@ namespace IceRpc.Slice
         /// <returns>A new payload.</returns>
         public PipeReader CreatePayloadFromRemoteException(RemoteException exception)
         {
-            var pipeReader = new PayloadPipeReader();
+            var bufferWriter = new SequenceBufferWriter();
 
-            IceEncoder encoder = CreateIceEncoder(pipeReader);
+            IceEncoder encoder = CreateIceEncoder(bufferWriter);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encoder.EncodeException(exception);
             EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
-            return pipeReader;
+            return new PayloadPipeReader(bufferWriter);
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value tuple. Use this
@@ -222,15 +223,15 @@ namespace IceRpc.Slice
             in T returnValueTuple,
             TupleEncodeAction<IceEncoder, T> encodeAction) where T : struct
         {
-            var pipeReader = new PayloadPipeReader();
+            var bufferWriter = new SequenceBufferWriter();
 
-            IceEncoder encoder = CreateIceEncoder(pipeReader);
+            IceEncoder encoder = CreateIceEncoder(bufferWriter);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, in returnValueTuple);
             EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
-            return pipeReader;
+            return new PayloadPipeReader(bufferWriter);
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value. Use this method
@@ -244,15 +245,15 @@ namespace IceRpc.Slice
             T returnValue,
             EncodeAction<IceEncoder, T> encodeAction)
         {
-            var pipeReader = new PayloadPipeReader();
+            var bufferWriter = new SequenceBufferWriter();
 
-            IceEncoder encoder = CreateIceEncoder(pipeReader);
+            IceEncoder encoder = CreateIceEncoder(bufferWriter);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, returnValue);
             EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
-            return pipeReader;
+            return new PayloadPipeReader(bufferWriter);
         }
 
         /// <summary>Decodes the size of a segment read from a PipeReader.</summary>

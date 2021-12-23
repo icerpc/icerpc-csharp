@@ -33,15 +33,15 @@ namespace IceRpc.Slice
             TupleEncodeAction<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default) where T : struct
         {
-            var pipeReader = new PayloadPipeReader();
+            var bufferWriter = new SequenceBufferWriter();
 
-            var encoder = new Ice11Encoder(pipeReader, classFormat);
+            var encoder = new Ice11Encoder(bufferWriter, classFormat);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, in args);
             Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
-            return pipeReader;
+            return new PayloadPipeReader(bufferWriter);
         }
 
         /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
@@ -56,15 +56,15 @@ namespace IceRpc.Slice
             Action<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default)
         {
-            var pipeReader = new PayloadPipeReader();
+            var bufferWriter = new SequenceBufferWriter();
 
-            var encoder = new Ice11Encoder(pipeReader, classFormat);
+            var encoder = new Ice11Encoder(bufferWriter, classFormat);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, arg);
             Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
-            return pipeReader;
+            return new PayloadPipeReader(bufferWriter);
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value tuple. Use this
@@ -80,15 +80,15 @@ namespace IceRpc.Slice
             TupleEncodeAction<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default) where T : struct
         {
-            var pipeReader = new PayloadPipeReader();
+            var bufferWriter = new SequenceBufferWriter();
 
-            var encoder = new Ice11Encoder(pipeReader, classFormat);
+            var encoder = new Ice11Encoder(bufferWriter, classFormat);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, in returnValueTuple);
             Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
-            return pipeReader;
+            return new PayloadPipeReader(bufferWriter);
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value. Use this method
@@ -104,15 +104,15 @@ namespace IceRpc.Slice
             EncodeAction<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default)
         {
-            var pipeReader = new PayloadPipeReader();
+            var bufferWriter = new SequenceBufferWriter();
 
-            var encoder = new Ice11Encoder(pipeReader, classFormat);
+            var encoder = new Ice11Encoder(bufferWriter, classFormat);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(encoder, returnValue);
             Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
-            return pipeReader;
+            return new PayloadPipeReader(bufferWriter);
         }
 
         internal override IceEncoder CreateIceEncoder(IBufferWriter<byte> bufferWriter) =>
