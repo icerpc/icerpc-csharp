@@ -140,7 +140,6 @@ else
             .build(),
         );
 
-
         exception_class_builder.add_block(
             FunctionBuilder::new(
                 "protected override",
@@ -151,8 +150,8 @@ else
             .add_parameter("IceEncoder", "encoder", None, None)
             .set_body({
                 let mut code = CodeBlock::new();
-                // TODO:  && !exception_def.uses_classes()
-                if !has_base {
+                // TODO: don't need if (encoder.Encoding ==) when exception has classes
+                if has_base {
                     writeln!(
                         code,
                         "\
@@ -160,7 +159,8 @@ if (encoder.Encoding == IceRpc.Encoding.Ice11)
 {{
     encoder.IceStartSlice(_iceTypeId);
     {encode_data_members}
-    encoder.IceEndSlice(lastSlice: true);
+    encoder.IceEndSlice(lastSlice: false);
+    base.IceEncode(encoder);
 }}
 else
 {{
@@ -177,8 +177,7 @@ if (encoder.Encoding == IceRpc.Encoding.Ice11)
 {{
     encoder.IceStartSlice(_iceTypeId);
     {encode_data_members}
-    encoder.IceEndSlice(lastSlice: false);
-    base.IceEncode(encoder);
+    encoder.IceEndSlice(lastSlice: true);
 }}
 else
 {{

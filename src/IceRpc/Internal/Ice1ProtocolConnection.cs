@@ -805,7 +805,7 @@ namespace IceRpc.Internal
             }
             else if (payloadEncoding == Encoding.Ice20)
             {
-                Ice20Encoder.EncodeSize20(payloadSize, buffer);
+                IceEncoder.EncodeSize20(payloadSize, buffer);
             }
             else
             {

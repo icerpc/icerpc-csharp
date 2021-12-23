@@ -96,7 +96,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                     &escaped_identifier
                 ),
             )
-            .add_parameter("IceDecoder", "decoder", None, Some("The decoder."))
+            .add_parameter("ref IceDecoder", "decoder", None, Some("The decoder."))
             .set_body(decode_data_members(
                 &members,
                 &namespace,

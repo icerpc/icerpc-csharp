@@ -62,7 +62,7 @@ namespace IceRpc.Slice
         /// <param name="encoder">The Ice encoder.</param>
         /// <param name="v">The sequence to encode.</param>
         /// <param name="encodeAction">The encode action for an element.</param>
-        public static void EncodeSequence<TEncoder, T>(
+        public static void EncodeSequence<T>(
             this IceEncoder encoder,
             IEnumerable<T> v,
             EncodeAction<T> encodeAction)
@@ -80,7 +80,7 @@ namespace IceRpc.Slice
         /// <param name="v">The sequence to encode.</param>
         /// <param name="encodeAction">The encode action for a non-null value.</param>
         /// <remarks>This method always encodes a bit sequence.</remarks>
-        public static void EncodeSequenceWithBitSequence<TEncoder, T>(
+        public static void EncodeSequenceWithBitSequence<T>(
             this IceEncoder encoder,
             IEnumerable<T> v,
             EncodeAction<T> encodeAction)

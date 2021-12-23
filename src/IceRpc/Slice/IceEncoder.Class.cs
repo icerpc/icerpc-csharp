@@ -127,7 +127,6 @@ namespace IceRpc.Slice
             }
         }
 
-
         /// <summary>Marks the end of the encoding of a class or exception slice.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceEndSlice(bool lastSlice)
@@ -150,7 +149,7 @@ namespace IceRpc.Slice
             if ((_current.SliceFlags & SliceFlags.HasSliceSize) != 0)
             {
                 // Size includes the size length.
-                EncodeFixedLengthSize(EncodedByteCount - _current.SliceSizeStartPos, _current.SliceSizePlaceholder.Span);
+                EncodeInt(EncodedByteCount - _current.SliceSizeStartPos, _current.SliceSizePlaceholder.Span);
             }
 
             if (_current.IndirectionTable?.Count > 0)
