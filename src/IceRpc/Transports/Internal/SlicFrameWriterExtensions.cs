@@ -67,7 +67,7 @@ namespace IceRpc.Transports.Internal
             ISlicFrameWriter writer,
             FrameType type,
             SlicMultiplexedStream? stream,
-            Action<IceEncoder>? encode,
+            EncodeAction? encode,
             CancellationToken cancel)
         {
             // TODO: ISlicFrameWriter needs a better API!

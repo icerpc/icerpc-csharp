@@ -621,7 +621,7 @@ namespace IceRpc.Internal
 
         private async Task SendControlFrameAsync(
             Ice2FrameType frameType,
-            Action<IceEncoder>? frameEncodeAction,
+            EncodeAction? frameEncodeAction,
             CancellationToken cancel)
         {
             Memory<byte> buffer = new byte[1024]; // TODO: use pooled memory?

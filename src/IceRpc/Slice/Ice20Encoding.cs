@@ -118,6 +118,13 @@ namespace IceRpc.Slice
         internal override void EncodeSize(int size, Span<byte> into) =>
             IceEncoder.EncodeSize20(size, into);
 
+        /// <summary>Computes the minimum number of bytes needed to encode a variable-length size with the 2.0 encoding.
+        /// </summary>
+        /// <remarks>The parameter is a long and not a varulong because sizes and size-like values are usually passed
+        /// around as signed integers, even though sizes cannot be negative and are encoded like varulong values.
+        /// </remarks>
+        internal static int GetSizeLength(long size) => IceEncoder.GetVarULongEncodedSize(checked((ulong)size));
+
         private Ice20Encoding()
             : base(Ice20Name)
         {

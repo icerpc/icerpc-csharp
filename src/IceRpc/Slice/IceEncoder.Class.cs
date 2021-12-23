@@ -13,7 +13,7 @@ using static IceRpc.Slice.Internal.Ice11Definitions;
 
 namespace IceRpc.Slice
 {
-    public partial class IceEncoder
+    public sealed partial class IceEncoder
     {
         // The current class/exception format, can be either Compact or Sliced.
         private FormatType _classFormat;

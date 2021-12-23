@@ -12,7 +12,7 @@ using System.Text;
 namespace IceRpc.Slice
 {
     /// <summary>Encodes data into one or more byte buffers using the Ice encoding.</summary>
-    public partial class IceEncoder
+    public sealed partial class IceEncoder
     {
         /// <summary>The Slice encoding associated with this encoder.</summary>
         public IceEncoding Encoding { get; }
@@ -544,7 +544,7 @@ namespace IceRpc.Slice
         /// <returns>The minimum number of bytes.</returns>
         // TODO: eliminate this method
         public int GetSizeLength(int size) => Encoding == IceRpc.Encoding.Ice11 ?
-            (size < 255 ? 1 : 5) : Ice20Encoder.GetSizeLength(size);
+            (size < 255 ? 1 : 5) : Ice20Encoding.GetSizeLength(size);
 
         internal static void EncodeInt(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
 

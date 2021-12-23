@@ -39,9 +39,9 @@ namespace IceRpc.Transports.Internal
 
             // Compute how much space the size and stream ID require to figure out the start of the Slic
             // header.
-            int streamIdLength = Ice20Encoder.GetSizeLength(stream.Id);
+            int streamIdLength = Ice20Encoding.GetSizeLength(stream.Id);
             bufferSize += streamIdLength;
-            int sizeLength = Ice20Encoder.GetSizeLength(bufferSize);
+            int sizeLength = Ice20Encoding.GetSizeLength(bufferSize);
 
             // Write the Slic frame header (frameType as a byte, frameSize as a varint, streamId as a
             // varulong). Since we might not need the full space reserved for the header, we modify the send

@@ -2,6 +2,10 @@
 
 namespace IceRpc.Slice
 {
+    /// <summary>A delegate that encodes into an Ice encoder.</summary>
+    /// <param name="encoder">The Ice encoder.</param>
+    public delegate void EncodeAction(IceEncoder encoder);
+
     /// <summary>A delegate that encodes a value with an Ice encoder.</summary>
     /// <typeparam name="T">The type of the value to encode.</typeparam>
     /// <param name="encoder">The Ice encoder.</param>

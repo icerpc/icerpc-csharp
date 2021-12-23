@@ -13,7 +13,7 @@ namespace IceRpc
         /// <summary>Returns a dictionary used to set the fields of this frame. The full fields are a combination of
         /// these fields plus the <see cref="FieldsDefaults"/>.</summary>
         /// <remarks>The actions set in this dictionary are executed when the frame is sent.</remarks>
-        public Dictionary<int, Action<IceEncoder>> Fields { get; } = new();
+        public Dictionary<int, EncodeAction> Fields { get; } = new();
 
         /// <summary>Returns the defaults fields set during construction of this frame. The fields are used only when
         /// there is no corresponding entry in <see cref="Fields"/>.</summary>
