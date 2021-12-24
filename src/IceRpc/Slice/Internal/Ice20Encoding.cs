@@ -8,21 +8,6 @@ namespace IceRpc.Slice.Internal
         /// <summary>The Ice 2.0 encoding singleton.</summary>
         internal static IceEncoding Instance { get; } = new Ice20Encoding();
 
-        /// <summary>Decodes a buffer.</summary>
-        /// <typeparam name="T">The decoded type.</typeparam>
-        /// <param name="buffer">The byte buffer.</param>
-        /// <param name="decodeFunc">The decode function for buffer.</param>
-        /// <returns>The decoded value.</returns>
-        /// <exception cref="InvalidDataException">Thrown when <paramref name="decodeFunc"/> finds invalid data.
-        /// </exception>
-        internal static T DecodeBuffer<T>(ReadOnlyMemory<byte> buffer, DecodeFunc<T> decodeFunc)
-        {
-            var decoder = new IceDecoder(buffer, Ice20);
-            T result = decodeFunc(ref decoder);
-            decoder.CheckEndOfBuffer(skipTaggedParams: false);
-            return result;
-        }
-
         internal static (int Size, int SizeLength) DecodeSize(ReadOnlySpan<byte> from)
         {
             ulong size = (from[0] & 0x03) switch
