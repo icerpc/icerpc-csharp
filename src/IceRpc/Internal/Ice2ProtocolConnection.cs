@@ -324,6 +324,27 @@ namespace IceRpc.Internal
                     }
                 }
 
+                EncodeHeader();
+
+                await SendPayloadAsync(request, requestWriter, cancel).ConfigureAwait(false);
+                request.IsSent = true;
+            }
+            catch (Exception ex)
+            {
+                await request.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
+                await request.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                throw;
+            }
+
+            if (!request.IsOneway)
+            {
+                // TODO: is it correct to pass cancel to the new response reader, since it's used for reading the
+                // entire payload?
+                request.ResponseReader = stream.ToPipeReader(cancel);
+            }
+
+            void EncodeHeader()
+            {
                 var encoder = new IceEncoder(requestWriter, Encoding.Ice20);
 
                 // Write the Ice2 request header.
@@ -363,22 +384,6 @@ namespace IceRpc.Internal
 
                 // We're done with the header encoding, write the header size.
                 IceEncoder.EncodeSize20(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
-
-                await SendPayloadAsync(request, requestWriter, cancel).ConfigureAwait(false);
-                request.IsSent = true;
-            }
-            catch (Exception ex)
-            {
-                await request.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
-                await request.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
-                throw;
-            }
-
-            if (!request.IsOneway)
-            {
-                // TODO: is it correct to pass cancel to the new response reader, since it's used for reading the
-                // entire payload?
-                request.ResponseReader = stream.ToPipeReader(cancel);
             }
         }
 
@@ -399,6 +404,18 @@ namespace IceRpc.Internal
 
             try
             {
+                EncodeHeader();
+                await SendPayloadAsync(response, responseWriter, cancel).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                await response.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
+                await response.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                throw;
+            }
+
+            void EncodeHeader()
+            {
                 var encoder = new IceEncoder(responseWriter, Encoding.Ice20);
 
                 // Write the Ice2 response header.
@@ -414,14 +431,6 @@ namespace IceRpc.Internal
 
                 // We're done with the header encoding, write the header size.
                 IceEncoder.EncodeSize20(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
-
-                await SendPayloadAsync(response, responseWriter, cancel).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                await response.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
-                await response.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
-                throw;
             }
         }
 
@@ -628,20 +637,23 @@ namespace IceRpc.Internal
         {
             Memory<byte> buffer = new byte[1024]; // TODO: use pooled memory?
             var bufferWriter = new SingleBufferWriter(buffer);
-
-            var encoder = new IceEncoder(bufferWriter, Encoding.Ice20);
-            encoder.EncodeByte((byte)frameType);
-            Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4); // TODO: reduce bytes
-            int startPos = encoder.EncodedByteCount; // does not include the size
-            frameEncodeAction?.Invoke(ref encoder);
-            IceEncoder.EncodeSize20(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
-
+            Encode(bufferWriter);
             buffer = bufferWriter.WrittenBuffer;
 
             await _controlStream!.WriteAsync(
                 new ReadOnlyMemory<byte>[] { buffer }, // TODO: better API
                 frameType == Ice2FrameType.GoAwayCompleted,
                 cancel).ConfigureAwait(false);
+
+            void Encode(IBufferWriter<byte> bufferWriter)
+            {
+                var encoder = new IceEncoder(bufferWriter, Encoding.Ice20);
+                encoder.EncodeByte((byte)frameType);
+                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4); // TODO: reduce bytes
+                int startPos = encoder.EncodedByteCount; // does not include the size
+                frameEncodeAction?.Invoke(ref encoder);
+                IceEncoder.EncodeSize20(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
+            }
         }
 
         /// <summary>Sends the payload source and payload source stream of an outgoing frame.</summary>

@@ -93,9 +93,8 @@ namespace IceRpc.Slice
                 IAsyncEnumerator<T> asyncEnumerator = asyncEnumerable.GetAsyncEnumerator(cancelationSource.Token);
                 await using var _ = asyncEnumerator.ConfigureAwait(false);
 
-                var encoder = new IceEncoder(writer, this);
-
-                (int startPos, Memory<byte> sizePlaceholder) = StartSegment(ref encoder);
+                Memory<byte> sizePlaceholder = StartSegment();
+                int size = 0;
 
                 while (true)
                 {
@@ -104,15 +103,13 @@ namespace IceRpc.Slice
                     {
                         if (moveNext.Result)
                         {
-                            encodeAction(ref encoder, asyncEnumerator.Current);
+                            size += EncodeElement(asyncEnumerator.Current);
                         }
                         else
                         {
-                            if (encoder.EncodedByteCount != startPos)
+                            if (size > 0)
                             {
-                                await FinishSegmentAsync(
-                                    encoder.EncodedByteCount - startPos,
-                                    sizePlaceholder).ConfigureAwait(false);
+                                await FinishSegmentAsync(size, sizePlaceholder).ConfigureAwait(false);
                             }
                             break; // End iteration
                         }
@@ -120,10 +117,10 @@ namespace IceRpc.Slice
                     else
                     {
                         // If we already wrote some elements write the segment now and start a new one.
-                        if (encoder.EncodedByteCount != startPos)
+                        if (size > 0)
                         {
                             FlushResult flushResult = await FinishSegmentAsync(
-                                encoder.EncodedByteCount - startPos,
+                                size,
                                 sizePlaceholder).ConfigureAwait(false);
 
                             // nobody can call CancelPendingFlush on this writer
@@ -135,13 +132,13 @@ namespace IceRpc.Slice
                                 break; // End iteration
                             }
 
-                            encoder = new IceEncoder(writer, this);
-                            (startPos, sizePlaceholder) = StartSegment(ref encoder);
+                            sizePlaceholder = StartSegment();
+                            size = 0;
                         }
 
                         if (await moveNext.ConfigureAwait(false))
                         {
-                            encodeAction(ref encoder, asyncEnumerator.Current);
+                            size += EncodeElement(asyncEnumerator.Current);
                         }
                         else
                         {
@@ -150,10 +147,10 @@ namespace IceRpc.Slice
                     }
 
                     // TODO allow to configure the size limit?
-                    if (encoder.EncodedByteCount > 32 * 1024)
+                    if (size > 32 * 1024)
                     {
                         FlushResult flushResult = await FinishSegmentAsync(
-                                encoder.EncodedByteCount - startPos,
+                                size,
                                 sizePlaceholder).ConfigureAwait(false);
 
                         // nobody can call CancelPendingFlush on this writer
@@ -164,19 +161,29 @@ namespace IceRpc.Slice
                             break; // End iteration
                         }
 
-                        encoder = new IceEncoder(writer, this);
-                        (startPos, sizePlaceholder) = StartSegment(ref encoder);
+                        // TODO: why all this duplicated code??
+                        sizePlaceholder = StartSegment();
+                        size = 0;
                     }
                 }
 
                 // Write end of stream
                 await writer.CompleteAsync().ConfigureAwait(false);
 
-                (int StartPos, Memory<byte> SizePlaceholder) StartSegment(ref IceEncoder encoder)
+                int EncodeElement(T element)
                 {
-                    Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
-                    int startPos = encoder.EncodedByteCount;
-                    return (startPos, sizePlaceholder);
+                    // TODO: An encoder is very lightweight, however, creating an encoder per element seems extreme
+                    // for tiny elements.
+                    var encoder = new IceEncoder(writer, this);
+                    encodeAction(ref encoder, element);
+                    return encoder.EncodedByteCount;
+                }
+
+                Memory<byte> StartSegment()
+                {
+                    Memory<byte> sizePlaceholder = writer.GetMemory(4);
+                    writer.Advance(4);
+                    return sizePlaceholder[0..4];
                 }
 
                 async ValueTask<FlushResult> FinishSegmentAsync(

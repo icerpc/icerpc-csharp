@@ -70,25 +70,9 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel)
         {
             // TODO: ISlicFrameWriter needs a better API!
+
             var pipe = new Pipe();
-
-            var encoder = new IceEncoder(pipe.Writer, Encoding.Ice20);
-            encoder.EncodeByte((byte)type);
-            Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
-            int startPos = encoder.EncodedByteCount;
-
-            if (stream != null)
-            {
-                encoder.EncodeVarULong((ulong)stream.Id);
-            }
-            if (encode != null)
-            {
-                encode?.Invoke(ref encoder);
-            }
-            IceEncoder.EncodeSize20(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
-
-            // TODO: all this copying is naturally temporary
-            await pipe.Writer.CompleteAsync().ConfigureAwait(false);
+            Encode(pipe.Writer);
             bool success = pipe.Reader.TryRead(out ReadResult result);
             Debug.Assert(success);
             Debug.Assert(result.IsCompleted);
@@ -99,6 +83,27 @@ namespace IceRpc.Transports.Internal
                 stream,
                 new ReadOnlyMemory<byte>[] { buffer },
                 cancel).ConfigureAwait(false);
+
+            void Encode(PipeWriter writer)
+            {
+                var encoder = new IceEncoder(writer, Encoding.Ice20);
+                encoder.EncodeByte((byte)type);
+                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
+                int startPos = encoder.EncodedByteCount;
+
+                if (stream != null)
+                {
+                    encoder.EncodeVarULong((ulong)stream.Id);
+                }
+                if (encode != null)
+                {
+                    encode?.Invoke(ref encoder);
+                }
+                IceEncoder.EncodeSize20(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
+
+                // TODO: all this copying is naturally temporary
+                writer.Complete();
+            }
         }
     }
 }

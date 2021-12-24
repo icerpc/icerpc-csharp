@@ -396,32 +396,8 @@ namespace IceRpc.Internal
                 AsyncCompletePipeWriter output = _isUdp ? new UdpPipeWriter(_networkConnection) :
                     new SimpleNetworkConnectionPipeWriter(_networkConnection);
 
-                var encoder = new IceEncoder(output, Encoding.Ice11);
-
-                // Write the Ice1 request header.
-                encoder.WriteByteSpan(Ice1Definitions.FramePrologue);
-                encoder.EncodeIce1FrameType(Ice1FrameType.Request);
-                encoder.EncodeByte(0); // compression status
-
-                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
-
-                encoder.EncodeInt(requestId);
-                (byte encodingMajor, byte encodingMinor) = payloadEncoding.ToMajorMinor();
-
-                var requestHeader = new Ice1RequestHeader(
-                    IdentityAndFacet.FromPath(request.Path),
-                    request.Operation,
-                    request.IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
-                    request.Features.GetContext(),
-                    encapsulationSize: payloadSize + 6,
-                    encodingMajor,
-                    encodingMinor);
-                requestHeader.Encode(ref encoder);
-
-                IceEncoder.EncodeInt(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
-
+                EncodeHeader(output, payloadSize);
                 request.InitialPayloadSink.SetDecoratee(output);
-
                 await SendPayloadAsync(request, output, cancel).ConfigureAwait(false);
                 request.IsSent = true;
             }
@@ -445,6 +421,33 @@ namespace IceRpc.Internal
             finally
             {
                 _sendSemaphore.Release();
+            }
+
+            void EncodeHeader(AsyncCompletePipeWriter output, int payloadSize)
+            {
+                var encoder = new IceEncoder(output, Encoding.Ice11);
+
+                // Write the Ice1 request header.
+                encoder.WriteByteSpan(Ice1Definitions.FramePrologue);
+                encoder.EncodeIce1FrameType(Ice1FrameType.Request);
+                encoder.EncodeByte(0); // compression status
+
+                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
+
+                encoder.EncodeInt(requestId);
+                (byte encodingMajor, byte encodingMinor) = payloadEncoding.ToMajorMinor();
+
+                var requestHeader = new Ice1RequestHeader(
+                    IdentityAndFacet.FromPath(request.Path),
+                    request.Operation,
+                    request.IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
+                    request.Features.GetContext(),
+                    encapsulationSize: payloadSize + 6,
+                    encodingMajor,
+                    encodingMinor);
+                requestHeader.Encode(ref encoder);
+
+                IceEncoder.EncodeInt(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
             }
         }
 
@@ -498,18 +501,6 @@ namespace IceRpc.Internal
                                 $"expected {payloadSize} bytes in response payload source, but it's empty");
                         }
 
-                        var encoder = new IceEncoder(request.ResponseWriter, Encoding.Ice11);
-
-                        // Write the response header.
-
-                        encoder.WriteByteSpan(Ice1Definitions.FramePrologue);
-                        encoder.EncodeIce1FrameType(Ice1FrameType.Reply);
-                        encoder.EncodeByte(0); // compression status
-                        Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
-
-                        encoder.EncodeInt(requestId);
-                        (byte encodingMajor, byte encodingMinor) = payloadEncoding.ToMajorMinor();
-
                         ReplyStatus replyStatus = ReplyStatus.OK;
 
                         if (response.ResultType == ResultType.Failure)
@@ -539,16 +530,7 @@ namespace IceRpc.Internal
                             }
                         }
 
-                        encoder.EncodeReplyStatus(replyStatus);
-                        if (replyStatus <= ReplyStatus.UserException)
-                        {
-                            var responseHeader = new Ice1ResponseHeader(encapsulationSize: payloadSize + 6,
-                                                                        encodingMajor,
-                                                                        encodingMinor);
-                            responseHeader.Encode(ref encoder);
-                        }
-
-                        IceEncoder.EncodeInt(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
+                        EncodeHeader(payloadEncoding, payloadSize, replyStatus);
 
                         await SendPayloadAsync(
                             response,
@@ -583,6 +565,33 @@ namespace IceRpc.Internal
                         }
                     }
                 }
+            }
+
+            void EncodeHeader(IceEncoding payloadEncoding, int payloadSize, ReplyStatus replyStatus)
+            {
+                var encoder = new IceEncoder(request.ResponseWriter, Encoding.Ice11);
+
+                // Write the response header.
+
+                encoder.WriteByteSpan(Ice1Definitions.FramePrologue);
+                encoder.EncodeIce1FrameType(Ice1FrameType.Reply);
+                encoder.EncodeByte(0); // compression status
+                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
+
+                encoder.EncodeInt(requestId);
+                (byte encodingMajor, byte encodingMinor) = payloadEncoding.ToMajorMinor();
+
+                encoder.EncodeReplyStatus(replyStatus);
+                if (replyStatus <= ReplyStatus.UserException)
+                {
+                    var responseHeader = new Ice1ResponseHeader(
+                        encapsulationSize: payloadSize + 6,
+                        encodingMajor,
+                        encodingMinor);
+                    responseHeader.Encode(ref encoder);
+                }
+
+                IceEncoder.EncodeInt(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
             }
         }
 

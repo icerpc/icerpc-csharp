@@ -78,7 +78,6 @@ namespace IceRpc
 
                 byte traceIdVersion = decoder.DecodeByte();
 
-                // Unfortunately we can't use stackalloc.
                 using IMemoryOwner<byte> memoryOwner = MemoryPool<byte>.Shared.Rent(16);
                 Span<byte> traceIdSpan = memoryOwner.Memory.Span[0..16];
                 decoder.CopyTo(traceIdSpan);

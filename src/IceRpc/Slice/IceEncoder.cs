@@ -12,7 +12,7 @@ using System.Text;
 namespace IceRpc.Slice
 {
     /// <summary>Encodes data into one or more byte buffers using the Ice encoding.</summary>
-    public partial record struct IceEncoder
+    public ref partial struct IceEncoder
     {
         /// <summary>The Slice encoding associated with this encoder.</summary>
         public IceEncoding Encoding { get; }
@@ -174,9 +174,10 @@ namespace IceRpc.Slice
             int encodedSizeExponent = GetVarLongEncodedSizeExponent(v);
             v <<= 2;
             v |= (uint)encodedSizeExponent;
-            Span<byte> data = stackalloc byte[sizeof(long)];
+
+            Span<byte> data = _bufferWriter.GetSpan(sizeof(long));
             MemoryMarshal.Write(data, ref v);
-            WriteByteSpan(data[0..(1 << encodedSizeExponent)]);
+            Advance(1 << encodedSizeExponent);
         }
 
         /// <summary>Encodes a uint using IceRPC's variable-size integer encoding.</summary>
@@ -191,9 +192,10 @@ namespace IceRpc.Slice
             int encodedSizeExponent = GetVarULongEncodedSizeExponent(v);
             v <<= 2;
             v |= (uint)encodedSizeExponent;
-            Span<byte> data = stackalloc byte[sizeof(ulong)];
+
+            Span<byte> data = _bufferWriter.GetSpan(sizeof(ulong));
             MemoryMarshal.Write(data, ref v);
-            WriteByteSpan(data[0..(1 << encodedSizeExponent)]);
+            Advance(1 << encodedSizeExponent);
         }
 
         // Encode methods for constructed types
@@ -692,10 +694,11 @@ namespace IceRpc.Slice
         /// <param name="v">The numeric value to encode.</param>
         private void EncodeFixedSizeNumeric<T>(T v) where T : struct
         {
+            // TODO: use a plain Write
             int elementSize = Unsafe.SizeOf<T>();
-            Span<byte> data = stackalloc byte[elementSize];
+            Span<byte> data = _bufferWriter.GetSpan(elementSize);
             MemoryMarshal.Write(data, ref v);
-            WriteByteSpan(data);
+            Advance(elementSize);
         }
     }
 }
