@@ -19,7 +19,7 @@ namespace IceRpc.Slice
         public override PipeReader CreateEmptyPayload(bool hasStream = true) =>
             hasStream ? PipeReader.Create(_payloadWithZeroSize) : EmptyPipeReader.Instance;
 
-        // <summary>Decodes a buffer.</summary>
+        /// <summary>Decodes a buffer.</summary>
         /// <typeparam name="T">The decoded type.</typeparam>
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="decodeFunc">The decode function for buffer.</param>
@@ -104,26 +104,33 @@ namespace IceRpc.Slice
                 _ => BitConverter.ToUInt64(from) >> 2
             };
 
-            checked // make sure we don't overflow
+            try
             {
-                return ((int)size, DecodeSizeLength(from[0]));
+                return (checked((int)size), DecodeSizeLength(from[0]));
+            }
+            catch (OverflowException ex)
+            {
+                throw new InvalidDataException("received invalid size", ex);
             }
         }
 
         internal static int DecodeSizeLength(byte b) => DecodeVarLongLength(b);
 
-        internal override void EncodeFixedLengthSize(int size, Span<byte> into) =>
-            IceEncoder.EncodeSize20(size, into);
-
-        internal override void EncodeSize(int size, Span<byte> into) =>
-            IceEncoder.EncodeSize20(size, into);
+        /// <summary>Encodes a size into a span of bytes using a fixed number of bytes.</summary>
+        /// <param name="size">The size to encode.</param>
+        /// <param name="into">The destination byte buffer, which must be 1, 2, 4 or 8 bytes long.</param>
+        internal static void EncodeSize(int size, Span<byte> into)
+        {
+            if (size < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(size), "size must be positive");
+            }
+            IceEncoder.EncodeVarULong((ulong)size, into);
+        }
 
         /// <summary>Computes the minimum number of bytes needed to encode a variable-length size with the 2.0 encoding.
         /// </summary>
-        /// <remarks>The parameter is a long and not a varulong because sizes and size-like values are usually passed
-        /// around as signed integers, even though sizes cannot be negative and are encoded like varulong values.
-        /// </remarks>
-        internal static int GetSizeLength(long size) => IceEncoder.GetVarULongEncodedSize(checked((ulong)size));
+        internal static int GetSizeLength(int size) => IceEncoder.GetVarULongEncodedSize(checked((ulong)size));
 
         private Ice20Encoding()
             : base(Ice20Name)

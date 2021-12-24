@@ -99,7 +99,7 @@ namespace IceRpc.Transports.Internal
                 {
                     encode?.Invoke(ref encoder);
                 }
-                IceEncoder.EncodeSize20(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
+                Ice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
 
                 // TODO: all this copying is naturally temporary
                 writer.Complete();

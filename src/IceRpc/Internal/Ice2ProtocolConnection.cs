@@ -383,7 +383,7 @@ namespace IceRpc.Internal
                 encoder.EncodeFields(request.Fields, request.FieldsDefaults);
 
                 // We're done with the header encoding, write the header size.
-                IceEncoder.EncodeSize20(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
+                Ice20Encoding.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
             }
         }
 
@@ -430,7 +430,7 @@ namespace IceRpc.Internal
                 encoder.EncodeFields(response.Fields, response.FieldsDefaults);
 
                 // We're done with the header encoding, write the header size.
-                IceEncoder.EncodeSize20(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
+                Ice20Encoding.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
             }
         }
 
@@ -652,7 +652,7 @@ namespace IceRpc.Internal
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4); // TODO: reduce bytes
                 int startPos = encoder.EncodedByteCount; // does not include the size
                 frameEncodeAction?.Invoke(ref encoder);
-                IceEncoder.EncodeSize20(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
+                Ice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
             }
         }
 

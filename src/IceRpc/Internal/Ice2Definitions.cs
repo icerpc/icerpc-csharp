@@ -36,7 +36,7 @@ namespace IceRpc.Internal
                     Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
                     int startPos = encoder.EncodedByteCount;
                     action(ref encoder);
-                    IceEncoder.EncodeSize20(encoder.EncodedByteCount - startPos, sizePlaceholder);
+                    Ice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
                     count++;
                 }
             }
@@ -51,7 +51,7 @@ namespace IceRpc.Internal
                 }
             }
 
-            IceEncoder.EncodeSize20(count, countPlaceholder);
+            Ice20Encoding.EncodeSize(count, countPlaceholder);
         }
     }
 }

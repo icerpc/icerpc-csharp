@@ -124,7 +124,7 @@ namespace IceRpc.Slice
                 {
                     // Encode directly into currentSpan
                     int size = _utf8.GetBytes(v, currentSpan);
-                    Encoding.EncodeSize(size, sizePlaceholder);
+                    EncodeSize(Encoding, size, sizePlaceholder);
                     Advance(size);
                 }
                 else
@@ -145,7 +145,7 @@ namespace IceRpc.Slice
                     Debug.Assert(completed); // completed is always true when flush is true
                     int size = checked((int)bytesUsed);
                     _encodedByteCount += size;
-                    Encoding.EncodeSize(size, sizePlaceholder);
+                    EncodeSize(Encoding, size, sizePlaceholder);
                 }
             }
         }
@@ -481,7 +481,7 @@ namespace IceRpc.Slice
                 Span<byte> sizePlaceholder = GetPlaceholderSpan(4);
                 int startPos = EncodedByteCount;
                 encodeAction(ref this, v);
-                EncodeSize20(EncodedByteCount - startPos, sizePlaceholder);
+                Ice20Encoding.EncodeSize(EncodedByteCount - startPos, sizePlaceholder);
             }
         }
 
@@ -553,52 +553,41 @@ namespace IceRpc.Slice
         /// <summary>Computes the minimum number of bytes needed to encode a variable-length size.</summary>
         /// <param name="size">The size.</param>
         /// <returns>The minimum number of bytes.</returns>
-        // TODO: eliminate this method
         public int GetSizeLength(int size) => Encoding == IceRpc.Encoding.Ice11 ?
-            (size < 255 ? 1 : 5) : Ice20Encoding.GetSizeLength(size);
+            (size < 255 ? 1 : 5) : GetVarULongEncodedSize(checked((ulong)size));
 
         internal static void EncodeInt(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
 
-        /// <summary>Encodes a variable-length size into a span.</summary>
-        // TODO: move to Ice11Encoding
-        internal static void EncodeSize11(int size, Span<byte> into)
+        /// <summary>Encodes a fixed-length size into a span.</summary>
+        /// <param name="encoding">The Slice encoding.</param>
+        /// <param name="size">The size to encode.</param>
+        /// <param name="into">The destination span. This method uses all its bytes.</param>
+        internal static void EncodeFixedLengthSize(IceEncoding encoding, int size, Span<byte> into)
         {
-            if (size < 0)
+            if (encoding == IceRpc.Encoding.Ice11)
             {
-                throw new ArgumentException("a size must be positive", nameof(size));
-            }
-
-            if (into.Length == 1)
-            {
-                if (size >= 255)
-                {
-                    throw new ArgumentException("size value is too large for into", nameof(size));
-                }
-
-                into[0] = (byte)size;
-            }
-            else if (into.Length == 5)
-            {
-                into[0] = 255;
-                EncodeInt(size, into[1..]);
+                IceEncoder.EncodeInt(size, into);
             }
             else
             {
-                throw new ArgumentException("into's size must be 1 or 5", nameof(into));
+                Ice20Encoding.EncodeSize(size, into);
             }
         }
 
-        /// <summary>Encodes a size into a span of bytes using a fixed number of bytes.</summary>
+        /// <summary>Encodes a variable-length size into a span.</summary>
+        /// <param name="encoding">The Slice encoding.</param>
         /// <param name="size">The size to encode.</param>
-        /// <param name="into">The destination byte buffer, which must be 1, 2, 4 or 8 bytes long.</param>
-        // TODO: move to Ice20Encoding
-        internal static void EncodeSize20(long size, Span<byte> into)
+        /// <param name="into">The destination span. This method uses all its bytes.</param>
+        internal static void EncodeSize(IceEncoding encoding, int size, Span<byte> into)
         {
-            if (size < 0)
+            if (encoding == IceRpc.Encoding.Ice11)
             {
-                throw new ArgumentOutOfRangeException(nameof(size), "size must be positive");
+                Ice11Encoding.EncodeSize(size, into);
             }
-            EncodeVarULong((ulong)size, into);
+            else
+            {
+                Ice20Encoding.EncodeSize(size, into);
+            }
         }
 
         // TODO: move to extension?
@@ -608,7 +597,7 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceholder = GetPlaceholderSpan(2);
             int startPos = EncodedByteCount;
             encodeAction(ref this, value);
-            EncodeSize20(EncodedByteCount - startPos, sizePlaceholder);
+            Ice20Encoding.EncodeSize(EncodedByteCount - startPos, sizePlaceholder);
         }
 
         /// <summary>Gets a placeholder to be filled-in later.</summary>
@@ -642,12 +631,6 @@ namespace IceRpc.Slice
         {
             _bufferWriter.Write(span);
             _encodedByteCount += span.Length;
-        }
-
-        private void Advance(int count)
-        {
-            _bufferWriter.Advance(count);
-            _encodedByteCount += count;
         }
 
         /// <summary>Gets the minimum number of bytes needed to encode a long value with the varlong encoding as an
@@ -688,6 +671,12 @@ namespace IceRpc.Slice
                 ulong i when i <= uint.MaxValue => 2,
                 _ => 3
             };
+        }
+
+        private void Advance(int count)
+        {
+            _bufferWriter.Advance(count);
+            _encodedByteCount += count;
         }
 
         /// <summary>Encodes a fixed-size numeric value.</summary>

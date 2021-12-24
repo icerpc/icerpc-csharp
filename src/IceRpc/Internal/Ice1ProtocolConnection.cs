@@ -702,38 +702,6 @@ namespace IceRpc.Internal
             }
         }
 
-        /// <summary>Decodes the first byte of the payload to get its size.</summary>
-        private static (int PayloadSize, byte EncodingMajor, byte EncodingMinor) DecodePayloadSize(
-            ref ReadOnlyMemory<ReadOnlyMemory<byte>> payload,
-            Encoding payloadEncoding)
-        {
-            int payloadSize;
-            int payloadSizeLength;
-            byte encodingMajor;
-            byte encodingMinor;
-
-            if (payloadEncoding == Encoding.Ice11)
-            {
-                encodingMajor = 1;
-                encodingMinor = 1;
-                payloadSizeLength = 4;
-                payloadSize = IceEncoding.DecodeInt(payload.Span[0].Span);
-            }
-            else if (payloadEncoding == Encoding.Ice20)
-            {
-                encodingMajor = 2;
-                encodingMinor = 0;
-                (payloadSize, payloadSizeLength) = Ice20Encoding.DecodeSize(payload.Span[0].Span);
-            }
-            else
-            {
-                throw new NotSupportedException("an ice1 payload must be encoded with Slice 1.1 or Slice 2.0");
-            }
-
-            payload = SliceBuffers(payload, payloadSizeLength);
-            return (payloadSize, encodingMajor, encodingMinor);
-        }
-
         /// <summary>Sends the payload source of an outgoing frame.</summary>
         private async ValueTask SendPayloadAsync(
             OutgoingFrame outgoingFrame,
@@ -780,29 +748,6 @@ namespace IceRpc.Internal
             await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
         }
 
-        // Helper method that removes a few bytes from the first buffer. The implementation is simple and limited.
-        private static ReadOnlyMemory<ReadOnlyMemory<byte>> SliceBuffers(
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
-            int start)
-        {
-            if (buffers.Length > 1 || buffers.Span[0].Length > start)
-            {
-                var result = new ReadOnlyMemory<byte>[buffers.Length];
-                result[0] = buffers.Span[0][start..];
-                Debug.Assert(result[0].Length > 0);
-                for (int i = 1; i < buffers.Length; ++i)
-                {
-                    result[i] = buffers.Span[i];
-                }
-                return result;
-            }
-            else
-            {
-                Debug.Assert(buffers.Length == 1 && buffers.Span[0].Length == start);
-                return ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty;
-            }
-        }
-
         /// <summary>Encodes a payload size into a buffer with the specified encoding.</summary>
         private static void EncodePayloadSize(int payloadSize, Encoding payloadEncoding, Span<byte> buffer)
         {
@@ -814,7 +759,7 @@ namespace IceRpc.Internal
             }
             else if (payloadEncoding == Encoding.Ice20)
             {
-                IceEncoder.EncodeSize20(payloadSize, buffer);
+                Ice20Encoding.EncodeSize(payloadSize, buffer);
             }
             else
             {

@@ -39,7 +39,7 @@ namespace IceRpc.Transports.Internal
 
             // Compute how much space the size and stream ID require to figure out the start of the Slic
             // header.
-            int streamIdLength = Ice20Encoding.GetSizeLength(stream.Id);
+            int streamIdLength = IceEncoder.GetVarLongEncodedSize(stream.Id);
             bufferSize += streamIdLength;
             int sizeLength = Ice20Encoding.GetSizeLength(bufferSize);
 
@@ -51,8 +51,11 @@ namespace IceRpc.Transports.Internal
             Memory<byte> headerData = MemoryMarshal.AsMemory(buffers.Span[0]);
             headerData = headerData[(SlicDefinitions.FrameHeader.Length - sizeLength - streamIdLength - 1)..];
             headerData.Span[0] = (byte)(endStream ? FrameType.StreamLast : FrameType.Stream);
-            IceEncoder.EncodeSize20(bufferSize, headerData.Span.Slice(1, sizeLength));
-            IceEncoder.EncodeSize20(stream.Id, headerData.Span.Slice(1 + sizeLength, streamIdLength));
+            Ice20Encoding.EncodeSize(bufferSize, headerData.Span.Slice(1, sizeLength));
+            // TODO: is stream.Id a long or a ulong?
+            IceEncoder.EncodeVarULong(
+                checked((ulong)stream.Id),
+                headerData.Span.Slice(1 + sizeLength, streamIdLength));
             MemoryMarshal.AsMemory(buffers).Span[0] = headerData;
 
             await WriteFrameAsync(stream, buffers, cancel).ConfigureAwait(false);
