@@ -10,18 +10,23 @@ namespace IceRpc.Slice
     /// <summary>Extension methods for class <see cref="IceEncoding"/>.</summary>
     public static class IceEncodingExtensions
     {
-        private static readonly ReadOnlySequence<byte> _payloadWithZeroSize11 = new(new byte[] { 0, 0, 0, 0 });
-        private static readonly ReadOnlySequence<byte> _payloadWithZeroSize20 = new(new byte[] { 0 });
+        private static readonly ReadOnlySequence<byte> _payloadWithZeroSize = new(new byte[] { 0 });
 
         /// <summary>Creates an empty payload encoded with this encoding.</summary>
         /// <param name="encoding">The Slice encoding.</param>
         /// <param name="hasStream">When true, the Slice operation includes a stream in addition to the empty parameters
         /// or void return.</param>
         /// <returns>A new empty payload.</returns>
-        // TODO: for now, we assume there is always a stream after. Fix with outgoing stream refactoring.
-        public static PipeReader CreateEmptyPayload(this IceEncoding encoding, bool hasStream = true) => hasStream ?
-            PipeReader.Create(encoding == Encoding.Ice11 ? _payloadWithZeroSize11 : _payloadWithZeroSize20) :
-            EmptyPipeReader.Instance;
+        public static PipeReader CreateEmptyPayload(this IceEncoding encoding, bool hasStream = false)
+        {
+            if (hasStream && encoding == Encoding.Ice11)
+            {
+                throw new ArgumentException(
+                    $"{nameof(hasStream)} must be false when encoding is 1.1", nameof(hasStream));
+            }
+
+            return hasStream ? PipeReader.Create(_payloadWithZeroSize) : EmptyPipeReader.Instance;
+        }
 
         /// <summary>Creates the payload of a request from the request's arguments. Use this method is for operations
         /// with multiple parameters.</summary>

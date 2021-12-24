@@ -494,7 +494,11 @@ fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
     });
 
     match non_streamed_return_values.len() {
-        0 => format!("{}.CreateEmptyPayload()", encoding),
+        0 => format!(
+            "{encoding}.CreateEmptyPayload(hasStream: {has_stream})",
+            encoding = encoding,
+            has_stream = if operation.return_type.is_empty() { "false" } else { "true" }
+        ),
         _ => format!(
             "Response.{operation_name}({args})",
             operation_name = operation.escape_identifier(),
