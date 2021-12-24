@@ -271,7 +271,11 @@ if ({invocation}?.RequestFeatures.Get<IceRpc.Features.CompressPayload>() == null
 
     // The payload argument
     if parameters.is_empty() {
-        invoke_args.push(format!("{}.CreateEmptyPayload()", payload_encoding));
+        invoke_args.push(format!(
+            "{payload_encoding}.CreateEmptyPayload(hasStream: {has_stream})",
+            payload_encoding = payload_encoding,
+            has_stream = if operation.parameters.is_empty() { "false" } else { "true" }
+        ));
     } else {
         let mut request_helper_args = vec![parameters.to_argument_tuple("")];
 

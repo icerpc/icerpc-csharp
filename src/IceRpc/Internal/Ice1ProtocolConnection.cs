@@ -399,6 +399,8 @@ namespace IceRpc.Internal
 
                 EncodeHeader(output, payloadSize);
                 request.InitialPayloadSink.SetDecoratee(output);
+
+                // TODO: it would make sense to pass the known payloadSize to SendPayloadAsync
                 await SendPayloadAsync(request, output, cancel).ConfigureAwait(false);
                 request.IsSent = true;
             }
@@ -533,6 +535,7 @@ namespace IceRpc.Internal
 
                         EncodeHeader(payloadEncoding, payloadSize, replyStatus);
 
+                        // TODO: it would make sense to pass the known payloadSize to SendPayloadAsync
                         await SendPayloadAsync(
                             response,
                             (AsyncCompletePipeWriter)request.ResponseWriter,

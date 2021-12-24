@@ -55,6 +55,7 @@ namespace IceRpc.Slice.Internal
             if (readResult.Buffer.IsEmpty)
             {
                 Debug.Assert(readResult.IsCompleted);
+                reader.AdvanceTo(readResult.Buffer.End);
                 return (0, false, true);
             }
 
