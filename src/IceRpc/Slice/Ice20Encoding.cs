@@ -13,12 +13,6 @@ namespace IceRpc.Slice
         /// <summary>The Ice 2.0 encoding singleton.</summary>
         internal static Ice20Encoding Instance { get; } = new();
 
-        private static readonly ReadOnlySequence<byte> _payloadWithZeroSize = new(new byte[] { 0 });
-
-        /// <inheritdoc/>
-        public override PipeReader CreateEmptyPayload(bool hasStream = true) =>
-            hasStream ? PipeReader.Create(_payloadWithZeroSize) : EmptyPipeReader.Instance;
-
         /// <summary>Decodes a buffer.</summary>
         /// <typeparam name="T">The decoded type.</typeparam>
         /// <param name="buffer">The byte buffer.</param>
