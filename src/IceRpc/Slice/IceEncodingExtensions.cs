@@ -88,6 +88,11 @@ namespace IceRpc.Slice
             IAsyncEnumerable<T> asyncEnumerable,
             EncodeAction<T> encodeAction)
         {
+            if (encoding == IceRpc.Encoding.Ice11)
+            {
+                throw new NotSupportedException("streaming is not supported with encoding 1.1");
+            }
+
             var pipe = new Pipe(); // TODO: pipe options, pipe pooling
 
             // start writing immediately into background
@@ -171,7 +176,7 @@ namespace IceRpc.Slice
                             break; // End iteration
                         }
 
-                        // TODO: why all this duplicated code??
+                        // TODO: avoid all this duplicated code
                         sizePlaceholder = StartSegment();
                         size = 0;
                     }
