@@ -378,7 +378,8 @@ namespace IceRpc.Internal
 
             try
             {
-                (int payloadSize, bool isCanceled, bool isCompleted) = await payloadEncoding.DecodeSegmentSizeAsync(
+                (int payloadSize, bool isCanceled, bool isCompleted) = await IceDecoder.DecodeSegmentSizeAsync(
+                    payloadEncoding,
                     request.PayloadSource,
                     cancel).ConfigureAwait(false);
 
@@ -486,7 +487,8 @@ namespace IceRpc.Internal
                         }
 
                         (int payloadSize, bool isCanceled, bool isCompleted) =
-                            await payloadEncoding.DecodeSegmentSizeAsync(
+                            await IceDecoder.DecodeSegmentSizeAsync(
+                                payloadEncoding,
                                 response.PayloadSource,
                                 cancel).ConfigureAwait(false);
 
@@ -688,7 +690,7 @@ namespace IceRpc.Internal
 
                     // Check the header
                     Ice1Definitions.CheckHeader(buffer.Span[0..Ice1Definitions.HeaderSize]);
-                    int frameSize = IceEncoding.DecodeInt(buffer.AsReadOnlySpan().Slice(10, 4));
+                    int frameSize = Ice11Encoding.DecodeFixedLengthSize(buffer.AsReadOnlySpan().Slice(10, 4));
                     if (frameSize != Ice1Definitions.HeaderSize)
                     {
                         throw new InvalidDataException($"received ice1 frame with only '{frameSize}' bytes");
@@ -845,7 +847,7 @@ namespace IceRpc.Internal
 
                     // Check the header
                     Ice1Definitions.CheckHeader(buffer.Span[0..Ice1Definitions.HeaderSize]);
-                    int frameSize = IceEncoding.DecodeInt(buffer[10..14].Span);
+                    int frameSize = Ice11Encoding.DecodeFixedLengthSize(buffer[10..14].Span);
                     if (_isUdp && frameSize != buffer.Length)
                     {
                         // TODO: implement protocol logging with decorators
@@ -951,14 +953,14 @@ namespace IceRpc.Internal
 
                         case Ice1FrameType.Request:
                         {
-                            int requestId = IceEncoding.DecodeInt(buffer.Span[0..4]);
+                            int requestId = Ice11Encoding.DecodeFixedLengthSize(buffer.Span[0..4]);
                             buffer = buffer[4..]; // consume these 4 bytes
                             return (requestId, buffer, memoryOwner);
                         }
 
                         case Ice1FrameType.RequestBatch:
                         {
-                            int invokeNum = IceEncoding.DecodeInt(buffer.Span[0..4]);
+                            int invokeNum = Ice11Encoding.DecodeFixedLengthSize(buffer.Span[0..4]);
 
                             // TODO: implement protocol logging with decorators
                             // _logger.LogReceivedIce1RequestBatchFrame(invokeNum);
@@ -973,7 +975,7 @@ namespace IceRpc.Internal
 
                         case Ice1FrameType.Reply:
                         {
-                            int requestId = IceEncoding.DecodeInt(buffer.Span[0..4]);
+                            int requestId = Ice11Encoding.DecodeFixedLengthSize(buffer.Span[0..4]);
                             // we keep these 4 bytes in buffer
 
                             lock (_mutex)

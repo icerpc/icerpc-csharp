@@ -34,66 +34,6 @@ namespace IceRpc.Slice
             return result;
         }
 
-        internal override async ValueTask<(int Size, bool IsCanceled, bool IsCompleted)> DecodeSegmentSizeAsync(
-            PipeReader reader,
-            CancellationToken cancel)
-        {
-            ReadResult readResult = await reader.ReadAsync(cancel).ConfigureAwait(false);
-
-            if (readResult.IsCanceled)
-            {
-                return (-1, true, false);
-            }
-
-            if (readResult.Buffer.IsEmpty)
-            {
-                Debug.Assert(readResult.IsCompleted);
-
-                return (0, false, true);
-            }
-            else
-            {
-                int sizeLength = DecodeSizeLength(readResult.Buffer.FirstSpan[0]);
-                Debug.Assert(sizeLength > 0);
-
-                if (sizeLength > readResult.Buffer.Length)
-                {
-                    reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                    readResult = await reader.ReadAtLeastAsync(sizeLength, cancel).ConfigureAwait(false);
-
-                    if (readResult.IsCanceled)
-                    {
-                        return (-1, true, false);
-                    }
-
-                    if (readResult.Buffer.Length < sizeLength)
-                    {
-                        throw new InvalidDataException("too few bytes in segment size");
-                    }
-                }
-
-                ReadOnlySequence<byte> buffer = readResult.Buffer.Slice(readResult.Buffer.Start, sizeLength);
-                int size = DecodeSizeFromSequence(buffer);
-                bool isCompleted = readResult.IsCompleted && readResult.Buffer.Length == sizeLength;
-                reader.AdvanceTo(buffer.End);
-                return (size, false, isCompleted);
-            }
-
-            static int DecodeSizeFromSequence(ReadOnlySequence<byte> buffer)
-            {
-                if (buffer.IsSingleSegment)
-                {
-                    return DecodeSize(buffer.FirstSpan).Size;
-                }
-                else
-                {
-                    Span<byte> span = stackalloc byte[(int)buffer.Length];
-                    buffer.CopyTo(span);
-                    return DecodeSize(span).Size;
-                }
-            }
-        }
-
         internal static (int Size, int SizeLength) DecodeSize(ReadOnlySpan<byte> from)
         {
             ulong size = (from[0] & 0x03) switch
@@ -114,7 +54,7 @@ namespace IceRpc.Slice
             }
         }
 
-        internal static int DecodeSizeLength(byte b) => DecodeVarLongLength(b);
+        internal static int DecodeSizeLength(byte b) => IceDecoder.DecodeVarLongLength(b);
 
         /// <summary>Encodes a size into a span of bytes using a fixed number of bytes.</summary>
         /// <param name="size">The size to encode.</param>

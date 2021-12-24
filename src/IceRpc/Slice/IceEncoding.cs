@@ -269,29 +269,6 @@ namespace IceRpc.Slice
             return pipe.Reader;
         }
 
-        /// <summary>Decodes the size of a segment read from a PipeReader.</summary>
-        internal abstract ValueTask<(int Size, bool IsCanceled, bool IsCompleted)> DecodeSegmentSizeAsync(
-            PipeReader reader,
-            CancellationToken cancel);
-
-        internal static int DecodeInt(ReadOnlySpan<byte> from) => BitConverter.ToInt32(from);
-
-        // Applies to all var type: varlong, varulong etc.
-        internal static int DecodeVarLongLength(byte from) => 1 << (from & 0x03);
-
-        internal static (ulong Value, int ValueLength) DecodeVarULong(ReadOnlySpan<byte> from)
-        {
-            ulong value = (from[0] & 0x03) switch
-            {
-                0 => (uint)from[0] >> 2,
-                1 => (uint)BitConverter.ToUInt16(from) >> 2,
-                2 => BitConverter.ToUInt32(from) >> 2,
-                _ => BitConverter.ToUInt64(from) >> 2
-            };
-
-            return (value, DecodeVarLongLength(from[0]));
-        }
-
         private protected IceEncoding(string name)
             : base(name)
         {

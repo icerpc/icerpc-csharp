@@ -118,6 +118,16 @@ namespace IceRpc.Slice
             return pipe.Reader;
         }
 
+        internal static int DecodeFixedLengthSize(ReadOnlySpan<byte> buffer)
+        {
+            int size = IceDecoder.DecodeInt(buffer);
+            if (size < 0)
+            {
+                throw new InvalidDataException("received invalid negative size");
+            }
+            return size;
+        }
+
         /// <summary>Encodes a variable-length size into a span.</summary>
         internal static void EncodeSize(int size, Span<byte> into)
         {
@@ -143,50 +153,6 @@ namespace IceRpc.Slice
             else
             {
                 throw new ArgumentException("into's size must be 1 or 5", nameof(into));
-            }
-        }
-
-        internal override async ValueTask<(int Size, bool IsCanceled, bool IsCompleted)> DecodeSegmentSizeAsync(
-            PipeReader reader,
-            CancellationToken cancel)
-        {
-            const int sizeLength = 4;
-
-            ReadResult readResult = await reader.ReadAtLeastAsync(sizeLength, cancel).ConfigureAwait(false);
-
-            if (readResult.IsCanceled)
-            {
-                return (-1, true, false);
-            }
-
-            if (readResult.Buffer.IsEmpty)
-            {
-                Debug.Assert(readResult.IsCompleted);
-                return (0, false, true);
-            }
-            else
-            {
-                ReadOnlySequence<byte> buffer = readResult.Buffer.Slice(readResult.Buffer.Start, sizeLength);
-                int size = DecodeSize(buffer);
-                bool isCompleted = readResult.IsCompleted && readResult.Buffer.Length == sizeLength;
-                reader.AdvanceTo(buffer.End);
-                return (size, false, isCompleted);
-            }
-
-            static int DecodeSize(ReadOnlySequence<byte> buffer)
-            {
-                Debug.Assert(buffer.Length == sizeLength);
-
-                if (buffer.IsSingleSegment)
-                {
-                    return DecodeInt(buffer.FirstSpan);
-                }
-                else
-                {
-                    Span<byte> span = stackalloc byte[sizeLength];
-                    buffer.CopyTo(span);
-                    return DecodeInt(span);
-                }
             }
         }
 
