@@ -504,11 +504,11 @@ namespace IceRpc.Internal
                     // Encode the transport parameters as Fields
                     encoder.EncodeSize(1);
 
-                    // Transmit out local incoming frame maximum size
-                    encoder.EncodeField(
-                        (int)Ice2ParameterKey.IncomingFrameMaxSize,
-                        (ulong)_incomingFrameMaxSize,
-                        (ref IceEncoder encoder, ulong value) => encoder.EncodeVarULong(value));
+                    encoder.EncodeVarInt((int)Ice2ParameterKey.IncomingFrameMaxSize);
+                    Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
+                    int startPos = encoder.EncodedByteCount;
+                    encoder.EncodeVarULong((ulong)_incomingFrameMaxSize);
+                    Ice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
                 },
                 cancel).ConfigureAwait(false);
 

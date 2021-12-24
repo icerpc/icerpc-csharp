@@ -558,16 +558,6 @@ namespace IceRpc.Slice
 
         internal static void EncodeInt(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
 
-        // TODO: move to extension?
-        internal void EncodeField<T>(int key, T value, EncodeAction<T> encodeAction)
-        {
-            EncodeVarInt(key);
-            Span<byte> sizePlaceholder = GetPlaceholderSpan(2);
-            int startPos = EncodedByteCount;
-            encodeAction(ref this, value);
-            Ice20Encoding.EncodeSize(EncodedByteCount - startPos, sizePlaceholder);
-        }
-
         /// <summary>Gets a placeholder to be filled-in later.</summary>
         /// <param name="size">The size of the placeholder, typically a small number like 4.</param>
         /// <returns>A buffer of length <paramref name="size"/>.</returns>
@@ -609,7 +599,7 @@ namespace IceRpc.Slice
         {
             if (value < VarLongMinValue || value > VarLongMaxValue)
             {
-                throw new ArgumentOutOfRangeException($"varlong value '{value}' is out of range", nameof(value));
+                throw new ArgumentOutOfRangeException(nameof(value), $"varlong value '{value}' is out of range");
             }
 
             return (value << 2) switch
@@ -629,7 +619,7 @@ namespace IceRpc.Slice
         {
             if (value > VarULongMaxValue)
             {
-                throw new ArgumentOutOfRangeException($"varulong value '{value}' is out of range", nameof(value));
+                throw new ArgumentOutOfRangeException(nameof(value), $"varulong value '{value}' is out of range");
             }
 
             return (value << 2) switch

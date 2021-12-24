@@ -549,7 +549,9 @@ namespace IceRpc.Slice
         {
             if (bitSequenceSize <= 0)
             {
-                throw new ArgumentException("bitSequenceSize must be greater than 0", nameof(bitSequenceSize));
+                throw new ArgumentOutOfRangeException(
+                    nameof(bitSequenceSize),
+                    "bitSequenceSize must be greater than 0");
             }
 
             int size = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0);
