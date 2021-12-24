@@ -558,22 +558,6 @@ namespace IceRpc.Slice
 
         internal static void EncodeInt(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
 
-        /// <summary>Encodes a fixed-length size into a span.</summary>
-        /// <param name="encoding">The Slice encoding.</param>
-        /// <param name="size">The size to encode.</param>
-        /// <param name="into">The destination span. This method uses all its bytes.</param>
-        internal static void EncodeFixedLengthSize(IceEncoding encoding, int size, Span<byte> into)
-        {
-            if (encoding == IceRpc.Encoding.Ice11)
-            {
-                IceEncoder.EncodeInt(size, into);
-            }
-            else
-            {
-                Ice20Encoding.EncodeSize(size, into);
-            }
-        }
-
         /// <summary>Encodes a variable-length size into a span.</summary>
         /// <param name="encoding">The Slice encoding.</param>
         /// <param name="size">The size to encode.</param>
