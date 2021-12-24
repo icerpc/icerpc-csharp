@@ -7,7 +7,6 @@ using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
-using System.IO.Pipelines;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -621,69 +620,6 @@ namespace IceRpc.Slice
         }
 
         internal static int DecodeInt(ReadOnlySpan<byte> from) => BitConverter.ToInt32(from);
-
-        /// <summary>Decodes the size of a segment read from a PipeReader.</summary>
-        internal static async ValueTask<(int Size, bool IsCanceled, bool IsCompleted)> DecodeSegmentSizeAsync(
-            IceEncoding encoding,
-            PipeReader reader,
-            CancellationToken cancel)
-        {
-            int sizeLength = -1;
-            ReadResult readResult;
-
-            if (encoding == IceRpc.Encoding.Ice11)
-            {
-                sizeLength = 4;
-                readResult = await reader.ReadAtLeastAsync(sizeLength, cancel).ConfigureAwait(false);
-            }
-            else
-            {
-                readResult = await reader.ReadAsync(cancel).ConfigureAwait(false);
-            }
-
-            if (readResult.IsCanceled)
-            {
-                return (-1, true, false);
-            }
-
-            if (readResult.Buffer.IsEmpty)
-            {
-                Debug.Assert(readResult.IsCompleted);
-                return (0, false, true);
-            }
-
-            if (sizeLength == -1)
-            {
-                sizeLength = Ice20Encoding.DecodeSizeLength(readResult.Buffer.FirstSpan[0]);
-                if (sizeLength > readResult.Buffer.Length)
-                {
-                    reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                    readResult = await reader.ReadAtLeastAsync(sizeLength, cancel).ConfigureAwait(false);
-
-                    if (readResult.IsCanceled)
-                    {
-                        return (-1, true, false);
-                    }
-
-                    if (readResult.Buffer.Length < sizeLength)
-                    {
-                        throw new InvalidDataException("too few bytes in segment size");
-                    }
-                }
-            }
-
-            ReadOnlySequence<byte> buffer = readResult.Buffer.Slice(readResult.Buffer.Start, sizeLength);
-            int size = DecodeSizeFromSequence(buffer);
-            bool isCompleted = readResult.IsCompleted && readResult.Buffer.Length == sizeLength;
-            reader.AdvanceTo(buffer.End);
-            return (size, false, isCompleted);
-
-            int DecodeSizeFromSequence(ReadOnlySequence<byte> buffer)
-            {
-                var decoder = new IceDecoder(buffer, encoding);
-                return decoder.DecodeFixedLengthSize();
-            }
-        }
 
         // Applies to all var type: varlong, varulong etc.
         internal static int DecodeVarLongLength(byte from) => 1 << (from & 0x03);

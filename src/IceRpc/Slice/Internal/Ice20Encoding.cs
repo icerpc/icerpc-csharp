@@ -1,17 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
-using System.Buffers;
-using System.Diagnostics;
-using System.IO.Pipelines;
-
-namespace IceRpc.Slice
+namespace IceRpc.Slice.Internal
 {
     /// <summary>The Ice 2.0 encoding class.</summary>
-    public sealed class Ice20Encoding : IceEncoding
+    internal sealed class Ice20Encoding : IceEncoding
     {
         /// <summary>The Ice 2.0 encoding singleton.</summary>
-        internal static Ice20Encoding Instance { get; } = new();
+        internal static IceEncoding Instance { get; } = new Ice20Encoding();
 
         /// <summary>Decodes a buffer.</summary>
         /// <typeparam name="T">The decoded type.</typeparam>

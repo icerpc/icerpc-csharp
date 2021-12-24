@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 
 namespace IceRpc
 {
@@ -12,10 +13,10 @@ namespace IceRpc
         public static readonly Encoding Ice10 = new(Ice10Name);
 
         /// <summary>Version 1.1 of the Ice encoding, supported by IceRPC and Ice 3.5 or greater.</summary>
-        public static readonly Ice11Encoding Ice11 = Ice11Encoding.Instance;
+        public static readonly IceEncoding Ice11 = Ice11Encoding.Instance;
 
         /// <summary>Version 2.0 of the Ice encoding, supported by IceRPC.</summary>
-        public static readonly Ice20Encoding Ice20 = Ice20Encoding.Instance;
+        public static readonly IceEncoding Ice20 = Ice20Encoding.Instance;
 
         /// <summary>The name of this encoding, for example "2.0" for the Ice 2.0 encoding.</summary>
         public string Name { get; }

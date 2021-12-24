@@ -1,8 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
-using System.Buffers;
-using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Slice
@@ -11,7 +8,7 @@ namespace IceRpc.Slice
     public sealed class Ice11Encoding : IceEncoding
     {
         /// <summary>The Ice 1.1 encoding singleton.</summary>
-        internal static Ice11Encoding Instance { get; } = new();
+        internal static IceEncoding Instance { get; } = new Ice11Encoding();
 
         /// <summary>Creates the payload of a request from the request's arguments. Use this method is for operations
         /// with multiple parameters.</summary>
@@ -120,34 +117,6 @@ namespace IceRpc.Slice
                 throw new InvalidDataException("received invalid negative size");
             }
             return size;
-        }
-
-        /// <summary>Encodes a variable-length size into a span.</summary>
-        internal static void EncodeSize(int size, Span<byte> into)
-        {
-            if (size < 0)
-            {
-                throw new ArgumentException("a size must be positive", nameof(size));
-            }
-
-            if (into.Length == 1)
-            {
-                if (size >= 255)
-                {
-                    throw new ArgumentException("size value is too large for into", nameof(size));
-                }
-
-                into[0] = (byte)size;
-            }
-            else if (into.Length == 5)
-            {
-                into[0] = 255;
-                IceEncoder.EncodeInt(size, into[1..]);
-            }
-            else
-            {
-                throw new ArgumentException("into's size must be 1 or 5", nameof(into));
-            }
         }
 
         private Ice11Encoding()

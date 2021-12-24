@@ -2,6 +2,7 @@
 
 using IceRpc.Features.Internal;
 using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using System.Buffers;
@@ -378,8 +379,7 @@ namespace IceRpc.Internal
 
             try
             {
-                (int payloadSize, bool isCanceled, bool isCompleted) = await IceDecoder.DecodeSegmentSizeAsync(
-                    payloadEncoding,
+                (int payloadSize, bool isCanceled, bool isCompleted) = await payloadEncoding.DecodeSegmentSizeAsync(
                     request.PayloadSource,
                     cancel).ConfigureAwait(false);
 
@@ -487,8 +487,7 @@ namespace IceRpc.Internal
                         }
 
                         (int payloadSize, bool isCanceled, bool isCompleted) =
-                            await IceDecoder.DecodeSegmentSizeAsync(
-                                payloadEncoding,
+                            await payloadEncoding.DecodeSegmentSizeAsync(
                                 response.PayloadSource,
                                 cancel).ConfigureAwait(false);
 

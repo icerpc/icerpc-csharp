@@ -280,13 +280,18 @@ namespace IceRpc.Slice
         /// <param name="into">The destination span. This method uses all its bytes.</param>
         private static void EncodeFixedLengthSize(this IceEncoding encoding, int size, Span<byte> into)
         {
+            if (size < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(size), "size must be positive");
+            }
+
             if (encoding == Encoding.Ice11)
             {
                 IceEncoder.EncodeInt(size, into);
             }
             else
             {
-                Ice20Encoding.EncodeSize(size, into);
+                IceEncoder.EncodeVarULong((ulong)size, into);
             }
         }
     }

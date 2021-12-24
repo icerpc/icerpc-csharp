@@ -2,7 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
-using System.Diagnostics;
+using IceRpc.Slice.Internal;
 using System.Runtime.InteropServices;
 
 namespace IceRpc.Transports.Internal

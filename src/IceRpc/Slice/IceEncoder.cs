@@ -124,7 +124,7 @@ namespace IceRpc.Slice
                 {
                     // Encode directly into currentSpan
                     int size = _utf8.GetBytes(v, currentSpan);
-                    EncodeSize(Encoding, size, sizePlaceholder);
+                    Encoding.EncodeSize(size, sizePlaceholder);
                     Advance(size);
                 }
                 else
@@ -145,7 +145,7 @@ namespace IceRpc.Slice
                     Debug.Assert(completed); // completed is always true when flush is true
                     int size = checked((int)bytesUsed);
                     _encodedByteCount += size;
-                    EncodeSize(Encoding, size, sizePlaceholder);
+                    Encoding.EncodeSize(size, sizePlaceholder);
                 }
             }
         }
@@ -557,22 +557,6 @@ namespace IceRpc.Slice
             (size < 255 ? 1 : 5) : GetVarULongEncodedSize(checked((ulong)size));
 
         internal static void EncodeInt(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
-
-        /// <summary>Encodes a variable-length size into a span.</summary>
-        /// <param name="encoding">The Slice encoding.</param>
-        /// <param name="size">The size to encode.</param>
-        /// <param name="into">The destination span. This method uses all its bytes.</param>
-        internal static void EncodeSize(IceEncoding encoding, int size, Span<byte> into)
-        {
-            if (encoding == IceRpc.Encoding.Ice11)
-            {
-                Ice11Encoding.EncodeSize(size, into);
-            }
-            else
-            {
-                Ice20Encoding.EncodeSize(size, into);
-            }
-        }
 
         // TODO: move to extension?
         internal void EncodeField<T>(int key, T value, EncodeAction<T> encodeAction)

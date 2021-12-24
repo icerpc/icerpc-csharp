@@ -96,7 +96,7 @@ namespace IceRpc.Slice.Internal
             CancellationToken cancel)
         {
             (int segmentSize, bool isCanceled, bool isCompleted) =
-                await IceDecoder.DecodeSegmentSizeAsync(encoding, reader, cancel).ConfigureAwait(false);
+                await encoding.DecodeSegmentSizeAsync(reader, cancel).ConfigureAwait(false);
 
             if (isCanceled || segmentSize == 0)
             {
