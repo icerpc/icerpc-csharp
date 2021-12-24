@@ -694,9 +694,8 @@ namespace IceRpc.Slice
         /// <param name="v">The numeric value to encode.</param>
         private void EncodeFixedSizeNumeric<T>(T v) where T : struct
         {
-            // TODO: use a plain Write
             int elementSize = Unsafe.SizeOf<T>();
-            Span<byte> data = _bufferWriter.GetSpan(elementSize);
+            Span<byte> data = _bufferWriter.GetSpan(elementSize)[0..elementSize];
             MemoryMarshal.Write(data, ref v);
             Advance(elementSize);
         }

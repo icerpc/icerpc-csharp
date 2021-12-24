@@ -181,9 +181,9 @@ namespace IceRpc.Slice
 
                 Memory<byte> StartSegment()
                 {
-                    Memory<byte> sizePlaceholder = writer.GetMemory(4);
+                    Memory<byte> sizePlaceholder = writer.GetMemory(4)[0..4];
                     writer.Advance(4);
-                    return sizePlaceholder[0..4];
+                    return sizePlaceholder;
                 }
 
                 async ValueTask<FlushResult> FinishSegmentAsync(
