@@ -23,31 +23,6 @@ namespace IceRpc.Slice
             PipeReader.Create(encoding == Encoding.Ice11 ? _payloadWithZeroSize11 : _payloadWithZeroSize20) :
             EmptyPipeReader.Instance;
 
-        /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
-        /// takes a single parameter.</summary>
-        /// <typeparam name="T">The type of the operation's parameter.</typeparam>
-        /// <param name="encoding">The Slice encoding.</param>
-        /// <param name="arg">The argument to write into the payload.</param>
-        /// <param name="encodeAction">The <see cref="EncodeAction{T}"/> that encodes the argument into the
-        /// payload.</param>
-        /// <returns>A new payload.</returns>
-        public static PipeReader CreatePayloadFromSingleArg<T>(
-            this IceEncoding encoding,
-            T arg,
-            EncodeAction<T> encodeAction)
-        {
-            var pipe = new Pipe(); // TODO: pipe options
-
-            var encoder = new IceEncoder(pipe.Writer, encoding);
-            Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
-            int startPos = encoder.EncodedByteCount;
-            encodeAction(ref encoder, arg);
-            encoding.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
-
-            pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
-            return pipe.Reader;
-        }
-
         /// <summary>Creates the payload of a request from the request's arguments. Use this method is for operations
         /// with multiple parameters.</summary>
         /// <typeparam name="T">The type of the operation's parameters.</typeparam>
@@ -55,18 +30,47 @@ namespace IceRpc.Slice
         /// <param name="args">The arguments to write into the payload.</param>
         /// <param name="encodeAction">The <see cref="TupleEncodeAction{T}"/> that encodes the arguments into
         /// the payload.</param>
+        /// <param name="classFormat">The class format (1.1 only).</param>
         /// <returns>A new payload.</returns>
         public static PipeReader CreatePayloadFromArgs<T>(
             this IceEncoding encoding,
             in T args,
-            TupleEncodeAction<T> encodeAction) where T : struct
+            TupleEncodeAction<T> encodeAction,
+            FormatType classFormat = default) where T : struct
         {
             var pipe = new Pipe(); // TODO: pipe options
 
-            var encoder = new IceEncoder(pipe.Writer, encoding);
+            var encoder = new IceEncoder(pipe.Writer, encoding, classFormat);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(ref encoder, in args);
+            encoding.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+
+            pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
+            return pipe.Reader;
+        }
+
+        /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
+        /// takes a single parameter.</summary>
+        /// <typeparam name="T">The type of the operation's parameter.</typeparam>
+        /// <param name="encoding">The Slice encoding.</param>
+        /// <param name="arg">The argument to write into the payload.</param>
+        /// <param name="encodeAction">The <see cref="EncodeAction{T}"/> that encodes the argument into the
+        /// payload.</param>
+        /// <param name="classFormat">The class format (1.1 only).</param>
+        /// <returns>A new payload.</returns>
+        public static PipeReader CreatePayloadFromSingleArg<T>(
+            this IceEncoding encoding,
+            T arg,
+            EncodeAction<T> encodeAction,
+            FormatType classFormat = default)
+        {
+            var pipe = new Pipe(); // TODO: pipe options
+
+            var encoder = new IceEncoder(pipe.Writer, encoding, classFormat);
+            Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+            int startPos = encoder.EncodedByteCount;
+            encodeAction(ref encoder, arg);
             encoding.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
@@ -231,15 +235,17 @@ namespace IceRpc.Slice
         /// <param name="returnValueTuple">The return values to write into the payload.</param>
         /// <param name="encodeAction">The <see cref="TupleEncodeAction{T}"/> that encodes the arguments into
         /// the payload.</param>
+        /// <param name="classFormat">The class format (1.1 only).</param>
         /// <returns>A new payload.</returns>
         public static PipeReader CreatePayloadFromReturnValueTuple<T>(
             this IceEncoding encoding,
             in T returnValueTuple,
-            TupleEncodeAction<T> encodeAction) where T : struct
+            TupleEncodeAction<T> encodeAction,
+            FormatType classFormat = default) where T : struct
         {
             var pipe = new Pipe(); // TODO: pipe options
 
-            var encoder = new IceEncoder(pipe.Writer, encoding);
+            var encoder = new IceEncoder(pipe.Writer, encoding, classFormat);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(ref encoder, in returnValueTuple);
@@ -256,15 +262,17 @@ namespace IceRpc.Slice
         /// <param name="returnValue">The return value to write into the payload.</param>
         /// <param name="encodeAction">The <see cref="EncodeAction{T}"/> that encodes the argument into the
         /// payload.</param>
+        /// <param name="classFormat">The class format (1.1 only).</param>
         /// <returns>A new payload.</returns>
         public static PipeReader CreatePayloadFromSingleReturnValue<T>(
             this IceEncoding encoding,
             T returnValue,
-            EncodeAction<T> encodeAction)
+            EncodeAction<T> encodeAction,
+            FormatType classFormat = default)
         {
             var pipe = new Pipe(); // TODO: pipe options
 
-            var encoder = new IceEncoder(pipe.Writer, encoding);
+            var encoder = new IceEncoder(pipe.Writer, encoding, classFormat);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(ref encoder, returnValue);

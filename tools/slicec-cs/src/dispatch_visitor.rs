@@ -214,7 +214,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         let body = if operation.returns_classes() {
             format!(
                 "\
-Ice11Encoding.{encoding_operation}(
+IceRpc.Encoding.Ice11.{encoding_operation}(
     {return_arg},
     {encode_action},
     {format})",

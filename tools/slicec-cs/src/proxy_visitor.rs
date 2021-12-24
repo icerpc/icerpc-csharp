@@ -483,7 +483,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         let body = if sends_classes {
             format!(
                 "\
-Ice11Encoding.{name}(
+IceRpc.Encoding.Ice11.{name}(
     {args},
     {encode_action},
     {format})",

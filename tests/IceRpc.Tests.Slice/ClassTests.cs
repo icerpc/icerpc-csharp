@@ -30,7 +30,7 @@ namespace IceRpc.Tests.Slice
                             {
                                 var response = new OutgoingResponse(request)
                                 {
-                                    PayloadSource = IceRpc.Slice.Ice11Encoding.CreatePayloadFromSingleReturnValue(
+                                    PayloadSource = Encoding.Ice11.CreatePayloadFromSingleReturnValue(
                                         new MyClassAlsoEmpty(),
                                         (ref IceEncoder encoder, MyClassAlsoEmpty ae) => encoder.EncodeClass(ae))
                                 };
