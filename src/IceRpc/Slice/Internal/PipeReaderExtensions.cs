@@ -263,11 +263,97 @@ namespace IceRpc.Slice.Internal
             DecodeFunc<T> decodeFunc,
             CancellationToken cancel = default)
         {
-            // TODO: consider mapping incoming stream to ChannelReader<T>
-
-            // when CancelPendingRead is called on _reader, ReadSegmentAsync returns a ReadResult with
+            // when CancelPendingRead is called on reader, ReadSegmentAsync returns a ReadResult with
             // IsCanceled set to true.
             _ = cancel.Register(() => reader.CancelPendingRead());
+
+            Func<ReadOnlySequence<byte>, IEnumerable<T>> decodeBufferFunc = buffer =>
+            {
+                var decoder = new IceDecoder(
+                    buffer,
+                    encoding,
+                    connection,
+                    invoker,
+                    activator,
+                    classGraphMaxDepth);
+
+                var items = new List<T>();
+                do
+                {
+                    items.Add(decodeFunc(ref decoder));
+                }
+                while (decoder.Consumed < buffer.Length);
+
+                return items;
+            };
+
+            var streamDecoder = new StreamDecoder<T>(
+                decodeBufferFunc,
+                pauseWriterThreshold: 8_000,
+                resumeWriterThreshold: 4_000);
+
+            _ = Task.Run(() => FillWriterAsync(), cancel);
+
+            return streamDecoder.ReadAsync(cancel);
+
+            async Task FillWriterAsync()
+            {
+                while (true)
+                {
+                    // Each iteration decodes a segment with n values.
+
+                    ReadResult readResult;
+
+                    try
+                    {
+                        readResult = await reader.ReadSegmentAsync(encoding, cancel).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        streamDecoder.CompleteWriter();
+                        await reader.CompleteAsync(ex).ConfigureAwait(false);
+                        break; // done
+                    }
+
+                    if (readResult.IsCanceled)
+                    {
+                        streamDecoder.CompleteWriter();
+
+                        var ex = new OperationCanceledException();
+                        await reader.CompleteAsync(ex).ConfigureAwait(false);
+                        break; // done
+                    }
+
+                    bool streamReaderCompleted = false;
+
+                    if (!readResult.Buffer.IsEmpty)
+                    {
+                        try
+                        {
+                            streamReaderCompleted = await streamDecoder.WriteAsync(
+                                readResult.Buffer,
+                                cancel).ConfigureAwait(false);
+
+                            reader.AdvanceTo(readResult.Buffer.End);
+                        }
+                        catch (Exception ex)
+                        {
+                            streamDecoder.CompleteWriter();
+                            await reader.CompleteAsync(ex).ConfigureAwait(false);
+                            break;
+                        }
+                    }
+
+                    if (streamReaderCompleted || readResult.IsCompleted)
+                    {
+                        streamDecoder.CompleteWriter();
+                        await reader.CompleteAsync().ConfigureAwait(false);
+                        break; // done
+                    }
+                }
+            }
+
+            /*
 
             var channel = Channel.CreateUnbounded<T>(); // TODO: switch to bounded with options
 
@@ -349,6 +435,7 @@ namespace IceRpc.Slice.Internal
                     while (decoder.Consumed < buffer.Length);
                 }
             }
+            */
         }
     }
 }
