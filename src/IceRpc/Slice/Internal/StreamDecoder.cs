@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -26,26 +27,11 @@ namespace IceRpc.Slice.Internal
 
         internal StreamDecoder(
             Func<ReadOnlySequence<byte>, IEnumerable<T>> decodeBufferFunc,
-            long pauseWriterThreshold,
-            long resumeWriterThreshold)
+            SliceStreamDecoder options)
         {
-            if (resumeWriterThreshold > pauseWriterThreshold)
-            {
-                throw new ArgumentException(
-                    $"{nameof(resumeWriterThreshold)} must be smaller than ${nameof(pauseWriterThreshold)}",
-                    nameof(resumeWriterThreshold));
-            }
-
-            if (resumeWriterThreshold <= 0)
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(resumeWriterThreshold),
-                    $"{nameof(resumeWriterThreshold)} must be greater than 0");
-            }
-
             _decodeBufferFunc = decodeBufferFunc;
-            _pauseWriterThreshold = pauseWriterThreshold;
-            _resumeWriterThreshold = resumeWriterThreshold;
+            _pauseWriterThreshold = options.PauseWriterThreshold;
+            _resumeWriterThreshold = options.ResumeWriterThreshold;
         }
 
         internal void CompleteReader()

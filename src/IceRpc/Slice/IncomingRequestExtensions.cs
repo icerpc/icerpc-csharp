@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Slice.Internal;
 
 namespace IceRpc.Slice
@@ -72,6 +73,7 @@ namespace IceRpc.Slice
                 request.ProxyInvoker,
                 request.Features.Get<IActivator>() ?? defaultActivator,
                 request.Features.GetClassGraphMaxDepth(),
-                decodeFunc);
+                decodeFunc,
+                request.Features.Get<SliceStreamDecoder>() ?? SliceStreamDecoder.Default);
     }
 }

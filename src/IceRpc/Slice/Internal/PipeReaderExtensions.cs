@@ -1,9 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using System.Buffers;
-using System.Diagnostics;
 using System.IO.Pipelines;
-using System.Threading.Channels;
 
 namespace IceRpc.Slice.Internal
 {
@@ -251,6 +250,7 @@ namespace IceRpc.Slice.Internal
         /// <param name="activator">The Slice activator.</param>
         /// <param name="classGraphMaxDepth">The class graph max depth for the decoder created by this method.</param>
         /// <param name="decodeFunc">The function used to decode the streamed param.</param>
+        /// <param name="streamDecoderOptions">The stream decoder option.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <remarks>The implementation currently always uses segments.</remarks>
         internal static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
@@ -261,6 +261,7 @@ namespace IceRpc.Slice.Internal
             IActivator activator,
             int classGraphMaxDepth,
             DecodeFunc<T> decodeFunc,
+            SliceStreamDecoder streamDecoderOptions,
             CancellationToken cancel = default)
         {
             // when CancelPendingRead is called on reader, ReadSegmentAsync returns a ReadResult with
@@ -287,10 +288,7 @@ namespace IceRpc.Slice.Internal
                 return items;
             };
 
-            var streamDecoder = new StreamDecoder<T>(
-                decodeBufferFunc,
-                pauseWriterThreshold: 8_000,
-                resumeWriterThreshold: 4_000);
+            var streamDecoder = new StreamDecoder<T>(decodeBufferFunc, streamDecoderOptions);
 
             _ = Task.Run(() => FillWriterAsync(), cancel);
 
@@ -348,7 +346,7 @@ namespace IceRpc.Slice.Internal
                     {
                         streamDecoder.CompleteWriter();
                         await reader.CompleteAsync().ConfigureAwait(false);
-                        break; // done
+                        break;
                     }
                 }
             }
