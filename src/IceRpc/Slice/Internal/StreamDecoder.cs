@@ -50,6 +50,7 @@ namespace IceRpc.Slice.Internal
                     // If the writer is paused, resume it so that it can return true ASAP.
                     if (_writerState == WriterState.Paused)
                     {
+                        _writerState = WriterState.Running; // Only CompleteWriter marks writer as Completed
                         _resumeWriterSemaphore.Release();
                     }
                 }
@@ -62,14 +63,15 @@ namespace IceRpc.Slice.Internal
             {
                 if (_writerState != WriterState.Completed)
                 {
-                    // If the writer is a paused, we don't release resumeWriterSemaphore because CompleteWriter and
-                    // WriteAsync should not be called concurrently.
+                    // CompleteWriter and WriteAsync should not be called concurrently.
+                    Debug.Assert(_writerState == WriterState.Running);
 
                     _writerState = WriterState.Completed;
 
-                    // If the reader is paused, resume it so that it can complete ASAP.
+                    // If the reader is paused, mark it completed and release the semaphore.
                     if (_readerState == ReaderState.Paused)
                     {
+                        _readerState = ReaderState.Completed;
                         _resumeReaderSemaphore.Release();
                     }
                 }
@@ -82,7 +84,7 @@ namespace IceRpc.Slice.Internal
 
             while (true)
             {
-                bool paused;
+                bool paused = false;
 
                 lock (_mutex)
                 {
@@ -91,7 +93,23 @@ namespace IceRpc.Slice.Internal
                         yield break;
                     }
 
-                    paused = _readerState == ReaderState.Paused;
+                    Debug.Assert(_readerState == ReaderState.Running);
+
+                    if (_queue.Count == 0)
+                    {
+                        // Unless _queue.Count is 0, we don't care if _writerState is completed when reading: we need
+                        // to read everything in the queue.
+
+                        if (_writerState == WriterState.Completed)
+                        {
+                            // We will never get more items
+                            _readerState = ReaderState.Completed;
+                            yield break;
+                        }
+
+                        _readerState = ReaderState.Paused;
+                        paused = true; // we wait for 1 when we transition to Paused
+                    }
                 }
 
                 if (paused)
@@ -107,36 +125,16 @@ namespace IceRpc.Slice.Internal
                     {
                         yield break;
                     }
+                    Debug.Assert(_readerState == ReaderState.Running);
 
-                    if (paused)
+                    (items, long byteCount) = _queue.Dequeue();
+
+                    _currentByteCount -= byteCount;
+
+                    if (_writerState == WriterState.Paused && _currentByteCount <= _resumeWriterThreshold)
                     {
-                        Debug.Assert(_readerState == ReaderState.Paused);
-                        _readerState = ReaderState.Running;
-                    }
-
-                    if (_queue.TryDequeue(out (IEnumerable<T> Items, long ByteCount) entry))
-                    {
-                        _currentByteCount -= entry.ByteCount;
-                        items = entry.Items;
-
-                        // If the writer is paused and we cross the resume writer threshold, resume the writer
-                        if (_writerState == WriterState.Paused && _currentByteCount <= _resumeWriterThreshold)
-                        {
-                            _resumeWriterSemaphore.Release();
-                        }
-                    }
-                    else
-                    {
-                        // If the writer is completed, we won't get additional items
-                        if (_writerState == WriterState.Completed)
-                        {
-                            _readerState = ReaderState.Completed;
-                            yield break;
-                        }
-
-                        // else switch to the paused state and continue while loop
-                        _readerState = ReaderState.Paused;
-                        continue;
+                        _writerState = WriterState.Running;
+                        _resumeWriterSemaphore.Release(); // we release 1 when we transition out of Paused
                     }
                 }
 
@@ -154,7 +152,7 @@ namespace IceRpc.Slice.Internal
                 throw new ArgumentException("cannot write empty buffer", nameof(buffer));
             }
 
-            bool paused;
+            bool paused = false;
 
             lock (_mutex)
             {
@@ -168,7 +166,13 @@ namespace IceRpc.Slice.Internal
                     return true;
                 }
 
-                paused = _writerState == WriterState.Paused;
+                Debug.Assert(_writerState == WriterState.Running);
+
+                if (_pauseWriterThreshold != 0 && _currentByteCount >= _pauseWriterThreshold)
+                {
+                    _writerState = WriterState.Paused;
+                    paused = true; // we wait 1 when we transition to Paused.
+                }
             }
 
             if (paused)
@@ -186,29 +190,20 @@ namespace IceRpc.Slice.Internal
                     throw new InvalidOperationException("cannot write to completed writer");
                 }
 
-                if (paused)
-                {
-                    Debug.Assert(_writerState == WriterState.Paused);
-                    _writerState = WriterState.Running;
-                }
-
                 if (_readerState == ReaderState.Completed)
                 {
                     return true;
                 }
 
+                Debug.Assert(_writerState == WriterState.Running);
+
                 _queue.Enqueue((items, buffer.Length));
                 _currentByteCount += buffer.Length;
 
-                if (_currentByteCount >= _pauseWriterThreshold)
-                {
-                    _writerState = WriterState.Paused;
-                }
-
-                // If the reader is paused, release semaphore
                 if (_readerState == ReaderState.Paused)
                 {
-                    _resumeReaderSemaphore.Release();
+                    _readerState = ReaderState.Running;
+                    _resumeReaderSemaphore.Release(); // we release 1 when we transition out of Paused.
                 }
 
                 return false;
