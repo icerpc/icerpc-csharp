@@ -10,11 +10,11 @@ namespace IceRpc.Slice
 
         /// <summary>When the Slice engine decodes a stream into an async enumerable, it will pause when the number of
         /// bytes decoded but not read is greater or equal to this value.</summary>
-        /// <value>0 means no threshold; otherwise, the positive value is the threshold in bytes.</value>
+        /// <value>A value greater than 0 is the threshold in bytes; 0 means no threshold.</value>
         public long PauseWriterThreshold { get; }
 
         /// <summary>When the decoding of a stream into an async enumerable is paused
-        /// (<see cref="PauseWriterThreshold"/>), the decoding resumes when the number of bytes decoded by not read yet
+        /// (<see cref="PauseWriterThreshold"/>), the decoding resumes when the number of bytes decoded but not read yet
         /// falls below this threshold.</summary>
         public long ResumeWriterThreshold { get; }
 
