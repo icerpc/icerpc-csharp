@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 
 namespace IceRpc.Internal
 {
@@ -15,12 +16,12 @@ namespace IceRpc.Internal
         /// <param name="fields">The fields.</param>
         /// <param name="fieldsDefaults">The fields defaults.</param>
         internal static void EncodeFields(
-            this Ice20Encoder encoder,
-            Dictionary<int, Action<IceEncoder>>? fields,
+            this ref IceEncoder encoder,
+            Dictionary<int, EncodeAction>? fields,
             IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fieldsDefaults)
         {
             // can be larger than necessary, which is fine
-            int sizeLength = Ice20Encoder.GetSizeLength(fieldsDefaults.Count + (fields?.Count ?? 0));
+            int sizeLength = Ice20Encoding.GetSizeLength(fieldsDefaults.Count + (fields?.Count ?? 0));
 
             Span<byte> countPlaceholder = encoder.GetPlaceholderSpan(sizeLength);
 
@@ -30,13 +31,13 @@ namespace IceRpc.Internal
 
             if (fields != null)
             {
-                foreach ((int key, Action<IceEncoder> action) in fields)
+                foreach ((int key, EncodeAction action) in fields)
                 {
                     encoder.EncodeVarInt(key);
                     Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
                     int startPos = encoder.EncodedByteCount;
-                    action(encoder);
-                    Ice20Encoder.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+                    action(ref encoder);
+                    Ice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
                     count++;
                 }
             }
@@ -51,7 +52,7 @@ namespace IceRpc.Internal
                 }
             }
 
-            Ice20Encoder.EncodeSize(count, countPlaceholder);
+            Ice20Encoding.EncodeSize(count, countPlaceholder);
         }
     }
 }

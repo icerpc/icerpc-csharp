@@ -214,7 +214,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         let body = if operation.returns_classes() {
             format!(
                 "\
-Ice11Encoding.{encoding_operation}(
+IceRpc.Encoding.Ice11.{encoding_operation}(
     {return_arg},
     {encode_action},
     {format})",
@@ -297,20 +297,13 @@ pub fn response_encode_action(operation: &Operation) -> CodeBlock {
     if use_default_encode_action {
         encode_action(returns.first().unwrap().data_type(), namespace, true, true)
     } else {
-        let encoder_class = if operation.returns_classes() {
-            "Ice11Encoder"
-        } else {
-            "IceEncoder"
-        };
-
         format!(
             "\
-({encoder} encoder,
+(ref IceEncoder encoder,
  {_in}{tuple_type} value) =>
 {{
     {encode_action}
 }}",
-            encoder = encoder_class,
             _in = if returns.len() == 1 { "" } else { "in " },
             tuple_type = returns.to_tuple_type(namespace, TypeContext::Outgoing, false),
             encode_action = encode_operation(operation, true).indent(),
@@ -501,7 +494,11 @@ fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
     });
 
     match non_streamed_return_values.len() {
-        0 => format!("{}.CreateEmptyPayload()", encoding),
+        0 => format!(
+            "{encoding}.CreateEmptyPayload(hasStream: {has_stream})",
+            encoding = encoding,
+            has_stream = if operation.return_type.is_empty() { "false" } else { "true" }
+        ),
         _ => format!(
             "Response.{operation_name}({args})",
             operation_name = operation.escape_identifier(),

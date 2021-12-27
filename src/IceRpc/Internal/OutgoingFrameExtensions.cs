@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
 using System.IO.Compression;
 using System.IO.Pipelines;
 
@@ -18,7 +19,9 @@ namespace IceRpc.Internal
                     new DeflateStream(frame.PayloadSink.AsStream(), options.CompressionLevel));
 
                 var header = new CompressionField(CompressionFormat.Deflate);
-                frame.Fields.Add((int)FieldKey.Compression, encoder => header.Encode(encoder));
+                frame.Fields.Add(
+                    (int)FieldKey.Compression,
+                    (ref IceEncoder encoder) => header.Encode(ref encoder));
             }
         }
     }

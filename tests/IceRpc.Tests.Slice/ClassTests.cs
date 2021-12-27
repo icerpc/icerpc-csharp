@@ -1,7 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.DependencyInjection;
 using IceRpc.Configure;
+using IceRpc.Slice;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice
@@ -29,9 +30,9 @@ namespace IceRpc.Tests.Slice
                             {
                                 var response = new OutgoingResponse(request)
                                 {
-                                    PayloadSource = IceRpc.Slice.Ice11Encoding.CreatePayloadFromSingleReturnValue(
+                                    PayloadSource = Encoding.Ice11.CreatePayloadFromSingleReturnValue(
                                         new MyClassAlsoEmpty(),
-                                        (encoder, ae) => encoder.EncodeClass(ae))
+                                        (ref IceEncoder encoder, MyClassAlsoEmpty ae) => encoder.EncodeClass(ae))
                                 };
                                 return new(response);
                             }));

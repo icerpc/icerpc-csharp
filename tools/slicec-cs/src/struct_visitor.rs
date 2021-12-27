@@ -81,12 +81,6 @@ impl<'a> Visitor for StructVisitor<'a> {
         });
         builder.add_block(main_constructor.build());
 
-        let (encoder, decoder) = if struct_def.uses_classes() {
-            ("Ice11Encoder", "ref IceDecoder")
-        } else {
-            ("IceEncoder", "ref IceDecoder")
-        };
-
         // Decode constructor
         builder.add_block(
             FunctionBuilder::new(
@@ -102,7 +96,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                     &escaped_identifier
                 ),
             )
-            .add_parameter(decoder, "decoder", None, Some("The decoder."))
+            .add_parameter("ref IceDecoder", "decoder", None, Some("The decoder."))
             .set_body(decode_data_members(
                 &members,
                 &namespace,
@@ -120,7 +114,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                 FunctionType::BlockBody,
             )
             .add_comment("summary", "Encodes the fields of this struct.")
-            .add_parameter(encoder, "encoder", None, Some("The encoder."))
+            .add_parameter("ref IceEncoder", "encoder", None, Some("The encoder."))
             .set_body(encode_data_members(
                 &members,
                 &namespace,

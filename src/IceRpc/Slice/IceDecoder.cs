@@ -6,7 +6,6 @@ using IceRpc.Transports.Internal;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -550,7 +549,9 @@ namespace IceRpc.Slice
         {
             if (bitSequenceSize <= 0)
             {
-                throw new ArgumentException("bitSequenceSize must be greater than 0", nameof(bitSequenceSize));
+                throw new ArgumentOutOfRangeException(
+                    nameof(bitSequenceSize),
+                    "bitSequenceSize must be greater than 0");
             }
 
             int size = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0);
@@ -620,6 +621,24 @@ namespace IceRpc.Slice
             }
         }
 
+        internal static int DecodeInt(ReadOnlySpan<byte> from) => BitConverter.ToInt32(from);
+
+        // Applies to all var type: varlong, varulong etc.
+        internal static int DecodeVarLongLength(byte from) => 1 << (from & 0x03);
+
+        internal static (ulong Value, int ValueLength) DecodeVarULong(ReadOnlySpan<byte> from)
+        {
+            ulong value = (from[0] & 0x03) switch
+            {
+                0 => (uint)from[0] >> 2,
+                1 => (uint)BitConverter.ToUInt16(from) >> 2,
+                2 => BitConverter.ToUInt32(from) >> 2,
+                _ => BitConverter.ToUInt64(from) >> 2
+            };
+
+            return (value, DecodeVarLongLength(from[0]));
+        }
+
         /// <summary>Verifies the Ice decoder has reached the end of its underlying buffer.</summary>
         /// <param name="skipTaggedParams">When true, first skips all remaining tagged parameters in the current
         /// buffer.</param>
@@ -665,6 +684,25 @@ namespace IceRpc.Slice
             return size;
         }
 
+        /// <summary>Decodes a size encoded on a fixed number of bytes.</summary>
+        /// <returns>The size decoded by this decoder.</returns>
+        internal int DecodeFixedLengthSize()
+        {
+            if (Encoding == IceRpc.Encoding.Ice11)
+            {
+                int size = DecodeInt();
+                if (size < 0)
+                {
+                    throw new InvalidDataException($"decoded invalid size: {size}");
+                }
+                return size;
+            }
+            else
+            {
+                return DecodeSize();
+            }
+        }
+
         internal void Skip(int count)
         {
             if (_reader.Remaining >= count)
@@ -689,7 +727,7 @@ namespace IceRpc.Slice
             }
             else
             {
-                Skip(IceEncoding.DecodeVarLongLength(PeekByte()));
+                Skip(DecodeVarLongLength(PeekByte()));
             }
         }
 
@@ -701,7 +739,7 @@ namespace IceRpc.Slice
             Debug.Assert(Encoding == IceRpc.Encoding.Ice11);
 
             // The Ice 1.1 encoding of ice1 endpoints is transport-specific, and hard-coded here and in the
-            // Ice11Encoder. The preferred and fallback encoding for new transports is TransportCode.Any, which uses an
+            // IceEncoder. The preferred and fallback encoding for new transports is TransportCode.Any, which uses an
             // EndpointData like Ice 2.0.
 
             Debug.Assert(_connection != null);

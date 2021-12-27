@@ -227,7 +227,7 @@ protected override global::System.Collections.Immutable.ImmutableList<IceRpc.Sli
         "IceEncode",
         FunctionType::BlockBody,
     )
-    .add_parameter("Ice11Encoder", "encoder", None, None)
+    .add_parameter("ref IceEncoder", "encoder", None, None)
     .set_body({
         let mut code = CodeBlock::new();
 
@@ -247,7 +247,7 @@ protected override global::System.Collections.Immutable.ImmutableList<IceRpc.Sli
 
         if has_base_class {
             code.writeln("encoder.IceEndSlice(false);");
-            code.writeln("base.IceEncode(encoder);");
+            code.writeln("base.IceEncode(ref encoder);");
         } else {
             code.writeln("encoder.IceEndSlice(true);"); // last slice
         }

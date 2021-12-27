@@ -4,6 +4,7 @@ using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using NUnit.Framework;
+using System.Buffers;
 
 namespace IceRpc.Tests.Internal
 {
@@ -73,15 +74,9 @@ namespace IceRpc.Tests.Internal
         {
             Memory<byte> sourceBuffer = new byte[4096];
             var bufferWriter = new SingleBufferWriter(sourceBuffer);
-            var encoder = new Ice20Encoder(bufferWriter);
             var values = new List<int>();
-            encoder.EncodeSize(0);
-            values.Add(0);
-            for (int i = 0; i < 31; ++i)
-            {
-                encoder.EncodeSize(1 << i);
-                values.Add(1 << i);
-            }
+
+            Encode(bufferWriter, values);
 
             sourceBuffer = bufferWriter.WrittenBuffer;
 
@@ -90,6 +85,19 @@ namespace IceRpc.Tests.Internal
             foreach (int value in values)
             {
                 Assert.That(await receiver.ReceiveSizeAsync(default), Is.EqualTo(value));
+            }
+
+            static void Encode(IBufferWriter<byte> bufferWriter, List<int> values)
+            {
+                var encoder = new IceEncoder(bufferWriter, Encoding.Ice20);
+
+                encoder.EncodeSize(0);
+                values.Add(0);
+                for (int i = 0; i < 31; ++i)
+                {
+                    encoder.EncodeSize(1 << i);
+                    values.Add(1 << i);
+                }
             }
         }
 
@@ -104,15 +112,8 @@ namespace IceRpc.Tests.Internal
         {
             Memory<byte> sourceBuffer = new byte[4096];
             var bufferWriter = new SingleBufferWriter(sourceBuffer);
-            var encoder = new Ice20Encoder(bufferWriter);
             var values = new List<ulong>();
-            encoder.EncodeSize(0);
-            values.Add(0);
-            for (int i = 0; i < 62; ++i)
-            {
-                encoder.EncodeVarULong((ulong)1 << i);
-                values.Add((ulong)1 << i);
-            }
+            Encode(bufferWriter, values);
 
             sourceBuffer = bufferWriter.WrittenBuffer;
 
@@ -121,6 +122,19 @@ namespace IceRpc.Tests.Internal
             foreach (ulong value in values)
             {
                 Assert.That((await receiver.ReceiveVarULongAsync(default)).Value, Is.EqualTo(value));
+            }
+
+            static void Encode(IBufferWriter<byte> bufferWriter, List<ulong> values)
+            {
+                var encoder = new IceEncoder(bufferWriter, Encoding.Ice20);
+
+                encoder.EncodeSize(0);
+                values.Add(0);
+                for (int i = 0; i < 62; ++i)
+                {
+                    encoder.EncodeVarULong((ulong)1 << i);
+                    values.Add((ulong)1 << i);
+                }
             }
         }
 

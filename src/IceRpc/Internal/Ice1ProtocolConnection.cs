@@ -2,6 +2,7 @@
 
 using IceRpc.Features.Internal;
 using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using System.Buffers;
@@ -396,32 +397,10 @@ namespace IceRpc.Internal
                 AsyncCompletePipeWriter output = _isUdp ? new UdpPipeWriter(_networkConnection) :
                     new SimpleNetworkConnectionPipeWriter(_networkConnection);
 
-                var encoder = new Ice11Encoder(output);
-
-                // Write the Ice1 request header.
-                encoder.WriteByteSpan(Ice1Definitions.FramePrologue);
-                encoder.EncodeIce1FrameType(Ice1FrameType.Request);
-                encoder.EncodeByte(0); // compression status
-
-                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
-
-                encoder.EncodeInt(requestId);
-                (byte encodingMajor, byte encodingMinor) = payloadEncoding.ToMajorMinor();
-
-                var requestHeader = new Ice1RequestHeader(
-                    IdentityAndFacet.FromPath(request.Path),
-                    request.Operation,
-                    request.IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
-                    request.Features.GetContext(),
-                    encapsulationSize: payloadSize + 6,
-                    encodingMajor,
-                    encodingMinor);
-                requestHeader.Encode(encoder);
-
-                Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
-
+                EncodeHeader(output, payloadSize);
                 request.InitialPayloadSink.SetDecoratee(output);
 
+                // TODO: it would make sense to pass the known payloadSize to SendPayloadAsync
                 await SendPayloadAsync(request, output, cancel).ConfigureAwait(false);
                 request.IsSent = true;
             }
@@ -445,6 +424,33 @@ namespace IceRpc.Internal
             finally
             {
                 _sendSemaphore.Release();
+            }
+
+            void EncodeHeader(AsyncCompletePipeWriter output, int payloadSize)
+            {
+                var encoder = new IceEncoder(output, Encoding.Ice11);
+
+                // Write the Ice1 request header.
+                encoder.WriteByteSpan(Ice1Definitions.FramePrologue);
+                encoder.EncodeIce1FrameType(Ice1FrameType.Request);
+                encoder.EncodeByte(0); // compression status
+
+                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
+
+                encoder.EncodeInt(requestId);
+                (byte encodingMajor, byte encodingMinor) = payloadEncoding.ToMajorMinor();
+
+                var requestHeader = new Ice1RequestHeader(
+                    IdentityAndFacet.FromPath(request.Path),
+                    request.Operation,
+                    request.IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
+                    request.Features.GetContext(),
+                    encapsulationSize: payloadSize + 6,
+                    encodingMajor,
+                    encodingMinor);
+                requestHeader.Encode(ref encoder);
+
+                IceEncoder.EncodeInt(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
             }
         }
 
@@ -498,18 +504,6 @@ namespace IceRpc.Internal
                                 $"expected {payloadSize} bytes in response payload source, but it's empty");
                         }
 
-                        var encoder = new Ice11Encoder(request.ResponseWriter);
-
-                        // Write the response header.
-
-                        encoder.WriteByteSpan(Ice1Definitions.FramePrologue);
-                        encoder.EncodeIce1FrameType(Ice1FrameType.Reply);
-                        encoder.EncodeByte(0); // compression status
-                        Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
-
-                        encoder.EncodeInt(requestId);
-                        (byte encodingMajor, byte encodingMinor) = payloadEncoding.ToMajorMinor();
-
                         ReplyStatus replyStatus = ReplyStatus.OK;
 
                         if (response.ResultType == ResultType.Failure)
@@ -539,17 +533,9 @@ namespace IceRpc.Internal
                             }
                         }
 
-                        encoder.EncodeReplyStatus(replyStatus);
-                        if (replyStatus <= ReplyStatus.UserException)
-                        {
-                            var responseHeader = new Ice1ResponseHeader(encapsulationSize: payloadSize + 6,
-                                                                        encodingMajor,
-                                                                        encodingMinor);
-                            responseHeader.Encode(encoder);
-                        }
+                        EncodeHeader(payloadEncoding, payloadSize, replyStatus);
 
-                        Ice11Encoder.EncodeFixedLengthSize(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
-
+                        // TODO: it would make sense to pass the known payloadSize to SendPayloadAsync
                         await SendPayloadAsync(
                             response,
                             (AsyncCompletePipeWriter)request.ResponseWriter,
@@ -583,6 +569,33 @@ namespace IceRpc.Internal
                         }
                     }
                 }
+            }
+
+            void EncodeHeader(IceEncoding payloadEncoding, int payloadSize, ReplyStatus replyStatus)
+            {
+                var encoder = new IceEncoder(request.ResponseWriter, Encoding.Ice11);
+
+                // Write the response header.
+
+                encoder.WriteByteSpan(Ice1Definitions.FramePrologue);
+                encoder.EncodeIce1FrameType(Ice1FrameType.Reply);
+                encoder.EncodeByte(0); // compression status
+                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
+
+                encoder.EncodeInt(requestId);
+                (byte encodingMajor, byte encodingMinor) = payloadEncoding.ToMajorMinor();
+
+                encoder.EncodeReplyStatus(replyStatus);
+                if (replyStatus <= ReplyStatus.UserException)
+                {
+                    var responseHeader = new Ice1ResponseHeader(
+                        encapsulationSize: payloadSize + 6,
+                        encodingMajor,
+                        encodingMinor);
+                    responseHeader.Encode(ref encoder);
+                }
+
+                IceEncoder.EncodeInt(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
             }
         }
 
@@ -679,7 +692,7 @@ namespace IceRpc.Internal
 
                     // Check the header
                     Ice1Definitions.CheckHeader(buffer.Span[0..Ice1Definitions.HeaderSize]);
-                    int frameSize = IceEncoding.DecodeInt(buffer.AsReadOnlySpan().Slice(10, 4));
+                    int frameSize = Ice11Encoding.DecodeFixedLengthSize(buffer.AsReadOnlySpan().Slice(10, 4));
                     if (frameSize != Ice1Definitions.HeaderSize)
                     {
                         throw new InvalidDataException($"received ice1 frame with only '{frameSize}' bytes");
@@ -691,38 +704,6 @@ namespace IceRpc.Internal
                     }
                 }
             }
-        }
-
-        /// <summary>Decodes the first byte of the payload to get its size.</summary>
-        private static (int PayloadSize, byte EncodingMajor, byte EncodingMinor) DecodePayloadSize(
-            ref ReadOnlyMemory<ReadOnlyMemory<byte>> payload,
-            Encoding payloadEncoding)
-        {
-            int payloadSize;
-            int payloadSizeLength;
-            byte encodingMajor;
-            byte encodingMinor;
-
-            if (payloadEncoding == Encoding.Ice11)
-            {
-                encodingMajor = 1;
-                encodingMinor = 1;
-                payloadSizeLength = 4;
-                payloadSize = IceEncoding.DecodeInt(payload.Span[0].Span);
-            }
-            else if (payloadEncoding == Encoding.Ice20)
-            {
-                encodingMajor = 2;
-                encodingMinor = 0;
-                (payloadSize, payloadSizeLength) = Ice20Encoding.DecodeSize(payload.Span[0].Span);
-            }
-            else
-            {
-                throw new NotSupportedException("an ice1 payload must be encoded with Slice 1.1 or Slice 2.0");
-            }
-
-            payload = SliceBuffers(payload, payloadSizeLength);
-            return (payloadSize, encodingMajor, encodingMinor);
         }
 
         /// <summary>Sends the payload source of an outgoing frame.</summary>
@@ -771,29 +752,6 @@ namespace IceRpc.Internal
             await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
         }
 
-        // Helper method that removes a few bytes from the first buffer. The implementation is simple and limited.
-        private static ReadOnlyMemory<ReadOnlyMemory<byte>> SliceBuffers(
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
-            int start)
-        {
-            if (buffers.Length > 1 || buffers.Span[0].Length > start)
-            {
-                var result = new ReadOnlyMemory<byte>[buffers.Length];
-                result[0] = buffers.Span[0][start..];
-                Debug.Assert(result[0].Length > 0);
-                for (int i = 1; i < buffers.Length; ++i)
-                {
-                    result[i] = buffers.Span[i];
-                }
-                return result;
-            }
-            else
-            {
-                Debug.Assert(buffers.Length == 1 && buffers.Span[0].Length == start);
-                return ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty;
-            }
-        }
-
         /// <summary>Encodes a payload size into a buffer with the specified encoding.</summary>
         private static void EncodePayloadSize(int payloadSize, Encoding payloadEncoding, Span<byte> buffer)
         {
@@ -805,7 +763,7 @@ namespace IceRpc.Internal
             }
             else if (payloadEncoding == Encoding.Ice20)
             {
-                Ice20Encoder.EncodeSize(payloadSize, buffer);
+                Ice20Encoding.EncodeSize(payloadSize, buffer);
             }
             else
             {
@@ -891,7 +849,7 @@ namespace IceRpc.Internal
 
                     // Check the header
                     Ice1Definitions.CheckHeader(buffer.Span[0..Ice1Definitions.HeaderSize]);
-                    int frameSize = IceEncoding.DecodeInt(buffer[10..14].Span);
+                    int frameSize = Ice11Encoding.DecodeFixedLengthSize(buffer[10..14].Span);
                     if (_isUdp && frameSize != buffer.Length)
                     {
                         // TODO: implement protocol logging with decorators
@@ -997,14 +955,14 @@ namespace IceRpc.Internal
 
                         case Ice1FrameType.Request:
                         {
-                            int requestId = IceEncoding.DecodeInt(buffer.Span[0..4]);
+                            int requestId = Ice11Encoding.DecodeFixedLengthSize(buffer.Span[0..4]);
                             buffer = buffer[4..]; // consume these 4 bytes
                             return (requestId, buffer, memoryOwner);
                         }
 
                         case Ice1FrameType.RequestBatch:
                         {
-                            int invokeNum = IceEncoding.DecodeInt(buffer.Span[0..4]);
+                            int invokeNum = Ice11Encoding.DecodeFixedLengthSize(buffer.Span[0..4]);
 
                             // TODO: implement protocol logging with decorators
                             // _logger.LogReceivedIce1RequestBatchFrame(invokeNum);
@@ -1019,7 +977,7 @@ namespace IceRpc.Internal
 
                         case Ice1FrameType.Reply:
                         {
-                            int requestId = IceEncoding.DecodeInt(buffer.Span[0..4]);
+                            int requestId = Ice11Encoding.DecodeFixedLengthSize(buffer.Span[0..4]);
                             // we keep these 4 bytes in buffer
 
                             lock (_mutex)

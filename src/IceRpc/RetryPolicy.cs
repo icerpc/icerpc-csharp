@@ -48,7 +48,7 @@ namespace IceRpc
                 TimeSpan.FromMilliseconds(decoder.DecodeVarULong()) : TimeSpan.Zero;
         }
 
-        internal void Encode(IceEncoder encoder)
+        internal void Encode(ref IceEncoder encoder)
         {
             encoder.EncodeRetryable(Retryable);
             if (Retryable == Retryable.AfterDelay)

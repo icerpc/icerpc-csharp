@@ -271,7 +271,11 @@ if ({invocation}?.RequestFeatures.Get<IceRpc.Features.CompressPayload>() == null
 
     // The payload argument
     if parameters.is_empty() {
-        invoke_args.push(format!("{}.CreateEmptyPayload()", payload_encoding));
+        invoke_args.push(format!(
+            "{payload_encoding}.CreateEmptyPayload(hasStream: {has_stream})",
+            payload_encoding = payload_encoding,
+            has_stream = if operation.parameters.is_empty() { "false" } else { "true" }
+        ));
     } else {
         let mut request_helper_args = vec![parameters.to_argument_tuple("")];
 
@@ -483,7 +487,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         let body = if sends_classes {
             format!(
                 "\
-Ice11Encoding.{name}(
+IceRpc.Encoding.Ice11.{name}(
     {args},
     {encode_action},
     {format})",
@@ -585,16 +589,11 @@ fn request_encode_action(operation: &Operation) -> CodeBlock {
     } else {
         format!(
             "\
-({encoder} encoder,
+(ref IceEncoder encoder,
  {_in}{param_type} value) =>
 {{
     {encode}
 }}",
-            encoder = if operation.sends_classes() {
-                "Ice11Encoder"
-            } else {
-                "IceEncoder"
-            },
             _in = if params.len() == 1 { "" } else { "in " },
             param_type = params.to_tuple_type(&namespace, TypeContext::Outgoing, false),
             encode = encode_operation(operation, false).indent()

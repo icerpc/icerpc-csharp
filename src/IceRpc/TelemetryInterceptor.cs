@@ -3,6 +3,7 @@
 using IceRpc.Slice;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Buffers;
 using System.Diagnostics;
 
 namespace IceRpc
@@ -107,12 +108,15 @@ namespace IceRpc
 
                 request.Fields.Add(
                     (int)FieldKey.TraceContext,
-                    encoder =>
+                    (ref IceEncoder encoder) =>
                     {
                         // W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,
                         // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values
                         encoder.EncodeByte(0);
-                        Span<byte> buffer = stackalloc byte[16];
+
+                        // Unfortunately we can't use stackalloc.
+                        using IMemoryOwner<byte> memoryOwner = MemoryPool<byte>.Shared.Rent(16);
+                        Span<byte> buffer = memoryOwner.Memory.Span[0..16];
                         activity.TraceId.CopyTo(buffer);
                         encoder.WriteByteSpan(buffer);
                         activity.SpanId.CopyTo(buffer[0..8]);
@@ -123,7 +127,9 @@ namespace IceRpc
                         encoder.EncodeString(activity.TraceStateString ?? "");
 
                         // Baggage encoded as a sequence<BaggageEntry>
-                        encoder.EncodeSequence(activity.Baggage, (encoder, entry) =>
+                        encoder.EncodeSequence(
+                            activity.Baggage,
+                            (ref IceEncoder encoder, KeyValuePair<string, string?> entry) =>
                         {
                             encoder.EncodeString(entry.Key);
                             encoder.EncodeString(entry.Value ?? "");

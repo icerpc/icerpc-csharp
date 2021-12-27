@@ -4,6 +4,7 @@ using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Buffers;
 
 namespace IceRpc.Tests.SliceInternal
 {
@@ -18,18 +19,22 @@ namespace IceRpc.Tests.SliceInternal
         {
             Memory<byte> buffer = new byte[256];
             var bufferWriter = new SingleBufferWriter(buffer);
-
             var encoding = IceEncoding.FromString(encodingStr);
-            IceEncoder encoder = encoding.CreateIceEncoder(bufferWriter);
-
             var proxy = Proxy.Parse(str);
-            encoder.EncodeProxy(proxy);
+            EncodeProxy();
+
             buffer = bufferWriter.WrittenBuffer;
 
             await using var connection = new Connection();
 
             Proxy proxy2 = DecodeProxy();
             Assert.AreEqual(proxy, proxy2);
+
+            void EncodeProxy()
+            {
+                var encoder = new IceEncoder(bufferWriter, encoding);
+                encoder.EncodeProxy(proxy);
+            }
 
             Proxy DecodeProxy()
             {
@@ -56,16 +61,20 @@ namespace IceRpc.Tests.SliceInternal
 
             Memory<byte> buffer = new byte[256];
             var bufferWriter = new SingleBufferWriter(buffer);
-
-            // Encodes the endpointless proxy
-            IceEncoder encoder = encoding.CreateIceEncoder(bufferWriter);
-            encoder.EncodeProxy(endpointLess);
+            EncodeProxy();
             buffer = bufferWriter.WrittenBuffer;
 
             Proxy proxy1 = DecodeProxy();
 
             Assert.AreEqual(regular.Connection, proxy1.Connection);
             Assert.AreEqual(proxy1.Endpoint, regular.Connection!.RemoteEndpoint);
+
+            void EncodeProxy()
+            {
+                // Encodes the endpointless proxy
+                var encoder = new IceEncoder(bufferWriter, encoding);
+                encoder.EncodeProxy(endpointLess);
+            }
 
             Proxy DecodeProxy()
             {

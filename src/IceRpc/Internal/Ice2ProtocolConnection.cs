@@ -324,44 +324,7 @@ namespace IceRpc.Internal
                     }
                 }
 
-                var encoder = new Ice20Encoder(requestWriter);
-
-                // Write the Ice2 request header.
-                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
-                int headerStartPos = encoder.EncodedByteCount; // does not include the size
-
-                // DateTime.MaxValue represents an infinite deadline and it is encoded as -1
-                long deadline = request.Deadline == DateTime.MaxValue ? -1 :
-                        (long)(request.Deadline - DateTime.UnixEpoch).TotalMilliseconds;
-
-                var header = new Ice2RequestHeader(
-                    request.Path,
-                    request.Operation,
-                    request.IsIdempotent,
-                    deadline,
-                    request.PayloadEncoding == Ice2Definitions.Encoding ? "" : request.PayloadEncoding.ToString());
-
-                header.Encode(encoder);
-
-                // If the context feature is set to a non empty context, or if the fields defaults contains a context
-                // entry and the context feature is set, marshal the context feature in the request fields. The context
-                // feature must prevail over field defaults. Cannot use request.Features.GetContext it doesn't
-                // distinguish between empty an non set context.
-                if (request.Features.Get<Context>()?.Value is IDictionary<string, string> context &&
-                    (context.Count > 0 || request.FieldsDefaults.ContainsKey((int)FieldKey.Context)))
-                {
-                    // Encodes context
-                    request.Fields[(int)FieldKey.Context] =
-                        encoder => encoder.EncodeDictionary(context,
-                                                            (encoder, value) => encoder.EncodeString(value),
-                                                            (encoder, value) => encoder.EncodeString(value));
-                }
-                // else context remains empty (not set)
-
-                encoder.EncodeFields(request.Fields, request.FieldsDefaults);
-
-                // We're done with the header encoding, write the header size.
-                Ice20Encoder.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
+                EncodeHeader();
 
                 await SendPayloadAsync(request, requestWriter, cancel).ConfigureAwait(false);
                 request.IsSent = true;
@@ -378,6 +341,49 @@ namespace IceRpc.Internal
                 // TODO: is it correct to pass cancel to the new response reader, since it's used for reading the
                 // entire payload?
                 request.ResponseReader = stream.ToPipeReader(cancel);
+            }
+
+            void EncodeHeader()
+            {
+                var encoder = new IceEncoder(requestWriter, Encoding.Ice20);
+
+                // Write the Ice2 request header.
+                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
+                int headerStartPos = encoder.EncodedByteCount; // does not include the size
+
+                // DateTime.MaxValue represents an infinite deadline and it is encoded as -1
+                long deadline = request.Deadline == DateTime.MaxValue ? -1 :
+                        (long)(request.Deadline - DateTime.UnixEpoch).TotalMilliseconds;
+
+                var header = new Ice2RequestHeader(
+                    request.Path,
+                    request.Operation,
+                    request.IsIdempotent,
+                    deadline,
+                    request.PayloadEncoding == Ice2Definitions.Encoding ? "" : request.PayloadEncoding.ToString());
+
+                header.Encode(ref encoder);
+
+                // If the context feature is set to a non empty context, or if the fields defaults contains a context
+                // entry and the context feature is set, marshal the context feature in the request fields. The context
+                // feature must prevail over field defaults. Cannot use request.Features.GetContext it doesn't
+                // distinguish between empty an non set context.
+                if (request.Features.Get<Context>()?.Value is IDictionary<string, string> context &&
+                    (context.Count > 0 || request.FieldsDefaults.ContainsKey((int)FieldKey.Context)))
+                {
+                    // Encodes context
+                    request.Fields[(int)FieldKey.Context] =
+                        (ref IceEncoder encoder) => encoder.EncodeDictionary(
+                            context,
+                            (ref IceEncoder encoder, string value) => encoder.EncodeString(value),
+                            (ref IceEncoder encoder, string value) => encoder.EncodeString(value));
+                }
+                // else context remains empty (not set)
+
+                encoder.EncodeFields(request.Fields, request.FieldsDefaults);
+
+                // We're done with the header encoding, write the header size.
+                Ice20Encoding.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
             }
         }
 
@@ -398,7 +404,19 @@ namespace IceRpc.Internal
 
             try
             {
-                var encoder = new Ice20Encoder(responseWriter);
+                EncodeHeader();
+                await SendPayloadAsync(response, responseWriter, cancel).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                await response.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
+                await response.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
+                throw;
+            }
+
+            void EncodeHeader()
+            {
+                var encoder = new IceEncoder(responseWriter, Encoding.Ice20);
 
                 // Write the Ice2 response header.
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
@@ -407,20 +425,12 @@ namespace IceRpc.Internal
                 new Ice2ResponseHeader(
                     response.ResultType,
                     response.PayloadEncoding == Ice2Definitions.Encoding ? "" :
-                        response.PayloadEncoding.ToString()).Encode(encoder);
+                        response.PayloadEncoding.ToString()).Encode(ref encoder);
 
                 encoder.EncodeFields(response.Fields, response.FieldsDefaults);
 
                 // We're done with the header encoding, write the header size.
-                Ice20Encoder.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
-
-                await SendPayloadAsync(response, responseWriter, cancel).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                await response.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
-                await response.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
-                throw;
+                Ice20Encoding.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
             }
         }
 
@@ -462,10 +472,10 @@ namespace IceRpc.Internal
                 // Send GoAway frame
                 await SendControlFrameAsync(
                     Ice2FrameType.GoAway,
-                    encoder => new Ice2GoAwayBody(
+                    (ref IceEncoder encoder) => new Ice2GoAwayBody(
                         _lastRemoteBidirectionalStreamId,
                         _lastRemoteUnidirectionalStreamId,
-                        message).Encode(encoder),
+                        message).Encode(ref encoder),
                     CancellationToken.None).ConfigureAwait(false);
             }
 
@@ -489,15 +499,16 @@ namespace IceRpc.Internal
 
             await SendControlFrameAsync(
                 Ice2FrameType.Initialize,
-                encoder =>
+                (ref IceEncoder encoder) =>
                 {
                     // Encode the transport parameters as Fields
                     encoder.EncodeSize(1);
 
-                    // Transmit out local incoming frame maximum size
-                    encoder.EncodeField((int)Ice2ParameterKey.IncomingFrameMaxSize,
-                                        (ulong)_incomingFrameMaxSize,
-                                        (encoder, value) => encoder.EncodeVarULong(value));
+                    encoder.EncodeVarInt((int)Ice2ParameterKey.IncomingFrameMaxSize);
+                    Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
+                    int startPos = encoder.EncodedByteCount;
+                    encoder.EncodeVarULong((ulong)_incomingFrameMaxSize);
+                    Ice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
                 },
                 cancel).ConfigureAwait(false);
 
@@ -621,25 +632,28 @@ namespace IceRpc.Internal
 
         private async Task SendControlFrameAsync(
             Ice2FrameType frameType,
-            Action<Ice20Encoder>? frameEncodeAction,
+            EncodeAction? frameEncodeAction,
             CancellationToken cancel)
         {
             Memory<byte> buffer = new byte[1024]; // TODO: use pooled memory?
             var bufferWriter = new SingleBufferWriter(buffer);
-
-            var encoder = new Ice20Encoder(bufferWriter);
-            encoder.EncodeByte((byte)frameType);
-            Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4); // TODO: reduce bytes
-            int startPos = encoder.EncodedByteCount; // does not include the size
-            frameEncodeAction?.Invoke(encoder);
-            Ice20Encoder.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
-
+            Encode(bufferWriter);
             buffer = bufferWriter.WrittenBuffer;
 
             await _controlStream!.WriteAsync(
                 new ReadOnlyMemory<byte>[] { buffer }, // TODO: better API
                 frameType == Ice2FrameType.GoAwayCompleted,
                 cancel).ConfigureAwait(false);
+
+            void Encode(IBufferWriter<byte> bufferWriter)
+            {
+                var encoder = new IceEncoder(bufferWriter, Encoding.Ice20);
+                encoder.EncodeByte((byte)frameType);
+                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4); // TODO: reduce bytes
+                int startPos = encoder.EncodedByteCount; // does not include the size
+                frameEncodeAction?.Invoke(ref encoder);
+                Ice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
+            }
         }
 
         /// <summary>Sends the payload source and payload source stream of an outgoing frame.</summary>
@@ -761,10 +775,10 @@ namespace IceRpc.Internal
                 // Send GoAway frame if not already shutting down.
                 await SendControlFrameAsync(
                     Ice2FrameType.GoAway,
-                    encoder => new Ice2GoAwayBody(
+                    (ref IceEncoder encoder) => new Ice2GoAwayBody(
                         _lastRemoteBidirectionalStreamId,
                         _lastRemoteUnidirectionalStreamId,
-                        goAwayFrame.Message).Encode(encoder),
+                        goAwayFrame.Message).Encode(ref encoder),
                     CancellationToken.None).ConfigureAwait(false);
             }
 

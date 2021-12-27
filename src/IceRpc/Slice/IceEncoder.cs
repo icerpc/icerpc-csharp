@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice.Internal;
+using IceRpc.Transports.Internal;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -10,10 +12,10 @@ using System.Text;
 namespace IceRpc.Slice
 {
     /// <summary>Encodes data into one or more byte buffers using the Ice encoding.</summary>
-    public abstract class IceEncoder
+    public ref partial struct IceEncoder
     {
         /// <summary>The Slice encoding associated with this encoder.</summary>
-        public abstract IceEncoding Encoding { get; }
+        public IceEncoding Encoding { get; }
 
         internal const long VarLongMinValue = -2_305_843_009_213_693_952; // -2^61
         internal const long VarLongMaxValue = 2_305_843_009_213_693_951; // 2^61 - 1
@@ -28,7 +30,21 @@ namespace IceRpc.Slice
 
         private readonly IBufferWriter<byte> _bufferWriter;
 
+        private ClassContext _classContext;
+
         private Encoder? _utf8Encoder; // initialized lazily
+
+        /// <summary>Constructs an Ice encoder.</summary>
+        /// <param name="bufferWriter">The buffer writer that provides the buffers to write into.</param>
+        /// <param name="encoding">The Slice encoding.</param>
+        /// <param name="classFormat">The class format (1.1 only).</param>
+        public IceEncoder(IBufferWriter<byte> bufferWriter, IceEncoding encoding, FormatType classFormat = default)
+            : this()
+        {
+            Encoding = encoding;
+            _bufferWriter = bufferWriter;
+            _classContext = new ClassContext(classFormat);
+        }
 
         // Encode methods for basic types
 
@@ -67,7 +83,25 @@ namespace IceRpc.Slice
 
         /// <summary>Encodes a size on variable number of bytes.</summary>
         /// <param name="v">The size to encode.</param>
-        public abstract void EncodeSize(int v);
+        public void EncodeSize(int v)
+        {
+            if (Encoding == IceRpc.Encoding.Ice11)
+            {
+                if (v < 255)
+                {
+                    EncodeByte((byte)v);
+                }
+                else
+                {
+                    EncodeByte(255);
+                    EncodeInt(v);
+                }
+            }
+            else
+            {
+                EncodeVarULong((ulong)v);
+            }
+        }
 
         /// <summary>Encodes a string.</summary>
         /// <param name="v">The string to encode.</param>
@@ -138,9 +172,10 @@ namespace IceRpc.Slice
             int encodedSizeExponent = GetVarLongEncodedSizeExponent(v);
             v <<= 2;
             v |= (uint)encodedSizeExponent;
-            Span<byte> data = stackalloc byte[sizeof(long)];
+
+            Span<byte> data = _bufferWriter.GetSpan(sizeof(long));
             MemoryMarshal.Write(data, ref v);
-            WriteByteSpan(data[0..(1 << encodedSizeExponent)]);
+            Advance(1 << encodedSizeExponent);
         }
 
         /// <summary>Encodes a uint using IceRPC's variable-size integer encoding.</summary>
@@ -155,9 +190,10 @@ namespace IceRpc.Slice
             int encodedSizeExponent = GetVarULongEncodedSizeExponent(v);
             v <<= 2;
             v |= (uint)encodedSizeExponent;
-            Span<byte> data = stackalloc byte[sizeof(ulong)];
+
+            Span<byte> data = _bufferWriter.GetSpan(sizeof(ulong));
             MemoryMarshal.Write(data, ref v);
-            WriteByteSpan(data[0..(1 << encodedSizeExponent)]);
+            Advance(1 << encodedSizeExponent);
         }
 
         // Encode methods for constructed types
@@ -168,11 +204,125 @@ namespace IceRpc.Slice
 
         /// <summary>Encodes a remote exception.</summary>
         /// <param name="v">The remote exception to encode.</param>
-        public abstract void EncodeException(RemoteException v);
+        public void EncodeException(RemoteException v)
+        {
+            if (Encoding == IceRpc.Encoding.Ice11)
+            {
+                EncodeExceptionClass(v);
+            }
+            else
+            {
+                v.Encode(ref this);
+            }
+        }
 
         /// <summary>Encodes a nullable proxy.</summary>
         /// <param name="proxy">The proxy to encode, or null.</param>
-        public abstract void EncodeNullableProxy(Proxy? proxy);
+        public void EncodeNullableProxy(Proxy? proxy)
+        {
+            if (Encoding == IceRpc.Encoding.Ice11)
+            {
+                if (proxy == null)
+                {
+                    Identity.Empty.Encode(ref this);
+                }
+                else
+                {
+                    if (proxy.Connection?.IsServer ?? false)
+                    {
+                        throw new InvalidOperationException("cannot encode a proxy bound to a server connection");
+                    }
+
+                    IdentityAndFacet identityAndFacet;
+
+                    try
+                    {
+                        identityAndFacet = IdentityAndFacet.FromPath(proxy.Path);
+                    }
+                    catch (FormatException ex)
+                    {
+                        throw new InvalidOperationException(
+                            $"cannot encode proxy with path '{proxy.Path}' using encoding 1.1",
+                            ex);
+                    }
+
+                    if (identityAndFacet.Identity.Name.Length == 0)
+                    {
+                        throw new InvalidOperationException(
+                            $"cannot encode proxy with path '{proxy.Path}' using encoding 1.1");
+                    }
+
+                    identityAndFacet.Identity.Encode(ref this);
+
+                    (byte encodingMajor, byte encodingMinor) = proxy.Encoding.ToMajorMinor();
+
+                    var proxyData = new ProxyData11(
+                        identityAndFacet.OptionalFacet,
+                        proxy.Protocol == Protocol.Ice1 && (proxy.Endpoint?.Transport == TransportNames.Udp) ?
+                            InvocationMode.Datagram : InvocationMode.Twoway,
+                        secure: false,
+                        protocolMajor: (byte)proxy.Protocol.Code,
+                        protocolMinor: 0,
+                        encodingMajor,
+                        encodingMinor);
+                    proxyData.Encode(ref this);
+
+                    if (proxy.Endpoint == null)
+                    {
+                        EncodeSize(0); // 0 endpoints
+                        EncodeString(""); // empty adapter ID
+                    }
+                    else if (proxy.Protocol == Protocol.Ice1 && proxy.Endpoint.Transport == TransportNames.Loc)
+                    {
+                        EncodeSize(0); // 0 endpoints
+                        EncodeString(proxy.Endpoint.Host); // adapter ID unless well-known
+                    }
+                    else
+                    {
+                        IEnumerable<Endpoint> endpoints = Enumerable.Empty<Endpoint>().Append(proxy.Endpoint).Concat(
+                            proxy.AltEndpoints);
+
+                        if (endpoints.Any())
+                        {
+                            this.EncodeSequence(
+                                endpoints,
+                                (ref IceEncoder encoder, Endpoint endpoint) => encoder.EncodeEndpoint(endpoint));
+                        }
+                        else // encoded as an endpointless proxy
+                        {
+                            EncodeSize(0); // 0 endpoints
+                            EncodeString(""); // empty adapter ID
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (proxy == null)
+                {
+                    ProxyData20 proxyData = default;
+                    proxyData.Encode(ref this);
+                }
+                else
+                {
+                    if (proxy.Connection?.IsServer ?? false)
+                    {
+                        throw new InvalidOperationException("cannot encode a proxy bound to a server connection");
+                    }
+
+                    var proxyData = new ProxyData20(
+                        proxy.Path,
+                        protocol: proxy.Protocol != Protocol.Ice2 ? proxy.Protocol.Code : null,
+                        encoding: proxy.Encoding == proxy.Protocol.IceEncoding ? null : proxy.Encoding.ToString(),
+                        endpoint: proxy.Endpoint?.ToEndpointData(),
+                        altEndpoints:
+                                proxy.AltEndpoints.Count == 0 ? null :
+                                    proxy.AltEndpoints.Select(e => e.ToEndpointData()).ToArray());
+
+                    proxyData.Encode(ref this);
+                }
+            }
+        }
 
         /// <summary>Encodes a proxy.</summary>
         /// <param name="proxy">The proxy to encode.</param>
@@ -204,7 +354,9 @@ namespace IceRpc.Slice
             }
             else
             {
-                this.EncodeSequence(v, (encoder, element) => encoder.EncodeFixedSizeNumeric(element));
+                this.EncodeSequence(
+                    v,
+                    (ref IceEncoder encoder, T element) => encoder.EncodeFixedSizeNumeric(element));
             }
         }
 
@@ -293,11 +445,43 @@ namespace IceRpc.Slice
         /// <param name="tagFormat">The tag format.</param>
         /// <param name="v">The value to encode.</param>
         /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
-        public abstract void EncodeTagged<T>(
+        public void EncodeTagged<T>(
             int tag,
             TagFormat tagFormat,
             T v,
-            EncodeAction<IceEncoder, T> encodeAction) where T : notnull;
+            EncodeAction<T> encodeAction) where T : notnull
+        {
+            if (Encoding == IceRpc.Encoding.Ice11)
+            {
+                if (tagFormat == TagFormat.FSize)
+                {
+                    EncodeTaggedParamHeader(tag, tagFormat);
+                    Span<byte> placeholder = GetPlaceholderSpan(4);
+                    int startPos = EncodedByteCount;
+                    encodeAction(ref this, v);
+
+                    // We don't include the size-length in the size we encode.
+                    EncodeInt(EncodedByteCount - startPos, placeholder);
+                }
+                else
+                {
+                    // A VSize where the size is optimized out. Used here for strings (and only strings) because we cannot
+                    // easily compute the number of UTF-8 bytes in a C# string before encoding it.
+                    Debug.Assert(tagFormat == TagFormat.OVSize);
+
+                    EncodeTaggedParamHeader(tag, TagFormat.VSize);
+                    encodeAction(ref this, v);
+                }
+            }
+            else
+            {
+                EncodeVarInt(tag); // the key
+                Span<byte> sizePlaceholder = GetPlaceholderSpan(4);
+                int startPos = EncodedByteCount;
+                encodeAction(ref this, v);
+                Ice20Encoding.EncodeSize(EncodedByteCount - startPos, sizePlaceholder);
+            }
+        }
 
         /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is known before
         /// encoding the value.</summary>
@@ -306,17 +490,69 @@ namespace IceRpc.Slice
         /// <param name="size">The number of bytes needed to encode the value.</param>
         /// <param name="v">The value to encode.</param>
         /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
-        public abstract void EncodeTagged<T>(
+        public void EncodeTagged<T>(
             int tag,
             TagFormat tagFormat,
             int size,
             T v,
-            EncodeAction<IceEncoder, T> encodeAction) where T : notnull;
+            EncodeAction<T> encodeAction) where T : notnull
+        {
+            int startPos;
+
+            if (Encoding == IceRpc.Encoding.Ice11)
+            {
+                Debug.Assert(tagFormat != TagFormat.FSize);
+                Debug.Assert(size > 0);
+
+                bool encodeSize = tagFormat == TagFormat.VSize;
+
+                tagFormat = tagFormat switch
+                {
+                    TagFormat.VInt => size switch
+                    {
+                        1 => TagFormat.F1,
+                        2 => TagFormat.F2,
+                        4 => TagFormat.F4,
+                        8 => TagFormat.F8,
+                        _ => throw new ArgumentException($"invalid value for size: {size}", nameof(size))
+                    },
+
+                    TagFormat.OVSize => TagFormat.VSize, // size encoding is optimized out
+
+                    _ => tagFormat
+                };
+
+                EncodeTaggedParamHeader(tag, tagFormat);
+
+                if (encodeSize)
+                {
+                    EncodeSize(size);
+                }
+
+                startPos = EncodedByteCount;
+                encodeAction(ref this, v);
+            }
+            else
+            {
+                EncodeVarInt(tag); // the key
+                EncodeSize(size);
+                startPos = EncodedByteCount;
+                encodeAction(ref this, v);
+            }
+
+            int actualSize = EncodedByteCount - startPos;
+            if (actualSize != size)
+            {
+                throw new ArgumentException($"value of size ({size}) does not match encoded size ({actualSize})",
+                                            nameof(size));
+            }
+        }
 
         /// <summary>Computes the minimum number of bytes needed to encode a variable-length size.</summary>
         /// <param name="size">The size.</param>
         /// <returns>The minimum number of bytes.</returns>
-        public abstract int GetSizeLength(int size);
+        public int GetSizeLength(int size) => Encoding == IceRpc.Encoding.Ice11 ?
+            (size < 255 ? 1 : 5) : GetVarULongEncodedSize(checked((ulong)size));
 
         internal static void EncodeInt(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
 
@@ -353,15 +589,6 @@ namespace IceRpc.Slice
             EncodedByteCount += span.Length;
         }
 
-        // Constructs a Ice encoder
-        private protected IceEncoder(IBufferWriter<byte> bufferWriter) => _bufferWriter = bufferWriter;
-
-        private protected void Advance(int count)
-        {
-            _bufferWriter.Advance(count);
-            EncodedByteCount += count;
-        }
-
         /// <summary>Gets the minimum number of bytes needed to encode a long value with the varlong encoding as an
         /// exponent of 2.</summary>
         /// <param name="value">The value to encode.</param>
@@ -370,7 +597,7 @@ namespace IceRpc.Slice
         {
             if (value < VarLongMinValue || value > VarLongMaxValue)
             {
-                throw new ArgumentOutOfRangeException($"varlong value '{value}' is out of range", nameof(value));
+                throw new ArgumentOutOfRangeException(nameof(value), $"varlong value '{value}' is out of range");
             }
 
             return (value << 2) switch
@@ -390,7 +617,7 @@ namespace IceRpc.Slice
         {
             if (value > VarULongMaxValue)
             {
-                throw new ArgumentOutOfRangeException($"varulong value '{value}' is out of range", nameof(value));
+                throw new ArgumentOutOfRangeException(nameof(value), $"varulong value '{value}' is out of range");
             }
 
             return (value << 2) switch
@@ -402,14 +629,20 @@ namespace IceRpc.Slice
             };
         }
 
+        private void Advance(int count)
+        {
+            _bufferWriter.Advance(count);
+            EncodedByteCount += count;
+        }
+
         /// <summary>Encodes a fixed-size numeric value.</summary>
         /// <param name="v">The numeric value to encode.</param>
         private void EncodeFixedSizeNumeric<T>(T v) where T : struct
         {
             int elementSize = Unsafe.SizeOf<T>();
-            Span<byte> data = stackalloc byte[elementSize];
+            Span<byte> data = _bufferWriter.GetSpan(elementSize)[0..elementSize];
             MemoryMarshal.Write(data, ref v);
-            WriteByteSpan(data);
+            Advance(elementSize);
         }
     }
 }

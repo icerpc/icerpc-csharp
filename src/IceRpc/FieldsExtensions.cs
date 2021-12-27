@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 
 namespace IceRpc
 {
@@ -18,6 +19,6 @@ namespace IceRpc
             int key,
             DecodeFunc<T> decodeFunc) =>
             fields.TryGetValue(key, out ReadOnlyMemory<byte> value) ?
-                Ice20Encoding.DecodeBuffer(value, decodeFunc) : default(T?);
+                Encoding.Ice20.DecodeBuffer(value, decodeFunc) : default(T?);
     }
 }

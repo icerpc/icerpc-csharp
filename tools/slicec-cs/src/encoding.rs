@@ -82,7 +82,7 @@ fn encode_type(
                 TypeRefs::Primitive(primitive_ref) => {
                     format!("encoder.Encode{}({});", primitive_ref.type_suffix(), value)
                 }
-                TypeRefs::Struct(_) => format!("{}.Encode(encoder);", value),
+                TypeRefs::Struct(_) => format!("{}.Encode(ref encoder);", value),
                 TypeRefs::Sequence(sequence_ref) => format!(
                     "{};",
                     encode_sequence(
@@ -97,7 +97,7 @@ fn encode_type(
                     format!("{};", encode_dictionary(dictionary_ref, namespace, param))
                 }
                 TypeRefs::Enum(enum_ref) => format!(
-                    "{helper}.Encode{name}(encoder, {param});",
+                    "{helper}.Encode{name}(ref encoder, {param});",
                     helper = enum_ref.helper_name(namespace),
                     name = enum_ref.identifier(),
                     param = value,
@@ -363,31 +363,55 @@ pub fn encode_action(
         _ => "value",
     };
 
+    // TODO: why do we have is_param, is_read_only and a type_context - just to create confusion?
+    let type_context = if is_param {
+        if is_read_only {
+            TypeContext::Outgoing
+        } else {
+            TypeContext::Incoming
+        }
+    } else {
+        TypeContext::Nested
+    };
+
+    let value_type = type_ref.to_type_string(namespace, type_context, false);
+
     match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) => {
             if is_optional {
                 write!(
                     code,
-                    "(encoder, value) => encoder.EncodeNullableProxy(value?.Proxy)"
+                    "(ref IceEncoder encoder, {} value) => encoder.EncodeNullableProxy(value?.Proxy)",
+                    value_type
                 );
             } else {
-                write!(code, "(encoder, value) => encoder.EncodeProxy(value.Proxy)");
+                write!(
+                    code,
+                    "(ref IceEncoder encoder, {} value) => encoder.EncodeProxy(value.Proxy)",
+                    value_type
+                );
             }
         }
         TypeRefs::Class(_) => {
             if is_optional {
                 write!(
                     code,
-                    "(encoder, value) => encoder.EncodeNullableClass(value)"
+                    "(ref IceEncoder encoder, {} value) => encoder.EncodeNullableClass(value)",
+                    value_type
                 );
             } else {
-                write!(code, "(encoder, value) => encoder.EncodeClass(value)");
+                write!(
+                    code,
+                    "(ref IceEncoder encoder, {} value) => encoder.EncodeClass(value)",
+                    value_type
+                );
             }
         }
         TypeRefs::Primitive(primitive_ref) => {
             write!(
                 code,
-                "(encoder, value) => encoder.Encode{builtin_type}({value})",
+                "(ref IceEncoder encoder, {value_type} value) => encoder.Encode{builtin_type}({value})",
+                value_type = value_type,
                 builtin_type = primitive_ref.type_suffix(),
                 value = value
             )
@@ -395,7 +419,8 @@ pub fn encode_action(
         TypeRefs::Enum(enum_ref) => {
             write!(
                 code,
-                "(encoder, value) => {helper}.Encode{name}(encoder, {value})",
+                "(ref IceEncoder encoder, {value_type} value) => {helper}.Encode{name}(ref encoder, {value})",
+                value_type = value_type,
                 helper = enum_ref.helper_name(namespace),
                 name = enum_ref.identifier(),
                 value = value
@@ -404,8 +429,9 @@ pub fn encode_action(
         TypeRefs::Dictionary(dictionary_ref) => {
             write!(
                 code,
-                "(encoder, value) => {}",
-                encode_dictionary(dictionary_ref, namespace, "value")
+                "(ref IceEncoder encoder, {value_type} value) => {encode_dictionary}",
+                value_type = value_type,
+                encode_dictionary = encode_dictionary(dictionary_ref, namespace, "value")
             );
         }
         TypeRefs::Sequence(sequence_ref) => {
@@ -413,12 +439,18 @@ pub fn encode_action(
             // the top-level object is not cached.
             write!(
                 code,
-                "(encoder, value) => {}",
-                encode_sequence(sequence_ref, namespace, "value", is_read_only, is_param)
+                "(ref IceEncoder encoder, {value_type} value) => {encode_sequence}",
+                value_type = value_type,
+                encode_sequence = encode_sequence(sequence_ref, namespace, "value", is_read_only, is_param)
             )
         }
         TypeRefs::Struct(_) => {
-            write!(code, "(encoder, value) => {}.Encode(encoder)", value)
+            write!(
+                code,
+                "(ref IceEncoder encoder, {value_type} value) => {value}.Encode(ref encoder)",
+                value_type = value_type,
+                value = value
+            )
         }
     }
 
