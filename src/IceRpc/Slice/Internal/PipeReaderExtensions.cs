@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Features;
 using System.Buffers;
 using System.IO.Pipelines;
 
@@ -261,7 +260,7 @@ namespace IceRpc.Slice.Internal
             IActivator activator,
             int classGraphMaxDepth,
             DecodeFunc<T> decodeFunc,
-            SliceStreamDecoder streamDecoderOptions,
+            StreamDecoderOptions streamDecoderOptions,
             CancellationToken cancel = default)
         {
             // when CancelPendingRead is called on reader, ReadSegmentAsync returns a ReadResult with

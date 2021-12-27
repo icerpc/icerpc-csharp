@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Features;
 using IceRpc.Slice.Internal;
 
 namespace IceRpc.Slice
@@ -53,7 +52,7 @@ namespace IceRpc.Slice
                 response.Features.Get<IActivator>() ?? defaultActivator,
                 response.Features.GetClassGraphMaxDepth(),
                 decodeFunc,
-                response.Features.Get<SliceStreamDecoder>() ?? SliceStreamDecoder.Default);
+                response.Features.Get<StreamDecoderOptions>() ?? StreamDecoderOptions.Default);
 
         /// <summary>Decodes a response payload.</summary>
         /// <paramtype name="T">The type of the return value.</paramtype>

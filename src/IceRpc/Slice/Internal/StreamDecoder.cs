@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Features;
 using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -27,7 +26,7 @@ namespace IceRpc.Slice.Internal
 
         internal StreamDecoder(
             Func<ReadOnlySequence<byte>, IEnumerable<T>> decodeBufferFunc,
-            SliceStreamDecoder options)
+            StreamDecoderOptions options)
         {
             _decodeBufferFunc = decodeBufferFunc;
             _pauseWriterThreshold = options.PauseWriterThreshold;
