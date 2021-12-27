@@ -63,7 +63,7 @@ namespace IceRpc.Tests.SliceInternal
             Task<bool> task = streamDecoder.WriteAsync(buffer, default).AsTask();   // when done, 300 ints total
             Assert.That(task.IsCompleted, Is.False);
 
-            IAsyncEnumerator<int> asyncEnumerator = streamDecoder.ReadAsync(default).GetAsyncEnumerator();
+            IAsyncEnumerator<int> asyncEnumerator = streamDecoder.ReadAsync().GetAsyncEnumerator();
 
             await ReadAsync(100); // 100 ints / 400 bytes remaining, still paused
             Assert.That(task.IsCompleted, Is.False);
@@ -103,7 +103,7 @@ namespace IceRpc.Tests.SliceInternal
 
             var streamDecoder = new StreamDecoder<int>(DecodeBufferIntoInts);
 
-            IAsyncEnumerable<int> asyncEnumerable = streamDecoder.ReadAsync(default);
+            IAsyncEnumerable<int> asyncEnumerable = streamDecoder.ReadAsync();
             IAsyncEnumerator<int> asyncEnumerator = asyncEnumerable.GetAsyncEnumerator();
 
             Task<bool> task;
@@ -153,7 +153,7 @@ namespace IceRpc.Tests.SliceInternal
 
             // Now read all 20,000 ints
             int count = 0;
-            await foreach (int i in streamDecoder.ReadAsync(default))
+            await foreach (int i in streamDecoder.ReadAsync())
             {
                 Assert.That(i, Is.EqualTo(456));
                 count++;
@@ -172,9 +172,13 @@ namespace IceRpc.Tests.SliceInternal
                 using var cancellationTokenSource = new CancellationTokenSource();
                 CancellationToken cancel = cancellationTokenSource.Token;
 
+                bool cancelCalled = false;
+
                 int count = 0;
 
-                await foreach (int i in streamDecoder.ReadAsync(default).WithCancellation(cancel))
+                await foreach (int i in streamDecoder.ReadAsync(
+                    () => cancelCalled = true,
+                    cancel: default).WithCancellation(cancel))
                 {
                     count++;
                     Assert.That(i, Is.EqualTo(123));
@@ -193,6 +197,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 // The cancellation triggers the immediate end of the async-iteration
                 Assert.That(count, Is.EqualTo(callCancel ? 150 : 180));
+                Assert.That(cancelCalled, Is.EqualTo(callCancel));
             });
 
             var buffer = CreateBuffer(value: 123, count: 100);

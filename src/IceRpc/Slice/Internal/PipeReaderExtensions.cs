@@ -250,7 +250,6 @@ namespace IceRpc.Slice.Internal
         /// <param name="classGraphMaxDepth">The class graph max depth for the decoder created by this method.</param>
         /// <param name="decodeFunc">The function used to decode the streamed param.</param>
         /// <param name="streamDecoderOptions">The stream decoder option.</param>
-        /// <param name="cancel">The cancellation token.</param>
         /// <remarks>The implementation currently always uses segments.</remarks>
         internal static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this PipeReader reader,
@@ -260,13 +259,8 @@ namespace IceRpc.Slice.Internal
             IActivator activator,
             int classGraphMaxDepth,
             DecodeFunc<T> decodeFunc,
-            StreamDecoderOptions streamDecoderOptions,
-            CancellationToken cancel = default)
+            StreamDecoderOptions streamDecoderOptions)
         {
-            // when CancelPendingRead is called on reader, ReadSegmentAsync returns a ReadResult with
-            // IsCanceled set to true.
-            _ = cancel.Register(() => reader.CancelPendingRead());
-
             Func<ReadOnlySequence<byte>, IEnumerable<T>> decodeBufferFunc = buffer =>
             {
                 var decoder = new IceDecoder(
@@ -289,15 +283,23 @@ namespace IceRpc.Slice.Internal
 
             var streamDecoder = new StreamDecoder<T>(decodeBufferFunc, streamDecoderOptions);
 
-            _ = Task.Run(() => FillWriterAsync(), cancel);
+            _ = Task.Run(() => FillWriterAsync(), CancellationToken.None);
 
-            return streamDecoder.ReadAsync(cancel);
+            // when CancelPendingRead is called on reader, ReadSegmentAsync returns a ReadResult with IsCanceled
+            // set to true.
+            return streamDecoder.ReadAsync(() => reader.CancelPendingRead());
 
             async Task FillWriterAsync()
             {
                 while (true)
                 {
                     // Each iteration decodes a segment with n values.
+
+                    // If the reader of the async enumerable misbehaves, we can be left "hanging" in a paused
+                    // streamDecoder.WriteAsync. The fix is to fix the application code: set the cancellation token
+                    // with WithCancellation and cancel when the async enumerable reader is done and the iteration is
+                    // not over (= streamDecoder writer is not completed).
+                    CancellationToken cancel = CancellationToken.None;
 
                     ReadResult readResult;
 
@@ -349,90 +351,6 @@ namespace IceRpc.Slice.Internal
                     }
                 }
             }
-
-            /*
-
-            var channel = Channel.CreateUnbounded<T>(); // TODO: switch to bounded with options
-
-            _ = Task.Run(() => FillChannelWriterAsync(channel.Writer), cancel);
-
-            // cancel on ReadAllAsync has attribute[EnumeratorCancellation]
-            return channel.Reader.ReadAllAsync(cancel);
-
-            async Task FillChannelWriterAsync(ChannelWriter<T> channelWriter)
-            {
-                while (true)
-                {
-                    // Each iteration decodes a segment with n values.
-
-                    ReadResult readResult;
-
-                    try
-                    {
-                        readResult = await reader.ReadSegmentAsync(encoding, cancel).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        channelWriter.Complete(ex);
-                        await reader.CompleteAsync(ex).ConfigureAwait(false);
-                        break; // done
-                    }
-
-                    if (readResult.IsCanceled)
-                    {
-                        reader.AdvanceTo(readResult.Buffer.End);
-                        var ex = new OperationCanceledException();
-                        channelWriter.Complete(ex);
-                        await reader.CompleteAsync(ex).ConfigureAwait(false);
-                        break; // done
-                    }
-
-                    if (!readResult.Buffer.IsEmpty)
-                    {
-                        try
-                        {
-                            Decode(readResult.Buffer);
-                        }
-                        catch (Exception ex)
-                        {
-                            channelWriter.Complete(ex);
-                            await reader.CompleteAsync(ex).ConfigureAwait(false);
-                            break;
-                        }
-                        finally
-                        {
-                            reader.AdvanceTo(readResult.Buffer.End);
-                        }
-                    }
-
-                    if (readResult.IsCompleted)
-                    {
-                        channelWriter.Complete();
-                        await reader.CompleteAsync().ConfigureAwait(false);
-                        break; // done
-                    }
-                }
-
-                void Decode(ReadOnlySequence<byte> buffer)
-                {
-                    var decoder = new IceDecoder(
-                        buffer,
-                        encoding,
-                        connection,
-                        invoker,
-                        activator,
-                        classGraphMaxDepth);
-
-                    do
-                    {
-                        bool written = channelWriter.TryWrite(decodeFunc(ref decoder));
-
-                        Debug.Assert(written); // TODO: deal better with this situation
-                    }
-                    while (decoder.Consumed < buffer.Length);
-                }
-            }
-            */
         }
     }
 }

@@ -16,6 +16,7 @@ namespace IceRpc.Slice.Internal
     /// considered read.</remarks>
     internal class StreamDecoder<T>
     {
+
         private long _currentByteCount;
         private readonly Func<ReadOnlySequence<byte>, IEnumerable<T>> _decodeBufferFunc;
         private readonly Queue<(IEnumerable<T> Items, long ByteCount)> _queue = new();
@@ -44,8 +45,6 @@ namespace IceRpc.Slice.Internal
             _decodeBufferFunc = decodeBufferFunc;
             _pauseWriterThreshold = options.PauseWriterThreshold;
             _resumeWriterThreshold = options.ResumeWriterThreshold;
-
-            Console.WriteLine($"resume = {_resumeWriterThreshold}");
         }
 
         /// <summary>Constructs a stream decoder with the default options.</summary>
@@ -79,6 +78,7 @@ namespace IceRpc.Slice.Internal
         }
 
         /// <summary>Reads the stream decoder asynchronously.</summary>
+        /// <param name="cancelCallback">An action to register with the cancellation token.</param>
         /// <param name="cancel">The cancellation token. It's typically set by calling the
         /// <see cref="TaskAsyncEnumerableExtensions.WithCancellation{T}"/> extension method on the returned async
         /// enumerable.</param>
@@ -86,9 +86,15 @@ namespace IceRpc.Slice.Internal
         /// <exception name="InvalidOperationException">Thrown if this method is called more than once.</exception>
         /// <remarks>If the reader does not want to read the full async enumerable, it should cancel the cancellation
         /// token when done to notify the writer and avoid unnecessary writing/decoding.</remarks>
-        internal async IAsyncEnumerable<T> ReadAsync([EnumeratorCancellation] CancellationToken cancel)
+        internal async IAsyncEnumerable<T> ReadAsync(
+            Action? cancelCallback = null,
+            [EnumeratorCancellation] CancellationToken cancel = default)
         {
-            _ = cancel.Register(() => CompleteReader());
+            _ = cancel.Register(() =>
+            {
+                CompleteReader();
+                cancelCallback?.Invoke();
+            });
 
             _readerStarted = _readerStarted == false ? true :
                 throw new InvalidOperationException("a stream decoder can be read only once");
