@@ -23,7 +23,7 @@ namespace IceRpc.Slice
         internal const ulong VarULongMaxValue = 4_611_686_018_427_387_903; // 2^62 - 1
 
         /// <summary>The number of bytes encoded by this encoder into the underlying buffer writer.</summary>
-        internal int EncodedByteCount => _encodedByteCount;
+        internal int EncodedByteCount { get; private set; }
 
         private static readonly UTF8Encoding _utf8 =
             new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true); // no BOM
@@ -32,16 +32,14 @@ namespace IceRpc.Slice
 
         private ClassContext _classContext;
 
-        private int _encodedByteCount;
-
         private Encoder? _utf8Encoder; // initialized lazily
 
         /// <summary>Constructs an Ice encoder.</summary>
-        public IceEncoder(
-            IBufferWriter<byte> bufferWriter,
-            IceEncoding encoding,
-            FormatType classFormat = default)
-                : this()
+        /// <param name="bufferWriter">The buffer writer that provides the buffers to write into.</param>
+        /// <param name="encoding">The Slice encoding.</param>
+        /// <param name="classFormat">The class format (1.1 only).</param>
+        public IceEncoder(IBufferWriter<byte> bufferWriter, IceEncoding encoding, FormatType classFormat = default)
+            : this()
         {
             Encoding = encoding;
             _bufferWriter = bufferWriter;
@@ -144,7 +142,7 @@ namespace IceRpc.Slice
 
                     Debug.Assert(completed); // completed is always true when flush is true
                     int size = checked((int)bytesUsed);
-                    _encodedByteCount += size;
+                    EncodedByteCount += size;
                     Encoding.EncodeSize(size, sizePlaceholder);
                 }
             }
@@ -588,7 +586,7 @@ namespace IceRpc.Slice
         internal void WriteByteSpan(ReadOnlySpan<byte> span)
         {
             _bufferWriter.Write(span);
-            _encodedByteCount += span.Length;
+            EncodedByteCount += span.Length;
         }
 
         /// <summary>Gets the minimum number of bytes needed to encode a long value with the varlong encoding as an
@@ -634,7 +632,7 @@ namespace IceRpc.Slice
         private void Advance(int count)
         {
             _bufferWriter.Advance(count);
-            _encodedByteCount += count;
+            EncodedByteCount += count;
         }
 
         /// <summary>Encodes a fixed-size numeric value.</summary>
