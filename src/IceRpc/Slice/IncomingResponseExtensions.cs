@@ -51,7 +51,8 @@ namespace IceRpc.Slice
                 invoker,
                 response.Features.Get<IActivator>() ?? defaultActivator,
                 response.Features.GetClassGraphMaxDepth(),
-                decodeFunc);
+                decodeFunc,
+                response.Features.Get<StreamDecoderOptions>() ?? StreamDecoderOptions.Default);
 
         /// <summary>Decodes a response payload.</summary>
         /// <paramtype name="T">The type of the return value.</paramtype>
