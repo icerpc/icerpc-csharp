@@ -249,7 +249,7 @@ namespace IceRpc.Slice.Internal
         /// <param name="activator">The Slice activator.</param>
         /// <param name="classGraphMaxDepth">The class graph max depth for the decoder created by this method.</param>
         /// <param name="decodeFunc">The function used to decode the streamed param.</param>
-        /// <param name="streamDecoderOptions">The stream decoder option.</param>
+        /// <param name="streamDecoderOptions">The stream decoder options.</param>
         /// <remarks>The implementation currently always uses segments.</remarks>
         internal static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this PipeReader reader,
