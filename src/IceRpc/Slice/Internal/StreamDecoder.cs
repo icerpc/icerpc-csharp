@@ -11,7 +11,7 @@ namespace IceRpc.Slice.Internal
     {
         private long _currentByteCount;
         private readonly Func<ReadOnlySequence<byte>, IEnumerable<T>> _decodeBufferFunc;
-        private readonly Queue<(IEnumerable<T> Items, long byteCount)> _queue = new();
+        private readonly Queue<(IEnumerable<T> Items, long ByteCount)> _queue = new();
         private readonly object _mutex = new();
 
         private readonly long _pauseWriterThreshold;
@@ -97,6 +97,8 @@ namespace IceRpc.Slice.Internal
 
                     if (_queue.Count == 0)
                     {
+                        Debug.Assert(_currentByteCount == 0);
+
                         // Unless _queue.Count is 0, we don't care if _writerState is completed when reading: we need
                         // to read everything in the queue.
 
@@ -202,6 +204,7 @@ namespace IceRpc.Slice.Internal
 
                 if (_readerState == ReaderState.Paused)
                 {
+                    Debug.Assert(_currentByteCount == buffer.Length);
                     _readerState = ReaderState.Running;
                     _resumeReaderSemaphore.Release(); // we release 1 when we transition out of Paused.
                 }
