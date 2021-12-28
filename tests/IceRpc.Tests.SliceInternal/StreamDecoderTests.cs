@@ -32,7 +32,7 @@ namespace IceRpc.Tests.SliceInternal
             {
                 encoder.EncodeInt(value);
             }
-            Assert.That(bufferWriter.WrittenBuffer.Length == count * 4);
+            Assert.That(bufferWriter.WrittenBuffer.Length, Is.EqualTo(count * 4));
             return new ReadOnlySequence<byte>(bufferWriter.WrittenBuffer);
         }
 
