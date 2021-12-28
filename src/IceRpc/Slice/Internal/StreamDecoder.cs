@@ -16,7 +16,6 @@ namespace IceRpc.Slice.Internal
     /// considered read.</remarks>
     internal class StreamDecoder<T>
     {
-
         private long _currentByteCount;
         private readonly Func<ReadOnlySequence<byte>, IEnumerable<T>> _decodeBufferFunc;
         private readonly Queue<(IEnumerable<T> Items, long ByteCount)> _queue = new();
@@ -24,14 +23,15 @@ namespace IceRpc.Slice.Internal
 
         private readonly long _pauseWriterThreshold;
 
-        private readonly SemaphoreSlim _resumeReaderSemaphore = new(initialCount: 0, maxCount: 1);
-        private readonly SemaphoreSlim _resumeWriterSemaphore = new(initialCount: 0, maxCount: 1);
+        private readonly SemaphoreSlim _readerSemaphore = new(initialCount: 0, maxCount: 1);
 
         private ReaderState _readerState = ReaderState.Running;
 
         private bool _readerStarted;
 
         private readonly long _resumeWriterThreshold;
+
+        private readonly SemaphoreSlim _writerSemaphore = new(initialCount: 0, maxCount: 1);
 
         private WriterState _writerState = WriterState.Running;
 
@@ -71,7 +71,7 @@ namespace IceRpc.Slice.Internal
                     if (_readerState == ReaderState.Paused)
                     {
                         _readerState = ReaderState.Completed;
-                        _resumeReaderSemaphore.Release();
+                        _readerSemaphore.Release();
                     }
                 }
             }
@@ -133,7 +133,7 @@ namespace IceRpc.Slice.Internal
 
                 if (paused)
                 {
-                    await _resumeReaderSemaphore.WaitAsync(cancel).ConfigureAwait(false);
+                    await _readerSemaphore.WaitAsync(cancel).ConfigureAwait(false);
                 }
 
                 IEnumerable<T> items;
@@ -153,7 +153,7 @@ namespace IceRpc.Slice.Internal
                     if (_writerState == WriterState.Paused && _currentByteCount <= _resumeWriterThreshold)
                     {
                         _writerState = WriterState.Running;
-                        _resumeWriterSemaphore.Release(); // we release 1 when we transition out of Paused
+                        _writerSemaphore.Release(); // we release 1 when we transition out of Paused
                     }
                 }
 
@@ -169,7 +169,7 @@ namespace IceRpc.Slice.Internal
         }
 
         /// <summary>Writes a buffer to the stream decoder.</summary>
-        /// <param name="buffer">The buffer.</param>
+        /// <param name="buffer">The buffer. Cannot be empty.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>A value task with a bool value that indicates whether or not the reader is completed. When the
         /// reader is completed, the writer should stop writing more and call <see cref="CompleteWriter"/>.</returns>
@@ -205,7 +205,7 @@ namespace IceRpc.Slice.Internal
 
             if (paused)
             {
-                await _resumeWriterSemaphore.WaitAsync(cancel).ConfigureAwait(false);
+                await _writerSemaphore.WaitAsync(cancel).ConfigureAwait(false);
             }
 
             IEnumerable<T> items = _decodeBufferFunc(buffer);
@@ -232,7 +232,7 @@ namespace IceRpc.Slice.Internal
                 {
                     Debug.Assert(_currentByteCount == buffer.Length);
                     _readerState = ReaderState.Running;
-                    _resumeReaderSemaphore.Release(); // we release 1 when we transition out of Paused.
+                    _readerSemaphore.Release(); // we release 1 when we transition out of Paused.
                 }
 
                 return false;
@@ -249,7 +249,7 @@ namespace IceRpc.Slice.Internal
                 {
                     if (_readerState == ReaderState.Paused)
                     {
-                        _resumeReaderSemaphore.Release();
+                        _readerSemaphore.Release();
                     }
 
                     _readerState = ReaderState.Completed;
@@ -258,7 +258,7 @@ namespace IceRpc.Slice.Internal
                     if (_writerState == WriterState.Paused)
                     {
                         _writerState = WriterState.Running; // Only CompleteWriter marks writer as Completed
-                        _resumeWriterSemaphore.Release();
+                        _writerSemaphore.Release();
                     }
                 }
             }
