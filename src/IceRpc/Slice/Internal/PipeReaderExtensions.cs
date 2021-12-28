@@ -293,7 +293,7 @@ namespace IceRpc.Slice.Internal
             {
                 // TODO: temporary work-around for bug #704: delay a little the start of the writer to allow the
                 // args/return reader.AdvanceTo to run first.
-                await Task.Delay(1).ConfigureAwait(false);
+                await Task.Delay(20).ConfigureAwait(false);
 
                 while (true)
                 {
