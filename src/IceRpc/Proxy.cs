@@ -106,7 +106,15 @@ namespace IceRpc
         }
 
         /// <summary>Gets or sets the fragment.</summary>
-        public string Fragment { get; set; } = "";
+        public string Fragment
+        {
+            get => _fragment;
+            set
+            {
+                UriProxyParser.CheckFragment(value, nameof(value));
+                _fragment = value;
+            }
+        }
 
         /// <summary>Gets or sets the invoker of this proxy.</summary>
         public IInvoker? Invoker { get; set; }
@@ -121,6 +129,7 @@ namespace IceRpc
         private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
         private volatile Connection? _connection;
         private Endpoint? _endpoint;
+        private string _fragment = "";
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
         /// <param name="lhs">The left hand side operand.</param>
@@ -233,7 +242,7 @@ namespace IceRpc
             {
                 return false;
             }
-            if (Fragment != other.Fragment)
+            if (_fragment != other._fragment)
             {
                 return false;
             }
@@ -313,10 +322,10 @@ namespace IceRpc
                 }
             }
 
-            if (Fragment.Length > 0)
+            if (_fragment.Length > 0)
             {
                 sb.Append('#');
-                sb.Append(Fragment);
+                sb.Append(_fragment);
             }
 
             return sb.ToString();

@@ -393,7 +393,7 @@ namespace IceRpc.Slice
                             Endpoint = endpoint,
                             AltEndpoints = altEndpoints.ToImmutableList(),
                             Invoker = _invoker,
-                            Fragment =  proxyData.Facet.ToString()
+                            Fragment = proxyData.Facet.ToFragment()
                         };
                     }
                     catch (InvalidDataException)
@@ -431,7 +431,7 @@ namespace IceRpc.Slice
                             };
                         }
 
-                        proxy.Fragment = proxyData.Facet.ToString();
+                        proxy.Fragment = proxyData.Facet.ToFragment();
 
                         proxy.Encoding = IceRpc.Encoding.FromMajorMinor(proxyData.EncodingMajor,
                             proxyData.EncodingMinor);

@@ -225,8 +225,8 @@ namespace IceRpc
                 return new Proxy(identity.ToPath(), Protocol.Ice1)
                 {
                     Invoker = invoker,
-                    Fragment = facet,
-                    Encoding = encoding
+                    Encoding = encoding,
+                    Fragment = Uri.EscapeDataString(facet),
                 };
             }
 
@@ -313,7 +313,7 @@ namespace IceRpc
                     Endpoint = endpoint,
                     AltEndpoints = altEndpoints,
                     Encoding = encoding,
-                    Fragment = facet
+                    Fragment = Uri.EscapeDataString(facet)
                 };
             }
             else if (s[beg] == '@')
@@ -370,7 +370,7 @@ namespace IceRpc
                     Invoker = invoker,
                     Endpoint = endpoint,
                     Encoding = encoding,
-                    Fragment = facet
+                    Fragment = Uri.EscapeDataString(facet)
                 };
             }
 

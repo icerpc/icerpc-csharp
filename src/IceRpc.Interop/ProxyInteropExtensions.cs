@@ -22,7 +22,7 @@ namespace IceRpc
             }
 
             var identity = Identity.FromPath(proxy.Path);
-            string facet = proxy.Fragment;
+            string facet = Uri.UnescapeDataString(proxy.Fragment);
 
             var sb = new StringBuilder();
 
