@@ -14,11 +14,6 @@ namespace IceRpc.Transports.Internal
         internal static (TransportCode TransportCode, Encoding encoding, ReadOnlyMemory<byte> Bytes) ParseOpaqueParams(
            this Endpoint endpoint)
         {
-            if (endpoint.Protocol != Protocol.Ice1)
-            {
-                throw new FormatException($"endpoint '{endpoint}': protocol/transport mismatch");
-            }
-
             TransportCode? transportCode = null;
             ReadOnlyMemory<byte> bytes = default;
             Encoding? encoding = null;
@@ -105,59 +100,31 @@ namespace IceRpc.Transports.Internal
             bool compress = false;
             int? timeout = null;
 
-            if (endpoint.Protocol == Protocol.Ice1)
+            foreach ((string name, string value) in endpoint.Params)
             {
-                foreach ((string name, string value) in endpoint.Params)
+                switch (name)
                 {
-                    switch (name)
-                    {
-                        case "t":
-                            if (timeout != null)
-                            {
-                                throw new FormatException($"multiple t parameters in endpoint '{endpoint}'");
-                            }
-                            if (value == "infinite")
-                            {
-                                timeout = -1;
-                            }
-                            else
-                            {
-                                timeout = int.Parse(value, CultureInfo.InvariantCulture); // timeout in ms, or -1
-                                if (timeout == 0 || timeout < -1)
-                                {
-                                    throw new FormatException(
-                                        $"invalid value for t parameter in endpoint '{endpoint}'");
-                                }
-                            }
-                            continue; // loop back
-
-                        case "z":
-                            if (compress)
-                            {
-                                throw new FormatException($"multiple z parameters in endpoint '{endpoint}'");
-                            }
-                            if (value != "true")
+                    case "t":
+                        if (timeout != null)
+                        {
+                            throw new FormatException($"multiple t parameters in endpoint '{endpoint}'");
+                        }
+                        if (value == "infinite")
+                        {
+                            timeout = -1;
+                        }
+                        else
+                        {
+                            timeout = int.Parse(value, CultureInfo.InvariantCulture); // timeout in ms, or -1
+                            if (timeout == 0 || timeout < -1)
                             {
                                 throw new FormatException(
-                                    $"invalid value '{value}' for parameter z in endpoint '{endpoint}'");
+                                    $"invalid value for t parameter in endpoint '{endpoint}'");
                             }
-                            compress = true;
-                            continue; // loop back
+                        }
+                        continue;
 
-                        default:
-                            throw new FormatException($"unknown parameter '{name}' in endpoint '{endpoint}'");
-                    }
-                }
-
-                // With Ice1, "tcp" is always non-secure and "ssl" is always secure so tls is never null.
-                tls = endpoint.Transport == TransportNames.Ssl;
-            }
-            else
-            {
-                foreach ((string name, string value) in endpoint.Params)
-                {
-                    if (name == "tls")
-                    {
+                    case "tls":
                         if (tls != null)
                         {
                             throw new FormatException($"multiple tls parameters in endpoint '{endpoint}'");
@@ -170,11 +137,23 @@ namespace IceRpc.Transports.Internal
                         {
                             throw new FormatException($"invalid value for tls parameter in endpoint '{endpoint}'", ex);
                         }
-                    }
-                    else
-                    {
+                        continue;
+
+                    case "z":
+                        if (compress)
+                        {
+                            throw new FormatException($"multiple z parameters in endpoint '{endpoint}'");
+                        }
+                        if (value != "true")
+                        {
+                            throw new FormatException(
+                                $"invalid value '{value}' for parameter z in endpoint '{endpoint}'");
+                        }
+                        compress = true;
+                        continue;
+
+                    default:
                         throw new FormatException($"unknown parameter '{name}' in endpoint '{endpoint}'");
-                    }
                 }
             }
 
@@ -183,11 +162,6 @@ namespace IceRpc.Transports.Internal
 
         internal static (bool Compress, int Ttl, string? MulticastInterface) ParseUdpParams(this Endpoint endpoint)
         {
-            if (endpoint.Protocol != Protocol.Ice1)
-            {
-                throw new FormatException($"endpoint '{endpoint}': protocol/transport mismatch");
-            }
-
             bool compress = false;
             int ttl = -1;
             string? multicastInterface = null;

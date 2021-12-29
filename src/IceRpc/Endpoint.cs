@@ -94,7 +94,22 @@ namespace IceRpc
         public string ToIceString()
         {
             var sb = new StringBuilder();
-            sb.Append(Transport);
+
+            if (Transport == TransportNames.Tcp)
+            {
+                if (Params.Find(p => p.Name == "tls").Value == "false")
+                {
+                    sb.Append(TransportNames.Tcp);
+                }
+                else
+                {
+                    sb.Append(TransportNames.Ssl);
+                }
+            }
+            else
+            {
+                sb.Append(Transport);
+            }
 
             if (Host.Length > 0)
             {
@@ -120,19 +135,22 @@ namespace IceRpc
 
             foreach ((string name, string value) in Params)
             {
-                sb.Append(' ');
-
-                // Add - or -- prefix as appropriate
-                sb.Append('-');
-                if (name.Length > 1)
-                {
-                    sb.Append('-');
-                }
-                sb.Append(name);
-                if (value != "true")
+                if (name != "tls")
                 {
                     sb.Append(' ');
-                    sb.Append(value);
+
+                    // Add - or -- prefix as appropriate
+                    sb.Append('-');
+                    if (name.Length > 1)
+                    {
+                        sb.Append('-');
+                    }
+                    sb.Append(name);
+                    if (value != "true")
+                    {
+                        sb.Append(' ');
+                        sb.Append(value);
+                    }
                 }
             }
 

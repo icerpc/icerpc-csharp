@@ -152,7 +152,8 @@ namespace IceRpc.Tests.Api
 
         [TestCase("ice+tcp://host.zeroc.com/path?encoding=foo")]
         [TestCase("ice+tcp://host.zeroc.com/identity#facet", "/identity")]
-        [TestCase("ice+tcp://host.zeroc.com/identity?protocol=ice1")]
+        [TestCase("ice+tcp://host.zeroc.com/identity?protocol=ice1&tls=false")]
+        [TestCase("ice+tcp://host.zeroc.com/identity?protocol=ice1&tls=true")] // TODO: add no tls test
         [TestCase("ice+tcp://host.zeroc.com:1000/category/name")]
         [TestCase("ice+tcp://host.zeroc.com:1000/loc0/loc1/category/name")]
         [TestCase("ice+tcp://host.zeroc.com/category/name%20with%20space", "/category/name%20with%20space")]

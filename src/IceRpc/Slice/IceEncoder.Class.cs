@@ -239,13 +239,14 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes an endpoint in a nested encapsulation.</summary>
+        /// <summary>Encodes an endpoint in a nested encapsulation (1.1).</summary>
         /// <param name="endpoint">The endpoint to encode.</param>
         private void EncodeEndpoint(Endpoint endpoint)
         {
-            // The Ice 1.1 encoding of ice1 endpoints is transport-specific, and hard-coded here and in the
-            // Ice11Decoder. The preferred and fallback encoding for new transports is TransportCode.Any, which uses an
-            // EndpointData like Ice 2.0.
+            Debug.Assert(Encoding == IceRpc.Encoding.Ice11);
+
+            // The Ice 1.1 encoding of ice1 endpoints is transport-specific, and hard-coded here. The preferred and
+            // fallback encoding for new transports is TransportCode.Any, which uses an EndpointData like Ice 2.0.
 
             if (endpoint.Protocol == Protocol.Ice1 && endpoint.Transport == TransportNames.Opaque)
             {
@@ -270,14 +271,23 @@ namespace IceRpc.Slice
             }
             else
             {
-                TransportCode transportCode = endpoint.Protocol == Protocol.Ice1 ?
-                    endpoint.Transport switch
+                TransportCode transportCode = TransportCode.Any;
+                bool compress = false;
+                int timeout = -1;
+
+                if (endpoint.Protocol == Protocol.Ice1)
+                {
+                    if (endpoint.Transport == TransportNames.Tcp)
                     {
-                        TransportNames.Tcp => TransportCode.TCP,
-                        TransportNames.Ssl => TransportCode.SSL,
-                        TransportNames.Udp => TransportCode.UDP,
-                        _ => TransportCode.Any
-                    } : TransportCode.Any;
+                        (compress, timeout, bool? tls) = endpoint.ParseTcpParams();
+                        transportCode = (tls ?? true) ? TransportCode.SSL : TransportCode.TCP;
+                    }
+                    else if (endpoint.Transport == TransportNames.Udp)
+                    {
+                        transportCode = TransportCode.UDP;
+                        compress = endpoint.ParseUdpParams().Compress;
+                    }
+                }
 
                 this.EncodeTransportCode(transportCode);
 
@@ -291,7 +301,6 @@ namespace IceRpc.Slice
                     case TransportCode.TCP:
                     case TransportCode.SSL:
                     {
-                        (bool compress, int timeout, bool? _) = endpoint.ParseTcpParams();
                         EncodeString(endpoint.Host);
                         EncodeInt(endpoint.Port);
                         EncodeInt(timeout);
@@ -301,7 +310,6 @@ namespace IceRpc.Slice
 
                     case TransportCode.UDP:
                     {
-                        bool compress = endpoint.ParseUdpParams().Compress;
                         EncodeString(endpoint.Host);
                         EncodeInt(endpoint.Port);
                         EncodeBool(compress);

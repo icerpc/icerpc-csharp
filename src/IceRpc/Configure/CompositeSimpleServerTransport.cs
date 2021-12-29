@@ -13,21 +13,6 @@ namespace IceRpc.Configure
     /// <summary>Extension methods for class <see cref="CompositeServerTransport{ISimpleNetworkConnection}"/>.</summary>
     public static class CompositeSimpleServerTransportExtensions
     {
-        /// <summary>Adds the ssl server transport to this composite server transport.</summary>
-        /// <param name="serverTransport">The transport being configured.</param>
-        /// <param name="options">The TCP server options.</param>
-        /// <returns>The transport being configured.</returns>
-        public static CompositeServerTransport<ISimpleNetworkConnection> UseSsl(
-            this CompositeServerTransport<ISimpleNetworkConnection> serverTransport,
-            TcpServerOptions options)
-        {
-            if (options.AuthenticationOptions == null)
-            {
-                throw new ArgumentException("AuthenticationOptions must be set for ssl transport", nameof(options));
-            }
-            return serverTransport.Add(TransportNames.Ssl, new TcpServerTransport(options));
-        }
-
         /// <summary>Adds the tcp server transport to this composite server transport.</summary>
         /// <param name="serverTransport">The transport being configured.</param>
         /// <returns>The transport being configured.</returns>

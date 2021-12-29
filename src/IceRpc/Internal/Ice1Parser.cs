@@ -116,11 +116,24 @@ namespace IceRpc.Internal
                 }
             }
 
-            return new Endpoint(Protocol.Ice1,
-                                transportName,
-                                host ?? "",
-                                port ?? 0,
-                                endpointParams.ToImmutableList());
+            if (transportName == TransportNames.Tcp)
+            {
+                // Since the order of the endpoint params matters for endpoint comparison, we
+                // always insert tls first.
+                endpointParams.Insert(0, new EndpointParam("tls", "false"));
+            }
+            else if (transportName == TransportNames.Ssl)
+            {
+                transportName = TransportNames.Tcp;
+                endpointParams.Insert(0, new EndpointParam("tls", "true"));
+            }
+
+            return new Endpoint(
+                Protocol.Ice1,
+                transportName,
+                host ?? "",
+                port ?? 0,
+                endpointParams.ToImmutableList());
         }
 
         /// <summary>Parses a proxy string in the ice1 format.</summary>

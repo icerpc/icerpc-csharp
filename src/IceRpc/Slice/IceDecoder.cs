@@ -782,7 +782,8 @@ namespace IceRpc.Slice
                             int timeout = DecodeInt();
                             bool compress = DecodeBool();
 
-                            var endpointParams = ImmutableList<EndpointParam>.Empty;
+                            var endpointParams = ImmutableList.Create(
+                                new EndpointParam("tls", transportCode == TransportCode.SSL ? "true" : "false"));
 
                             if (timeout != EndpointParseExtensions.DefaultTcpTimeout)
                             {
@@ -794,12 +795,12 @@ namespace IceRpc.Slice
                                 endpointParams = endpointParams.Add(new EndpointParam("z", "true"));
                             }
 
-                            endpoint = new Endpoint(Protocol.Ice1,
-                                                    transportCode == TransportCode.SSL ?
-                                                        TransportNames.Ssl : TransportNames.Tcp,
-                                                    host,
-                                                    port,
-                                                    endpointParams);
+                            endpoint = new Endpoint(
+                                Protocol.Ice1,
+                                TransportNames.Tcp,
+                                host,
+                                port,
+                                endpointParams);
 
                             break;
                         }
@@ -813,11 +814,12 @@ namespace IceRpc.Slice
                             var endpointParams = compress ? ImmutableList.Create(new EndpointParam("z", "true")) :
                                 ImmutableList<EndpointParam>.Empty;
 
-                            endpoint = new Endpoint(Protocol.Ice1,
-                                                    TransportNames.Udp,
-                                                    host,
-                                                    port,
-                                                    endpointParams);
+                            endpoint = new Endpoint(
+                                Protocol.Ice1,
+                                TransportNames.Udp,
+                                host,
+                                port,
+                                endpointParams);
 
                             // else endpoint remains null and we throw below
                             break;

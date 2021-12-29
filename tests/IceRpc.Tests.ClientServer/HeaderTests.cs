@@ -13,7 +13,7 @@ namespace IceRpc.Tests.ClientServer
     public class HeaderTests
     {
         [TestCase("ice+tcp://127.0.0.1:0?tls=false")]
-        [TestCase("ice+tcp://127.0.0.1:0?protocol=ice1")]
+        [TestCase("ice+tcp://127.0.0.1:0?protocol=ice1&tls=false")]
         [TestCase("ice+udp://127.0.0.1:0?protocol=ice1")]
         [TestCase("ice+coloc://header_request:10000")]
         [TestCase("ice+coloc://header_request:10001?protocol=ice1")]
