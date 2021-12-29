@@ -102,38 +102,63 @@ namespace IceRpc
                 Invoker = invoker,
                 Endpoint = endpoint,
                 AltEndpoints = altEndpoints,
-                Encoding = encoding == null ? (protocol.IceEncoding ?? Encoding.Unknown) : Encoding.FromString(encoding)
+                Encoding = encoding == null ? (protocol.IceEncoding ?? Encoding.Unknown) : Encoding.FromString(encoding),
+                Fragment = uri.Fragment.Length > 0 ? uri.Fragment[1..] : "" // remove #
             };
         }
 
-        /// <summary>Makes sure path is valid and throws ArgumentException if it is not.</summary>
+        /// <summary>Makes sure fragment is valid.</summary>
+        /// <exception name="ArgumentException">Thrown if <paramref name="fragment"/> is not valid.</exception>
+        internal static void CheckFragment(string fragment, string paramName)
+        {
+            if (!IsValidFragment(fragment))
+            {
+                throw new ArgumentException(
+                    @$"invalid fragment '{fragment
+                    }'; a valid fragment contains only unreserved characters, reserved characters or '%'",
+                    paramName);
+            }
+        }
+
+        /// <summary>Makes sure path is valid.</summary>
+        /// <exception name="ArgumentException">Thrown if <paramref name="path"/> is not valid.</exception>
         internal static void CheckPath(string path, string paramName)
         {
             if (!IsValidPath(path))
             {
                 throw new ArgumentException(
                     @$"invalid path '{path
-                    }'; a valid path starts with '/' and contains only unreserved characters, '%' or reserved characters other than '?'",
+                    }'; a valid path starts with '/' and contains only unreserved characters, '%' or reserved characters other than '?' and '#'",
                     paramName);
             }
         }
 
-        /// <summary>Checks if <c>path</c> starts with <c>/</c> and contains only unreserved characters, <c>%</c>, or
-        /// reserved characters other than <c>?</c>.</summary>
+        /// <summary>Checks if <paramref name="path"/> starts with <c>/</c> and contains only unreserved characters,
+        /// <c>%</c>, or reserved characters other than <c>?</c> and <c>#</c>.</summary>
         /// <param name="path">The path to check.</param>
-        /// <returns>True if <c>path</c> is a valid path; otherwise, false.</returns>
+        /// <returns>True if <paramref name="path"/> is a valid path; otherwise, false.</returns>
         internal static bool IsValidPath(string path)
         {
-            const string invalidChars = "\"<>?\\^`{|}";
-
             if (path.Length == 0 || path[0] != '/')
             {
                 return false;
             }
 
-            // The printable ASCII character range is x20 (space) to x7E inclusive. And space is an invalid character
-            // in addition to the invalid characters in the invalidChars string.
-            foreach (char c in path)
+            return IsValid(path, "\"<>#?\\^`{|}");
+        }
+
+        /// <summary>Checks if <paramref name="fragment"/> contains only unreserved characters, reserved characters
+        /// or <c>%</c>.
+        /// </summary>
+        /// <param name="fragment">The fragment to check.</param>
+        /// <returns>True if <paramref name="fragment"/> is a valid; otherwise, false.</returns>
+        internal static bool IsValidFragment(string fragment) => IsValid(fragment, "\"<>\\^`{|}");
+
+        private static bool IsValid(string s, string invalidChars)
+        {
+            // The printable ASCII character range is x20 (space) to x7E inclusive. Space is an invalid character in
+            // addition to the invalid characters in the invalidChars string.
+            foreach (char c in s)
             {
                 if (c.CompareTo('\x20') <= 0 ||
                     c.CompareTo('\x7F') >= 0 ||

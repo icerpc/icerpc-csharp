@@ -313,6 +313,12 @@ namespace IceRpc
                 }
             }
 
+            if (Fragment.Length > 0)
+            {
+                sb.Append('#');
+                sb.Append(Fragment);
+            }
+
             return sb.ToString();
 
             static void StartQueryOption(StringBuilder sb, ref bool firstOption)
