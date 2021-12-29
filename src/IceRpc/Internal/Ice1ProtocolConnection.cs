@@ -6,7 +6,6 @@ using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using System.Buffers;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
