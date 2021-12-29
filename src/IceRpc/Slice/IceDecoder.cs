@@ -321,8 +321,8 @@ namespace IceRpc.Slice
 
             if (Encoding == IceRpc.Encoding.Ice11)
             {
-                var identity = new Identity(ref this);
-                if (identity.Name.Length == 0) // such identity means received a null proxy with the 1.1 encoding
+                var identity = new IceIdentity(ref this);
+                if (identity.Name.Length == 0) // null proxy
                 {
                     return null;
                 }
@@ -379,11 +379,7 @@ namespace IceRpc.Slice
                     }
                 }
 
-                if (proxyData.OptionalFacet.Count > 1)
-                {
-                    throw new InvalidDataException(
-                        $"received proxy with {proxyData.OptionalFacet.Count} elements in its optionalFacet");
-                }
+                var facet = new Facet(proxyData.OptionalFacet);
 
                 if (protocol == Protocol.Ice1)
                 {
@@ -397,7 +393,7 @@ namespace IceRpc.Slice
                             Endpoint = endpoint,
                             AltEndpoints = altEndpoints.ToImmutableList(),
                             Invoker = _invoker,
-                            Fragment = proxyData.OptionalFacet.Count == 0 ? "" : proxyData.OptionalFacet[0]
+                            Fragment = facet.ToString()
                         };
                     }
                     catch (InvalidDataException)
@@ -435,7 +431,7 @@ namespace IceRpc.Slice
                             };
                         }
 
-                        proxy.Fragment = proxyData.OptionalFacet.Count == 0 ? "" : proxyData.OptionalFacet[0];
+                        proxy.Fragment = facet.ToString();
 
                         proxy.Encoding = IceRpc.Encoding.FromMajorMinor(proxyData.EncodingMajor,
                             proxyData.EncodingMinor);

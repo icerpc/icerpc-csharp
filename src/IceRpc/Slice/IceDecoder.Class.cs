@@ -158,17 +158,14 @@ namespace IceRpc.Slice
 
                         var requestFailed = new Ice1RequestFailedExceptionData(ref this);
 
-                        if (requestFailed.OptionalFacet.Count > 1)
-                        {
-                            throw new InvalidDataException("received ice1 optionalFacet with too many elements");
-                        }
+                        var facet = new Facet(requestFailed.OptionalFacet);
 
                         systemException = replyStatus == ReplyStatus.OperationNotExistException ?
                             new OperationNotFoundException() : new ServiceNotFoundException();
 
                         systemException.Origin = new RemoteExceptionOrigin(
                             requestFailed.Identity.ToPath(),
-                            requestFailed.OptionalFacet.Count == 0 ? "" : requestFailed.OptionalFacet[0],
+                            facet.ToString(),
                             requestFailed.Operation);
                         break;
 

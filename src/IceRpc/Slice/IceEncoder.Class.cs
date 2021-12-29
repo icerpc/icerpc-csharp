@@ -50,11 +50,10 @@ namespace IceRpc.Slice
                             // ignored, i.e. we'll encode an empty identity + facet
                             identity = IceIdentity.Empty;
                         }
-                        string facet = remoteException.Origin.Fragment;
 
                         var requestFailed = new Ice1RequestFailedExceptionData(
                             identity,
-                            optionalFacet: facet.Length > 0 ? ImmutableList.Create(facet) : ImmutableList<string>.Empty,
+                            Facet.FromString(remoteException.Origin.Fragment).Value,
                             remoteException.Origin.Operation);
                         requestFailed.Encode(ref this);
                         break;

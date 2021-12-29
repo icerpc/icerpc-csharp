@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Collections.Immutable;
+
 namespace IceRpc.Slice.Internal
 {
     /// <summary>The Ice 1.1 encoding class.</summary>

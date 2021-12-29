@@ -153,7 +153,7 @@ namespace IceRpc.Internal
                     var request = new IncomingRequest(
                         Protocol.Ice1,
                         path: requestHeader.Identity.ToPath(),
-                        fragment: requestHeader.OptionalFacet.Count == 0 ? "" : requestHeader.OptionalFacet[0],
+                        fragment: new Facet(requestHeader.OptionalFacet).ToString(),
                         operation: requestHeader.Operation,
                         payload: new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
                         payloadEncoding,
@@ -444,7 +444,7 @@ namespace IceRpc.Internal
 
                 var requestHeader = new Ice1RequestHeader(
                     IceIdentity.FromPath(request.Path),
-                    request.Fragment.Length > 0 ? ImmutableList.Create(request.Fragment) : ImmutableList<string>.Empty,
+                    Facet.FromString(request.Fragment).Value,
                     request.Operation,
                     request.IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
                     request.Features.GetContext(),

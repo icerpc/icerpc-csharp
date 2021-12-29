@@ -224,7 +224,7 @@ namespace IceRpc.Slice
             {
                 if (proxy == null)
                 {
-                    Identity.Empty.Encode(ref this);
+                    IceIdentity.Empty.Encode(ref this);
                 }
                 else
                 {
@@ -256,10 +256,8 @@ namespace IceRpc.Slice
 
                     (byte encodingMajor, byte encodingMinor) = proxy.Encoding.ToMajorMinor();
 
-                    string facet = proxy.Fragment;
-
                     var proxyData = new ProxyData11(
-                        facet.Length > 0 ? ImmutableList.Create(facet) : ImmutableList<string>.Empty,
+                        Facet.FromString(proxy.Fragment).Value,
                         proxy.Protocol == Protocol.Ice1 && (proxy.Endpoint?.Transport == TransportNames.Udp) ?
                             InvocationMode.Datagram : InvocationMode.Twoway,
                         secure: false,

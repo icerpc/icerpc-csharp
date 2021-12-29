@@ -8,9 +8,6 @@ namespace IceRpc
 {
     public readonly partial record struct Identity
     {
-        /// <summary>The empty Identity.</summary>
-        public static readonly Identity Empty = new("", "");
-
         /// <summary>Creates an Identity from a URI path.</summary>
         /// <param name="path">A URI path.</param>
         /// <exception cref="ArgumentException">path is not a valid path.</exception>
