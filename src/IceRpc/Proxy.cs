@@ -188,7 +188,7 @@ namespace IceRpc
             IInvoker? invoker,
             IProxyParser? parser,
             [NotNullWhen(true)] out Proxy? proxy) =>
-            UriProxyParser.Instance.TryParse(s, invoker, out proxy);
+            (parser ?? UriProxyParser.Instance).TryParse(s, invoker, out proxy);
 
         /// <summary>Creates a shallow copy of this proxy. It's a safe copy since the only container property
         /// (AltEndpoints) is immutable.</summary>
@@ -270,54 +270,50 @@ namespace IceRpc
         /// <inherit-doc/>
         public override string ToString()
         {
-            if (Protocol == Protocol.Ice1)
+            var sb = new StringBuilder();
+            bool firstOption = true;
+
+            if (_endpoint != null)
             {
-                return ToString(default);
+                // Use ice+transport scheme
+                sb.AppendEndpoint(_endpoint, Path);
+
+                firstOption = _endpoint.Protocol == Protocol.Ice2 && _endpoint.Params.Count == 0;
             }
-            else // >= ice2, use URI format
+            else
             {
-                var sb = new StringBuilder();
-                bool firstOption = true;
+                sb.Append("ice:"); // endpointless proxy
+                sb.Append(Path);
 
-                if (_endpoint != null)
+                StartQueryOption(sb, ref firstOption);
+                sb.Append("protocol=");
+                sb.Append(Protocol);
+            }
+
+            // TODO: remove
+            if (Encoding != Ice2Definitions.Encoding)
+            {
+                StartQueryOption(sb, ref firstOption);
+                sb.Append("encoding=");
+                sb.Append(Encoding);
+            }
+
+            if (_altEndpoints.Count > 0)
+            {
+                string mainTransport = _endpoint!.Transport;
+                StartQueryOption(sb, ref firstOption);
+                sb.Append("alt-endpoint=");
+                for (int i = 0; i < _altEndpoints.Count; ++i)
                 {
-                    // Use ice+transport scheme
-                    sb.AppendEndpoint(_endpoint, Path);
-
-                    firstOption = _endpoint.Protocol == Protocol.Ice2 && _endpoint.Params.Count == 0;
-                }
-                else
-                {
-                    sb.Append("ice:"); // endpointless proxy
-                    sb.Append(Path);
-
-                    // TODO: append protocol
-                }
-
-                if (Encoding != Ice2Definitions.Encoding)
-                {
-                    StartQueryOption(sb, ref firstOption);
-                    sb.Append("encoding=");
-                    sb.Append(Encoding);
-                }
-
-                if (_altEndpoints.Count > 0)
-                {
-                    string mainTransport = _endpoint!.Transport;
-                    StartQueryOption(sb, ref firstOption);
-                    sb.Append("alt-endpoint=");
-                    for (int i = 0; i < _altEndpoints.Count; ++i)
+                    if (i > 0)
                     {
-                        if (i > 0)
-                        {
-                            sb.Append(',');
-                        }
-                        sb.AppendEndpoint(_altEndpoints[i], "", mainTransport != _altEndpoints[i].Transport, '$');
+                        sb.Append(',');
                     }
+                    sb.AppendEndpoint(_altEndpoints[i], "", mainTransport != _altEndpoints[i].Transport, '$');
                 }
-
-                return sb.ToString();
             }
+
+            return sb.ToString();
 
             static void StartQueryOption(StringBuilder sb, ref bool firstOption)
             {
@@ -331,105 +327,6 @@ namespace IceRpc
                     sb.Append('&');
                 }
             }
-        }
-
-        /// <summary>Converts a proxy into a string, using the format specified by ToStringMode.</summary>
-        /// <param name="mode">Specifies how non-printable ASCII characters are escaped in the resulting string. See
-        /// <see cref="ToStringMode"/>.</param>
-        /// <returns>The string representation of this proxy.</returns>
-        public string ToString(ToStringMode mode)
-        {
-            if (Protocol != Protocol.Ice1)
-            {
-                return ToString();
-            }
-
-            var identity = Identity.FromPath(Path);
-            string facet = Fragment;
-
-            var sb = new StringBuilder();
-
-            // If the encoded identity string contains characters which the reference parser uses as separators,
-            // then we enclose the identity string in quotes.
-            string id = identity.ToString(mode);
-            if (StringUtil.FindFirstOf(id, " :@") != -1)
-            {
-                sb.Append('"');
-                sb.Append(id);
-                sb.Append('"');
-            }
-            else
-            {
-                sb.Append(id);
-            }
-
-            if (facet.Length > 0)
-            {
-                // If the encoded facet string contains characters which the reference parser uses as separators,
-                // then we enclose the facet string in quotes.
-                sb.Append(" -f ");
-                string fs = StringUtil.EscapeString(facet, mode);
-                if (StringUtil.FindFirstOf(fs, " :@") != -1)
-                {
-                    sb.Append('"');
-                    sb.Append(fs);
-                    sb.Append('"');
-                }
-                else
-                {
-                    sb.Append(fs);
-                }
-            }
-
-            if (Endpoint?.Transport == TransportNames.Udp)
-            {
-                sb.Append(" -d");
-            }
-            else
-            {
-                sb.Append(" -t");
-            }
-
-            // Always print the encoding version to ensure a stringified proxy will convert back to a proxy with the
-            // same encoding with StringToProxy. (Only needed for backwards compatibility).
-            sb.Append(" -e ");
-            sb.Append(Encoding);
-
-            if (Endpoint != null)
-            {
-                if (Endpoint.Transport == TransportNames.Loc)
-                {
-                    string adapterId = Endpoint.Host;
-
-                    sb.Append(" @ ");
-
-                    // If the encoded adapter ID contains characters which the proxy parser uses as separators, then
-                    // we enclose the adapter ID string in double quotes.
-                    adapterId = StringUtil.EscapeString(adapterId, mode);
-                    if (StringUtil.FindFirstOf(adapterId, " :@") != -1)
-                    {
-                        sb.Append('"');
-                        sb.Append(adapterId);
-                        sb.Append('"');
-                    }
-                    else
-                    {
-                        sb.Append(adapterId);
-                    }
-                }
-                else
-                {
-                    sb.Append(':');
-                    sb.Append(Endpoint.ToIceString());
-
-                    foreach (Endpoint e in AltEndpoints)
-                    {
-                        sb.Append(':');
-                        sb.Append(e.ToIceString());
-                    }
-                }
-            }
-            return sb.ToString();
         }
 
         /// <summary>Creates a copy of this proxy with a new path.</summary>

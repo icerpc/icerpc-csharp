@@ -116,7 +116,7 @@ namespace IceRpc.Tests.Api
         [TestCase("cat$gory/nam$ -f fac$t:coloc -h localhost", "/cat%24gory/nam%24", "fac$t")]
         public void Proxy_Parse_ValidInputIce1Format(string str, string? path = null, string? fragment = null)
         {
-            var proxy = Proxy.Parse(str);
+            var proxy = Proxy.Parse(str, parser: IceProxyParser.Instance);
 
             if (path != null)
             {
@@ -129,19 +129,29 @@ namespace IceRpc.Tests.Api
             }
 
             Assert.AreEqual(Protocol.Ice1, proxy.Protocol);
-            Assert.That(Proxy.TryParse(proxy.ToString(), invoker: null, parser: null, out Proxy? proxy2), Is.True);
+            Assert.That(Proxy.TryParse(
+                proxy.ToIceString(),
+                invoker: null,
+                parser: IceProxyParser.Instance,
+                out Proxy? proxy2),
+                Is.True);
             Assert.AreEqual(proxy, proxy2); // round-trip works
 
             // Also try with non-default ToStringMode
-            proxy2 = Proxy.Parse(proxy.ToString(ToStringMode.ASCII));
+            proxy2 = Proxy.Parse(proxy.ToIceString(ToStringMode.ASCII));
             Assert.AreEqual(proxy, proxy2);
 
-            proxy2 = Proxy.Parse(proxy.ToString(ToStringMode.Compat));
+            proxy2 = Proxy.Parse(proxy.ToIceString(ToStringMode.Compat));
             Assert.AreEqual(proxy, proxy2);
 
-            var prx = GreeterPrx.Parse(str);
+            var prx = GreeterPrx.Parse(str, parser: IceProxyParser.Instance);
             Assert.AreEqual(Protocol.Ice1, prx.Proxy.Protocol);
-            Assert.That(GreeterPrx.TryParse(prx.ToString(), invoker: null, parser: null, out GreeterPrx prx2), Is.True);
+            Assert.That(GreeterPrx.TryParse(
+                prx.ToIceString(),
+                invoker: null,
+                parser: IceProxyParser.Instance,
+                out GreeterPrx prx2),
+                Is.True);
             Assert.AreEqual(prx, prx2); // round-trip works
 
             var identity = Identity.FromPath(prx.Proxy.Path);
