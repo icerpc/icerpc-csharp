@@ -351,7 +351,7 @@ namespace IceRpc
         internal Proxy(string path, Protocol protocol)
         {
             Protocol = protocol;
-            IceUriParser.CheckPath(path, nameof(path));
+            UriProxyParser.CheckPath(path, nameof(path));
             Path = path;
             Encoding = Protocol.IceEncoding ?? Encoding.Unknown;
         }
