@@ -230,7 +230,7 @@ namespace IceRpc.Tests.ClientServer
             // Test with indirect endpoints
             string adapter = $"adapter/{identity.Category}/{identity.Name}";
             var indirectGreeter = GreeterPrx.Parse($"{identity} @ '{adapter}'", _pipeline);
-            Assert.AreEqual($"loc -h {adapter} -p 0", indirectGreeter.Proxy.Endpoint?.ToString());
+            Assert.AreEqual($"loc -h {adapter} -p 0", indirectGreeter.Proxy.Endpoint?.ToIceString());
 
             locator.RegisterAdapter(adapter, greeter);
 

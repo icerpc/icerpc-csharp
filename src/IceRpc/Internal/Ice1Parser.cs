@@ -99,6 +99,19 @@ namespace IceRpc.Internal
                 }
                 else
                 {
+                    if (name.StartsWith("--", StringComparison.Ordinal))
+                    {
+                        name = name[2..];
+                    }
+                    else if (name.StartsWith('-'))
+                    {
+                        name = name[1..];
+                    }
+
+                    if (value.Length == 0)
+                    {
+                        value = "true";
+                    }
                     endpointParams.Add(new EndpointParam(name, value));
                 }
             }

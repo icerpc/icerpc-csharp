@@ -27,23 +27,23 @@ namespace IceRpc.Transports.Internal
             {
                 switch (name)
                 {
-                    case "-e":
+                    case "e":
                         if (encoding != null)
                         {
-                            throw new FormatException($"multiple -e parameters in endpoint '{endpoint}'");
+                            throw new FormatException($"multiple e parameters in endpoint '{endpoint}'");
                         }
                         encoding = value switch
                         {
                             "1.0" => Encoding.Ice10,
                             "1.1" => Encoding.Ice11,
-                            _ => throw new FormatException($"invalid value for -e parameter in endpoint '{endpoint}'")
+                            _ => throw new FormatException($"invalid value for e parameter in endpoint '{endpoint}'")
                         };
                         break;
 
-                    case "-t":
+                    case "t":
                         if (transportCode != null)
                         {
-                            throw new FormatException($"multiple -t parameters in endpoint '{endpoint}'");
+                            throw new FormatException($"multiple t parameters in endpoint '{endpoint}'");
                         }
 
                         short t;
@@ -54,22 +54,22 @@ namespace IceRpc.Transports.Internal
                         catch (FormatException ex)
                         {
                             throw new FormatException(
-                                $"invalid value for parameter -t in endpoint '{endpoint}'", ex);
+                                $"invalid value for parameter t in endpoint '{endpoint}'", ex);
                         }
 
                         if (t < 0)
                         {
                             throw new FormatException(
-                                $"value for -t parameter out of range in endpoint '{endpoint}'");
+                                $"value for t parameter out of range in endpoint '{endpoint}'");
                         }
 
                         transportCode = (TransportCode)t;
                         break;
 
-                    case "-v":
+                    case "v":
                         if (bytes.Length > 0)
                         {
-                            throw new FormatException($"multiple -v parameters in endpoint '{endpoint}'");
+                            throw new FormatException($"multiple v parameters in endpoint '{endpoint}'");
                         }
 
                         try
@@ -89,11 +89,11 @@ namespace IceRpc.Transports.Internal
 
             if (transportCode == null)
             {
-                throw new FormatException($"missing -t parameter in endpoint '{endpoint}'");
+                throw new FormatException($"missing t parameter in endpoint '{endpoint}'");
             }
             else if (bytes.Length == 0)
             {
-                throw new FormatException($"missing -v parameter in endpoint '{endpoint}'");
+                throw new FormatException($"missing v parameter in endpoint '{endpoint}'");
             }
 
             return (transportCode.Value, encoding ?? Encoding.Ice11, bytes);
@@ -111,10 +111,10 @@ namespace IceRpc.Transports.Internal
                 {
                     switch (name)
                     {
-                        case "-t":
+                        case "t":
                             if (timeout != null)
                             {
-                                throw new FormatException($"multiple -t parameters in endpoint '{endpoint}'");
+                                throw new FormatException($"multiple t parameters in endpoint '{endpoint}'");
                             }
                             if (value == "infinite")
                             {
@@ -126,20 +126,20 @@ namespace IceRpc.Transports.Internal
                                 if (timeout == 0 || timeout < -1)
                                 {
                                     throw new FormatException(
-                                        $"invalid value for -t parameter in endpoint '{endpoint}'");
+                                        $"invalid value for t parameter in endpoint '{endpoint}'");
                                 }
                             }
                             continue; // loop back
 
-                        case "-z":
+                        case "z":
                             if (compress)
                             {
-                                throw new FormatException($"multiple -z parameters in endpoint '{endpoint}'");
+                                throw new FormatException($"multiple z parameters in endpoint '{endpoint}'");
                             }
-                            if (value.Length > 0)
+                            if (value != "true")
                             {
                                 throw new FormatException(
-                                    $"invalid value '{value}' for parameter -z in endpoint '{endpoint}'");
+                                    $"invalid value '{value}' for parameter z in endpoint '{endpoint}'");
                             }
                             compress = true;
                             continue; // loop back
@@ -196,29 +196,29 @@ namespace IceRpc.Transports.Internal
             {
                 switch (name)
                 {
-                    case "-z":
+                    case "z":
                         if (compress)
                         {
-                            throw new FormatException($"multiple -z parameters in endpoint '{endpoint}'");
+                            throw new FormatException($"multiple z parameters in endpoint '{endpoint}'");
                         }
-                        if (value.Length > 0)
+                        if (value != "true")
                         {
                             throw new FormatException(
-                                $"invalid value '{value}' for parameter -z in endpoint '{endpoint}'");
+                                $"invalid value '{value}' for parameter z in endpoint '{endpoint}'");
                         }
                         compress = true;
                         break;
 
-                    case "--ttl":
+                    case "ttl":
                         if (ttl >= 0)
                         {
-                            throw new FormatException($"multiple --ttl parameters in endpoint '{endpoint}'");
+                            throw new FormatException($"multiple ttl parameters in endpoint '{endpoint}'");
                         }
 
                         if (value.Length == 0)
                         {
                             throw new FormatException(
-                                $"no value provided for --ttl parameter in endpoint '{endpoint}'");
+                                $"no value provided for ttl parameter in endpoint '{endpoint}'");
                         }
                         try
                         {
@@ -236,20 +236,20 @@ namespace IceRpc.Transports.Internal
                         }
                         break;
 
-                    case "--interface":
+                    case "interface":
                         if (multicastInterface != null)
                         {
-                            throw new FormatException($"multiple --interface parameters in endpoint '{endpoint}'");
+                            throw new FormatException($"multiple interface parameters in endpoint '{endpoint}'");
                         }
                         if (value.Length == 0)
                         {
                             throw new FormatException(
-                                $"no value provided for --interface parameter in endpoint '{endpoint}'");
+                                $"no value provided for interface parameter in endpoint '{endpoint}'");
                         }
                         if (!IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress) ||
                             !UdpUtils.IsMulticast(ipAddress))
                         {
-                            throw new FormatException(@$"--interface parameter in endpoint '{endpoint
+                            throw new FormatException(@$"interface parameter in endpoint '{endpoint
                                 }' must be for a host with a multicast address");
                         }
                         multicastInterface = value;

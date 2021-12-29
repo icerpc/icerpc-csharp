@@ -99,7 +99,7 @@ namespace IceRpc.Tests.Internal
             string endpoint = $"ice+udp://{address}:{port}?protocol=ice1";
             if (client && !OperatingSystem.IsLinux())
             {
-                endpoint += $"&--interface={host}"; // TODO: cleanup syntax
+                endpoint += $"&interface={host}";
             }
             return endpoint;
         }

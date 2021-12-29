@@ -787,11 +787,11 @@ namespace IceRpc.Slice
                             if (timeout != EndpointParseExtensions.DefaultTcpTimeout)
                             {
                                 endpointParams = endpointParams.Add(
-                                    new EndpointParam("-t", timeout.ToString(CultureInfo.InvariantCulture)));
+                                    new EndpointParam("t", timeout.ToString(CultureInfo.InvariantCulture)));
                             }
                             if (compress)
                             {
-                                endpointParams = endpointParams.Add(new EndpointParam("-z", ""));
+                                endpointParams = endpointParams.Add(new EndpointParam("z", "true"));
                             }
 
                             endpoint = new Endpoint(Protocol.Ice1,
@@ -810,7 +810,7 @@ namespace IceRpc.Slice
                             ushort port = checked((ushort)DecodeInt());
                             bool compress = DecodeBool();
 
-                            var endpointParams = compress ? ImmutableList.Create(new EndpointParam("-z", "")) :
+                            var endpointParams = compress ? ImmutableList.Create(new EndpointParam("z", "true")) :
                                 ImmutableList<EndpointParam>.Empty;
 
                             endpoint = new Endpoint(Protocol.Ice1,
@@ -849,9 +849,9 @@ namespace IceRpc.Slice
                             }
 
                             var endpointParams = ImmutableList.Create(
-                                new EndpointParam("-t", ((short)transportCode).ToString(CultureInfo.InvariantCulture)),
-                                new EndpointParam("-e", encoding.ToString()),
-                                new EndpointParam("-v", Convert.ToBase64String(vSpan)));
+                                new EndpointParam("t", ((short)transportCode).ToString(CultureInfo.InvariantCulture)),
+                                new EndpointParam("e", encoding.ToString()),
+                                new EndpointParam("v", Convert.ToBase64String(vSpan)));
 
                             endpoint = new Endpoint(
                                 Protocol.Ice1,

@@ -420,12 +420,12 @@ namespace IceRpc
                 else
                 {
                     sb.Append(':');
-                    sb.Append(Endpoint);
+                    sb.Append(Endpoint.ToIceString());
 
                     foreach (Endpoint e in AltEndpoints)
                     {
                         sb.Append(':');
-                        sb.Append(e);
+                        sb.Append(e.ToIceString());
                     }
                 }
             }
