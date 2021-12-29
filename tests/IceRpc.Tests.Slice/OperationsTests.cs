@@ -81,8 +81,8 @@ namespace IceRpc.Tests.Slice
                   "identity:tcp -h 127.0.0.1 -p 12010 -t 10000")]
         public async Task Operations_ServiceAsync(string proxy, string? actualIce1Proxy = null)
         {
-            IProxyParser? parser = !proxy.StartsWith("ice+", StringComparison.Ordinal) ?
-                IceProxyParser.Instance : null;
+            IProxyParser? parser = proxy.StartsWith("ice+", StringComparison.Ordinal) ?
+                null : IceProxyParser.Instance;
 
             var service = ServicePrx.Parse(proxy, parser: parser);
             ServicePrx result = await _prx.OpServiceAsync(service);
