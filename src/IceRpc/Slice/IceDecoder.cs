@@ -379,7 +379,7 @@ namespace IceRpc.Slice
                     }
                 }
 
-                var facet = new Facet(proxyData.OptionalFacet);
+                proxyData.Facet.CheckValue();
 
                 if (protocol == Protocol.Ice1)
                 {
@@ -393,7 +393,7 @@ namespace IceRpc.Slice
                             Endpoint = endpoint,
                             AltEndpoints = altEndpoints.ToImmutableList(),
                             Invoker = _invoker,
-                            Fragment = facet.ToString()
+                            Fragment =  proxyData.Facet.ToString()
                         };
                     }
                     catch (InvalidDataException)
@@ -431,7 +431,7 @@ namespace IceRpc.Slice
                             };
                         }
 
-                        proxy.Fragment = facet.ToString();
+                        proxy.Fragment = proxyData.Facet.ToString();
 
                         proxy.Encoding = IceRpc.Encoding.FromMajorMinor(proxyData.EncodingMajor,
                             proxyData.EncodingMinor);

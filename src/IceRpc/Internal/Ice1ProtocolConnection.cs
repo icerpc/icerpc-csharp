@@ -134,6 +134,7 @@ namespace IceRpc.Internal
                     {
                         throw new InvalidDataException("received request with empty operation name");
                     }
+                    requestHeader.Facet.CheckValue();
 
                     // The payload size is the encapsulation size less the 6 bytes of the encapsulation header.
                     int payloadSize = requestHeader.EncapsulationSize - 6;
@@ -152,7 +153,7 @@ namespace IceRpc.Internal
                     var request = new IncomingRequest(
                         Protocol.Ice1,
                         path: requestHeader.Identity.ToPath(),
-                        fragment: new Facet(requestHeader.OptionalFacet).ToString(),
+                        fragment: requestHeader.Facet.ToString(),
                         operation: requestHeader.Operation,
                         payload: new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
                         payloadEncoding,
@@ -443,7 +444,7 @@ namespace IceRpc.Internal
 
                 var requestHeader = new Ice1RequestHeader(
                     IceIdentity.FromPath(request.Path),
-                    Facet.FromString(request.Fragment).Value,
+                    Facet.FromString(request.Fragment),
                     request.Operation,
                     request.IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
                     request.Features.GetContext(),

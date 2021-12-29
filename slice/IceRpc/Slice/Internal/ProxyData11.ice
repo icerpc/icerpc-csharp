@@ -6,6 +6,7 @@ module IceRpc::Slice::Internal
     // These definitions help with the encoding of proxies with the Ice 1.1 encoding.
 
     /// The identity of a service. This internal definition must match Ice::Identity.
+    // TODO: rename to Identity
     [cs:readonly]
     struct IceIdentity
     {
@@ -14,6 +15,13 @@ module IceRpc::Slice::Internal
 
         /// The category of the identity. Can be empty.
         string category;
+    }
+
+    // TODO: temporary, replace by typealias Facet = [cs::type("global::IceRpc.Slice.Internal.Facet")] sequence<string>;
+    [cs:readonly]
+    struct Facet
+    {
+        sequence<string> Value;  // has 0 or 1 element
     }
 
     /// The InvocationMode is carried by proxies that use the ice1 protocol, and it specifies the behavior when sending
@@ -47,7 +55,7 @@ module IceRpc::Slice::Internal
     [cs:readonly]
     struct ProxyData11
     {
-        sequence<string> optionalFacet;       // has 0 or 1 element
+        Facet facet;
         InvocationMode invocationMode;
         bool secure;
         byte protocolMajor;

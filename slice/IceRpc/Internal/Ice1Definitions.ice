@@ -42,7 +42,7 @@ module IceRpc::Internal
     struct Ice1RequestHeader
     {
         Slice::Internal::IceIdentity identity;
-        sequence<string> optionalFacet;
+        Slice::Internal::Facet facet;
         string operation;
         OperationMode operationMode;
         Context context;
@@ -94,11 +94,12 @@ module IceRpc::Internal
 
     /// The data carried by an ice1 RequestFailedException (ObjectNotExistException, FacetNotExistException or
     /// OperationNotExistException).
+    // TODO: move toe Slice::Internal
     [cs:readonly]
     struct Ice1RequestFailedExceptionData
     {
         Slice::Internal::IceIdentity identity;
-        sequence<string> optionalFacet;
+        Slice::Internal::Facet facet;
         string operation;
     }
 }
