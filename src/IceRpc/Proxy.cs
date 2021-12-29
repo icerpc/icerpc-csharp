@@ -233,6 +233,10 @@ namespace IceRpc
             {
                 return false;
             }
+            if (Fragment != other.Fragment)
+            {
+                return false;
+            }
             if (Protocol != other.Protocol)
             {
                 return false;

@@ -225,11 +225,6 @@ namespace IceRpc.Internal
                 {
                     protocol = protocol == null ? Protocol.Parse(value) :
                         throw new FormatException($"too many protocol query parameters in URI {uriString}");
-
-                    if (protocol == Protocol.Ice1)
-                    {
-                        throw new FormatException($"invalid protocol value in URI {uriString}");
-                    }
                 }
                 else
                 {

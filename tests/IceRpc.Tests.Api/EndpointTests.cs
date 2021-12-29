@@ -29,6 +29,7 @@ namespace IceRpc.Tests.Api
         [TestCase("opaque -t 99 -e 1.1 -v abch")]
         [TestCase("tcp -h host -p 10000 -e 1.1")]  // -e is not reserved in ice1 strings
         [TestCase("ice+udp://localhost")]
+        [TestCase("ice+tcp://host:10000?protocol=ice1")]
         public void Endpoint_Parse_ValidInput(string str)
         {
             var endpoint = Endpoint.FromString(str);
@@ -43,7 +44,6 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+tcp://host:10000?protocol=icefoo")]              // invalid protocol
         [TestCase("ice+tcp://host:10000?alt-endpoint=host2")]           // alt-endpoint is proxy only
         [TestCase("ice+tcp://host:10000?_tls")]                         // no = for parameter
-        [TestCase("ice+tcp://host:10000?protocol=ice1")]                // can't use protocol ice1
         [TestCase("category/name:tcp -h host -p 10000")]                // unexpected path
         public void Endpoint_Parse_InvalidInput(string str) =>
             Assert.Throws<FormatException>(() => Endpoint.FromString(str));

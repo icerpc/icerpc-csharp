@@ -152,6 +152,7 @@ namespace IceRpc.Tests.Api
 
         [TestCase("ice+tcp://host.zeroc.com/path?encoding=foo")]
         [TestCase("ice+tcp://host.zeroc.com/identity#facet", "/identity")]
+        [TestCase("ice+tcp://host.zeroc.com/identity?protocol=ice1")]
         [TestCase("ice+tcp://host.zeroc.com:1000/category/name")]
         [TestCase("ice+tcp://host.zeroc.com:1000/loc0/loc1/category/name")]
         [TestCase("ice+tcp://host.zeroc.com/category/name%20with%20space", "/category/name%20with%20space")]
@@ -183,13 +184,8 @@ namespace IceRpc.Tests.Api
         public void Proxy_Parse_ValidInputUriFormat(string str, string? path = null)
         {
             var proxy = Proxy.Parse(str);
-
-            if (path != null)
-            {
-                Assert.AreEqual(path, proxy.Path);
-            }
-
             Assert.That(Proxy.TryParse(proxy.ToString(), invoker: null, parser: null, out Proxy? proxy2), Is.True);
+
             Assert.AreEqual(proxy, proxy2); // round-trip works
 
             var prx = GreeterPrx.Parse(str);
@@ -200,10 +196,9 @@ namespace IceRpc.Tests.Api
         /// <summary>Tests that parsing an invalid proxies fails with <see cref="FormatException"/>.</summary>
         /// <param name="str">The string to parse as a proxy.</param>
         [TestCase("ice + tcp://host.zeroc.com:foo")] // missing host
-        [TestCase("ice+foo://host.zeroc.com:10000/identity?transport=tcp&protocol=ice1")] // invalid protocol
+
         [TestCase("ice://host:1000/identity")] // host not allowed
         [TestCase("ice+foo:/identity")] // missing host
-        [TestCase("ice+tcp://host.zeroc.com//identity?protocol=ice1")] // invalid protocol
         [TestCase("ice+tcp://host.zeroc.com//identity?protocol=5")] // invalid protocol
         [TestCase("ice+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&alt-endpoint=host2?transport=tcp$protocol=3")]
         [TestCase("")]
