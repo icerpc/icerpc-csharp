@@ -20,7 +20,9 @@ namespace IceRpc.Tests.SliceInternal
             Memory<byte> buffer = new byte[256];
             var bufferWriter = new SingleBufferWriter(buffer);
             var encoding = IceEncoding.FromString(encodingStr);
-            var proxy = Proxy.Parse(str);
+
+            IProxyParser? parser = str.StartsWith("ice+", StringComparison.Ordinal) ? null : IceProxyParser.Instance;
+            var proxy = Proxy.Parse(str, parser: parser);
             EncodeProxy();
 
             buffer = bufferWriter.WrittenBuffer;

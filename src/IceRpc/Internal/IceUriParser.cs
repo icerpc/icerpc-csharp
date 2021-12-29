@@ -15,20 +15,6 @@ namespace IceRpc.Internal
 
         private static readonly object _mutex = new();
 
-        /// <summary>Checks if a string is an ice+transport URI, and not an endpoint string using the ice1 string
-        /// format.</summary>
-        /// <param name="s">The string to check.</param>
-        /// <returns>True when the string is most likely an ice+transport URI; otherwise, false.</returns>
-        internal static bool IsEndpointUri(string s) =>
-            s.StartsWith(IcePlus, StringComparison.Ordinal) && s.Contains("://", StringComparison.Ordinal);
-
-        /// <summary>Checks if a string is an ice or ice+transport URI, and not a proxy string using the ice1 string
-        /// format.</summary>
-        /// <param name="s">The string to check.</param>
-        /// <returns>True when the string is most likely an ice or ice+transport URI; otherwise, false.</returns>
-        internal static bool IsProxyUri(string s) =>
-            s.StartsWith(IceColon, StringComparison.Ordinal) || IsEndpointUri(s);
-
         /// <summary>Checks if <c>path</c> starts with <c>/</c> and contains only unreserved characters, <c>%</c>, or
         /// reserved characters other than <c>?</c>.</summary>
         /// <param name="path">The path to check.</param>
@@ -125,6 +111,11 @@ namespace IceRpc.Internal
             }
             else
             {
+                if (!uriString.StartsWith(IcePlus, StringComparison.Ordinal))
+                {
+                    throw new FormatException($"'{uriString}' is not a proxy URI");
+                }
+
                 string scheme = uriString[0..uriString.IndexOf(':', IcePlus.Length)];
                 if (scheme.Length == 0)
                 {

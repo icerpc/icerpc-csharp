@@ -14,16 +14,7 @@ namespace IceRpc
         /// <inheritdoc/>
         public Proxy Parse(string s, IInvoker? invoker = null)
         {
-            // TODO: refactor
-            string proxyString = s.Trim();
-            if (proxyString.Length == 0)
-            {
-                throw new FormatException("an empty string does not represent a proxy");
-            }
-
-            Proxy proxy = IceUriParser.IsProxyUri(proxyString) ?
-                IceUriParser.ParseProxyUri(proxyString) : Ice1Parser.ParseProxyString(proxyString);
-
+            Proxy proxy = IceUriParser.ParseProxyUri(s.Trim());
             proxy.Invoker = invoker;
             return proxy;
         }

@@ -38,7 +38,7 @@ namespace IceRpc.Tests.Internal
                 await endpointFinder.FindAsync(new Location("foo"), cancel: default));
 
             Assert.ThrowsAsync<InvalidDataException>(async () =>
-                await endpointFinder.FindAsync(new Location(new Identity("protocol", "category")), cancel: default));
+                await endpointFinder.FindAsync(new Location(new Identity("bad", "category")), cancel: default));
 
             Assert.ThrowsAsync<InvalidDataException>(async () =>
                 await endpointFinder.FindAsync(new Location(new Identity("name", "category")), cancel: default));
@@ -107,13 +107,16 @@ namespace IceRpc.Tests.Internal
                 string id,
                 Invocation? invocation,
                 CancellationToken cancel) =>
-                    Task.FromResult<ServicePrx?>(id == "good" ? ServicePrx.Parse("dummy:tcp -h host -p 10000") : null);
+                    Task.FromResult<ServicePrx?>(id == "good" ?
+                        ServicePrx.Parse("dummy:tcp -h host -p 10000", parser: IceProxyParser.Instance) : null);
 
             Task<ServicePrx?> ILocatorPrx.FindObjectByIdAsync(
                 Identity id,
                 Invocation? invocation,
                 CancellationToken cancel) =>
-                    Task.FromResult<ServicePrx?>(id.Name == "good" ? ServicePrx.Parse("dummy @ adapter") : null);
+                    Task.FromResult<ServicePrx?>(
+                        id.Name == "good" ? ServicePrx.Parse("dummy @ adapter", parser: IceProxyParser.Instance) :
+                            null);
 
             Task<LocatorRegistryPrx?> ILocatorPrx.GetRegistryAsync(Invocation? invocation, CancellationToken cancel)
             {
@@ -128,14 +131,15 @@ namespace IceRpc.Tests.Internal
                 string id,
                 Invocation? invocation,
                 CancellationToken cancel) =>
-                    Task.FromResult<ServicePrx?>(ServicePrx.Parse(id == "loc" ? "dummy @ adapter" : "dummy"));
+                    Task.FromResult<ServicePrx?>(
+                        ServicePrx.Parse(id == "loc" ? "dummy @ adapter" : "dummy", parser: IceProxyParser.Instance));
 
             Task<ServicePrx?> ILocatorPrx.FindObjectByIdAsync(
                 Identity id,
                 Invocation? invocation,
                 CancellationToken cancel) =>
                     Task.FromResult<ServicePrx?>(
-                        ServicePrx.Parse(id.Name == "protocol" ? "ice+foo://host/dummy" : "dummy"));
+                        ServicePrx.Parse(id.Name == "bad" ? "ice+foo://host/dummy" : "ice:dummy"));
 
             Task<LocatorRegistryPrx?> ILocatorPrx.GetRegistryAsync(Invocation? invocation, CancellationToken cancel)
             {
@@ -183,7 +187,8 @@ namespace IceRpc.Tests.Internal
         {
             Task<Proxy?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel) =>
                 Task.FromResult<Proxy?>(
-                    location.AdapterId == "good" ? Proxy.Parse("dummy:tcp -h localhost -p 10000") : null);
+                    location.AdapterId == "good" ?
+                        Proxy.Parse("dummy:tcp -h localhost -p 10000", parser: IceProxyParser.Instance) : null);
         }
 
         private class BlockingEndpointFinder : IEndpointFinder, IDisposable
@@ -201,7 +206,7 @@ namespace IceRpc.Tests.Internal
                 await _semaphore.WaitAsync(cancel);
                 Interlocked.Increment(ref Count);
 
-                return Proxy.Parse("dummy:tcp -h localhost -p 10000");
+                return Proxy.Parse("dummy:tcp -h localhost -p 10000", parser: IceProxyParser.Instance);
             }
         }
     }

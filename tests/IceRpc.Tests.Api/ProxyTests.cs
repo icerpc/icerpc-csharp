@@ -69,31 +69,27 @@ namespace IceRpc.Tests.Api
         [TestCase("test:tcp -h localhost -p 10000")]
         public void Proxy_SetProperty(string s)
         {
-            var proxy = Proxy.Parse(s);
+            IProxyParser? parser = s.StartsWith("ice+", StringComparison.Ordinal) ? null : IceProxyParser.Instance;
+
+            var proxy = Proxy.Parse(s, parser: parser);
 
             proxy.Encoding = Encoding.Ice11;
             Assert.AreEqual(Encoding.Ice11, proxy.Encoding);
             proxy.Encoding = Encoding.Ice20;
             Assert.AreEqual(Encoding.Ice20, proxy.Encoding);
 
-            if (proxy.Protocol == Protocol.Ice1)
-            {
-                var proxy2 = Proxy.Parse("test:tcp -h localhost -p 10001");
-                proxy.Endpoint = proxy2.Endpoint;
-                Assert.AreEqual(proxy.Endpoint, proxy2.Endpoint);
-            }
-            else
-            {
-                var proxy2 = Proxy.Parse("ice+tcp://localhost:10001/test");
-                proxy.Endpoint = proxy2.Endpoint;
-                Assert.AreEqual(proxy.Endpoint, proxy2.Endpoint);
-            }
+            var proxy2 = proxy.Clone();
+            proxy2.Endpoint = proxy2.Endpoint! with { Port = (ushort)(proxy.Endpoint!.Port + 1) };
+
+            Assert.AreNotEqual(proxy.Endpoint, proxy2.Endpoint);
+            proxy.Endpoint = proxy2.Endpoint;
+            Assert.AreEqual(proxy.Endpoint, proxy2.Endpoint);
         }
 
         [Test]
         public void Proxy_SetProperty_ArgumentException()
         {
-            var ice1Proxy = Proxy.Parse("hello:tcp -h localhost -p 10000");
+            var ice1Proxy = Proxy.Parse("hello:tcp -h localhost -p 10000", parser: IceProxyParser.Instance);
             Assert.AreEqual(Protocol.Ice1, ice1Proxy.Protocol);
             var ice2Proxy = Proxy.Parse("ice+tcp://host.zeroc.com/hello");
             Assert.AreEqual(Protocol.Ice2, ice2Proxy.Protocol);
@@ -114,7 +110,7 @@ namespace IceRpc.Tests.Api
         [TestCase("name -f facet:coloc -h localhost", "/name", "facet")]
         [TestCase("category/name -f facet:coloc -h localhost", "/category/name", "facet")]
         [TestCase("cat$gory/nam$ -f fac$t:coloc -h localhost", "/cat%24gory/nam%24", "fac$t")]
-        public void Proxy_Parse_ValidInputIce1Format(string str, string? path = null, string? fragment = null)
+        public void Proxy_Parse_ValidInputIceFormat(string str, string? path = null, string? fragment = null)
         {
             var proxy = Proxy.Parse(str, parser: IceProxyParser.Instance);
 
@@ -138,10 +134,10 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(proxy, proxy2); // round-trip works
 
             // Also try with non-default ToStringMode
-            proxy2 = Proxy.Parse(proxy.ToIceString(ToStringMode.ASCII));
+            proxy2 = Proxy.Parse(proxy.ToIceString(ToStringMode.ASCII), parser: IceProxyParser.Instance);
             Assert.AreEqual(proxy, proxy2);
 
-            proxy2 = Proxy.Parse(proxy.ToIceString(ToStringMode.Compat));
+            proxy2 = Proxy.Parse(proxy.ToIceString(ToStringMode.Compat), parser: IceProxyParser.Instance);
             Assert.AreEqual(proxy, proxy2);
 
             var prx = GreeterPrx.Parse(str, parser: IceProxyParser.Instance);
@@ -227,7 +223,7 @@ namespace IceRpc.Tests.Api
         [TestCase("id:loc -h foobar")] // cannot parse loc as a transport with ice1
         public void Proxy_Parse_InvalidInput(string str)
         {
-            Assert.Throws<FormatException>(() => Proxy.Parse(str));
+            Assert.Catch<FormatException>(() => Proxy.Parse(str));
             Assert.Throws<FormatException>(() => Proxy.Parse(str, parser: IceProxyParser.Instance));
             Assert.That(Proxy.TryParse(str, invoker: null, parser: null, out _), Is.False);
             Assert.That(Proxy.TryParse(str, invoker: null, parser: IceProxyParser.Instance, out _), Is.False);
@@ -249,7 +245,9 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+tcp://localhost/path?alt-endpoint=ice+tcp://[::1]")]
         public void Proxy_HashCode(string proxyString)
         {
-            var proxy1 = Proxy.Parse(proxyString);
+            IProxyParser? parser = proxyString.StartsWith("ice+", StringComparison.Ordinal) ?
+                null : IceProxyParser.Instance;
+            var proxy1 = Proxy.Parse(proxyString, parser: parser);
             var proxy2 = proxy1.Clone();
             var proxy3 = Proxy.Parse(proxy2.ToString());
 
