@@ -34,6 +34,16 @@ module IceRpc::Internal
         \Idempotent
     }
 
+    /// The payload of most request and response frames starts with an encapsulation header that specifies the size of
+    /// the encapsulation and its encoding.
+    [cs:readonly]
+    struct EncapsulationHeader
+    {
+        int encapsulationSize;
+        byte payloadEncodingMajor;
+        byte payloadEncodingMinor;
+    }
+
     /// Each ice1 request frame has:
     /// - a frame prologue, with the frame type and the overall frame size
     /// - a request header (below)
@@ -46,12 +56,15 @@ module IceRpc::Internal
         string operation;
         OperationMode operationMode;
         Context context;
-        int encapsulationSize;
-        byte payloadEncodingMajor;
-        byte payloadEncodingMinor;
+        EncapsulationHeader encapsulationHeader;
     }
 
     /// The reply status of an ice1 response frame.
+    /// Each ice1 response frame has:
+    /// - a frame prologue, with the frame type and the overall frame size
+    /// - a reply status
+    /// - when reply status is OK or UserException, an encapsulation header followed by a response payload, with
+    /// encapsulationSize - 6 bytes
     enum ReplyStatus : byte
     {
         /// A successful reply message.
@@ -77,29 +90,5 @@ module IceRpc::Internal
 
         /// The reply message carries an unknown exception.
         UnknownException = 7
-    }
-
-    /// Each ice1 response frame has:
-    /// - a frame prologue, with the frame type and the overall frame size
-    /// - a reply status
-    /// - when reply status is OK or UserException, a response header (below) followed by a response payload, with
-    /// encapsulationSize - 6 bytes
-    [cs:readonly]
-    struct Ice1ResponseHeader
-    {
-        int encapsulationSize;
-        byte payloadEncodingMajor;
-        byte payloadEncodingMinor;
-    }
-
-    /// The data carried by an ice1 RequestFailedException (ObjectNotExistException, FacetNotExistException or
-    /// OperationNotExistException).
-    // TODO: move toe Slice::Internal
-    [cs:readonly]
-    struct Ice1RequestFailedExceptionData
-    {
-        Slice::Internal::Identity identity;
-        Slice::Internal::Facet facet;
-        string operation;
     }
 }

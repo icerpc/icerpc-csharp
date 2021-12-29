@@ -156,7 +156,7 @@ namespace IceRpc.Slice
                     case ReplyStatus.ObjectNotExistException:
                     case ReplyStatus.OperationNotExistException:
 
-                        var requestFailed = new Ice1RequestFailedExceptionData(ref this);
+                        var requestFailed = new RequestFailedExceptionData(ref this);
                         requestFailed.Facet.CheckValue();
 
                         systemException = replyStatus == ReplyStatus.OperationNotExistException ?

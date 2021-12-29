@@ -51,7 +51,7 @@ namespace IceRpc.Slice
                             identity = Identity.Empty;
                         }
 
-                        var requestFailed = new Ice1RequestFailedExceptionData(
+                        var requestFailed = new RequestFailedExceptionData(
                             identity,
                             Facet.FromFragment(remoteException.Origin.Fragment),
                             remoteException.Origin.Operation);
