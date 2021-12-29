@@ -30,13 +30,13 @@ namespace IceRpc.Tests.Api
         }
 
         [TestCase("ice+tcp://host:10000/category/name")]                // unexpected path
+        [TestCase("ice+tcp://host:10000#fragment")]                     // unexpected fragment
         [TestCase("ice+tcp://host:10000?encoding=1.1")]                 // encoding is proxy-only
         [TestCase("ice+tcp://host:10000?protocol=4")]                   // invalid protocol
         [TestCase("ice+tcp://host:10000?protocol=ice2422")]             // invalid protocol
         [TestCase("ice+tcp://host:10000?protocol=icefoo")]              // invalid protocol
         [TestCase("ice+tcp://host:10000?alt-endpoint=host2")]           // alt-endpoint is proxy only
-        [TestCase("ice+tcp://host:10000?_tls")]                         // no = for parameter
-        [TestCase("category/name:tcp -h host -p 10000")]                // unexpected path
+        [TestCase("ice+tcp://host:10000?tls")]                          // no = for tls parameter
         public void Endpoint_Parse_InvalidInput(string str) =>
             Assert.Throws<FormatException>(() => Endpoint.FromString(str));
     }

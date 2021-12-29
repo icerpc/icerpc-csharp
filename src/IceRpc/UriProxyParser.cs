@@ -198,6 +198,10 @@ namespace IceRpc
             {
                 throw new FormatException($"invalid path in endpoint '{uriString}'");
             }
+            if (uri.Fragment.Length > 0)
+            {
+                throw new FormatException($"invalid fragment in endpoint '{uriString}'");
+            }
             if (altEndpoint != null)
             {
                 throw new FormatException($"invalid alt-endpoint parameter in endpoint '{uriString}'");
