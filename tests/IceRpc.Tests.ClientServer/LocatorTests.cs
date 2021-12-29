@@ -27,7 +27,7 @@ namespace IceRpc.Tests.ClientServer
             var router = new Router();
             string path = $"/{Guid.NewGuid()}";
             router.Map(path, new Greeter());
-            string serverEndpoint = "tcp -h 127.0.0.1 -p 0";
+            string serverEndpoint = "ice+tcp://127.0.0.1:0?protocol=ice1";
             _server = new Server
             {
                 Dispatcher = router,

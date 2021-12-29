@@ -30,7 +30,7 @@ namespace IceRpc.Tests.Internal
             new Random().NextBytes(writeBuffer);
             ReadOnlyMemory<ReadOnlyMemory<byte>> sendBuffers = new ReadOnlyMemory<byte>[] { writeBuffer };
 
-            string host = _ipv6 ? "\"::1\"" : "127.0.0.1";
+            string host = _ipv6 ? "[::1]" : "127.0.0.1";
             Endpoint serverEndpoint = GetEndpoint(host, port: 0, _ipv6, client: false);
 
             var listenerList = new List<IListener<ISimpleNetworkConnection>>();
@@ -95,11 +95,11 @@ namespace IceRpc.Tests.Internal
 
         private static string GetEndpoint(string host, int port, bool ipv6, bool client)
         {
-            string address = ipv6 ? (OperatingSystem.IsLinux() ? "\"ff15::1\"" : "\"ff02::1\"") : "239.255.1.1";
-            string endpoint = $"udp -h {address} -p {port}";
+            string address = ipv6 ? (OperatingSystem.IsLinux() ? "[ff15::1]" : "[ff02::1]") : "239.255.1.1";
+            string endpoint = $"ice+udp://{address}:{port}?protocol=ice1";
             if (client && !OperatingSystem.IsLinux())
             {
-                endpoint += $" --interface {host}";
+                endpoint += $"&--interface={host}"; // TODO: cleanup syntax
             }
             return endpoint;
         }

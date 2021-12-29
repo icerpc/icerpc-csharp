@@ -20,14 +20,6 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+tcp://host:10000?tls=foo")]
         [TestCase("ice+coloc://host:10000")]
         [TestCase("ice+xyz://host:10000")]
-        [TestCase("tcp -h host -p 10000")]
-        [TestCase("tcp -h \"::0\" -p 10000 --foo bar")]
-        [TestCase("coloc -h host -p 10000")]
-        [TestCase("abc -h x -p 5")]
-        [TestCase("opaque -e 1.1 -t 1 -v CTEyNy4wLjAuMeouAAAQJwAAAA==")]
-        [TestCase("opaque -t 2 -v CTEyNy4wLjAuMREnAAD/////AA==")]
-        [TestCase("opaque -t 99 -e 1.1 -v abch")]
-        [TestCase("tcp -h host -p 10000 -e 1.1")]  // -e is not reserved in ice1 strings
         [TestCase("ice+udp://localhost")]
         [TestCase("ice+tcp://host:10000?protocol=ice1")]
         public void Endpoint_Parse_ValidInput(string str)
