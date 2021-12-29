@@ -233,11 +233,11 @@ namespace IceRpc.Slice
                         throw new InvalidOperationException("cannot encode a proxy bound to a server connection");
                     }
 
-                    IdentityAndFacet identityAndFacet;
+                    IceIdentity identity;
 
                     try
                     {
-                        identityAndFacet = IdentityAndFacet.FromPathAndFragment(proxy.Path, proxy.Fragment);
+                        identity = IceIdentity.FromPath(proxy.Path);
                     }
                     catch (FormatException ex)
                     {
@@ -246,18 +246,20 @@ namespace IceRpc.Slice
                             ex);
                     }
 
-                    if (identityAndFacet.Identity.Name.Length == 0)
+                    if (identity.Name.Length == 0)
                     {
                         throw new InvalidOperationException(
                             $"cannot encode proxy with path '{proxy.Path}' using encoding 1.1");
                     }
 
-                    identityAndFacet.Identity.Encode(ref this);
+                    identity.Encode(ref this);
 
                     (byte encodingMajor, byte encodingMinor) = proxy.Encoding.ToMajorMinor();
 
+                    string facet = proxy.Fragment;
+
                     var proxyData = new ProxyData11(
-                        identityAndFacet.OptionalFacet,
+                        facet.Length > 0 ? ImmutableList.Create(facet) : ImmutableList<string>.Empty,
                         proxy.Protocol == Protocol.Ice1 && (proxy.Endpoint?.Transport == TransportNames.Udp) ?
                             InvocationMode.Datagram : InvocationMode.Twoway,
                         secure: false,

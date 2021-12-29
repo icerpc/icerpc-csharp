@@ -144,10 +144,10 @@ namespace IceRpc.Tests.Api
             Assert.That(GreeterPrx.TryParse(prx.ToString(), invoker: null, out GreeterPrx prx2), Is.True);
             Assert.AreEqual(prx, prx2); // round-trip works
 
-            var identityAndFacet = IdentityAndFacet.FromPathAndFragment(prx.Proxy.Path, prx.Proxy.Fragment);
-            var identityAndFacet2 = IdentityAndFacet.FromPathAndFragment(prx2.Proxy.Path, prx2.Proxy.Fragment);
-            Assert.AreEqual(identityAndFacet.Identity, identityAndFacet2.Identity);
-            Assert.AreEqual(identityAndFacet.Facet, identityAndFacet2.Facet);
+            var identity = Identity.FromPath(prx.Proxy.Path);
+            var identity2 = Identity.FromPath(prx2.Proxy.Path);
+            Assert.AreEqual(identity, identity2);
+            Assert.AreEqual(prx.Proxy.Fragment, prx2.Proxy.Fragment); // facets
         }
 
         [TestCase("ice+tcp://host.zeroc.com/path?encoding=foo")]

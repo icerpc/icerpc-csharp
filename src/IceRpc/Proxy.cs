@@ -355,13 +355,14 @@ namespace IceRpc
                 return ToString();
             }
 
-            var identityAndFacet = IdentityAndFacet.FromPathAndFragment(Path, Fragment);
+            var identity = Identity.FromPath(Path);
+            string facet = Fragment;
 
             var sb = new StringBuilder();
 
             // If the encoded identity string contains characters which the reference parser uses as separators,
             // then we enclose the identity string in quotes.
-            string id = identityAndFacet.Identity.ToString(mode);
+            string id = identity.ToString(mode);
             if (StringUtil.FindFirstOf(id, " :@") != -1)
             {
                 sb.Append('"');
@@ -373,12 +374,12 @@ namespace IceRpc
                 sb.Append(id);
             }
 
-            if (identityAndFacet.Facet.Length > 0)
+            if (facet.Length > 0)
             {
                 // If the encoded facet string contains characters which the reference parser uses as separators,
                 // then we enclose the facet string in quotes.
                 sb.Append(" -f ");
-                string fs = StringUtil.EscapeString(identityAndFacet.Facet, mode);
+                string fs = StringUtil.EscapeString(facet, mode);
                 if (StringUtil.FindFirstOf(fs, " :@") != -1)
                 {
                     sb.Append('"');

@@ -178,33 +178,6 @@ namespace IceRpc
         }
     }
 
-    public readonly partial record struct IdentityAndFacet
-    {
-        /// <summary>An empty identity and facet.</summary>
-        public static readonly IdentityAndFacet Empty = new(Identity.Empty, ImmutableList<string>.Empty);
-
-        /// <summary>Gets the facet.</summary>
-        public string Facet => OptionalFacet.Count == 0 ? "" : OptionalFacet[0];
-
-        /// <summary>Creates an IdentityAndFacet from a URI path and a fragment.</summary>
-        /// <param name="path">A URI path.</param>
-        /// <param name="fragment">A URI fragment, used as the facet.</param>
-        /// <exception cref="ArgumentException">path is not a valid path.</exception>
-        /// <exception cref="FormatException">path is a valid path but cannot be converted into an identity.</exception>
-        /// <returns>A new IdentityAndFacet struct.</returns>
-        public static IdentityAndFacet FromPathAndFragment(string path, string fragment) => new(
-            Identity.FromPath(path),
-            fragment.Length > 0 ? ImmutableList.Create(fragment) : ImmutableList<string>.Empty);
-
-        /// <summary>Converts this identity + facet into a string.</summary>
-        /// <returns>The URI path representation of this identity + facet.</returns>
-        public override readonly string ToString()
-        {
-            string path = Identity.ToPath();
-            return Facet.Length == 0 ? path : $"{path}#{Uri.EscapeDataString(Facet)}";
-        }
-    }
-
     /// <summary>The output mode or format for <see cref="Identity.ToString(ToStringMode)"/>.</summary>
     public enum ToStringMode : byte
     {
