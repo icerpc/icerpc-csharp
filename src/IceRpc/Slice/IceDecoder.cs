@@ -379,25 +379,26 @@ namespace IceRpc.Slice
                     }
                 }
 
+                if (proxyData.OptionalFacet.Count > 1)
+                {
+                    throw new InvalidDataException(
+                        $"received proxy with {proxyData.OptionalFacet.Count} elements in its optionalFacet");
+                }
+
                 if (protocol == Protocol.Ice1)
                 {
-                    if (proxyData.OptionalFacet.Count > 1)
-                    {
-                        throw new InvalidDataException(
-                            $"received proxy with {proxyData.OptionalFacet.Count} elements in its optionalFacet");
-                    }
-
                     try
                     {
-                        var identityAndFacet = new IdentityAndFacet(identity, proxyData.OptionalFacet);
-                        var proxy = new Proxy(identityAndFacet.ToPath(), Protocol.Ice1);
-                        proxy.Encoding = IceRpc.Encoding.FromMajorMinor(
-                            proxyData.EncodingMajor,
-                            proxyData.EncodingMinor);
-                        proxy.Endpoint = endpoint;
-                        proxy.AltEndpoints = altEndpoints.ToImmutableList();
-                        proxy.Invoker = _invoker;
-                        return proxy;
+                        return new Proxy(identity.ToPath(), Protocol.Ice1)
+                        {
+                            Encoding = IceRpc.Encoding.FromMajorMinor(
+                                proxyData.EncodingMajor,
+                                proxyData.EncodingMinor),
+                            Endpoint = endpoint,
+                            AltEndpoints = altEndpoints.ToImmutableList(),
+                            Invoker = _invoker,
+                            Fragment = proxyData.OptionalFacet.Count == 0 ? "" : proxyData.OptionalFacet[0]
+                        };
                     }
                     catch (InvalidDataException)
                     {
@@ -410,10 +411,6 @@ namespace IceRpc.Slice
                 }
                 else
                 {
-                    if (proxyData.OptionalFacet.Count > 0)
-                    {
-                        throw new InvalidDataException($"received proxy for protocol {protocol} with a facet");
-                    }
                     if (proxyData.InvocationMode != InvocationMode.Twoway)
                     {
                         throw new InvalidDataException(
@@ -430,11 +427,15 @@ namespace IceRpc.Slice
                         }
                         else
                         {
-                            proxy = new Proxy(identity.ToPath(), protocol);
-                            proxy.Endpoint = endpoint;
-                            proxy.AltEndpoints = altEndpoints.ToImmutableList();
-                            proxy.Invoker = _invoker;
+                            proxy = new Proxy(identity.ToPath(), protocol)
+                            {
+                                Endpoint = endpoint,
+                                AltEndpoints = altEndpoints.ToImmutableList(),
+                                Invoker = _invoker
+                            };
                         }
+
+                        proxy.Fragment = proxyData.OptionalFacet.Count == 0 ? "" : proxyData.OptionalFacet[0];
 
                         proxy.Encoding = IceRpc.Encoding.FromMajorMinor(proxyData.EncodingMajor,
                             proxyData.EncodingMinor);
@@ -477,19 +478,18 @@ namespace IceRpc.Slice
                     if (endpoint == null && protocol != Protocol.Ice1)
                     {
                         proxy = Proxy.FromConnection(_connection!, proxyData.Path, _invoker);
-                        proxy.Fragment = proxyData.Fragment;
                     }
                     else
                     {
                         proxy = new Proxy(proxyData.Path, protocol)
                         {
-                            Fragment = proxyData.Fragment,
                             Endpoint = endpoint,
                             AltEndpoints = altEndpoints,
                             Invoker = _invoker
                         };
                     }
 
+                    proxy.Fragment = proxyData.Fragment;
                     proxy.Encoding = proxyData.Encoding is string encoding ?
                         IceRpc.Encoding.FromString(encoding) : (proxy.Protocol.IceEncoding ?? IceRpc.Encoding.Unknown);
 

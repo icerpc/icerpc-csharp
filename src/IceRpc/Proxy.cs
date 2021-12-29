@@ -355,7 +355,7 @@ namespace IceRpc
                 return ToString();
             }
 
-            var identityAndFacet = IdentityAndFacet.FromPath(Path);
+            var identityAndFacet = IdentityAndFacet.FromPathAndFragment(Path, Fragment);
 
             var sb = new StringBuilder();
 

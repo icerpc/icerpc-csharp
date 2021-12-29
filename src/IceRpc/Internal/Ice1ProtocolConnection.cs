@@ -6,6 +6,7 @@ using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using System.Buffers;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
@@ -126,7 +127,7 @@ namespace IceRpc.Internal
                 {
                     Ice1RequestHeader requestHeader = DecodeHeader(ref buffer);
 
-                    if (requestHeader.IdentityAndFacet.Identity.Name.Length == 0)
+                    if (requestHeader.Identity.Name.Length == 0)
                     {
                         throw new InvalidDataException("received ice1 request with empty identity name");
                     }
@@ -151,8 +152,8 @@ namespace IceRpc.Internal
 
                     var request = new IncomingRequest(
                         Protocol.Ice1,
-                        path: requestHeader.IdentityAndFacet.ToPath(),
-                        fragment: requestHeader.IdentityAndFacet.Facet,
+                        path: requestHeader.Identity.ToPath(),
+                        fragment: requestHeader.OptionalFacet.Count == 0 ? "" : requestHeader.OptionalFacet[0],
                         operation: requestHeader.Operation,
                         payload: new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
                         payloadEncoding,
@@ -442,7 +443,8 @@ namespace IceRpc.Internal
                 (byte encodingMajor, byte encodingMinor) = payloadEncoding.ToMajorMinor();
 
                 var requestHeader = new Ice1RequestHeader(
-                    IdentityAndFacet.FromPath(request.Path),
+                    IceIdentity.FromPath(request.Path),
+                    request.Fragment.Length > 0 ? ImmutableList.Create(request.Fragment) : ImmutableList<string>.Empty,
                     request.Operation,
                     request.IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
                     request.Features.GetContext(),

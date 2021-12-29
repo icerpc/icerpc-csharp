@@ -111,16 +111,21 @@ namespace IceRpc.Tests.Api
         [TestCase("identity:tcp -h \"::0\"")] // Any IPv6 address in proxy endpoint (unusable but parses ok)
         [TestCase("identity:coloc -h *")]
         [TestCase("identity -e 4.5:coloc -h *")]
-        [TestCase("name -f facet:coloc -h localhost", "/name:facet")]
-        [TestCase("category/name -f facet:coloc -h localhost", "/category/name:facet")]
-        [TestCase("cat$gory/nam$ -f fac$t:coloc -h localhost", "/cat%24gory/nam%24:fac%24t")]
-        public void Proxy_Parse_ValidInputIce1Format(string str, string? path = null)
+        [TestCase("name -f facet:coloc -h localhost", "/name", "facet")]
+        [TestCase("category/name -f facet:coloc -h localhost", "/category/name", "facet")]
+        [TestCase("cat$gory/nam$ -f fac$t:coloc -h localhost", "/cat%24gory/nam%24", "fac$t")]
+        public void Proxy_Parse_ValidInputIce1Format(string str, string? path = null, string? fragment = null)
         {
             var proxy = Proxy.Parse(str);
 
             if (path != null)
             {
                 Assert.AreEqual(path, proxy.Path);
+            }
+
+            if (fragment != null)
+            {
+                Assert.That(proxy.Fragment, Is.EqualTo(fragment));
             }
 
             Assert.AreEqual(Protocol.Ice1, proxy.Protocol);
@@ -139,8 +144,8 @@ namespace IceRpc.Tests.Api
             Assert.That(GreeterPrx.TryParse(prx.ToString(), invoker: null, out GreeterPrx prx2), Is.True);
             Assert.AreEqual(prx, prx2); // round-trip works
 
-            var identityAndFacet = IdentityAndFacet.FromPath(prx.Proxy.Path);
-            var identityAndFacet2 = IdentityAndFacet.FromPath(prx2.Proxy.Path);
+            var identityAndFacet = IdentityAndFacet.FromPathAndFragment(prx.Proxy.Path, prx.Proxy.Fragment);
+            var identityAndFacet2 = IdentityAndFacet.FromPathAndFragment(prx2.Proxy.Path, prx2.Proxy.Fragment);
             Assert.AreEqual(identityAndFacet.Identity, identityAndFacet2.Identity);
             Assert.AreEqual(identityAndFacet.Facet, identityAndFacet2.Facet);
         }

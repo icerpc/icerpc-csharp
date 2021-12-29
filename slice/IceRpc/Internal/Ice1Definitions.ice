@@ -41,7 +41,8 @@ module IceRpc::Internal
     [cs:readonly]
     struct Ice1RequestHeader
     {
-        Ice::IdentityAndFacet identityAndFacet;
+        Slice::Internal::IceIdentity identity;
+        sequence<string> optionalFacet;
         string operation;
         OperationMode operationMode;
         Context context;
@@ -96,7 +97,8 @@ module IceRpc::Internal
     [cs:readonly]
     struct Ice1RequestFailedExceptionData
     {
-        Ice::IdentityAndFacet identityAndFacet;
+        Slice::Internal::IceIdentity identity;
+        sequence<string> optionalFacet;
         string operation;
     }
 }

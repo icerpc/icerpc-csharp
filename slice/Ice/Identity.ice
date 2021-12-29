@@ -14,8 +14,8 @@ module Ice
         string category;
     }
 
-     /// The identity and facet of a service reachable with the ice1 protocol. They both map to path with the ice2
-     /// protocol.
+    /// The identity and facet of a service reachable with the ice1 protocol. They both map to path with the ice2
+    /// protocol.
     [cs:readonly]
     struct IdentityAndFacet
     {

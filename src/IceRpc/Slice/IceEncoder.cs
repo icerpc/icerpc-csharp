@@ -237,7 +237,7 @@ namespace IceRpc.Slice
 
                     try
                     {
-                        identityAndFacet = IdentityAndFacet.FromPath(proxy.Path);
+                        identityAndFacet = IdentityAndFacet.FromPathAndFragment(proxy.Path, proxy.Fragment);
                     }
                     catch (FormatException ex)
                     {

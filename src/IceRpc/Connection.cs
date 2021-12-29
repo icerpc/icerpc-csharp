@@ -619,7 +619,10 @@ namespace IceRpc
 
                     if (remoteException.Origin == RemoteExceptionOrigin.Unknown)
                     {
-                        remoteException.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
+                        remoteException.Origin = new RemoteExceptionOrigin(
+                            request.Path,
+                            request.Fragment,
+                            request.Operation);
                     }
 
                     // not necessarily the request payload encoding
