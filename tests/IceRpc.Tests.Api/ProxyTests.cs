@@ -228,7 +228,9 @@ namespace IceRpc.Tests.Api
         public void Proxy_Parse_InvalidInput(string str)
         {
             Assert.Throws<FormatException>(() => Proxy.Parse(str));
+            Assert.Throws<FormatException>(() => Proxy.Parse(str, parser: IceProxyParser.Instance));
             Assert.That(Proxy.TryParse(str, invoker: null, parser: null, out _), Is.False);
+            Assert.That(Proxy.TryParse(str, invoker: null, parser: IceProxyParser.Instance, out _), Is.False);
         }
 
         [Test]

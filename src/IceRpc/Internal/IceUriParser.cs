@@ -74,7 +74,10 @@ namespace IceRpc.Internal
         /// <returns>The parsed endpoint.</returns>
         internal static Endpoint ParseEndpointUri(string uriString, Protocol defaultProtocol)
         {
-            Debug.Assert(uriString.StartsWith(IcePlus, StringComparison.Ordinal));
+            if (!uriString.StartsWith(IcePlus, StringComparison.Ordinal))
+            {
+                throw new FormatException($"endpoint '{uriString}' is not an {IcePlus} URI");
+            }
 
             string scheme = uriString[0..uriString.IndexOf(':', IcePlus.Length)];
             if (scheme.Length == 0)
