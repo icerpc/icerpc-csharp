@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using System.Collections.Immutable;
+using IceRpc.Slice.Internal;
 using System.Diagnostics;
 
 namespace IceRpc
@@ -18,25 +18,8 @@ namespace IceRpc
         /// <returns>A new Identity struct.</returns>
         public static Identity FromPath(string path)
         {
-            IceUriParser.CheckPath(path, nameof(path));
-            string workingPath = path[1..]; // removes leading /.
-
-            int firstSlash = workingPath.IndexOf('/', StringComparison.Ordinal);
-            if (firstSlash != workingPath.LastIndexOf('/'))
-            {
-                throw new FormatException($"too many slashes in path '{path}'");
-            }
-
-            if (firstSlash == -1)
-            {
-                // Name only
-                return new Identity(Uri.UnescapeDataString(workingPath), "");
-            }
-            else
-            {
-                return new Identity(Uri.UnescapeDataString(workingPath[(firstSlash + 1)..]),
-                                    Uri.UnescapeDataString(workingPath[0..firstSlash]));
-            }
+            var identity = IceIdentity.FromPath(path);
+            return new(identity.Name, identity.Category);
         }
 
         /// <summary>Creates an Identity from a string in the ice1 format.</summary>
@@ -133,21 +116,7 @@ namespace IceRpc
 
         /// <summary>Converts this identity into a URI path.</summary>
         /// <returns>A URI path.</returns>
-        public string ToPath()
-        {
-            if (Name == null)
-            {
-                return "/"; // This struct was default initialized (null)
-            }
-            Debug.Assert(Category != null);
-
-            string path = Category.Length > 0 ?
-                $"/{Uri.EscapeDataString(Category)}/{Uri.EscapeDataString(Name)}" :
-                $"/{Uri.EscapeDataString(Name)}";
-
-            Debug.Assert(IceUriParser.IsValidPath(path));
-            return path;
-        }
+        public string ToPath() => new IceIdentity(Name, Category).ToPath();
 
         /// <inheritdoc/>
         public override string ToString() => ToString(ToStringMode.Unicode);
