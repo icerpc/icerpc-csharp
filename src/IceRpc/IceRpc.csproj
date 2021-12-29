@@ -19,7 +19,7 @@
         <PackageTags>IceRPC</PackageTags>
     </PropertyGroup>
     <ItemGroup>
-      <SliceCompile Include="../../slice/$(AssemblyName)/*.ice;../../slice/Ice/Identity.ice" Exclude="../../slice/$(AssemblyName)/BuiltinSequences.ice;../../slice/$(AssemblyName)/Context.ice" OutputDir="$(MSBuildProjectDirectory)/generated" />
+      <SliceCompile Include="../../slice/$(AssemblyName)/*.ice" OutputDir="$(MSBuildProjectDirectory)/generated" />
       <SliceCompile Include="../../slice/$(AssemblyName)/Internal/*.ice" OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
       <SliceCompile Include="../../slice/$(AssemblyName)/Slice/*.ice" OutputDir="$(MSBuildProjectDirectory)/Slice/generated" />
       <SliceCompile Include="../../slice/$(AssemblyName)/Slice/Internal/*.ice" OutputDir="$(MSBuildProjectDirectory)/Slice/Internal/generated" />

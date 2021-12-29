@@ -224,7 +224,7 @@ namespace IceRpc.Slice
             {
                 if (proxy == null)
                 {
-                    IceIdentity.Empty.Encode(ref this);
+                    Identity.Empty.Encode(ref this);
                 }
                 else
                 {
@@ -233,11 +233,11 @@ namespace IceRpc.Slice
                         throw new InvalidOperationException("cannot encode a proxy bound to a server connection");
                     }
 
-                    IceIdentity identity;
+                    Identity identity;
 
                     try
                     {
-                        identity = IceIdentity.FromPath(proxy.Path);
+                        identity = Identity.FromPath(proxy.Path);
                     }
                     catch (FormatException ex)
                     {

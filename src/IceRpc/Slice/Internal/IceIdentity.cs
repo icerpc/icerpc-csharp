@@ -5,17 +5,17 @@ using System.Diagnostics;
 
 namespace IceRpc.Slice.Internal
 {
-    internal readonly partial record struct IceIdentity
+    internal readonly partial record struct Identity
     {
         /// <summary>The empty identity.</summary>
-        internal static readonly IceIdentity Empty = new("", "");
+        internal static readonly Identity Empty = new("", "");
 
         /// <summary>Creates an Ice identity from a URI path.</summary>
         /// <param name="path">A URI path.</param>
         /// <exception cref="ArgumentException">path is not a valid path.</exception>
         /// <exception cref="FormatException">path is a valid path but cannot be converted into an identity.</exception>
         /// <returns>A new Ice identity struct.</returns>
-        internal static IceIdentity FromPath(string path)
+        internal static Identity FromPath(string path)
         {
             IceUriParser.CheckPath(path, nameof(path));
             string workingPath = path[1..]; // removes leading /.
@@ -29,11 +29,11 @@ namespace IceRpc.Slice.Internal
             if (firstSlash == -1)
             {
                 // Name only
-                return new IceIdentity(Uri.UnescapeDataString(workingPath), "");
+                return new Identity(Uri.UnescapeDataString(workingPath), "");
             }
             else
             {
-                return new IceIdentity(
+                return new Identity(
                     Uri.UnescapeDataString(workingPath[(firstSlash + 1)..]),
                     Uri.UnescapeDataString(workingPath[0..firstSlash]));
             }

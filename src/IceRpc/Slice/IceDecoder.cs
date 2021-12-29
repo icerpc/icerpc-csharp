@@ -321,7 +321,7 @@ namespace IceRpc.Slice
 
             if (Encoding == IceRpc.Encoding.Ice11)
             {
-                var identity = new IceIdentity(ref this);
+                var identity = new Identity(ref this);
                 if (identity.Name.Length == 0) // null proxy
                 {
                     return null;
@@ -356,7 +356,7 @@ namespace IceRpc.Slice
                             endpoint = new Endpoint(Protocol.Ice1,
                                                     TransportNames.Loc,
                                                     host: adapterId,
-                                                    port: Ice1Parser.DefaultPort,
+                                                    port: 0,
                                                     @params: ImmutableList<EndpointParam>.Empty);
                         }
                         else

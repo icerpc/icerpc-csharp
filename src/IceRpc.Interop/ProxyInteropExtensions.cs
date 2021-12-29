@@ -6,7 +6,7 @@ using System.Text;
 
 namespace IceRpc
 {
-    /// <summary>.</summary>
+    /// <summary>Extension methods for class <see cref="Proxy"/>.</summary>
     public static class InteropProxyExtensions
     {
         /// <summary>Converts a proxy into a "stringified proxy" compatible with ZeroC Ice.</summary>

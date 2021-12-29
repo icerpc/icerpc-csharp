@@ -1,9 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc.Slice
+using IceRpc.Slice;
+
+namespace IceRpc
 {
-    /// <summary></summary>
-    public static class InteropPrxExtensions
+    /// <summary>Extension methods for interface <see cref="IPrx"/>.</summary>
+    public static class PrxInteropExtensions
     {
         /// <summary>Converts a proxy into a "stringified proxy" compatible with ZeroC Ice.</summary>
         /// <param name="prx">The proxy.</param>

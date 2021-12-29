@@ -40,15 +40,15 @@ namespace IceRpc.Slice
                     case ReplyStatus.ObjectNotExistException:
                     case ReplyStatus.OperationNotExistException:
                         var remoteException = (RemoteException)v;
-                        IceIdentity identity;
+                        Identity identity;
                         try
                         {
-                            identity = IceIdentity.FromPath(remoteException.Origin.Path);
+                            identity = Identity.FromPath(remoteException.Origin.Path);
                         }
                         catch
                         {
                             // ignored, i.e. we'll encode an empty identity + facet
-                            identity = IceIdentity.Empty;
+                            identity = Identity.Empty;
                         }
 
                         var requestFailed = new Ice1RequestFailedExceptionData(

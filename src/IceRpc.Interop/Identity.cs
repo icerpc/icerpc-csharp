@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Slice.Internal;
 using System.Diagnostics;
 
 namespace IceRpc
@@ -15,7 +14,7 @@ namespace IceRpc
         /// <returns>A new Identity struct.</returns>
         public static Identity FromPath(string path)
         {
-            var identity = IceIdentity.FromPath(path);
+            var identity = Slice.Internal.Identity.FromPath(path);
             return new(identity.Name, identity.Category);
         }
 
@@ -113,7 +112,7 @@ namespace IceRpc
 
         /// <summary>Converts this identity into a URI path.</summary>
         /// <returns>A URI path.</returns>
-        public string ToPath() => new IceIdentity(Name, Category).ToPath();
+        public string ToPath() => new Slice.Internal.Identity(Name, Category).ToPath();
 
         /// <inheritdoc/>
         public override string ToString() => ToString(ToStringMode.Unicode);

@@ -6,9 +6,8 @@ module IceRpc::Slice::Internal
     // These definitions help with the encoding of proxies with the Ice 1.1 encoding.
 
     /// The identity of a service. This internal definition must match Ice::Identity.
-    // TODO: rename to Identity
     [cs:readonly]
-    struct IceIdentity
+    struct Identity
     {
         /// The name of the identity. An empty name is not a valid name.
         string name;
@@ -47,8 +46,8 @@ module IceRpc::Slice::Internal
     }
 
     /// With the Ice 1.1 encoding, a proxy is encoded as a kind of discriminated union with:
-    /// - (Ice)Identity
-    /// - if (Ice)Identity is not the null identity:
+    /// - Identity
+    /// - if Identity is not the null identity:
     ///     - ProxyData11
     ///     - a sequence of endpoints that can be empty
     ///     - an adapter ID string present only when the sequence of endpoints is empty

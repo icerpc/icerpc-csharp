@@ -443,7 +443,7 @@ namespace IceRpc.Internal
                 (byte encodingMajor, byte encodingMinor) = payloadEncoding.ToMajorMinor();
 
                 var requestHeader = new Ice1RequestHeader(
-                    IceIdentity.FromPath(request.Path),
+                    Identity.FromPath(request.Path),
                     Facet.FromString(request.Fragment),
                     request.Operation,
                     request.IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
