@@ -152,6 +152,7 @@ namespace IceRpc.Internal
                     var request = new IncomingRequest(
                         Protocol.Ice1,
                         path: requestHeader.IdentityAndFacet.ToPath(),
+                        fragment: requestHeader.IdentityAndFacet.Facet,
                         operation: requestHeader.Operation,
                         payload: new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
                         payloadEncoding,

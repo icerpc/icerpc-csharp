@@ -105,6 +105,9 @@ namespace IceRpc
             }
         }
 
+        /// <summary>Gets or sets the fragment.</summary>
+        public string Fragment { get; set; } = "";
+
         /// <summary>Gets or sets the invoker of this proxy.</summary>
         public IInvoker? Invoker { get; set; }
 

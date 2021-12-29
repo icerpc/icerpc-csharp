@@ -249,7 +249,6 @@ namespace IceRpc.Internal
                         GenericUriParserOptions.DontUnescapePathDotsAndSlashes |
                         GenericUriParserOptions.Idn |
                         GenericUriParserOptions.IriParsing |
-                        GenericUriParserOptions.NoFragment |
                         GenericUriParserOptions.NoUserInfo;
 
                     int defaultPort = DefaultUriPort;

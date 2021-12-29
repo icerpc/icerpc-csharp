@@ -9,8 +9,9 @@ module IceRpc::Slice::Internal
     struct ProxyData20
     {
         string? path;                        // Percent-escaped URI path. Null means null proxy.
-        ProtocolCode? protocol;              // null is equivalent to ProtocolCode::Ice2
-        string? encoding;                    // null means use the encoding of protocol
+        string? fragment;                    // null is equivalent to the empty string.
+        ProtocolCode? protocol;
+        string? encoding;                    // TODO: remove
         EndpointData? endpoint;
         sequence<EndpointData>? altEndpoints;
     }

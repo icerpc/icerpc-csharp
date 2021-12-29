@@ -472,16 +472,22 @@ namespace IceRpc.Slice
                 {
                     Proxy proxy;
 
+                    Debug.Assert(proxyData.Fragment != null);
+
                     if (endpoint == null && protocol != Protocol.Ice1)
                     {
                         proxy = Proxy.FromConnection(_connection!, proxyData.Path, _invoker);
+                        proxy.Fragment = proxyData.Fragment;
                     }
                     else
                     {
-                        proxy = new Proxy(proxyData.Path, protocol);
-                        proxy.Endpoint = endpoint;
-                        proxy.AltEndpoints = altEndpoints;
-                        proxy.Invoker = _invoker;
+                        proxy = new Proxy(proxyData.Path, protocol)
+                        {
+                            Fragment = proxyData.Fragment,
+                            Endpoint = endpoint,
+                            AltEndpoints = altEndpoints,
+                            Invoker = _invoker
+                        };
                     }
 
                     proxy.Encoding = proxyData.Encoding is string encoding ?

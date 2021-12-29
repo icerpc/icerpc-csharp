@@ -312,6 +312,7 @@ namespace IceRpc.Slice
 
                     var proxyData = new ProxyData20(
                         proxy.Path,
+                        proxy.Fragment,
                         protocol: proxy.Protocol != Protocol.Ice2 ? proxy.Protocol.Code : null,
                         encoding: proxy.Encoding == proxy.Protocol.IceEncoding ? null : proxy.Encoding.ToString(),
                         endpoint: proxy.Endpoint?.ToEndpointData(),
