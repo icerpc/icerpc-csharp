@@ -170,40 +170,25 @@ namespace IceRpc
         /// <summary>Creates a proxy from a string and an invoker.</summary>
         /// <param name="s">The string to parse.</param>
         /// <param name="invoker">The invoker of the new proxy.</param>
+        /// <param name="parser">The proxy parser to use for parsing. <c>null</c> is equivalent to
+        /// <see cref="UriProxyParser.Instance"/>.</param>
         /// <returns>The parsed proxy.</returns>
-        public static Proxy Parse(string s, IInvoker? invoker = null)
-        {
-            string proxyString = s.Trim();
-            if (proxyString.Length == 0)
-            {
-                throw new FormatException("an empty string does not represent a proxy");
-            }
-
-            Proxy proxy = IceUriParser.IsProxyUri(proxyString) ?
-                IceUriParser.ParseProxyUri(proxyString) : Ice1Parser.ParseProxyString(proxyString);
-
-            proxy.Invoker = invoker;
-            return proxy;
-        }
+        public static Proxy Parse(string s, IInvoker? invoker = null, IProxyParser? parser = null) =>
+            (parser ?? UriProxyParser.Instance).Parse(s, invoker);
 
         /// <summary>Tries to create a proxy from a string and invoker.</summary>
         /// <param name="s">The string to parse.</param>
         /// <param name="invoker">The invoker.</param>
+        /// <param name="parser">The proxy parser to use for parsing. <c>null</c> is equivalent to
+        /// <see cref="UriProxyParser.Instance"/>.</param>
         /// <param name="proxy">The parsed proxy.</param>
         /// <returns><c>true</c> when the string is parsed successfully; otherwise, <c>false</c>.</returns>
-        public static bool TryParse(string s, IInvoker? invoker, [NotNullWhen(true)] out Proxy? proxy)
-        {
-            try
-            {
-                proxy = Parse(s, invoker);
-                return true;
-            }
-            catch
-            {
-                proxy = null;
-                return false;
-            }
-        }
+        public static bool TryParse(
+            string s,
+            IInvoker? invoker,
+            IProxyParser? parser,
+            [NotNullWhen(true)] out Proxy? proxy) =>
+            UriProxyParser.Instance.TryParse(s, invoker, out proxy);
 
         /// <summary>Creates a shallow copy of this proxy. It's a safe copy since the only container property
         /// (AltEndpoints) is immutable.</summary>

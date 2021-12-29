@@ -129,7 +129,7 @@ namespace IceRpc.Tests.Api
             }
 
             Assert.AreEqual(Protocol.Ice1, proxy.Protocol);
-            Assert.That(Proxy.TryParse(proxy.ToString(), invoker: null, out Proxy? proxy2), Is.True);
+            Assert.That(Proxy.TryParse(proxy.ToString(), invoker: null, parser: null, out Proxy? proxy2), Is.True);
             Assert.AreEqual(proxy, proxy2); // round-trip works
 
             // Also try with non-default ToStringMode
@@ -141,7 +141,7 @@ namespace IceRpc.Tests.Api
 
             var prx = GreeterPrx.Parse(str);
             Assert.AreEqual(Protocol.Ice1, prx.Proxy.Protocol);
-            Assert.That(GreeterPrx.TryParse(prx.ToString(), invoker: null, out GreeterPrx prx2), Is.True);
+            Assert.That(GreeterPrx.TryParse(prx.ToString(), invoker: null, parser: null, out GreeterPrx prx2), Is.True);
             Assert.AreEqual(prx, prx2); // round-trip works
 
             var identity = Identity.FromPath(prx.Proxy.Path);
@@ -189,11 +189,11 @@ namespace IceRpc.Tests.Api
                 Assert.AreEqual(path, proxy.Path);
             }
 
-            Assert.That(Proxy.TryParse(proxy.ToString(), invoker: null, out Proxy? proxy2), Is.True);
+            Assert.That(Proxy.TryParse(proxy.ToString(), invoker: null, parser: null, out Proxy? proxy2), Is.True);
             Assert.AreEqual(proxy, proxy2); // round-trip works
 
             var prx = GreeterPrx.Parse(str);
-            Assert.That(GreeterPrx.TryParse(prx.ToString(), invoker: null, out GreeterPrx prx2), Is.True);
+            Assert.That(GreeterPrx.TryParse(prx.ToString(), invoker: null, parser: null, out GreeterPrx prx2), Is.True);
             Assert.AreEqual(prx, prx2); // round-trip works
         }
 
@@ -222,7 +222,7 @@ namespace IceRpc.Tests.Api
         public void Proxy_Parse_InvalidInput(string str)
         {
             Assert.Throws<FormatException>(() => Proxy.Parse(str));
-            Assert.That(Proxy.TryParse(str, invoker: null, out _), Is.False);
+            Assert.That(Proxy.TryParse(str, invoker: null, parser: null, out _), Is.False);
         }
 
         [Test]

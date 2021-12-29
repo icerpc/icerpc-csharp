@@ -178,20 +178,22 @@ fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
 /// <summary>Creates a new <see cref="{prx_impl}"/> from a string and invoker.</summary>
 /// <param name="s">The string representation of the proxy.</param>
 /// <param name="invoker">The invoker of the new proxy.</param>
+/// <param name="parser">The proxy parser to use for this parsing. <c>null</c> selects the default proxy parser.</param>
 /// <returns>The new proxy</returns>
 /// <exception cref="global::System.FormatException"><c>s</c> does not contain a valid string representation
 /// of a proxy.</exception>
-{access} static {prx_impl} Parse(string s, IceRpc.IInvoker? invoker = null) =>
+{access} static {prx_impl} Parse(string s, IceRpc.IInvoker? invoker = null, IceRpc.IProxyParser? parser = null) =>
     new(IceRpc.Proxy.Parse(s, invoker));
 
 /// <summary>Creates a new <see cref="{prx_impl}"/> from a string and invoker.</summary>
 /// <param name="s">The proxy string representation.</param>
 /// <param name="invoker">The invoker of the new proxy.</param>
+/// <param name="parser">The proxy parser to use for this parsing. <c>null</c> selects the default proxy parser.</param>
 /// <param name="prx">The new proxy.</param>
 /// <returns><c>true</c> if the s parameter was parsed successfully; otherwise, <c>false</c>.</returns>
-{access} static bool TryParse(string s, IceRpc.IInvoker? invoker, out {prx_impl} prx)
+{access} static bool TryParse(string s, IceRpc.IInvoker? invoker, IceRpc.IProxyParser? parser, out {prx_impl} prx)
 {{
-    if (IceRpc.Proxy.TryParse(s, invoker, out IceRpc.Proxy? proxy))
+    if (IceRpc.Proxy.TryParse(s, invoker, parser, out IceRpc.Proxy? proxy))
     {{
         prx = new(proxy);
         return true;
