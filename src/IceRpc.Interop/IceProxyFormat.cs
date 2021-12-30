@@ -10,6 +10,9 @@ using System.Text;
 namespace IceRpc
 {
     /// <summary>The ZeroC Ice stringified proxy format. For example, "fred:tcp -h localhost -p 10000".</summary>
+    /// <remarks>When parsing, all Ice proxy formats are equivalent. The various instances (<see cref="ASCII"/>,
+    /// <see cref="Compat"/> and <see cref="Unicode"/>) only affect the output of
+    /// <see cref="Proxy.ToString(IProxyFormat)"/> and similar ToString methods.</remarks>
     public class IceProxyFormat : IProxyFormat
     {
         /// <summary>With this format, characters with ordinal values greater than 127 are encoded as universal
