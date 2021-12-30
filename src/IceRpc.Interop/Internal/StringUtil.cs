@@ -5,6 +5,10 @@ using System.Text;
 
 namespace IceRpc.Internal
 {
+    /// <summary>Identifies different ways  to escape non-ASCII characters in identities and facets. See
+    /// <see cref="IceProxyFormat"/>.</summary>
+    internal enum EscapeMode : byte { Unicode, ASCII, Compat }
+
     /// <summary>Helper methods for string manipulation.</summary>
     internal static class StringUtil
     {

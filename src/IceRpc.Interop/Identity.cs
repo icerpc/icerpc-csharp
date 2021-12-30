@@ -142,11 +142,4 @@ namespace IceRpc
             }
         }
     }
-
-    internal enum EscapeMode : byte
-    {
-        Unicode,
-        ASCII,
-        Compat
-    }
 }
