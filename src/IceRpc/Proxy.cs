@@ -111,7 +111,7 @@ namespace IceRpc
             get => _fragment;
             set
             {
-                UriProxyParser.CheckFragment(value, nameof(value));
+                UriProxyFormat.CheckFragment(value, nameof(value));
                 _fragment = value;
             }
         }
@@ -179,25 +179,25 @@ namespace IceRpc
         /// <summary>Creates a proxy from a string and an invoker.</summary>
         /// <param name="s">The string to parse.</param>
         /// <param name="invoker">The invoker of the new proxy.</param>
-        /// <param name="parser">The proxy parser to use for parsing. <c>null</c> is equivalent to
-        /// <see cref="UriProxyParser.Instance"/>.</param>
+        /// <param name="format">The proxy format to use for parsing. <c>null</c> is equivalent to
+        /// <see cref="UriProxyFormat.Instance"/>.</param>
         /// <returns>The parsed proxy.</returns>
-        public static Proxy Parse(string s, IInvoker? invoker = null, IProxyParser? parser = null) =>
-            (parser ?? UriProxyParser.Instance).Parse(s, invoker);
+        public static Proxy Parse(string s, IInvoker? invoker = null, IProxyFormat? format = null) =>
+            (format ?? UriProxyFormat.Instance).Parse(s, invoker);
 
         /// <summary>Tries to create a proxy from a string and invoker.</summary>
         /// <param name="s">The string to parse.</param>
         /// <param name="invoker">The invoker.</param>
-        /// <param name="parser">The proxy parser to use for parsing. <c>null</c> is equivalent to
-        /// <see cref="UriProxyParser.Instance"/>.</param>
+        /// <param name="format">The proxy format to use for parsing. <c>null</c> is equivalent to
+        /// <see cref="UriProxyFormat.Instance"/>.</param>
         /// <param name="proxy">The parsed proxy.</param>
         /// <returns><c>true</c> when the string is parsed successfully; otherwise, <c>false</c>.</returns>
         public static bool TryParse(
             string s,
             IInvoker? invoker,
-            IProxyParser? parser,
+            IProxyFormat? format,
             [NotNullWhen(true)] out Proxy? proxy) =>
-            (parser ?? UriProxyParser.Instance).TryParse(s, invoker, out proxy);
+            (format ?? UriProxyFormat.Instance).TryParse(s, invoker, out proxy);
 
         /// <summary>Creates a shallow copy of this proxy. It's a safe copy since the only container property
         /// (AltEndpoints) is immutable.</summary>
@@ -276,73 +276,11 @@ namespace IceRpc
             return hash.ToHashCode();
         }
 
-        /// <inherit-doc/>
-        public override string ToString()
-        {
-            var sb = new StringBuilder();
-            bool firstOption = true;
+        /// <summary>Converts this proxy into a string using the default URI format.</summary>
+        public override string ToString() => ToString(UriProxyFormat.Instance);
 
-            if (_endpoint != null)
-            {
-                // Use ice+transport scheme
-                sb.AppendEndpoint(_endpoint, Path);
-
-                firstOption = _endpoint.Protocol == Protocol.Ice2 && _endpoint.Params.Count == 0;
-            }
-            else
-            {
-                sb.Append("ice:"); // endpointless proxy
-                sb.Append(Path);
-
-                StartQueryOption(sb, ref firstOption);
-                sb.Append("protocol=");
-                sb.Append(Protocol);
-            }
-
-            // TODO: remove
-            if (Encoding != Ice2Definitions.Encoding)
-            {
-                StartQueryOption(sb, ref firstOption);
-                sb.Append("encoding=");
-                sb.Append(Encoding);
-            }
-
-            if (_altEndpoints.Count > 0)
-            {
-                string mainTransport = _endpoint!.Transport;
-                StartQueryOption(sb, ref firstOption);
-                sb.Append("alt-endpoint=");
-                for (int i = 0; i < _altEndpoints.Count; ++i)
-                {
-                    if (i > 0)
-                    {
-                        sb.Append(',');
-                    }
-                    sb.AppendEndpoint(_altEndpoints[i], "", mainTransport != _altEndpoints[i].Transport, '$');
-                }
-            }
-
-            if (_fragment.Length > 0)
-            {
-                sb.Append('#');
-                sb.Append(_fragment);
-            }
-
-            return sb.ToString();
-
-            static void StartQueryOption(StringBuilder sb, ref bool firstOption)
-            {
-                if (firstOption)
-                {
-                    sb.Append('?');
-                    firstOption = false;
-                }
-                else
-                {
-                    sb.Append('&');
-                }
-            }
-        }
+        /// <summary>Converts this proxy into a string using a specific format.</summary>
+        public string ToString(IProxyFormat format) => format.ToString(this);
 
         /// <summary>Creates a copy of this proxy with a new path.</summary>
         /// <param name="path">The new path.</param>
@@ -366,7 +304,7 @@ namespace IceRpc
         internal Proxy(string path, Protocol protocol)
         {
             Protocol = protocol;
-            UriProxyParser.CheckPath(path, nameof(path));
+            UriProxyFormat.CheckPath(path, nameof(path));
             Path = path;
             Encoding = Protocol.IceEncoding ?? Encoding.Unknown;
         }

@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using NUnit.Framework;
+using System.Collections.Immutable;
 
 namespace IceRpc.Tests.Api
 {
@@ -117,22 +118,23 @@ namespace IceRpc.Tests.Api
         {
             var identity = new Identity(name, category);
 
-            foreach (ToStringMode mode in Enum.GetValues(typeof(ToStringMode)))
+            foreach (IceProxyFormat format in
+                ImmutableList.Create(IceProxyFormat.Unicode, IceProxyFormat.ASCII, IceProxyFormat.Compat))
             {
-                Assert.AreEqual(identity, Identity.Parse(identity.ToString(mode)));
+                Assert.AreEqual(identity, Identity.Parse(identity.ToString(format)));
 
-                Assert.That(Identity.TryParse(identity.ToString(mode), out Identity newIdentity), Is.True);
+                Assert.That(Identity.TryParse(identity.ToString(format), out Identity newIdentity), Is.True);
                 Assert.AreEqual(identity, newIdentity);
             }
 
-            Assert.AreEqual(unicode, identity.ToString(ToStringMode.Unicode));
+            Assert.AreEqual(unicode, identity.ToString(IceProxyFormat.Unicode));
             if (ascii.Length > 0)
             {
-                Assert.AreEqual(ascii, identity.ToString(ToStringMode.ASCII));
+                Assert.AreEqual(ascii, identity.ToString(IceProxyFormat.ASCII));
             }
             if (compat.Length > 0)
             {
-                Assert.AreEqual(compat, identity.ToString(ToStringMode.Compat));
+                Assert.AreEqual(compat, identity.ToString(IceProxyFormat.Compat));
             }
         }
     }

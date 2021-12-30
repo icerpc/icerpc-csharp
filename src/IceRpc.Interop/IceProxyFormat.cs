@@ -5,15 +5,33 @@ using IceRpc.Transports.Internal;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
+using System.Text;
 
 namespace IceRpc
 {
-    /// <summary>A proxy parser for the ZeroC Ice stringified proxy format. For example, it parses
-    /// "fred:tcp -h localhost -p 10000".</summary>
-    public class IceProxyParser : IProxyParser
+    /// <summary>The ZeroC Ice stringified proxy format. For example, "fred:tcp -h localhost -p 10000".</summary>
+    public class IceProxyFormat : IProxyFormat
     {
-        /// <summary>The instance of the IceProxyParser.</summary>
-        public static IProxyParser Instance { get; } = new IceProxyParser();
+        /// <summary>With this format, characters with ordinal values greater than 127 are encoded as universal
+        /// character names in the resulting string: \\unnnn for BMP characters and \\Unnnnnnnn for non-BMP characters.
+        /// Non-printable ASCII characters with ordinal values 127 and below are encoded as \\t, \\n (etc.)
+        /// or \\unnnn. This is an optional format introduced in Ice 3.7.</summary>
+        public static IceProxyFormat ASCII { get; } = new(EscapeMode.ASCII);
+
+        /// <summary>With this format, characters with ordinal values greater than 127 are encoded as a sequence of
+        /// UTF-8 bytes using octal escapes. Characters with ordinal values 127 and below are encoded as \\t, \\n (etc.)
+        /// or an octal escape. This is the format used by Ice 3.6 and earlier Ice versions.</summary>
+        public static IceProxyFormat Compat { get; } = new(EscapeMode.Compat);
+
+        /// <summary>An alias for the <see cref="Unicode"/> format.</summary>
+        public static IceProxyFormat Default => Unicode;
+
+        /// <summary>With this format, characters with ordinal values greater than 127 are kept as-is in the resulting
+        /// string. Non-printable ASCII characters with ordinal values 127 and below are encoded as \\t, \\n (etc.).
+        /// This corresponds to the default format in Ice 3.7.</summary>
+        public static IceProxyFormat Unicode { get; } = new(EscapeMode.Unicode);
+
+        internal EscapeMode EscapeMode { get; }
 
         /// <inheritdoc/>
         public Proxy Parse(string s, IInvoker? invoker = null)
@@ -377,6 +395,102 @@ namespace IceRpc
             throw new FormatException($"malformed proxy '{s}'");
         }
 
+        /// <inheritdoc/>
+        public string ToString(Proxy proxy)
+        {
+            if (proxy.Protocol != Protocol.Ice1)
+            {
+                throw new NotSupportedException($"{nameof(ToString)} supports only ice1 proxies");
+            }
+
+            var identity = Identity.FromPath(proxy.Path);
+            string facet = Uri.UnescapeDataString(proxy.Fragment);
+
+            var sb = new StringBuilder();
+
+            // If the encoded identity string contains characters which the reference parser uses as separators,
+            // then we enclose the identity string in quotes.
+            string id = identity.ToString(this);
+            if (StringUtil.FindFirstOf(id, " :@") != -1)
+            {
+                sb.Append('"');
+                sb.Append(id);
+                sb.Append('"');
+            }
+            else
+            {
+                sb.Append(id);
+            }
+
+            if (facet.Length > 0)
+            {
+                // If the encoded facet string contains characters which the reference parser uses as separators,
+                // then we enclose the facet string in quotes.
+                sb.Append(" -f ");
+                string fs = StringUtil.EscapeString(facet, EscapeMode);
+                if (StringUtil.FindFirstOf(fs, " :@") != -1)
+                {
+                    sb.Append('"');
+                    sb.Append(fs);
+                    sb.Append('"');
+                }
+                else
+                {
+                    sb.Append(fs);
+                }
+            }
+
+            if (proxy.Endpoint?.Transport == TransportNames.Udp)
+            {
+                sb.Append(" -d");
+            }
+            else
+            {
+                sb.Append(" -t");
+            }
+
+            // Always print the encoding version to ensure a stringified proxy will convert back to a proxy with the
+            // same encoding with StringToProxy. (Only needed for backwards compatibility).
+            sb.Append(" -e ");
+            sb.Append(proxy.Encoding);
+
+            if (proxy.Endpoint != null)
+            {
+                if (proxy.Endpoint.Transport == TransportNames.Loc)
+                {
+                    string adapterId = proxy.Endpoint.Host;
+
+                    sb.Append(" @ ");
+
+                    // If the encoded adapter ID contains characters which the proxy parser uses as separators, then
+                    // we enclose the adapter ID string in double quotes.
+                    adapterId = StringUtil.EscapeString(adapterId, EscapeMode);
+                    if (StringUtil.FindFirstOf(adapterId, " :@") != -1)
+                    {
+                        sb.Append('"');
+                        sb.Append(adapterId);
+                        sb.Append('"');
+                    }
+                    else
+                    {
+                        sb.Append(adapterId);
+                    }
+                }
+                else
+                {
+                    sb.Append(':');
+                    sb.Append(ToString(proxy.Endpoint));
+
+                    foreach (Endpoint e in proxy.AltEndpoints)
+                    {
+                        sb.Append(':');
+                        sb.Append(ToString(e));
+                    }
+                }
+            }
+            return sb.ToString();
+        }
+
         private static Endpoint ParseEndpoint(string endpointString)
         {
             string[]? args = StringUtil.SplitString(endpointString, " \t\r\n");
@@ -501,9 +615,74 @@ namespace IceRpc
                 endpointParams.ToImmutableList());
         }
 
-        private IceProxyParser()
+        /// <summary>Converts an endpoint into a string in a format compatible with ZeroC Ice.</summary>
+        /// <param name="endpoint">The endpoint.</param>
+        /// <returns>The string representation of this endpoint.</returns>
+        private static string ToString(Endpoint endpoint)
         {
-            // ensures it's a singleton
+            var sb = new StringBuilder();
+
+            if (endpoint.Transport == TransportNames.Tcp)
+            {
+                if (endpoint.Params.Find(p => p.Name == "tls").Value == "false")
+                {
+                    sb.Append(TransportNames.Tcp);
+                }
+                else
+                {
+                    sb.Append(TransportNames.Ssl);
+                }
+            }
+            else
+            {
+                sb.Append(endpoint.Transport);
+            }
+
+            if (endpoint.Host.Length > 0)
+            {
+                sb.Append(" -h ");
+                bool addQuote = endpoint.Host.IndexOf(':', StringComparison.Ordinal) != -1;
+                if (addQuote)
+                {
+                    sb.Append('"');
+                }
+                sb.Append(endpoint.Host);
+                if (addQuote)
+                {
+                    sb.Append('"');
+                }
+            }
+
+            // For backwards compatibility, we don't output "-p 0" for opaque endpoints.
+            if (endpoint.Transport != TransportNames.Opaque || endpoint.Port != 0)
+            {
+                sb.Append(" -p ");
+                sb.Append(endpoint.Port.ToString(CultureInfo.InvariantCulture));
+            }
+
+            foreach ((string name, string value) in endpoint.Params)
+            {
+                if (name != "tls")
+                {
+                    sb.Append(' ');
+
+                    // Add - or -- prefix as appropriate
+                    sb.Append('-');
+                    if (name.Length > 1)
+                    {
+                        sb.Append('-');
+                    }
+                    sb.Append(name);
+                    if (value != "true")
+                    {
+                        sb.Append(' ');
+                        sb.Append(value);
+                    }
+                }
+            }
+            return sb.ToString();
         }
+
+        private IceProxyFormat(EscapeMode escapeMode) => EscapeMode = escapeMode;
     }
 }

@@ -29,9 +29,9 @@ namespace IceRpc.Tests.ClientServer
             };
 
             var pipeline = new Pipeline();
-            IProxyParser? parser = proxy.StartsWith("ice+", StringComparison.Ordinal) ? null : IceProxyParser.Instance;
+            IProxyFormat? format = proxy.StartsWith("ice+", StringComparison.Ordinal) ? null : IceProxyFormat.Default;
 
-            var indirect = GreeterPrx.Parse(proxy, pipeline, parser);
+            var indirect = GreeterPrx.Parse(proxy, pipeline, format);
             GreeterPrx direct = SetupServer(indirect.Proxy.Protocol.Code, indirect.Proxy.Path, pipeline);
             Assert.That(direct.Proxy.Endpoint, Is.Not.Null);
 
@@ -52,7 +52,7 @@ namespace IceRpc.Tests.ClientServer
 
             foreach (string badProxy in badProxies)
             {
-                var badGreeter = GreeterPrx.Parse(badProxy, pipeline, parser);
+                var badGreeter = GreeterPrx.Parse(badProxy, pipeline, format);
                 Assert.ThrowsAsync<NoEndpointException>(async () => await badGreeter.SayHelloAsync("hello"));
             }
         }

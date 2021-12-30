@@ -11,6 +11,7 @@ namespace IceRpc.Slice
     }
 
     /// <summary>Provides extension methods for typed proxies.</summary>
+    // TODO: move to namespace IceRpc?
     public static class PrxExtensions
     {
         /// <summary>Tests whether the target service implements the interface implemented by the T typed proxy. This
@@ -27,6 +28,11 @@ namespace IceRpc.Slice
             await new ServicePrx(prx.Proxy).IceIsAAsync(typeof(T).GetIceTypeId()!, invocation, cancel).
                 ConfigureAwait(false) ?
                 new T { Proxy = prx.Proxy } : null;
+
+        /// <summary>Converts this proxy into a string using a specific format.</summary>
+        /// <param name="prx">The prx to convert.</param>
+        /// <param name="format">The proxy format.</param>
+        public static string ToString(this IPrx prx, IProxyFormat format) => format.ToString(prx.Proxy);
     }
 
     /// <summary>Provides extension methods for IceDecoder.</summary>

@@ -81,15 +81,15 @@ namespace IceRpc.Tests.Slice
                   "identity:tcp -h 127.0.0.1 -p 12010 -t 10000")]
         public async Task Operations_ServiceAsync(string proxy, string? actualIce1Proxy = null)
         {
-            IProxyParser? parser = proxy.StartsWith("ice+", StringComparison.Ordinal) ?
-                null : IceProxyParser.Instance;
+            IProxyFormat? format = proxy.StartsWith("ice+", StringComparison.Ordinal) ?
+                null : IceProxyFormat.Default;
 
-            var service = ServicePrx.Parse(proxy, parser: parser);
+            var service = ServicePrx.Parse(proxy, format: format);
             ServicePrx result = await _prx.OpServiceAsync(service);
 
             if (_prx.Proxy.Protocol == Protocol.Ice1 && actualIce1Proxy != null)
             {
-                var actual = ServicePrx.Parse(actualIce1Proxy, parser: parser);
+                var actual = ServicePrx.Parse(actualIce1Proxy, format: format);
                 Assert.AreEqual(actual, result);
             }
             else

@@ -3,15 +3,16 @@
 using IceRpc.Internal;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Text;
 
 namespace IceRpc
 {
-    /// <summary>The default proxy parser, that parses ice and ice+transport URIs.</summary>
+    /// <summary>The default proxy format with ice and ice+transport URIs.</summary>
     // TODO: switch to icerpc / icerpc+
-    public class UriProxyParser : IProxyParser
+    public class UriProxyFormat : IProxyFormat
     {
-        /// <summary>The instance of the UriProxyParser.</summary>
-        public static IProxyParser Instance { get; } = new UriProxyParser();
+        /// <summary>The only instance of UriProxyFormat.</summary>
+        public static IProxyFormat Instance { get; } = new UriProxyFormat();
 
         internal const ushort DefaultUriPort = 4062;
 
@@ -105,6 +106,74 @@ namespace IceRpc
                 Encoding = encoding == null ? (protocol.IceEncoding ?? Encoding.Unknown) : Encoding.FromString(encoding),
                 Fragment = uri.Fragment.Length > 0 ? uri.Fragment[1..] : "" // remove #
             };
+        }
+
+        /// <inheritdoc/>
+        public string ToString(Proxy proxy)
+        {
+            var sb = new StringBuilder();
+            bool firstOption = true;
+
+            if (proxy.Endpoint != null)
+            {
+                // Use ice+transport scheme
+                sb.AppendEndpoint(proxy.Endpoint, proxy.Path);
+
+                firstOption = proxy.Endpoint.Protocol == Protocol.Ice2 && proxy.Endpoint.Params.Count == 0;
+            }
+            else
+            {
+                sb.Append("ice:"); // endpointless proxy
+                sb.Append(proxy.Path);
+
+                StartQueryOption(sb, ref firstOption);
+                sb.Append("protocol=");
+                sb.Append(proxy.Protocol);
+            }
+
+            // TODO: remove
+            if (proxy.Encoding != Ice2Definitions.Encoding)
+            {
+                StartQueryOption(sb, ref firstOption);
+                sb.Append("encoding=");
+                sb.Append(proxy.Encoding);
+            }
+
+            if (proxy.AltEndpoints.Count > 0)
+            {
+                string mainTransport = proxy.Endpoint!.Transport;
+                StartQueryOption(sb, ref firstOption);
+                sb.Append("alt-endpoint=");
+                for (int i = 0; i < proxy.AltEndpoints.Count; ++i)
+                {
+                    if (i > 0)
+                    {
+                        sb.Append(',');
+                    }
+                    sb.AppendEndpoint(proxy.AltEndpoints[i], "", mainTransport != proxy.AltEndpoints[i].Transport, '$');
+                }
+            }
+
+            if (proxy.Fragment.Length > 0)
+            {
+                sb.Append('#');
+                sb.Append(proxy.Fragment);
+            }
+
+            return sb.ToString();
+
+            static void StartQueryOption(StringBuilder sb, ref bool firstOption)
+            {
+                if (firstOption)
+                {
+                    sb.Append('?');
+                    firstOption = false;
+                }
+                else
+                {
+                    sb.Append('&');
+                }
+            }
         }
 
         /// <summary>Makes sure fragment is valid.</summary>
@@ -292,7 +361,7 @@ namespace IceRpc
             }
         }
 
-        private UriProxyParser()
+        private UriProxyFormat()
         {
             // ensures it's a singleton
         }

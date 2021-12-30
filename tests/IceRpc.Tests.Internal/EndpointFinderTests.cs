@@ -108,14 +108,14 @@ namespace IceRpc.Tests.Internal
                 Invocation? invocation,
                 CancellationToken cancel) =>
                     Task.FromResult<ServicePrx?>(id == "good" ?
-                        ServicePrx.Parse("dummy:tcp -h host -p 10000", parser: IceProxyParser.Instance) : null);
+                        ServicePrx.Parse("dummy:tcp -h host -p 10000", format: IceProxyFormat.Default) : null);
 
             Task<ServicePrx?> ILocatorPrx.FindObjectByIdAsync(
                 Identity id,
                 Invocation? invocation,
                 CancellationToken cancel) =>
                     Task.FromResult<ServicePrx?>(
-                        id.Name == "good" ? ServicePrx.Parse("dummy @ adapter", parser: IceProxyParser.Instance) :
+                        id.Name == "good" ? ServicePrx.Parse("dummy @ adapter", format: IceProxyFormat.Default) :
                             null);
 
             Task<LocatorRegistryPrx?> ILocatorPrx.GetRegistryAsync(Invocation? invocation, CancellationToken cancel)
@@ -132,7 +132,7 @@ namespace IceRpc.Tests.Internal
                 Invocation? invocation,
                 CancellationToken cancel) =>
                     Task.FromResult<ServicePrx?>(
-                        ServicePrx.Parse(id == "loc" ? "dummy @ adapter" : "dummy", parser: IceProxyParser.Instance));
+                        ServicePrx.Parse(id == "loc" ? "dummy @ adapter" : "dummy", format: IceProxyFormat.Default));
 
             Task<ServicePrx?> ILocatorPrx.FindObjectByIdAsync(
                 Identity id,
@@ -188,7 +188,7 @@ namespace IceRpc.Tests.Internal
             Task<Proxy?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel) =>
                 Task.FromResult<Proxy?>(
                     location.AdapterId == "good" ?
-                        Proxy.Parse("dummy:tcp -h localhost -p 10000", parser: IceProxyParser.Instance) : null);
+                        Proxy.Parse("dummy:tcp -h localhost -p 10000", format: IceProxyFormat.Default) : null);
         }
 
         private class BlockingEndpointFinder : IEndpointFinder, IDisposable
@@ -206,7 +206,7 @@ namespace IceRpc.Tests.Internal
                 await _semaphore.WaitAsync(cancel);
                 Interlocked.Increment(ref Count);
 
-                return Proxy.Parse("dummy:tcp -h localhost -p 10000", parser: IceProxyParser.Instance);
+                return Proxy.Parse("dummy:tcp -h localhost -p 10000", format: IceProxyFormat.Default);
             }
         }
     }

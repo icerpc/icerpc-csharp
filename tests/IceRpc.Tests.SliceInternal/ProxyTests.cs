@@ -21,8 +21,8 @@ namespace IceRpc.Tests.SliceInternal
             var bufferWriter = new SingleBufferWriter(buffer);
             var encoding = IceEncoding.FromString(encodingStr);
 
-            IProxyParser? parser = str.StartsWith("ice+", StringComparison.Ordinal) ? null : IceProxyParser.Instance;
-            var proxy = Proxy.Parse(str, parser: parser);
+            IProxyFormat? format = str.StartsWith("ice+", StringComparison.Ordinal) ? null : IceProxyFormat.Default;
+            var proxy = Proxy.Parse(str, format: format);
             EncodeProxy();
 
             buffer = bufferWriter.WrittenBuffer;

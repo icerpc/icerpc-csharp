@@ -69,9 +69,9 @@ namespace IceRpc.Tests.Api
         [TestCase("test:tcp -h localhost -p 10000")]
         public void Proxy_SetProperty(string s)
         {
-            IProxyParser? parser = s.StartsWith("ice+", StringComparison.Ordinal) ? null : IceProxyParser.Instance;
+            IProxyFormat? format = s.StartsWith("ice+", StringComparison.Ordinal) ? null : IceProxyFormat.Default;
 
-            var proxy = Proxy.Parse(s, parser: parser);
+            var proxy = Proxy.Parse(s, format: format);
 
             proxy.Encoding = Encoding.Ice11;
             Assert.AreEqual(Encoding.Ice11, proxy.Encoding);
@@ -89,7 +89,7 @@ namespace IceRpc.Tests.Api
         [Test]
         public void Proxy_SetProperty_ArgumentException()
         {
-            var ice1Proxy = Proxy.Parse("hello:tcp -h localhost -p 10000", parser: IceProxyParser.Instance);
+            var ice1Proxy = Proxy.Parse("hello:tcp -h localhost -p 10000", format: IceProxyFormat.Default);
             Assert.AreEqual(Protocol.Ice1, ice1Proxy.Protocol);
             var ice2Proxy = Proxy.Parse("ice+tcp://host.zeroc.com/hello");
             Assert.AreEqual(Protocol.Ice2, ice2Proxy.Protocol);
@@ -112,7 +112,7 @@ namespace IceRpc.Tests.Api
         [TestCase("cat$gory/nam$ -f fac$t:coloc -h localhost", "/cat%24gory/nam%24", "fac%24t")]
         public void Proxy_Parse_ValidInputIceFormat(string str, string? path = null, string? fragment = null)
         {
-            var proxy = Proxy.Parse(str, parser: IceProxyParser.Instance);
+            var proxy = Proxy.Parse(str, format: IceProxyFormat.Default);
 
             if (path != null)
             {
@@ -126,26 +126,26 @@ namespace IceRpc.Tests.Api
 
             Assert.AreEqual(Protocol.Ice1, proxy.Protocol);
             Assert.That(Proxy.TryParse(
-                proxy.ToIceString(),
+                proxy.ToString(IceProxyFormat.Default),
                 invoker: null,
-                parser: IceProxyParser.Instance,
+                format: IceProxyFormat.Default,
                 out Proxy? proxy2),
                 Is.True);
             Assert.AreEqual(proxy, proxy2); // round-trip works
 
             // Also try with non-default ToStringMode
-            proxy2 = Proxy.Parse(proxy.ToIceString(ToStringMode.ASCII), parser: IceProxyParser.Instance);
+            proxy2 = Proxy.Parse(proxy.ToString(IceProxyFormat.ASCII), format: IceProxyFormat.Default);
             Assert.AreEqual(proxy, proxy2);
 
-            proxy2 = Proxy.Parse(proxy.ToIceString(ToStringMode.Compat), parser: IceProxyParser.Instance);
+            proxy2 = Proxy.Parse(proxy.ToString(IceProxyFormat.Compat), format: IceProxyFormat.Default);
             Assert.AreEqual(proxy, proxy2);
 
-            var prx = GreeterPrx.Parse(str, parser: IceProxyParser.Instance);
+            var prx = GreeterPrx.Parse(str, format: IceProxyFormat.Default);
             Assert.AreEqual(Protocol.Ice1, prx.Proxy.Protocol);
             Assert.That(GreeterPrx.TryParse(
-                prx.ToIceString(),
+                prx.ToString(IceProxyFormat.Default),
                 invoker: null,
-                parser: IceProxyParser.Instance,
+                format: IceProxyFormat.Default,
                 out GreeterPrx prx2),
                 Is.True);
             Assert.AreEqual(prx, prx2); // round-trip works
@@ -195,7 +195,7 @@ namespace IceRpc.Tests.Api
         public void Proxy_Parse_ValidInputUriFormat(string str, string? path = null, string? fragment = null)
         {
             var proxy = Proxy.Parse(str);
-            Assert.That(Proxy.TryParse(proxy.ToString(), invoker: null, parser: null, out Proxy? proxy2), Is.True);
+            Assert.That(Proxy.TryParse(proxy.ToString(), invoker: null, format:null, out Proxy? proxy2), Is.True);
 
             if (path != null)
             {
@@ -210,7 +210,7 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(proxy, proxy2); // round-trip works
 
             var prx = GreeterPrx.Parse(str);
-            Assert.That(GreeterPrx.TryParse(prx.ToString(), invoker: null, parser: null, out GreeterPrx prx2), Is.True);
+            Assert.That(GreeterPrx.TryParse(prx.ToString(), invoker: null, format:null, out GreeterPrx prx2), Is.True);
             Assert.AreEqual(prx, prx2); // round-trip works
         }
 
@@ -237,9 +237,9 @@ namespace IceRpc.Tests.Api
         public void Proxy_Parse_InvalidInput(string str)
         {
             Assert.Catch<FormatException>(() => Proxy.Parse(str));
-            Assert.Throws<FormatException>(() => Proxy.Parse(str, parser: IceProxyParser.Instance));
-            Assert.That(Proxy.TryParse(str, invoker: null, parser: null, out _), Is.False);
-            Assert.That(Proxy.TryParse(str, invoker: null, parser: IceProxyParser.Instance, out _), Is.False);
+            Assert.Throws<FormatException>(() => Proxy.Parse(str, format: IceProxyFormat.Default));
+            Assert.That(Proxy.TryParse(str, invoker: null, format:null, out _), Is.False);
+            Assert.That(Proxy.TryParse(str, invoker: null, format: IceProxyFormat.Default, out _), Is.False);
         }
 
         [Test]
@@ -258,9 +258,9 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+tcp://localhost/path?alt-endpoint=ice+tcp://[::1]")]
         public void Proxy_HashCode(string proxyString)
         {
-            IProxyParser? parser = proxyString.StartsWith("ice+", StringComparison.Ordinal) ?
-                null : IceProxyParser.Instance;
-            var proxy1 = Proxy.Parse(proxyString, parser: parser);
+            IProxyFormat? format = proxyString.StartsWith("ice+", StringComparison.Ordinal) ?
+                null : IceProxyFormat.Default;
+            var proxy1 = Proxy.Parse(proxyString, format: format);
             var proxy2 = proxy1.Clone();
             var proxy3 = Proxy.Parse(proxy2.ToString());
 

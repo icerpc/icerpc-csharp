@@ -33,12 +33,12 @@ namespace IceRpc.Internal
         }
 
         // Adds escape sequences (such as "\n", or "\007") to the input string
-        internal static string EscapeString(string s, ToStringMode toStringMode, char? special = null)
+        internal static string EscapeString(string s, EscapeMode escapeMode, char? special = null)
         {
             Debug.Assert(special == null || (special >= 32 && special <= 126),
                          "special character must be in ASCII range 32-126");
 
-            if (toStringMode == ToStringMode.Compat)
+            if (escapeMode == EscapeMode.Compat)
             {
                 // Encode UTF-8 bytes
                 var utf8 = new UTF8Encoding();
@@ -47,7 +47,7 @@ namespace IceRpc.Internal
                 var result = new StringBuilder(bytes.Length);
                 for (int i = 0; i < bytes.Length; i++)
                 {
-                    EncodeChar((char)bytes[i], result, toStringMode, special);
+                    EncodeChar((char)bytes[i], result, escapeMode, special);
                 }
 
                 return result.ToString();
@@ -59,13 +59,13 @@ namespace IceRpc.Internal
                 for (int i = 0; i < s.Length; i++)
                 {
                     char c = s[i];
-                    if ((toStringMode == ToStringMode.Unicode) || !char.IsSurrogate(c))
+                    if ((escapeMode == EscapeMode.Unicode) || !char.IsSurrogate(c))
                     {
-                        EncodeChar(c, result, toStringMode, special);
+                        EncodeChar(c, result, escapeMode, special);
                     }
                     else
                     {
-                        Debug.Assert((toStringMode == ToStringMode.ASCII) && char.IsSurrogate(c));
+                        Debug.Assert((escapeMode == EscapeMode.ASCII) && char.IsSurrogate(c));
                         if (i + 1 == s.Length)
                         {
                             throw new System.ArgumentException("high surrogate without low surrogate", nameof(s));
@@ -380,7 +380,7 @@ namespace IceRpc.Internal
             return start;
         }
 
-        private static void EncodeChar(char c, StringBuilder sb, ToStringMode toStringMode, char? special)
+        private static void EncodeChar(char c, StringBuilder sb, EscapeMode escapeMode, char? special)
         {
             switch (c)
             {
@@ -401,7 +401,7 @@ namespace IceRpc.Internal
                 }
                 case '\a':
                 {
-                    if (toStringMode == ToStringMode.Compat)
+                    if (escapeMode == EscapeMode.Compat)
                     {
                         // Octal escape for compatibility with 3.6 and earlier
                         sb.Append("\\007");
@@ -439,7 +439,7 @@ namespace IceRpc.Internal
                 }
                 case '\v':
                 {
-                    if (toStringMode == ToStringMode.Compat)
+                    if (escapeMode == EscapeMode.Compat)
                     {
                         // Octal escape for compatibility with 3.6 and earlier
                         sb.Append("\\013");
@@ -462,7 +462,7 @@ namespace IceRpc.Internal
                         int i = c;
                         if (i < 32 || i > 126)
                         {
-                            if (toStringMode == ToStringMode.Compat)
+                            if (escapeMode == EscapeMode.Compat)
                             {
                                 // When ToStringMode=Compat, c is a UTF-8 byte
                                 Debug.Assert(i < 256);
@@ -480,7 +480,7 @@ namespace IceRpc.Internal
                                 }
                                 sb.Append(octal);
                             }
-                            else if (i < 32 || i == 127 || (toStringMode == ToStringMode.ASCII))
+                            else if (i < 32 || i == 127 || (escapeMode == EscapeMode.ASCII))
                             {
                                 // append \\unnnn
                                 sb.Append("\\u");

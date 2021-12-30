@@ -49,13 +49,13 @@ namespace IceRpc.Tests.ClientServer
         public async Task Locator_AdapterResolveAsync(string adapter, string proxy)
         {
             // There is no corresponding service, we're just testing the endpoints.
-            var greeter = GreeterPrx.Parse(proxy, _pipeline, IceProxyParser.Instance);
+            var greeter = GreeterPrx.Parse(proxy, _pipeline, IceProxyFormat.Default);
             var greeterIdentity = Identity.FromPath(greeter.Proxy.Path);
 
             var indirectGreeter = GreeterPrx.Parse(
                 $"{greeterIdentity} @ {adapter}",
                 _pipeline,
-                IceProxyParser.Instance);
+                IceProxyFormat.Default);
 
             var locator = new FakeLocatorPrx();
             _pipeline.UseLocator(locator, new() { LoggerFactory = LogAttributeLoggerFactory.Instance });
@@ -97,8 +97,8 @@ namespace IceRpc.Tests.ClientServer
         /// <summary>Makes sure a locator interceptor caches resolutions.</summary>
         public void Locator_Cache(int cacheMaxSize)
         {
-            var indirectGreeter = GreeterPrx.Parse($"{GreeterIdentity} @ adapt", _pipeline, IceProxyParser.Instance);
-            var wellKnownGreeter = GreeterPrx.Parse(GreeterIdentity.ToString(), _pipeline, IceProxyParser.Instance);
+            var indirectGreeter = GreeterPrx.Parse($"{GreeterIdentity} @ adapt", _pipeline, IceProxyFormat.Default);
+            var wellKnownGreeter = GreeterPrx.Parse(GreeterIdentity.ToString(), _pipeline, IceProxyFormat.Default);
 
             var locator = new FakeLocatorPrx();
             _pipeline.UseRetry(new RetryOptions { MaxAttempts = 2 });
@@ -192,10 +192,10 @@ namespace IceRpc.Tests.ClientServer
         public async Task Locator_WellKnownProxyResolveAsync(string proxy)
         {
             // There is no corresponding service, we're just testing the endpoints.
-            var greeter = GreeterPrx.Parse(proxy, _pipeline, IceProxyParser.Instance);
+            var greeter = GreeterPrx.Parse(proxy, _pipeline, IceProxyFormat.Default);
             Identity identity = GreeterIdentity;
 
-            var wellKnownGreeter = GreeterPrx.Parse(identity.ToString(), _pipeline, IceProxyParser.Instance);
+            var wellKnownGreeter = GreeterPrx.Parse(identity.ToString(), _pipeline, IceProxyFormat.Default);
             Assert.That(wellKnownGreeter.Proxy.Endpoint, Is.Null);
 
             var locator = new FakeLocatorPrx();
@@ -232,8 +232,8 @@ namespace IceRpc.Tests.ClientServer
 
             // Test with indirect endpoints
             string adapter = $"adapter/{identity.Category}/{identity.Name}";
-            var indirectGreeter = GreeterPrx.Parse($"{identity} @ '{adapter}'", _pipeline, IceProxyParser.Instance);
-            Assert.AreEqual($"loc -h {adapter} -p 0", indirectGreeter.Proxy.Endpoint?.ToIceString());
+            var indirectGreeter = GreeterPrx.Parse($"{identity} @ '{adapter}'", _pipeline, IceProxyFormat.Default);
+            Assert.AreEqual($"ice+loc://{adapter}:0?protocol=ice1", indirectGreeter.Proxy.Endpoint?.ToString());
 
             locator.RegisterAdapter(adapter, greeter);
 

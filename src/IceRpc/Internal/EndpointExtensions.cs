@@ -42,7 +42,7 @@ namespace IceRpc.Internal
                 sb.Append(endpoint.Host);
             }
 
-            if (endpoint.Port != UriProxyParser.DefaultUriPort)
+            if (endpoint.Port != UriProxyFormat.DefaultUriPort)
             {
                 sb.Append(':');
                 sb.Append(endpoint.Port.ToString(CultureInfo.InvariantCulture));
