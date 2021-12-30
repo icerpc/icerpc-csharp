@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
-using IceRpc.Slice;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
@@ -276,6 +275,8 @@ namespace IceRpc.Tests.Api
             }
         }
 
+        /*
+        // TODO: move this test to Slice
         [Test]
         public async Task Proxy_InvokeAsync()
         {
@@ -295,6 +296,7 @@ namespace IceRpc.Tests.Api
                 IceDecoder.GetActivator(typeof(ProxyTests).Assembly),
                 default));
         }
+        */
 
         [Test]
         public async Task Proxy_ReceiveProxyAsync()
