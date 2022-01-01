@@ -66,7 +66,7 @@ namespace IceRpc.Tests.SliceInternal
 
             for (int i = 0; i < size; ++i)
             {
-                writer.Write((pattern & (1 << (i % 8))) != 0);
+                writer.Write(IsSet(i, pattern));
             }
 
             // Verify we correctly wrote the pattern
@@ -94,7 +94,7 @@ namespace IceRpc.Tests.SliceInternal
 
             for (int i = 0; i < bitSize; ++i)
             {
-                writer.Write((pattern & (1 << (i % 8))) != 0);
+                writer.Write(IsSet(i, pattern));
             }
             pipe.Writer.Complete();
 
@@ -108,9 +108,11 @@ namespace IceRpc.Tests.SliceInternal
 
             for (int i = 0; i < bitSize; ++i)
             {
-                Assert.That(reader.Read(), Is.EqualTo((pattern & (1 << (i % 8))) != 0));
+                Assert.That(reader.Read(), Is.EqualTo(IsSet(i, pattern)));
             }
             pipe.Reader.Complete();
         }
+
+        private static bool IsSet(int bitIndex, byte pattern) => (pattern & (1 << (bitIndex % 8))) != 0;
     }
 }
