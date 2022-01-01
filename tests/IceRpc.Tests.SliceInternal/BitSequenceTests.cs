@@ -3,7 +3,7 @@
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using NUnit.Framework;
-using System.Buffers;
+using System.IO.Pipelines;
 
 namespace IceRpc.Tests.SliceInternal
 {
@@ -78,6 +78,39 @@ namespace IceRpc.Tests.SliceInternal
                     Assert.That(enumerator.Current[i], Is.EqualTo(pattern));
                 }
             }
+        }
+
+        [Test]
+        public void BitSequence_GetBitSequenceWriter(
+            [Values(1, 8, 17, 97, 791)] int bitSize,
+            [Values(0x00, 0x01, 0x12, 0x3C, 0x55, 0xFF)] byte pattern)
+        {
+            const int maxBufferSize = 7;
+            using var testPool = new TestMemoryPool(maxBufferSize);
+            var pipe = new Pipe(new PipeOptions(pool: testPool));
+            var encoder = new IceEncoder(pipe.Writer, Encoding.Ice20);
+
+            BitSequenceWriter writer = encoder.GetBitSequenceWriter(bitSize);
+
+            for (int i = 0; i < bitSize; ++i)
+            {
+                writer.Write((pattern & (1 << (i % 8))) != 0);
+            }
+            pipe.Writer.Complete();
+
+            // Read it back with a bit sequence reader
+
+            bool read = pipe.Reader.TryRead(out ReadResult readResult);
+            Assert.That(read, Is.True);
+            Assert.That(readResult.Buffer.IsSingleSegment, Is.EqualTo(bitSize <= maxBufferSize * 8));
+
+            var reader = new BitSequenceReader(readResult.Buffer);
+
+            for (int i = 0; i < bitSize; ++i)
+            {
+                Assert.That(reader.Read(), Is.EqualTo((pattern & (1 << (i % 8))) != 0));
+            }
+            pipe.Reader.Complete();
         }
     }
 }
