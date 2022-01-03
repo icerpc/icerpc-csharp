@@ -2,12 +2,13 @@
 
 module IceRpc
 {
-    /// Represents a version of the Ice protocol.
+    /// Represents RPC protocols supported by IceRPC.
     unchecked enum ProtocolCode : byte
     {
-        /// The ice protocol supported by all Ice versions since Ice 1.0.
-        Ice1 = 1,
-        /// The icerpc protocol introduced in IceRpc.
-        Ice2 = 2
+        /// The RPC protocol used by ZeroC Ice.
+        Ice = 1,
+
+        /// The default RPC protocol of IceRPC, based on multiplexed streams.
+        IceRpc = 2
     }
 }

@@ -6,19 +6,19 @@ using System.Globalization;
 
 namespace IceRpc
 {
-    /// <summary>Protocol identifies the protocol used by IceRpc connections.</summary>
+    /// <summary>Protocol identifies the RPC protocol used an IceRPC connection.</summary>
     public class Protocol : IEquatable<Protocol>
     {
-        /// <summary>The protocol supported by all Ice versions since Ice 1.0.</summary>
+        /// <summary>The RPC protocol used by ZeroC Ice.</summary>
         public static readonly Protocol Ice = IceProtocol.Instance;
 
-        /// <summary>The protocol introduced in IceRpc.</summary>
+        /// <summary>The default RPC protocol of IceRPC, based on multiplexed streams.</summary>
         public static readonly Protocol IceRpc = IceRpcProtocol.Instance;
 
         /// <summary>The protocol code of this protocol.</summary>
         public ProtocolCode Code { get; }
 
-        /// <summary>The name of this protocol, for example "icerpc" for the IceRPC protocol.</summary>
+        /// <summary>The name of this protocol, for example "icerpc".</summary>
         public string Name { get; }
 
         /// <summary>Returns the Ice encoding that this protocol uses for its headers. It's also used as the
@@ -80,8 +80,8 @@ namespace IceRpc
         public static Protocol FromProtocolCode(ProtocolCode code) =>
             code switch
             {
-                ProtocolCode.Ice1 => Ice,
-                ProtocolCode.Ice2 => IceRpc,
+                ProtocolCode.Ice => Ice,
+                ProtocolCode.IceRpc => IceRpc,
                 _ => new Protocol(code, ((byte)code).ToString(CultureInfo.InvariantCulture))
             };
 

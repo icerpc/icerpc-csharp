@@ -72,7 +72,7 @@ namespace IceRpc.Tests.ClientServer
 
         private GreeterPrx SetupServer(ProtocolCode protocol, string path, IInvoker invoker)
         {
-            string serverEndpoint = protocol == ProtocolCode.Ice2 ?
+            string serverEndpoint = protocol == ProtocolCode.IceRpc ?
                 "icerpc+tcp://127.0.0.1:0?tls=false" : "icerpc+tcp://127.0.0.1:0?protocol=ice&tls=false";
             _server = new Server
             {

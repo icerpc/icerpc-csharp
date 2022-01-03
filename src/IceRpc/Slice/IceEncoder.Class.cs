@@ -32,7 +32,7 @@ namespace IceRpc.Slice
                     _ => ReplyStatus.UnknownLocalException,
                 };
 
-                // This reply status byte is read and removed by Ice1ProtocolConnection and kept otherwise.
+                // This reply status byte is read and removed by IceProtocolConnection and kept otherwise.
                 this.EncodeReplyStatus(replyStatus);
 
                 switch (replyStatus)
@@ -65,7 +65,7 @@ namespace IceRpc.Slice
             }
             else
             {
-                // This reply status byte is read and removed by Ice1ProtocolConnection and kept otherwise.
+                // This reply status byte is read and removed by IceProtocolConnection and kept otherwise.
                 this.EncodeReplyStatus(ReplyStatus.UserException);
 
                 _classContext.ClassFormat = FormatType.Sliced; // always encode exceptions in sliced format

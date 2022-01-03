@@ -7,8 +7,8 @@ namespace IceRpc.Tests.Slice
 {
     [Timeout(5000)]
     [Parallelizable(ParallelScope.All)]
-    [TestFixture(ProtocolCode.Ice1)]
-    [TestFixture(ProtocolCode.Ice2)]
+    [TestFixture(ProtocolCode.Ice)]
+    [TestFixture(ProtocolCode.IceRpc)]
     public sealed class StructTests
     {
         private readonly StructOperationsPrx _prx;

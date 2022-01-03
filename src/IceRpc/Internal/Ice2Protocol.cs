@@ -19,7 +19,7 @@ namespace IceRpc.Internal
             new IceRpcProtocolConnectionFactory();
 
         private IceRpcProtocol()
-            : base(ProtocolCode.Ice2, IceRpcName)
+            : base(ProtocolCode.IceRpc, IceRpcName)
         {
         }
     }

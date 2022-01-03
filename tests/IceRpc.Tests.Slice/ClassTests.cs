@@ -9,8 +9,8 @@ namespace IceRpc.Tests.Slice
 {
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    [TestFixture(ProtocolCode.Ice1)]
-    [TestFixture(ProtocolCode.Ice2)]
+    [TestFixture(ProtocolCode.Ice)]
+    [TestFixture(ProtocolCode.IceRpc)]
     public sealed class ClassTests
     {
         private readonly ServiceProvider _serviceProvider;
