@@ -90,7 +90,7 @@ namespace IceRpc
                     if (Protocol == Protocol.Ice1 && _altEndpoints.Count > 0 && value.Transport == TransportNames.Loc)
                     {
                         throw new ArgumentException(
-                            "an ice1 proxy with a loc endpoint cannot have alt endpoints", nameof(Endpoint));
+                            "an ice proxy with a loc endpoint cannot have alt endpoints", nameof(Endpoint));
                     }
                 }
                 else if (_altEndpoints.Count > 0)

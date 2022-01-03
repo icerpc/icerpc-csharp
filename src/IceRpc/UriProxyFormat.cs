@@ -7,7 +7,7 @@ using System.Text;
 
 namespace IceRpc
 {
-    /// <summary>The default proxy format with ice and ice+transport URIs.</summary>
+    /// <summary>The default proxy format with ice and icerpc+transport URIs.</summary>
     // TODO: switch to icerpc / icerpc+
     public class UriProxyFormat : IProxyFormat
     {
@@ -17,7 +17,7 @@ namespace IceRpc
         internal const ushort DefaultUriPort = 4062;
 
         private const string IceColon = "ice:";
-        private const string IcePlus = "ice+";
+        private const string IceRpcPlus = "icerpc+";
 
         private static readonly object _mutex = new();
 
@@ -42,12 +42,12 @@ namespace IceRpc
             }
             else
             {
-                if (!uriString.StartsWith(IcePlus, StringComparison.Ordinal))
+                if (!uriString.StartsWith(IceRpcPlus, StringComparison.Ordinal))
                 {
                     throw new FormatException($"'{uriString}' is not a proxy URI");
                 }
 
-                string scheme = uriString[0..uriString.IndexOf(':', IcePlus.Length)];
+                string scheme = uriString[0..uriString.IndexOf(':', IceRpcPlus.Length)];
                 if (scheme.Length == 0)
                 {
                     throw new FormatException($"endpoint '{uriString}' does not specify a transport");
@@ -119,7 +119,7 @@ namespace IceRpc
 
             if (proxy.Endpoint != null)
             {
-                // Use ice+transport scheme
+                // Use icerpc+transport scheme
                 sb.AppendEndpoint(proxy.Endpoint, proxy.Path);
 
                 firstOption = proxy.Endpoint.Protocol == Protocol.Ice2 && proxy.Endpoint.Params.Count == 0;
@@ -179,18 +179,18 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Parses an ice+transport URI string that represents a single endpoint.</summary>
+        /// <summary>Parses an icerpc+transport URI string that represents a single endpoint.</summary>
         /// <param name="uriString">The URI string to parse.</param>
         /// <param name="defaultProtocol">The default protocol.</param>
         /// <returns>The parsed endpoint.</returns>
         internal static Endpoint ParseEndpoint(string uriString, Protocol defaultProtocol)
         {
-            if (!uriString.StartsWith(IcePlus, StringComparison.Ordinal))
+            if (!uriString.StartsWith(IceRpcPlus, StringComparison.Ordinal))
             {
-                throw new FormatException($"endpoint '{uriString}' is not an {IcePlus} URI");
+                throw new FormatException($"endpoint '{uriString}' is not an {IceRpcPlus} URI");
             }
 
-            string scheme = uriString[0..uriString.IndexOf(':', IcePlus.Length)];
+            string scheme = uriString[0..uriString.IndexOf(':', IceRpcPlus.Length)];
             if (scheme.Length == 0)
             {
                 throw new FormatException($"endpoint '{uriString}' does not specify a transport");
@@ -227,7 +227,7 @@ namespace IceRpc
             ImmutableList<EndpointParam> endpointParams,
             Protocol protocol,
             string uriString) => new(protocol,
-                                     uri.Scheme[IcePlus.Length..],
+                                     uri.Scheme[IceRpcPlus.Length..],
                                      uri.DnsSafeHost,
                                      checked((ushort)uri.Port),
                                      endpointParams);

@@ -3,9 +3,9 @@
 [cs:internal]
 module IceRpc::Internal
 {
-    // These definitions help with the encoding of ice2 frames.
+    // These definitions help with the encoding of icerpc frames.
 
-    /// Each ice2 frame has a type identified by this enumeration.
+    /// Each icerpc frame has a type identified by this enumeration.
     // TODO: rename Ice2ControlFrameType
     enum Ice2FrameType : byte
     {
@@ -26,14 +26,14 @@ module IceRpc::Internal
         GoAwayCompleted = 7,
     }
 
-    /// Keys of reserved ice2 connection parameters.
+    /// Keys of reserved icerpc connection parameters.
     unchecked enum Ice2ParameterKey : int
     {
         /// The incoming frame maximum size.
         IncomingFrameMaxSize = 0
     }
 
-    /// Each ice2 request frame consists of:
+    /// Each icerpc request frame consists of:
     /// - a request header size (varulong)
     /// - a request header (below)
     /// - a request payload
@@ -49,7 +49,7 @@ module IceRpc::Internal
         // Fields fields; (encoded/decoded manually for now)
     }
 
-    /// Each ice2 response frame consists of:
+    /// Each icerpc response frame consists of:
     /// - a response header size (varulong)
     /// - a response header (below)
     /// - a response payload

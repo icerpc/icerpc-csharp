@@ -4,7 +4,7 @@ using IceRpc.Transports;
 
 namespace IceRpc.Internal
 {
-    /// <summary>Creates an ice2 protocol connection from a multiplexed network connection.</summary>
+    /// <summary>Creates an icerpc protocol connection from a multiplexed network connection.</summary>
     internal class Ice2ProtocolConnectionFactory : IProtocolConnectionFactory<IMultiplexedNetworkConnection>
     {
         public async Task<IProtocolConnection> CreateProtocolConnectionAsync(

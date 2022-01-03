@@ -13,11 +13,11 @@ namespace IceRpc.Tests.ClientServer
         private ConnectionPool? _pool;
         private Server? _server;
 
-        // Note that transport loc has no special meaning with ice2.
+        // Note that transport loc has no special meaning with icerpc.
         [TestCase(
-            "ice+loc://testlocation/test",
-            "ice+loc://unknown-location/test",
-            "ice+loc://testlocation/test?protocol=ice1")]
+            "icerpc+loc://testlocation/test",
+            "icerpc+loc://unknown-location/test",
+            "icerpc+loc://testlocation/test?protocol=ice")]
         [TestCase("test @ adapter", "test @ unknown_adapter", "test")]
         [TestCase("test", "test @ adapter", "test2")]
         public async Task LocationResolver_ResolveAsync(string proxy, params string[] badProxies)
@@ -29,7 +29,7 @@ namespace IceRpc.Tests.ClientServer
             };
 
             var pipeline = new Pipeline();
-            IProxyFormat? format = proxy.StartsWith("ice+", StringComparison.Ordinal) ? null : IceProxyFormat.Default;
+            IProxyFormat? format = proxy.StartsWith("icerpc+", StringComparison.Ordinal) ? null : IceProxyFormat.Default;
 
             var indirect = GreeterPrx.Parse(proxy, pipeline, format);
             GreeterPrx direct = SetupServer(indirect.Proxy.Protocol.Code, indirect.Proxy.Path, pipeline);
@@ -73,7 +73,7 @@ namespace IceRpc.Tests.ClientServer
         private GreeterPrx SetupServer(ProtocolCode protocol, string path, IInvoker invoker)
         {
             string serverEndpoint = protocol == ProtocolCode.Ice2 ?
-                "ice+tcp://127.0.0.1:0?tls=false" : "ice+tcp://127.0.0.1:0?protocol=ice1&tls=false";
+                "icerpc+tcp://127.0.0.1:0?tls=false" : "icerpc+tcp://127.0.0.1:0?protocol=ice&tls=false";
             _server = new Server
             {
                 Dispatcher = new Greeter(),

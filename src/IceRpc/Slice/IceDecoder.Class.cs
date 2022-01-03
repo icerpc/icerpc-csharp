@@ -137,8 +137,8 @@ namespace IceRpc.Slice
         {
             Debug.Assert(Encoding == IceRpc.Encoding.Ice11);
 
-            // When the response is received over ice1, Ice1ProtocolConnection inserts this reply status. The response
-            // can alternatively come straight from an ice2 frame.
+            // When the response is received over ice, Ice1ProtocolConnection inserts this reply status. The response
+            // can alternatively come straight from an icerpc frame.
             ReplyStatus replyStatus = this.DecodeReplyStatus();
 
             if (replyStatus == ReplyStatus.OK)

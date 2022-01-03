@@ -6,7 +6,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc
 {
-    /// <summary>Represents an ice1 or ice2 request frame sent by the application.</summary>
+    /// <summary>Represents an ice or icerpc request frame sent by the application.</summary>
     public sealed class OutgoingRequest : OutgoingFrame
     {
         /// <summary>The alternatives to <see cref="Endpoint"/>. It should be empty when Endpoint is null.</summary>
@@ -23,8 +23,8 @@ namespace IceRpc
         public Connection? Connection { get; set; }
 
         /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
-        /// caller is no longer interested in the response and discards the request. This deadline is sent with ice2
-        /// requests but not with ice1 requests.</summary>
+        /// caller is no longer interested in the response and discards the request. This deadline is sent with icerpc
+        /// requests but not with ice requests.</summary>
         /// <remarks>The source of the cancellation token given to an invoker alongside this outgoing request is
         /// expected to enforce this deadline.</remarks>
         public DateTime Deadline { get; set; } = DateTime.MaxValue;

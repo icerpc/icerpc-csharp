@@ -64,11 +64,11 @@ namespace IceRpc.Tests.Api
             await prx.AsAsync<GreeterPrx>(invocation);
         }
 
-        [TestCase("ice+tcp://localhost:10000/test")]
+        [TestCase("icerpc+tcp://localhost:10000/test")]
         [TestCase("test:tcp -h localhost -p 10000")]
         public void Proxy_SetProperty(string s)
         {
-            IProxyFormat? format = s.StartsWith("ice+", StringComparison.Ordinal) ? null : IceProxyFormat.Default;
+            IProxyFormat? format = s.StartsWith("icerpc+", StringComparison.Ordinal) ? null : IceProxyFormat.Default;
 
             var proxy = Proxy.Parse(s, format: format);
 
@@ -88,20 +88,20 @@ namespace IceRpc.Tests.Api
         [Test]
         public void Proxy_SetProperty_ArgumentException()
         {
-            var ice1Proxy = Proxy.Parse("hello:tcp -h localhost -p 10000", format: IceProxyFormat.Default);
-            Assert.AreEqual(Protocol.Ice1, ice1Proxy.Protocol);
-            var ice2Proxy = Proxy.Parse("ice+tcp://host.zeroc.com/hello");
-            Assert.AreEqual(Protocol.Ice2, ice2Proxy.Protocol);
+            var iceProxy = Proxy.Parse("hello:tcp -h localhost -p 10000", format: IceProxyFormat.Default);
+            Assert.AreEqual(Protocol.Ice1, iceProxy.Protocol);
+            var icerpcProxy = Proxy.Parse("icerpc+tcp://host.zeroc.com/hello");
+            Assert.AreEqual(Protocol.Ice2, icerpcProxy.Protocol);
 
             // Endpoints protocol must match the proxy protocol
-            Assert.Throws<ArgumentException>(() => ice1Proxy.Endpoint = ice2Proxy.Endpoint);
-            Assert.Throws<ArgumentException>(() => ice2Proxy.Endpoint = ice1Proxy.Endpoint);
+            Assert.Throws<ArgumentException>(() => iceProxy.Endpoint = icerpcProxy.Endpoint);
+            Assert.Throws<ArgumentException>(() => icerpcProxy.Endpoint = iceProxy.Endpoint);
         }
 
         /// <summary>Test the parsing of valid proxies.</summary>
         /// <param name="str">The string to parse as a proxy.</param>
         [TestCase("ice -t:tcp -h localhost -p 10000")]
-        [TestCase("ice+tcp:ssl -h localhost -p 10000")]
+        [TestCase("icerpc+tcp:ssl -h localhost -p 10000")]
         [TestCase("identity:tcp -h 0.0.0.0")] // Any IPv4 in proxy endpoint (unusable but parses ok)
         [TestCase("identity:tcp -h \"::0\"")] // Any IPv6 address in proxy endpoint (unusable but parses ok)
         [TestCase("identity:coloc -h *")]
@@ -155,42 +155,42 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(prx.Proxy.Fragment, prx2.Proxy.Fragment); // facets
         }
 
-        [TestCase("ice+tcp://host.zeroc.com/path?encoding=foo")]
-        [TestCase("ice+tcp://host.zeroc.com/identity#facet", "/identity", "facet")]
-        [TestCase("ice+tcp://host.zeroc.com/identity#facet#?!$x", "/identity", "facet#?!$x")]
-        [TestCase("ice+tcp://host.zeroc.com/identity#", "/identity", "")]
-        [TestCase("ice+tcp://host.zeroc.com/identity##%23f", "/identity", "#%23f")]
-        [TestCase("ice+tcp://host.zeroc.com/identity?protocol=ice1&tls=false")]
-        [TestCase("ice+tcp://host.zeroc.com/identity?protocol=ice1&tls=true")] // TODO: add no tls test
-        [TestCase("ice+tcp://host.zeroc.com:1000/category/name")]
-        [TestCase("ice+tcp://host.zeroc.com:1000/loc0/loc1/category/name")]
-        [TestCase("ice+tcp://host.zeroc.com/category/name%20with%20space", "/category/name%20with%20space")]
-        [TestCase("ice+tcp://host.zeroc.com/category/name with space", "/category/name%20with%20space")]
-        [TestCase("ice+tcp://host.zeroc.com//identity")]
-        [TestCase("ice+tcp://host.zeroc.com//identity?alt-endpoint=host2.zeroc.com")]
-        [TestCase("ice+tcp://host.zeroc.com//identity?alt-endpoint=host2.zeroc.com:10000")]
-        [TestCase("ice+tcp://[::1]:10000/identity?alt-endpoint=host1:10000,host2,host3,host4")]
-        [TestCase("ice+tcp://[::1]:10000/identity?alt-endpoint=host1:10000&alt-endpoint=host2,host3&alt-endpoint=[::2]")]
+        [TestCase("icerpc+tcp://host.zeroc.com/path?encoding=foo")]
+        [TestCase("icerpc+tcp://host.zeroc.com/identity#facet", "/identity", "facet")]
+        [TestCase("icerpc+tcp://host.zeroc.com/identity#facet#?!$x", "/identity", "facet#?!$x")]
+        [TestCase("icerpc+tcp://host.zeroc.com/identity#", "/identity", "")]
+        [TestCase("icerpc+tcp://host.zeroc.com/identity##%23f", "/identity", "#%23f")]
+        [TestCase("icerpc+tcp://host.zeroc.com/identity?protocol=ice&tls=false")]
+        [TestCase("icerpc+tcp://host.zeroc.com/identity?protocol=ice&tls=true")] // TODO: add no tls test
+        [TestCase("icerpc+tcp://host.zeroc.com:1000/category/name")]
+        [TestCase("icerpc+tcp://host.zeroc.com:1000/loc0/loc1/category/name")]
+        [TestCase("icerpc+tcp://host.zeroc.com/category/name%20with%20space", "/category/name%20with%20space")]
+        [TestCase("icerpc+tcp://host.zeroc.com/category/name with space", "/category/name%20with%20space")]
+        [TestCase("icerpc+tcp://host.zeroc.com//identity")]
+        [TestCase("icerpc+tcp://host.zeroc.com//identity?alt-endpoint=host2.zeroc.com")]
+        [TestCase("icerpc+tcp://host.zeroc.com//identity?alt-endpoint=host2.zeroc.com:10000")]
+        [TestCase("icerpc+tcp://[::1]:10000/identity?alt-endpoint=host1:10000,host2,host3,host4")]
+        [TestCase("icerpc+tcp://[::1]:10000/identity?alt-endpoint=host1:10000&alt-endpoint=host2,host3&alt-endpoint=[::2]")]
         [TestCase("ice:location//identity#facet", "/location//identity")]
-        [TestCase("ice+tcp://host.zeroc.com//identity")]
-        [TestCase("ice+tcp://host.zeroc.com/\x7f€$%/!#$'()*+,:;=@[] %2F", "/%7F%E2%82%AC$%25/!", "$'()*+,:;=@[]%20%2F")]
-        [TestCase("ice+tcp://host.zeroc.com/identity#\x7f€$%/!#$'()*+,:;=@[] %2F", "/identity", "%7F%E2%82%AC$%25/!#$'()*+,:;=@[]%20%2F")]
-        [TestCase(@"ice+tcp://host.zeroc.com/foo\bar\n\t!", "/foo/bar/n/t!")] // Parser converts \ to /
+        [TestCase("icerpc+tcp://host.zeroc.com//identity")]
+        [TestCase("icerpc+tcp://host.zeroc.com/\x7f€$%/!#$'()*+,:;=@[] %2F", "/%7F%E2%82%AC$%25/!", "$'()*+,:;=@[]%20%2F")]
+        [TestCase("icerpc+tcp://host.zeroc.com/identity#\x7f€$%/!#$'()*+,:;=@[] %2F", "/identity", "%7F%E2%82%AC$%25/!#$'()*+,:;=@[]%20%2F")]
+        [TestCase(@"icerpc+tcp://host.zeroc.com/foo\bar\n\t!", "/foo/bar/n/t!")] // Parser converts \ to /
         // another syntax for empty port
-        [TestCase("ice+tcp://host.zeroc.com:/identity", "/identity")]
-        [TestCase("ice+foo://com.zeroc.ice/identity?transport=iaps&option=a,b%2Cb,c&option=d")]
-        [TestCase("ice+foo://host.zeroc.com/identity?transport=100")]
+        [TestCase("icerpc+tcp://host.zeroc.com:/identity", "/identity")]
+        [TestCase("icerpc+foo://com.zeroc.ice/identity?transport=iaps&option=a,b%2Cb,c&option=d")]
+        [TestCase("icerpc+foo://host.zeroc.com/identity?transport=100")]
         // leading :: to make the address IPv6-like
-        [TestCase("ice+foo://[::ab:cd:ef:00]/identity?transport=bt")]
-        [TestCase("ice+foo://host.zeroc.com:10000/identity?transport=tcp")]
-        [TestCase("ice+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar")]
-        [TestCase("ice+loc://mylocation.domain.com/foo/bar", "/foo/bar")]
-        [TestCase("ice+coloc://host:10000")]
+        [TestCase("icerpc+foo://[::ab:cd:ef:00]/identity?transport=bt")]
+        [TestCase("icerpc+foo://host.zeroc.com:10000/identity?transport=tcp")]
+        [TestCase("icerpc+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar")]
+        [TestCase("icerpc+loc://mylocation.domain.com/foo/bar", "/foo/bar")]
+        [TestCase("icerpc+coloc://host:10000")]
         [TestCase("ice:tcp -p 10000")]
         // ice3 proxies
-        [TestCase("ice+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&protocol=ice3")]
-        [TestCase("ice+tcp://0.0.0.0/identity#facet")] // Any IPv4 in proxy endpoint (unusable but parses ok)
-        [TestCase("ice+tcp://[::0]/identity#facet")] // Any IPv6 in proxy endpoint (unusable but parses ok)
+        [TestCase("icerpc+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&protocol=3")]
+        [TestCase("icerpc+tcp://0.0.0.0/identity#facet")] // Any IPv4 in proxy endpoint (unusable but parses ok)
+        [TestCase("icerpc+tcp://[::0]/identity#facet")] // Any IPv6 in proxy endpoint (unusable but parses ok)
         public void Proxy_Parse_ValidInputUriFormat(string str, string? path = null, string? fragment = null)
         {
             var proxy = Proxy.Parse(str);
@@ -217,9 +217,9 @@ namespace IceRpc.Tests.Api
         /// <param name="str">The string to parse as a proxy.</param>
         [TestCase("ice + tcp://host.zeroc.com:foo")] // missing host
         [TestCase("ice://host:1000/identity")] // host not allowed
-        [TestCase("ice+foo:/identity")] // missing host
-        [TestCase("ice+tcp://host.zeroc.com//identity?protocol=5")] // invalid protocol
-        [TestCase("ice+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&alt-endpoint=host2?transport=tcp$protocol=3")]
+        [TestCase("icerpc+foo:/identity")] // missing host
+        [TestCase("icerpc+tcp://host.zeroc.com//identity?protocol=ice5")] // invalid protocol
+        [TestCase("icerpc+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&alt-endpoint=host2?transport=tcp$protocol=ice3")]
         [TestCase("")]
         [TestCase("\"\"")]
         [TestCase("\"\" test")] // invalid trailing characters
@@ -232,7 +232,7 @@ namespace IceRpc.Tests.Api
         [TestCase("test -p 2.0")]
         [TestCase("test:tcp@location")]
         [TestCase("test: :tcp")]
-        [TestCase("id:loc -h foobar")] // cannot parse loc as a transport with ice1
+        [TestCase("id:loc -h foobar")] // cannot parse loc as a transport with ice
         public void Proxy_Parse_InvalidInput(string str)
         {
             Assert.Catch<FormatException>(() => Proxy.Parse(str));
@@ -245,19 +245,19 @@ namespace IceRpc.Tests.Api
         public void Proxy_Equals()
         {
             Assert.That(Proxy.Equals(null, null), Is.True);
-            var prx = Proxy.Parse("ice+tcp://host.zeroc.com/identity");
+            var prx = Proxy.Parse("icerpc+tcp://host.zeroc.com/identity");
             Assert.That(Proxy.Equals(prx, prx), Is.True);
-            Assert.That(Proxy.Equals(prx, Proxy.Parse("ice+tcp://host.zeroc.com/identity")), Is.True);
+            Assert.That(Proxy.Equals(prx, Proxy.Parse("icerpc+tcp://host.zeroc.com/identity")), Is.True);
             Assert.That(Proxy.Equals(null, prx), Is.False);
             Assert.That(Proxy.Equals(prx, null), Is.False);
         }
 
         /// <summary>Test that proxies that are equal produce the same hash code.</summary>
         [TestCase("hello:tcp -h localhost")]
-        [TestCase("ice+tcp://localhost/path?alt-endpoint=ice+tcp://[::1]")]
+        [TestCase("icerpc+tcp://localhost/path?alt-endpoint=icerpc+tcp://[::1]")]
         public void Proxy_HashCode(string proxyString)
         {
-            IProxyFormat? format = proxyString.StartsWith("ice+", StringComparison.Ordinal) ?
+            IProxyFormat? format = proxyString.StartsWith("icerpc+", StringComparison.Ordinal) ?
                 null : IceProxyFormat.Default;
             var proxy1 = Proxy.Parse(proxyString, format: format);
             var proxy2 = proxy1.Clone();
@@ -323,7 +323,7 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(pipeline, received?.Proxy.Invoker);
 
             // Same with an endpoint
-            service.Prx!.Value.Proxy.Endpoint = "ice+tcp://localhost";
+            service.Prx!.Value.Proxy.Endpoint = "icerpc+tcp://localhost";
             received = await prx.ReceiveProxyAsync();
             Assert.AreEqual(service.Prx?.Proxy.Endpoint, received?.Proxy.Endpoint);
             Assert.AreEqual(pipeline, received?.Proxy.Invoker);
@@ -368,13 +368,13 @@ namespace IceRpc.Tests.Api
         [Test]
         public void Proxy_UriOptions()
         {
-            string proxyString = "ice+tcp://localhost:10000/test";
+            string proxyString = "icerpc+tcp://localhost:10000/test";
 
             var proxy = Proxy.Parse(proxyString);
 
             Assert.AreEqual("/test", proxy.Path);
 
-            string complicated = $"{proxyString}?encoding=1.1&alt-endpoint=ice+tcp://localhost";
+            string complicated = $"{proxyString}?encoding=1.1&alt-endpoint=icerpc+tcp://localhost";
             proxy = Proxy.Parse(complicated);
 
             Assert.AreEqual(Encoding.Ice11, proxy.Encoding);
@@ -396,13 +396,13 @@ namespace IceRpc.Tests.Api
             await prx.IcePingAsync(); // works fine, we use the protocol's encoding in this case
         }
 
-        [TestCase("ice3")]
-        [TestCase("ice4")]
+        [TestCase("3")]
+        [TestCase("4")]
         public async Task Proxy_NotSupportedProtocol(string protocol)
         {
             await using var connection = new Connection
             {
-                RemoteEndpoint = $"ice+tcp://localhost?transport=tcp&protocol={protocol}"
+                RemoteEndpoint = $"icerpc+tcp://localhost?transport=tcp&protocol={protocol}"
             };
 
             var prx = GreeterPrx.FromConnection(connection);

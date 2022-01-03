@@ -5,13 +5,13 @@ using IceRpc.Slice.Internal;
 
 namespace IceRpc.Internal
 {
-    // Definitions for the ice2 protocol.
+    // Definitions for the icerpc protocol.
 
     internal static class Ice2Definitions
     {
         internal static readonly Encoding Encoding = Encoding.Ice20;
 
-        /// <summary>Encodes ice2 fields. Fields are encoded first, followed by the field defaults.</summary>
+        /// <summary>Encodes icerpc fields. Fields are encoded first, followed by the field defaults.</summary>
         /// <param name="encoder">This Ice encoder.</param>
         /// <param name="fields">The fields.</param>
         /// <param name="fieldsDefaults">The fields defaults.</param>

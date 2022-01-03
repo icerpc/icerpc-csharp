@@ -18,7 +18,7 @@ namespace IceRpc.Tests.Api
     {
         private const string _austin = "/austin";
 
-        // the actual name of the payload encoding sent with the ice2 requests and responses
+        // the actual name of the payload encoding sent with the icerpc requests and responses
         private static readonly Encoding _customEncoding = Encoding.FromString("utf8");
 
         private const string _doingWell = "muy bien";

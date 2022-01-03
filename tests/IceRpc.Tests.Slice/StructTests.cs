@@ -34,11 +34,11 @@ namespace IceRpc.Tests.Slice
             await TestAsync((p1, p2) => _prx.OpMyStructAsync(p1, p2), new MyStruct(1, 2), new MyStruct(3, 4));
             await TestAsync((p1, p2) => _prx.OpAnotherStructAsync(p1, p2),
                             new AnotherStruct("hello",
-                                              OperationsPrx.Parse("ice+tcp://foo/bar"),
+                                              OperationsPrx.Parse("icerpc+tcp://foo/bar"),
                                               MyEnum.enum1,
                                               new MyStruct(1, 2)),
                             new AnotherStruct("world",
-                                              OperationsPrx.Parse("ice+tcp://foo/bar"),
+                                              OperationsPrx.Parse("icerpc+tcp://foo/bar"),
                                               MyEnum.enum2,
                                               new MyStruct(3, 4)));
 

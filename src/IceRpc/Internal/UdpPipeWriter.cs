@@ -7,7 +7,7 @@ using System.IO.Pipelines;
 namespace IceRpc.Internal
 {
     /// <summary>Implements a PipeWriter over a UDP simple network connection. This pipe writer represents a single
-    /// ice1 request and only writes to the underlying connection in <see cref="CompleteAsync"/>.</summary>
+    /// ice request and only writes to the underlying connection in <see cref="CompleteAsync"/>.</summary>
     internal class UdpPipeWriter : BufferedPipeWriter
     {
         private readonly ISimpleNetworkConnection _connection;

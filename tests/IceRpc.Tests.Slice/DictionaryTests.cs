@@ -380,7 +380,7 @@ namespace IceRpc.Tests.Slice
 
             static T GetEnum<T>(Array values, int i) => (T)values.GetValue(i % values.Length)!;
 
-            OperationsPrx GetOperationsPrx(int i) => OperationsPrx.Parse($"ice+tcp://host/foo-{i}");
+            OperationsPrx GetOperationsPrx(int i) => OperationsPrx.Parse($"icerpc+tcp://host/foo-{i}");
 
             AnotherStruct GetAnotherStruct(int i)
             {
@@ -453,7 +453,7 @@ namespace IceRpc.Tests.Slice
 
             static T GetEnum<T>(Array values, int i) => (T)values.GetValue(i % values.Length)!;
 
-            OperationsPrx GetOperationsPrx(int i) => OperationsPrx.Parse($"ice+tcp://host/foo-{i}");
+            OperationsPrx GetOperationsPrx(int i) => OperationsPrx.Parse($"icerpc+tcp://host/foo-{i}");
 
             AnotherStruct GetAnotherStruct(int i)
             {

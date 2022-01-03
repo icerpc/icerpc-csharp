@@ -133,7 +133,7 @@ namespace IceRpc.Tests
 
             collection.AddScoped(serviceProvider =>
             {
-                Endpoint endpoint = $"ice+{transport}://{host}:{port}";
+                Endpoint endpoint = $"icerpc+{transport}://{host}:{port}";
 
                 // Set the endpoint protocol to the configured protocol.
                 endpoint = endpoint with { Protocol = serviceProvider.GetRequiredService<Protocol>() };

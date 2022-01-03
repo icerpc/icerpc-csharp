@@ -26,7 +26,7 @@ namespace IceRpc.Internal
         {
             if (includeScheme)
             {
-                sb.Append("ice+");
+                sb.Append("icerpc+");
                 sb.Append(endpoint.Transport);
                 sb.Append("://");
             }

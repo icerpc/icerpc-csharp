@@ -5,7 +5,7 @@ using IceRpc;
 
 await using var connection = new Connection
 {
-    RemoteEndpoint = "ice+tcp://127.0.0.1:10000?tls=false"
+    RemoteEndpoint = "icerpc+tcp://127.0.0.1:10000?tls=false"
 };
 
 IHelloPrx twoway = HelloPrx.FromConnection(connection);

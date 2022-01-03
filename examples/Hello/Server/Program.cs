@@ -7,7 +7,7 @@ try
 {
     await using var server = new Server
     {
-        Endpoint = "ice+tcp://127.0.0.1:10000?tls=false",
+        Endpoint = "icerpc+tcp://127.0.0.1:10000?tls=false",
         Dispatcher = new Hello()
     };
 

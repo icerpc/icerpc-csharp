@@ -403,7 +403,7 @@ namespace IceRpc
         {
             if (proxy.Protocol != Protocol.Ice1)
             {
-                throw new NotSupportedException($"{nameof(ToString)} supports only ice1 proxies");
+                throw new NotSupportedException($"{nameof(ToString)} supports only ice proxies");
             }
 
             var identity = Identity.FromPath(proxy.Path);

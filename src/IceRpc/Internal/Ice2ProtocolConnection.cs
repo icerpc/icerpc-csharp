@@ -107,7 +107,7 @@ namespace IceRpc.Internal
 
                     if (readResult.Buffer.IsEmpty)
                     {
-                        throw new InvalidDataException($"received ice2 request with empty header");
+                        throw new InvalidDataException($"received icerpc request with empty header");
                     }
 
                     (header, fields) = DecodeHeader(readResult.Buffer);
@@ -239,7 +239,7 @@ namespace IceRpc.Internal
 
                 if (readResult.Buffer.IsEmpty)
                 {
-                    throw new InvalidDataException($"received ice2 response with empty header");
+                    throw new InvalidDataException($"received icerpc response with empty header");
                 }
 
                 (header, fields) = DecodeHeader(readResult.Buffer);

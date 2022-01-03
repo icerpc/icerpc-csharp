@@ -5,7 +5,7 @@ using IceRpc.Transports.Internal;
 
 namespace IceRpc.Internal
 {
-    /// <summary>Creates an ice1 protocol connection from a simple network connection.</summary>
+    /// <summary>Creates an ice protocol connection from a simple network connection.</summary>
     internal class Ice1ProtocolConnectionFactory : IProtocolConnectionFactory<ISimpleNetworkConnection>
     {
         public async Task<IProtocolConnection> CreateProtocolConnectionAsync(
@@ -15,7 +15,7 @@ namespace IceRpc.Internal
             bool isServer,
             CancellationToken cancel)
         {
-            // Check if we're using the special udp transport for ice1
+            // Check if we're using the special udp transport for ice
             bool isUdp = connectionInfo.LocalEndpoint.Transport == TransportNames.Udp;
             if (isUdp)
             {

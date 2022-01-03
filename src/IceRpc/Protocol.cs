@@ -2,22 +2,23 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
+using System.Globalization;
 
 namespace IceRpc
 {
     /// <summary>Protocol identifies the protocol used by IceRpc connections.</summary>
     public class Protocol : IEquatable<Protocol>
     {
-        /// <summary>The ice1 protocol supported by all Ice versions since Ice 1.0.</summary>
+        /// <summary>The ice protocol supported by all Ice versions since Ice 1.0.</summary>
         public static readonly Protocol Ice1 = Ice1Protocol.Instance;
 
-        /// <summary>The ice2 protocol introduced in IceRpc.</summary>
+        /// <summary>The icerpc protocol introduced in IceRpc.</summary>
         public static readonly Protocol Ice2 = Ice2Protocol.Instance;
 
         /// <summary>The protocol code of this protocol.</summary>
         public ProtocolCode Code { get; }
 
-        /// <summary>The name of this protocol, for example "ice2" for the Ice2 protocol.</summary>
+        /// <summary>The name of this protocol, for example "icerpc" for the Ice2 protocol.</summary>
         public string Name { get; }
 
         /// <summary>Returns the Ice encoding that this protocol uses for its headers. It's also used as the
@@ -30,8 +31,8 @@ namespace IceRpc
         /// <returns><c>true</c> if the protocol supports fields.</returns>
         internal virtual bool HasFieldSupport => false;
 
-        private protected const string Ice1Name = "ice1";
-        private protected const string Ice2Name = "ice2";
+        private protected const string Ice1Name = "ice";
+        private protected const string Ice2Name = "icerpc";
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
         /// <param name="lhs">The left hand side operand.</param>
@@ -81,13 +82,13 @@ namespace IceRpc
             {
                 ProtocolCode.Ice1 => Ice1,
                 ProtocolCode.Ice2 => Ice2,
-                _ => new Protocol(code, $"ice{code}")
+                _ => new Protocol(code, ((byte)code).ToString(CultureInfo.InvariantCulture))
             };
 
         /// <summary>Returns a Protocol with the given name.</summary>
         /// <param name="name">The name of the protocol.</param>
-        /// <returns>One of the well-known Protocol instance (Ice1, Ice2).</returns>
-        /// <exception cref="FormatException">Throws if the protocol name is invalid.</exception>
+        /// <returns>The parsed protocol.</returns>
+        /// <exception cref="FormatException">Thrown if the protocol name is invalid.</exception>
         public static Protocol Parse(string name)
         {
             return name switch
@@ -99,7 +100,7 @@ namespace IceRpc
 
             static Protocol Core(string name)
             {
-                if (name.StartsWith("ice", StringComparison.Ordinal) && byte.TryParse(name[3..], out byte value))
+                if (byte.TryParse(name, out byte value))
                 {
                     return FromProtocolCode((ProtocolCode)value);
                 }

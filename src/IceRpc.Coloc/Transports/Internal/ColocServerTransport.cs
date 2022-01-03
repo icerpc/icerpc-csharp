@@ -12,7 +12,7 @@ namespace IceRpc.Transports
         private readonly ConcurrentDictionary<Endpoint, ColocListener> _listeners;
 
         /// <inheritdoc/>
-        Endpoint IServerTransport<ISimpleNetworkConnection>.DefaultEndpoint => "ice+coloc://colochost";
+        Endpoint IServerTransport<ISimpleNetworkConnection>.DefaultEndpoint => "icerpc+coloc://colochost";
 
         /// <inheritdoc/>
         IListener<ISimpleNetworkConnection> IServerTransport<ISimpleNetworkConnection>.Listen(

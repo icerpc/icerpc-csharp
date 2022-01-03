@@ -11,8 +11,8 @@ namespace IceRpc.Tests.SliceInternal
     [Parallelizable(ParallelScope.All)]
     public sealed class ProxyTests
     {
-        [TestCase("2.0", "ice+tcp://localhost:10000/foo?alt-endpoint=ice+tcp://localhost:10001")]
-        [TestCase("1.1", "ice+tcp://localhost:10000/foo?alt-endpoint=ice+tcp://localhost:10001")]
+        [TestCase("2.0", "icerpc+tcp://localhost:10000/foo?alt-endpoint=icerpc+tcp://localhost:10001")]
+        [TestCase("1.1", "icerpc+tcp://localhost:10000/foo?alt-endpoint=icerpc+tcp://localhost:10001")]
         [TestCase("2.0", "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
         [TestCase("1.1", "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
         public async Task Proxy_EncodingVersioning(string encodingStr, string str)
@@ -21,7 +21,7 @@ namespace IceRpc.Tests.SliceInternal
             var bufferWriter = new SingleBufferWriter(buffer);
             var encoding = IceEncoding.FromString(encodingStr);
 
-            IProxyFormat? format = str.StartsWith("ice+", StringComparison.Ordinal) ? null : IceProxyFormat.Default;
+            IProxyFormat? format = str.StartsWith("icerpc+", StringComparison.Ordinal) ? null : IceProxyFormat.Default;
             var proxy = Proxy.Parse(str, format: format);
             EncodeProxy();
 

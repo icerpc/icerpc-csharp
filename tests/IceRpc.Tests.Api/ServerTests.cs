@@ -14,13 +14,13 @@ namespace IceRpc.Tests.Api
         {
             {
                 await using var server = new Server();
-                Assert.AreEqual(Endpoint.FromString("ice+tcp://[::0]"), server.Endpoint);
+                Assert.AreEqual(Endpoint.FromString("icerpc+tcp://[::0]"), server.Endpoint);
             }
 
             {
                 await using var server = new Server
                 {
-                    Endpoint = "ice+tcp://foo:10000"
+                    Endpoint = "icerpc+tcp://foo:10000"
                 };
 
                 // A DNS name cannot be used with a server endpoint
@@ -106,7 +106,7 @@ namespace IceRpc.Tests.Api
             {
                 await using var server1 = new Server
                 {
-                    Endpoint = "ice+tcp://127.0.0.1:15001"
+                    Endpoint = "icerpc+tcp://127.0.0.1:15001"
                 };
                 server1.Listen();
 
@@ -114,7 +114,7 @@ namespace IceRpc.Tests.Api
                     {
                         await using var server2 = new Server
                         {
-                            Endpoint = "ice+tcp://127.0.0.1:15001"
+                            Endpoint = "icerpc+tcp://127.0.0.1:15001"
                         };
                         server2.Listen();
                     });
@@ -143,7 +143,7 @@ namespace IceRpc.Tests.Api
                 // Setting Endpoint after calling Listen is not allowed
                 await using var server = new Server();
                 server.Listen();
-                Assert.Throws<InvalidOperationException>(() => server.Endpoint = "ice+tcp://127.0.0.1:15001");
+                Assert.Throws<InvalidOperationException>(() => server.Endpoint = "icerpc+tcp://127.0.0.1:15001");
             }
 
             {
