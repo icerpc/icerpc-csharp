@@ -114,7 +114,7 @@ namespace IceRpc.Slice
             }
             else
             {
-                BitSequenceReader bitSequenceReader = decoder.DecodeBitSequence(count);
+                BitSequenceReader bitSequenceReader = decoder.GetBitSequenceReader(count);
                 var array = new T[count];
                 for (int i = 0; i < count; ++i)
                 {
@@ -177,7 +177,7 @@ namespace IceRpc.Slice
             where TDict : IDictionary<TKey, TValue?>
             where TKey : notnull
         {
-            BitSequenceReader bitSequenceReader = decoder.DecodeBitSequence(size);
+            BitSequenceReader bitSequenceReader = decoder.GetBitSequenceReader(size);
             for (int i = 0; i < size; ++i)
             {
                 TKey key = keyDecodeFunc(ref decoder);

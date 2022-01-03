@@ -239,39 +239,5 @@ namespace IceRpc.Tests.SliceInternal
                 pipe.Reader.AdvanceTo(readResult.Buffer.End);
             }
         }
-
-        private class TestMemoryPool : MemoryPool<byte>
-        {
-            public override int MaxBufferSize { get; }
-
-            public override IMemoryOwner<byte> Rent(int minBufferSize = -1)
-            {
-                Debug.Assert(minBufferSize < MaxBufferSize);
-                return new MemoryOwnerDecorator(Shared.Rent(minBufferSize), MaxBufferSize);
-            }
-
-            protected override void Dispose(bool disposing)
-            {
-                // no-op
-            }
-
-            internal TestMemoryPool(int maxBufferSize) => MaxBufferSize = maxBufferSize;
-        }
-
-        private sealed class MemoryOwnerDecorator : IMemoryOwner<byte>
-        {
-            public Memory<byte> Memory { get; }
-
-            public void Dispose() => _decoratee.Dispose();
-
-            private readonly IMemoryOwner<byte> _decoratee;
-
-            internal MemoryOwnerDecorator(IMemoryOwner<byte> decoratee, int maxBufferSize)
-            {
-                _decoratee = decoratee;
-                Memory = decoratee.Memory.Length > maxBufferSize ?
-                    decoratee.Memory[0..maxBufferSize] : decoratee.Memory;
-            }
-        }
     }
 }
