@@ -41,6 +41,7 @@ module IceRpc::Internal
     struct Ice2RequestHeader
     {
         string path;
+        string fragment;
         string operation;
         bool \idempotent;
         varlong deadline;

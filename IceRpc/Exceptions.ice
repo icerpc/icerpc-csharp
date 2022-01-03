@@ -11,6 +11,9 @@ module IceRpc
         /// The path of the target service.
         string path;
 
+        /// The fragment of the target service.
+        string fragment;
+
         /// The operation name.
         string operation;
     }

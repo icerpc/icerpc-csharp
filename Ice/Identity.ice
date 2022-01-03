@@ -13,17 +13,4 @@ module Ice
         /// The category of the identity. Can be empty.
         string category;
     }
-
-     /// The identity and facet of a service reachable with the ice1 protocol. They both map to path with the ice2
-     /// protocol.
-    [cs:readonly]
-    struct IdentityAndFacet
-    {
-        /// The identity.
-        Identity identity;
-
-        /// The optional facet: an empty sequence represents a null facet, while a single element represents a non-null
-        /// facet. However, a null facet and a non-null empty facet are always treated the same.
-        sequence<string> optionalFacet;
-    }
 }
