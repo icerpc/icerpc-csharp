@@ -78,7 +78,7 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [Test]
-        public async Task Udp_Ice2NotSupported()
+        public async Task Udp_IceRpcNotSupported()
         {
             await using var server = new Server
             {

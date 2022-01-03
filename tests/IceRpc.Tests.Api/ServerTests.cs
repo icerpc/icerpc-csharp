@@ -329,7 +329,7 @@ namespace IceRpc.Tests.Api
                 cancellationSource.Cancel();
             }
 
-            // Ensure the client gets a DispatchException with Ice1 and OperationCanceledException with Ice2.
+            // Ensure the client gets a DispatchException with Ice1 and OperationCanceledException with IceRpc.
             if (protocol == ProtocolCode.Ice)
             {
                 Assert.ThrowsAsync<DispatchException>(async () => await task);

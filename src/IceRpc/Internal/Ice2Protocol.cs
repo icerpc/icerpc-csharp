@@ -8,7 +8,7 @@ namespace IceRpc.Internal
     /// <summary>The IceRPC protocol class.</summary>
     internal sealed class IceRpcProtocol : Protocol
     {
-        /// <summary>The Ice2 protocol singleton.</summary>
+        /// <summary>The IceRpc protocol singleton.</summary>
         internal static IceRpcProtocol Instance { get; } = new();
 
         internal override IceEncoding? IceEncoding => Encoding.Slice20;

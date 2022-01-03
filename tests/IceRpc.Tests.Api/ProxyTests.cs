@@ -289,7 +289,7 @@ namespace IceRpc.Tests.Api
             IncomingResponse response =
                 await proxy.InvokeAsync("ice_ping",
                                         proxy.Encoding,
-                                        payloadSource: Encoding.Ice20.CreateEmptyPayload());
+                                        payloadSource: Encoding.Slice20.CreateEmptyPayload());
 
             Assert.DoesNotThrowAsync(async () => await response.CheckVoidReturnValueAsync(
                 proxy.Invoker,

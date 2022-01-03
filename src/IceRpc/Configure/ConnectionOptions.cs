@@ -26,7 +26,7 @@ namespace IceRpc.Configure
                 throw new ArgumentException($"0 is not a valid value for {nameof(ConnectTimeout)}", nameof(value));
         }
 
-        /// <summary>The maximum size in bytes of an incoming Ice1 or Ice2 protocol frame. It's important to specify
+        /// <summary>The maximum size in bytes of an incoming Ice1 or IceRpc protocol frame. It's important to specify
         /// a reasonable value for this size since it limits the size of the buffer allocated by IceRPC to receive
         /// a request or response. It can't be less than 1KB and the default value is 1MB.</summary>
         /// <value>The maximum size of incoming frame in bytes.</value>

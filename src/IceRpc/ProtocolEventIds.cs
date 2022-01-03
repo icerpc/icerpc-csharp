@@ -3,7 +3,7 @@
 namespace IceRpc
 {
     /// <summary>This class contains event ID constants used for protocol logging.</summary>
-    // TODO: split into Ice1EventIds and Ice2EventIds
+    // TODO: split into Ice1EventIds and IceRpcEventIds
     // The protocol-neutral event IDs are in ConnectionEventIds.
     public enum ProtocolEventIds
     {

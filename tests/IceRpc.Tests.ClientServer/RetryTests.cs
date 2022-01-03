@@ -91,7 +91,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.ThrowsAsync<ServiceNotFoundException>(
                 async () => await bidir.OtherReplicaAsync(cancel: CancellationToken.None));
 
-            // With Ice1 the exception is not retryable, with Ice2 we can retry using the existing connection
+            // With Ice1 the exception is not retryable, with IceRpc we can retry using the existing connection
             // because the exception uses the AfterDelay retry policy.
             Assert.That(bidir.Proxy.Protocol, Is.EqualTo(Protocol.IceRpc));
             await bidir.AfterDelayAsync(2);

@@ -33,7 +33,7 @@ namespace IceRpc.Tests
                     AuthenticationOptions = serviceProvider.GetService<SslClientAuthenticationOptions>()
                 });
 
-            // The default protocol is Ice2
+            // The default protocol is IceRpc
             this.AddScoped(_ => Protocol.IceRpc);
 
             // Use coloc as the default transport.

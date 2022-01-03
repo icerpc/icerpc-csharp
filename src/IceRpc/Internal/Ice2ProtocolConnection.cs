@@ -348,7 +348,7 @@ namespace IceRpc.Internal
             {
                 var encoder = new IceEncoder(requestWriter, Encoding.Slice20);
 
-                // Write the Ice2 request header.
+                // Write the IceRpc request header.
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
                 int headerStartPos = encoder.EncodedByteCount; // does not include the size
 
@@ -420,7 +420,7 @@ namespace IceRpc.Internal
             {
                 var encoder = new IceEncoder(responseWriter, Encoding.Slice20);
 
-                // Write the Ice2 response header.
+                // Write the IceRpc response header.
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
                 int headerStartPos = encoder.EncodedByteCount;
 
@@ -570,7 +570,7 @@ namespace IceRpc.Internal
                     }
                 }
 
-                throw new InvalidDataException("missing IncomingFrameMaxSize Ice2 connection parameter");
+                throw new InvalidDataException("missing IncomingFrameMaxSize IceRpc connection parameter");
             }
         }
 
@@ -588,7 +588,7 @@ namespace IceRpc.Internal
                 var frameType = (IceRpcControlFrameType)buffer.Span[0];
                 if (frameType > IceRpcControlFrameType.GoAwayCompleted)
                 {
-                    throw new InvalidDataException($"invalid Ice2 frame type {frameType}");
+                    throw new InvalidDataException($"invalid IceRpc frame type {frameType}");
                 }
 
                 // Read the remainder of the size if needed.
@@ -729,7 +729,7 @@ namespace IceRpc.Internal
                 IceRpcControlFrameType.GoAway,
                 CancellationToken.None).ConfigureAwait(false);
 
-            IceRpcGoAwayBody goAwayFrame = DecodeIce2GoAwayBody(buffer);
+            IceRpcGoAwayBody goAwayFrame = DecodeIceRpcGoAwayBody(buffer);
 
             // Raise the peer shutdown initiated event.
             try
@@ -836,7 +836,7 @@ namespace IceRpc.Internal
                 throw new InvalidDataException($"{nameof(IceRpcControlFrameType.GoAwayCompleted)} frame is not empty");
             }
 
-            IceRpcGoAwayBody DecodeIce2GoAwayBody(ReadOnlyMemory<byte> buffer)
+            IceRpcGoAwayBody DecodeIceRpcGoAwayBody(ReadOnlyMemory<byte> buffer)
             {
                 var decoder = new IceDecoder(buffer, Encoding.Slice20);
                 return new IceRpcGoAwayBody(ref decoder);
