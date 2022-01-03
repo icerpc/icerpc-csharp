@@ -14,9 +14,12 @@ namespace IceRpc.Tests.ClientServer
         private Server? _server;
 
         // Note that transport loc has no special meaning with ice2.
-        [TestCase("ice+loc://testlocation/test", "ice+loc://unknown-location/test", "test", "test @ testlocation")]
-        [TestCase("test @ adapter", "test @ unknown_adapter", "test", "ice+loc://adapter/test")]
-        [TestCase("test", "test @ adapter", "test2", "ice+loc://adapter/test")]
+        [TestCase(
+            "ice+loc://testlocation/test",
+            "ice+loc://unknown-location/test",
+            "ice+loc://testlocation/test?protocol=ice1")]
+        [TestCase("test @ adapter", "test @ unknown_adapter", "test")]
+        [TestCase("test", "test @ adapter", "test2")]
         public async Task LocationResolver_ResolveAsync(string proxy, params string[] badProxies)
         {
             _pool = new ConnectionPool()
@@ -24,9 +27,11 @@ namespace IceRpc.Tests.ClientServer
                 MultiplexedClientTransport = new CompositeMultiplexedClientTransport().UseSlicOverTcp(),
                 SimpleClientTransport = new CompositeSimpleClientTransport().UseTcp()
             };
-            var pipeline = new Pipeline();
 
-            var indirect = GreeterPrx.Parse(proxy, pipeline);
+            var pipeline = new Pipeline();
+            IProxyFormat? format = proxy.StartsWith("ice+", StringComparison.Ordinal) ? null : IceProxyFormat.Default;
+
+            var indirect = GreeterPrx.Parse(proxy, pipeline, format);
             GreeterPrx direct = SetupServer(indirect.Proxy.Protocol.Code, indirect.Proxy.Path, pipeline);
             Assert.That(direct.Proxy.Endpoint, Is.Not.Null);
 
@@ -47,7 +52,7 @@ namespace IceRpc.Tests.ClientServer
 
             foreach (string badProxy in badProxies)
             {
-                var badGreeter = GreeterPrx.Parse(badProxy, pipeline);
+                var badGreeter = GreeterPrx.Parse(badProxy, pipeline, format);
                 Assert.ThrowsAsync<NoEndpointException>(async () => await badGreeter.SayHelloAsync("hello"));
             }
         }
@@ -67,8 +72,8 @@ namespace IceRpc.Tests.ClientServer
 
         private GreeterPrx SetupServer(ProtocolCode protocol, string path, IInvoker invoker)
         {
-            string serverEndpoint =
-                protocol == ProtocolCode.Ice2 ? "ice+tcp://127.0.0.1:0?tls=false" : "tcp -h 127.0.0.1 -p 0";
+            string serverEndpoint = protocol == ProtocolCode.Ice2 ?
+                "ice+tcp://127.0.0.1:0?tls=false" : "ice+tcp://127.0.0.1:0?protocol=ice1&tls=false";
             _server = new Server
             {
                 Dispatcher = new Greeter(),

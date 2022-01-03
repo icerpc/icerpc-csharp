@@ -31,6 +31,7 @@ namespace IceRpc.Tests.Internal
             _eventSource.RequestStart(new IncomingRequest(
                 Protocol.Ice2,
                 path: "/service",
+                fragment: "",
                 operation: "ice_id",
                 PipeReader.Create(ReadOnlySequence<byte>.Empty),
                 Encoding.Ice20,
@@ -56,6 +57,7 @@ namespace IceRpc.Tests.Internal
             _eventSource.RequestStop(new IncomingRequest(
                 Protocol.Ice2,
                 path: "/service",
+                fragment: "",
                 "ice_id",
                 PipeReader.Create(ReadOnlySequence<byte>.Empty),
                 Encoding.Ice20,
@@ -81,6 +83,7 @@ namespace IceRpc.Tests.Internal
             _eventSource.RequestCanceled(new IncomingRequest(
                 Protocol.Ice2,
                 path: "/service",
+                fragment: "",
                 operation: "ice_id",
                 PipeReader.Create(ReadOnlySequence<byte>.Empty),
                 Encoding.Ice20,
@@ -107,6 +110,7 @@ namespace IceRpc.Tests.Internal
                 new IncomingRequest(
                     Protocol.Ice2,
                     path: "/service",
+                    fragment: "",
                     operation: "ice_id",
                     PipeReader.Create(ReadOnlySequence<byte>.Empty),
                     Encoding.Ice20,

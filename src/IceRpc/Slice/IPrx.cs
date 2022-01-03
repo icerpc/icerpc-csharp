@@ -10,25 +10,6 @@ namespace IceRpc.Slice
         Proxy Proxy { get; init; }
     }
 
-    /// <summary>Provides extension methods for typed proxies.</summary>
-    public static class PrxExtensions
-    {
-        /// <summary>Tests whether the target service implements the interface implemented by the T typed proxy. This
-        /// method is a wrapper for <see cref="IServicePrx.IceIsAAsync"/>.</summary>
-        /// <paramtype name="T">The type of the desired typed proxy.</paramtype>
-        /// <param name="prx">The source proxy being tested.</param>
-        /// <param name="invocation">The invocation properties.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A new typed proxy with the desired type, or null.</returns>
-        public static async Task<T?> AsAsync<T>(
-            this IPrx prx,
-            Invocation? invocation = null,
-            CancellationToken cancel = default) where T : struct, IPrx =>
-            await new ServicePrx(prx.Proxy).IceIsAAsync(typeof(T).GetIceTypeId()!, invocation, cancel).
-                ConfigureAwait(false) ?
-                new T { Proxy = prx.Proxy } : null;
-    }
-
     /// <summary>Provides extension methods for IceDecoder.</summary>
     public static class IceDecoderPrxExtensions
     {

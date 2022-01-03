@@ -231,7 +231,8 @@ namespace IceRpc.Transports.Internal
                 tls = true;
                 remoteEndpoint = remoteEndpoint with
                 {
-                    Params = remoteEndpoint.Params.Add(new EndpointParam("tls", "true"))
+                    // always insert tls as the first param
+                    Params = remoteEndpoint.Params.Insert(0, new EndpointParam("tls", "true"))
                 };
             }
 
@@ -421,7 +422,7 @@ namespace IceRpc.Transports.Internal
                 {
                     // the accepted endpoint gets a tls parameter
                     endpointParams =
-                        endpointParams.Add(new EndpointParam("tls", _sslStream == null ? "false" : "true"));
+                        endpointParams.Insert(0, new EndpointParam("tls", _sslStream == null ? "false" : "true"));
                 }
 
                 var ipEndPoint = (IPEndPoint)Socket.RemoteEndPoint!;

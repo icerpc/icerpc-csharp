@@ -138,8 +138,8 @@ namespace IceRpc.Tests
                 // Set the endpoint protocol to the configured protocol.
                 endpoint = endpoint with { Protocol = serviceProvider.GetRequiredService<Protocol>() };
 
-                // For tcp or ssl, set the "tls" parameter (only when using Ice2)
-                if (endpoint.Protocol != Protocol.Ice1 && (endpoint.Transport == "tcp" || endpoint.Transport == "ssl"))
+                // For tcp set the "tls" parameter
+                if (endpoint.Transport == "tcp")
                 {
                     // If server authentication options are configured, set the tls=true endpoint parameter.
                     bool tls = serviceProvider.GetService<SslServerAuthenticationOptions>() != null;

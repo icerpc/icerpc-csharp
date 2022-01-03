@@ -151,6 +151,7 @@ namespace IceRpc.Internal
                 var request = new IncomingRequest(
                     Protocol.Ice2,
                     path: header.Path,
+                    fragment: header.Fragment,
                     operation: header.Operation,
                     payload: reader,
                     payloadEncoding: header.PayloadEncoding.Length > 0 ?
@@ -357,6 +358,7 @@ namespace IceRpc.Internal
 
                 var header = new Ice2RequestHeader(
                     request.Path,
+                    request.Fragment,
                     request.Operation,
                     request.IsIdempotent,
                     deadline,

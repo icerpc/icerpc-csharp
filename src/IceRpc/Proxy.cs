@@ -1,10 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using IceRpc.Transports.Internal;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using System.Text;
 
 namespace IceRpc
 {
@@ -105,6 +103,24 @@ namespace IceRpc
             }
         }
 
+        /// <summary>Gets or sets the fragment.</summary>
+        public string Fragment
+        {
+            get => _fragment;
+            set
+            {
+                if (!IsValid(value, "\"<>\\^`{|}"))
+                {
+                    throw new ArgumentException(
+                        @$"invalid fragment '{value
+                        }'; a valid fragment contains only unreserved characters, reserved characters or '%'",
+                        nameof(value));
+                }
+
+                _fragment = value;
+            }
+        }
+
         /// <summary>Gets or sets the invoker of this proxy.</summary>
         public IInvoker? Invoker { get; set; }
 
@@ -118,6 +134,7 @@ namespace IceRpc
         private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
         private volatile Connection? _connection;
         private Endpoint? _endpoint;
+        private string _fragment = "";
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
         /// <param name="lhs">The left hand side operand.</param>
@@ -167,40 +184,25 @@ namespace IceRpc
         /// <summary>Creates a proxy from a string and an invoker.</summary>
         /// <param name="s">The string to parse.</param>
         /// <param name="invoker">The invoker of the new proxy.</param>
+        /// <param name="format">The proxy format to use for parsing. <c>null</c> is equivalent to
+        /// <see cref="UriProxyFormat.Instance"/>.</param>
         /// <returns>The parsed proxy.</returns>
-        public static Proxy Parse(string s, IInvoker? invoker = null)
-        {
-            string proxyString = s.Trim();
-            if (proxyString.Length == 0)
-            {
-                throw new FormatException("an empty string does not represent a proxy");
-            }
-
-            Proxy proxy = IceUriParser.IsProxyUri(proxyString) ?
-                IceUriParser.ParseProxyUri(proxyString) : Ice1Parser.ParseProxyString(proxyString);
-
-            proxy.Invoker = invoker;
-            return proxy;
-        }
+        public static Proxy Parse(string s, IInvoker? invoker = null, IProxyFormat? format = null) =>
+            (format ?? UriProxyFormat.Instance).Parse(s, invoker);
 
         /// <summary>Tries to create a proxy from a string and invoker.</summary>
         /// <param name="s">The string to parse.</param>
         /// <param name="invoker">The invoker.</param>
+        /// <param name="format">The proxy format to use for parsing. <c>null</c> is equivalent to
+        /// <see cref="UriProxyFormat.Instance"/>.</param>
         /// <param name="proxy">The parsed proxy.</param>
         /// <returns><c>true</c> when the string is parsed successfully; otherwise, <c>false</c>.</returns>
-        public static bool TryParse(string s, IInvoker? invoker, [NotNullWhen(true)] out Proxy? proxy)
-        {
-            try
-            {
-                proxy = Parse(s, invoker);
-                return true;
-            }
-            catch
-            {
-                proxy = null;
-                return false;
-            }
-        }
+        public static bool TryParse(
+            string s,
+            IInvoker? invoker,
+            IProxyFormat? format,
+            [NotNullWhen(true)] out Proxy? proxy) =>
+            (format ?? UriProxyFormat.Instance).TryParse(s, invoker, out proxy);
 
         /// <summary>Creates a shallow copy of this proxy. It's a safe copy since the only container property
         /// (AltEndpoints) is immutable.</summary>
@@ -245,6 +247,10 @@ namespace IceRpc
             {
                 return false;
             }
+            if (_fragment != other._fragment)
+            {
+                return false;
+            }
             if (Protocol != other.Protocol)
             {
                 return false;
@@ -275,169 +281,11 @@ namespace IceRpc
             return hash.ToHashCode();
         }
 
-        /// <inherit-doc/>
-        public override string ToString()
-        {
-            if (Protocol == Protocol.Ice1)
-            {
-                return ToString(default);
-            }
-            else // >= ice2, use URI format
-            {
-                var sb = new StringBuilder();
-                bool firstOption = true;
+        /// <summary>Converts this proxy into a string using the default URI format.</summary>
+        public override string ToString() => ToString(UriProxyFormat.Instance);
 
-                if (_endpoint != null)
-                {
-                    // Use ice+transport scheme
-                    sb.AppendEndpoint(_endpoint, Path);
-
-                    firstOption = _endpoint.Protocol == Protocol.Ice2 && _endpoint.Params.Count == 0;
-                }
-                else
-                {
-                    sb.Append("ice:"); // endpointless proxy
-                    sb.Append(Path);
-
-                    // TODO: append protocol
-                }
-
-                if (Encoding != Ice2Definitions.Encoding)
-                {
-                    StartQueryOption(sb, ref firstOption);
-                    sb.Append("encoding=");
-                    sb.Append(Encoding);
-                }
-
-                if (_altEndpoints.Count > 0)
-                {
-                    string mainTransport = _endpoint!.Transport;
-                    StartQueryOption(sb, ref firstOption);
-                    sb.Append("alt-endpoint=");
-                    for (int i = 0; i < _altEndpoints.Count; ++i)
-                    {
-                        if (i > 0)
-                        {
-                            sb.Append(',');
-                        }
-                        sb.AppendEndpoint(_altEndpoints[i], "", mainTransport != _altEndpoints[i].Transport, '$');
-                    }
-                }
-
-                return sb.ToString();
-            }
-
-            static void StartQueryOption(StringBuilder sb, ref bool firstOption)
-            {
-                if (firstOption)
-                {
-                    sb.Append('?');
-                    firstOption = false;
-                }
-                else
-                {
-                    sb.Append('&');
-                }
-            }
-        }
-
-        /// <summary>Converts a proxy into a string, using the format specified by ToStringMode.</summary>
-        /// <param name="mode">Specifies how non-printable ASCII characters are escaped in the resulting string. See
-        /// <see cref="ToStringMode"/>.</param>
-        /// <returns>The string representation of this proxy.</returns>
-        public string ToString(ToStringMode mode)
-        {
-            if (Protocol != Protocol.Ice1)
-            {
-                return ToString();
-            }
-
-            var identityAndFacet = IdentityAndFacet.FromPath(Path);
-
-            var sb = new StringBuilder();
-
-            // If the encoded identity string contains characters which the reference parser uses as separators,
-            // then we enclose the identity string in quotes.
-            string id = identityAndFacet.Identity.ToString(mode);
-            if (StringUtil.FindFirstOf(id, " :@") != -1)
-            {
-                sb.Append('"');
-                sb.Append(id);
-                sb.Append('"');
-            }
-            else
-            {
-                sb.Append(id);
-            }
-
-            if (identityAndFacet.Facet.Length > 0)
-            {
-                // If the encoded facet string contains characters which the reference parser uses as separators,
-                // then we enclose the facet string in quotes.
-                sb.Append(" -f ");
-                string fs = StringUtil.EscapeString(identityAndFacet.Facet, mode);
-                if (StringUtil.FindFirstOf(fs, " :@") != -1)
-                {
-                    sb.Append('"');
-                    sb.Append(fs);
-                    sb.Append('"');
-                }
-                else
-                {
-                    sb.Append(fs);
-                }
-            }
-
-            if (Endpoint?.Transport == TransportNames.Udp)
-            {
-                sb.Append(" -d");
-            }
-            else
-            {
-                sb.Append(" -t");
-            }
-
-            // Always print the encoding version to ensure a stringified proxy will convert back to a proxy with the
-            // same encoding with StringToProxy. (Only needed for backwards compatibility).
-            sb.Append(" -e ");
-            sb.Append(Encoding);
-
-            if (Endpoint != null)
-            {
-                if (Endpoint.Transport == TransportNames.Loc)
-                {
-                    string adapterId = Endpoint.Host;
-
-                    sb.Append(" @ ");
-
-                    // If the encoded adapter ID contains characters which the proxy parser uses as separators, then
-                    // we enclose the adapter ID string in double quotes.
-                    adapterId = StringUtil.EscapeString(adapterId, mode);
-                    if (StringUtil.FindFirstOf(adapterId, " :@") != -1)
-                    {
-                        sb.Append('"');
-                        sb.Append(adapterId);
-                        sb.Append('"');
-                    }
-                    else
-                    {
-                        sb.Append(adapterId);
-                    }
-                }
-                else
-                {
-                    sb.Append(':');
-                    sb.Append(Endpoint);
-
-                    foreach (Endpoint e in AltEndpoints)
-                    {
-                        sb.Append(':');
-                        sb.Append(e);
-                    }
-                }
-            }
-            return sb.ToString();
-        }
+        /// <summary>Converts this proxy into a string using a specific format.</summary>
+        public string ToString(IProxyFormat format) => format.ToString(this);
 
         /// <summary>Creates a copy of this proxy with a new path.</summary>
         /// <param name="path">The new path.</param>
@@ -455,15 +303,58 @@ namespace IceRpc
             return proxy;
         }
 
+        /// <summary>Makes sure path is valid.</summary>
+        /// <exception name="ArgumentException">Thrown if <paramref name="path"/> is not valid.</exception>
+        internal static void CheckPath(string path, string paramName)
+        {
+            if (!IsValidPath(path))
+            {
+                throw new ArgumentException(
+                    @$"invalid path '{path
+                    }'; a valid path starts with '/' and contains only unreserved characters, '%' or reserved characters other than '?' and '#'",
+                    paramName);
+            }
+        }
+
+        /// <summary>Checks if <paramref name="path"/> starts with <c>/</c> and contains only unreserved characters,
+        /// <c>%</c>, or reserved characters other than <c>?</c> and <c>#</c>.</summary>
+        /// <param name="path">The path to check.</param>
+        /// <returns>True if <paramref name="path"/> is a valid path; otherwise, false.</returns>
+        internal static bool IsValidPath(string path)
+        {
+            if (path.Length == 0 || path[0] != '/')
+            {
+                return false;
+            }
+
+            return IsValid(path, "\"<>#?\\^`{|}");
+        }
+
         /// <summary>Constructs a new proxy.</summary>
         /// <param name="path">The proxy path.</param>
         /// <param name="protocol">The proxy protocol.</param>
         internal Proxy(string path, Protocol protocol)
         {
             Protocol = protocol;
-            IceUriParser.CheckPath(path, nameof(path));
+            CheckPath(path, nameof(path));
             Path = path;
             Encoding = Protocol.IceEncoding ?? Encoding.Unknown;
+        }
+
+        private static bool IsValid(string s, string invalidChars)
+        {
+            // The printable ASCII character range is x20 (space) to x7E inclusive. Space is an invalid character in
+            // addition to the invalid characters in the invalidChars string.
+            foreach (char c in s)
+            {
+                if (c.CompareTo('\x20') <= 0 ||
+                    c.CompareTo('\x7F') >= 0 ||
+                    invalidChars.Contains(c, StringComparison.InvariantCulture))
+                {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 }

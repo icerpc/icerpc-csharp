@@ -233,11 +233,11 @@ namespace IceRpc.Slice
                         throw new InvalidOperationException("cannot encode a proxy bound to a server connection");
                     }
 
-                    IdentityAndFacet identityAndFacet;
+                    Identity identity;
 
                     try
                     {
-                        identityAndFacet = IdentityAndFacet.FromPath(proxy.Path);
+                        identity = Identity.FromPath(proxy.Path);
                     }
                     catch (FormatException ex)
                     {
@@ -246,18 +246,18 @@ namespace IceRpc.Slice
                             ex);
                     }
 
-                    if (identityAndFacet.Identity.Name.Length == 0)
+                    if (identity.Name.Length == 0)
                     {
                         throw new InvalidOperationException(
                             $"cannot encode proxy with path '{proxy.Path}' using encoding 1.1");
                     }
 
-                    identityAndFacet.Identity.Encode(ref this);
+                    identity.Encode(ref this);
 
                     (byte encodingMajor, byte encodingMinor) = proxy.Encoding.ToMajorMinor();
 
                     var proxyData = new ProxyData11(
-                        identityAndFacet.OptionalFacet,
+                        Facet.FromFragment(proxy.Fragment),
                         proxy.Protocol == Protocol.Ice1 && (proxy.Endpoint?.Transport == TransportNames.Udp) ?
                             InvocationMode.Datagram : InvocationMode.Twoway,
                         secure: false,
@@ -312,6 +312,7 @@ namespace IceRpc.Slice
 
                     var proxyData = new ProxyData20(
                         proxy.Path,
+                        proxy.Fragment,
                         protocol: proxy.Protocol != Protocol.Ice2 ? proxy.Protocol.Code : null,
                         encoding: proxy.Encoding == proxy.Protocol.IceEncoding ? null : proxy.Encoding.ToString(),
                         endpoint: proxy.Endpoint?.ToEndpointData(),

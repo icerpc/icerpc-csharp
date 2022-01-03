@@ -41,10 +41,7 @@ namespace IceRpc
         /// <returns>The new endpoint.</returns>
         /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of an endpoint.
         /// </exception>
-        public static Endpoint FromString(string s) =>
-            IceUriParser.IsEndpointUri(s) ?
-                IceUriParser.ParseEndpointUri(s, Protocol.Ice2) :
-                Ice1Parser.ParseEndpointString(s);
+        public static Endpoint FromString(string s) => UriProxyFormat.ParseEndpoint(s, Protocol.Ice2);
 
         /// <summary>Constructs a new endpoint.</summary>
         /// <param name="protocol">The Ice protocol of this endpoint.</param>
@@ -94,50 +91,8 @@ namespace IceRpc
         public override string ToString()
         {
             var sb = new StringBuilder();
-            if (Protocol == Protocol.Ice1)
-            {
-                sb.Append(Transport);
-
-                if (Host.Length > 0)
-                {
-                    sb.Append(" -h ");
-                    bool addQuote = Host.IndexOf(':', StringComparison.Ordinal) != -1;
-                    if (addQuote)
-                    {
-                        sb.Append('"');
-                    }
-                    sb.Append(Host);
-                    if (addQuote)
-                    {
-                        sb.Append('"');
-                    }
-                }
-
-                // For backwards compatibility, we don't output "-p 0" for opaque endpoints.
-                if (Transport != TransportNames.Opaque || Port != 0)
-                {
-                    sb.Append(" -p ");
-                    sb.Append(Port.ToString(CultureInfo.InvariantCulture));
-                }
-
-                foreach ((string name, string value) in Params)
-                {
-                    sb.Append(' ');
-                    sb.Append(name);
-                    if (value.Length > 0)
-                    {
-                        sb.Append(' ');
-                        sb.Append(value);
-                    }
-                }
-
-                return sb.ToString();
-            }
-            else
-            {
-                sb.AppendEndpoint(this);
-                return sb.ToString();
-            }
+            sb.AppendEndpoint(this);
+            return sb.ToString();
         }
     }
 

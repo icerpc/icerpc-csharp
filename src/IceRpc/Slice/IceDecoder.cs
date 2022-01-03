@@ -322,7 +322,7 @@ namespace IceRpc.Slice
             if (Encoding == IceRpc.Encoding.Ice11)
             {
                 var identity = new Identity(ref this);
-                if (identity.Name.Length == 0) // such identity means received a null proxy with the 1.1 encoding
+                if (identity.Name.Length == 0) // null proxy
                 {
                     return null;
                 }
@@ -356,7 +356,7 @@ namespace IceRpc.Slice
                             endpoint = new Endpoint(Protocol.Ice1,
                                                     TransportNames.Loc,
                                                     host: adapterId,
-                                                    port: Ice1Parser.DefaultPort,
+                                                    port: 0,
                                                     @params: ImmutableList<EndpointParam>.Empty);
                         }
                         else
@@ -379,25 +379,22 @@ namespace IceRpc.Slice
                     }
                 }
 
+                proxyData.Facet.CheckValue();
+
                 if (protocol == Protocol.Ice1)
                 {
-                    if (proxyData.OptionalFacet.Count > 1)
-                    {
-                        throw new InvalidDataException(
-                            $"received proxy with {proxyData.OptionalFacet.Count} elements in its optionalFacet");
-                    }
-
                     try
                     {
-                        var identityAndFacet = new IdentityAndFacet(identity, proxyData.OptionalFacet);
-                        var proxy = new Proxy(identityAndFacet.ToPath(), Protocol.Ice1);
-                        proxy.Encoding = IceRpc.Encoding.FromMajorMinor(
-                            proxyData.EncodingMajor,
-                            proxyData.EncodingMinor);
-                        proxy.Endpoint = endpoint;
-                        proxy.AltEndpoints = altEndpoints.ToImmutableList();
-                        proxy.Invoker = _invoker;
-                        return proxy;
+                        return new Proxy(identity.ToPath(), Protocol.Ice1)
+                        {
+                            Encoding = IceRpc.Encoding.FromMajorMinor(
+                                proxyData.EncodingMajor,
+                                proxyData.EncodingMinor),
+                            Endpoint = endpoint,
+                            AltEndpoints = altEndpoints.ToImmutableList(),
+                            Invoker = _invoker,
+                            Fragment = proxyData.Facet.ToFragment()
+                        };
                     }
                     catch (InvalidDataException)
                     {
@@ -410,10 +407,6 @@ namespace IceRpc.Slice
                 }
                 else
                 {
-                    if (proxyData.OptionalFacet.Count > 0)
-                    {
-                        throw new InvalidDataException($"received proxy for protocol {protocol} with a facet");
-                    }
                     if (proxyData.InvocationMode != InvocationMode.Twoway)
                     {
                         throw new InvalidDataException(
@@ -430,11 +423,15 @@ namespace IceRpc.Slice
                         }
                         else
                         {
-                            proxy = new Proxy(identity.ToPath(), protocol);
-                            proxy.Endpoint = endpoint;
-                            proxy.AltEndpoints = altEndpoints.ToImmutableList();
-                            proxy.Invoker = _invoker;
+                            proxy = new Proxy(identity.ToPath(), protocol)
+                            {
+                                Endpoint = endpoint,
+                                AltEndpoints = altEndpoints.ToImmutableList(),
+                                Invoker = _invoker
+                            };
                         }
+
+                        proxy.Fragment = proxyData.Facet.ToFragment();
 
                         proxy.Encoding = IceRpc.Encoding.FromMajorMinor(proxyData.EncodingMajor,
                             proxyData.EncodingMinor);
@@ -472,18 +469,23 @@ namespace IceRpc.Slice
                 {
                     Proxy proxy;
 
+                    Debug.Assert(proxyData.Fragment != null);
+
                     if (endpoint == null && protocol != Protocol.Ice1)
                     {
                         proxy = Proxy.FromConnection(_connection!, proxyData.Path, _invoker);
                     }
                     else
                     {
-                        proxy = new Proxy(proxyData.Path, protocol);
-                        proxy.Endpoint = endpoint;
-                        proxy.AltEndpoints = altEndpoints;
-                        proxy.Invoker = _invoker;
+                        proxy = new Proxy(proxyData.Path, protocol)
+                        {
+                            Endpoint = endpoint,
+                            AltEndpoints = altEndpoints,
+                            Invoker = _invoker
+                        };
                     }
 
+                    proxy.Fragment = proxyData.Fragment;
                     proxy.Encoding = proxyData.Encoding is string encoding ?
                         IceRpc.Encoding.FromString(encoding) : (proxy.Protocol.IceEncoding ?? IceRpc.Encoding.Unknown);
 
@@ -780,24 +782,25 @@ namespace IceRpc.Slice
                             int timeout = DecodeInt();
                             bool compress = DecodeBool();
 
-                            var endpointParams = ImmutableList<EndpointParam>.Empty;
+                            var endpointParams = ImmutableList.Create(
+                                new EndpointParam("tls", transportCode == TransportCode.SSL ? "true" : "false"));
 
                             if (timeout != EndpointParseExtensions.DefaultTcpTimeout)
                             {
                                 endpointParams = endpointParams.Add(
-                                    new EndpointParam("-t", timeout.ToString(CultureInfo.InvariantCulture)));
+                                    new EndpointParam("t", timeout.ToString(CultureInfo.InvariantCulture)));
                             }
                             if (compress)
                             {
-                                endpointParams = endpointParams.Add(new EndpointParam("-z", ""));
+                                endpointParams = endpointParams.Add(new EndpointParam("z", "true"));
                             }
 
-                            endpoint = new Endpoint(Protocol.Ice1,
-                                                    transportCode == TransportCode.SSL ?
-                                                        TransportNames.Ssl : TransportNames.Tcp,
-                                                    host,
-                                                    port,
-                                                    endpointParams);
+                            endpoint = new Endpoint(
+                                Protocol.Ice1,
+                                TransportNames.Tcp,
+                                host,
+                                port,
+                                endpointParams);
 
                             break;
                         }
@@ -808,14 +811,15 @@ namespace IceRpc.Slice
                             ushort port = checked((ushort)DecodeInt());
                             bool compress = DecodeBool();
 
-                            var endpointParams = compress ? ImmutableList.Create(new EndpointParam("-z", "")) :
+                            var endpointParams = compress ? ImmutableList.Create(new EndpointParam("z", "true")) :
                                 ImmutableList<EndpointParam>.Empty;
 
-                            endpoint = new Endpoint(Protocol.Ice1,
-                                                    TransportNames.Udp,
-                                                    host,
-                                                    port,
-                                                    endpointParams);
+                            endpoint = new Endpoint(
+                                Protocol.Ice1,
+                                TransportNames.Udp,
+                                host,
+                                port,
+                                endpointParams);
 
                             // else endpoint remains null and we throw below
                             break;
@@ -847,9 +851,9 @@ namespace IceRpc.Slice
                             }
 
                             var endpointParams = ImmutableList.Create(
-                                new EndpointParam("-t", ((short)transportCode).ToString(CultureInfo.InvariantCulture)),
-                                new EndpointParam("-e", encoding.ToString()),
-                                new EndpointParam("-v", Convert.ToBase64String(vSpan)));
+                                new EndpointParam("t", ((short)transportCode).ToString(CultureInfo.InvariantCulture)),
+                                new EndpointParam("e", encoding.ToString()),
+                                new EndpointParam("v", Convert.ToBase64String(vSpan)));
 
                             endpoint = new Endpoint(
                                 Protocol.Ice1,

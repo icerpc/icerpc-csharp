@@ -126,7 +126,7 @@ namespace IceRpc.Internal
                 {
                     Ice1RequestHeader requestHeader = DecodeHeader(ref buffer);
 
-                    if (requestHeader.IdentityAndFacet.Identity.Name.Length == 0)
+                    if (requestHeader.Identity.Name.Length == 0)
                     {
                         throw new InvalidDataException("received ice1 request with empty identity name");
                     }
@@ -134,9 +134,10 @@ namespace IceRpc.Internal
                     {
                         throw new InvalidDataException("received request with empty operation name");
                     }
+                    requestHeader.Facet.CheckValue();
 
                     // The payload size is the encapsulation size less the 6 bytes of the encapsulation header.
-                    int payloadSize = requestHeader.EncapsulationSize - 6;
+                    int payloadSize = requestHeader.EncapsulationHeader.EncapsulationSize - 6;
                     if (payloadSize != buffer.Length - 4)
                     {
                         throw new InvalidDataException(@$"request payload size mismatch: expected {payloadSize
@@ -144,14 +145,15 @@ namespace IceRpc.Internal
                     }
 
                     var payloadEncoding = Encoding.FromMajorMinor(
-                        requestHeader.PayloadEncodingMajor,
-                        requestHeader.PayloadEncodingMinor);
+                        requestHeader.EncapsulationHeader.PayloadEncodingMajor,
+                        requestHeader.EncapsulationHeader.PayloadEncodingMinor);
 
                     EncodePayloadSize(payloadSize, payloadEncoding, buffer.Span[0..4]);
 
                     var request = new IncomingRequest(
                         Protocol.Ice1,
-                        path: requestHeader.IdentityAndFacet.ToPath(),
+                        path: requestHeader.Identity.ToPath(),
+                        fragment: requestHeader.Facet.ToFragment(),
                         operation: requestHeader.Operation,
                         payload: new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
                         payloadEncoding,
@@ -294,11 +296,11 @@ namespace IceRpc.Internal
 
                 if (replyStatus <= ReplyStatus.UserException)
                 {
-                    var responseHeader = new Ice1ResponseHeader(ref decoder);
-                    payloadSize = responseHeader.EncapsulationSize - 6;
+                    var encapsulationHeader = new EncapsulationHeader(ref decoder);
+                    payloadSize = encapsulationHeader.EncapsulationSize - 6;
                     payloadEncoding = Encoding.FromMajorMinor(
-                        responseHeader.PayloadEncodingMajor,
-                        responseHeader.PayloadEncodingMinor);
+                        encapsulationHeader.PayloadEncodingMajor,
+                        encapsulationHeader.PayloadEncodingMinor);
 
                     if (payloadEncoding == Encoding.Ice11 && replyStatus == ReplyStatus.UserException)
                     {
@@ -441,13 +443,12 @@ namespace IceRpc.Internal
                 (byte encodingMajor, byte encodingMinor) = payloadEncoding.ToMajorMinor();
 
                 var requestHeader = new Ice1RequestHeader(
-                    IdentityAndFacet.FromPath(request.Path),
+                    Identity.FromPath(request.Path),
+                    Facet.FromFragment(request.Fragment),
                     request.Operation,
                     request.IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
                     request.Features.GetContext(),
-                    encapsulationSize: payloadSize + 6,
-                    encodingMajor,
-                    encodingMinor);
+                    new EncapsulationHeader(encapsulationSize: payloadSize + 6, encodingMajor, encodingMinor));
                 requestHeader.Encode(ref encoder);
 
                 IceEncoder.EncodeInt(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
@@ -588,11 +589,11 @@ namespace IceRpc.Internal
                 encoder.EncodeReplyStatus(replyStatus);
                 if (replyStatus <= ReplyStatus.UserException)
                 {
-                    var responseHeader = new Ice1ResponseHeader(
+                    var encapsulationHeader = new EncapsulationHeader(
                         encapsulationSize: payloadSize + 6,
                         encodingMajor,
                         encodingMinor);
-                    responseHeader.Encode(ref encoder);
+                    encapsulationHeader.Encode(ref encoder);
                 }
 
                 IceEncoder.EncodeInt(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);

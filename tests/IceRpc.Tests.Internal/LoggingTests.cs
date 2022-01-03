@@ -260,6 +260,7 @@ namespace IceRpc.Tests.Internal
             new(
                 Protocol.Ice2,
                 path: "/dummy",
+                fragment: "",
                 operation: "foo",
                 PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
                 Encoding.Ice20,

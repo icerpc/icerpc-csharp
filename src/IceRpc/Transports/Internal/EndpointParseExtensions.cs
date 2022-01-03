@@ -14,11 +14,6 @@ namespace IceRpc.Transports.Internal
         internal static (TransportCode TransportCode, Encoding encoding, ReadOnlyMemory<byte> Bytes) ParseOpaqueParams(
            this Endpoint endpoint)
         {
-            if (endpoint.Protocol != Protocol.Ice1)
-            {
-                throw new FormatException($"endpoint '{endpoint}': protocol/transport mismatch");
-            }
-
             TransportCode? transportCode = null;
             ReadOnlyMemory<byte> bytes = default;
             Encoding? encoding = null;
@@ -27,23 +22,23 @@ namespace IceRpc.Transports.Internal
             {
                 switch (name)
                 {
-                    case "-e":
+                    case "e":
                         if (encoding != null)
                         {
-                            throw new FormatException($"multiple -e parameters in endpoint '{endpoint}'");
+                            throw new FormatException($"multiple e parameters in endpoint '{endpoint}'");
                         }
                         encoding = value switch
                         {
                             "1.0" => Encoding.Ice10,
                             "1.1" => Encoding.Ice11,
-                            _ => throw new FormatException($"invalid value for -e parameter in endpoint '{endpoint}'")
+                            _ => throw new FormatException($"invalid value for e parameter in endpoint '{endpoint}'")
                         };
                         break;
 
-                    case "-t":
+                    case "t":
                         if (transportCode != null)
                         {
-                            throw new FormatException($"multiple -t parameters in endpoint '{endpoint}'");
+                            throw new FormatException($"multiple t parameters in endpoint '{endpoint}'");
                         }
 
                         short t;
@@ -54,22 +49,22 @@ namespace IceRpc.Transports.Internal
                         catch (FormatException ex)
                         {
                             throw new FormatException(
-                                $"invalid value for parameter -t in endpoint '{endpoint}'", ex);
+                                $"invalid value for parameter t in endpoint '{endpoint}'", ex);
                         }
 
                         if (t < 0)
                         {
                             throw new FormatException(
-                                $"value for -t parameter out of range in endpoint '{endpoint}'");
+                                $"value for t parameter out of range in endpoint '{endpoint}'");
                         }
 
                         transportCode = (TransportCode)t;
                         break;
 
-                    case "-v":
+                    case "v":
                         if (bytes.Length > 0)
                         {
-                            throw new FormatException($"multiple -v parameters in endpoint '{endpoint}'");
+                            throw new FormatException($"multiple v parameters in endpoint '{endpoint}'");
                         }
 
                         try
@@ -89,11 +84,11 @@ namespace IceRpc.Transports.Internal
 
             if (transportCode == null)
             {
-                throw new FormatException($"missing -t parameter in endpoint '{endpoint}'");
+                throw new FormatException($"missing t parameter in endpoint '{endpoint}'");
             }
             else if (bytes.Length == 0)
             {
-                throw new FormatException($"missing -v parameter in endpoint '{endpoint}'");
+                throw new FormatException($"missing v parameter in endpoint '{endpoint}'");
             }
 
             return (transportCode.Value, encoding ?? Encoding.Ice11, bytes);
@@ -105,59 +100,31 @@ namespace IceRpc.Transports.Internal
             bool compress = false;
             int? timeout = null;
 
-            if (endpoint.Protocol == Protocol.Ice1)
+            foreach ((string name, string value) in endpoint.Params)
             {
-                foreach ((string name, string value) in endpoint.Params)
+                switch (name)
                 {
-                    switch (name)
-                    {
-                        case "-t":
-                            if (timeout != null)
-                            {
-                                throw new FormatException($"multiple -t parameters in endpoint '{endpoint}'");
-                            }
-                            if (value == "infinite")
-                            {
-                                timeout = -1;
-                            }
-                            else
-                            {
-                                timeout = int.Parse(value, CultureInfo.InvariantCulture); // timeout in ms, or -1
-                                if (timeout == 0 || timeout < -1)
-                                {
-                                    throw new FormatException(
-                                        $"invalid value for -t parameter in endpoint '{endpoint}'");
-                                }
-                            }
-                            continue; // loop back
-
-                        case "-z":
-                            if (compress)
-                            {
-                                throw new FormatException($"multiple -z parameters in endpoint '{endpoint}'");
-                            }
-                            if (value.Length > 0)
+                    case "t":
+                        if (timeout != null)
+                        {
+                            throw new FormatException($"multiple t parameters in endpoint '{endpoint}'");
+                        }
+                        if (value == "infinite")
+                        {
+                            timeout = -1;
+                        }
+                        else
+                        {
+                            timeout = int.Parse(value, CultureInfo.InvariantCulture); // timeout in ms, or -1
+                            if (timeout == 0 || timeout < -1)
                             {
                                 throw new FormatException(
-                                    $"invalid value '{value}' for parameter -z in endpoint '{endpoint}'");
+                                    $"invalid value for t parameter in endpoint '{endpoint}'");
                             }
-                            compress = true;
-                            continue; // loop back
+                        }
+                        continue;
 
-                        default:
-                            throw new FormatException($"unknown parameter '{name}' in endpoint '{endpoint}'");
-                    }
-                }
-
-                // With Ice1, "tcp" is always non-secure and "ssl" is always secure so tls is never null.
-                tls = endpoint.Transport == TransportNames.Ssl;
-            }
-            else
-            {
-                foreach ((string name, string value) in endpoint.Params)
-                {
-                    if (name == "tls")
-                    {
+                    case "tls":
                         if (tls != null)
                         {
                             throw new FormatException($"multiple tls parameters in endpoint '{endpoint}'");
@@ -170,11 +137,23 @@ namespace IceRpc.Transports.Internal
                         {
                             throw new FormatException($"invalid value for tls parameter in endpoint '{endpoint}'", ex);
                         }
-                    }
-                    else
-                    {
+                        continue;
+
+                    case "z":
+                        if (compress)
+                        {
+                            throw new FormatException($"multiple z parameters in endpoint '{endpoint}'");
+                        }
+                        if (value != "true")
+                        {
+                            throw new FormatException(
+                                $"invalid value '{value}' for parameter z in endpoint '{endpoint}'");
+                        }
+                        compress = true;
+                        continue;
+
+                    default:
                         throw new FormatException($"unknown parameter '{name}' in endpoint '{endpoint}'");
-                    }
                 }
             }
 
@@ -183,11 +162,6 @@ namespace IceRpc.Transports.Internal
 
         internal static (bool Compress, int Ttl, string? MulticastInterface) ParseUdpParams(this Endpoint endpoint)
         {
-            if (endpoint.Protocol != Protocol.Ice1)
-            {
-                throw new FormatException($"endpoint '{endpoint}': protocol/transport mismatch");
-            }
-
             bool compress = false;
             int ttl = -1;
             string? multicastInterface = null;
@@ -196,29 +170,29 @@ namespace IceRpc.Transports.Internal
             {
                 switch (name)
                 {
-                    case "-z":
+                    case "z":
                         if (compress)
                         {
-                            throw new FormatException($"multiple -z parameters in endpoint '{endpoint}'");
+                            throw new FormatException($"multiple z parameters in endpoint '{endpoint}'");
                         }
-                        if (value.Length > 0)
+                        if (value != "true")
                         {
                             throw new FormatException(
-                                $"invalid value '{value}' for parameter -z in endpoint '{endpoint}'");
+                                $"invalid value '{value}' for parameter z in endpoint '{endpoint}'");
                         }
                         compress = true;
                         break;
 
-                    case "--ttl":
+                    case "ttl":
                         if (ttl >= 0)
                         {
-                            throw new FormatException($"multiple --ttl parameters in endpoint '{endpoint}'");
+                            throw new FormatException($"multiple ttl parameters in endpoint '{endpoint}'");
                         }
 
                         if (value.Length == 0)
                         {
                             throw new FormatException(
-                                $"no value provided for --ttl parameter in endpoint '{endpoint}'");
+                                $"no value provided for ttl parameter in endpoint '{endpoint}'");
                         }
                         try
                         {
@@ -236,20 +210,20 @@ namespace IceRpc.Transports.Internal
                         }
                         break;
 
-                    case "--interface":
+                    case "interface":
                         if (multicastInterface != null)
                         {
-                            throw new FormatException($"multiple --interface parameters in endpoint '{endpoint}'");
+                            throw new FormatException($"multiple interface parameters in endpoint '{endpoint}'");
                         }
                         if (value.Length == 0)
                         {
                             throw new FormatException(
-                                $"no value provided for --interface parameter in endpoint '{endpoint}'");
+                                $"no value provided for interface parameter in endpoint '{endpoint}'");
                         }
                         if (!IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress) ||
                             !UdpUtils.IsMulticast(ipAddress))
                         {
-                            throw new FormatException(@$"--interface parameter in endpoint '{endpoint
+                            throw new FormatException(@$"interface parameter in endpoint '{endpoint
                                 }' must be for a host with a multicast address");
                         }
                         multicastInterface = value;

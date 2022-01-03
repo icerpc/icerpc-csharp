@@ -9,8 +9,7 @@ namespace IceRpc.Internal
     /// <summary>This class provides extension methods for <see cref="Endpoint"/>.</summary>
     internal static class EndpointExtensions
     {
-        /// <summary>Appends the endpoint and all its parameters (if any) to this string builder. This method is never
-        /// called for ice1 endpoints.</summary>
+        /// <summary>Appends the endpoint and all its parameters (if any) to this string builder.</summary>
         /// <param name="sb">The string builder.</param>
         /// <param name="endpoint">The endpoint to append.</param>
         /// <param name="path">The path of the endpoint URI. Use this parameter to start building a proxy URI.</param>
@@ -25,8 +24,6 @@ namespace IceRpc.Internal
             bool includeScheme = true,
             char paramSeparator = '&')
         {
-            Debug.Assert(endpoint.Protocol != Protocol.Ice1); // we never generate URIs for the ice1 protocol
-
             if (includeScheme)
             {
                 sb.Append("ice+");
@@ -45,7 +42,7 @@ namespace IceRpc.Internal
                 sb.Append(endpoint.Host);
             }
 
-            if (endpoint.Port != IceUriParser.DefaultUriPort)
+            if (endpoint.Port != UriProxyFormat.DefaultUriPort)
             {
                 sb.Append(':');
                 sb.Append(endpoint.Port.ToString(CultureInfo.InvariantCulture));

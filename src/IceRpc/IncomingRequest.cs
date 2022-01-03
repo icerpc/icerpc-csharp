@@ -15,6 +15,9 @@ namespace IceRpc
         /// on the server-side even though the invocation timeout is usually not infinite.</summary>
         public DateTime Deadline { get; init; }
 
+        /// <summary>The fragment of the target service.</summary>
+        public string Fragment { get; init; }
+
         /// <summary>When <c>true</c>, the operation is idempotent.</summary>
         public bool IsIdempotent { get; init; }
 
@@ -41,6 +44,7 @@ namespace IceRpc
         /// <summary>Constructs an incoming request.</summary>
         /// <param name="protocol">The <see cref="Protocol"/> used to send the request.</param>
         /// <param name="path">The path of the request.</param>
+        /// <param name="fragment">The fragment of the request.</param>
         /// <param name="operation">The operation of the request.</param>
         /// <param name="payload">The payload of the request.</param>
         /// <param name="payloadEncoding">The encoding of the payload.</param>
@@ -48,6 +52,7 @@ namespace IceRpc
         internal IncomingRequest(
             Protocol protocol,
             string path,
+            string fragment,
             string operation,
             PipeReader payload,
             Encoding payloadEncoding,
@@ -55,6 +60,7 @@ namespace IceRpc
             base(protocol, payload, payloadEncoding)
         {
             Path = path;
+            Fragment = fragment;
             Operation = operation;
             ResponseWriter = responseWriter;
         }

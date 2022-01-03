@@ -156,18 +156,15 @@ namespace IceRpc.Slice
                     case ReplyStatus.ObjectNotExistException:
                     case ReplyStatus.OperationNotExistException:
 
-                        var requestFailed = new Ice1RequestFailedExceptionData(ref this);
-
-                        if (requestFailed.IdentityAndFacet.OptionalFacet.Count > 1)
-                        {
-                            throw new InvalidDataException("received ice1 optionalFacet with too many elements");
-                        }
+                        var requestFailed = new RequestFailedExceptionData(ref this);
+                        requestFailed.Facet.CheckValue();
 
                         systemException = replyStatus == ReplyStatus.OperationNotExistException ?
                             new OperationNotFoundException() : new ServiceNotFoundException();
 
                         systemException.Origin = new RemoteExceptionOrigin(
-                            requestFailed.IdentityAndFacet.ToPath(),
+                            requestFailed.Identity.ToPath(),
+                            requestFailed.Facet.ToFragment(),
                             requestFailed.Operation);
                         break;
 

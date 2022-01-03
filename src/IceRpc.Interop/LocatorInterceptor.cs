@@ -53,8 +53,7 @@ namespace IceRpc
                     // Well-known proxy
                     try
                     {
-                        var identityAndFacet = IdentityAndFacet.FromPath(request.Path);
-                        location = new Location(identityAndFacet.Identity);
+                        location = new Location(Identity.FromPath(request.Path));
                     }
                     catch (FormatException)
                     {

@@ -44,7 +44,8 @@ namespace IceRpc.Tests.Internal
         {
             Task<Proxy?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel) =>
                 Task.FromResult<Proxy?>(
-                    location.AdapterId == "good" ? Proxy.Parse("dummy:tcp -h localhost -p 10000") : null);
+                    location.AdapterId == "good" ?
+                        Proxy.Parse("dummy:tcp -h localhost -p 10000", format: IceProxyFormat.Default) : null);
         }
     }
 }

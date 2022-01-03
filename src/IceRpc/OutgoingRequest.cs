@@ -29,6 +29,9 @@ namespace IceRpc
         /// expected to enforce this deadline.</remarks>
         public DateTime Deadline { get; set; } = DateTime.MaxValue;
 
+        /// <summary>The fragment of the target service.</summary>
+        public string Fragment { get; }
+
         /// <summary>When true, the operation is idempotent.</summary>
         public bool IsIdempotent { get; init; }
 
@@ -65,14 +68,15 @@ namespace IceRpc
         {
             AltEndpoints = proxy.AltEndpoints;
             Connection = proxy.Connection;
+            Fragment = proxy.Fragment;
 
             // We keep it to initialize it later
             InitialPayloadSink = (DelayedPipeWriterDecorator)PayloadSink;
 
             Endpoint = proxy.Endpoint;
-            Proxy = proxy;
-            Path = proxy.Path;
             Operation = operation;
+            Path = proxy.Path;
+            Proxy = proxy;
         }
     }
 }
