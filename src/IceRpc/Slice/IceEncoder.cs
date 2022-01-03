@@ -518,12 +518,18 @@ namespace IceRpc.Slice
 
         /// <summary>Allocates a new bit sequence in the underlying buffer(s) and returns a writer for this bit
         /// sequence.</summary>
-        /// <param name="bitSize">The minimum number of bits in the bit sequence.</param>
+        /// <param name="bitSequenceSize">The minimum number of bits in the bit sequence.</param>
         /// <returns>The bit sequence writer.</returns>
-        public BitSequenceWriter GetBitSequenceWriter(int bitSize)
+        public BitSequenceWriter GetBitSequenceWriter(int bitSequenceSize)
         {
-            Debug.Assert(bitSize > 0);
-            int remaining = (bitSize >> 3) + ((bitSize & 0x07) != 0 ? 1 : 0); // size in bytes
+            if (bitSequenceSize <= 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(bitSequenceSize),
+                    $"{nameof(bitSequenceSize)} must be greater than 0");
+            }
+
+            int remaining = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0); // size in bytes
 
             Span<byte> firstSpan = _bufferWriter.GetSpan();
             Span<byte> secondSpan = default;

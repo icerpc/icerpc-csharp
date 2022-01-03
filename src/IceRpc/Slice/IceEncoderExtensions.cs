@@ -39,15 +39,18 @@ namespace IceRpc.Slice
         {
             int count = v.Count();
             encoder.EncodeSize(count);
-            BitSequenceWriter bitSequenceWriter = encoder.GetBitSequenceWriter(count);
-            foreach ((TKey key, TValue value) in v)
+            if (count > 0)
             {
-                keyEncodeAction(ref encoder, key);
-
-                bitSequenceWriter.Write(value != null);
-                if (value != null)
+                BitSequenceWriter bitSequenceWriter = encoder.GetBitSequenceWriter(count);
+                foreach ((TKey key, TValue value) in v)
                 {
-                    valueEncodeAction(ref encoder, value);
+                    keyEncodeAction(ref encoder, key);
+
+                    bitSequenceWriter.Write(value != null);
+                    if (value != null)
+                    {
+                        valueEncodeAction(ref encoder, value);
+                    }
                 }
             }
         }
@@ -83,13 +86,16 @@ namespace IceRpc.Slice
         {
             int count = v.Count(); // potentially slow Linq Count()
             encoder.EncodeSize(count);
-            BitSequenceWriter bitSequenceWriter = encoder.GetBitSequenceWriter(count);
-            foreach (T item in v)
+            if (count > 0)
             {
-                bitSequenceWriter.Write(item != null);
-                if (item != null)
+                BitSequenceWriter bitSequenceWriter = encoder.GetBitSequenceWriter(count);
+                foreach (T item in v)
                 {
-                    encodeAction(ref encoder, item);
+                    bitSequenceWriter.Write(item != null);
+                    if (item != null)
+                    {
+                        encodeAction(ref encoder, item);
+                    }
                 }
             }
         }
