@@ -9,16 +9,16 @@ namespace IceRpc
     /// <summary>Protocol identifies the protocol used by IceRpc connections.</summary>
     public class Protocol : IEquatable<Protocol>
     {
-        /// <summary>The ice protocol supported by all Ice versions since Ice 1.0.</summary>
-        public static readonly Protocol Ice1 = Ice1Protocol.Instance;
+        /// <summary>The protocol supported by all Ice versions since Ice 1.0.</summary>
+        public static readonly Protocol Ice = IceProtocol.Instance;
 
-        /// <summary>The icerpc protocol introduced in IceRpc.</summary>
-        public static readonly Protocol Ice2 = Ice2Protocol.Instance;
+        /// <summary>The protocol introduced in IceRpc.</summary>
+        public static readonly Protocol IceRpc = IceRpcProtocol.Instance;
 
         /// <summary>The protocol code of this protocol.</summary>
         public ProtocolCode Code { get; }
 
-        /// <summary>The name of this protocol, for example "icerpc" for the Ice2 protocol.</summary>
+        /// <summary>The name of this protocol, for example "icerpc" for the IceRPC protocol.</summary>
         public string Name { get; }
 
         /// <summary>Returns the Ice encoding that this protocol uses for its headers. It's also used as the
@@ -31,8 +31,8 @@ namespace IceRpc
         /// <returns><c>true</c> if the protocol supports fields.</returns>
         internal virtual bool HasFieldSupport => false;
 
-        private protected const string Ice1Name = "ice";
-        private protected const string Ice2Name = "icerpc";
+        private protected const string IceName = "ice";
+        private protected const string IceRpcName = "icerpc";
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
         /// <param name="lhs">The left hand side operand.</param>
@@ -80,8 +80,8 @@ namespace IceRpc
         public static Protocol FromProtocolCode(ProtocolCode code) =>
             code switch
             {
-                ProtocolCode.Ice1 => Ice1,
-                ProtocolCode.Ice2 => Ice2,
+                ProtocolCode.Ice1 => Ice,
+                ProtocolCode.Ice2 => IceRpc,
                 _ => new Protocol(code, ((byte)code).ToString(CultureInfo.InvariantCulture))
             };
 
@@ -93,8 +93,8 @@ namespace IceRpc
         {
             return name switch
             {
-                Ice1Name => Ice1,
-                Ice2Name => Ice2,
+                IceName => Ice,
+                IceRpcName => IceRpc,
                 _ => Core(name)
             };
 

@@ -5,20 +5,20 @@ using IceRpc.Transports;
 
 namespace IceRpc.Internal
 {
-    /// <summary>The Ice1 protocol class.</summary>
-    internal sealed class Ice1Protocol : Protocol
+    /// <summary>The Ice protocol class.</summary>
+    internal sealed class IceProtocol : Protocol
     {
         /// <summary>The Ice1 protocol singleton.</summary>
-        internal static Ice1Protocol Instance { get; } = new();
+        internal static IceProtocol Instance { get; } = new();
         internal override IceEncoding? IceEncoding => Encoding.Ice11;
 
         internal override bool HasFieldSupport => false;
 
         internal IProtocolConnectionFactory<ISimpleNetworkConnection> ProtocolConnectionFactory { get; } =
-            new Ice1ProtocolConnectionFactory();
+            new IceProtocolConnectionFactory();
 
-        private Ice1Protocol()
-            : base(ProtocolCode.Ice1, Ice1Name)
+        private IceProtocol()
+            : base(ProtocolCode.Ice1, IceName)
         {
         }
     }

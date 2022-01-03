@@ -34,7 +34,7 @@ namespace IceRpc.Tests
                 });
 
             // The default protocol is Ice2
-            this.AddScoped(_ => Protocol.Ice2);
+            this.AddScoped(_ => Protocol.IceRpc);
 
             // Use coloc as the default transport.
             this.UseTransport("coloc");
@@ -128,7 +128,7 @@ namespace IceRpc.Tests
             if (transport == "udp")
             {
                 // Override the protocol to Ice1 for udp since it's the only supported protocol for this transport.
-                collection.UseProtocol(Protocol.Ice1.Code);
+                collection.UseProtocol(Protocol.Ice.Code);
             }
 
             collection.AddScoped(serviceProvider =>

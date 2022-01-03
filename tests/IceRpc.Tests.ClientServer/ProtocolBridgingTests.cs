@@ -160,7 +160,7 @@ namespace IceRpc.Tests.ClientServer
                     ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
                 FeatureCollection features = FeatureCollection.Empty;
 
-                if (incomingRequest.Protocol == Protocol.Ice2 && targetProtocol == Protocol.Ice2)
+                if (incomingRequest.Protocol == Protocol.IceRpc && targetProtocol == Protocol.IceRpc)
                 {
                     // The context is just another field, features remain empty
                     fields = incomingRequest.Fields;

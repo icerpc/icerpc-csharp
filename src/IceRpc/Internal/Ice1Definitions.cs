@@ -5,7 +5,7 @@ using System.Diagnostics;
 namespace IceRpc.Internal
 {
     // Definitions for the ice protocol.
-    internal static class Ice1Definitions
+    internal static class IceDefinitions
     {
         // The encoding of the header for ice frames. It is nominally 1.0, but in practice it is identical to 1.1
         // for the subset of the encoding used by the ice headers.

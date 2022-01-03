@@ -106,7 +106,7 @@ namespace IceRpc.Tests.Internal
                 .UseProtocol(protocol)
                 .BuildServiceProvider();
 
-            IListener listener = protocol == Protocol.Ice1.Code ?
+            IListener listener = protocol == Protocol.Ice.Code ?
                 serviceProvider.GetRequiredService<IListener<ISimpleNetworkConnection>>() :
                 serviceProvider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
 
@@ -567,9 +567,9 @@ namespace IceRpc.Tests.Internal
                 _serviceProvider = serviceCollection.BuildServiceProvider();
 
                 (ServerConnection, ClientConnection) =
-                    _serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice1 ?
-                        PerformAcceptAndConnectAsync(Ice1Protocol.Instance.ProtocolConnectionFactory).Result :
-                        PerformAcceptAndConnectAsync(Ice2Protocol.Instance.ProtocolConnectionFactory).Result;
+                    _serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ?
+                        PerformAcceptAndConnectAsync(IceProtocol.Instance.ProtocolConnectionFactory).Result :
+                        PerformAcceptAndConnectAsync(IceRpcProtocol.Instance.ProtocolConnectionFactory).Result;
 
                 // Don't use empty path because Ice1 doesn't accept it
                 ServicePrx = new ServicePrx(Proxy.FromConnection(ClientConnection, path: "/foo"));

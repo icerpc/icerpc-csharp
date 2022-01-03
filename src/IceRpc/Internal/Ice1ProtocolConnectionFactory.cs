@@ -6,7 +6,7 @@ using IceRpc.Transports.Internal;
 namespace IceRpc.Internal
 {
     /// <summary>Creates an ice protocol connection from a simple network connection.</summary>
-    internal class Ice1ProtocolConnectionFactory : IProtocolConnectionFactory<ISimpleNetworkConnection>
+    internal class IceProtocolConnectionFactory : IProtocolConnectionFactory<ISimpleNetworkConnection>
     {
         public async Task<IProtocolConnection> CreateProtocolConnectionAsync(
             ISimpleNetworkConnection networkConnection,
@@ -22,7 +22,7 @@ namespace IceRpc.Internal
                 incomingFrameMaxSize = Math.Min(incomingFrameMaxSize, UdpUtils.MaxPacketSize);
             }
 
-            var protocolConnection = new Ice1ProtocolConnection(networkConnection, incomingFrameMaxSize, isUdp);
+            var protocolConnection = new IceProtocolConnection(networkConnection, incomingFrameMaxSize, isUdp);
             try
             {
                 await protocolConnection.InitializeAsync(isServer, cancel).ConfigureAwait(false);

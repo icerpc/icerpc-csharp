@@ -209,12 +209,12 @@ namespace IceRpc
                             _protocolConnection == null &&
                             RemoteEndpoint != null);
 
-                        _stateTask = Protocol == Protocol.Ice1 ?
+                        _stateTask = Protocol == Protocol.Ice ?
                             PerformConnectAsync(SimpleClientTransport,
-                                                Ice1Protocol.Instance.ProtocolConnectionFactory,
+                                                IceProtocol.Instance.ProtocolConnectionFactory,
                                                 LogSimpleNetworkConnectionDecorator.Decorate) :
                             PerformConnectAsync(MultiplexedClientTransport,
-                                                Ice2Protocol.Instance.ProtocolConnectionFactory,
+                                                IceRpcProtocol.Instance.ProtocolConnectionFactory,
                                                 LogMultiplexedNetworkConnectionDecorator.Decorate);
 
                         Debug.Assert(_state == ConnectionState.Connecting);
@@ -601,7 +601,7 @@ namespace IceRpc
                     if (exception is OperationCanceledException)
                     {
                         // TODO: do we really need this protocol-dependent processing?
-                        if (Protocol == Protocol.Ice1)
+                        if (Protocol == Protocol.Ice)
                         {
                             exception = new DispatchException("dispatch canceled by peer");
                         }

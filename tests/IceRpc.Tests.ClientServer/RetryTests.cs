@@ -93,7 +93,7 @@ namespace IceRpc.Tests.ClientServer
 
             // With Ice1 the exception is not retryable, with Ice2 we can retry using the existing connection
             // because the exception uses the AfterDelay retry policy.
-            Assert.That(bidir.Proxy.Protocol, Is.EqualTo(Protocol.Ice2));
+            Assert.That(bidir.Proxy.Protocol, Is.EqualTo(Protocol.IceRpc));
             await bidir.AfterDelayAsync(2);
         }
 
@@ -527,7 +527,7 @@ namespace IceRpc.Tests.ClientServer
                 });
                 this.AddScoped(serviceProvider =>
                 {
-                    var proxy = Proxy.FromPath("/retry", serviceProvider.GetService<Protocol>() ?? Protocol.Ice2);
+                    var proxy = Proxy.FromPath("/retry", serviceProvider.GetService<Protocol>() ?? Protocol.IceRpc);
                     proxy.Endpoint = serviceProvider.GetRequiredService<Server>().Endpoint;
                     proxy.Invoker = serviceProvider.GetRequiredService<IInvoker>();
                     return proxy;

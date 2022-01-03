@@ -351,9 +351,9 @@ namespace IceRpc.Slice
                     string adapterId = DecodeString();
                     if (adapterId.Length > 0)
                     {
-                        if (protocol == Protocol.Ice1)
+                        if (protocol == Protocol.Ice)
                         {
-                            endpoint = new Endpoint(Protocol.Ice1,
+                            endpoint = new Endpoint(Protocol.Ice,
                                                     TransportNames.Loc,
                                                     host: adapterId,
                                                     port: 0,
@@ -381,11 +381,11 @@ namespace IceRpc.Slice
 
                 proxyData.Facet.CheckValue();
 
-                if (protocol == Protocol.Ice1)
+                if (protocol == Protocol.Ice)
                 {
                     try
                     {
-                        return new Proxy(identity.ToPath(), Protocol.Ice1)
+                        return new Proxy(identity.ToPath(), Protocol.Ice)
                         {
                             Encoding = IceRpc.Encoding.FromMajorMinor(
                                 proxyData.EncodingMajor,
@@ -454,7 +454,7 @@ namespace IceRpc.Slice
 
                 Protocol protocol = proxyData.Protocol != null ?
                     Protocol.FromProtocolCode(proxyData.Protocol.Value) :
-                    Protocol.Ice2;
+                    Protocol.IceRpc;
                 Endpoint? endpoint = proxyData.Endpoint is EndpointData data ? data.ToEndpoint() : null;
                 ImmutableList<Endpoint> altEndpoints =
                     proxyData.AltEndpoints?.Select(data => data.ToEndpoint()).ToImmutableList() ??
@@ -471,7 +471,7 @@ namespace IceRpc.Slice
 
                     Debug.Assert(proxyData.Fragment != null);
 
-                    if (endpoint == null && protocol != Protocol.Ice1)
+                    if (endpoint == null && protocol != Protocol.Ice)
                     {
                         proxy = Proxy.FromConnection(_connection!, proxyData.Path, _invoker);
                     }
@@ -770,7 +770,7 @@ namespace IceRpc.Slice
             {
                 long oldPos = _reader.Consumed;
 
-                if (protocol == Protocol.Ice1)
+                if (protocol == Protocol.Ice)
                 {
                     switch (transportCode)
                     {
@@ -796,7 +796,7 @@ namespace IceRpc.Slice
                             }
 
                             endpoint = new Endpoint(
-                                Protocol.Ice1,
+                                Protocol.Ice,
                                 TransportNames.Tcp,
                                 host,
                                 port,
@@ -815,7 +815,7 @@ namespace IceRpc.Slice
                                 ImmutableList<EndpointParam>.Empty;
 
                             endpoint = new Endpoint(
-                                Protocol.Ice1,
+                                Protocol.Ice,
                                 TransportNames.Udp,
                                 host,
                                 port,
@@ -856,7 +856,7 @@ namespace IceRpc.Slice
                                 new EndpointParam("v", Convert.ToBase64String(vSpan)));
 
                             endpoint = new Endpoint(
-                                Protocol.Ice1,
+                                Protocol.Ice,
                                 TransportNames.Opaque,
                                 host: "",
                                 port: 0,

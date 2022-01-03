@@ -258,7 +258,7 @@ namespace IceRpc.Slice
 
                     var proxyData = new ProxyData11(
                         Facet.FromFragment(proxy.Fragment),
-                        proxy.Protocol == Protocol.Ice1 && (proxy.Endpoint?.Transport == TransportNames.Udp) ?
+                        proxy.Protocol == Protocol.Ice && (proxy.Endpoint?.Transport == TransportNames.Udp) ?
                             InvocationMode.Datagram : InvocationMode.Twoway,
                         secure: false,
                         protocolMajor: (byte)proxy.Protocol.Code,
@@ -272,7 +272,7 @@ namespace IceRpc.Slice
                         EncodeSize(0); // 0 endpoints
                         EncodeString(""); // empty adapter ID
                     }
-                    else if (proxy.Protocol == Protocol.Ice1 && proxy.Endpoint.Transport == TransportNames.Loc)
+                    else if (proxy.Protocol == Protocol.Ice && proxy.Endpoint.Transport == TransportNames.Loc)
                     {
                         EncodeSize(0); // 0 endpoints
                         EncodeString(proxy.Endpoint.Host); // adapter ID unless well-known
@@ -313,7 +313,7 @@ namespace IceRpc.Slice
                     var proxyData = new ProxyData20(
                         proxy.Path,
                         proxy.Fragment,
-                        protocol: proxy.Protocol != Protocol.Ice2 ? proxy.Protocol.Code : null,
+                        protocol: proxy.Protocol != Protocol.IceRpc ? proxy.Protocol.Code : null,
                         encoding: proxy.Encoding == proxy.Protocol.IceEncoding ? null : proxy.Encoding.ToString(),
                         endpoint: proxy.Endpoint?.ToEndpointData(),
                         altEndpoints:

@@ -11,7 +11,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void EndpointCache_SetRemove()
         {
-            var proxy = Proxy.FromPath("/dummy", Protocol.Ice1);
+            var proxy = Proxy.FromPath("/dummy", Protocol.Ice);
 
             var endpointCacheImpl = new EndpointCache(10);
             IEndpointCache endpointCache = endpointCacheImpl;

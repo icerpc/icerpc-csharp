@@ -59,7 +59,7 @@ namespace IceRpc
             (ImmutableList<EndpointParam> endpointParams, Protocol? protocol, string? altEndpointValue, string? encoding) =
                 ParseQuery(uri.Query, uriString);
 
-            protocol ??= Protocol.Ice2;
+            protocol ??= Protocol.IceRpc;
 
             Endpoint? endpoint = null;
             ImmutableList<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
@@ -121,7 +121,7 @@ namespace IceRpc
                 // Use icerpc+transport scheme
                 sb.AppendEndpoint(proxy.Endpoint, proxy.Path);
 
-                firstOption = proxy.Endpoint.Protocol == Protocol.Ice2 && proxy.Endpoint.Params.Count == 0;
+                firstOption = proxy.Endpoint.Protocol == Protocol.IceRpc && proxy.Endpoint.Params.Count == 0;
             }
             else
             {
@@ -134,7 +134,7 @@ namespace IceRpc
             }
 
             // TODO: remove
-            if (proxy.Encoding != Ice2Definitions.Encoding)
+            if (proxy.Encoding != IceRpcDefinitions.Encoding)
             {
                 StartQueryOption(sb, ref firstOption);
                 sb.Append("encoding=");

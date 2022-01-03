@@ -105,7 +105,7 @@ namespace IceRpc.Tests.ClientServer
                           endpoint.Host == location &&
                           category == null) ||
                          (request.Endpoint == null &&
-                          request.Protocol == Protocol.Ice1 &&
+                          request.Protocol == Protocol.Ice &&
                           category != null &&
                           request.Path == new Identity(location, category).ToPath())))
                     {

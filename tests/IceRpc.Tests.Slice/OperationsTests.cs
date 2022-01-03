@@ -87,7 +87,7 @@ namespace IceRpc.Tests.Slice
             var service = ServicePrx.Parse(proxy, format: format);
             ServicePrx result = await _prx.OpServiceAsync(service);
 
-            if (_prx.Proxy.Protocol == Protocol.Ice1 && actualIce1Proxy != null)
+            if (_prx.Proxy.Protocol == Protocol.Ice && actualIce1Proxy != null)
             {
                 var actual = ServicePrx.Parse(actualIce1Proxy, format: format);
                 Assert.AreEqual(actual, result);

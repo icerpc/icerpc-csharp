@@ -29,7 +29,7 @@ namespace IceRpc.Tests.Internal
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
             _eventSource.RequestStart(new IncomingRequest(
-                Protocol.Ice2,
+                Protocol.IceRpc,
                 path: "/service",
                 fragment: "",
                 operation: "ice_id",
@@ -55,7 +55,7 @@ namespace IceRpc.Tests.Internal
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
             _eventSource.RequestStop(new IncomingRequest(
-                Protocol.Ice2,
+                Protocol.IceRpc,
                 path: "/service",
                 fragment: "",
                 "ice_id",
@@ -81,7 +81,7 @@ namespace IceRpc.Tests.Internal
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
             _eventSource.RequestCanceled(new IncomingRequest(
-                Protocol.Ice2,
+                Protocol.IceRpc,
                 path: "/service",
                 fragment: "",
                 operation: "ice_id",
@@ -108,7 +108,7 @@ namespace IceRpc.Tests.Internal
 
             _eventSource.RequestFailed(
                 new IncomingRequest(
-                    Protocol.Ice2,
+                    Protocol.IceRpc,
                     path: "/service",
                     fragment: "",
                     operation: "ice_id",

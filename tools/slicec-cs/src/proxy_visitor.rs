@@ -173,7 +173,7 @@ fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
 /// <param name="protocol">The proxy protocol.</param>
 /// <returns>The new proxy.</returns>
 {access} static {prx_impl} FromPath(string path, IceRpc.Protocol? protocol = null) =>
-    new(IceRpc.Proxy.FromPath(path, protocol ?? IceRpc.Protocol.Ice2));
+    new(IceRpc.Proxy.FromPath(path, protocol ?? IceRpc.Protocol.IceRpc));
 
 /// <summary>Creates a new <see cref="{prx_impl}"/> from a string and invoker.</summary>
 /// <param name="s">The string representation of the proxy.</param>

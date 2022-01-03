@@ -110,16 +110,16 @@ namespace IceRpc
                     throw new ObjectDisposedException($"{typeof(Server)}:{this}");
                 }
 
-                if (Protocol == Protocol.Ice1)
+                if (Protocol == Protocol.Ice)
                 {
                     PerformListen(SimpleServerTransport,
-                                  Ice1Protocol.Instance.ProtocolConnectionFactory,
+                                  IceProtocol.Instance.ProtocolConnectionFactory,
                                   LogSimpleNetworkConnectionDecorator.Decorate);
                 }
                 else
                 {
                     PerformListen(MultiplexedServerTransport,
-                                  Ice2Protocol.Instance.ProtocolConnectionFactory,
+                                  IceRpcProtocol.Instance.ProtocolConnectionFactory,
                                   LogMultiplexedNetworkConnectionDecorator.Decorate);
                 }
             }

@@ -81,7 +81,7 @@ namespace IceRpc
             // Parsing the identity may throw FormatException.
             var identity = Identity.Parse(identityString);
             string facet = "";
-            Encoding encoding = Ice1Definitions.Encoding;
+            Encoding encoding = IceDefinitions.Encoding;
             Endpoint? endpoint = null;
             var altEndpoints = ImmutableList<Endpoint>.Empty;
 
@@ -243,7 +243,7 @@ namespace IceRpc
             if (beg == -1)
             {
                 // Well-known proxy
-                return new Proxy(identity.ToPath(), Protocol.Ice1)
+                return new Proxy(identity.ToPath(), Protocol.Ice)
                 {
                     Invoker = invoker,
                     Encoding = encoding,
@@ -328,7 +328,7 @@ namespace IceRpc
 
                 Debug.Assert(endpoint != null);
 
-                return new Proxy(identity.ToPath(), Protocol.Ice1)
+                return new Proxy(identity.ToPath(), Protocol.Ice)
                 {
                     Invoker = invoker,
                     Endpoint = endpoint,
@@ -380,13 +380,13 @@ namespace IceRpc
                     throw new FormatException($"empty adapter ID in proxy '{s}'");
                 }
 
-                endpoint = new Endpoint(Protocol.Ice1,
+                endpoint = new Endpoint(Protocol.Ice,
                                         TransportNames.Loc,
                                         host: adapterId,
                                         port: 0,
                                         ImmutableList<EndpointParam>.Empty);
 
-                return new Proxy(identity.ToPath(), Protocol.Ice1)
+                return new Proxy(identity.ToPath(), Protocol.Ice)
                 {
                     Invoker = invoker,
                     Endpoint = endpoint,
@@ -401,7 +401,7 @@ namespace IceRpc
         /// <inheritdoc/>
         public string ToString(Proxy proxy)
         {
-            if (proxy.Protocol != Protocol.Ice1)
+            if (proxy.Protocol != Protocol.Ice)
             {
                 throw new NotSupportedException($"{nameof(ToString)} supports only ice proxies");
             }
@@ -611,7 +611,7 @@ namespace IceRpc
             }
 
             return new Endpoint(
-                Protocol.Ice1,
+                Protocol.Ice,
                 transportName,
                 host ?? "",
                 port ?? 0,

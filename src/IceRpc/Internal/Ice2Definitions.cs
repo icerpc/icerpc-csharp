@@ -7,7 +7,7 @@ namespace IceRpc.Internal
 {
     // Definitions for the icerpc protocol.
 
-    internal static class Ice2Definitions
+    internal static class IceRpcDefinitions
     {
         internal static readonly Encoding Encoding = Encoding.Ice20;
 

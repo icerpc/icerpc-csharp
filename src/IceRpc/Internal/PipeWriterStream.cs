@@ -6,7 +6,7 @@ namespace IceRpc.Internal
 {
     /// <summary>Implements a write-only stream over an PipeWriter.</summary>
     /// <remarks>This is not a general-purpose Stream implementation. This stream is only called indirectly by
-    /// <see cref="Ice1ProtocolConnection"/> and <see cref="Ice2ProtocolConnection"/> when they copy the payload
+    /// <see cref="IceProtocolConnection"/> and <see cref="IceRpcProtocolConnection"/> when they copy the payload
     /// source of an outgoing frame to the payload sink of that frame.</remarks>
     internal class PipeWriterStream : Stream
     {

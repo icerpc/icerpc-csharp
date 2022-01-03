@@ -55,7 +55,7 @@ namespace IceRpc.Internal
 
             bool firstOption = true;
 
-            if (endpoint.Protocol != Protocol.Ice2)
+            if (endpoint.Protocol != Protocol.IceRpc)
             {
                 AppendQueryOption();
                 sb.Append("protocol=");

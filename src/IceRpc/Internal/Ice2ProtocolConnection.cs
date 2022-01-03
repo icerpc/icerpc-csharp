@@ -10,7 +10,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Internal
 {
-    internal sealed class Ice2ProtocolConnection : IProtocolConnection
+    internal sealed class IceRpcProtocolConnection : IProtocolConnection
     {
         /// <inheritdoc/>
         public bool HasDispatchesInProgress
@@ -149,13 +149,13 @@ namespace IceRpc.Internal
                 }
 
                 var request = new IncomingRequest(
-                    Protocol.Ice2,
+                    Protocol.IceRpc,
                     path: header.Path,
                     fragment: header.Fragment,
                     operation: header.Operation,
                     payload: reader,
                     payloadEncoding: header.PayloadEncoding.Length > 0 ?
-                        Encoding.FromString(header.PayloadEncoding) : Ice2Definitions.Encoding,
+                        Encoding.FromString(header.PayloadEncoding) : IceRpcDefinitions.Encoding,
                     responseWriter: stream.IsBidirectional ?
                         new MultiplexedStreamPipeWriter(stream) : InvalidPipeWriter.Instance)
                 {
@@ -265,11 +265,11 @@ namespace IceRpc.Internal
             }
 
             var response = new IncomingResponse(
-                Protocol.Ice2,
+                Protocol.IceRpc,
                 header.ResultType,
                 responseReader,
                 payloadEncoding: header.PayloadEncoding.Length > 0 ?
-                    Encoding.FromString(header.PayloadEncoding) : Ice2Definitions.Encoding)
+                    Encoding.FromString(header.PayloadEncoding) : IceRpcDefinitions.Encoding)
             {
                 Features = features,
                 Fields = fields,
@@ -362,7 +362,7 @@ namespace IceRpc.Internal
                     request.Operation,
                     request.IsIdempotent,
                     deadline,
-                    request.PayloadEncoding == Ice2Definitions.Encoding ? "" : request.PayloadEncoding.ToString());
+                    request.PayloadEncoding == IceRpcDefinitions.Encoding ? "" : request.PayloadEncoding.ToString());
 
                 header.Encode(ref encoder);
 
@@ -426,7 +426,7 @@ namespace IceRpc.Internal
 
                 new Ice2ResponseHeader(
                     response.ResultType,
-                    response.PayloadEncoding == Ice2Definitions.Encoding ? "" :
+                    response.PayloadEncoding == IceRpcDefinitions.Encoding ? "" :
                         response.PayloadEncoding.ToString()).Encode(ref encoder);
 
                 encoder.EncodeFields(response.Fields, response.FieldsDefaults);
@@ -488,7 +488,7 @@ namespace IceRpc.Internal
         }
 
         /// <inheritdoc/>
-        internal Ice2ProtocolConnection(IMultiplexedNetworkConnection networkConnection, int incomingFrameMaxSize)
+        internal IceRpcProtocolConnection(IMultiplexedNetworkConnection networkConnection, int incomingFrameMaxSize)
         {
             _networkConnection = networkConnection;
             _incomingFrameMaxSize = incomingFrameMaxSize;

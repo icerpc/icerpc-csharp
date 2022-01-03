@@ -28,7 +28,7 @@ namespace IceRpc
 
         async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            if (request.Connection == null && request.Protocol == Protocol.Ice1)
+            if (request.Connection == null && request.Protocol == Protocol.Ice)
             {
                 Location location = default;
                 bool refreshCache = false;

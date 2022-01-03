@@ -11,7 +11,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Internal
 {
-    internal sealed class Ice1ProtocolConnection : IProtocolConnection
+    internal sealed class IceProtocolConnection : IProtocolConnection
     {
         /// <inheritdoc/>
         public bool HasDispatchesInProgress
@@ -83,7 +83,7 @@ namespace IceRpc.Internal
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
             try
             {
-                await _networkConnection.WriteAsync(Ice1Definitions.ValidateConnectionFrame, cancel).ConfigureAwait(false);
+                await _networkConnection.WriteAsync(IceDefinitions.ValidateConnectionFrame, cancel).ConfigureAwait(false);
             }
             finally
             {
@@ -151,7 +151,7 @@ namespace IceRpc.Internal
                     EncodePayloadSize(payloadSize, payloadEncoding, buffer.Span[0..4]);
 
                     var request = new IncomingRequest(
-                        Protocol.Ice1,
+                        Protocol.Ice,
                         path: requestHeader.Identity.ToPath(),
                         fragment: requestHeader.Facet.ToFragment(),
                         operation: requestHeader.Operation,
@@ -265,7 +265,7 @@ namespace IceRpc.Internal
                 }
 
                 return new IncomingResponse(
-                    Protocol.Ice1,
+                    Protocol.Ice,
                     resultType,
                     new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
                     payloadEncoding)
@@ -343,7 +343,7 @@ namespace IceRpc.Internal
             }
             else if (request.Fields.Count > 0 || request.FieldsDefaults.Count > 0)
             {
-                throw new NotSupportedException($"{nameof(Protocol.Ice1)} doesn't support fields");
+                throw new NotSupportedException($"{nameof(Protocol.Ice)} doesn't support fields");
             }
             else if (_isUdp && !request.IsOneway)
             {
@@ -433,7 +433,7 @@ namespace IceRpc.Internal
                 var encoder = new IceEncoder(output, Encoding.Ice11);
 
                 // Write the Ice1 request header.
-                encoder.WriteByteSpan(Ice1Definitions.FramePrologue);
+                encoder.WriteByteSpan(IceDefinitions.FramePrologue);
                 encoder.EncodeIce1FrameType(Ice1FrameType.Request);
                 encoder.EncodeByte(0); // compression status
 
@@ -578,7 +578,7 @@ namespace IceRpc.Internal
 
                 // Write the response header.
 
-                encoder.WriteByteSpan(Ice1Definitions.FramePrologue);
+                encoder.WriteByteSpan(IceDefinitions.FramePrologue);
                 encoder.EncodeIce1FrameType(Ice1FrameType.Reply);
                 encoder.EncodeByte(0); // compression status
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
@@ -654,7 +654,7 @@ namespace IceRpc.Internal
 
                     // Send the CloseConnection frame once all the dispatches are done.
                     await _networkConnection.WriteAsync(
-                        Ice1Definitions.CloseConnectionFrame,
+                        IceDefinitions.CloseConnectionFrame,
                         CancellationToken.None).ConfigureAwait(false);
                 }
 
@@ -665,7 +665,7 @@ namespace IceRpc.Internal
             }
         }
 
-        internal Ice1ProtocolConnection(
+        internal IceProtocolConnection(
             ISimpleNetworkConnection simpleNetworkConnection,
             int incomingFrameMaxSize,
             bool isUdp)
@@ -683,18 +683,18 @@ namespace IceRpc.Internal
                 if (isServer)
                 {
                     await _networkConnection.WriteAsync(
-                        Ice1Definitions.ValidateConnectionFrame,
+                        IceDefinitions.ValidateConnectionFrame,
                         cancel).ConfigureAwait(false);
                 }
                 else
                 {
-                    Memory<byte> buffer = new byte[Ice1Definitions.HeaderSize];
+                    Memory<byte> buffer = new byte[IceDefinitions.HeaderSize];
                     await ReceiveUntilFullAsync(buffer, cancel).ConfigureAwait(false);
 
                     // Check the header
-                    Ice1Definitions.CheckHeader(buffer.Span[0..Ice1Definitions.HeaderSize]);
+                    IceDefinitions.CheckHeader(buffer.Span[0..IceDefinitions.HeaderSize]);
                     int frameSize = Ice11Encoding.DecodeFixedLengthSize(buffer.AsReadOnlySpan().Slice(10, 4));
-                    if (frameSize != Ice1Definitions.HeaderSize)
+                    if (frameSize != IceDefinitions.HeaderSize)
                     {
                         throw new InvalidDataException($"received ice frame with only '{frameSize}' bytes");
                     }
@@ -831,7 +831,7 @@ namespace IceRpc.Internal
 
                         int received = await _networkConnection.ReadAsync(
                             memoryOwner.Memory, cancel).ConfigureAwait(false);
-                        if (received < Ice1Definitions.HeaderSize)
+                        if (received < IceDefinitions.HeaderSize)
                         {
                             // TODO: implement protocol logging with decorators
                             //_logger.LogReceivedInvalidDatagram(received);
@@ -843,13 +843,13 @@ namespace IceRpc.Internal
                     {
                         memoryOwner = _memoryPool.Rent(256);
                         await ReceiveUntilFullAsync(
-                            memoryOwner.Memory[0..Ice1Definitions.HeaderSize], cancel).ConfigureAwait(false);
+                            memoryOwner.Memory[0..IceDefinitions.HeaderSize], cancel).ConfigureAwait(false);
 
-                        buffer = memoryOwner.Memory[0..Ice1Definitions.HeaderSize];
+                        buffer = memoryOwner.Memory[0..IceDefinitions.HeaderSize];
                     }
 
                     // Check the header
-                    Ice1Definitions.CheckHeader(buffer.Span[0..Ice1Definitions.HeaderSize]);
+                    IceDefinitions.CheckHeader(buffer.Span[0..IceDefinitions.HeaderSize]);
                     int frameSize = Ice11Encoding.DecodeFixedLengthSize(buffer[10..14].Span);
                     if (_isUdp && frameSize != buffer.Length)
                     {
@@ -884,15 +884,15 @@ namespace IceRpc.Internal
                     if (_isUdp)
                     {
                         // Remove header
-                        buffer = buffer[Ice1Definitions.HeaderSize..];
+                        buffer = buffer[IceDefinitions.HeaderSize..];
                     }
-                    else if (frameSize == Ice1Definitions.HeaderSize)
+                    else if (frameSize == IceDefinitions.HeaderSize)
                     {
                         buffer = Memory<byte>.Empty;
                     }
                     else
                     {
-                        int remainingSize = frameSize - Ice1Definitions.HeaderSize;
+                        int remainingSize = frameSize - IceDefinitions.HeaderSize;
 
                         if (memoryOwner.Memory.Length < remainingSize)
                         {
