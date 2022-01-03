@@ -6,7 +6,7 @@ module IceRpc::Internal
     // These definitions help with the encoding of ice frames.
 
     /// Each ice frame has a type identified by this enumeration.
-    enum Ice1FrameType : byte
+    enum IceFrameType : byte
     {
         Request = 0,
         RequestBatch = 1,
@@ -49,7 +49,7 @@ module IceRpc::Internal
     /// - a request header (below)
     /// - a request payload, with encapsulationSize - 6 bytes
     [cs:readonly]
-    struct Ice1RequestHeader
+    struct IceRequestHeader
     {
         Slice::Internal::Identity identity;
         Slice::Internal::Facet facet;

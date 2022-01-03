@@ -5,15 +5,14 @@ module IceRpc::Internal
 {
     // These definitions help with the encoding of icerpc frames.
 
-    /// Each icerpc frame has a type identified by this enumeration.
-    // TODO: rename Ice2ControlFrameType
-    enum Ice2FrameType : byte
+    /// Each icerpc control frame has a type identified by this enumeration.
+    enum IceRpcControlFrameType : byte
     {
-        /// The initialize frame is sent by each side the Ice2 connection on connection establishment
-        /// to exchange Ice2 parameters.
+        /// The initialize frame is sent by each side the icerpc connection on connection establishment
+        /// to exchange icerpc parameters.
         Initialize = 0,
 
-        /// The ping frame is sent to keep alive the Ice2 connection.
+        /// The ping frame is sent to keep alive the icerpc connection.
         Ping = 5,
 
         /// The go away frame is sent to notify the peer that the connection is being shutdown. The shutdown initiator
@@ -27,7 +26,7 @@ module IceRpc::Internal
     }
 
     /// Keys of reserved icerpc connection parameters.
-    unchecked enum Ice2ParameterKey : int
+    unchecked enum IceRpcParameterKey : int
     {
         /// The incoming frame maximum size.
         IncomingFrameMaxSize = 0
@@ -38,7 +37,7 @@ module IceRpc::Internal
     /// - a request header (below)
     /// - a request payload
     [cs:readonly]
-    struct Ice2RequestHeader
+    struct IceRpcRequestHeader
     {
         string path;
         string fragment;
@@ -54,7 +53,7 @@ module IceRpc::Internal
     /// - a response header (below)
     /// - a response payload
     [cs:readonly]
-    struct Ice2ResponseHeader
+    struct IceRpcResponseHeader
     {
         ResultType resultType;
         string payloadEncoding; // empty equivalent to "2.0"
@@ -65,7 +64,7 @@ module IceRpc::Internal
     /// and to provide the stream IDs of the invocations being dispatched. Invocations with stream IDs superior to
     /// these stream IDs can safely be retried.
     [cs:readonly]
-    struct Ice2GoAwayBody
+    struct IceRpcGoAwayBody
     {
         varlong lastBidirectionalStreamId;
         varlong lastUnidirectionalStreamId;

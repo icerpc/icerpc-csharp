@@ -33,7 +33,7 @@ namespace IceRpc.Internal
                 {
                     Magic[0], Magic[1], Magic[2], Magic[3],
                     ProtocolBytes[0], ProtocolBytes[1], ProtocolBytes[2], ProtocolBytes[3],
-                    (byte)Ice1FrameType.CloseConnection,
+                    (byte)IceFrameType.CloseConnection,
                     0, // Compression status.
                     HeaderSize, 0, 0, 0 // Frame size.
                 }
@@ -52,7 +52,7 @@ namespace IceRpc.Internal
                 {
                     Magic[0], Magic[1], Magic[2], Magic[3],
                     ProtocolBytes[0], ProtocolBytes[1], ProtocolBytes[2], ProtocolBytes[3],
-                    (byte)Ice1FrameType.ValidateConnection,
+                    (byte)IceFrameType.ValidateConnection,
                     0, // Compression status.
                     HeaderSize, 0, 0, 0 // Frame size.
                 }
