@@ -40,7 +40,7 @@ namespace IceRpc.Configure
         /// <param name="absolutePrefix">The absolute prefix of the new router. It must start with a <c>/</c>.</param>
         public Router(string absolutePrefix)
         {
-            UriProxyFormat.CheckPath(absolutePrefix, nameof(absolutePrefix));
+            Proxy.CheckPath(absolutePrefix, nameof(absolutePrefix));
             absolutePrefix = NormalizePrefix(absolutePrefix);
             AbsolutePrefix = absolutePrefix.Length > 1 ? absolutePrefix : "";
         }
@@ -64,7 +64,7 @@ namespace IceRpc.Configure
                 throw new InvalidOperationException(
                     $"cannot call {nameof(Map)} after calling {nameof(IDispatcher.DispatchAsync)}");
             }
-            UriProxyFormat.CheckPath(path, nameof(path));
+            Proxy.CheckPath(path, nameof(path));
             _exactMatchRoutes[path] = dispatcher;
         }
 
@@ -93,7 +93,7 @@ namespace IceRpc.Configure
                 throw new InvalidOperationException(
                     $"cannot call {nameof(Mount)} after calling {nameof(IDispatcher.DispatchAsync)}");
             }
-            UriProxyFormat.CheckPath(prefix, nameof(prefix));
+            Proxy.CheckPath(prefix, nameof(prefix));
             prefix = NormalizePrefix(prefix);
             _prefixMatchRoutes[prefix] = dispatcher;
         }
@@ -106,7 +106,7 @@ namespace IceRpc.Configure
         /// <exception cref="ArgumentException">Thrown if prefix does not start with a <c>/</c>.</exception>
         public Router Route(string prefix, Action<Router> configure)
         {
-            UriProxyFormat.CheckPath(prefix, nameof(prefix));
+            Proxy.CheckPath(prefix, nameof(prefix));
             var subRouter = new Router($"{AbsolutePrefix}{prefix}");
             configure(subRouter);
             Mount(prefix, subRouter);

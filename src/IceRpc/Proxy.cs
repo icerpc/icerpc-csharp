@@ -1,10 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using IceRpc.Transports.Internal;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using System.Text;
 
 namespace IceRpc
 {
@@ -111,7 +109,14 @@ namespace IceRpc
             get => _fragment;
             set
             {
-                UriProxyFormat.CheckFragment(value, nameof(value));
+                if (!IsValid(value, "\"<>\\^`{|}"))
+                {
+                    throw new ArgumentException(
+                        @$"invalid fragment '{value
+                        }'; a valid fragment contains only unreserved characters, reserved characters or '%'",
+                        nameof(value));
+                }
+
                 _fragment = value;
             }
         }
@@ -298,15 +303,58 @@ namespace IceRpc
             return proxy;
         }
 
+        /// <summary>Makes sure path is valid.</summary>
+        /// <exception name="ArgumentException">Thrown if <paramref name="path"/> is not valid.</exception>
+        internal static void CheckPath(string path, string paramName)
+        {
+            if (!IsValidPath(path))
+            {
+                throw new ArgumentException(
+                    @$"invalid path '{path
+                    }'; a valid path starts with '/' and contains only unreserved characters, '%' or reserved characters other than '?' and '#'",
+                    paramName);
+            }
+        }
+
+        /// <summary>Checks if <paramref name="path"/> starts with <c>/</c> and contains only unreserved characters,
+        /// <c>%</c>, or reserved characters other than <c>?</c> and <c>#</c>.</summary>
+        /// <param name="path">The path to check.</param>
+        /// <returns>True if <paramref name="path"/> is a valid path; otherwise, false.</returns>
+        internal static bool IsValidPath(string path)
+        {
+            if (path.Length == 0 || path[0] != '/')
+            {
+                return false;
+            }
+
+            return IsValid(path, "\"<>#?\\^`{|}");
+        }
+
         /// <summary>Constructs a new proxy.</summary>
         /// <param name="path">The proxy path.</param>
         /// <param name="protocol">The proxy protocol.</param>
         internal Proxy(string path, Protocol protocol)
         {
             Protocol = protocol;
-            UriProxyFormat.CheckPath(path, nameof(path));
+            CheckPath(path, nameof(path));
             Path = path;
             Encoding = Protocol.IceEncoding ?? Encoding.Unknown;
+        }
+
+        private static bool IsValid(string s, string invalidChars)
+        {
+            // The printable ASCII character range is x20 (space) to x7E inclusive. Space is an invalid character in
+            // addition to the invalid characters in the invalidChars string.
+            foreach (char c in s)
+            {
+                if (c.CompareTo('\x20') <= 0 ||
+                    c.CompareTo('\x7F') >= 0 ||
+                    invalidChars.Contains(c, StringComparison.InvariantCulture))
+                {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 }

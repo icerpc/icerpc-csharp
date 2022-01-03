@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using System.Diagnostics;
 
 namespace IceRpc.Slice.Internal
@@ -17,7 +16,7 @@ namespace IceRpc.Slice.Internal
         /// <returns>A new Ice identity struct.</returns>
         internal static Identity FromPath(string path)
         {
-            UriProxyFormat.CheckPath(path, nameof(path));
+            Proxy.CheckPath(path, nameof(path));
             string workingPath = path[1..]; // removes leading /.
 
             int firstSlash = workingPath.IndexOf('/', StringComparison.Ordinal);
@@ -53,7 +52,7 @@ namespace IceRpc.Slice.Internal
                 $"/{Uri.EscapeDataString(Category)}/{Uri.EscapeDataString(Name)}" :
                 $"/{Uri.EscapeDataString(Name)}";
 
-            Debug.Assert(UriProxyFormat.IsValidPath(path));
+            Debug.Assert(Proxy.IsValidPath(path));
             return path;
         }
 
