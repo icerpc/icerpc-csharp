@@ -171,7 +171,7 @@ namespace IceRpc.Tests.Api
         [TestCase("icerpc+tcp://host.zeroc.com//identity?alt-endpoint=host2.zeroc.com:10000")]
         [TestCase("icerpc+tcp://[::1]:10000/identity?alt-endpoint=host1:10000,host2,host3,host4")]
         [TestCase("icerpc+tcp://[::1]:10000/identity?alt-endpoint=host1:10000&alt-endpoint=host2,host3&alt-endpoint=[::2]")]
-        [TestCase("ice:location//identity#facet", "/location//identity")]
+        [TestCase("icerpc:location//identity#facet", "/location//identity")]
         [TestCase("icerpc+tcp://host.zeroc.com//identity")]
         [TestCase("icerpc+tcp://host.zeroc.com/\x7f€$%/!#$'()*+,:;=@[] %2F", "/%7F%E2%82%AC$%25/!", "$'()*+,:;=@[]%20%2F")]
         [TestCase("icerpc+tcp://host.zeroc.com/identity#\x7f€$%/!#$'()*+,:;=@[] %2F", "/identity", "%7F%E2%82%AC$%25/!#$'()*+,:;=@[]%20%2F")]
@@ -186,7 +186,7 @@ namespace IceRpc.Tests.Api
         [TestCase("icerpc+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar")]
         [TestCase("icerpc+loc://mylocation.domain.com/foo/bar", "/foo/bar")]
         [TestCase("icerpc+coloc://host:10000")]
-        [TestCase("ice:tcp -p 10000")]
+        [TestCase("icerpc:tcp -p 10000")]
         // ice3 proxies
         [TestCase("icerpc+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&protocol=3")]
         [TestCase("icerpc+tcp://0.0.0.0/identity#facet")] // Any IPv4 in proxy endpoint (unusable but parses ok)
@@ -216,7 +216,7 @@ namespace IceRpc.Tests.Api
         /// <summary>Tests that parsing an invalid proxies fails with <see cref="FormatException"/>.</summary>
         /// <param name="str">The string to parse as a proxy.</param>
         [TestCase("ice + tcp://host.zeroc.com:foo")] // missing host
-        [TestCase("ice://host:1000/identity")] // host not allowed
+        [TestCase("icerpc://host:1000/identity")] // host not allowed
         [TestCase("icerpc+foo:/identity")] // missing host
         [TestCase("icerpc+tcp://host.zeroc.com//identity?protocol=ice5")] // invalid protocol
         [TestCase("icerpc+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&alt-endpoint=host2?transport=tcp$protocol=ice3")]

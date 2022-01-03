@@ -7,8 +7,7 @@ using System.Text;
 
 namespace IceRpc
 {
-    /// <summary>The default proxy format with ice and icerpc+transport URIs.</summary>
-    // TODO: switch to icerpc / icerpc+
+    /// <summary>The default proxy format with icerpc and icerpc+transport URIs.</summary>
     public class UriProxyFormat : IProxyFormat
     {
         /// <summary>The only instance of UriProxyFormat.</summary>
@@ -16,7 +15,7 @@ namespace IceRpc
 
         internal const ushort DefaultUriPort = 4062;
 
-        private const string IceColon = "ice:";
+        private const string IceRpcColon = "icerpc:";
         private const string IceRpcPlus = "icerpc+";
 
         private static readonly object _mutex = new();
@@ -26,17 +25,17 @@ namespace IceRpc
         {
             string uriString = s.Trim();
 
-            bool iceScheme = uriString.StartsWith(IceColon, StringComparison.Ordinal);
+            bool iceScheme = uriString.StartsWith(IceRpcColon, StringComparison.Ordinal);
 
             if (iceScheme)
             {
-                string body = uriString[IceColon.Length..]; // chop-off "ice:"
+                string body = uriString[IceRpcColon.Length..]; // chop-off "icerpc:"
                 if (body.StartsWith("//", StringComparison.Ordinal))
                 {
-                    throw new FormatException("the ice URI scheme does not support a host or port");
+                    throw new FormatException("the icerpc URI scheme does not support a host or port");
                 }
                 // Add empty authority for Uri's constructor.
-                uriString = body.StartsWith('/') ? $"{IceColon}//{body}" : $"{IceColon}///{body}";
+                uriString = body.StartsWith('/') ? $"{IceRpcColon}//{body}" : $"{IceRpcColon}///{body}";
 
                 TryAddScheme("ice");
             }
@@ -74,7 +73,7 @@ namespace IceRpc
                     foreach (string endpointStr in altEndpointValue.Split(','))
                     {
                         string altUriString = endpointStr;
-                        if (!altUriString.StartsWith(IceColon, StringComparison.Ordinal) &&
+                        if (!altUriString.StartsWith(IceRpcColon, StringComparison.Ordinal) &&
                             !altUriString.Contains("://", StringComparison.Ordinal))
                         {
                             altUriString = $"{uri.Scheme}://{altUriString}";
@@ -126,7 +125,7 @@ namespace IceRpc
             }
             else
             {
-                sb.Append("ice:"); // endpointless proxy
+                sb.Append(IceRpcColon); // endpointless proxy
                 sb.Append(proxy.Path);
 
                 StartQueryOption(sb, ref firstOption);
