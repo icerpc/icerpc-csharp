@@ -127,7 +127,7 @@ namespace IceRpc.Tests
         {
             if (transport == "udp")
             {
-                // Override the protocol to Ice1 for udp since it's the only supported protocol for this transport.
+                // Override the protocol to Ice for udp since it's the only supported protocol for this transport.
                 collection.UseProtocol(Protocol.Ice.Code);
             }
 

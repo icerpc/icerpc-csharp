@@ -3,7 +3,7 @@
 namespace IceRpc
 {
     /// <summary>This class contains event ID constants used for protocol logging.</summary>
-    // TODO: split into Ice1EventIds and IceRpcEventIds
+    // TODO: split into IceEventIds and IceRpcEventIds
     // The protocol-neutral event IDs are in ConnectionEventIds.
     public enum ProtocolEventIds
     {
@@ -15,11 +15,11 @@ namespace IceRpc
         /// <summary>A datagram message that exceeded the maximum datagram size was received.</summary>
         DatagramMaximumSizeExceeded,
         /// <summary>Received an ice close connection frame.</summary>
-        ReceivedIce1CloseConnectionFrame,
+        ReceivedIceCloseConnectionFrame,
         /// <summary>Received an ice request batch frame.</summary>
-        ReceivedIce1RequestBatchFrame,
+        ReceivedIceRequestBatchFrame,
         /// <summary>Received an ice validate connection frame.</summary>
-        ReceivedIce1ValidateConnectionFrame,
+        ReceivedIceValidateConnectionFrame,
         /// <summary>Received an icerpc go away frame.</summary>
         ReceivedGoAwayFrame,
         /// <summary>Received an icerpc initialize frame.</summary>
@@ -29,9 +29,9 @@ namespace IceRpc
         ReceivedInvalidDatagram,
 
         /// <summary>An ice validate connection frame was sent.</summary>
-        SentIce1ValidateConnectionFrame,
+        SentIceValidateConnectionFrame,
         /// <summary>An ice close connection frame was sent.</summary>
-        SentIce1CloseConnectionFrame,
+        SentIceCloseConnectionFrame,
         /// <summary>An icerpc go away frame was sent.</summary>
         SentGoAwayFrame,
         /// <summary>An icerpc initialize frame was sent.</summary>

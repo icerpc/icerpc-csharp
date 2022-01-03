@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 namespace IceRpc.Internal
 {
     /// <summary>This class contains the ILogger extension methods for logging protocol messages.</summary>
-    // TODO: split into Ice1LoggerExtensions and IceRpcLoggerExtensions.
+    // TODO: split into IceLoggerExtensions and IceRpcLoggerExtensions.
     internal static partial class ProtocolLoggerExtensions
     {
         [LoggerMessage(
@@ -30,11 +30,11 @@ namespace IceRpc.Internal
         internal static partial void LogDatagramSizeExceededIncomingFrameMaxSize(this ILogger logger, int size);
 
         [LoggerMessage(
-            EventId = (int)ProtocolEventIds.ReceivedIce1RequestBatchFrame,
-            EventName = nameof(ProtocolEventIds.ReceivedIce1RequestBatchFrame),
+            EventId = (int)ProtocolEventIds.ReceivedIceRequestBatchFrame,
+            EventName = nameof(ProtocolEventIds.ReceivedIceRequestBatchFrame),
             Level = LogLevel.Debug,
             Message = "received batch request (RequestCount={RequestCount})")]
-        internal static partial void LogReceivedIce1RequestBatchFrame(this ILogger logger, int requestCount);
+        internal static partial void LogReceivedIceRequestBatchFrame(this ILogger logger, int requestCount);
 
         [LoggerMessage(
             EventId = (int)ProtocolEventIds.ReceivedGoAwayFrame,
@@ -49,18 +49,18 @@ namespace IceRpc.Internal
             string reason);
 
         [LoggerMessage(
-            EventId = (int)ProtocolEventIds.ReceivedIce1CloseConnectionFrame,
-            EventName = nameof(ProtocolEventIds.ReceivedIce1CloseConnectionFrame),
+            EventId = (int)ProtocolEventIds.ReceivedIceCloseConnectionFrame,
+            EventName = nameof(ProtocolEventIds.ReceivedIceCloseConnectionFrame),
             Level = LogLevel.Debug,
             Message = "received close connection frame")]
-        internal static partial void LogReceivedIce1CloseConnectionFrame(this ILogger logger);
+        internal static partial void LogReceivedIceCloseConnectionFrame(this ILogger logger);
 
         [LoggerMessage(
-            EventId = (int)ProtocolEventIds.ReceivedIce1ValidateConnectionFrame,
-            EventName = nameof(ProtocolEventIds.ReceivedIce1ValidateConnectionFrame),
+            EventId = (int)ProtocolEventIds.ReceivedIceValidateConnectionFrame,
+            EventName = nameof(ProtocolEventIds.ReceivedIceValidateConnectionFrame),
             Level = LogLevel.Debug,
             Message = "received validate connection frame")]
-        internal static partial void LogReceivedIce1ValidateConnectionFrame(this ILogger logger);
+        internal static partial void LogReceivedIceValidateConnectionFrame(this ILogger logger);
 
         [LoggerMessage(
             EventId = (int)ProtocolEventIds.ReceivedInitializeFrame,
@@ -89,18 +89,18 @@ namespace IceRpc.Internal
             string reason);
 
         [LoggerMessage(
-            EventId = (int)ProtocolEventIds.SentIce1CloseConnectionFrame,
-            EventName = nameof(ProtocolEventIds.SentIce1CloseConnectionFrame),
+            EventId = (int)ProtocolEventIds.SentIceCloseConnectionFrame,
+            EventName = nameof(ProtocolEventIds.SentIceCloseConnectionFrame),
             Level = LogLevel.Debug,
             Message = "sent close connection frame (Reason={Reason})")]
-        internal static partial void LogSentIce1CloseConnectionFrame(this ILogger logger, string reason);
+        internal static partial void LogSentIceCloseConnectionFrame(this ILogger logger, string reason);
 
         [LoggerMessage(
-            EventId = (int)ProtocolEventIds.SentIce1ValidateConnectionFrame,
-            EventName = nameof(ProtocolEventIds.SentIce1ValidateConnectionFrame),
+            EventId = (int)ProtocolEventIds.SentIceValidateConnectionFrame,
+            EventName = nameof(ProtocolEventIds.SentIceValidateConnectionFrame),
             Level = LogLevel.Debug,
             Message = "sent validate connection frame")]
-        internal static partial void LogSentIce1ValidateConnectionFrame(this ILogger logger);
+        internal static partial void LogSentIceValidateConnectionFrame(this ILogger logger);
 
         [LoggerMessage(
             EventId = (int)ProtocolEventIds.SentInitializeFrame,

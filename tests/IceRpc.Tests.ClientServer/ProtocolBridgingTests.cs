@@ -167,7 +167,7 @@ namespace IceRpc.Tests.ClientServer
                 }
                 else
                 {
-                    // When Protocol or targetProtocol is Ice1, fields remains empty and we put only the request context
+                    // When Protocol or targetProtocol is Ice, fields remains empty and we put only the request context
                     // in the initial features of the new outgoing request
                     features = features.WithContext(incomingRequest.Features.GetContext());
                 }

@@ -165,7 +165,7 @@ namespace IceRpc.Internal
                         Deadline = DateTime.MaxValue
                     };
 
-                    request.Features = request.Features.With(new Ice1Request(requestId, outgoing: false));
+                    request.Features = request.Features.With(new IceRequest(requestId, outgoing: false));
                     if (requestHeader.Context.Count > 0)
                     {
                         request.Features = request.Features.WithContext(requestHeader.Context);
@@ -215,7 +215,7 @@ namespace IceRpc.Internal
             Debug.Assert(request.ResponseReader == null);
             Debug.Assert(!request.IsOneway);
 
-            Ice1Request? requestFeature = request.Features.Get<Ice1Request>();
+            IceRequest? requestFeature = request.Features.Get<IceRequest>();
             if (requestFeature == null || requestFeature.ResponseCompletionSource == null)
             {
                 throw new InvalidOperationException("unknown request");
@@ -323,7 +323,7 @@ namespace IceRpc.Internal
                 }
                 else
                 {
-                    // Ice1 system exception
+                    // Ice system exception
                     payloadSize = buffer.Length - 4; // includes reply status, excludes the payload size
                     payloadEncoding = Encoding.Slice11;
                     // buffer stays the same
@@ -369,7 +369,7 @@ namespace IceRpc.Internal
                         }
                         requestId = ++_nextRequestId;
                         _invocations[requestId] = request;
-                        request.Features = request.Features.With(new Ice1Request(requestId, outgoing: true));
+                        request.Features = request.Features.With(new IceRequest(requestId, outgoing: true));
                     }
                 }
                 catch
@@ -432,7 +432,7 @@ namespace IceRpc.Internal
             {
                 var encoder = new IceEncoder(output, Encoding.Slice11);
 
-                // Write the Ice1 request header.
+                // Write the Ice request header.
                 encoder.WriteByteSpan(IceDefinitions.FramePrologue);
                 encoder.EncodeIceFrameType(IceFrameType.Request);
                 encoder.EncodeByte(0); // compression status
@@ -803,7 +803,7 @@ namespace IceRpc.Internal
 
             foreach (OutgoingRequest request in invocations)
             {
-                request.Features.Get<Ice1Request>()!.ResponseCompletionSource!.TrySetException(exception);
+                request.Features.Get<IceRequest>()!.ResponseCompletionSource!.TrySetException(exception);
             }
         }
 
@@ -824,7 +824,7 @@ namespace IceRpc.Internal
 
                     Memory<byte> buffer;
 
-                    // Receive the Ice1 frame header.
+                    // Receive the Ice frame header.
                     if (_isUdp)
                     {
                         memoryOwner = _memoryPool.Rent(_incomingFrameMaxSize);
@@ -966,7 +966,7 @@ namespace IceRpc.Internal
                             int invokeNum = Slice11Encoding.DecodeFixedLengthSize(buffer.Span[0..4]);
 
                             // TODO: implement protocol logging with decorators
-                            // _logger.LogReceivedIce1RequestBatchFrame(invokeNum);
+                            // _logger.LogReceivedIceRequestBatchFrame(invokeNum);
 
                             if (invokeNum < 0)
                             {
@@ -985,7 +985,7 @@ namespace IceRpc.Internal
                             {
                                 if (_invocations.TryGetValue(requestId, out OutgoingRequest? request))
                                 {
-                                    request.Features.Get<Ice1Request>()!.ResponseCompletionSource!.SetResult(
+                                    request.Features.Get<IceRequest>()!.ResponseCompletionSource!.SetResult(
                                         (buffer, memoryOwner));
                                     memoryOwner = null; // otherwise memoryOwner is disposed immediately
                                 }
@@ -1006,7 +1006,7 @@ namespace IceRpc.Internal
                                     $"unexpected data for {nameof(IceFrameType.ValidateConnection)}");
                             }
                             // TODO: implement protocol logging with decorators
-                            // _logger.LogReceivedIce1ValidateConnectionFrame();
+                            // _logger.LogReceivedIceValidateConnectionFrame();
                             break;
                         }
 

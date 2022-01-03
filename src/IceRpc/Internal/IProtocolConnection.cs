@@ -2,7 +2,7 @@
 
 namespace IceRpc.Internal
 {
-    /// <summary>A protocol connection enables communication over a network connection using either the Ice1
+    /// <summary>A protocol connection enables communication over a network connection using either the Ice
     /// or IceRpc protocol.</summary>
     internal interface IProtocolConnection : IDisposable
     {

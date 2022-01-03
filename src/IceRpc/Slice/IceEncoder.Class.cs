@@ -23,7 +23,7 @@ namespace IceRpc.Slice
         {
             Debug.Assert(_classContext.Current.InstanceType == InstanceType.None);
 
-            if (v.IsIce1SystemException())
+            if (v.IsIceSystemException())
             {
                 ReplyStatus replyStatus = v switch
                 {

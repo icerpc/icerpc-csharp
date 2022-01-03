@@ -377,8 +377,8 @@ namespace IceRpc.Tests.Internal
             {
                 await shutdownTask;
 
-                // With Ice1, when closing the connection with a pending invocation, invocations are canceled
-                // immediately. The Ice1 protocol doesn't support reliably waiting for the response.
+                // With Ice, when closing the connection with a pending invocation, invocations are canceled
+                // immediately. The Ice protocol doesn't support reliably waiting for the response.
                 Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
                 Assert.That(dispatchSemaphore.Release(), Is.EqualTo(0));
             }
@@ -505,7 +505,7 @@ namespace IceRpc.Tests.Internal
                 await factory.ClientConnection.ShutdownAsync();
                 if (protocol == ProtocolCode.Ice)
                 {
-                    // Invocations are canceled immediately on shutdown with Ice1
+                    // Invocations are canceled immediately on shutdown with Ice
                     Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
                 }
                 else
@@ -571,7 +571,7 @@ namespace IceRpc.Tests.Internal
                         PerformAcceptAndConnectAsync(IceProtocol.Instance.ProtocolConnectionFactory).Result :
                         PerformAcceptAndConnectAsync(IceRpcProtocol.Instance.ProtocolConnectionFactory).Result;
 
-                // Don't use empty path because Ice1 doesn't accept it
+                // Don't use empty path because Ice doesn't accept it
                 ServicePrx = new ServicePrx(Proxy.FromConnection(ClientConnection, path: "/foo"));
 
                 async Task<(Connection, Connection)> PerformAcceptAndConnectAsync<T>(
