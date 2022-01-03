@@ -7,11 +7,12 @@ namespace IceRpc
 {
     public readonly partial record struct Identity
     {
-        /// <summary>Creates an Identity from a URI path.</summary>
+        /// <summary>Creates an Ice identity from a URI path.</summary>
         /// <param name="path">A URI path.</param>
-        /// <exception cref="ArgumentException">path is not a valid path.</exception>
-        /// <exception cref="FormatException">path is a valid path but cannot be converted into an identity.</exception>
-        /// <returns>A new Identity struct.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="path"/> is not a valid path.</exception>
+        /// <exception cref="FormatException">Thrown when <paramref name="path"/> is a valid path but cannot be
+        /// converted into an identity.</exception>
+        /// <returns>A new Ice identity struct.</returns>
         public static Identity FromPath(string path)
         {
             var identity = Slice.Internal.Identity.FromPath(path);
@@ -20,7 +21,8 @@ namespace IceRpc
 
         /// <summary>Creates an Identity from a string in the ice1 format.</summary>
         /// <param name="s">A "stringified identity" in the ice1 format.</param>
-        /// <exception cref="FormatException">s is not in the correct format.</exception>
+        /// <exception cref="FormatException">Thrown when <paramref name="s"/> is not in the correct format.
+        /// </exception>
         /// <returns>A new Identity struct.</returns>
         public static Identity Parse(string s)
         {
@@ -95,7 +97,7 @@ namespace IceRpc
         /// <summary>Attempts to create an Identity from string in the ice1 format.</summary>
         /// <param name="s">A "stringified identity" in the ice1 format</param>
         /// <param name="identity">When this method succeeds, contains an Identity struct parsed from s.</param>
-        /// <returns>True if <c>s</c> was parsed successfully; otherwise, false.</returns>
+        /// <returns>True if <paramref name="s"/> was parsed successfully; otherwise, false.</returns>
         public static bool TryParse(string s, out Identity identity)
         {
             try

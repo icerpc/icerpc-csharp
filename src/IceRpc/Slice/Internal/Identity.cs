@@ -11,8 +11,9 @@ namespace IceRpc.Slice.Internal
 
         /// <summary>Creates an Ice identity from a URI path.</summary>
         /// <param name="path">A URI path.</param>
-        /// <exception cref="ArgumentException">path is not a valid path.</exception>
-        /// <exception cref="FormatException">path is a valid path but cannot be converted into an identity.</exception>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="path"/> is not a valid path.</exception>
+        /// <exception cref="FormatException">Thrown when <paramref name="path"/> is a valid path but cannot be
+        /// converted into an identity.</exception>
         /// <returns>A new Ice identity struct.</returns>
         internal static Identity FromPath(string path)
         {
