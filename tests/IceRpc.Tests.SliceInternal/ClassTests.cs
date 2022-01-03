@@ -7,7 +7,7 @@ using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
 
-using static IceRpc.Slice.Internal.Ice11Definitions;
+using static IceRpc.Slice.Internal.Slice11Definitions;
 
 namespace IceRpc.Tests.SliceInternal
 {

@@ -61,7 +61,7 @@ namespace IceRpc.Slice.Internal
 
             if (sizeLength == -1)
             {
-                sizeLength = Ice20Encoding.DecodeSizeLength(readResult.Buffer.FirstSpan[0]);
+                sizeLength = Slice20Encoding.DecodeSizeLength(readResult.Buffer.FirstSpan[0]);
                 if (sizeLength > readResult.Buffer.Length)
                 {
                     reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
@@ -126,7 +126,7 @@ namespace IceRpc.Slice.Internal
             }
             else
             {
-                Ice20Encoding.EncodeSize(size, into);
+                Slice20Encoding.EncodeSize(size, into);
             }
         }
     }

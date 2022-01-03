@@ -41,7 +41,7 @@ namespace IceRpc.Transports.Internal
             // header.
             int streamIdLength = IceEncoder.GetVarLongEncodedSize(stream.Id);
             bufferSize += streamIdLength;
-            int sizeLength = Ice20Encoding.GetSizeLength(bufferSize);
+            int sizeLength = Slice20Encoding.GetSizeLength(bufferSize);
 
             // Write the Slic frame header (frameType as a byte, frameSize as a varint, streamId as a
             // varulong). Since we might not need the full space reserved for the header, we modify the send
@@ -51,7 +51,7 @@ namespace IceRpc.Transports.Internal
             Memory<byte> headerData = MemoryMarshal.AsMemory(buffers.Span[0]);
             headerData = headerData[(SlicDefinitions.FrameHeader.Length - sizeLength - streamIdLength - 1)..];
             headerData.Span[0] = (byte)(endStream ? FrameType.StreamLast : FrameType.Stream);
-            Ice20Encoding.EncodeSize(bufferSize, headerData.Span.Slice(1, sizeLength));
+            Slice20Encoding.EncodeSize(bufferSize, headerData.Span.Slice(1, sizeLength));
             // TODO: is stream.Id a long or a ulong?
             IceEncoder.EncodeVarULong(
                 checked((ulong)stream.Id),

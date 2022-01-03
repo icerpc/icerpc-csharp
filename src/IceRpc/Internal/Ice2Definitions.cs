@@ -21,7 +21,7 @@ namespace IceRpc.Internal
             IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fieldsDefaults)
         {
             // can be larger than necessary, which is fine
-            int sizeLength = Ice20Encoding.GetSizeLength(fieldsDefaults.Count + (fields?.Count ?? 0));
+            int sizeLength = Slice20Encoding.GetSizeLength(fieldsDefaults.Count + (fields?.Count ?? 0));
 
             Span<byte> countPlaceholder = encoder.GetPlaceholderSpan(sizeLength);
 
@@ -37,7 +37,7 @@ namespace IceRpc.Internal
                     Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
                     int startPos = encoder.EncodedByteCount;
                     action(ref encoder);
-                    Ice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+                    Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
                     count++;
                 }
             }
@@ -52,7 +52,7 @@ namespace IceRpc.Internal
                 }
             }
 
-            Ice20Encoding.EncodeSize(count, countPlaceholder);
+            Slice20Encoding.EncodeSize(count, countPlaceholder);
         }
     }
 }

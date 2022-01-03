@@ -12,7 +12,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
-using static IceRpc.Slice.Internal.Ice11Definitions;
+using static IceRpc.Slice.Internal.Slice11Definitions;
 
 namespace IceRpc.Slice
 {

@@ -8,7 +8,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 
-using static IceRpc.Slice.Internal.Ice11Definitions;
+using static IceRpc.Slice.Internal.Slice11Definitions;
 
 namespace IceRpc.Slice
 {

@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 namespace IceRpc.Slice
 {
-    /// <summary>The base class for Ice encodings supported by this IceRPC runtime.</summary>
+    /// <summary>The base class for Slice encodings supported by this IceRPC runtime.</summary>
     public abstract class IceEncoding : Encoding
     {
         /// <summary>Returns a supported Ice encoding with the given name.</summary>

@@ -385,7 +385,7 @@ namespace IceRpc.Internal
                 encoder.EncodeFields(request.Fields, request.FieldsDefaults);
 
                 // We're done with the header encoding, write the header size.
-                Ice20Encoding.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
+                Slice20Encoding.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
             }
         }
 
@@ -432,7 +432,7 @@ namespace IceRpc.Internal
                 encoder.EncodeFields(response.Fields, response.FieldsDefaults);
 
                 // We're done with the header encoding, write the header size.
-                Ice20Encoding.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
+                Slice20Encoding.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
             }
         }
 
@@ -510,7 +510,7 @@ namespace IceRpc.Internal
                     Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
                     int startPos = encoder.EncodedByteCount;
                     encoder.EncodeVarULong((ulong)_incomingFrameMaxSize);
-                    Ice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+                    Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
                 },
                 cancel).ConfigureAwait(false);
 
@@ -592,14 +592,14 @@ namespace IceRpc.Internal
                 }
 
                 // Read the remainder of the size if needed.
-                int sizeLength = Ice20Encoding.DecodeSizeLength(buffer.Span[1]);
+                int sizeLength = Slice20Encoding.DecodeSizeLength(buffer.Span[1]);
                 if (sizeLength > 1)
                 {
                     await _remoteControlStream!.ReadUntilFullAsync(
                         buffer.Slice(2, sizeLength - 1), cancel).ConfigureAwait(false);
                 }
 
-                int frameSize = Ice20Encoding.DecodeSize(buffer[1..].AsReadOnlySpan()).Size;
+                int frameSize = Slice20Encoding.DecodeSize(buffer[1..].AsReadOnlySpan()).Size;
                 if (frameSize > _incomingFrameMaxSize)
                 {
                     throw new InvalidDataException(
@@ -654,7 +654,7 @@ namespace IceRpc.Internal
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4); // TODO: reduce bytes
                 int startPos = encoder.EncodedByteCount; // does not include the size
                 frameEncodeAction?.Invoke(ref encoder);
-                Ice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
+                Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
             }
         }
 
