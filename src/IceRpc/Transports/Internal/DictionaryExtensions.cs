@@ -12,7 +12,7 @@ namespace IceRpc.Transports.Internal
             this IDictionary<int, IList<byte>> parameters) =>
             parameters.Select(pair =>
                 ((ParameterKey)pair.Key,
-                 Encoding.Ice20.DecodeBuffer(
+                 Encoding.Slice20.DecodeBuffer(
                      pair.Value.ToArray(),
                      (ref IceDecoder decoder) => decoder.DecodeVarULong())));
     }

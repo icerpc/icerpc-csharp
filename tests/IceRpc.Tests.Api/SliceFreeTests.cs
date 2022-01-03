@@ -85,7 +85,7 @@ namespace IceRpc.Tests.Api
                 PipeReader.Create(payload));
 
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
-            Assert.That(response.PayloadEncoding, Is.EqualTo(Encoding.Ice20));
+            Assert.That(response.PayloadEncoding, Is.EqualTo(Encoding.Slice20));
             await response.Payload.CompleteAsync(); // done with payload
             // TODO: unfortunately there is currently no way to decode this response (2.0-encoded exception)
 

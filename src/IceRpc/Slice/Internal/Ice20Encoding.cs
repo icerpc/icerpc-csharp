@@ -47,7 +47,7 @@ namespace IceRpc.Slice.Internal
         internal static int GetSizeLength(int size) => IceEncoder.GetVarULongEncodedSize(checked((ulong)size));
 
         private Ice20Encoding()
-            : base(Ice20Name)
+            : base(Slice20Name)
         {
         }
     }

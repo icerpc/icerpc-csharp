@@ -11,7 +11,7 @@ namespace IceRpc.Internal
         /// <summary>The Ice2 protocol singleton.</summary>
         internal static IceRpcProtocol Instance { get; } = new();
 
-        internal override IceEncoding? IceEncoding => Encoding.Ice20;
+        internal override IceEncoding? IceEncoding => Encoding.Slice20;
 
         internal override bool HasFieldSupport => true;
 

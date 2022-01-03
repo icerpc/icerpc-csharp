@@ -6,27 +6,27 @@ using IceRpc.Slice.Internal;
 namespace IceRpc
 {
     /// <summary>Encoding identifies the format (a.k.a. encoding) used to encode data into bytes. With IceRPC, it is
-    /// usually the Ice 2.0 encoding named "2.0".</summary>
+    /// usually the Slice 2.0 encoding named "2.0".</summary>
     public class Encoding : IEquatable<Encoding>
     {
-        /// <summary>Version 1.0 of the Ice encoding, supported by Ice but not by IceRPC.</summary>
-        public static readonly Encoding Ice10 = new(Ice10Name);
+        /// <summary>Version 1.0 of the Slice encoding, supported by Ice but not by IceRPC.</summary>
+        public static readonly Encoding Slice10 = new(Slice10Name);
 
-        /// <summary>Version 1.1 of the Ice encoding, supported by IceRPC and Ice 3.5 or greater.</summary>
-        public static readonly IceEncoding Ice11 = Ice11Encoding.Instance;
+        /// <summary>Version 1.1 of the Slice encoding, supported by IceRPC and Ice 3.5 or greater.</summary>
+        public static readonly IceEncoding Slice11 = Ice11Encoding.Instance;
 
-        /// <summary>Version 2.0 of the Ice encoding, supported by IceRPC.</summary>
-        public static readonly IceEncoding Ice20 = Ice20Encoding.Instance;
+        /// <summary>Version 2.0 of the Slice encoding, supported by IceRPC.</summary>
+        public static readonly IceEncoding Slice20 = Ice20Encoding.Instance;
 
-        /// <summary>The name of this encoding, for example "2.0" for the Ice 2.0 encoding.</summary>
+        /// <summary>The name of this encoding, for example "2.0" for the Slice 2.0 encoding.</summary>
         public string Name { get; }
 
         /// <summary>An unknown encoding, used as the default payload encoding for unsupported protocols.</summary>
         internal static readonly Encoding Unknown = new(UnknownName);
 
-        private protected const string Ice11Name = "1.1";
-        private protected const string Ice20Name = "2.0";
-        private const string Ice10Name = "1.0";
+        private protected const string Slice11Name = "1.1";
+        private protected const string Slice20Name = "2.0";
+        private const string Slice10Name = "1.0";
         private const string UnknownName = "unknown";
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
@@ -55,14 +55,14 @@ namespace IceRpc
 
         /// <summary>Returns an Encoding with the given name. This method always succeeds.</summary>
         /// <param name="name">The name of the encoding.</param>
-        /// <returns>One of the well-known Encoding instance (Ice11, Ice20 etc.) when the name matches; otherwise, a new
-        /// Encoding instance.</returns>
+        /// <returns>One of the well-known Encoding instance (Slice11, Slice20 etc.) when the name matches; otherwise, a
+        /// new Encoding instance.</returns>
         public static Encoding FromString(string name) =>
             name switch
             {
-                Ice10Name => Ice10,
-                Ice11Name => Ice11,
-                Ice20Name => Ice20,
+                Slice10Name => Slice10,
+                Slice11Name => Slice11,
+                Slice20Name => Slice20,
                 UnknownName => Unknown,
                 _ => new Encoding(name)
             };
@@ -88,9 +88,9 @@ namespace IceRpc
         internal static Encoding FromMajorMinor(byte major, byte minor) =>
             (major, minor) switch
             {
-                (1, 0) => Ice10,
-                (1, 1) => Ice11,
-                (2, 0) => Ice20,
+                (1, 0) => Slice10,
+                (1, 1) => Slice11,
+                (2, 0) => Slice20,
                 _ => FromString($"{major}.{minor}")
             };
 
@@ -101,13 +101,13 @@ namespace IceRpc
         {
             switch (Name)
             {
-                case Ice10Name:
+                case Slice10Name:
                     return ((byte)1, (byte)0);
 
-                case Ice11Name:
+                case Slice11Name:
                     return ((byte)1, (byte)1);
 
-                case Ice20Name:
+                case Slice20Name:
                     return ((byte)2, (byte)0);
 
                 default:

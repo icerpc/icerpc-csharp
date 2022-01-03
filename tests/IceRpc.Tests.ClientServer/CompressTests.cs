@@ -33,7 +33,7 @@ namespace IceRpc.Tests.ClientServer
                         request.Protocol,
                         ResultType.Success,
                         PipeReader.Create(ReadOnlySequence<byte>.Empty),
-                        Encoding.Ice20)
+                        Encoding.Slice20)
                     {
                         Connection = connection, // without a connection, the decoding of response fails, even for void
                     });

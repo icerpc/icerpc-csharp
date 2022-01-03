@@ -13,7 +13,7 @@ namespace IceRpc.Slice.Internal
                 throw new InvalidDataException("received invalid negative size");
 
         private Ice11Encoding()
-            : base(Ice11Name)
+            : base(Slice11Name)
         {
         }
     }

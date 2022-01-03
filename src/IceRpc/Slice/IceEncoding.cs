@@ -16,8 +16,8 @@ namespace IceRpc.Slice
         public static new IceEncoding FromString(string name) =>
             name switch
             {
-                Ice11Name => Ice11,
-                Ice20Name => Ice20,
+                Slice11Name => Slice11,
+                Slice20Name => Slice20,
                 _ => throw new ArgumentException($"{name} is not the name of a supported Ice encoding", nameof(name))
             };
 

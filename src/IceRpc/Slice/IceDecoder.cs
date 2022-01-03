@@ -150,7 +150,7 @@ namespace IceRpc.Slice
             // The implementation does not use any internal or private property and therefore DecodeSize could be an
             // extension method. It's an instance method because it's considered fundamental.
 
-            if (Encoding == IceRpc.Encoding.Ice11)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 byte firstByte = DecodeByte();
                 if (firstByte < 255)
@@ -286,7 +286,7 @@ namespace IceRpc.Slice
         /// <returns>The remote exception.</returns>
         public RemoteException DecodeException()
         {
-            if (Encoding == IceRpc.Encoding.Ice11)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 return DecodeExceptionClass();
             }
@@ -319,7 +319,7 @@ namespace IceRpc.Slice
                 throw new InvalidOperationException("cannot decode a proxy from an decoder with a null Connection");
             }
 
-            if (Encoding == IceRpc.Encoding.Ice11)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 var identity = new Identity(ref this);
                 if (identity.Name.Length == 0) // null proxy
@@ -551,7 +551,7 @@ namespace IceRpc.Slice
         /// <remarks>When T is a value type, it should be a nullable value type such as int?.</remarks>
         public T DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<T> decodeFunc)
         {
-            if (Encoding == IceRpc.Encoding.Ice11)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 if (DecodeTaggedParamHeader(tag, tagFormat))
                 {
@@ -690,7 +690,7 @@ namespace IceRpc.Slice
         /// <returns>The size decoded by this decoder.</returns>
         internal int DecodeFixedLengthSize()
         {
-            if (Encoding == IceRpc.Encoding.Ice11)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 int size = DecodeInt();
                 if (size < 0)
@@ -719,7 +719,7 @@ namespace IceRpc.Slice
 
         internal void SkipSize()
         {
-            if (Encoding == IceRpc.Encoding.Ice11)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 byte b = DecodeByte();
                 if (b == 255)
@@ -738,7 +738,7 @@ namespace IceRpc.Slice
         /// <returns>The endpoint decoded by this decoder.</returns>
         private Endpoint DecodeEndpoint(Protocol protocol)
         {
-            Debug.Assert(Encoding == IceRpc.Encoding.Ice11);
+            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
 
             // The Ice 1.1 encoding of ice endpoints is transport-specific, and hard-coded here and in the
             // IceEncoder. The preferred and fallback encoding for new transports is TransportCode.Any, which uses an
@@ -766,7 +766,7 @@ namespace IceRpc.Slice
 
             var encoding = IceRpc.Encoding.FromMajorMinor(DecodeByte(), DecodeByte());
 
-            if (encoding == IceRpc.Encoding.Ice11 || encoding == IceRpc.Encoding.Ice10)
+            if (encoding == IceRpc.Encoding.Slice11 || encoding == IceRpc.Encoding.Slice10)
             {
                 long oldPos = _reader.Consumed;
 
@@ -895,7 +895,7 @@ namespace IceRpc.Slice
         /// <returns>True if the tagged parameter is present; otherwise, false.</returns>
         private bool DecodeTaggedParamHeader(int tag, TagFormat expectedFormat)
         {
-            Debug.Assert(Encoding == IceRpc.Encoding.Ice11);
+            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
 
             bool withTagEndMarker = false;
 
@@ -969,7 +969,7 @@ namespace IceRpc.Slice
         /// <summary>Skips the remaining tagged parameters, return value _or_ data members.</summary>
         private void SkipTaggedParams()
         {
-            if (Encoding == IceRpc.Encoding.Ice11)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 bool withTagEndMarker = _classContext.Current.InstanceType != InstanceType.None;
 
@@ -1015,7 +1015,7 @@ namespace IceRpc.Slice
 
         private void SkipTaggedValue(TagFormat format)
         {
-            Debug.Assert(Encoding == IceRpc.Encoding.Ice11);
+            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
 
             switch (format)
             {

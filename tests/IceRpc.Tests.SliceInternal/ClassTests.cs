@@ -64,7 +64,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeBefore(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new IceDecoder(data, Encoding.Ice11);
+                    var decoder = new IceDecoder(data, Encoding.Slice11);
 
                     // Skip payload size
                     decoder.Skip(4);
@@ -78,7 +78,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeAfter(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new IceDecoder(data, Encoding.Ice11);
+                    var decoder = new IceDecoder(data, Encoding.Slice11);
 
                     // Skip payload size
                     decoder.Skip(4);
@@ -108,7 +108,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeBefore(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new IceDecoder(data, Encoding.Ice11);
+                    var decoder = new IceDecoder(data, Encoding.Slice11);
 
                     // Skip payload size
                     decoder.Skip(4);
@@ -122,7 +122,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeAfter(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new IceDecoder(data, Encoding.Ice11);
+                    var decoder = new IceDecoder(data, Encoding.Slice11);
 
                     // Skip payload size
                     decoder.Skip(4);
@@ -152,7 +152,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeBefore(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new IceDecoder(data, Encoding.Ice11);
+                    var decoder = new IceDecoder(data, Encoding.Slice11);
 
                     // Skip payload size
                     decoder.Skip(4);
@@ -166,7 +166,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeAfter(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new IceDecoder(data, Encoding.Ice11);
+                    var decoder = new IceDecoder(data, Encoding.Slice11);
 
                     // Skip payload size
                     decoder.Skip(4);
@@ -196,7 +196,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeBefore(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new IceDecoder(data, Encoding.Ice11);
+                    var decoder = new IceDecoder(data, Encoding.Slice11);
 
                     // Skip payload size
                     decoder.Skip(4);
@@ -210,7 +210,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeAfter(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new IceDecoder(data, Encoding.Ice11);
+                    var decoder = new IceDecoder(data, Encoding.Slice11);
 
                     // Skip payload size
                     decoder.Skip(4);

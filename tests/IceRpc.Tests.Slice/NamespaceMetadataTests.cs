@@ -38,10 +38,10 @@ namespace IceRpc.Tests.Slice
             Assert.DoesNotThrowAsync(async () => await prx.GetNestedM0M2M3S2Async());
             Assert.ThrowsAsync<E1>(async () => await prx.ThrowWithNamespaceE1Async());
 
-            Assert.AreEqual(Encoding.Ice20, prx.Proxy.Encoding);
+            Assert.AreEqual(Encoding.Slice20, prx.Proxy.Encoding);
             Assert.ThrowsAsync<E1>(async () => await prx.ThrowWithNamespaceE2Async());
 
-            prx.Proxy.Encoding = Encoding.Ice11;
+            prx.Proxy.Encoding = Encoding.Slice11;
             Assert.ThrowsAsync<E2>(async () => await prx.ThrowWithNamespaceE2Async());
         }
     }

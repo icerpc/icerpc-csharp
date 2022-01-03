@@ -30,7 +30,7 @@ namespace IceRpc.Tests.Slice
                             {
                                 var response = new OutgoingResponse(request)
                                 {
-                                    PayloadSource = Encoding.Ice11.CreatePayloadFromSingleReturnValue(
+                                    PayloadSource = Encoding.Slice11.CreatePayloadFromSingleReturnValue(
                                         new MyClassAlsoEmpty(),
                                         (ref IceEncoder encoder, MyClassAlsoEmpty ae) => encoder.EncodeClass(ae))
                                 };
@@ -42,9 +42,9 @@ namespace IceRpc.Tests.Slice
 
             Connection connection = _serviceProvider.GetRequiredService<Connection>();
             _prx = ClassOperationsPrx.FromConnection(connection);
-            _prx.Proxy.Encoding = Encoding.Ice11; // TODO: should not be necessary
+            _prx.Proxy.Encoding = Encoding.Slice11; // TODO: should not be necessary
             _prxUnexpectedClass = ClassOperationsUnexpectedClassPrx.FromConnection(connection);
-            _prxUnexpectedClass.Proxy.Encoding = Encoding.Ice11;
+            _prxUnexpectedClass.Proxy.Encoding = Encoding.Slice11;
         }
 
         [OneTimeTearDown]
@@ -110,7 +110,7 @@ namespace IceRpc.Tests.Slice
             Assert.AreEqual("a3", d1!.A3!.Name);
             Assert.AreEqual("a4", d1!.A4!.Name);
 
-            if (_prx.Proxy.Encoding == Encoding.Ice11)
+            if (_prx.Proxy.Encoding == Encoding.Slice11)
             {
                 MyDerivedException? ex = Assert.ThrowsAsync<MyDerivedException>(
                     async () => await _prx.ThrowMyDerivedExceptionAsync());
@@ -119,7 +119,7 @@ namespace IceRpc.Tests.Slice
                 Assert.AreEqual("a3", ex!.A3!.Name);
                 Assert.AreEqual("a4", ex!.A4!.Name);
             }
-            else if (_prx.Proxy.Encoding == Encoding.Ice20)
+            else if (_prx.Proxy.Encoding == Encoding.Slice20)
             {
                 // The method throws an exception with classes that gets sliced to the first 2.0-encodable base class,
                 // RemoteException.

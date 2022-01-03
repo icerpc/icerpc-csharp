@@ -243,7 +243,7 @@ namespace IceRpc.Slice
         /// <param name="endpoint">The endpoint to encode.</param>
         private void EncodeEndpoint(Endpoint endpoint)
         {
-            Debug.Assert(Encoding == IceRpc.Encoding.Ice11);
+            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
 
             // The Ice 1.1 encoding of ice endpoints is transport-specific, and hard-coded here. The preferred and
             // fallback encoding for new transports is TransportCode.Any, which uses an EndpointData like Ice 2.0.
@@ -258,13 +258,13 @@ namespace IceRpc.Slice
                 this.EncodeTransportCode(transportCode);
                 EncodeInt(4 + 2 + bytes.Length); // encapsulation size includes size-length and 2 bytes for encoding
                 EncodeByte(1); // encoding version major
-                if (encoding == IceRpc.Encoding.Ice11)
+                if (encoding == IceRpc.Encoding.Slice11)
                 {
                     EncodeByte(1); // encoding version minor
                 }
                 else
                 {
-                    Debug.Assert(encoding == IceRpc.Encoding.Ice10);
+                    Debug.Assert(encoding == IceRpc.Encoding.Slice10);
                     EncodeByte(0); // encoding version minor
                 }
                 WriteByteSpan(bytes.Span);

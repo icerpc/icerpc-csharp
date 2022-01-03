@@ -100,7 +100,7 @@ namespace IceRpc.Internal
 
                 try
                 {
-                    ReadResult readResult = await reader.ReadSegmentAsync(Encoding.Ice20, cancel).ConfigureAwait(false);
+                    ReadResult readResult = await reader.ReadSegmentAsync(Encoding.Slice20, cancel).ConfigureAwait(false);
 
                     // At this point, nothing can call CancelPendingReads on this pipe reader.
                     Debug.Assert(!readResult.IsCanceled);
@@ -209,7 +209,7 @@ namespace IceRpc.Internal
                 static (IceRpcRequestHeader, IReadOnlyDictionary<int, ReadOnlyMemory<byte>>) DecodeHeader(
                     ReadOnlySequence<byte> buffer)
                 {
-                    var decoder = new IceDecoder(buffer, Encoding.Ice20);
+                    var decoder = new IceDecoder(buffer, Encoding.Slice20);
                     return (new IceRpcRequestHeader(ref decoder), decoder.DecodeFieldDictionary());
                 }
             }
@@ -231,7 +231,7 @@ namespace IceRpc.Internal
             try
             {
                 ReadResult readResult = await responseReader.ReadSegmentAsync(
-                    Encoding.Ice20,
+                    Encoding.Slice20,
                     cancel).ConfigureAwait(false);
 
                 // At this point, nothing can call CancelPendingReads on this pipe reader.
@@ -280,7 +280,7 @@ namespace IceRpc.Internal
             static (IceRpcResponseHeader, IReadOnlyDictionary<int, ReadOnlyMemory<byte>>) DecodeHeader(
                 ReadOnlySequence<byte> buffer)
             {
-                var decoder = new IceDecoder(buffer, Encoding.Ice20);
+                var decoder = new IceDecoder(buffer, Encoding.Slice20);
                 return (new IceRpcResponseHeader(ref decoder), decoder.DecodeFieldDictionary());
             }
         }
@@ -346,7 +346,7 @@ namespace IceRpc.Internal
 
             void EncodeHeader()
             {
-                var encoder = new IceEncoder(requestWriter, Encoding.Ice20);
+                var encoder = new IceEncoder(requestWriter, Encoding.Slice20);
 
                 // Write the Ice2 request header.
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
@@ -418,7 +418,7 @@ namespace IceRpc.Internal
 
             void EncodeHeader()
             {
-                var encoder = new IceEncoder(responseWriter, Encoding.Ice20);
+                var encoder = new IceEncoder(responseWriter, Encoding.Slice20);
 
                 // Write the Ice2 response header.
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
@@ -544,7 +544,7 @@ namespace IceRpc.Internal
 
             static int DecodePeerIncomingFrameMaxSize(ReadOnlyMemory<byte> buffer)
             {
-                var decoder = new IceDecoder(buffer, Encoding.Ice20);
+                var decoder = new IceDecoder(buffer, Encoding.Slice20);
                 int dictionarySize = decoder.DecodeSize();
 
                 for (int i = 0; i < dictionarySize; ++i)
@@ -649,7 +649,7 @@ namespace IceRpc.Internal
 
             void Encode(IBufferWriter<byte> bufferWriter)
             {
-                var encoder = new IceEncoder(bufferWriter, Encoding.Ice20);
+                var encoder = new IceEncoder(bufferWriter, Encoding.Slice20);
                 encoder.EncodeByte((byte)frameType);
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4); // TODO: reduce bytes
                 int startPos = encoder.EncodedByteCount; // does not include the size
@@ -838,7 +838,7 @@ namespace IceRpc.Internal
 
             IceRpcGoAwayBody DecodeIce2GoAwayBody(ReadOnlyMemory<byte> buffer)
             {
-                var decoder = new IceDecoder(buffer, Encoding.Ice20);
+                var decoder = new IceDecoder(buffer, Encoding.Slice20);
                 return new IceRpcGoAwayBody(ref decoder);
             }
 

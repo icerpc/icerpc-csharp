@@ -29,8 +29,8 @@ namespace IceRpc.Transports.Internal
                         }
                         encoding = value switch
                         {
-                            "1.0" => Encoding.Ice10,
-                            "1.1" => Encoding.Ice11,
+                            "1.0" => Encoding.Slice10,
+                            "1.1" => Encoding.Slice11,
                             _ => throw new FormatException($"invalid value for e parameter in endpoint '{endpoint}'")
                         };
                         break;
@@ -91,7 +91,7 @@ namespace IceRpc.Transports.Internal
                 throw new FormatException($"missing v parameter in endpoint '{endpoint}'");
             }
 
-            return (transportCode.Value, encoding ?? Encoding.Ice11, bytes);
+            return (transportCode.Value, encoding ?? Encoding.Slice11, bytes);
         }
 
         internal static (bool Compress, int Timeout, bool? Tls) ParseTcpParams(this Endpoint endpoint)

@@ -262,7 +262,7 @@ if ({invocation}?.RequestFeatures.Get<IceRpc.Features.CompressPayload>() == null
     }
 
     let payload_encoding = if sends_classes {
-        "IceRpc.Encoding.Ice11".to_owned()
+        "IceRpc.Encoding.Slice11".to_owned()
     } else {
         body.writeln("var payloadEncoding = Proxy.GetIceEncoding();");
         "payloadEncoding".to_owned()
@@ -491,7 +491,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         let body = if sends_classes {
             format!(
                 "\
-IceRpc.Encoding.Ice11.{name}(
+IceRpc.Encoding.Slice11.{name}(
     {args},
     {encode_action},
     {format})",

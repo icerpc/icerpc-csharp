@@ -9,7 +9,7 @@ namespace IceRpc.Internal
 
     internal static class IceRpcDefinitions
     {
-        internal static readonly Encoding Encoding = Encoding.Ice20;
+        internal static readonly Encoding Encoding = Encoding.Slice20;
 
         /// <summary>Encodes icerpc fields. Fields are encoded first, followed by the field defaults.</summary>
         /// <param name="encoder">This Ice encoder.</param>

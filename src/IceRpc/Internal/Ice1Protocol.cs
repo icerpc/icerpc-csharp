@@ -10,7 +10,7 @@ namespace IceRpc.Internal
     {
         /// <summary>The Ice1 protocol singleton.</summary>
         internal static IceProtocol Instance { get; } = new();
-        internal override IceEncoding? IceEncoding => Encoding.Ice11;
+        internal override IceEncoding? IceEncoding => Encoding.Slice11;
 
         internal override bool HasFieldSupport => false;
 

@@ -197,7 +197,7 @@ namespace IceRpc.Internal
 
             static IceRequestHeader DecodeHeader(ref Memory<byte> buffer)
             {
-                var decoder = new IceDecoder(buffer, Encoding.Ice11);
+                var decoder = new IceDecoder(buffer, Encoding.Slice11);
                 var requestHeader = new IceRequestHeader(ref decoder);
 
                 // The payload plus 4 bytes from the encapsulation header used to store the payload size encoded
@@ -283,7 +283,7 @@ namespace IceRpc.Internal
                 ref Memory<byte> buffer)
             {
                 // Decode the response.
-                var decoder = new IceDecoder(buffer, Encoding.Ice11);
+                var decoder = new IceDecoder(buffer, Encoding.Slice11);
 
                 // we keep 4 extra bytes in the response buffer to be able to write the payload size before an ice
                 // system exception
@@ -302,7 +302,7 @@ namespace IceRpc.Internal
                         encapsulationHeader.PayloadEncodingMajor,
                         encapsulationHeader.PayloadEncodingMinor);
 
-                    if (payloadEncoding == Encoding.Ice11 && replyStatus == ReplyStatus.UserException)
+                    if (payloadEncoding == Encoding.Slice11 && replyStatus == ReplyStatus.UserException)
                     {
                         buffer = buffer[((int)decoder.Consumed - 5)..];
 
@@ -325,7 +325,7 @@ namespace IceRpc.Internal
                 {
                     // Ice1 system exception
                     payloadSize = buffer.Length - 4; // includes reply status, excludes the payload size
-                    payloadEncoding = Encoding.Ice11;
+                    payloadEncoding = Encoding.Slice11;
                     // buffer stays the same
                 }
 
@@ -430,7 +430,7 @@ namespace IceRpc.Internal
 
             void EncodeHeader(AsyncCompletePipeWriter output, int payloadSize)
             {
-                var encoder = new IceEncoder(output, Encoding.Ice11);
+                var encoder = new IceEncoder(output, Encoding.Slice11);
 
                 // Write the Ice1 request header.
                 encoder.WriteByteSpan(IceDefinitions.FramePrologue);
@@ -509,7 +509,7 @@ namespace IceRpc.Internal
 
                         if (response.ResultType == ResultType.Failure)
                         {
-                            if (payloadEncoding == Encoding.Ice11)
+                            if (payloadEncoding == Encoding.Slice11)
                             {
                                 // extract reply status from 1.1-encoded payload
                                 ReadResult readResult = await response.PayloadSource.ReadAsync(
@@ -574,7 +574,7 @@ namespace IceRpc.Internal
 
             void EncodeHeader(IceEncoding payloadEncoding, int payloadSize, ReplyStatus replyStatus)
             {
-                var encoder = new IceEncoder(request.ResponseWriter, Encoding.Ice11);
+                var encoder = new IceEncoder(request.ResponseWriter, Encoding.Slice11);
 
                 // Write the response header.
 
@@ -758,11 +758,11 @@ namespace IceRpc.Internal
         {
             Debug.Assert(buffer.Length == 4);
 
-            if (payloadEncoding == Encoding.Ice11)
+            if (payloadEncoding == Encoding.Slice11)
             {
                 IceEncoder.EncodeInt(payloadSize, buffer);
             }
-            else if (payloadEncoding == Encoding.Ice20)
+            else if (payloadEncoding == Encoding.Slice20)
             {
                 Ice20Encoding.EncodeSize(payloadSize, buffer);
             }
