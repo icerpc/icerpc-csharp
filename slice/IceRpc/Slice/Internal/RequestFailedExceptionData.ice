@@ -8,8 +8,8 @@ module IceRpc::Slice::Internal
     [cs:readonly]
     struct RequestFailedExceptionData
     {
-        Identity identity;
-        Facet facet;
-        string operation;
+        identity: Identity,
+        facet: Facet,
+        operation: string,
     }
 }

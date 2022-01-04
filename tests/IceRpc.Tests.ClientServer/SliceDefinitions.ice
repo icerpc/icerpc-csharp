@@ -4,12 +4,12 @@ module IceRpc::Tests::ClientServer
 {
     interface Greeter
     {
-        void sayHello(string message);
+        sayHello(message: string);
     }
 
     interface StressTest
     {
-        void opSendByteSeq(sequence<byte> data);
-        sequence<byte> opReceiveByteSeq(int size);
+        opSendByteSeq(data: sequence<byte>);
+        opReceiveByteSeq(size: int) -> sequence<byte>;
     }
 }

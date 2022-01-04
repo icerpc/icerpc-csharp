@@ -9,13 +9,13 @@ module IceRpc
     [cs:readonly] struct RemoteExceptionOrigin
     {
         /// The path of the target service.
-        string path;
+        path: string,
 
         /// The fragment of the target service.
-        string fragment;
+        fragment: string,
 
         /// The operation name.
-        string operation;
+        operation: string,
     }
 
     /// The server could not find this service.

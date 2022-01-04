@@ -4,78 +4,78 @@ module IceRpc::Tests::Slice
 {
     class OneTagged
     {
-        tag(1) int? a;
+        a: tag(1) int?,
     }
 
     class MultiTagged
     {
-        tag(1) byte? mByte;
-        tag(2) bool? mBool;
-        tag(3) short? mShort;
-        tag(4) int? mInt;
-        tag(5) long? mLong;
-        tag(6) float? mFloat;
-        tag(7) double? mDouble;
-        tag(8) ushort? mUShort;
-        tag(9) uint? mUInt;
-        tag(10) ulong? mULong;
-        tag(11) varint? mVarInt;
-        tag(12) varlong? mVarLong;
-        tag(13) varuint? mVarUInt;
-        tag(14) varulong? mVarULong;
-        tag(15) string? mString;
+        mByte: tag(1) byte?,
+        mBool: tag(2) bool?,
+        mShort: tag(3) short?,
+        mInt: tag(4) int?,
+        mLong: tag(5) long?,
+        mFloat: tag(6) float?,
+        mDouble: tag(7) double?,
+        mUShort: tag(8) ushort?,
+        mUInt: tag(9) uint?,
+        mULong: tag(10) ulong?,
+        mVarInt: tag(11) varint?,
+        mVarLong: tag(12) varlong?,
+        mVarUInt: tag(13) varuint?,
+        mVarULong: tag(14) varulong?,
+        mString: tag(15) string?,
 
-        tag(20) MyEnum? mMyEnum;
-        tag(21) MyStruct? mMyStruct;
-        tag(22) AnotherStruct? mAnotherStruct;
+        mMyEnum: tag(20) MyEnum?,
+        mMyStruct: tag(21) MyStruct?,
+        mAnotherStruct: tag(22) AnotherStruct?,
 
-        tag(30) ByteSeq? mByteSeq;
-        tag(31) StringSeq? mStringSeq;
-        tag(32) ShortSeq? mShortSeq;
-        tag(33) MyEnumSeq? mMyEnumSeq;
-        tag(34) MyStructSeq? mMyStructSeq;
-        tag(35) AnotherStructSeq? mAnotherStructSeq;
+        mByteSeq: tag(30) ByteSeq?,
+        mStringSeq: tag(31) StringSeq?,
+        mShortSeq: tag(32) ShortSeq?,
+        mMyEnumSeq: tag(33) MyEnumSeq?,
+        mMyStructSeq: tag(34) MyStructSeq?,
+        mAnotherStructSeq: tag(35) AnotherStructSeq?,
 
-        tag(40) IntDict? mIntDict;
-        tag(41) StringDict? mStringDict;
-        tag(42) UShortSeq? mUShortSeq;
-        tag(43) VarULongSeq? mVarULongSeq;
-        tag(44) VarIntSeq? mVarIntSeq;
+        mIntDict: tag(40) IntDict?,
+        mStringDict: tag(41) StringDict?,
+        mUShortSeq: tag(42) UShortSeq?,
+        mVarULongSeq: tag(43) VarULongSeq?,
+        mVarIntSeq: tag(44) VarIntSeq?,
 
-        tag(50) ByteDict? mByteDict;
-        tag(51) MyStructDict? mMyStructDict;
-        tag(52) AnotherStructDict? mAnotherStructDict;
+        mByteDict: tag(50) ByteDict?,
+        mMyStructDict: tag(51) MyStructDict?,
+        mAnotherStructDict: tag(52) AnotherStructDict?,
     }
 
     class A
     {
-        int mInt1;
-        tag(1) int? mInt2;
-        tag(50) int? mInt3;
-        tag(500) int? mInt4;
+        mInt1: int,
+        mInt2: tag(1) int?,
+        mInt3: tag(50) int?,
+        mInt4: tag(500) int?,
     }
 
     [preserve-slice]
     class B : A
     {
-        int mInt5;
-        tag(10) int? mInt6;
+        mInt5: int,
+        mInt6: tag(10) int?,
     }
 
     class C : B
     {
-        string mString1;
-        tag(890) string? mString2;
+        mString1: string,
+        mString2: tag(890) string?,
     }
 
     class TaggedWithCustom
     {
-        tag(1) MyStructList? mMyStructList;
-        tag(2) AnotherStructList? mAnotherStructList;
+        mMyStructList: tag(1) MyStructList?,
+        mAnotherStructList: tag(2) AnotherStructList?,
     }
 
     interface ClassTag
     {
-        AnyClass pingPong(AnyClass o);
+        pingPong(o: AnyClass) -> AnyClass;
     }
 }

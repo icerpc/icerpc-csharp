@@ -2,31 +2,30 @@
 
 module IceRpc::Tests::ClientServer
 {
-
     exception ProtocolBridgingException
     {
-        int number;
+        number: int,
     }
 
     interface ProtocolBridgingTest
     {
         // Simple operations
-        int op(int x);
-        void opVoid();
+        op(x: int) -> int;
+        opVoid();
 
         // Oneway operation
-        [oneway] void opOneway(int x);
+        [oneway] opOneway(x: int);
 
         // Operation that throws remote exception
-        void opException();
+        opException();
 
         // Operation that throws ServiceNotFoundException (one of the special ice1 system exceptions)
-        void opServiceNotFoundException();
+        opServiceNotFoundException();
 
         // Check the context is correctly forwarded
-        void opContext();
+        opContext();
 
         // Operation that returns a new proxy
-        ProtocolBridgingTest opNewProxy();
+        opNewProxy() -> ProtocolBridgingTest;
     }
 }

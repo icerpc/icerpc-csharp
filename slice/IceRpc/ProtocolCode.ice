@@ -8,6 +8,6 @@ module IceRpc
         /// The ice1 protocol supported by all Ice versions since Ice 1.0.
         Ice1 = 1,
         /// The ice2 protocol introduced in IceRpc.
-        Ice2 = 2
+        Ice2 = 2,
     }
 }

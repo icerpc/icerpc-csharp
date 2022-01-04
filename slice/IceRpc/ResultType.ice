@@ -9,6 +9,6 @@ module IceRpc
         Success = 0,
 
         /// The request failed.
-        Failure = 1
+        Failure = 1,
     }
 }

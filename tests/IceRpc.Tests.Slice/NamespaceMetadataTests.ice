@@ -7,28 +7,28 @@ module WithNamespace
     {
         struct S1
         {
-            int i;
+            i: int,
         }
     }
 
     class C1
     {
-        int i;
+        i: int,
     }
 
     class C2 : C1
     {
-        long l;
+        l: long,
     }
 
     exception E1
     {
-        int i;
+        i: int,
     }
 
     exception E2 : E1
     {
-        long l;
+        l: long,
     }
 }
 
@@ -40,7 +40,7 @@ module M0
     {
         struct S2
         {
-            int i;
+            i: int,
         }
     }
 }
@@ -49,11 +49,11 @@ module IceRpc::Tests::Slice
 {
     interface NamespaceMDOperations
     {
-        WithNamespace::C1 getWithNamespaceC2AsC1();
-        WithNamespace::C2 getWithNamespaceC2AsC2();
-        WithNamespace::N1::N2::S1 getWithNamespaceN1N2S1();
-        M0::M2::M3::S2 getNestedM0M2M3S2();
-        void throwWithNamespaceE1();
-        void throwWithNamespaceE2();
+        getWithNamespaceC2AsC1() -> WithNamespace::C1;
+        getWithNamespaceC2AsC2() -> WithNamespace::C2;
+        getWithNamespaceN1N2S1() -> WithNamespace::N1::N2::S1;
+        getNestedM0M2M3S2() -> M0::M2::M3::S2;
+        throwWithNamespaceE1();
+        throwWithNamespaceE2();
     }
 }

@@ -30,7 +30,7 @@ module IceRpc::Internal
     unchecked enum Ice2ParameterKey : int
     {
         /// The incoming frame maximum size.
-        IncomingFrameMaxSize = 0
+        IncomingFrameMaxSize = 0,
     }
 
     /// Each ice2 request frame consists of:
@@ -40,13 +40,13 @@ module IceRpc::Internal
     [cs:readonly]
     struct Ice2RequestHeader
     {
-        string path;
-        string fragment;
-        string operation;
-        bool \idempotent;
-        varlong deadline;
-        string payloadEncoding; // empty equivalent to "2.0"
-        // Fields fields; (encoded/decoded manually for now)
+        path: string,
+        fragment: string,
+        operation: string,
+        \idempotent: bool,
+        deadline: varlong,
+        payloadEncoding: string, // empty equivalent to "2.0"
+        // fields: Fields, (encoded/decoded manually for now)
     }
 
     /// Each ice2 response frame consists of:
@@ -56,9 +56,9 @@ module IceRpc::Internal
     [cs:readonly]
     struct Ice2ResponseHeader
     {
-        ResultType resultType;
-        string payloadEncoding; // empty equivalent to "2.0"
-        // Fields fields; (encoded/decoded manually for now)
+        resultType: ResultType,
+        payloadEncoding: string, // empty equivalent to "2.0"
+        // fields: Fields, (encoded/decoded manually for now)
     }
 
     /// The go away frame is sent on connection shutdown to notify the peer that it shouldn't perform new invocations
@@ -67,8 +67,8 @@ module IceRpc::Internal
     [cs:readonly]
     struct Ice2GoAwayBody
     {
-        varlong lastBidirectionalStreamId;
-        varlong lastUnidirectionalStreamId;
-        string message;
+        lastBidirectionalStreamId: varlong,
+        lastUnidirectionalStreamId: varlong,
+        message: string,
     }
 }
