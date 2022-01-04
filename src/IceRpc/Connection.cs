@@ -41,7 +41,7 @@ namespace IceRpc
         internal ClosedEventArgs(Exception exception) => Exception = exception;
     }
 
-    /// <summary>Represents a connection used to send and receive Ice frames.</summary>
+    /// <summary>Represents a connection used to send and receive requests and responses.</summary>
     public sealed class Connection : IAsyncDisposable
     {
         /// <summary>The default value for <see cref="MultiplexedClientTransport"/>.</summary>
@@ -370,14 +370,14 @@ namespace IceRpc
 
         /// <summary>Gracefully shuts down of the connection. If ShutdownAsync is canceled, dispatch and invocations are
         /// canceled. Shutdown cancellation can lead to a speedier shutdown if dispatch are cancelable.</summary>
-        /// <param name="message">The message transmitted to the peer (when using the IceRpc protocol).</param>
+        /// <param name="message">The message transmitted to the peer (when using the IceRPC protocol).</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public async Task ShutdownAsync(string message, CancellationToken cancel = default)
         {
-            // TODO: should we keep this IceRpc-only feature to transmit the shutdown message over-the-wire? The message
-            // will be accessible to the application through the message of the ConnectionClosedException raised when
-            // pending invocation are canceled because of the shutdown. If we keep it we should add a similar method on
-            // Server.
+            // TODO: should we keep this IceRPC-protocol only feature to transmit the shutdown message over-the-wire?
+            // The message will be accessible to the application through the message of the ConnectionClosedException
+            // raised when pending invocation are canceled because of the shutdown. If we keep it we should add a
+            // similar method on Server.
 
             Task shutdownTask;
             CancellationTokenSource? cancellationTokenSource = null;

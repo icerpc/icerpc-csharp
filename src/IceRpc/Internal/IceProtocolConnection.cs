@@ -128,7 +128,7 @@ namespace IceRpc.Internal
 
                     if (requestHeader.Identity.Name.Length == 0)
                     {
-                        throw new InvalidDataException("received ice request with empty identity name");
+                        throw new InvalidDataException("received request with empty identity name");
                     }
                     if (requestHeader.Operation.Length == 0)
                     {
@@ -339,11 +339,11 @@ namespace IceRpc.Internal
             if (request.PayloadEncoding is not IceEncoding payloadEncoding)
             {
                 throw new NotSupportedException(
-                    "the payload of an ice request must be encoded with a supported Slice encoding");
+                    "the payload of a request must be encoded with a supported Slice encoding");
             }
             else if (request.Fields.Count > 0 || request.FieldsDefaults.Count > 0)
             {
-                throw new NotSupportedException($"{nameof(Protocol.Ice)} doesn't support fields");
+                throw new NotSupportedException($"the Ice protocol does not support fields");
             }
             else if (_isUdp && !request.IsOneway)
             {
@@ -393,7 +393,7 @@ namespace IceRpc.Internal
                 if (payloadSize > 0 && isCompleted)
                 {
                     throw new ArgumentException(
-                        $"expected {payloadSize} bytes in ice request payload source, but it's empty");
+                        $"expected {payloadSize} bytes in request payload source, but it's empty");
                 }
 
                 AsyncCompletePipeWriter output = _isUdp ? new UdpPipeWriter(_networkConnection) :
@@ -432,7 +432,7 @@ namespace IceRpc.Internal
             {
                 var encoder = new IceEncoder(output, Encoding.Slice11);
 
-                // Write the Ice request header.
+                // Write the request header.
                 encoder.WriteByteSpan(IceDefinitions.FramePrologue);
                 encoder.EncodeIceFrameType(IceFrameType.Request);
                 encoder.EncodeByte(0); // compression status
@@ -486,7 +486,7 @@ namespace IceRpc.Internal
                         if (request.PayloadEncoding is not IceEncoding payloadEncoding)
                         {
                             throw new NotSupportedException(
-                                "the payload of an ice request must be encoded with a supported Slice encoding");
+                                "the payload of a request must be encoded with a supported Slice encoding");
                         }
 
                         (int payloadSize, bool isCanceled, bool isCompleted) =
@@ -696,7 +696,7 @@ namespace IceRpc.Internal
                     int frameSize = Slice11Encoding.DecodeFixedLengthSize(buffer.AsReadOnlySpan().Slice(10, 4));
                     if (frameSize != IceDefinitions.HeaderSize)
                     {
-                        throw new InvalidDataException($"received ice frame with only '{frameSize}' bytes");
+                        throw new InvalidDataException($"received Ice frame with only '{frameSize}' bytes");
                     }
                     if ((IceFrameType)buffer.Span[8] != IceFrameType.ValidateConnection)
                     {
@@ -877,7 +877,7 @@ namespace IceRpc.Internal
                     byte compressionStatus = buffer.Span[9];
                     if (compressionStatus == 2)
                     {
-                        throw new NotSupportedException("cannot decompress ice frame");
+                        throw new NotSupportedException("cannot decompress Ice frame");
                     }
 
                     // Read the remainder of the frame if needed.
@@ -971,7 +971,7 @@ namespace IceRpc.Internal
                             if (invokeNum < 0)
                             {
                                 throw new InvalidDataException(
-                                    $"received ice RequestBatchMessage with {invokeNum} batch requests");
+                                    $"received RequestBatchMessage with {invokeNum} batch requests");
                             }
                             break; // Batch requests are ignored because not supported
                         }
@@ -1012,7 +1012,7 @@ namespace IceRpc.Internal
 
                         default:
                         {
-                            throw new InvalidDataException($"received ice frame with unknown frame type '{frameType}'");
+                            throw new InvalidDataException($"received Ice frame with unknown frame type '{frameType}'");
                         }
                     }
                 } // while

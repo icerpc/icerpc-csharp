@@ -2,8 +2,8 @@
 
 namespace IceRpc.Internal
 {
-    /// <summary>A protocol connection enables communication over a network connection using either the Ice
-    /// or IceRpc protocol.</summary>
+    /// <summary>A protocol connection enables communication over a network connection using either the Ice or
+    /// IceRPC protocol.</summary>
     internal interface IProtocolConnection : IDisposable
     {
         /// <summary>Returns <c>true</c> if one or more dispatches are in progress, <c>false</c>

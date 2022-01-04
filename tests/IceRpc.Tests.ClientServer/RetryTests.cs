@@ -91,8 +91,8 @@ namespace IceRpc.Tests.ClientServer
             Assert.ThrowsAsync<ServiceNotFoundException>(
                 async () => await bidir.OtherReplicaAsync(cancel: CancellationToken.None));
 
-            // With Ice the exception is not retryable, with IceRpc we can retry using the existing connection
-            // because the exception uses the AfterDelay retry policy.
+            // The exception is not retryable with the Ice protocol. With the IceRPC protocol, we can retry using the
+            // existing connection because the exception uses the AfterDelay retry policy.
             Assert.That(bidir.Proxy.Protocol, Is.EqualTo(Protocol.IceRpc));
             await bidir.AfterDelayAsync(2);
         }
@@ -205,7 +205,7 @@ namespace IceRpc.Tests.ClientServer
 
             // Idempotent operations can always be retried, the operation must succeed if the failed attempts
             // are less than the invocation max attempts configured above.
-            // With Ice user exceptions don't carry a retry policy and are not retryable
+            // With the Ice protocol, user exceptions don't carry a retry policy and are not retryable
             if (failedAttempts < maxAttempts && (protocol == ProtocolCode.IceRpc || killConnection))
             {
                 await retry.OpIdempotentAsync(failedAttempts, killConnection);

@@ -377,8 +377,8 @@ namespace IceRpc.Tests.Internal
             {
                 await shutdownTask;
 
-                // With Ice, when closing the connection with a pending invocation, invocations are canceled
-                // immediately. The Ice protocol doesn't support reliably waiting for the response.
+                // With the Ice protocol, when closing the connection with a pending invocation, invocations are
+                // canceled immediately. The Ice protocol doesn't support reliably waiting for the response.
                 Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
                 Assert.That(dispatchSemaphore.Release(), Is.EqualTo(0));
             }

@@ -8,7 +8,7 @@ namespace IceRpc.Internal
 {
     /// <summary>The buffered receiver class receives data from a byte source function into a buffer. The
     /// buffered data can be decoded into different Ice 2.0 types (byte, size and varulong) or be consumed as
-    /// bytes. This class is useful to efficiently read Slic and IceRpc headers that require decoding data
+    /// bytes. This class is useful to efficiently read Slic and IceRPC headers that require decoding data
     /// without necessarily knowing in advance how many bytes to read from the source.</summary>
     internal class BufferedReceiver : IDisposable
     {
