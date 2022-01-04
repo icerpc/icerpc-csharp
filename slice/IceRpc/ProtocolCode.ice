@@ -8,7 +8,7 @@ module IceRpc
         /// The RPC protocol used by ZeroC Ice.
         Ice = 1,
 
-        /// The default RPC protocol of IceRPC, based on multiplexed streams.
+        /// The preferred RPC protocol, based on multiplexed streams.
         IceRpc = 2
     }
 }

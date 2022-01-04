@@ -12,7 +12,7 @@ namespace IceRpc
         /// <summary>The RPC protocol used by ZeroC Ice.</summary>
         public static readonly Protocol Ice = IceProtocol.Instance;
 
-        /// <summary>The default RPC protocol of IceRPC, based on multiplexed streams.</summary>
+        /// <summary>The preferred RPC protocol, based on multiplexed streams.</summary>
         public static readonly Protocol IceRpc = IceRpcProtocol.Instance;
 
         /// <summary>The protocol code of this protocol.</summary>
