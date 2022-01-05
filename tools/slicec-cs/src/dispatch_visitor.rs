@@ -270,8 +270,7 @@ fn request_decode_body(operation: &Operation) -> CodeBlock {
             writeln!(code, "\
 await request.CheckEmptyArgsAsync(
     true,
-    cancel
-).ConfigureAwait(false);
+    cancel).ConfigureAwait(false);
 
 return {}",
                 decode_operation_stream(stream_member, namespace, true, false));
@@ -281,8 +280,7 @@ var {args} = await request.ToArgsAsync(
     _defaultActivator,
     {decode_func},
     true,
-    cancel
-).ConfigureAwait(false);
+    cancel).ConfigureAwait(false);
 
 {decode_request_stream}
 

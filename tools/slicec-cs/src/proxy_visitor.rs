@@ -619,8 +619,7 @@ await response.CheckVoidReturnValueAsync(
     invoker,
     _defaultActivator,
     true,
-    cancel
-).ConfigureAwait(false);
+    cancel).ConfigureAwait(false);
 
 return {}
 ", decode_operation_stream(stream_member, namespace, false, false));
@@ -631,8 +630,7 @@ var {return_value} = await response.ToReturnValueAsync(
     _defaultActivator,
     {response_decode_func},
     true,
-    cancel
-).ConfigureAwait(false);
+    cancel).ConfigureAwait(false);
 
 {decode_response_stream}
 
@@ -652,8 +650,7 @@ await response.ToReturnValueAsync(
     _defaultActivator,
     {response_decode_func},
     false,
-    cancel
-).ConfigureAwait(false)",
+    cancel).ConfigureAwait(false)",
             response_decode_func = response_decode_func(operation).indent());
     }
 
