@@ -12,16 +12,18 @@ namespace IceRpc.Slice
         /// <param name="response">The incoming response.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <param name="defaultActivator">The default activator.</param>
+        /// <param name="hasStream">True if a stream segment is expected.</param>
         /// <param name="cancel">The cancellation token.</param>
         public static async ValueTask CheckVoidReturnValueAsync(
             this IncomingResponse response,
             IInvoker? invoker,
             IActivator defaultActivator,
+            bool hasStream,
             CancellationToken cancel)
         {
             if (response.ResultType == ResultType.Success)
             {
-                await response.Payload.ReadVoidAsync(response.GetSlicePayloadEncoding(), cancel).ConfigureAwait(false);
+                await response.Payload.ReadVoidAsync(response.GetSlicePayloadEncoding(), hasStream, cancel).ConfigureAwait(false);
             }
             else
             {

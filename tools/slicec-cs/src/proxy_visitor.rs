@@ -531,7 +531,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
     let operations = interface_def
         .operations()
         .iter()
-        .filter(|o| o.return_type.len() > 0)
+        .filter(|o| !o.return_type.is_empty())
         .cloned()
         .collect::<Vec<_>>();
 
@@ -553,26 +553,26 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         let members = operation.return_members();
         assert!(!members.is_empty());
 
-        class_builder.add_block(format!(
-            r#"
-/// <summary>The <see cref="ResponseDecodeFunc{{T}}"/> for the return value type of operation {name}.</summary>
-{access} static async global::System.Threading.Tasks.ValueTask<{return_type}> {escaped_name}(
-    IceRpc.IncomingResponse response,
-    IceRpc.IInvoker? invoker,
-    global::System.Threading.CancellationToken cancel) =>
-    await response.ToReturnValueAsync(
-        invoker,
-        _defaultActivator,
-        {response_decode_func},
-        {has_stream},
-        cancel).ConfigureAwait(false);"#,
-            name = operation.identifier(),
-            access = access,
-            escaped_name = operation.escape_identifier_with_suffix("Async"),
-            return_type = members.to_tuple_type(namespace, TypeContext::Incoming, false),
-            response_decode_func = response_decode_func(operation).indent().indent().indent(),
-            has_stream = members.len() > 0 && members.last().unwrap().is_streamed,
-        ).into());
+        let function_type = if operation.streamed_return_member().is_some() {
+            FunctionType::BlockBody
+        } else {
+            FunctionType::ExpressionBody
+        };
+
+        let mut builder = FunctionBuilder::new(
+            &format!("{} static async", access),
+            &format!("global::System.Threading.Tasks.ValueTask<{}>", members.to_tuple_type(namespace, TypeContext::Incoming, false)),
+            &operation.escape_identifier_with_suffix("Async"),
+                function_type);
+
+        builder.add_comment("summary", &format!(r#"The <see cref="ResponseDecodeFunc{{T}}"/> for the return value type of operation {}."#, operation.identifier()));
+        builder.add_parameter("IceRpc.IncomingResponse", "response" , None, None);
+        builder.add_parameter("IceRpc.IInvoker?", "invoker" , None, None);
+        builder.add_parameter("global::System.Threading.CancellationToken", "cancel" , None, None);
+
+        builder.set_body(response_operation_body(operation));
+
+        class_builder.add_block(builder.build());
     }
     class_builder.build().into()
 }
@@ -606,11 +606,64 @@ fn request_encode_action(operation: &Operation) -> CodeBlock {
     }
 }
 
+fn response_operation_body(operation: &Operation) -> CodeBlock {
+    let mut code = CodeBlock::new();
+    let namespace = &operation.namespace();
+
+    if let Some(stream_member) = operation.streamed_return_member() {
+        let non_streamed_members = operation.nonstreamed_return_members();
+
+        if non_streamed_members.is_empty() {
+            writeln!(code, "\
+await response.CheckVoidReturnValueAsync(
+    invoker,
+    _defaultActivator,
+    true,
+    cancel
+).ConfigureAwait(false);
+
+return {}
+", decode_operation_stream(stream_member, namespace, false, false));
+        } else {
+            writeln!(code, "\
+var {return_value} = await response.ToReturnValueAsync(
+    invoker,
+    _defaultActivator,
+    {response_decode_func},
+    true,
+    cancel
+).ConfigureAwait(false);
+
+{decode_response_stream}
+
+return {return_value_and_stream};
+",
+                return_value = non_streamed_members.to_argument_tuple("iceP_"),
+                response_decode_func = response_decode_func(operation).indent(),
+                decode_response_stream = decode_operation_stream(stream_member, namespace, false, true),
+                return_value_and_stream = operation.return_members().to_argument_tuple("iceP_"));
+        }
+
+
+    } else {
+        writeln!(code, "\
+await response.ToReturnValueAsync(
+    invoker,
+    _defaultActivator,
+    {response_decode_func},
+    false,
+    cancel
+).ConfigureAwait(false)",
+            response_decode_func = response_decode_func(operation).indent());
+    }
+
+    code
+}
+
 fn response_decode_func(operation: &Operation) -> CodeBlock {
     let namespace = &operation.namespace();
     // vec of members
-    let members = operation.return_members();
-
+    let members = operation.nonstreamed_return_members();
     assert!(!members.is_empty());
 
     // TODO: simplify single stream response generated code
@@ -618,7 +671,6 @@ fn response_decode_func(operation: &Operation) -> CodeBlock {
     if members.len() == 1
         && get_bit_sequence_size(&members) == 0
         && members.first().unwrap().tag.is_none()
-        && !members.first().unwrap().is_streamed
     {
         decode_func(members.first().unwrap().data_type(), namespace)
     } else {

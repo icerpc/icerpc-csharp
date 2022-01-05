@@ -395,19 +395,13 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
 
     let namespace = &operation.namespace();
 
-    let (all_members, non_streamed_members, stream_member) = if dispatch {
-        (
-            operation.parameters(),
-            operation.nonstreamed_parameters(),
-            operation.streamed_parameter(),
-        )
+    let non_streamed_members = if dispatch {
+        operation.nonstreamed_parameters()
     } else {
-        (
-            operation.return_members(),
-            operation.nonstreamed_return_members(),
-            operation.streamed_return_member(),
-        )
+        operation.nonstreamed_return_members()
     };
+
+    assert!(!non_streamed_members.is_empty());
 
     let (required_members, tagged_members) = get_sorted_members(&non_streamed_members);
 
@@ -451,8 +445,14 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
         )
     }
 
-    if let Some(stream_member) = stream_member {
-        let param_type = stream_member.data_type();
+    writeln!(code, "return {};", non_streamed_members.to_argument_tuple("iceP_"));
+
+    code
+}
+
+pub fn decode_operation_stream(stream_member: &Parameter, namespace: &str, dispatch: bool, assign_to_variable: bool) -> CodeBlock {
+
+    let param_type = stream_member.data_type();
         let param_type_str = param_type.to_type_string(namespace, TypeContext::Incoming, false);
         // Call to_type_string on the parameter itself to get its stream qualifier.
         let stream_type_str = stream_member.to_type_string(namespace, TypeContext::Incoming, false);
@@ -491,16 +491,14 @@ response.ToAsyncEnumerable<{param_type}>(
             }
         };
 
-        writeln!(
-            code,
-            "{stream_param_type} {param_name} = {create_stream_param}",
-            stream_param_type = stream_type_str,
-            param_name = stream_member.parameter_name_with_prefix("iceP_"),
-            create_stream_param = create_stream_param
-        );
-    }
-
-    writeln!(code, "return {};", all_members.to_argument_tuple("iceP_"));
-
-    code
+        if assign_to_variable {
+            format!(
+                "{stream_param_type} {param_name} = {create_stream_param}",
+                stream_param_type = stream_type_str,
+                param_name = stream_member.parameter_name_with_prefix("iceP_"),
+                create_stream_param = create_stream_param
+            ).into()
+        } else {
+            create_stream_param
+        }
 }
