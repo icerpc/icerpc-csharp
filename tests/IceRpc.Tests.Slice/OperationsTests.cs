@@ -7,8 +7,8 @@ namespace IceRpc.Tests.Slice
 {
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    [TestFixture(ProtocolCode.Ice1)]
-    [TestFixture(ProtocolCode.Ice2)]
+    [TestFixture(ProtocolCode.Ice)]
+    [TestFixture(ProtocolCode.IceRpc)]
     public sealed class OperationsTests : IAsyncDisposable
     {
         private readonly ServiceProvider _serviceProvider;
@@ -71,7 +71,7 @@ namespace IceRpc.Tests.Slice
             await _prx.IcePingAsync();
         }
 
-        [TestCase("ice+tcp://host:1000/identity?foo=bar")]
+        [TestCase("icerpc+tcp://host:1000/identity?foo=bar")]
         [TestCase("identity:tcp -h host -p 10000")]
         [TestCase("identity:opaque -t 99 -e 1.1 -v abcd")] // 99 = unknown and -t -e -v in this order
         [TestCase("identity:opaque -t 99 -e 1.0 -v CTEyNy4wLjAuMeouAAAQJwAAAA==")]
@@ -79,17 +79,17 @@ namespace IceRpc.Tests.Slice
                   "identity:tcp -h 127.0.0.1 -p 12010 -t 10000")]
         [TestCase("identity:opaque -t 1 -e 1.0 -v CTEyNy4wLjAuMeouAAAQJwAAAA==",
                   "identity:tcp -h 127.0.0.1 -p 12010 -t 10000")]
-        public async Task Operations_ServiceAsync(string proxy, string? actualIce1Proxy = null)
+        public async Task Operations_ServiceAsync(string proxy, string? actualIceProxy = null)
         {
-            IProxyFormat? format = proxy.StartsWith("ice+", StringComparison.Ordinal) ?
+            IProxyFormat? format = proxy.StartsWith("icerpc+", StringComparison.Ordinal) ?
                 null : IceProxyFormat.Default;
 
             var service = ServicePrx.Parse(proxy, format: format);
             ServicePrx result = await _prx.OpServiceAsync(service);
 
-            if (_prx.Proxy.Protocol == Protocol.Ice1 && actualIce1Proxy != null)
+            if (_prx.Proxy.Protocol == Protocol.Ice && actualIceProxy != null)
             {
-                var actual = ServicePrx.Parse(actualIce1Proxy, format: format);
+                var actual = ServicePrx.Parse(actualIceProxy, format: format);
                 Assert.AreEqual(actual, result);
             }
             else

@@ -85,7 +85,7 @@ namespace IceRpc.Slice
         /// <param name="v">The size to encode.</param>
         public void EncodeSize(int v)
         {
-            if (Encoding == IceRpc.Encoding.Ice11)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 if (v < 255)
                 {
@@ -206,7 +206,7 @@ namespace IceRpc.Slice
         /// <param name="v">The remote exception to encode.</param>
         public void EncodeException(RemoteException v)
         {
-            if (Encoding == IceRpc.Encoding.Ice11)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 EncodeExceptionClass(v);
             }
@@ -220,7 +220,7 @@ namespace IceRpc.Slice
         /// <param name="proxy">The proxy to encode, or null.</param>
         public void EncodeNullableProxy(Proxy? proxy)
         {
-            if (Encoding == IceRpc.Encoding.Ice11)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 if (proxy == null)
                 {
@@ -258,7 +258,7 @@ namespace IceRpc.Slice
 
                     var proxyData = new ProxyData11(
                         Facet.FromFragment(proxy.Fragment),
-                        proxy.Protocol == Protocol.Ice1 && (proxy.Endpoint?.Transport == TransportNames.Udp) ?
+                        proxy.Protocol == Protocol.Ice && (proxy.Endpoint?.Transport == TransportNames.Udp) ?
                             InvocationMode.Datagram : InvocationMode.Twoway,
                         secure: false,
                         protocolMajor: (byte)proxy.Protocol.Code,
@@ -272,7 +272,7 @@ namespace IceRpc.Slice
                         EncodeSize(0); // 0 endpoints
                         EncodeString(""); // empty adapter ID
                     }
-                    else if (proxy.Protocol == Protocol.Ice1 && proxy.Endpoint.Transport == TransportNames.Loc)
+                    else if (proxy.Protocol == Protocol.Ice && proxy.Endpoint.Transport == TransportNames.Loc)
                     {
                         EncodeSize(0); // 0 endpoints
                         EncodeString(proxy.Endpoint.Host); // adapter ID unless well-known
@@ -313,7 +313,7 @@ namespace IceRpc.Slice
                     var proxyData = new ProxyData20(
                         proxy.Path,
                         proxy.Fragment,
-                        protocol: proxy.Protocol != Protocol.Ice2 ? proxy.Protocol.Code : null,
+                        protocol: proxy.Protocol != Protocol.IceRpc ? proxy.Protocol.Code : null,
                         encoding: proxy.Encoding == proxy.Protocol.IceEncoding ? null : proxy.Encoding.ToString(),
                         endpoint: proxy.Endpoint?.ToEndpointData(),
                         altEndpoints:
@@ -420,7 +420,7 @@ namespace IceRpc.Slice
             T v,
             EncodeAction<T> encodeAction) where T : notnull
         {
-            if (Encoding == IceRpc.Encoding.Ice11)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 if (tagFormat == TagFormat.FSize)
                 {
@@ -448,7 +448,7 @@ namespace IceRpc.Slice
                 Span<byte> sizePlaceholder = GetPlaceholderSpan(4);
                 int startPos = EncodedByteCount;
                 encodeAction(ref this, v);
-                Ice20Encoding.EncodeSize(EncodedByteCount - startPos, sizePlaceholder);
+                Slice20Encoding.EncodeSize(EncodedByteCount - startPos, sizePlaceholder);
             }
         }
 
@@ -468,7 +468,7 @@ namespace IceRpc.Slice
         {
             int startPos;
 
-            if (Encoding == IceRpc.Encoding.Ice11)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 Debug.Assert(tagFormat != TagFormat.FSize);
                 Debug.Assert(size > 0);
@@ -585,7 +585,7 @@ namespace IceRpc.Slice
         /// <summary>Computes the minimum number of bytes needed to encode a variable-length size.</summary>
         /// <param name="size">The size.</param>
         /// <returns>The minimum number of bytes.</returns>
-        public int GetSizeLength(int size) => Encoding == IceRpc.Encoding.Ice11 ?
+        public int GetSizeLength(int size) => Encoding == IceRpc.Encoding.Slice11 ?
             (size < 255 ? 1 : 5) : GetVarULongEncodedSize(checked((ulong)size));
 
         internal static void EncodeInt(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);

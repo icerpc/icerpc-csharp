@@ -95,7 +95,7 @@ namespace IceRpc.Transports.Internal
                 // Check the application protocol and set the parameters.
                 try
                 {
-                    if (Protocol.Parse(initializeBody.Value.ApplicationProtocolName) != Protocol.Ice2)
+                    if (Protocol.Parse(initializeBody.Value.ApplicationProtocolName) != Protocol.IceRpc)
                     {
                         throw new NotSupportedException(
                             $"application protocol '{initializeBody.Value.ApplicationProtocolName}' is not supported");
@@ -115,7 +115,7 @@ namespace IceRpc.Transports.Internal
             else
             {
                 // Write the Initialize frame.
-                var initializeBody = new InitializeBody(Protocol.Ice2.Name, GetParameters());
+                var initializeBody = new InitializeBody(Protocol.IceRpc.Name, GetParameters());
                 await _writer.WriteInitializeAsync(SlicDefinitions.V1, initializeBody, cancel).ConfigureAwait(false);
 
                 // Read back either the InitializeAck or Version frame.

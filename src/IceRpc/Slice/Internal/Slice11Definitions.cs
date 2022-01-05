@@ -2,8 +2,8 @@
 
 namespace IceRpc.Slice.Internal
 {
-    /// <summary>Enumerations and constants used by the Ice 1.1 encoding.</summary>
-    internal static class Ice11Definitions
+    /// <summary>Enumerations and constants used by the Slice 1.1 encoding.</summary>
+    internal static class Slice11Definitions
     {
         internal const byte TagEndMarker = 0xFF;
 
@@ -35,7 +35,7 @@ namespace IceRpc.Slice.Internal
         /// <summary>Extracts the TypeIdKind of a SliceFlags value.</summary>
         /// <param name="sliceFlags">The SliceFlags value.</param>
         /// <returns>The TypeIdKind encoded in sliceFlags.</returns>
-        internal static Ice11Definitions.TypeIdKind GetTypeIdKind(this Ice11Definitions.SliceFlags sliceFlags) =>
-            (Ice11Definitions.TypeIdKind)(sliceFlags & Ice11Definitions.SliceFlags.TypeIdMask);
+        internal static Slice11Definitions.TypeIdKind GetTypeIdKind(this Slice11Definitions.SliceFlags sliceFlags) =>
+            (Slice11Definitions.TypeIdKind)(sliceFlags & Slice11Definitions.SliceFlags.TypeIdMask);
     }
 }

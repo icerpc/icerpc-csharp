@@ -19,7 +19,7 @@ module IceRpc::Tests::ClientServer
         // Operation that throws remote exception
         opException();
 
-        // Operation that throws ServiceNotFoundException (one of the special ice1 system exceptions)
+        // Operation that throws ServiceNotFoundException (one of the special ice system exceptions)
         opServiceNotFoundException();
 
         // Check the context is correctly forwarded

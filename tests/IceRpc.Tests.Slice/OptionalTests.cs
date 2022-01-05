@@ -65,7 +65,7 @@ namespace IceRpc.Tests.Slice
             multiOptional.MMyEnum = MyEnum.enum1;
             multiOptional.MAnotherStruct = new AnotherStruct(
                 "hello",
-                OperationsPrx.Parse("ice+tcp://localhost/hello"),
+                OperationsPrx.Parse("icerpc+tcp://localhost/hello"),
                 MyEnum.enum1,
                 new MyStruct(1, 1));
 
@@ -303,7 +303,7 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new AnotherStruct(
                     "hello",
-                    OperationsPrx.Parse("ice+tcp://localhost/hello"),
+                    OperationsPrx.Parse("icerpc+tcp://localhost/hello"),
                     MyEnum.enum1,
                     new MyStruct(1, 1));
                 (r1, r2) = await _prx.OpAnotherStructAsync(p1);
@@ -527,7 +527,7 @@ namespace IceRpc.Tests.Slice
                 {
                     new AnotherStruct(
                         "hello",
-                        OperationsPrx.Parse("ice+tcp://localhost/hello"),
+                        OperationsPrx.Parse("icerpc+tcp://localhost/hello"),
                         MyEnum.enum1,
                         new MyStruct(1, 1))
                 };
@@ -545,7 +545,7 @@ namespace IceRpc.Tests.Slice
                 {
                     new AnotherStruct(
                         "hello",
-                        OperationsPrx.Parse("ice+tcp://localhost/hello"),
+                        OperationsPrx.Parse("icerpc+tcp://localhost/hello"),
                         MyEnum.enum1,
                         new MyStruct(1, 1))
                 };

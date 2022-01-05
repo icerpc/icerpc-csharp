@@ -33,18 +33,18 @@ module Ice
     interface Locator
     {
         /// Finds an object by identity and facet and returns a proxy that provides a location or endpoint(s) that can
-        /// be used to reach the object using the ice1 protocol.
+        /// be used to reach the object using the ice protocol.
         /// @param id The identity.
-        /// @return An ice1 proxy that provides a location or endpoint(s), or null if an object with the requested
+        /// @return An ice proxy that provides a location or endpoint(s), or null if an object with the requested
         /// identity was not found.
         /// @throws ObjectNotFoundException Thrown if an object with the requested identity was not found. The caller
         /// should treat this exception like a null return value.
         idempotent findObjectById(id: Identity) -> IceRpc::Service?;
 
         /// Finds an object adapter by id and returns a proxy that provides the object adapter's endpoint(s). This
-        /// operation is for object adapters using the ice1 protocol.
+        /// operation is for object adapters using the ice protocol.
         /// @param id The adapter ID.
-        /// @return An ice1 proxy with the adapter's endpoint(s), or null if an object adapter with adapter ID 'id' was
+        /// @return An ice proxy with the adapter's endpoint(s), or null if an object adapter with adapter ID 'id' was
         /// not found.
         /// @throws AdapterNotFoundException Thrown if an object adapter with this adapter ID was not found. The caller
         /// should treat this exception like a null return value.
@@ -58,7 +58,7 @@ module Ice
     /// A server application registers the endpoints of its indirect object adapters with the LocatorRegistry object.
     interface LocatorRegistry
     {
-        /// Registers or unregisters the endpoints of an object adapter that uses the ice1 protocol.
+        /// Registers or unregisters the endpoints of an object adapter that uses the ice protocol.
         /// @param id The adapter ID.
         /// @param proxy A dummy direct proxy created by the object adapter that provides the object adapter's
         /// endpoints. The locator considers an object adapter to be active after it has registered its endpoints. When
@@ -70,7 +70,7 @@ module Ice
         // Note: idempotent is not quite correct, and kept only for backwards compatibility with old implementations.
         idempotent setAdapterDirectProxy(id: string, proxy: IceRpc::Service?);
 
-        /// Registers or unregisters the endpoints of an object adapter that uses the ice1 protocol. This object adapter
+        /// Registers or unregisters the endpoints of an object adapter that uses the ice protocol. This object adapter
         /// is member of a replica group.
         /// @param adapterId The adapter ID.
         /// @param replicaGroupId The replica group ID.

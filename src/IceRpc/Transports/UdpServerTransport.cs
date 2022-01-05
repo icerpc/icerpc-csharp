@@ -9,7 +9,7 @@ namespace IceRpc.Transports
     public class UdpServerTransport : IServerTransport<ISimpleNetworkConnection>
     {
         /// <inheritdoc/>
-        public Endpoint DefaultEndpoint => "ice+udp://[::0]";
+        public Endpoint DefaultEndpoint => "icerpc+udp://[::0]";
 
         private readonly UdpServerOptions _options;
 

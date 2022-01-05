@@ -91,18 +91,18 @@ namespace IceRpc.Tests.ClientServer
             Assert.ThrowsAsync<ServiceNotFoundException>(
                 async () => await bidir.OtherReplicaAsync(cancel: CancellationToken.None));
 
-            // With Ice1 the exception is not retryable, with Ice2 we can retry using the existing connection
-            // because the exception uses the AfterDelay retry policy.
-            Assert.That(bidir.Proxy.Protocol, Is.EqualTo(Protocol.Ice2));
+            // The exception is not retryable with the Ice protocol. With the IceRPC protocol, we can retry using the
+            // existing connection because the exception uses the AfterDelay retry policy.
+            Assert.That(bidir.Proxy.Protocol, Is.EqualTo(Protocol.IceRpc));
             await bidir.AfterDelayAsync(2);
         }
 
-        [TestCase(ProtocolCode.Ice1, 2)]
-        [TestCase(ProtocolCode.Ice1, 10)]
-        [TestCase(ProtocolCode.Ice1, 20)]
-        [TestCase(ProtocolCode.Ice2, 2)]
-        [TestCase(ProtocolCode.Ice2, 10)]
-        [TestCase(ProtocolCode.Ice2, 20)]
+        [TestCase(ProtocolCode.Ice, 2)]
+        [TestCase(ProtocolCode.Ice, 10)]
+        [TestCase(ProtocolCode.Ice, 20)]
+        [TestCase(ProtocolCode.IceRpc, 2)]
+        [TestCase(ProtocolCode.IceRpc, 10)]
+        [TestCase(ProtocolCode.IceRpc, 20)]
         public async Task Retry_GracefulClose(ProtocolCode protocol, int maxQueue)
         {
             await using ServiceProvider serviceProvider = new RetryIntegrationTestServiceCollection()
@@ -133,12 +133,12 @@ namespace IceRpc.Tests.ClientServer
             await Task.WhenAll(results);
         }
 
-        [TestCase(ProtocolCode.Ice1, 2)]
-        [TestCase(ProtocolCode.Ice1, 10)]
-        [TestCase(ProtocolCode.Ice1, 20)]
-        [TestCase(ProtocolCode.Ice2, 2)]
-        [TestCase(ProtocolCode.Ice2, 10)]
-        [TestCase(ProtocolCode.Ice2, 20)]
+        [TestCase(ProtocolCode.Ice, 2)]
+        [TestCase(ProtocolCode.Ice, 10)]
+        [TestCase(ProtocolCode.Ice, 20)]
+        [TestCase(ProtocolCode.IceRpc, 2)]
+        [TestCase(ProtocolCode.IceRpc, 10)]
+        [TestCase(ProtocolCode.IceRpc, 20)]
         public async Task Retry_GracefulCloseCanceled(ProtocolCode protocol, int maxQueue)
         {
             await using ServiceProvider serviceProvider = new RetryIntegrationTestServiceCollection()
@@ -171,23 +171,23 @@ namespace IceRpc.Tests.ClientServer
             await Task.WhenAll(results);
         }
 
-        [TestCase(ProtocolCode.Ice2, 1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
-        [TestCase(ProtocolCode.Ice2, 1, 1, true)]  // 1 failure, 1 max attempts, kill the connection
-        [TestCase(ProtocolCode.Ice2, 1, 3, false)] // 1 failure, 3 max attempts, don't kill the connection
-        [TestCase(ProtocolCode.Ice2, 1, 3, true)]  // 1 failure, 3 max attempts, kill the connection
-        [TestCase(ProtocolCode.Ice2, 5, 5, false)] // 5 failures, 5 max attempts, don't kill the connection
-        [TestCase(ProtocolCode.Ice2, 5, 5, true)]  // 5 failures, 5 max attempts, kill the connection
-        [TestCase(ProtocolCode.Ice2, 4, 5, false)] // 4 failures, 5 max attempts, don't kill the connection
-        [TestCase(ProtocolCode.Ice2, 1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
+        [TestCase(ProtocolCode.IceRpc, 1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
+        [TestCase(ProtocolCode.IceRpc, 1, 1, true)]  // 1 failure, 1 max attempts, kill the connection
+        [TestCase(ProtocolCode.IceRpc, 1, 3, false)] // 1 failure, 3 max attempts, don't kill the connection
+        [TestCase(ProtocolCode.IceRpc, 1, 3, true)]  // 1 failure, 3 max attempts, kill the connection
+        [TestCase(ProtocolCode.IceRpc, 5, 5, false)] // 5 failures, 5 max attempts, don't kill the connection
+        [TestCase(ProtocolCode.IceRpc, 5, 5, true)]  // 5 failures, 5 max attempts, kill the connection
+        [TestCase(ProtocolCode.IceRpc, 4, 5, false)] // 4 failures, 5 max attempts, don't kill the connection
+        [TestCase(ProtocolCode.IceRpc, 1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
 
-        [TestCase(ProtocolCode.Ice1, 1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
-        [TestCase(ProtocolCode.Ice1, 1, 1, true)]  // 1 failure, 1 max attempts, kill the connection
-        [TestCase(ProtocolCode.Ice1, 1, 3, false)] // 1 failure, 3 max attempts, don't kill the connection
-        [TestCase(ProtocolCode.Ice1, 1, 3, true)]  // 1 failure, 3 max attempts, kill the connection
-        [TestCase(ProtocolCode.Ice1, 5, 5, false)] // 5 failures, 5 max attempts, don't kill the connection
-        [TestCase(ProtocolCode.Ice1, 5, 5, true)]  // 5 failures, 5 max attempts, kill the connection
-        [TestCase(ProtocolCode.Ice1, 4, 5, false)] // 4 failures, 5 max attempts, don't kill the connection
-        [TestCase(ProtocolCode.Ice1, 1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
+        [TestCase(ProtocolCode.Ice, 1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
+        [TestCase(ProtocolCode.Ice, 1, 1, true)]  // 1 failure, 1 max attempts, kill the connection
+        [TestCase(ProtocolCode.Ice, 1, 3, false)] // 1 failure, 3 max attempts, don't kill the connection
+        [TestCase(ProtocolCode.Ice, 1, 3, true)]  // 1 failure, 3 max attempts, kill the connection
+        [TestCase(ProtocolCode.Ice, 5, 5, false)] // 5 failures, 5 max attempts, don't kill the connection
+        [TestCase(ProtocolCode.Ice, 5, 5, true)]  // 5 failures, 5 max attempts, kill the connection
+        [TestCase(ProtocolCode.Ice, 4, 5, false)] // 4 failures, 5 max attempts, don't kill the connection
+        [TestCase(ProtocolCode.Ice, 1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
         public async Task Retry_Idempotent(
             ProtocolCode protocol,
             int failedAttempts,
@@ -205,8 +205,8 @@ namespace IceRpc.Tests.ClientServer
 
             // Idempotent operations can always be retried, the operation must succeed if the failed attempts
             // are less than the invocation max attempts configured above.
-            // With Ice1 user exceptions don't carry a retry policy and are not retryable
-            if (failedAttempts < maxAttempts && (protocol == ProtocolCode.Ice2 || killConnection))
+            // With the Ice protocol, user exceptions don't carry a retry policy and are not retryable
+            if (failedAttempts < maxAttempts && (protocol == ProtocolCode.IceRpc || killConnection))
             {
                 await retry.OpIdempotentAsync(failedAttempts, killConnection);
                 Assert.AreEqual(failedAttempts + 1, service.Attempts);
@@ -224,7 +224,7 @@ namespace IceRpc.Tests.ClientServer
                         async () => await retry.OpIdempotentAsync(failedAttempts, killConnection));
                 }
 
-                if (protocol == ProtocolCode.Ice2 || killConnection)
+                if (protocol == ProtocolCode.IceRpc || killConnection)
                 {
                     Assert.AreEqual(maxAttempts, service.Attempts);
                 }
@@ -248,23 +248,23 @@ namespace IceRpc.Tests.ClientServer
             Assert.AreEqual(1, service.Attempts);
         }
 
-        [TestCase(ProtocolCode.Ice2, 1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
-        [TestCase(ProtocolCode.Ice2, 1, 1, true)]  // 1 failure, 1 max attempts, kill the connection
-        [TestCase(ProtocolCode.Ice2, 1, 3, false)] // 1 failure, 3 max attempts, don't kill the connection
-        [TestCase(ProtocolCode.Ice2, 1, 3, true)]  // 1 failure, 3 max attempts, kill the connection
-        [TestCase(ProtocolCode.Ice2, 5, 5, false)] // 5 failures, 5 max attempts, don't kill the connection
-        [TestCase(ProtocolCode.Ice2, 5, 5, true)]  // 5 failures, 5 max attempts, kill the connection
-        [TestCase(ProtocolCode.Ice2, 4, 5, false)] // 4 failures, 5 max attempts, don't kill the connection
-        [TestCase(ProtocolCode.Ice2, 1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
+        [TestCase(ProtocolCode.IceRpc, 1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
+        [TestCase(ProtocolCode.IceRpc, 1, 1, true)]  // 1 failure, 1 max attempts, kill the connection
+        [TestCase(ProtocolCode.IceRpc, 1, 3, false)] // 1 failure, 3 max attempts, don't kill the connection
+        [TestCase(ProtocolCode.IceRpc, 1, 3, true)]  // 1 failure, 3 max attempts, kill the connection
+        [TestCase(ProtocolCode.IceRpc, 5, 5, false)] // 5 failures, 5 max attempts, don't kill the connection
+        [TestCase(ProtocolCode.IceRpc, 5, 5, true)]  // 5 failures, 5 max attempts, kill the connection
+        [TestCase(ProtocolCode.IceRpc, 4, 5, false)] // 4 failures, 5 max attempts, don't kill the connection
+        [TestCase(ProtocolCode.IceRpc, 1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
 
-        [TestCase(ProtocolCode.Ice1, 1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
-        [TestCase(ProtocolCode.Ice1, 1, 1, true)]  // 1 failure, 1 max attempts, kill the connection
-        [TestCase(ProtocolCode.Ice1, 1, 3, false)] // 1 failure, 3 max attempts, don't kill the connection
-        [TestCase(ProtocolCode.Ice1, 1, 3, true)]  // 1 failure, 3 max attempts, kill the connection
-        [TestCase(ProtocolCode.Ice1, 5, 5, false)] // 5 failures, 5 max attempts, don't kill the connection
-        [TestCase(ProtocolCode.Ice1, 5, 5, true)]  // 5 failures, 5 max attempts, kill the connection
-        [TestCase(ProtocolCode.Ice1, 4, 5, false)] // 4 failures, 5 max attempts, don't kill the connection
-        [TestCase(ProtocolCode.Ice1, 1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
+        [TestCase(ProtocolCode.Ice, 1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
+        [TestCase(ProtocolCode.Ice, 1, 1, true)]  // 1 failure, 1 max attempts, kill the connection
+        [TestCase(ProtocolCode.Ice, 1, 3, false)] // 1 failure, 3 max attempts, don't kill the connection
+        [TestCase(ProtocolCode.Ice, 1, 3, true)]  // 1 failure, 3 max attempts, kill the connection
+        [TestCase(ProtocolCode.Ice, 5, 5, false)] // 5 failures, 5 max attempts, don't kill the connection
+        [TestCase(ProtocolCode.Ice, 5, 5, true)]  // 5 failures, 5 max attempts, kill the connection
+        [TestCase(ProtocolCode.Ice, 4, 5, false)] // 4 failures, 5 max attempts, don't kill the connection
+        [TestCase(ProtocolCode.Ice, 1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
         public async Task Retry_NoIdempotent(
             ProtocolCode protocol,
             int failedAttempts,
@@ -287,7 +287,7 @@ namespace IceRpc.Tests.ClientServer
                     async () => await retry.OpNotIdempotentAsync(failedAttempts, killConnection));
                 Assert.AreEqual(1, service.Attempts);
             }
-            else if (failedAttempts < maxAttempts && (protocol == ProtocolCode.Ice2 || killConnection))
+            else if (failedAttempts < maxAttempts && (protocol == ProtocolCode.IceRpc || killConnection))
             {
                 await retry.OpNotIdempotentAsync(failedAttempts, killConnection);
                 Assert.AreEqual(failedAttempts + 1, service.Attempts);
@@ -296,7 +296,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 Assert.CatchAsync<RetrySystemFailure>(
                     async () => await retry.OpNotIdempotentAsync(failedAttempts, killConnection));
-                if (protocol == ProtocolCode.Ice2 || killConnection)
+                if (protocol == ProtocolCode.IceRpc || killConnection)
                 {
                     Assert.AreEqual(maxAttempts, service.Attempts);
                 }
@@ -527,7 +527,7 @@ namespace IceRpc.Tests.ClientServer
                 });
                 this.AddScoped(serviceProvider =>
                 {
-                    var proxy = Proxy.FromPath("/retry", serviceProvider.GetService<Protocol>() ?? Protocol.Ice2);
+                    var proxy = Proxy.FromPath("/retry", serviceProvider.GetService<Protocol>() ?? Protocol.IceRpc);
                     proxy.Endpoint = serviceProvider.GetRequiredService<Server>().Endpoint;
                     proxy.Invoker = serviceProvider.GetRequiredService<IInvoker>();
                     return proxy;

@@ -22,7 +22,7 @@ namespace IceRpc.Tests.Internal
         public async Task ColocNetworkConnection_HasCompatibleParams(bool isServer, bool expectedResult)
         {
             await using ISimpleNetworkConnection connection = CreateConnection(isServer);
-            Assert.That(connection.HasCompatibleParams(Endpoint.FromString("ice+coloc://host")),
+            Assert.That(connection.HasCompatibleParams(Endpoint.FromString("icerpc+coloc://host")),
                         Is.EqualTo(expectedResult));
         }
 
@@ -34,8 +34,8 @@ namespace IceRpc.Tests.Internal
 
             NetworkConnectionInformation information = await connection.ConnectAsync(default);
 
-            Assert.That(information.LocalEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
-            Assert.That(information.RemoteEndpoint, Is.EqualTo(Endpoint.FromString("ice+coloc://host")));
+            Assert.That(information.LocalEndpoint, Is.EqualTo(Endpoint.FromString("icerpc+coloc://host")));
+            Assert.That(information.RemoteEndpoint, Is.EqualTo(Endpoint.FromString("icerpc+coloc://host")));
             Assert.That(information.IdleTimeout, Is.EqualTo(TimeSpan.MaxValue));
         }
 
@@ -62,7 +62,7 @@ namespace IceRpc.Tests.Internal
         {
             var pipe = new Pipe();
             return new ColocNetworkConnection(
-                Endpoint.FromString("ice+coloc://host"),
+                Endpoint.FromString("icerpc+coloc://host"),
                 isServer: isServer,
                 writer: pipe.Writer,
                 reader: pipe.Reader);

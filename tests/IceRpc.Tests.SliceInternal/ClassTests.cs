@@ -7,13 +7,13 @@ using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
 
-using static IceRpc.Slice.Internal.Ice11Definitions;
+using static IceRpc.Slice.Internal.Slice11Definitions;
 
 namespace IceRpc.Tests.SliceInternal
 {
     [Timeout(30000)]
-    [TestFixture(ProtocolCode.Ice1)]
-    [TestFixture(ProtocolCode.Ice2)]
+    [TestFixture(ProtocolCode.Ice)]
+    [TestFixture(ProtocolCode.IceRpc)]
     public sealed class ClassTests
     {
         private readonly ServiceProvider _serviceProvider;
@@ -64,7 +64,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeBefore(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new IceDecoder(data, Encoding.Ice11);
+                    var decoder = new IceDecoder(data, Encoding.Slice11);
 
                     // Skip payload size
                     decoder.Skip(4);
@@ -78,7 +78,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeAfter(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new IceDecoder(data, Encoding.Ice11);
+                    var decoder = new IceDecoder(data, Encoding.Slice11);
 
                     // Skip payload size
                     decoder.Skip(4);
@@ -108,7 +108,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeBefore(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new IceDecoder(data, Encoding.Ice11);
+                    var decoder = new IceDecoder(data, Encoding.Slice11);
 
                     // Skip payload size
                     decoder.Skip(4);
@@ -122,7 +122,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeAfter(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new IceDecoder(data, Encoding.Ice11);
+                    var decoder = new IceDecoder(data, Encoding.Slice11);
 
                     // Skip payload size
                     decoder.Skip(4);
@@ -152,7 +152,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeBefore(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new IceDecoder(data, Encoding.Ice11);
+                    var decoder = new IceDecoder(data, Encoding.Slice11);
 
                     // Skip payload size
                     decoder.Skip(4);
@@ -166,7 +166,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeAfter(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new IceDecoder(data, Encoding.Ice11);
+                    var decoder = new IceDecoder(data, Encoding.Slice11);
 
                     // Skip payload size
                     decoder.Skip(4);
@@ -196,7 +196,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeBefore(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new IceDecoder(data, Encoding.Ice11);
+                    var decoder = new IceDecoder(data, Encoding.Slice11);
 
                     // Skip payload size
                     decoder.Skip(4);
@@ -210,7 +210,7 @@ namespace IceRpc.Tests.SliceInternal
 
                 static void DecodeAfter(ReadOnlySequence<byte> data)
                 {
-                    var decoder = new IceDecoder(data, Encoding.Ice11);
+                    var decoder = new IceDecoder(data, Encoding.Slice11);
 
                     // Skip payload size
                     decoder.Skip(4);

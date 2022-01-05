@@ -19,8 +19,8 @@ namespace IceRpc
             return new(identity.Name, identity.Category);
         }
 
-        /// <summary>Creates an Identity from a string in the ice1 format.</summary>
-        /// <param name="s">A "stringified identity" in the ice1 format.</param>
+        /// <summary>Creates an Identity from a string in the ice format.</summary>
+        /// <param name="s">A "stringified identity" in the ice format.</param>
         /// <exception cref="FormatException">Thrown when <paramref name="s"/> is not in the correct format.
         /// </exception>
         /// <returns>A new Identity struct.</returns>
@@ -94,8 +94,8 @@ namespace IceRpc
                 throw new FormatException($"invalid empty name in identity '{s}'");
         }
 
-        /// <summary>Attempts to create an Identity from string in the ice1 format.</summary>
-        /// <param name="s">A "stringified identity" in the ice1 format</param>
+        /// <summary>Attempts to create an Identity from string in the ice format.</summary>
+        /// <param name="s">A "stringified identity" in the ice format</param>
         /// <param name="identity">When this method succeeds, contains an Identity struct parsed from s.</param>
         /// <returns>True if <paramref name="s"/> was parsed successfully; otherwise, false.</returns>
         public static bool TryParse(string s, out Identity identity)
