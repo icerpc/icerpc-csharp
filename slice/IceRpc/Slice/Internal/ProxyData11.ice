@@ -21,7 +21,7 @@ module IceRpc::Slice::Internal
     struct Facet
     {
         // TODO: should this identifier be capitalized?
-        Value: sequence<string>,  // has 0 or 1 element
+        value: sequence<string>,  // has 0 or 1 element
     }
 
     /// The InvocationMode is carried by proxies that use the ice protocol, and it specifies the behavior when sending
