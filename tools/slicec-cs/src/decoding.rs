@@ -27,11 +27,7 @@ pub fn decode_data_members(
     // Decode required members
     for member in required_members {
         let param = format!("this.{}", member.field_name(field_type));
-        code.writeln(&decode_member(
-            member,
-            namespace,
-            &param,
-        ));
+        code.writeln(&decode_member(member, namespace, &param));
     }
 
     // Decode tagged members
@@ -43,11 +39,7 @@ pub fn decode_data_members(
     code
 }
 
-fn decode_member(
-    member: &impl Member,
-    namespace: &str,
-    param: &str,
-) -> CodeBlock {
+fn decode_member(member: &impl Member, namespace: &str, param: &str) -> CodeBlock {
     let mut code = CodeBlock::new();
     let data_type = member.data_type();
     let type_string = data_type.to_type_string(namespace, TypeContext::Incoming, true);
@@ -333,9 +325,15 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
     let mut code: CodeBlock = match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) => {
             if type_ref.is_optional {
-                format!("(ref IceDecoder decoder) => decoder.DecodeNullablePrx<{}>()", type_name)
+                format!(
+                    "(ref IceDecoder decoder) => decoder.DecodeNullablePrx<{}>()",
+                    type_name
+                )
             } else {
-                format!("(ref IceDecoder decoder) => new {}(decoder.DecodeProxy())", type_name)
+                format!(
+                    "(ref IceDecoder decoder) => new {}(decoder.DecodeProxy())",
+                    type_name
+                )
             }
         }
         _ if type_ref.is_class_type() => {
@@ -346,12 +344,18 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
                     type_ref.to_type_string(namespace, TypeContext::Incoming, true)
                 )
             } else {
-                format!("(ref IceDecoder decoder) => decoder.DecodeClass<{}>()", type_name)
+                format!(
+                    "(ref IceDecoder decoder) => decoder.DecodeClass<{}>()",
+                    type_name
+                )
             }
         }
         TypeRefs::Primitive(primitive_ref) => {
             // Primitive::AnyClass is handled above by is_clas_type branch
-            format!("(ref IceDecoder decoder) => decoder.Decode{}()", primitive_ref.type_suffix())
+            format!(
+                "(ref IceDecoder decoder) => decoder.Decode{}()",
+                primitive_ref.type_suffix()
+            )
         }
         TypeRefs::Sequence(sequence_ref) => {
             format!(
@@ -445,13 +449,21 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
         )
     }
 
-    writeln!(code, "return {};", non_streamed_members.to_argument_tuple("iceP_"));
+    writeln!(
+        code,
+        "return {};",
+        non_streamed_members.to_argument_tuple("iceP_")
+    );
 
     code
 }
 
-pub fn decode_operation_stream(stream_member: &Parameter, namespace: &str, dispatch: bool, assign_to_variable: bool) -> CodeBlock {
-
+pub fn decode_operation_stream(
+    stream_member: &Parameter,
+    namespace: &str,
+    dispatch: bool,
+    assign_to_variable: bool,
+) -> CodeBlock {
     let param_type = stream_member.data_type();
     let param_type_str = param_type.to_type_string(namespace, TypeContext::Incoming, false);
     // Call to_type_string on the parameter itself to get its stream qualifier.
@@ -497,7 +509,8 @@ response.ToAsyncEnumerable<{param_type}>(
             stream_param_type = stream_type_str,
             param_name = stream_member.parameter_name_with_prefix("iceP_"),
             create_stream_param = create_stream_param
-        ).into()
+        )
+        .into()
     } else {
         create_stream_param
     }

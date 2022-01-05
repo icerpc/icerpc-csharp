@@ -113,19 +113,30 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         // We need the async/await for proper type inference when returning tuples with nullable elements like string?.
         let mut builder = FunctionBuilder::new(
             &format!("{} static async", access),
-            &format!("global::System.Threading.Tasks.ValueTask<{}>", &parameters.to_tuple_type(namespace, TypeContext::Incoming, false)),
+            &format!(
+                "global::System.Threading.Tasks.ValueTask<{}>",
+                &parameters.to_tuple_type(namespace, TypeContext::Incoming, false)
+            ),
             &operation.escape_identifier_with_suffix("Async"),
-            function_type
+            function_type,
         );
 
         builder.add_comment(
             "summary",
-            &format!("Decodes the argument{s} of operation {operation_identifier}.",
+            &format!(
+                "Decodes the argument{s} of operation {operation_identifier}.",
                 s = if parameters.len() == 1 { "" } else { "s" },
-                operation_identifier = operation.escape_identifier()));
+                operation_identifier = operation.escape_identifier()
+            ),
+        );
 
         builder.add_parameter("IceRpc.IncomingRequest", "request", None, None);
-        builder.add_parameter("global::System.Threading.CancellationToken", "cancel", None, None);
+        builder.add_parameter(
+            "global::System.Threading.CancellationToken",
+            "cancel",
+            None,
+            None,
+        );
         builder.set_body(request_decode_body(operation));
 
         class_builder.add_block(builder.build());
@@ -267,13 +278,18 @@ fn request_decode_body(operation: &Operation) -> CodeBlock {
         let non_streamed_parameters = operation.nonstreamed_parameters();
 
         if non_streamed_parameters.is_empty() {
-            writeln!(code, "\
+            writeln!(
+                code,
+                "\
 await request.CheckEmptyArgsAsync(hasStream: true, cancel).ConfigureAwait(false);
 
 return {}",
-                decode_operation_stream(stream_member, namespace, true, false));
+                decode_operation_stream(stream_member, namespace, true, false)
+            );
         } else {
-            writeln!(code, "\
+            writeln!(
+                code,
+                "\
 var {args} = await request.ToArgsAsync(
     _defaultActivator,
     {decode_func},
@@ -283,24 +299,25 @@ var {args} = await request.ToArgsAsync(
 {decode_request_stream}
 
 return {args_and_stream};",
-            args = non_streamed_parameters.to_argument_tuple("iceP_"),
-            decode_func = request_decode_func(operation).indent(),
-            decode_request_stream = decode_operation_stream(
-                stream_member,
-                namespace,
-                true,
-                true,
-            ),
-            args_and_stream = operation.parameters().to_argument_tuple("iceP_"));
+                args = non_streamed_parameters.to_argument_tuple("iceP_"),
+                decode_func = request_decode_func(operation).indent(),
+                decode_request_stream =
+                    decode_operation_stream(stream_member, namespace, true, true,),
+                args_and_stream = operation.parameters().to_argument_tuple("iceP_")
+            );
         }
     } else {
-        writeln!(code, "\
+        writeln!(
+            code,
+            "\
 await request.ToArgsAsync(
     _defaultActivator,
     {decode_func},
     hasStream: false,
     cancel).ConfigureAwait(false)
-", decode_func = request_decode_func(operation).indent());
+",
+            decode_func = request_decode_func(operation).indent()
+        );
     }
 
     code
@@ -548,7 +565,11 @@ fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
         0 => format!(
             "{encoding}.CreateEmptyPayload(hasStream: {has_stream})",
             encoding = encoding,
-            has_stream = if operation.return_type.is_empty() { "false" } else { "true" }
+            has_stream = if operation.return_type.is_empty() {
+                "false"
+            } else {
+                "true"
+            }
         ),
         _ => format!(
             "Response.{operation_name}({args})",

@@ -278,7 +278,11 @@ if ({invocation}?.RequestFeatures.Get<IceRpc.Features.CompressPayload>() == null
         invoke_args.push(format!(
             "{payload_encoding}.CreateEmptyPayload(hasStream: {has_stream})",
             payload_encoding = payload_encoding,
-            has_stream = if operation.parameters.is_empty() { "false" } else { "true" }
+            has_stream = if operation.parameters.is_empty() {
+                "false"
+            } else {
+                "true"
+            }
         ));
     } else {
         let mut request_helper_args = vec![parameters.to_argument_tuple("")];
@@ -299,8 +303,9 @@ if ({invocation}?.RequestFeatures.Get<IceRpc.Features.CompressPayload>() == null
         let stream_parameter_name = stream_parameter.parameter_name();
         let stream_type = stream_parameter.data_type();
         match stream_type.concrete_type() {
-            Types::Primitive(b) if matches!(b, Primitive::Byte) =>
-            invoke_args.push(stream_parameter_name),
+            Types::Primitive(b) if matches!(b, Primitive::Byte) => {
+                invoke_args.push(stream_parameter_name)
+            }
             _ => invoke_args.push(format!(
                 "\
 {payload_encoding}.CreatePayloadSourceStream<{stream_type}>(
@@ -561,14 +566,23 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 
         let mut builder = FunctionBuilder::new(
             &format!("{} static async", access),
-            &format!("global::System.Threading.Tasks.ValueTask<{}>", members.to_tuple_type(namespace, TypeContext::Incoming, false)),
+            &format!(
+                "global::System.Threading.Tasks.ValueTask<{}>",
+                members.to_tuple_type(namespace, TypeContext::Incoming, false)
+            ),
             &operation.escape_identifier_with_suffix("Async"),
-                function_type);
+            function_type,
+        );
 
         builder.add_comment("summary", &format!(r#"The <see cref="ResponseDecodeFunc{{T}}"/> for the return value type of operation {}."#, operation.identifier()));
-        builder.add_parameter("IceRpc.IncomingResponse", "response" , None, None);
-        builder.add_parameter("IceRpc.IInvoker?", "invoker" , None, None);
-        builder.add_parameter("global::System.Threading.CancellationToken", "cancel" , None, None);
+        builder.add_parameter("IceRpc.IncomingResponse", "response", None, None);
+        builder.add_parameter("IceRpc.IInvoker?", "invoker", None, None);
+        builder.add_parameter(
+            "global::System.Threading.CancellationToken",
+            "cancel",
+            None,
+            None,
+        );
 
         builder.set_body(response_operation_body(operation));
 
@@ -614,7 +628,9 @@ fn response_operation_body(operation: &Operation) -> CodeBlock {
         let non_streamed_members = operation.nonstreamed_return_members();
 
         if non_streamed_members.is_empty() {
-            writeln!(code, "\
+            writeln!(
+                code,
+                "\
 await response.CheckVoidReturnValueAsync(
     invoker,
     _defaultActivator,
@@ -622,9 +638,13 @@ await response.CheckVoidReturnValueAsync(
     cancel).ConfigureAwait(false);
 
 return {}
-", decode_operation_stream(stream_member, namespace, false, false));
+",
+                decode_operation_stream(stream_member, namespace, false, false)
+            );
         } else {
-            writeln!(code, "\
+            writeln!(
+                code,
+                "\
 var {return_value} = await response.ToReturnValueAsync(
     invoker,
     _defaultActivator,
@@ -638,20 +658,23 @@ return {return_value_and_stream};
 ",
                 return_value = non_streamed_members.to_argument_tuple("iceP_"),
                 response_decode_func = response_decode_func(operation).indent(),
-                decode_response_stream = decode_operation_stream(stream_member, namespace, false, true),
-                return_value_and_stream = operation.return_members().to_argument_tuple("iceP_"));
+                decode_response_stream =
+                    decode_operation_stream(stream_member, namespace, false, true),
+                return_value_and_stream = operation.return_members().to_argument_tuple("iceP_")
+            );
         }
-
-
     } else {
-        writeln!(code, "\
+        writeln!(
+            code,
+            "\
 await response.ToReturnValueAsync(
     invoker,
     _defaultActivator,
     {response_decode_func},
     hasStream: false,
     cancel).ConfigureAwait(false)",
-            response_decode_func = response_decode_func(operation).indent());
+            response_decode_func = response_decode_func(operation).indent()
+        );
     }
 
     code
