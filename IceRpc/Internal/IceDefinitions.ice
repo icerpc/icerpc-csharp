@@ -12,7 +12,7 @@ module IceRpc::Internal
         RequestBatch = 1,
         Reply = 2,
         ValidateConnection = 3,
-        CloseConnection = 4
+        CloseConnection = 4,
     }
 
     /// Determines the retry behavior an invocation in case of a (potentially) recoverable error. OperationMode is
@@ -31,7 +31,7 @@ module IceRpc::Internal
         /// operation twice in a row must result in the same object state as invoking it once. For example,
         /// <code>x = 1</code> is an idempotent statement, whereas <code>x += 1</code> is not. For idempotent
         /// operations, the Ice run-time does not guarantee at-most-once semantics.
-        \Idempotent
+        \Idempotent,
     }
 
     /// The payload of most request and response frames starts with an encapsulation header that specifies the size of
@@ -39,9 +39,9 @@ module IceRpc::Internal
     [cs:readonly]
     struct EncapsulationHeader
     {
-        int encapsulationSize;
-        byte payloadEncodingMajor;
-        byte payloadEncodingMinor;
+        encapsulationSize: int,
+        payloadEncodingMajor: byte,
+        payloadEncodingMinor: byte,
     }
 
     /// Each ice request frame has:
@@ -51,12 +51,12 @@ module IceRpc::Internal
     [cs:readonly]
     struct IceRequestHeader
     {
-        Slice::Internal::Identity identity;
-        Slice::Internal::Facet facet;
-        string operation;
-        OperationMode operationMode;
-        Context context;
-        EncapsulationHeader encapsulationHeader;
+        identity: Slice::Internal::Identity,
+        facet: Slice::Internal::Facet,
+        operation: string,
+        operationMode: OperationMode,
+        context: Context,
+        encapsulationHeader: EncapsulationHeader,
     }
 
     /// The reply status of an ice response frame.
@@ -89,6 +89,6 @@ module IceRpc::Internal
         UnknownUserException = 6,
 
         /// The reply message carries an unknown exception.
-        UnknownException = 7
+        UnknownException = 7,
     }
 }

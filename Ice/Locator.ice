@@ -39,7 +39,7 @@ module Ice
         /// identity was not found.
         /// @throws ObjectNotFoundException Thrown if an object with the requested identity was not found. The caller
         /// should treat this exception like a null return value.
-        idempotent IceRpc::Service? findObjectById(Identity id);
+        idempotent findObjectById(id: Identity) -> IceRpc::Service?;
 
         /// Finds an object adapter by id and returns a proxy that provides the object adapter's endpoint(s). This
         /// operation is for object adapters using the ice protocol.
@@ -48,11 +48,11 @@ module Ice
         /// not found.
         /// @throws AdapterNotFoundException Thrown if an object adapter with this adapter ID was not found. The caller
         /// should treat this exception like a null return value.
-        idempotent IceRpc::Service? findAdapterById(string id);
+        idempotent findAdapterById(id: string) -> IceRpc::Service?;
 
         /// Gets the locator registry.
         /// @return The locator registry, or null if this locator has no registry.
-        idempotent LocatorRegistry? getRegistry();
+        idempotent getRegistry() -> LocatorRegistry?;
     }
 
     /// A server application registers the endpoints of its indirect object adapters with the LocatorRegistry object.
@@ -68,7 +68,7 @@ module Ice
         /// @throws AdapterAlreadyActiveException Thrown if an object adapter with the same adapter ID has already
         /// registered its endpoints.
         // Note: idempotent is not quite correct, and kept only for backwards compatibility with old implementations.
-        idempotent void setAdapterDirectProxy(string id, IceRpc::Service? proxy);
+        idempotent setAdapterDirectProxy(id: string, proxy: IceRpc::Service?);
 
         /// Registers or unregisters the endpoints of an object adapter that uses the ice protocol. This object adapter
         /// is member of a replica group.
@@ -83,16 +83,17 @@ module Ice
         /// @throws InvalidReplicaGroupIdException Thrown if the given replica group does not match the replica group
         /// associated with the adapter ID in the locator's database.
         // Note: idempotent is not quite correct, and kept only for backwards compatibility with old implementations.
-        idempotent void setReplicatedAdapterDirectProxy(
-            string adapterId,
-            string replicaGroupId,
-            IceRpc::Service? proxy);
+        idempotent setReplicatedAdapterDirectProxy(
+            adapterId: string,
+            replicaGroupId: string,
+            proxy: IceRpc::Service?,
+        );
 
         /// Registers a proxy for a server's Process object.
         /// @param serverId The server ID.
         /// @param proxy A proxy for the server's Process object.
         /// @throws ServerNotFoundException Thrown if the locator does not know a server with this server ID.
-        idempotent void setServerProcessProxy(string serverId, Process proxy);
+        idempotent setServerProcessProxy(serverId: string, proxy: Process);
     }
 
     /// This interface is implemented by services that implement the Ice::Locator interface, and is advertised as an Ice
@@ -103,6 +104,6 @@ module Ice
         /// Gets the locator proxy implemented by the service hosting this finder object. The proxy might point to
         /// several replicas.
         /// @return The locator proxy.
-        Locator getLocator();
+        getLocator() -> Locator;
     }
 }

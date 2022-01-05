@@ -35,6 +35,6 @@ module IceRpc::Slice
         VInt = 8,
 
         /// Pseudo non-encoded format: like VSize but the size is optimized out.
-        OVSize = 9
+        OVSize = 9,
     }
 }

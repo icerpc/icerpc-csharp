@@ -9,6 +9,6 @@ module IceRpc
         Ice = 1,
 
         /// The preferred RPC protocol, based on multiplexed streams.
-        IceRpc = 2
+        IceRpc = 2,
     }
 }
