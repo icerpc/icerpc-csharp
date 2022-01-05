@@ -180,8 +180,9 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Creates a new cancellation token and the corresponding cancellation token source(s) when the
-        /// invocation carries a timeout but no deadline. Also verifies that cancellation token is cancellable when the
-        /// invocation carries a deadline.</summary>
+        /// invocation carries a timeout but no deadline.</summary>
+        /// <exception name="ArgumentException">Thrown when the invocation carries a deadline but
+        /// <paramref name="cancel"/> is not cancellable.</exception>
         /// <remarks>The caller must dispose the returned cancellation token source (if any) as soon as the response
         /// is received.</remarks>
         private static (CancellationToken Cancel, DateTime Deadline, CancellationTokenSource? TimeoutSource, CancellationTokenSource? CombinedSource) InjectTimeout(
