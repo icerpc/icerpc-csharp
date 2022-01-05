@@ -104,28 +104,42 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
         let namespace = &operation.namespace();
 
+        let function_type = if operation.streamed_parameter().is_some() {
+            FunctionType::BlockBody
+        } else {
+            FunctionType::ExpressionBody
+        };
+
         // We need the async/await for proper type inference when returning tuples with nullable elements like string?.
-        let code = format!(
-            "\
-/// <summary>Decodes the argument{s} of operation {operation_identifier}.</summary>
-{access} static async global::System.Threading.Tasks.ValueTask<{return_type}> {async_operation_name}(
-    IceRpc.IncomingRequest request,
-    global::System.Threading.CancellationToken cancel) =>
-    await request.ToArgsAsync(
-        _defaultActivator,
-        {decode_func},
-        {has_stream},
-        cancel).ConfigureAwait(false);",
-            access = access,
-            s = if parameters.len() == 1 { "" } else { "s" },
-            return_type = parameters.to_tuple_type(namespace, TypeContext::Incoming, false),
-            operation_identifier = operation.identifier(),
-            async_operation_name = operation.escape_identifier_with_suffix("Async"),
-            decode_func = request_decode_func(operation).indent().indent(),
-            has_stream = parameters.len() > 0 && parameters.last().unwrap().is_streamed,
+        let mut builder = FunctionBuilder::new(
+            &format!("{} static async", access),
+            &format!(
+                "global::System.Threading.Tasks.ValueTask<{}>",
+                &parameters.to_tuple_type(namespace, TypeContext::Incoming, false)
+            ),
+            &operation.escape_identifier_with_suffix("Async"),
+            function_type,
         );
 
-        class_builder.add_block(code.into());
+        builder.add_comment(
+            "summary",
+            &format!(
+                "Decodes the argument{s} of operation {operation_identifier}.",
+                s = if parameters.len() == 1 { "" } else { "s" },
+                operation_identifier = operation.escape_identifier()
+            ),
+        );
+
+        builder.add_parameter("IceRpc.IncomingRequest", "request", None, None);
+        builder.add_parameter(
+            "global::System.Threading.CancellationToken",
+            "cancel",
+            None,
+            None,
+        );
+        builder.set_body(request_decode_body(operation));
+
+        class_builder.add_block(builder.build());
     }
 
     class_builder.build().into()
@@ -255,15 +269,69 @@ encoding.{encoding_operation}(
     class_builder.build().into()
 }
 
+fn request_decode_body(operation: &Operation) -> CodeBlock {
+    let mut code = CodeBlock::new();
+
+    let namespace = &operation.namespace();
+
+    if let Some(stream_member) = operation.streamed_parameter() {
+        let non_streamed_parameters = operation.nonstreamed_parameters();
+
+        if non_streamed_parameters.is_empty() {
+            writeln!(
+                code,
+                "\
+await request.CheckEmptyArgsAsync(hasStream: true, cancel).ConfigureAwait(false);
+
+return {}",
+                decode_operation_stream(stream_member, namespace, true, false)
+            );
+        } else {
+            writeln!(
+                code,
+                "\
+var {args} = await request.ToArgsAsync(
+    _defaultActivator,
+    {decode_func},
+    hasStream: true,
+    cancel).ConfigureAwait(false);
+
+{decode_request_stream}
+
+return {args_and_stream};",
+                args = non_streamed_parameters.to_argument_tuple("iceP_"),
+                decode_func = request_decode_func(operation).indent(),
+                decode_request_stream =
+                    decode_operation_stream(stream_member, namespace, true, true,),
+                args_and_stream = operation.parameters().to_argument_tuple("iceP_")
+            );
+        }
+    } else {
+        writeln!(
+            code,
+            "\
+await request.ToArgsAsync(
+    _defaultActivator,
+    {decode_func},
+    hasStream: false,
+    cancel).ConfigureAwait(false)
+",
+            decode_func = request_decode_func(operation).indent()
+        );
+    }
+
+    code
+}
+
 fn request_decode_func(operation: &Operation) -> CodeBlock {
     let namespace = &operation.namespace();
 
-    let parameters = operation.parameters();
+    let parameters = operation.nonstreamed_parameters();
+    assert!(!parameters.is_empty());
 
     let use_default_decode_func = parameters.len() == 1
         && get_bit_sequence_size(&parameters) == 0
-        && parameters.first().unwrap().tag.is_none()
-        && !parameters.first().unwrap().is_streamed;
+        && parameters.first().unwrap().tag.is_none();
 
     // TODO: simplify code for single stream param
 
@@ -373,7 +441,7 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
             // Verify the payload is indeed empty (it can contain tagged params that we have to skip).
             code.writeln(
                 "\
-await request.CheckEmptyArgsAsync(cancel).ConfigureAwait(false);",
+await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false);",
             );
         }
         [parameter] => {
@@ -497,7 +565,11 @@ fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
         0 => format!(
             "{encoding}.CreateEmptyPayload(hasStream: {has_stream})",
             encoding = encoding,
-            has_stream = if operation.return_type.is_empty() { "false" } else { "true" }
+            has_stream = if operation.return_type.is_empty() {
+                "false"
+            } else {
+                "true"
+            }
         ),
         _ => format!(
             "Response.{operation_name}({args})",
