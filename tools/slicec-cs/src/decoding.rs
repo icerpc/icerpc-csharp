@@ -453,52 +453,52 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
 pub fn decode_operation_stream(stream_member: &Parameter, namespace: &str, dispatch: bool, assign_to_variable: bool) -> CodeBlock {
 
     let param_type = stream_member.data_type();
-        let param_type_str = param_type.to_type_string(namespace, TypeContext::Incoming, false);
-        // Call to_type_string on the parameter itself to get its stream qualifier.
-        let stream_type_str = stream_member.to_type_string(namespace, TypeContext::Incoming, false);
+    let param_type_str = param_type.to_type_string(namespace, TypeContext::Incoming, false);
+    // Call to_type_string on the parameter itself to get its stream qualifier.
+    let stream_type_str = stream_member.to_type_string(namespace, TypeContext::Incoming, false);
 
-        let create_stream_param: CodeBlock = match param_type.concrete_type() {
-            Types::Primitive(primitive) if matches!(primitive, Primitive::Byte) => {
-                if dispatch {
-                    "request.Payload;".into()
-                } else {
-                    "response.Payload;".into()
-                }
+    let create_stream_param: CodeBlock = match param_type.concrete_type() {
+        Types::Primitive(primitive) if matches!(primitive, Primitive::Byte) => {
+            if dispatch {
+                "request.Payload;".into()
+            } else {
+                "response.Payload;".into()
             }
-            _ => {
-                if dispatch {
-                    format!(
-                        "\
+        }
+        _ => {
+            if dispatch {
+                format!(
+                    "\
 request.ToAsyncEnumerable<{param_type}>(
     _defaultActivator,
     {decode_func});",
-                        param_type = param_type_str,
-                        decode_func = decode_func(param_type, namespace).indent()
-                    )
-                    .into()
-                } else {
-                    format!(
-                        "\
+                    param_type = param_type_str,
+                    decode_func = decode_func(param_type, namespace).indent()
+                )
+                .into()
+            } else {
+                format!(
+                    "\
 response.ToAsyncEnumerable<{param_type}>(
     invoker,
     _defaultActivator,
     {decode_func});",
-                        param_type = param_type_str,
-                        decode_func = decode_func(param_type, namespace).indent()
-                    )
-                    .into()
-                }
+                    param_type = param_type_str,
+                    decode_func = decode_func(param_type, namespace).indent()
+                )
+                .into()
             }
-        };
-
-        if assign_to_variable {
-            format!(
-                "{stream_param_type} {param_name} = {create_stream_param}",
-                stream_param_type = stream_type_str,
-                param_name = stream_member.parameter_name_with_prefix("iceP_"),
-                create_stream_param = create_stream_param
-            ).into()
-        } else {
-            create_stream_param
         }
+    };
+
+    if assign_to_variable {
+        format!(
+            "{stream_param_type} {param_name} = {create_stream_param}",
+            stream_param_type = stream_type_str,
+            param_name = stream_member.parameter_name_with_prefix("iceP_"),
+            create_stream_param = create_stream_param
+        ).into()
+    } else {
+        create_stream_param
+    }
 }
