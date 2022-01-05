@@ -54,7 +54,7 @@ namespace IceRpc.Slice
         private readonly Connection? _connection;
 
         // Invoker used when decoding proxies.
-        private readonly IInvoker? _invoker;
+        private readonly IInvoker _invoker;
 
         // The sum of all the minimum sizes (in bytes) of the sequences decoded from this buffer. Must not exceed the
         // buffer size.
@@ -67,7 +67,8 @@ namespace IceRpc.Slice
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="encoding">The Slice encoding version.</param>
         /// <param name="connection">The connection.</param>
-        /// <param name="invoker">The invoker.</param>
+        /// <param name="invoker">The invoker of proxies decoded by this decoder. Use null to get the default invoker.
+        /// </param>
         /// <param name="activator">The activator.</param>
         /// <param name="classGraphMaxDepth">The class graph max depth.</param>
         public IceDecoder(
@@ -83,7 +84,7 @@ namespace IceRpc.Slice
             _activator = activator;
             _classContext = new ClassContext(classGraphMaxDepth);
             _connection = connection;
-            _invoker = invoker;
+            _invoker = invoker ?? Proxy.DefaultInvoker;
             _minTotalSeqSize = 0;
             _reader = new SequenceReader<byte>(buffer);
         }

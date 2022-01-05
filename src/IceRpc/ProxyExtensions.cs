@@ -6,12 +6,6 @@ namespace IceRpc
     /// <summary>Provides extension methods for <see cref="Proxy"/>.</summary>
     public static class ProxyExtensions
     {
-        /// <summary>The invoker that a proxy calls when its invoker is null.</summary>
-        internal static IInvoker NullInvoker { get; } =
-            new InlineInvoker((request, cancel) =>
-                request.Connection?.InvokeAsync(request, cancel) ??
-                    throw new ArgumentNullException($"{nameof(request.Connection)} is null", nameof(request)));
-
         /// <summary>Sends a request to a service and returns the response.</summary>
         /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="operation">The name of the operation.</param>
@@ -84,7 +78,7 @@ namespace IceRpc
                 };
 
                 // We perform as much work as possible in a non async method to throw exceptions synchronously.
-                Task<IncomingResponse> responseTask = (proxy.Invoker ?? NullInvoker).InvokeAsync(request, cancel);
+                Task<IncomingResponse> responseTask = proxy.Invoker.InvokeAsync(request, cancel);
                 return ConvertResponseAsync(responseTask, timeoutSource, combinedSource);
             }
             catch
