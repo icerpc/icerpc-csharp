@@ -4,18 +4,18 @@ module IceRpc::Tests::Slice
 {
     exception MyExceptionA
     {
-        int m1;
+        m1: int,
     }
 
     exception MyExceptionB
     {
-        int m1;
+        m1: int,
     }
 
     interface ExceptionOperations
     {
-        void throwA(int a);
-        void throwAorB(int a);
-        void throwRemoteException();
+        throwA(a: int);
+        throwAorB(a: int);
+        throwRemoteException();
     }
 }

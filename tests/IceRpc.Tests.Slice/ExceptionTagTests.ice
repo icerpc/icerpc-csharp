@@ -4,52 +4,52 @@ module IceRpc::Tests::Slice
 {
     struct TaggedExceptionStruct
     {
-        string s;
-        int? v;
+        s: string,
+        v: int?,
     }
 
     exception TaggedException
     {
-        tag(50) TaggedExceptionStruct? mStruct;
-        tag(1) int? mInt;
-        bool mBool;
-        tag(2) string? mString;
+        mStruct: tag(50) TaggedExceptionStruct?,
+        mInt: tag(1) int?,
+        mBool: bool,
+        mString: tag(2) string?,
     }
 
     exception TaggedExceptionPlus
     {
-        tag(3) float? mFloat;
-        tag(50) TaggedExceptionStruct? mStruct;
-        tag(1) int? mInt;
-        bool mBool;
-        tag(2) string? mString;
+        mFloat: tag(3) float?,
+        mStruct: tag(50) TaggedExceptionStruct?,
+        mInt: tag(1) int?,
+        mBool: bool,
+        mString: tag(2) string?,
     }
 
     exception TaggedExceptionMinus
     {
-        bool mBool;
-        tag(2) string? mString;
-        tag(50) TaggedExceptionStruct? mStruct;
+        mBool: bool,
+        mString: tag(2) string?,
+        mStruct: tag(50) TaggedExceptionStruct?,
     }
 
     exception DerivedException : TaggedException
     {
-        tag(600) string? mString1;
-        tag(601) TaggedExceptionStruct? mStruct1;
+        mString1: tag(600) string?,
+        mStruct1: tag(601) TaggedExceptionStruct?,
     }
 
     exception RequiredException : TaggedException
     {
-        string mString1;
-        TaggedExceptionStruct mStruct1;
+        mString1: string,
+        mStruct1: TaggedExceptionStruct,
     }
 
     interface ExceptionTag
     {
-        void opTaggedException(tag(1) int? p1, tag(2) string? p2, tag(3) TaggedExceptionStruct? p3);
+        opTaggedException(p1: tag(1) int?, p2: tag(2) string?, p3: tag(3) TaggedExceptionStruct?);
 
-        void opDerivedException(tag(1) int? p1, tag(2) string? p2, tag(3) TaggedExceptionStruct? p3);
+        opDerivedException(p1: tag(1) int?, p2: tag(2) string?, p3: tag(3) TaggedExceptionStruct?);
 
-        void opRequiredException(tag(1) int? p1, tag(2) string? p2, tag(3) TaggedExceptionStruct? p3);
+        opRequiredException(p1: tag(1) int?, p2: tag(2) string?, p3: tag(3) TaggedExceptionStruct?);
     }
 }

@@ -5,7 +5,7 @@ module IceRpc::Tests::Slice::Scope
 {
     struct S
     {
-        int v;
+        v: int,
     }
 
     typealias SMap = dictionary<string, S>;
@@ -13,7 +13,7 @@ module IceRpc::Tests::Slice::Scope
 
     class C
     {
-        S s;
+        s: S,
     }
 
     typealias CMap = dictionary<string, C>;
@@ -23,49 +23,49 @@ module IceRpc::Tests::Slice::Scope
     {
         v1,
         v2,
-        v3
+        v3,
     }
 
     struct S1
     {
-        string s;
+        s: string,
     }
 
     class C1
     {
-        string s;
+        s: string,
     }
 
     // Ensure that struct data members can use a type name as a data member name.
     struct S2
     {
-        E1 E1;
-        S1 S1;
-        C1 C1;
+        E1: E1,
+        S1: S1,
+        C1: C1,
     }
 
     // Ensure that class data members can use a type name as a data member name.
     class C2
     {
-        E1 E1;
-        S1 S1;
-        C1 C1;
+        E1: E1,
+        S1: S1,
+        C1: C1,
     }
 
     interface Operations
     {
-        S opS(S p1);
-        SSeq opSSeq(SSeq p1);
-        SMap opSMap(SMap p1);
+        opS(p1: S) -> S;
+        opSSeq(p1: SSeq) -> SSeq;
+        opSMap(p1: SMap) -> SMap;
 
-        C opC(C p1);
-        CSeq opCSeq(CSeq p1);
-        CMap opCMap(CMap p1);
+        opC(p1: C) -> C;
+        opCSeq(p1: CSeq) -> CSeq;
+        opCMap(p1: CMap) -> CMap;
 
         // Ensure that a type name can be used as a parameter name
-        E1 opE1(E1 E1);
-        S1 opS1(S1 S1);
-        C1 opC1(C1 C1);
+        opE1(E1: E1) -> E1;
+        opS1(S1: S1) -> S1;
+        opC1(C1: C1) -> C1;
     }
 
     typealias OperationsMap = dictionary<string, Operations>;
@@ -75,14 +75,14 @@ module IceRpc::Tests::Slice::Scope
     {
         struct S
         {
-            int v;
+            v: int,
         }
 
         module Inner2
         {
             struct S
             {
-                int v;
+                v: int,
             }
 
             typealias SMap = dictionary<string, S>;
@@ -90,7 +90,7 @@ module IceRpc::Tests::Slice::Scope
 
             class C
             {
-                S s;
+                s: S,
             }
 
             typealias CMap = dictionary<string, C>;
@@ -98,13 +98,13 @@ module IceRpc::Tests::Slice::Scope
 
             interface Operations
             {
-                S opS(S p1);
-                SSeq opSSeq(SSeq p1);
-                SMap opSMap(SMap p1);
+                opS(p1: S) -> S;
+                opSSeq(p1: SSeq) -> SSeq;
+                opSMap(p1: SMap) -> SMap;
 
-                C opC(C c1);
-                CSeq opCSeq(CSeq p1);
-                CMap opCMap(CMap p1);
+                opC(c1: C) -> C;
+                opCSeq(p1: CSeq) -> CSeq;
+                opCMap(p1: CMap) -> CMap;
             }
 
             typealias OperationsMap = dictionary<string, Operations>;
@@ -113,7 +113,7 @@ module IceRpc::Tests::Slice::Scope
 
         class C
         {
-            S s;
+            s: S,
         }
 
         typealias SMap = dictionary<string, Inner2::S>;
@@ -124,13 +124,13 @@ module IceRpc::Tests::Slice::Scope
 
         interface Operations
         {
-            Inner2::S opS(Inner2::S p1);
-            Inner2::SSeq opSSeq(Inner2::SSeq p1);
-            Inner2::SMap opSMap(Inner2::SMap p1);
+            opS(p1: Inner2::S) -> Inner2::S;
+            opSSeq(p1: Inner2::SSeq) -> Inner2::SSeq;
+            opSMap(p1: Inner2::SMap) -> Inner2::SMap;
 
-            Inner2::C opC(Inner2::C p1);
-            Inner2::CSeq opCSeq(Inner2::CSeq p1);
-            Inner2::CMap opCMap(Inner2::CMap p1);
+            opC(p1: Inner2::C) -> Inner2::C;
+            opCSeq(p1: Inner2::CSeq) -> Inner2::CSeq;
+            opCMap(p1: Inner2::CMap) -> Inner2::CMap;
         }
 
         typealias OperationsMap = dictionary<string, Operations>;
@@ -142,12 +142,12 @@ module IceRpc::Tests::Slice::Scope::Inner::Test::Inner2
 {
     interface Operations
     {
-        IceRpc::Tests::Slice::Scope::S opS(IceRpc::Tests::Slice::Scope::S p1);
-        IceRpc::Tests::Slice::Scope::SSeq opSSeq(IceRpc::Tests::Slice::Scope::SSeq p1);
-        IceRpc::Tests::Slice::Scope::SMap opSMap(IceRpc::Tests::Slice::Scope::SMap p1);
+        opS(p1: IceRpc::Tests::Slice::Scope::S) -> IceRpc::Tests::Slice::Scope::S;
+        opSSeq(p1: IceRpc::Tests::Slice::Scope::SSeq) -> IceRpc::Tests::Slice::Scope::SSeq;
+        opSMap(p1: IceRpc::Tests::Slice::Scope::SMap) -> IceRpc::Tests::Slice::Scope::SMap;
 
-        IceRpc::Tests::Slice::Scope::C opC(IceRpc::Tests::Slice::Scope::C p1);
-        IceRpc::Tests::Slice::Scope::CSeq opCSeq(IceRpc::Tests::Slice::Scope::CSeq c1);
-        IceRpc::Tests::Slice::Scope::CMap opCMap(IceRpc::Tests::Slice::Scope::CMap p1);
+        opC(p1: IceRpc::Tests::Slice::Scope::C) -> IceRpc::Tests::Slice::Scope::C;
+        opCSeq(c1: IceRpc::Tests::Slice::Scope::CSeq) -> IceRpc::Tests::Slice::Scope::CSeq;
+        opCMap(p1: IceRpc::Tests::Slice::Scope::CMap) -> IceRpc::Tests::Slice::Scope::CMap;
     }
 }

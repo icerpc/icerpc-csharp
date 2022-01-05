@@ -7,9 +7,9 @@ module IceRpc
     struct EndpointParam
     {
         /// The parameter name.
-        string name;
+        name: string,
 
         /// The parameter value.
-        string value;
+        value: string,
     }
 }

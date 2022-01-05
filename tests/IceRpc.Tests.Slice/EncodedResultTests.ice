@@ -4,15 +4,15 @@ module IceRpc::Tests::Slice
 {
     interface EncodedResultOperations
     {
-        [cs:encoded-result] AnotherStruct opAnotherStruct1(AnotherStruct p1);
-        [cs:encoded-result] (AnotherStruct r1, AnotherStruct r2) opAnotherStruct2(AnotherStruct p1);
+        [cs:encoded-result] opAnotherStruct1(p1: AnotherStruct) -> AnotherStruct;
+        [cs:encoded-result] opAnotherStruct2(p1: AnotherStruct) -> (r1: AnotherStruct, r2: AnotherStruct);
 
-        [cs:encoded-result] StringSeq opStringSeq1(StringSeq p1);
-        [cs:encoded-result] (StringSeq r1, StringSeq r2) opStringSeq2(StringSeq p1);
+        [cs:encoded-result] opStringSeq1(p1: StringSeq) -> StringSeq;
+        [cs:encoded-result] opStringSeq2(p1: StringSeq) -> (r1: StringSeq, r2: StringSeq);
 
-        [cs:encoded-result] StringDict opStringDict1(StringDict p1);
-        [cs:encoded-result] (StringDict r1, StringDict r2) opStringDict2(StringDict p1);
+        [cs:encoded-result] opStringDict1(p1: StringDict) -> StringDict;
+        [cs:encoded-result] opStringDict2(p1: StringDict) -> (r1: StringDict, r2: StringDict);
 
-        [cs:encoded-result] MyClassA opMyClassA(MyClassA p1);
+        [cs:encoded-result] opMyClassA(p1: MyClassA) -> MyClassA;
     }
 }

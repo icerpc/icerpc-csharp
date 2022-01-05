@@ -17,6 +17,6 @@ module IceRpc
     struct CompressionField
     {
         /// The compression format.
-        CompressionFormat format;
+        format: CompressionFormat,
     }
 }

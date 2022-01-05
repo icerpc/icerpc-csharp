@@ -4,18 +4,18 @@ module IceRpc::Tests::ClientServer
 {
     exception CompressMyException
     {
-        sequence<byte> bytes;
+        bytes: sequence<byte>,
     }
 
     interface CompressTest
     {
-        [compress(args)] void opCompressArgs(int size, sequence<byte> p1);
-        [compress(return)] sequence<byte> opCompressReturn(int size);
-        [compress(args, return)] sequence<byte> opCompressArgsAndReturn(sequence<byte> p1);
-        [compress(args, return)] void opWithUserException(int size);
+        [compress(args)] opCompressArgs(size: int, p1: sequence<byte>);
+        [compress(return)] opCompressReturn(size: int) -> sequence<byte>;
+        [compress(args, return)] opCompressArgsAndReturn(p1: sequence<byte>) -> sequence<byte>;
+        [compress(args, return)] opWithUserException(size: int);
 
-        [compress(args)] int opCompressStreamArg(stream byte p1);
-        [compress(return)] stream byte opCompressReturnStream(int size);
-        [compress(args, return)] stream byte opCompressStreamArgAndReturnStream(stream byte p1);
+        [compress(args)] opCompressStreamArg(p1: stream byte) -> int;
+        [compress(return)] opCompressReturnStream(size: int) -> stream byte;
+        [compress(args, return)] opCompressStreamArgAndReturnStream(p1: stream byte) -> stream byte;
     }
 }

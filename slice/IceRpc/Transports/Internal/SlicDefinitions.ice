@@ -61,10 +61,10 @@ module IceRpc::Transports::Internal
     struct InitializeBody
     {
         /// The application protocol name.
-        string applicationProtocolName;
+        applicationProtocolName: string,
 
         /// The parameters.
-        ParameterFields parameters;
+        parameters: ParameterFields,
     }
 
     /// The Slic initialize acknowledgment frame body.
@@ -72,7 +72,7 @@ module IceRpc::Transports::Internal
     struct InitializeAckBody
     {
         /// The parameters.
-        ParameterFields parameters;
+        parameters: ParameterFields,
     }
 
     /// The body of a Slic version frame. This frame is sent in response to an initialize frame if the Slic version
@@ -83,7 +83,7 @@ module IceRpc::Transports::Internal
     struct VersionBody
     {
         /// The supported Slic versions.
-        sequence<varuint> versions;
+        versions: sequence<varuint>,
     }
 
     /// The body of the Stream reset frame. This frame is sent to notify the peer that sender is no longer
@@ -92,7 +92,7 @@ module IceRpc::Transports::Internal
     struct StreamResetBody
     {
         /// The application protocol error code indicating the reason of the reset.
-        varulong applicationProtocolErrorCode;
+        applicationProtocolErrorCode: varulong,
     }
 
     /// The body of the Stream consumed frame. This frame is sent to notify the peer that the receiver
@@ -101,7 +101,7 @@ module IceRpc::Transports::Internal
     struct StreamConsumedBody
     {
         /// The size of the consumed data.
-        varulong size;
+        size: varulong,
     }
 
     /// The body of the Stream stop sending frame. This frame is sent to notify the peer that the receiver
@@ -110,6 +110,6 @@ module IceRpc::Transports::Internal
     struct StreamStopSendingBody
     {
         /// The application protocol error code indicating the reason why the peer no longer needs to receive data.
-        varulong applicationProtocolErrorCode;
+        applicationProtocolErrorCode: varulong,
     }
 }

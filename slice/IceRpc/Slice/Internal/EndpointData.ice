@@ -8,19 +8,19 @@ module IceRpc::Slice::Internal
     struct EndpointData
     {
         /// The protocol.
-        ProtocolCode protocol;
+        protocol: ProtocolCode,
 
         /// The name of the transport, for example tcp.
-        string transport;
+        transport: string,
 
         /// The host name or address. Its exact meaning depends on the transport. For IP-based transports, it's a DNS
         /// name or IP address. For Bluetooth RFCOMM, it's a Bluetooth Device Address.
-        string host;
+        host: string,
 
         /// The port number. Its exact meaning depends on the transport.
-        ushort port;
+        port: ushort,
 
         /// The endpoint parameters.
-        sequence<EndpointParam> params;
+        params: sequence<EndpointParam>,
     }
 }

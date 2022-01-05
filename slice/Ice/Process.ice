@@ -14,13 +14,13 @@ module Ice
     interface Process
     {
         /// Initiate a graceful shut-down.
-        void shutdown();
+        shutdown();
 
         /// Write a message on the process' stdout or stderr.
         ///
         /// @param message The message.
         ///
         /// @param fd 1 for stdout, 2 for stderr.
-        void writeMessage(string message, int fd);
+        writeMessage(message: string, fd: int);
     }
 }

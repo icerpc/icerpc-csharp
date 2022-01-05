@@ -4,16 +4,16 @@ module IceRpc::Tests::ReferencedAssemblies
 {
     class ClassC : ClassB
     {
-        string cValue;
+        cValue: string,
     }
 
     class CompactClassC(3) : CompactClassB
     {
-        string cValue;
+        cValue: string,
     }
 
     exception ExceptionC : ExceptionB
     {
-        string cValue;
+        cValue: string,
     }
 }

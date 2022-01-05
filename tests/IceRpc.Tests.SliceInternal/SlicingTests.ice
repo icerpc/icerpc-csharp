@@ -4,62 +4,62 @@ module IceRpc::Tests::SliceInternal
 {
     class MyBaseClass
     {
-        string m1;
+        m1: string,
     }
 
     class MyDerivedClass : MyBaseClass
     {
-        string m2;
+        m2: string,
     }
 
     class MyMostDerivedClass : MyDerivedClass
     {
-        string m3;
+        m3: string,
     }
 
     class MyCompactBaseClass(1)
     {
-        string m1;
+        m1: string,
     }
 
     class MyCompactDerivedClass(2) : MyCompactBaseClass
     {
-        string m2;
+        m2: string,
     }
 
     class MyCompactMostDerivedClass(3) : MyCompactDerivedClass
     {
-        string m3;
+        m3: string,
     }
 
     exception MyBaseException
     {
-        string m1;
+        m1: string,
     }
 
     exception MyDerivedException : MyBaseException
     {
-        string m2;
+        m2: string,
     }
 
     exception MyMostDerivedException : MyDerivedException
     {
-        string m3;
+        m3: string,
     }
 
     [preserve-slice]
     class MyPreservedClass : MyBaseClass
     {
-        string m2;
+        m2: string,
     }
 
     class MyPreservedDerivedClass1 : MyPreservedClass
     {
-        MyBaseClass m3;
+        m3: MyBaseClass,
     }
 
     class MyPreservedDerivedClass2(56) : MyPreservedClass
     {
-        MyBaseClass m3;
+        m3: MyBaseClass,
     }
 }

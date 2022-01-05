@@ -4,11 +4,11 @@ module IceRpc::Tests::Slice
 {
     class MyClassF1
     {
-        string name;
+        name: string,
     }
 
     interface MyInterfaceF2
     {
-        void op();
+        op();
     }
 }

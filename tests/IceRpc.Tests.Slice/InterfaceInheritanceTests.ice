@@ -6,21 +6,21 @@ module IceRpc::Tests::Slice::InterfaceInheritance
 
     interface A
     {
-        D opA(A p);
+        opA(p: A) -> D;
     }
 
     interface B : A
     {
-        B opB(B p);
+        opB(p: B) -> B;
     }
 
     interface C : A, Service
     {
-        C opC(C p);
+        opC(p: C) -> C;
     }
 
     interface D : B, C
     {
-        A opD(D p);
+        opD(p: D) -> A;
     }
 }
