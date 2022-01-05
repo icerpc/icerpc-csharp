@@ -480,7 +480,6 @@ request.ToAsyncEnumerable<{param_type}>(
                     format!(
                         "\
 response.ToAsyncEnumerable<{param_type}>(
-    invoker,
     _defaultActivator,
     {decode_func});",
                         param_type = param_type_str,

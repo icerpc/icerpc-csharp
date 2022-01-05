@@ -558,10 +558,8 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 /// <summary>The <see cref="ResponseDecodeFunc{{T}}"/> for the return value type of operation {name}.</summary>
 {access} static async global::System.Threading.Tasks.ValueTask<{return_type}> {escaped_name}(
     IceRpc.IncomingResponse response,
-    IceRpc.IInvoker invoker,
     global::System.Threading.CancellationToken cancel) =>
     await response.ToReturnValueAsync(
-        invoker,
         _defaultActivator,
         {response_decode_func},
         {has_stream},

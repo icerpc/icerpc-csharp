@@ -678,7 +678,6 @@ namespace IceRpc.Tests.Slice
             IncomingResponse response = await _prx.Proxy.Invoker.InvokeAsync(request, default);
 
             Assert.DoesNotThrowAsync(async () => await response.CheckVoidReturnValueAsync(
-                _prx.Proxy.Invoker,
                 IceDecoder.GetActivator(typeof(OperationTagTests).Assembly),
                 default));
         }

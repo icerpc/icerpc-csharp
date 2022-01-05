@@ -57,22 +57,5 @@ namespace IceRpc.Slice
                 decodeFunc,
                 hasStream,
                 cancel);
-
-        /// <summary>Creates an async enumerable over the payload reader of an incoming request.</summary>
-        /// <param name="request">The request.</param>
-        /// <param name="defaultActivator">The default activator.</param>
-        /// <param name="decodeFunc">The function used to decode the streamed param.</param>
-        public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
-            this IncomingRequest request,
-            IActivator defaultActivator,
-            DecodeFunc<T> decodeFunc) =>
-            request.Payload.ToAsyncEnumerable<T>(
-                request.GetSlicePayloadEncoding(),
-                request.Connection,
-                request.ProxyInvoker,
-                request.Features.Get<IActivator>() ?? defaultActivator,
-                request.Features.GetClassGraphMaxDepth(),
-                decodeFunc,
-                request.Features.Get<StreamDecoderOptions>() ?? StreamDecoderOptions.Default);
     }
 }

@@ -271,6 +271,7 @@ namespace IceRpc.Internal
                     payloadEncoding)
                 {
                     Features = features,
+                    ProxyInvoker = request.Proxy.Invoker,
                 };
             }
             catch

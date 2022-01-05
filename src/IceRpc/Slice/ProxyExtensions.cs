@@ -7,14 +7,10 @@ namespace IceRpc.Slice
     /// <summary>A function that decodes the return value from an Ice-encoded response.</summary>
     /// <typeparam name="T">The type of the return value to read.</typeparam>
     /// <param name="response">The incoming response.</param>
-    /// <param name="invoker">The invoker of the proxy used to send this request.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>A value task that contains the return value or a <see cref="RemoteException"/> when the response
     /// carries a failure.</returns>
-    public delegate ValueTask<T> ResponseDecodeFunc<T>(
-        IncomingResponse response,
-        IInvoker invoker,
-        CancellationToken cancel);
+    public delegate ValueTask<T> ResponseDecodeFunc<T>(IncomingResponse response, CancellationToken cancel);
 
     /// <summary>Provides extension methods for class Proxy.</summary>
     public static class ProxyExtensions
@@ -101,7 +97,7 @@ namespace IceRpc.Slice
                     invocation.ResponseFeatures = response.Features;
                 }
 
-                return await responseDecodeFunc(response, proxy.Invoker, cancel).ConfigureAwait(false);
+                return await responseDecodeFunc(response, cancel).ConfigureAwait(false);
             }
         }
 
@@ -179,10 +175,7 @@ namespace IceRpc.Slice
                     invocation.ResponseFeatures = response.Features;
                 }
 
-                await response.CheckVoidReturnValueAsync(
-                    proxy.Invoker,
-                    defaultActivator,
-                    cancel).ConfigureAwait(false);
+                await response.CheckVoidReturnValueAsync(defaultActivator, cancel).ConfigureAwait(false);
             }
         }
 

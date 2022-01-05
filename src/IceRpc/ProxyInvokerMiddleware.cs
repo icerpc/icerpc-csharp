@@ -2,7 +2,7 @@
 
 namespace IceRpc
 {
-    /// <summary>A middleware that sets <see cref="IncomingRequest.ProxyInvoker"/> and indirectly
+    /// <summary>A middleware that sets <see cref="IncomingFrame.ProxyInvoker"/> and indirectly
     /// <see cref="Dispatch.ProxyInvoker"/>.</summary>
     public class ProxyInvokerMiddleware : IDispatcher
     {
