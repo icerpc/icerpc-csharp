@@ -18,36 +18,26 @@ namespace IceRpc.Tests.ClientServer
         {
             bool executed = false;
 
-            await using var connection = new Connection(); // dummy connection
-
-            var pipeline = new Pipeline();
-            pipeline.Use(next => new InlineInvoker((request, cancel) =>
-            {
-                executed = true;
-                Assert.AreEqual("opCompressArgs", request.Operation);
-                Assert.AreEqual(keepDefault ? Features.CompressPayload.Yes : Features.CompressPayload.No,
-                                request.Features.Get<Features.CompressPayload>());
-
-                return Task.FromResult(
-                    new IncomingResponse(
-                        request.Protocol,
-                        ResultType.Success,
-                        PipeReader.Create(ReadOnlySequence<byte>.Empty),
-                        Encoding.Slice20)
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<IInvoker>(_ =>
+                    new Pipeline().Use(next => new InlineInvoker((request, cancel) =>
                     {
-                        Connection = connection, // without a connection, the decoding of response fails, even for void
-                    });
-            }));
+                        executed = true;
+                        Assert.AreEqual("opCompressArgs", request.Operation);
+                        Assert.AreEqual(keepDefault ? Features.CompressPayload.Yes : Features.CompressPayload.No,
+                                        request.Features.Get<Features.CompressPayload>());
 
-            var prx = CompressTestPrx.FromPath(CompressTestPrx.DefaultPath);
-            prx.Proxy.Invoker = pipeline;
+                        return next.InvokeAsync(request, cancel);
+                    })))
+                .BuildServiceProvider();
 
-            Invocation? invocation = null;
+            CompressTestPrx prx = serviceProvider.GetProxy<CompressTestPrx>();
+
+            var invocation = new Invocation { IsOneway = true };
 
             if (!keepDefault)
             {
                 // The generated code does not and should not override a value set explicitly.
-                invocation = new Invocation();
                 invocation.RequestFeatures = invocation.RequestFeatures.With(Features.CompressPayload.No);
             }
 
