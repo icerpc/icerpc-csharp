@@ -63,7 +63,7 @@ namespace IceRpc.Tests.Internal
                 tlsString = $"?tls={tls}";
             }
 
-            _endpoint = $"ice+tcp://{host}:0{tlsString}";
+            _endpoint = $"icerpc+tcp://{host}:0{tlsString}";
         }
 
         [Test]

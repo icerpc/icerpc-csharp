@@ -7,8 +7,7 @@ using System.Text;
 
 namespace IceRpc
 {
-    /// <summary>The default proxy format with ice and ice+transport URIs.</summary>
-    // TODO: switch to icerpc / icerpc+
+    /// <summary>The default proxy format with icerpc and icerpc+transport URIs.</summary>
     public class UriProxyFormat : IProxyFormat
     {
         /// <summary>The only instance of UriProxyFormat.</summary>
@@ -16,8 +15,8 @@ namespace IceRpc
 
         internal const ushort DefaultUriPort = 4062;
 
-        private const string IceColon = "ice:";
-        private const string IcePlus = "ice+";
+        private const string IceRpcColon = "icerpc:";
+        private const string IceRpcPlus = "icerpc+";
 
         private static readonly object _mutex = new();
 
@@ -26,28 +25,28 @@ namespace IceRpc
         {
             string uriString = s.Trim();
 
-            bool iceScheme = uriString.StartsWith(IceColon, StringComparison.Ordinal);
+            bool iceScheme = uriString.StartsWith(IceRpcColon, StringComparison.Ordinal);
 
             if (iceScheme)
             {
-                string body = uriString[IceColon.Length..]; // chop-off "ice:"
+                string body = uriString[IceRpcColon.Length..]; // chop-off "icerpc:"
                 if (body.StartsWith("//", StringComparison.Ordinal))
                 {
-                    throw new FormatException("the ice URI scheme does not support a host or port");
+                    throw new FormatException("the icerpc URI scheme does not support a host or port");
                 }
                 // Add empty authority for Uri's constructor.
-                uriString = body.StartsWith('/') ? $"{IceColon}//{body}" : $"{IceColon}///{body}";
+                uriString = body.StartsWith('/') ? $"{IceRpcColon}//{body}" : $"{IceRpcColon}///{body}";
 
                 TryAddScheme("ice");
             }
             else
             {
-                if (!uriString.StartsWith(IcePlus, StringComparison.Ordinal))
+                if (!uriString.StartsWith(IceRpcPlus, StringComparison.Ordinal))
                 {
                     throw new FormatException($"'{uriString}' is not a proxy URI");
                 }
 
-                string scheme = uriString[0..uriString.IndexOf(':', IcePlus.Length)];
+                string scheme = uriString[0..uriString.IndexOf(':', IceRpcPlus.Length)];
                 if (scheme.Length == 0)
                 {
                     throw new FormatException($"endpoint '{uriString}' does not specify a transport");
@@ -60,7 +59,7 @@ namespace IceRpc
             (ImmutableList<EndpointParam> endpointParams, Protocol? protocol, string? altEndpointValue, string? encoding) =
                 ParseQuery(uri.Query, uriString);
 
-            protocol ??= Protocol.Ice2;
+            protocol ??= Protocol.IceRpc;
 
             Endpoint? endpoint = null;
             ImmutableList<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
@@ -74,7 +73,7 @@ namespace IceRpc
                     foreach (string endpointStr in altEndpointValue.Split(','))
                     {
                         string altUriString = endpointStr;
-                        if (!altUriString.StartsWith(IceColon, StringComparison.Ordinal) &&
+                        if (!altUriString.StartsWith(IceRpcColon, StringComparison.Ordinal) &&
                             !altUriString.Contains("://", StringComparison.Ordinal))
                         {
                             altUriString = $"{uri.Scheme}://{altUriString}";
@@ -119,14 +118,14 @@ namespace IceRpc
 
             if (proxy.Endpoint != null)
             {
-                // Use ice+transport scheme
+                // Use icerpc+transport scheme
                 sb.AppendEndpoint(proxy.Endpoint, proxy.Path);
 
-                firstOption = proxy.Endpoint.Protocol == Protocol.Ice2 && proxy.Endpoint.Params.Count == 0;
+                firstOption = proxy.Endpoint.Protocol == Protocol.IceRpc && proxy.Endpoint.Params.Count == 0;
             }
             else
             {
-                sb.Append("ice:"); // endpointless proxy
+                sb.Append(IceRpcColon); // endpointless proxy
                 sb.Append(proxy.Path);
 
                 StartQueryOption(sb, ref firstOption);
@@ -135,7 +134,7 @@ namespace IceRpc
             }
 
             // TODO: remove
-            if (proxy.Encoding != Ice2Definitions.Encoding)
+            if (proxy.Encoding != IceRpcDefinitions.Encoding)
             {
                 StartQueryOption(sb, ref firstOption);
                 sb.Append("encoding=");
@@ -179,18 +178,18 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Parses an ice+transport URI string that represents a single endpoint.</summary>
+        /// <summary>Parses an icerpc+transport URI string that represents a single endpoint.</summary>
         /// <param name="uriString">The URI string to parse.</param>
         /// <param name="defaultProtocol">The default protocol.</param>
         /// <returns>The parsed endpoint.</returns>
         internal static Endpoint ParseEndpoint(string uriString, Protocol defaultProtocol)
         {
-            if (!uriString.StartsWith(IcePlus, StringComparison.Ordinal))
+            if (!uriString.StartsWith(IceRpcPlus, StringComparison.Ordinal))
             {
-                throw new FormatException($"endpoint '{uriString}' is not an {IcePlus} URI");
+                throw new FormatException($"endpoint '{uriString}' is not an {IceRpcPlus} URI");
             }
 
-            string scheme = uriString[0..uriString.IndexOf(':', IcePlus.Length)];
+            string scheme = uriString[0..uriString.IndexOf(':', IceRpcPlus.Length)];
             if (scheme.Length == 0)
             {
                 throw new FormatException($"endpoint '{uriString}' does not specify a transport");
@@ -227,7 +226,7 @@ namespace IceRpc
             ImmutableList<EndpointParam> endpointParams,
             Protocol protocol,
             string uriString) => new(protocol,
-                                     uri.Scheme[IcePlus.Length..],
+                                     uri.Scheme[IceRpcPlus.Length..],
                                      uri.DnsSafeHost,
                                      checked((ushort)uri.Port),
                                      endpointParams);

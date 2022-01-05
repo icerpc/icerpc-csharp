@@ -2,7 +2,7 @@
 
 namespace IceRpc.Features
 {
-    /// <summary>A feature that specifies whether or not the payload of an ice2 request or response must be
+    /// <summary>A feature that specifies whether or not the payload of an icerpc request or response must be
     /// compressed.</summary>
     public sealed class CompressPayload
     {

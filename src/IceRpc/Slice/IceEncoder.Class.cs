@@ -8,7 +8,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 
-using static IceRpc.Slice.Internal.Ice11Definitions;
+using static IceRpc.Slice.Internal.Slice11Definitions;
 
 namespace IceRpc.Slice
 {
@@ -23,7 +23,7 @@ namespace IceRpc.Slice
         {
             Debug.Assert(_classContext.Current.InstanceType == InstanceType.None);
 
-            if (v.IsIce1SystemException())
+            if (v.IsIceSystemException())
             {
                 ReplyStatus replyStatus = v switch
                 {
@@ -32,7 +32,7 @@ namespace IceRpc.Slice
                     _ => ReplyStatus.UnknownLocalException,
                 };
 
-                // This reply status byte is read and removed by Ice1ProtocolConnection and kept otherwise.
+                // This reply status byte is read and removed by IceProtocolConnection and kept otherwise.
                 this.EncodeReplyStatus(replyStatus);
 
                 switch (replyStatus)
@@ -65,7 +65,7 @@ namespace IceRpc.Slice
             }
             else
             {
-                // This reply status byte is read and removed by Ice1ProtocolConnection and kept otherwise.
+                // This reply status byte is read and removed by IceProtocolConnection and kept otherwise.
                 this.EncodeReplyStatus(ReplyStatus.UserException);
 
                 _classContext.ClassFormat = FormatType.Sliced; // always encode exceptions in sliced format
@@ -243,12 +243,12 @@ namespace IceRpc.Slice
         /// <param name="endpoint">The endpoint to encode.</param>
         private void EncodeEndpoint(Endpoint endpoint)
         {
-            Debug.Assert(Encoding == IceRpc.Encoding.Ice11);
+            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
 
-            // The Ice 1.1 encoding of ice1 endpoints is transport-specific, and hard-coded here. The preferred and
+            // The Ice 1.1 encoding of ice endpoints is transport-specific, and hard-coded here. The preferred and
             // fallback encoding for new transports is TransportCode.Any, which uses an EndpointData like Ice 2.0.
 
-            if (endpoint.Protocol == Protocol.Ice1 && endpoint.Transport == TransportNames.Opaque)
+            if (endpoint.Protocol == Protocol.Ice && endpoint.Transport == TransportNames.Opaque)
             {
                 // Opaque endpoint encoding
 
@@ -258,13 +258,13 @@ namespace IceRpc.Slice
                 this.EncodeTransportCode(transportCode);
                 EncodeInt(4 + 2 + bytes.Length); // encapsulation size includes size-length and 2 bytes for encoding
                 EncodeByte(1); // encoding version major
-                if (encoding == IceRpc.Encoding.Ice11)
+                if (encoding == IceRpc.Encoding.Slice11)
                 {
                     EncodeByte(1); // encoding version minor
                 }
                 else
                 {
-                    Debug.Assert(encoding == IceRpc.Encoding.Ice10);
+                    Debug.Assert(encoding == IceRpc.Encoding.Slice10);
                     EncodeByte(0); // encoding version minor
                 }
                 WriteByteSpan(bytes.Span);
@@ -275,7 +275,7 @@ namespace IceRpc.Slice
                 bool compress = false;
                 int timeout = -1;
 
-                if (endpoint.Protocol == Protocol.Ice1)
+                if (endpoint.Protocol == Protocol.Ice)
                 {
                     if (endpoint.Transport == TransportNames.Tcp)
                     {

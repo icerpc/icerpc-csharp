@@ -99,7 +99,7 @@ immediately encodes the return value of operation {operation_name}."#,
     let create_payload = format!(
         "{encoding}.{create_payload_method}({payload_args})",
         encoding = match returns_classes {
-            true => "IceRpc.Encoding.Ice11".to_owned(),
+            true => "IceRpc.Encoding.Slice11".to_owned(),
             _ => format!("{}.GetIceEncoding()", dispatch_parameter),
         },
         create_payload_method = match parameters.as_slice() {

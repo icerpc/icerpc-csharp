@@ -16,7 +16,7 @@ namespace IceRpc.Tests.Slice
         {
             IActivator activator = IceDecoder.GetActivator(typeof(IceDecoder).Assembly);
 
-            var decoder = new IceDecoder(ReadOnlyMemory<byte>.Empty, Encoding.Ice11);
+            var decoder = new IceDecoder(ReadOnlyMemory<byte>.Empty, Encoding.Slice11);
 
             Assert.That(activator.CreateInstance("::IceRpc::ServiceNotFoundException", ref decoder), Is.Not.Null);
 

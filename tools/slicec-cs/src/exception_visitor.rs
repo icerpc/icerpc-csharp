@@ -92,7 +92,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
                     let mut code = CodeBlock::new();
                     if !has_base && !members.is_empty() && !exception_def.uses_classes() {
                         writeln!(code, "\
-if (decoder.Encoding == IceRpc.Encoding.Ice11)
+if (decoder.Encoding == IceRpc.Encoding.Slice11)
 {{
     {initialize_non_nullable_fields}
 }}
@@ -155,7 +155,7 @@ else
                     writeln!(
                         code,
                         "\
-if (encoder.Encoding == IceRpc.Encoding.Ice11)
+if (encoder.Encoding == IceRpc.Encoding.Slice11)
 {{
     encoder.IceStartSlice(_iceTypeId);
     {encode_data_members}
@@ -173,7 +173,7 @@ else
                     writeln!(
                         code,
                         "\
-if (encoder.Encoding == IceRpc.Encoding.Ice11)
+if (encoder.Encoding == IceRpc.Encoding.Slice11)
 {{
     encoder.IceStartSlice(_iceTypeId);
     {encode_data_members}

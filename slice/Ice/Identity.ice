@@ -3,7 +3,7 @@
 [cs:namespace(IceRpc)]
 module Ice
 {
-    /// The identity of a service reachable with the ice1 protocol.
+    /// The identity of a service reachable with the ice protocol.
     [cs:readonly]
     struct Identity
     {

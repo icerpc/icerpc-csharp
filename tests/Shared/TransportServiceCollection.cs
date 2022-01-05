@@ -33,8 +33,8 @@ namespace IceRpc.Tests
                     AuthenticationOptions = serviceProvider.GetService<SslClientAuthenticationOptions>()
                 });
 
-            // The default protocol is Ice2
-            this.AddScoped(_ => Protocol.Ice2);
+            // The default protocol is IceRpc
+            this.AddScoped(_ => Protocol.IceRpc);
 
             // Use coloc as the default transport.
             this.UseTransport("coloc");
@@ -127,13 +127,13 @@ namespace IceRpc.Tests
         {
             if (transport == "udp")
             {
-                // Override the protocol to Ice1 for udp since it's the only supported protocol for this transport.
-                collection.UseProtocol(Protocol.Ice1.Code);
+                // Override the protocol to Ice for udp since it's the only supported protocol for this transport.
+                collection.UseProtocol(Protocol.Ice.Code);
             }
 
             collection.AddScoped(serviceProvider =>
             {
-                Endpoint endpoint = $"ice+{transport}://{host}:{port}";
+                Endpoint endpoint = $"icerpc+{transport}://{host}:{port}";
 
                 // Set the endpoint protocol to the configured protocol.
                 endpoint = endpoint with { Protocol = serviceProvider.GetRequiredService<Protocol>() };

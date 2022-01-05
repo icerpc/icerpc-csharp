@@ -258,12 +258,12 @@ namespace IceRpc.Tests.Internal
 
         private static IncomingRequest CreateIncomingRequest(Connection connection, bool twoway) =>
             new(
-                Protocol.Ice2,
+                Protocol.IceRpc,
                 path: "/dummy",
                 fragment: "",
                 operation: "foo",
                 PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
-                Encoding.Ice20,
+                Encoding.Slice20,
                 responseWriter: new DelayedPipeWriterDecorator())
             {
                 Connection = connection,
@@ -271,10 +271,10 @@ namespace IceRpc.Tests.Internal
             };
 
         private static IncomingResponse CreateIncomingResponse() => new(
-            Protocol.Ice2,
+            Protocol.IceRpc,
             ResultType.Success,
             PipeReader.Create(new ReadOnlySequence<byte>(new byte[10])),
-            Encoding.Ice20);
+            Encoding.Slice20);
 
         private static OutgoingRequest CreateOutgoingRequest(Connection connection, bool twoway) =>
             new(Proxy.FromPath("/dummy"), operation: "foo")
@@ -282,7 +282,7 @@ namespace IceRpc.Tests.Internal
                 Connection = connection,
                 IsOneway = !twoway,
                 PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
-                PayloadEncoding = Encoding.Ice20
+                PayloadEncoding = Encoding.Slice20
             };
 
         private static OutgoingResponse CreateOutgoingResponse(IncomingRequest request) =>

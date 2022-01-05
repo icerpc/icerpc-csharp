@@ -7,8 +7,8 @@ namespace IceRpc.Tests.Slice
 {
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    [TestFixture(ProtocolCode.Ice1)]
-    [TestFixture(ProtocolCode.Ice2)]
+    [TestFixture(ProtocolCode.Ice)]
+    [TestFixture(ProtocolCode.IceRpc)]
     public sealed class SequenceTests
     {
         private readonly ServiceProvider _serviceProvider;
@@ -1252,7 +1252,7 @@ namespace IceRpc.Tests.Slice
 
         private static T GetEnum<T>(Array values, int i) => (T)values.GetValue(i % values.Length)!;
 
-        private static OperationsPrx GetOperationsPrx(int i) => OperationsPrx.Parse($"ice+tcp://host/foo-{i}");
+        private static OperationsPrx GetOperationsPrx(int i) => OperationsPrx.Parse($"icerpc+tcp://host/foo-{i}");
 
         private static AnotherStruct GetAnotherStruct(Array myEnumValues, int i)
         {

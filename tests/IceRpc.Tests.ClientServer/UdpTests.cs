@@ -56,7 +56,7 @@ namespace IceRpc.Tests.ClientServer
         {
             await using var connection = new Connection
             {
-                RemoteEndpoint = "ice+udp://127.0.0.1:4061?protocol=ice1"
+                RemoteEndpoint = "icerpc+udp://127.0.0.1:4061?protocol=ice"
             };
             await connection.ConnectAsync();
 
@@ -78,11 +78,11 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [Test]
-        public async Task Udp_Ice2NotSupported()
+        public async Task Udp_IceRpcNotSupported()
         {
             await using var server = new Server
             {
-                Endpoint = "ice+udp://[::0]:0"
+                Endpoint = "icerpc+udp://[::0]:0"
             };
 
             // udp is not registered as a multiplexed transport

@@ -36,7 +36,7 @@ namespace IceRpc
                                                     nameof(AltEndpoints));
                     }
 
-                    if (Protocol == Protocol.Ice1)
+                    if (Protocol == Protocol.Ice)
                     {
                         if (_endpoint.Transport == TransportNames.Loc)
                         {
@@ -87,10 +87,10 @@ namespace IceRpc
                                                     nameof(Endpoint));
                     }
 
-                    if (Protocol == Protocol.Ice1 && _altEndpoints.Count > 0 && value.Transport == TransportNames.Loc)
+                    if (Protocol == Protocol.Ice && _altEndpoints.Count > 0 && value.Transport == TransportNames.Loc)
                     {
                         throw new ArgumentException(
-                            "an ice1 proxy with a loc endpoint cannot have alt endpoints", nameof(Endpoint));
+                            "an ice proxy with a loc endpoint cannot have alt endpoints", nameof(Endpoint));
                     }
                 }
                 else if (_altEndpoints.Count > 0)
@@ -179,7 +179,7 @@ namespace IceRpc
         /// <param name="path">The path.</param>
         /// <param name="protocol">The protocol.</param>
         /// <returns>The new proxy.</returns>
-        public static Proxy FromPath(string path, Protocol? protocol = null) => new(path, protocol ?? Protocol.Ice2);
+        public static Proxy FromPath(string path, Protocol? protocol = null) => new(path, protocol ?? Protocol.IceRpc);
 
         /// <summary>Creates a proxy from a string and an invoker.</summary>
         /// <param name="s">The string to parse.</param>
@@ -295,7 +295,7 @@ namespace IceRpc
             Proxy proxy = Clone();
             proxy.Path = path;
 
-            if (Protocol == Protocol.Ice1 && proxy.Endpoint == null)
+            if (Protocol == Protocol.Ice && proxy.Endpoint == null)
             {
                 // clear cached connection of well-known proxy
                 proxy.Connection = null;

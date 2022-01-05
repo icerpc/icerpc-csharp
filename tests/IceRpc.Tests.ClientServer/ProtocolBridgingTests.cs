@@ -15,14 +15,14 @@ namespace IceRpc.Tests.ClientServer
     [Timeout(30000)]
     public sealed class ProtocolBridgingTests
     {
-        [TestCase(ProtocolCode.Ice2, ProtocolCode.Ice2, true)]
-        [TestCase(ProtocolCode.Ice1, ProtocolCode.Ice1, true)]
-        [TestCase(ProtocolCode.Ice2, ProtocolCode.Ice2, false)]
-        [TestCase(ProtocolCode.Ice1, ProtocolCode.Ice1, false)]
-        [TestCase(ProtocolCode.Ice2, ProtocolCode.Ice1, true)]
-        [TestCase(ProtocolCode.Ice1, ProtocolCode.Ice2, true)]
-        [TestCase(ProtocolCode.Ice2, ProtocolCode.Ice1, false)]
-        [TestCase(ProtocolCode.Ice1, ProtocolCode.Ice2, false)]
+        [TestCase(ProtocolCode.IceRpc, ProtocolCode.IceRpc, true)]
+        [TestCase(ProtocolCode.Ice, ProtocolCode.Ice, true)]
+        [TestCase(ProtocolCode.IceRpc, ProtocolCode.IceRpc, false)]
+        [TestCase(ProtocolCode.Ice, ProtocolCode.Ice, false)]
+        [TestCase(ProtocolCode.IceRpc, ProtocolCode.Ice, true)]
+        [TestCase(ProtocolCode.Ice, ProtocolCode.IceRpc, true)]
+        [TestCase(ProtocolCode.IceRpc, ProtocolCode.Ice, false)]
+        [TestCase(ProtocolCode.Ice, ProtocolCode.IceRpc, false)]
         public async Task ProtocolBridging_Forward(
             ProtocolCode forwarderProtocol,
             ProtocolCode targetProtocol,
@@ -160,14 +160,14 @@ namespace IceRpc.Tests.ClientServer
                     ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
                 FeatureCollection features = FeatureCollection.Empty;
 
-                if (incomingRequest.Protocol == Protocol.Ice2 && targetProtocol == Protocol.Ice2)
+                if (incomingRequest.Protocol == Protocol.IceRpc && targetProtocol == Protocol.IceRpc)
                 {
                     // The context is just another field, features remain empty
                     fields = incomingRequest.Fields;
                 }
                 else
                 {
-                    // When Protocol or targetProtocol is Ice1, fields remains empty and we put only the request context
+                    // When Protocol or targetProtocol is Ice, fields remains empty and we put only the request context
                     // in the initial features of the new outgoing request
                     features = features.WithContext(incomingRequest.Features.GetContext());
                 }
