@@ -669,8 +669,13 @@ namespace IceRpc.Tests.Slice
                         }
                     });
 
-            IncomingResponse response =
-                await _prx.Proxy.InvokeAsync("opVoid", _prx.Proxy.Encoding, requestPayload);
+            var request = new OutgoingRequest(_prx.Proxy, "opVoid")
+            {
+                PayloadEncoding = _prx.Proxy.Encoding,
+                PayloadSource = requestPayload
+            };
+
+            IncomingResponse response = await _prx.Proxy.Invoker.InvokeAsync(request, default);
 
             Assert.DoesNotThrowAsync(async () => await response.CheckVoidReturnValueAsync(
                 _prx.Proxy.Invoker,
