@@ -6,6 +6,7 @@ using System.Text;
 namespace IceRpc
 {
     /// <summary>Base class for exceptions defined in Slice.</summary>
+    /// <remarks>This is a Slice class.</remarks>
     [TypeId("::IceRpc::RemoteException")]
     public class RemoteException : Exception
     {
