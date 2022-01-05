@@ -4,26 +4,26 @@ module IceRpc::Tests::Api
 {
     interface Greeter
     {
-        void sayHello(string message);
+        sayHello(message: string);
     }
 
     interface InterceptorTest
     {
-        Context opContext();
-        int opInt(int value);
+        opContext() -> Context;
+        opInt(value: int) -> int;
     }
 
     interface ProxyTest
     {
-        ProxyTest? receiveProxy();
-        void sendProxy(ProxyTest proxy);
+        receiveProxy() -> ProxyTest?;
+        sendProxy(proxy: ProxyTest);
     }
 
     interface FeatureTest
     {
-        int compute(int value);
-        void failWithRemote();
-        void failWithUnhandled();
+        compute(value: int) -> int;
+        failWithRemote();
+        failWithUnhandled();
     }
 
     interface BaseA {}

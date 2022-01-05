@@ -39,20 +39,19 @@ namespace IceRpc.Slice
         {
             int count = v.Count();
             encoder.EncodeSize(count);
-            BitSequence bitSequence = encoder.EncodeBitSequence(count);
-            int index = 0;
-            foreach ((TKey key, TValue value) in v)
+            if (count > 0)
             {
-                keyEncodeAction(ref encoder, key);
-                if (value == null)
+                BitSequenceWriter bitSequenceWriter = encoder.GetBitSequenceWriter(count);
+                foreach ((TKey key, TValue value) in v)
                 {
-                    bitSequence[index] = false;
+                    keyEncodeAction(ref encoder, key);
+
+                    bitSequenceWriter.Write(value != null);
+                    if (value != null)
+                    {
+                        valueEncodeAction(ref encoder, value);
+                    }
                 }
-                else
-                {
-                    valueEncodeAction(ref encoder, value);
-                }
-                index++;
             }
         }
 
@@ -87,19 +86,17 @@ namespace IceRpc.Slice
         {
             int count = v.Count(); // potentially slow Linq Count()
             encoder.EncodeSize(count);
-            BitSequence bitSequence = encoder.EncodeBitSequence(count);
-            int index = 0;
-            foreach (T item in v)
+            if (count > 0)
             {
-                if (item == null)
+                BitSequenceWriter bitSequenceWriter = encoder.GetBitSequenceWriter(count);
+                foreach (T item in v)
                 {
-                    bitSequence[index] = false;
+                    bitSequenceWriter.Write(item != null);
+                    if (item != null)
+                    {
+                        encodeAction(ref encoder, item);
+                    }
                 }
-                else
-                {
-                    encodeAction(ref encoder, item);
-                }
-                index++;
             }
         }
     }

@@ -4,6 +4,6 @@ module IceRpc::Tests::Slice
 {
     interface AssembliesOperations
     {
-        IceRpc::Tests::ReferencedAssemblies::ClassA opA(IceRpc::Tests::ReferencedAssemblies::ClassA b);
+        opA(b: IceRpc::Tests::ReferencedAssemblies::ClassA) -> IceRpc::Tests::ReferencedAssemblies::ClassA;
     }
 }

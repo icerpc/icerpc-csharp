@@ -85,7 +85,7 @@ namespace IceRpc.Slice
         /// <param name="v">The size to encode.</param>
         public void EncodeSize(int v)
         {
-            if (Encoding == IceRpc.Encoding.Ice11)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 if (v < 255)
                 {
@@ -206,7 +206,7 @@ namespace IceRpc.Slice
         /// <param name="v">The remote exception to encode.</param>
         public void EncodeException(RemoteException v)
         {
-            if (Encoding == IceRpc.Encoding.Ice11)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 EncodeExceptionClass(v);
             }
@@ -220,7 +220,7 @@ namespace IceRpc.Slice
         /// <param name="proxy">The proxy to encode, or null.</param>
         public void EncodeNullableProxy(Proxy? proxy)
         {
-            if (Encoding == IceRpc.Encoding.Ice11)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 if (proxy == null)
                 {
@@ -258,7 +258,7 @@ namespace IceRpc.Slice
 
                     var proxyData = new ProxyData11(
                         Facet.FromFragment(proxy.Fragment),
-                        proxy.Protocol == Protocol.Ice1 && (proxy.Endpoint?.Transport == TransportNames.Udp) ?
+                        proxy.Protocol == Protocol.Ice && (proxy.Endpoint?.Transport == TransportNames.Udp) ?
                             InvocationMode.Datagram : InvocationMode.Twoway,
                         secure: false,
                         protocolMajor: (byte)proxy.Protocol.Code,
@@ -272,7 +272,7 @@ namespace IceRpc.Slice
                         EncodeSize(0); // 0 endpoints
                         EncodeString(""); // empty adapter ID
                     }
-                    else if (proxy.Protocol == Protocol.Ice1 && proxy.Endpoint.Transport == TransportNames.Loc)
+                    else if (proxy.Protocol == Protocol.Ice && proxy.Endpoint.Transport == TransportNames.Loc)
                     {
                         EncodeSize(0); // 0 endpoints
                         EncodeString(proxy.Endpoint.Host); // adapter ID unless well-known
@@ -313,7 +313,7 @@ namespace IceRpc.Slice
                     var proxyData = new ProxyData20(
                         proxy.Path,
                         proxy.Fragment,
-                        protocol: proxy.Protocol != Protocol.Ice2 ? proxy.Protocol.Code : null,
+                        protocol: proxy.Protocol != Protocol.IceRpc ? proxy.Protocol.Code : null,
                         encoding: proxy.Encoding == proxy.Protocol.IceEncoding ? null : proxy.Encoding.ToString(),
                         endpoint: proxy.Endpoint?.ToEndpointData(),
                         altEndpoints:
@@ -408,38 +408,6 @@ namespace IceRpc.Slice
             ulongBuf[0..sizeLength].CopyTo(into);
         }
 
-        /// <summary>Encodes a sequence of bits and returns this sequence backed by the buffer.</summary>
-        /// <param name="bitSize">The minimum number of bits in the sequence.</param>
-        /// <returns>The bit sequence, with all bits set. The actual size of the sequence is a multiple of 8.</returns>
-        public BitSequence EncodeBitSequence(int bitSize)
-        {
-            Debug.Assert(bitSize > 0);
-            int size = (bitSize >> 3) + ((bitSize & 0x07) != 0 ? 1 : 0);
-
-            Span<byte> firstSpan = _bufferWriter.GetSpan();
-
-            if (size <= firstSpan.Length)
-            {
-                firstSpan = firstSpan[0..size];
-                firstSpan.Fill(255);
-                Advance(size);
-                return new BitSequence(firstSpan);
-            }
-            else
-            {
-                firstSpan.Fill(255);
-                Advance(firstSpan.Length);
-
-                int remaining = size - firstSpan.Length;
-                Span<byte> secondSpan = _bufferWriter.GetSpan(remaining);
-                secondSpan = secondSpan[0..remaining];
-                secondSpan.Fill(255);
-                Advance(remaining);
-
-                return new BitSequence(firstSpan, secondSpan);
-            }
-        }
-
         /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is not known before
         /// encoding this value.</summary>
         /// <param name="tag">The tag. Must be either FSize or OVSize.</param>
@@ -452,7 +420,7 @@ namespace IceRpc.Slice
             T v,
             EncodeAction<T> encodeAction) where T : notnull
         {
-            if (Encoding == IceRpc.Encoding.Ice11)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 if (tagFormat == TagFormat.FSize)
                 {
@@ -480,7 +448,7 @@ namespace IceRpc.Slice
                 Span<byte> sizePlaceholder = GetPlaceholderSpan(4);
                 int startPos = EncodedByteCount;
                 encodeAction(ref this, v);
-                Ice20Encoding.EncodeSize(EncodedByteCount - startPos, sizePlaceholder);
+                Slice20Encoding.EncodeSize(EncodedByteCount - startPos, sizePlaceholder);
             }
         }
 
@@ -500,7 +468,7 @@ namespace IceRpc.Slice
         {
             int startPos;
 
-            if (Encoding == IceRpc.Encoding.Ice11)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 Debug.Assert(tagFormat != TagFormat.FSize);
                 Debug.Assert(size > 0);
@@ -549,10 +517,75 @@ namespace IceRpc.Slice
             }
         }
 
+        /// <summary>Allocates a new bit sequence in the underlying buffer(s) and returns a writer for this bit
+        /// sequence.</summary>
+        /// <param name="bitSequenceSize">The minimum number of bits in the bit sequence.</param>
+        /// <returns>The bit sequence writer.</returns>
+        public BitSequenceWriter GetBitSequenceWriter(int bitSequenceSize)
+        {
+            if (bitSequenceSize <= 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(bitSequenceSize),
+                    $"{nameof(bitSequenceSize)} must be greater than 0");
+            }
+
+            int remaining = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0); // size in bytes
+
+            Span<byte> firstSpan = _bufferWriter.GetSpan();
+            Span<byte> secondSpan = default;
+
+            // We only create this additionalMemory list in the rare situation where 2 spans are not sufficient.
+            List<Memory<byte>>? additionalMemory = null;
+
+            if (firstSpan.Length >= remaining)
+            {
+                firstSpan = firstSpan[0..remaining];
+                Advance(remaining);
+            }
+            else
+            {
+                Advance(firstSpan.Length);
+                remaining -= firstSpan.Length;
+
+                secondSpan = _bufferWriter.GetSpan();
+                if (secondSpan.Length >= remaining)
+                {
+                    secondSpan = secondSpan[0..remaining];
+                    Advance(remaining);
+                }
+                else
+                {
+                    Advance(secondSpan.Length);
+                    remaining -= secondSpan.Length;
+                    additionalMemory = new List<Memory<byte>>();
+
+                    do
+                    {
+                        Memory<byte> memory = _bufferWriter.GetMemory();
+                        if (memory.Length >= remaining)
+                        {
+                            additionalMemory.Add(memory[0..remaining]);
+                            Advance(remaining);
+                            remaining = 0;
+                        }
+                        else
+                        {
+                            additionalMemory.Add(memory);
+                            Advance(memory.Length);
+                            remaining -= memory.Length;
+                        }
+                    } while (remaining > 0);
+                }
+            }
+
+            return new BitSequenceWriter(new SpanEnumerator(firstSpan, secondSpan, additionalMemory));
+        }
+
         /// <summary>Computes the minimum number of bytes needed to encode a variable-length size.</summary>
         /// <param name="size">The size.</param>
         /// <returns>The minimum number of bytes.</returns>
-        public int GetSizeLength(int size) => Encoding == IceRpc.Encoding.Ice11 ?
+        public int GetSizeLength(int size) => Encoding == IceRpc.Encoding.Slice11 ?
             (size < 255 ? 1 : 5) : GetVarULongEncodedSize(checked((ulong)size));
 
         internal static void EncodeInt(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);

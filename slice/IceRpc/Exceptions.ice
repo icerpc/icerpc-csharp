@@ -9,13 +9,13 @@ module IceRpc
     [cs:readonly] struct RemoteExceptionOrigin
     {
         /// The path of the target service.
-        string path;
+        path: string,
 
         /// The fragment of the target service.
-        string fragment;
+        fragment: string,
 
         /// The operation name.
-        string operation;
+        operation: string,
     }
 
     /// The server could not find this service.
@@ -31,8 +31,8 @@ module IceRpc
 
     /// An unhandled exception is thrown when an operation implementation throws an exception not derived from
     /// RemoteException or when it throws a RemoteException with its convertToUnhandled flag set to true.
-    /// With ice1, an UnhandledException is transmitted as an "UnknownLocalException" with just a string (the message)
-    /// as its payload. When receiving any Unknown exception over ice1, the mapped exception is UnhandledException.
+    /// With ice, an UnhandledException is transmitted as an "UnknownLocalException" with just a string (the message)
+    /// as its payload. When receiving any Unknown exception over ice, the mapped exception is UnhandledException.
     exception UnhandledException
     {
     }

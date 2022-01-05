@@ -4,25 +4,25 @@ module IceRpc::Tests::Slice
 {
     class MyClassA
     {
-        MyClassB? theB;
-        MyClassC? theC;
+        theB: MyClassB?,
+        theC: MyClassC?,
     }
 
     class MyClassB : MyClassA
     {
-        MyClassA? theA;
+        theA: MyClassA?,
     }
 
     class MyClassC
     {
-        MyClassB? theB;
+        theB: MyClassB?,
     }
 
     class MyClassD
     {
-        MyClassA? theA;
-        MyClassB? theB;
-        MyClassC? theC;
+        theA: MyClassA?,
+        theB: MyClassB?,
+        theC: MyClassC?,
     }
 
     // Exercise empty class with non-empty base
@@ -40,46 +40,46 @@ module IceRpc::Tests::Slice
 
     class MyClassA1
     {
-        string name;
+        name: string,
     }
 
     class MyClassB1
     {
-        MyClassA1 a1;
-        MyClassA1 a2;
+        a1: MyClassA1,
+        a2: MyClassA1,
     }
 
     class MyClassD1 : MyClassB1
     {
-        MyClassA1 a3;
-        MyClassA1 a4;
+        a3: MyClassA1,
+        a4: MyClassA1,
     }
 
     exception MyException
     {
-        MyClassA1 a1;
-        MyClassA1 a2;
+        a1: MyClassA1,
+        a2: MyClassA1,
     }
 
     exception MyDerivedException : MyException
     {
-        MyClassA1 a3;
-        MyClassA1 a4;
+        a3: MyClassA1,
+        a4: MyClassA1,
     }
 
     class MyClassRecursive
     {
-        MyClassRecursive? v;
+        v: MyClassRecursive?,
     }
 
     class MyClassK
     {
-        AnyClass? value;
+        value: AnyClass?,
     }
 
     class MyClassL
     {
-        string data;
+        data: string,
     }
 
     typealias ClassSeq = sequence<AnyClass?>;
@@ -87,17 +87,17 @@ module IceRpc::Tests::Slice
 
     class MyClassM
     {
-        dictionary<MyStruct, MyClassL> v;
+        v: dictionary<MyStruct, MyClassL>,
     }
 
     class MyBaseClass1
     {
-        string id;
+        id: string,
     }
 
     class MyDerivedClass1 : MyBaseClass1
     {
-        string name;
+        name: string,
     }
 
     class MyDerivedClass2 : MyBaseClass1
@@ -110,33 +110,33 @@ module IceRpc::Tests::Slice
 
     interface ClassOperations
     {
-        MyClassB getB1();
-        MyClassB getB2();
-        MyClassC getC();
-        MyClassD getD();
+        getB1() -> MyClassB;
+        getB2() -> MyClassB;
+        getC() -> MyClassC;
+        getD() -> MyClassD;
 
-        (MyClassB r1, MyClassB r2, MyClassC r3, MyClassD r4) getAll();
+        getAll() -> (r1: MyClassB, r2: MyClassB, r3: MyClassC, r4: MyClassD);
 
-        MyClassK getK();
+        getK() -> MyClassK;
 
-        (AnyClass? r1, AnyClass? r2) opClass(AnyClass? p1);
-        (ClassSeq r1, ClassSeq r2) opClassSeq(ClassSeq p1);
-        (ClassMap r1, ClassMap r2) opClassMap(ClassMap p1);
+        opClass(p1: AnyClass?) -> (r1: AnyClass?, r2: AnyClass?);
+        opClassSeq(p1: ClassSeq) -> (r1: ClassSeq, r2: ClassSeq);
+        opClassMap(p1: ClassMap) -> (r1: ClassMap, r2: ClassMap);
 
-        MyClassD1 getD1(MyClassD1 p1);
+        getD1(p1: MyClassD1) -> MyClassD1;
 
-        void throwMyDerivedException();
+        throwMyDerivedException();
 
-        void opRecursive(MyClassRecursive p1);
+        opRecursive(p1: MyClassRecursive);
 
-        MyCompactClass getCompact();
+        getCompact() -> MyCompactClass;
 
-        (MyClassM r1, MyClassM r2) opM(MyClassM p1);
-        (MyClassE r1, MyClassE r2) opE(MyClassE p1, int p2);
+        opM(p1: MyClassM) -> (r1: MyClassM, r2: MyClassM);
+        opE(p1: MyClassE, p2: int) -> (r1: MyClassE, r2: MyClassE);
 
-        MyDerivedClass1 getMyDerivedClass1();
-        MyDerivedClass2 getMyDerivedClass2();
-        MyClass2 getMyClass2();
+        getMyDerivedClass1() -> MyDerivedClass1;
+        getMyDerivedClass2() -> MyDerivedClass2;
+        getMyClass2() -> MyClass2;
     }
 
     class MyClassEmpty
@@ -149,6 +149,6 @@ module IceRpc::Tests::Slice
 
     interface ClassOperationsUnexpectedClass
     {
-        MyClassEmpty op();
+        op() -> MyClassEmpty;
     }
 }

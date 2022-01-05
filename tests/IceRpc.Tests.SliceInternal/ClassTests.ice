@@ -4,35 +4,35 @@ module IceRpc::Tests::SliceInternal
 {
     class MyClassCustomFormat
     {
-        string s;
+        s: string,
     }
 
     [format(compact)]
     interface CompactFormatOperations
     {
-        MyClassCustomFormat OpMyClass(MyClassCustomFormat p1);
+        OpMyClass(p1: MyClassCustomFormat) -> MyClassCustomFormat;
     }
 
     [format(sliced)]
     interface SlicedFormatOperations
     {
-        MyClassCustomFormat OpMyClass(MyClassCustomFormat p1);
+        OpMyClass(p1: MyClassCustomFormat) -> MyClassCustomFormat;
     }
 
     interface ClassFormatOperations
     {
-        MyClassCustomFormat OpMyClass(MyClassCustomFormat p1);
-        [format(sliced)] MyClassCustomFormat OpMyClassSlicedFormat(MyClassCustomFormat p1);
+        OpMyClass(p1: MyClassCustomFormat) -> MyClassCustomFormat;
+        [format(sliced)] OpMyClassSlicedFormat(p1: MyClassCustomFormat) -> MyClassCustomFormat;
     }
 
     class Recursive
     {
-        Recursive? v;
+        v: Recursive?,
     }
 
     interface ClassGraphOperations
     {
-        void sendClassGraph(Recursive p1);
-        Recursive receiveClassGraph(int size);
+        sendClassGraph(p1: Recursive);
+        receiveClassGraph(size: int) -> Recursive;
     }
 }

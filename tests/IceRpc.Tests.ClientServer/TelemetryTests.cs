@@ -147,7 +147,7 @@ namespace IceRpc.Tests.ClientServer
 
         /// <summary>Ensure that the Invocation activity is restored in the server side and used as the
         /// parent activity for the Dispatch activity. This test runs with the two supported protocols because
-        /// the propagation of the activity context is different for Ice2 and Ice1.</summary>
+        /// the propagation of the activity context is different for the IceRPC and Ice protocols.</summary>
         [Test]
         public async Task Telemetry_ActivityPropagationAsync()
         {

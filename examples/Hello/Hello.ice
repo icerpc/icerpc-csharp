@@ -4,6 +4,6 @@ module Demo
 {
     interface Hello
     {
-        string? sayHello(string? greeting);
+        sayHello(greeting: string?) -> string?;
     }
 }

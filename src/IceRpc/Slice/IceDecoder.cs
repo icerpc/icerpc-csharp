@@ -12,7 +12,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
-using static IceRpc.Slice.Internal.Ice11Definitions;
+using static IceRpc.Slice.Internal.Slice11Definitions;
 
 namespace IceRpc.Slice
 {
@@ -150,7 +150,7 @@ namespace IceRpc.Slice
             // The implementation does not use any internal or private property and therefore DecodeSize could be an
             // extension method. It's an instance method because it's considered fundamental.
 
-            if (Encoding == IceRpc.Encoding.Ice11)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 byte firstByte = DecodeByte();
                 if (firstByte < 255)
@@ -286,7 +286,7 @@ namespace IceRpc.Slice
         /// <returns>The remote exception.</returns>
         public RemoteException DecodeException()
         {
-            if (Encoding == IceRpc.Encoding.Ice11)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 return DecodeExceptionClass();
             }
@@ -319,7 +319,7 @@ namespace IceRpc.Slice
                 throw new InvalidOperationException("cannot decode a proxy from an decoder with a null Connection");
             }
 
-            if (Encoding == IceRpc.Encoding.Ice11)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 var identity = new Identity(ref this);
                 if (identity.Name.Length == 0) // null proxy
@@ -351,9 +351,9 @@ namespace IceRpc.Slice
                     string adapterId = DecodeString();
                     if (adapterId.Length > 0)
                     {
-                        if (protocol == Protocol.Ice1)
+                        if (protocol == Protocol.Ice)
                         {
-                            endpoint = new Endpoint(Protocol.Ice1,
+                            endpoint = new Endpoint(Protocol.Ice,
                                                     TransportNames.Loc,
                                                     host: adapterId,
                                                     port: 0,
@@ -381,11 +381,11 @@ namespace IceRpc.Slice
 
                 proxyData.Facet.CheckValue();
 
-                if (protocol == Protocol.Ice1)
+                if (protocol == Protocol.Ice)
                 {
                     try
                     {
-                        return new Proxy(identity.ToPath(), Protocol.Ice1)
+                        return new Proxy(identity.ToPath(), Protocol.Ice)
                         {
                             Encoding = IceRpc.Encoding.FromMajorMinor(
                                 proxyData.EncodingMajor,
@@ -454,7 +454,7 @@ namespace IceRpc.Slice
 
                 Protocol protocol = proxyData.Protocol != null ?
                     Protocol.FromProtocolCode(proxyData.Protocol.Value) :
-                    Protocol.Ice2;
+                    Protocol.IceRpc;
                 Endpoint? endpoint = proxyData.Endpoint is EndpointData data ? data.ToEndpoint() : null;
                 ImmutableList<Endpoint> altEndpoints =
                     proxyData.AltEndpoints?.Select(data => data.ToEndpoint()).ToImmutableList() ??
@@ -471,7 +471,7 @@ namespace IceRpc.Slice
 
                     Debug.Assert(proxyData.Fragment != null);
 
-                    if (endpoint == null && protocol != Protocol.Ice1)
+                    if (endpoint == null && protocol != Protocol.Ice)
                     {
                         proxy = Proxy.FromConnection(_connection!, proxyData.Path, _invoker);
                     }
@@ -543,26 +543,6 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Decodes a bit sequence.</summary>
-        /// <param name="bitSequenceSize">The minimum number of bits in the sequence.</param>
-        /// <returns>A bit sequence reader over the bit sequence.</returns>
-
-        public BitSequenceReader DecodeBitSequence(int bitSequenceSize)
-        {
-            if (bitSequenceSize <= 0)
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(bitSequenceSize),
-                    "bitSequenceSize must be greater than 0");
-            }
-
-            int size = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0);
-            ReadOnlySequence<byte> bitSequence = _reader.UnreadSequence.Slice(0, size);
-            _reader.Advance(size);
-            Debug.Assert(bitSequence.Length == size);
-            return new BitSequenceReader(bitSequence);
-        }
-
         /// <summary>Decodes a tagged parameter or data member.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="tagFormat">The expected tag format of this tag when found in the underlying buffer.</param>
@@ -571,7 +551,7 @@ namespace IceRpc.Slice
         /// <remarks>When T is a value type, it should be a nullable value type such as int?.</remarks>
         public T DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<T> decodeFunc)
         {
-            if (Encoding == IceRpc.Encoding.Ice11)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 if (DecodeTaggedParamHeader(tag, tagFormat))
                 {
@@ -621,6 +601,26 @@ namespace IceRpc.Slice
                 }
                 return default!;
             }
+        }
+
+        /// <summary>Gets a bit sequence reader to read the underlying bit sequence later on.</summary>
+        /// <param name="bitSequenceSize">The minimum number of bits in the sequence.</param>
+        /// <returns>A bit sequence reader.</returns>
+
+        public BitSequenceReader GetBitSequenceReader(int bitSequenceSize)
+        {
+            if (bitSequenceSize <= 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(bitSequenceSize),
+                    "bitSequenceSize must be greater than 0");
+            }
+
+            int size = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0);
+            ReadOnlySequence<byte> bitSequence = _reader.UnreadSequence.Slice(0, size);
+            _reader.Advance(size);
+            Debug.Assert(bitSequence.Length == size);
+            return new BitSequenceReader(bitSequence);
         }
 
         internal static int DecodeInt(ReadOnlySpan<byte> from) => BitConverter.ToInt32(from);
@@ -690,7 +690,7 @@ namespace IceRpc.Slice
         /// <returns>The size decoded by this decoder.</returns>
         internal int DecodeFixedLengthSize()
         {
-            if (Encoding == IceRpc.Encoding.Ice11)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 int size = DecodeInt();
                 if (size < 0)
@@ -719,7 +719,7 @@ namespace IceRpc.Slice
 
         internal void SkipSize()
         {
-            if (Encoding == IceRpc.Encoding.Ice11)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 byte b = DecodeByte();
                 if (b == 255)
@@ -738,9 +738,9 @@ namespace IceRpc.Slice
         /// <returns>The endpoint decoded by this decoder.</returns>
         private Endpoint DecodeEndpoint(Protocol protocol)
         {
-            Debug.Assert(Encoding == IceRpc.Encoding.Ice11);
+            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
 
-            // The Ice 1.1 encoding of ice1 endpoints is transport-specific, and hard-coded here and in the
+            // The Ice 1.1 encoding of ice endpoints is transport-specific, and hard-coded here and in the
             // IceEncoder. The preferred and fallback encoding for new transports is TransportCode.Any, which uses an
             // EndpointData like Ice 2.0.
 
@@ -766,11 +766,11 @@ namespace IceRpc.Slice
 
             var encoding = IceRpc.Encoding.FromMajorMinor(DecodeByte(), DecodeByte());
 
-            if (encoding == IceRpc.Encoding.Ice11 || encoding == IceRpc.Encoding.Ice10)
+            if (encoding == IceRpc.Encoding.Slice11 || encoding == IceRpc.Encoding.Slice10)
             {
                 long oldPos = _reader.Consumed;
 
-                if (protocol == Protocol.Ice1)
+                if (protocol == Protocol.Ice)
                 {
                     switch (transportCode)
                     {
@@ -796,7 +796,7 @@ namespace IceRpc.Slice
                             }
 
                             endpoint = new Endpoint(
-                                Protocol.Ice1,
+                                Protocol.Ice,
                                 TransportNames.Tcp,
                                 host,
                                 port,
@@ -815,7 +815,7 @@ namespace IceRpc.Slice
                                 ImmutableList<EndpointParam>.Empty;
 
                             endpoint = new Endpoint(
-                                Protocol.Ice1,
+                                Protocol.Ice,
                                 TransportNames.Udp,
                                 host,
                                 port,
@@ -856,7 +856,7 @@ namespace IceRpc.Slice
                                 new EndpointParam("v", Convert.ToBase64String(vSpan)));
 
                             endpoint = new Endpoint(
-                                Protocol.Ice1,
+                                Protocol.Ice,
                                 TransportNames.Opaque,
                                 host: "",
                                 port: 0,
@@ -895,7 +895,7 @@ namespace IceRpc.Slice
         /// <returns>True if the tagged parameter is present; otherwise, false.</returns>
         private bool DecodeTaggedParamHeader(int tag, TagFormat expectedFormat)
         {
-            Debug.Assert(Encoding == IceRpc.Encoding.Ice11);
+            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
 
             bool withTagEndMarker = false;
 
@@ -969,7 +969,7 @@ namespace IceRpc.Slice
         /// <summary>Skips the remaining tagged parameters, return value _or_ data members.</summary>
         private void SkipTaggedParams()
         {
-            if (Encoding == IceRpc.Encoding.Ice11)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 bool withTagEndMarker = _classContext.Current.InstanceType != InstanceType.None;
 
@@ -1015,7 +1015,7 @@ namespace IceRpc.Slice
 
         private void SkipTaggedValue(TagFormat format)
         {
-            Debug.Assert(Encoding == IceRpc.Encoding.Ice11);
+            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
 
             switch (format)
             {

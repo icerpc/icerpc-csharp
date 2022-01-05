@@ -40,10 +40,6 @@
           <Pack>True</Pack>
           <PackagePath>.</PackagePath>
       </None>
-      <Content Include="$(IceToolsPath)\slice2cs*">
-          <Pack>true</Pack>
-          <PackagePath>tools</PackagePath>
-      </Content>
       <Content Include="icerpc.props">
           <Pack>true</Pack>
           <PackagePath>build</PackagePath>

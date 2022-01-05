@@ -19,7 +19,7 @@ namespace IceRpc.Slice
         /// <returns>A new empty payload.</returns>
         public static PipeReader CreateEmptyPayload(this IceEncoding encoding, bool hasStream = false)
         {
-            if (hasStream && encoding == Encoding.Ice11)
+            if (hasStream && encoding == Encoding.Slice11)
             {
                 throw new ArgumentException(
                     $"{nameof(hasStream)} must be false when encoding is 1.1", nameof(hasStream));
@@ -88,7 +88,7 @@ namespace IceRpc.Slice
             IAsyncEnumerable<T> asyncEnumerable,
             EncodeAction<T> encodeAction)
         {
-            if (encoding == IceRpc.Encoding.Ice11)
+            if (encoding == IceRpc.Encoding.Slice11)
             {
                 throw new NotSupportedException("streaming is not supported with encoding 1.1");
             }
@@ -303,7 +303,7 @@ namespace IceRpc.Slice
                 throw new ArgumentOutOfRangeException(nameof(size), "size must be positive");
             }
 
-            if (encoding == Encoding.Ice11)
+            if (encoding == Encoding.Slice11)
             {
                 IceEncoder.EncodeInt(size, into);
             }

@@ -37,7 +37,7 @@ namespace IceRpc.Slice.Internal
             int sizeLength = -1;
             ReadResult readResult;
 
-            if (encoding == IceRpc.Encoding.Ice11)
+            if (encoding == IceRpc.Encoding.Slice11)
             {
                 sizeLength = 4;
                 readResult = await reader.ReadAtLeastAsync(sizeLength, cancel).ConfigureAwait(false);
@@ -61,7 +61,7 @@ namespace IceRpc.Slice.Internal
 
             if (sizeLength == -1)
             {
-                sizeLength = Ice20Encoding.DecodeSizeLength(readResult.Buffer.FirstSpan[0]);
+                sizeLength = Slice20Encoding.DecodeSizeLength(readResult.Buffer.FirstSpan[0]);
                 if (sizeLength > readResult.Buffer.Length)
                 {
                     reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
@@ -98,7 +98,7 @@ namespace IceRpc.Slice.Internal
         /// <param name="into">The destination span. This method uses all its bytes.</param>
         internal static void EncodeSize(this IceEncoding encoding, int size, Span<byte> into)
         {
-            if (encoding == Encoding.Ice11)
+            if (encoding == Encoding.Slice11)
             {
                 if (size < 0)
                 {
@@ -126,7 +126,7 @@ namespace IceRpc.Slice.Internal
             }
             else
             {
-                Ice20Encoding.EncodeSize(size, into);
+                Slice20Encoding.EncodeSize(size, into);
             }
         }
     }

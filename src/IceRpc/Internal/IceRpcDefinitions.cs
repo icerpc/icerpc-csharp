@@ -5,13 +5,13 @@ using IceRpc.Slice.Internal;
 
 namespace IceRpc.Internal
 {
-    // Definitions for the ice2 protocol.
+    // Definitions for the icerpc protocol.
 
-    internal static class Ice2Definitions
+    internal static class IceRpcDefinitions
     {
-        internal static readonly Encoding Encoding = Encoding.Ice20;
+        internal static readonly Encoding Encoding = Encoding.Slice20;
 
-        /// <summary>Encodes ice2 fields. Fields are encoded first, followed by the field defaults.</summary>
+        /// <summary>Encodes icerpc fields. Fields are encoded first, followed by the field defaults.</summary>
         /// <param name="encoder">This Ice encoder.</param>
         /// <param name="fields">The fields.</param>
         /// <param name="fieldsDefaults">The fields defaults.</param>
@@ -21,7 +21,7 @@ namespace IceRpc.Internal
             IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fieldsDefaults)
         {
             // can be larger than necessary, which is fine
-            int sizeLength = Ice20Encoding.GetSizeLength(fieldsDefaults.Count + (fields?.Count ?? 0));
+            int sizeLength = Slice20Encoding.GetSizeLength(fieldsDefaults.Count + (fields?.Count ?? 0));
 
             Span<byte> countPlaceholder = encoder.GetPlaceholderSpan(sizeLength);
 
@@ -37,7 +37,7 @@ namespace IceRpc.Internal
                     Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
                     int startPos = encoder.EncodedByteCount;
                     action(ref encoder);
-                    Ice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+                    Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
                     count++;
                 }
             }
@@ -52,7 +52,7 @@ namespace IceRpc.Internal
                 }
             }
 
-            Ice20Encoding.EncodeSize(count, countPlaceholder);
+            Slice20Encoding.EncodeSize(count, countPlaceholder);
         }
     }
 }

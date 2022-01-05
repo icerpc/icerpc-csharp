@@ -7,7 +7,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 
-using static IceRpc.Slice.Internal.Ice11Definitions;
+using static IceRpc.Slice.Internal.Slice11Definitions;
 
 namespace IceRpc.Slice
 {
@@ -24,7 +24,7 @@ namespace IceRpc.Slice
         /// <returns>The class instance, or null.</returns>
         public T? DecodeNullableClass<T>() where T : class
         {
-            if (Encoding != IceRpc.Encoding.Ice11)
+            if (Encoding != IceRpc.Encoding.Slice11)
             {
                 throw new InvalidOperationException(
                     $"{nameof(DecodeNullableClass)} is not compatible with encoding {Encoding}");
@@ -50,7 +50,7 @@ namespace IceRpc.Slice
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceEndSlice()
         {
-            if (Encoding != IceRpc.Encoding.Ice11)
+            if (Encoding != IceRpc.Encoding.Slice11)
             {
                 throw new InvalidOperationException(
                     $"{nameof(IceEndSlice)} is not compatible with encoding {Encoding}");
@@ -78,7 +78,7 @@ namespace IceRpc.Slice
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceStartSlice()
         {
-            if (Encoding != IceRpc.Encoding.Ice11)
+            if (Encoding != IceRpc.Encoding.Slice11)
             {
                 throw new InvalidOperationException(
                     $"{nameof(IceStartSlice)} is not compatible with encoding {Encoding}");
@@ -100,7 +100,7 @@ namespace IceRpc.Slice
         /// <returns>The class instance. Can be null.</returns>
         private AnyClass? DecodeAnyClass()
         {
-            Debug.Assert(Encoding == IceRpc.Encoding.Ice11);
+            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
 
             int index = DecodeSize();
             if (index < 0)
@@ -135,10 +135,10 @@ namespace IceRpc.Slice
 
         private RemoteException DecodeExceptionClass()
         {
-            Debug.Assert(Encoding == IceRpc.Encoding.Ice11);
+            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
 
-            // When the response is received over ice1, Ice1ProtocolConnection inserts this reply status. The response
-            // can alternatively come straight from an ice2 frame.
+            // When the response is received over ice, IceProtocolConnection inserts this reply status. The response
+            // can alternatively come straight from an icerpc frame.
             ReplyStatus replyStatus = this.DecodeReplyStatus();
 
             if (replyStatus == ReplyStatus.OK)

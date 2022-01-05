@@ -87,7 +87,7 @@ namespace IceRpc.Transports.Internal
 
             void Encode(PipeWriter writer)
             {
-                var encoder = new IceEncoder(writer, Encoding.Ice20);
+                var encoder = new IceEncoder(writer, Encoding.Slice20);
                 encoder.EncodeByte((byte)type);
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
                 int startPos = encoder.EncodedByteCount;
@@ -100,7 +100,7 @@ namespace IceRpc.Transports.Internal
                 {
                     encode?.Invoke(ref encoder);
                 }
-                Ice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
+                Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
 
                 // TODO: all this copying is naturally temporary
                 writer.Complete();

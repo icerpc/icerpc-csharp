@@ -2,13 +2,13 @@
 
 module IceRpc
 {
-    /// The type of result carried by an ice2 response frame.
+    /// The type of result carried by an icerpc response frame.
     enum ResultType : byte
     {
         /// The request succeeded.
         Success = 0,
 
         /// The request failed.
-        Failure = 1
+        Failure = 1,
     }
 }

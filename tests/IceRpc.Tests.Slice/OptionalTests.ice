@@ -4,111 +4,111 @@ module IceRpc::Tests::Slice
 {
     struct OneOptional
     {
-        int? a;
+        a: int?,
     }
 
     struct MultiOptional
     {
-        byte? mByte;
-        bool? mBool;
-        short? mShort;
-        int? mInt;
-        long? mLong;
-        float? mFloat;
-        double? mDouble;
-        ushort? mUShort;
-        uint? mUInt;
-        ulong? mULong;
-        varint? mVarInt;
-        varlong? mVarLong;
-        varuint? mVarUInt;
-        varulong? mVarULong;
-        string? mString;
+        mByte: byte?,
+        mBool: bool?,
+        mShort: short?,
+        mInt: int?,
+        mLong: long?,
+        mFloat: float?,
+        mDouble: double?,
+        mUShort: ushort?,
+        mUInt: uint?,
+        mULong: ulong?,
+        mVarInt: varint?,
+        mVarLong: varlong?,
+        mVarUInt: varuint?,
+        mVarULong: varulong?,
+        mString: string?,
 
-        MyEnum? mMyEnum;
-        MyStruct? mMyStruct;
-        AnotherStruct? mAnotherStruct;
+        mMyEnum: MyEnum?,
+        mMyStruct: MyStruct?,
+        mAnotherStruct: AnotherStruct?,
 
-        ByteSeq? mByteSeq;
-        StringSeq? mStringSeq;
-        ShortSeq? mShortSeq;
-        MyEnumSeq? mMyEnumSeq;
-        MyStructSeq? mMyStructSeq;
-        AnotherStructSeq? mAnotherStructSeq;
+        mByteSeq: ByteSeq?,
+        mStringSeq: StringSeq?,
+        mShortSeq: ShortSeq?,
+        mMyEnumSeq: MyEnumSeq?,
+        mMyStructSeq: MyStructSeq?,
+        mAnotherStructSeq: AnotherStructSeq?,
 
-        IntDict? mIntDict;
-        StringDict? mStringDict;
-        UShortSeq? mUShortSeq;
-        VarULongSeq? mVarULongSeq;
-        VarIntSeq? mVarIntSeq;
+        mIntDict: IntDict?,
+        mStringDict: StringDict?,
+        mUShortSeq: UShortSeq?,
+        mVarULongSeq: VarULongSeq?,
+        mVarIntSeq: VarIntSeq?,
 
-        ByteDict? mByteDict;
-        MyStructDict? mMyStructDict;
-        AnotherStructDict? mAnotherStructDict;
+        mByteDict: ByteDict?,
+        mMyStructDict: MyStructDict?,
+        mAnotherStructDict: AnotherStructDict?,
     }
 
     interface OptionalOperations
     {
-        OneOptional? pingPongOne(OneOptional? o);
-        MultiOptional? pingPongMulti(MultiOptional? o);
+        pingPongOne(o: OneOptional?) -> OneOptional?;
+        pingPongMulti(o: MultiOptional?) -> MultiOptional?;
 
-        (byte? r1, byte? r2) opByte(byte? p1);
+        opByte(p1: byte?) -> (r1: byte?, r2: byte?);
 
-        (bool? r1, bool? r2) opBool(bool? p1);
+        opBool(p1: bool?) -> (r1: bool?, r2: bool?);
 
-        (short? r1, short? r2) opShort(short? p1);
+        opShort(p1: short?) -> (r1: short?, r2: short?);
 
-        (int? r1, int? r2) opInt(int? p1);
+        opInt(p1: int?) -> (r1: int?, r2: int?);
 
-        (long? r1, long? r2) opLong(long? p1);
+        opLong(p1: long?) -> (r1: long?, r2: long?);
 
-        (float? r1, float? r2) opFloat(float? p1);
+        opFloat(p1: float?) -> (r1: float?, r2: float?);
 
-        (double? r1, double? r2) opDouble(double? p1);
+        opDouble(p1: double?) -> (r1: double?, r2: double?);
 
-        (string? r1, string? r2) opString(string? p1);
+        opString(p1: string?) -> (r1: string?, r2: string?);
 
-        (MyEnum? r1, MyEnum? r2) opMyEnum(MyEnum? p1);
+        opMyEnum(p1: MyEnum?) -> (r1: MyEnum?, r2: MyEnum?);
 
-        (MyStruct? r1, MyStruct? r2) opMyStruct(MyStruct? p1);
+        opMyStruct(p1: MyStruct?) -> (r1: MyStruct?, r2: MyStruct?);
 
-        (AnotherStruct? r1, AnotherStruct? r2) opAnotherStruct(AnotherStruct? p1);
+        opAnotherStruct(p1: AnotherStruct?) -> (r1: AnotherStruct?, r2: AnotherStruct?);
 
-        (ByteSeq? r1, ByteSeq? r2) opByteSeq(ByteSeq? p1);
-        (ByteList? r1, ByteList? r2) opByteList(ByteList? p1);
+        opByteSeq(p1: ByteSeq?) -> (r1: ByteSeq?, r2: ByteSeq?);
+        opByteList(p1: ByteList?) -> (r1: ByteList?, r2: ByteList?);
 
-        (BoolSeq? r1, BoolSeq? r2) opBoolSeq(BoolSeq? p1);
-        (BoolList? r1, BoolList? r2) opBoolList(BoolList? p1);
+        opBoolSeq(p1: BoolSeq?) -> (r1: BoolSeq?, r2: BoolSeq?);
+        opBoolList(p1: BoolList?) -> (r1: BoolList?, r2: BoolList?);
 
-        (ShortSeq? r1, ShortSeq? r2) opShortSeq(ShortSeq? p1);
-        (ShortList? r1, ShortList? r2) opShortList(ShortList? p1);
+        opShortSeq(p1: ShortSeq?) -> (r1: ShortSeq?, r2: ShortSeq?);
+        opShortList(p1: ShortList?) -> (r1: ShortList?, r2: ShortList?);
 
-        (IntSeq? r1, IntSeq? r2) opIntSeq(IntSeq? p1);
-        (IntList? r1, IntList? r2) opIntList(IntList? p1);
+        opIntSeq(p1: IntSeq?) -> (r1: IntSeq?, r2: IntSeq?);
+        opIntList(p1: IntList?) -> (r1: IntList?, r2: IntList?);
 
-        (LongSeq? r1, LongSeq? r2) opLongSeq(LongSeq? p1);
-        (LongList? r1, LongList? r2) opLongList(LongList? p1);
+        opLongSeq(p1: LongSeq?) -> (r1: LongSeq?, r2: LongSeq?);
+        opLongList(p1: LongList?) -> (r1: LongList?, r2: LongList?);
 
-        (FloatSeq? r1, FloatSeq? r2) opFloatSeq(FloatSeq? p1);
-        (FloatList? r1, FloatList? r2) opFloatList(FloatList? p1);
+        opFloatSeq(p1: FloatSeq?) -> (r1: FloatSeq?, r2: FloatSeq?);
+        opFloatList(p1: FloatList?) -> (r1: FloatList?, r2: FloatList?);
 
-        (DoubleSeq? r1, DoubleSeq? r2) opDoubleSeq(DoubleSeq? p1);
-        (DoubleList? r1, DoubleList? r2) opDoubleList(DoubleList? p1);
+        opDoubleSeq(p1: DoubleSeq?) -> (r1: DoubleSeq?, r2: DoubleSeq?);
+        opDoubleList(p1: DoubleList?) -> (r1: DoubleList?, r2: DoubleList?);
 
-        (StringSeq? r1, StringSeq? r2) opStringSeq(StringSeq? p1);
-        (StringList? r1, StringList? r2) opStringList(StringList? p1);
+        opStringSeq(p1: StringSeq?) -> (r1: StringSeq?, r2: StringSeq?);
+        opStringList(p1: StringList?) -> (r1: StringList?, r2: StringList?);
 
-        (MyStructSeq? r1, MyStructSeq? r2) opMyStructSeq(MyStructSeq? p1);
-        (MyStructList? r1, MyStructList? r2) opMyStructList(MyStructList? p1);
+        opMyStructSeq(p1: MyStructSeq?) -> (r1: MyStructSeq?, r2: MyStructSeq?);
+        opMyStructList(p1: MyStructList?) -> (r1: MyStructList?, r2: MyStructList?);
 
-        (AnotherStructSeq? r1, AnotherStructSeq? r2) opAnotherStructSeq(AnotherStructSeq? p1);
-        (AnotherStructList? r1, AnotherStructList? r2) opAnotherStructList(AnotherStructList? p1);
+        opAnotherStructSeq(p1: AnotherStructSeq?) -> (r1: AnotherStructSeq?, r2: AnotherStructSeq?);
+        opAnotherStructList(p1: AnotherStructList?) -> (r1: AnotherStructList?, r2: AnotherStructList?);
 
-        (IntDict? r1, IntDict? r2) opIntDict(IntDict? p1);
-        (StringDict? r1, StringDict? r2) opStringDict(StringDict? p1);
+        opIntDict(p1: IntDict?) -> (r1: IntDict?, r2: IntDict?);
+        opStringDict(p1: StringDict?) -> (r1: StringDict?, r2: StringDict?);
 
-        [cs:encoded-result] MyStruct? opMyStructMarshaledResult(MyStruct? p1);
-        [cs:encoded-result] StringSeq? opStringSeqMarshaledResult(StringSeq? p1);
-        [cs:encoded-result] IntDict? opIntDictMarshaledResult(IntDict? p1);
+        [cs:encoded-result] opMyStructMarshaledResult(p1: MyStruct?) -> MyStruct?;
+        [cs:encoded-result] opStringSeqMarshaledResult(p1: StringSeq?) -> StringSeq?;
+        [cs:encoded-result] opIntDictMarshaledResult(p1: IntDict?) -> IntDict?;
     }
 }

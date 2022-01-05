@@ -8,21 +8,21 @@ module IceRpc::Tests::ClientServer
 
     interface RetryBidirTest
     {
-        void otherReplica();
-        void afterDelay(int n);
+        otherReplica();
+        afterDelay(n: int);
     }
 
     interface RetryTest
     {
-        idempotent void opIdempotent(int failedAttempts, bool killConnection);
-        void opNotIdempotent(int failedAttempts, bool killConnection);
-        void opWithData(int failedAttempts, int delay, sequence<byte> data); // TODO rename this parameter to 'retryData'.
-        void opRetryAfterDelay(int failedAttempts, int delay);
-        void opRetryNo();
+        idempotent opIdempotent(failedAttempts: int, killConnection: bool);
+        opNotIdempotent(failedAttempts: int, killConnection: bool);
+        opWithData(failedAttempts: int, delay: int, data: sequence<byte>); // TODO rename this parameter to 'retryData'.
+        opRetryAfterDelay(failedAttempts: int, delay: int);
+        opRetryNo();
     }
 
     interface RetryReplicatedTest
     {
-        void otherReplica();
+        otherReplica();
     }
 }

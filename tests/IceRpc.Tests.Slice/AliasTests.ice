@@ -30,169 +30,169 @@ module IceRpc::Tests::Slice
 
     interface AliasOperations
     {
-        bool opBool(bool p1);
-        boolA opBoolA(boolA p1);
+        opBool(p1: bool) -> bool;
+        opBoolA(p1: boolA) -> boolA;
 
-        byte opByte(byte p1);
-        byteA opByteA(byteA p1);
+        opByte(p1: byte) -> byte;
+        opByteA(p1: byteA) -> byteA;
 
-        short opShort(short p1);
-        shortA opShortA(shortA p1);
+        opShort(p1: short) -> short;
+        opShortA(p1: shortA) -> shortA;
 
-        ushort opUShort(ushort p1);
-        ushortA opUShortA(ushortA p1);
+        opUShort(p1: ushort) -> ushort;
+        opUShortA(p1: ushortA) -> ushortA;
 
-        int opInt(int p1);
-        intA opIntA(intA p1);
+        opInt(p1: int) -> int;
+        opIntA(p1: intA) -> intA;
 
-        uint opUInt(uint p1);
-        uintA opUIntA(uintA p1);
+        opUInt(p1: uint) -> uint;
+        opUIntA(p1: uintA) -> uintA;
 
-        varint opVarint(varint p1);
-        varintA opVarintA(varintA p1);
+        opVarint(p1: varint) -> varint;
+        opVarintA(p1: varintA) -> varintA;
 
-        varuint opVaruint(varuint p1);
-        varuintA opVaruintA(varuintA p1);
+        opVaruint(p1: varuint) -> varuint;
+        opVaruintA(p1: varuintA) -> varuintA;
 
-        long opLong(long p1);
-        longA opLongA(longA p1);
+        opLong(p1: long) -> long;
+        opLongA(p1: longA) -> longA;
 
-        ulong opULong(ulong p1);
-        ulongA opULongA(ulongA p1);
+        opULong(p1: ulong) -> ulong;
+        opULongA(p1: ulongA) -> ulongA;
 
-        varlong opVarlong(varlong p1);
-        varlongA opVarlongA(varlongA p1);
+        opVarlong(p1: varlong) -> varlong;
+        opVarlongA(p1: varlongA) -> varlongA;
 
-        varulong opVarulong(varulong p1);
-        varulongA opVarulongA(varulongA p1);
+        opVarulong(p1: varulong) -> varulong;
+        opVarulongA(p1: varulongA) -> varulongA;
 
-        float opFloat(float p1);
-        floatA opFloatA(floatA p1);
+        opFloat(p1: float) -> float;
+        opFloatA(p1: floatA) -> floatA;
 
-        double opDouble(double p1);
-        doubleA opDoubleA(doubleA p1);
+        opDouble(p1: double) -> double;
+        opDoubleA(p1: doubleA) -> doubleA;
 
-        string opString(string p1);
-        stringA opStringA(stringA p1);
+        opString(p1: string) -> string;
+        opStringA(p1: stringA) -> stringA;
 
-        MyEnum opMyEnum(MyEnum p1);
-        MyEnumA opMyEnumA(MyEnumA p1);
+        opMyEnum(p1: MyEnum) -> MyEnum;
+        opMyEnumA(p1: MyEnumA) -> MyEnumA;
 
-        MyStruct opMyStruct(MyStruct p1);
-        MyStructA opMyStructA(MyStructA p1);
+        opMyStruct(p1: MyStruct) -> MyStruct;
+        opMyStructA(p1: MyStructA) -> MyStructA;
 
-        MyClassA opMyClassA(MyClassA p1);
-        MyClassAA opMyClassAA(MyClassAA p1);
+        opMyClassA(p1: MyClassA) -> MyClassA;
+        opMyClassAA(p1: MyClassAA) -> MyClassAA;
 
-        ByteSeq opByteSeq(ByteSeq p1);
-        ByteSeqA opByteSeqA(ByteSeqA p1);
+        opByteSeq(p1: ByteSeq) -> ByteSeq;
+        opByteSeqA(p1: ByteSeqA) -> ByteSeqA;
 
-        StringList opStringList(StringList p1);
-        StringListA opStringListA(StringListA p1);
+        opStringList(p1: StringList) -> StringList;
+        opStringListA(p1: StringListA) -> StringListA;
 
-        MyEnumDict opMyEnumDict(MyEnumDict p1);
-        MyEnumDictA opMyEnumDictA(MyEnumDictA p1);
+        opMyEnumDict(p1: MyEnumDict) -> MyEnumDict;
+        opMyEnumDictA(p1: MyEnumDictA) -> MyEnumDictA;
 
-        MyEnumDict opMyEnumDict2(MyEnumDict p1);
-        MyEnumDict2 opMyEnumDict2A(MyEnumDict2 p1);
+        opMyEnumDict2(p1: MyEnumDict) -> MyEnumDict;
+        opMyEnumDict2A(p1: MyEnumDict2) -> MyEnumDict2;
     }
 
     module Alias
     {
         class MyClass
         {
-            bool m1;
-            byte m2;
-            short m3;
-            ushort m4;
-            int m5;
-            uint m6;
-            varint m7;
-            varuint m8;
-            long m9;
-            ulong m10;
-            varlong m11;
-            varulong m12;
-            float m13;
-            double m14;
-            string m15;
-            MyEnum m16;
-            IceRpc::Tests::Slice::MyStruct m17;
-            IceRpc::Tests::Slice::MyClassA m18;
-            ByteSeq m19;
-            MyEnumDict m20;
+            m1: bool,
+            m2: byte,
+            m3: short,
+            m4: ushort,
+            m5: int,
+            m6: uint,
+            m7: varint,
+            m8: varuint,
+            m9: long,
+            m10: ulong,
+            m11: varlong,
+            m12: varulong,
+            m13: float,
+            m14: double,
+            m15: string,
+            m16: MyEnum,
+            m17: IceRpc::Tests::Slice::MyStruct,
+            m18: IceRpc::Tests::Slice::MyClassA,
+            m19: ByteSeq,
+            m20: MyEnumDict,
         }
 
         class MyClassA
         {
-            boolA m1;
-            byteA m2;
-            shortA m3;
-            ushortA m4;
-            intA m5;
-            uintA m6;
-            varintA m7;
-            varuintA m8;
-            longA m9;
-            ulongA m10;
-            varlongA m11;
-            varulongA m12;
-            floatA m13;
-            doubleA m14;
-            stringA m15;
-            MyEnumA m16;
-            IceRpc::Tests::Slice::MyStructA m17;
-            IceRpc::Tests::Slice::MyClassAA m18;
-            ByteSeqA m19;
-            MyEnumDictA m20;
+            m1: boolA,
+            m2: byteA,
+            m3: shortA,
+            m4: ushortA,
+            m5: intA,
+            m6: uintA,
+            m7: varintA,
+            m8: varuintA,
+            m9: longA,
+            m10: ulongA,
+            m11: varlongA,
+            m12: varulongA,
+            m13: floatA,
+            m14: doubleA,
+            m15: stringA,
+            m16: MyEnumA,
+            m17: IceRpc::Tests::Slice::MyStructA,
+            m18: IceRpc::Tests::Slice::MyClassAA,
+            m19: ByteSeqA,
+            m20: MyEnumDictA,
         }
 
         class MyStruct
         {
-            bool m1;
-            byte m2;
-            short m3;
-            ushort m4;
-            int m5;
-            uint m6;
-            varint m7;
-            varuint m8;
-            long m9;
-            ulong m10;
-            varlong m11;
-            varulong m12;
-            float m13;
-            double m14;
-            string m15;
-            MyEnum m16;
-            IceRpc::Tests::Slice::MyStruct m17;
-            IceRpc::Tests::Slice::MyClassA m18;
-            ByteSeq m19;
-            MyEnumDict m20;
+            m1: bool,
+            m2: byte,
+            m3: short,
+            m4: ushort,
+            m5: int,
+            m6: uint,
+            m7: varint,
+            m8: varuint,
+            m9: long,
+            m10: ulong,
+            m11: varlong,
+            m12: varulong,
+            m13: float,
+            m14: double,
+            m15: string,
+            m16: MyEnum,
+            m17: IceRpc::Tests::Slice::MyStruct,
+            m18: IceRpc::Tests::Slice::MyClassA,
+            m19: ByteSeq,
+            m20: MyEnumDict,
         }
 
         class MyStructA
         {
-            boolA m1;
-            byteA m2;
-            shortA m3;
-            ushortA m4;
-            intA m5;
-            uintA m6;
-            varintA m7;
-            varuintA m8;
-            longA m9;
-            ulongA m10;
-            varlongA m11;
-            varulongA m12;
-            floatA m13;
-            doubleA m14;
-            stringA m15;
-            MyEnumA m16;
-            IceRpc::Tests::Slice::MyStructA m17;
-            IceRpc::Tests::Slice::MyClassAA m18;
-            ByteSeqA m19;
-            MyEnumDictA m20;
+            m1: boolA,
+            m2: byteA,
+            m3: shortA,
+            m4: ushortA,
+            m5: intA,
+            m6: uintA,
+            m7: varintA,
+            m8: varuintA,
+            m9: longA,
+            m10: ulongA,
+            m11: varlongA,
+            m12: varulongA,
+            m13: floatA,
+            m14: doubleA,
+            m15: stringA,
+            m16: MyEnumA,
+            m17: IceRpc::Tests::Slice::MyStructA,
+            m18: IceRpc::Tests::Slice::MyClassAA,
+            m19: ByteSeqA,
+            m20: MyEnumDictA,
         }
     }
 }

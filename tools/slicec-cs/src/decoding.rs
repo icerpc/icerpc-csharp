@@ -19,7 +19,7 @@ pub fn decode_data_members(
     if bit_sequence_size > 0 {
         writeln!(
             code,
-            "var bitSequenceReader = decoder.DecodeBitSequence({});",
+            "var bitSequenceReader = decoder.GetBitSequenceReader({});",
             bit_sequence_size
         );
     }
@@ -410,7 +410,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
     if bit_sequence_size > 0 {
         writeln!(
             code,
-            "var bitSequenceReader = decoder.DecodeBitSequence({});",
+            "var bitSequenceReader = decoder.GetBitSequenceReader({});",
             bit_sequence_size
         );
     }

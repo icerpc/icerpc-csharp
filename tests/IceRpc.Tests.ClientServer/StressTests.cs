@@ -5,8 +5,8 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests.ClientServer
 {
-    [TestFixture(ProtocolCode.Ice1)]
-    [TestFixture(ProtocolCode.Ice2)]
+    [TestFixture(ProtocolCode.Ice)]
+    [TestFixture(ProtocolCode.IceRpc)]
     [Parallelizable(ParallelScope.All)]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Timeout(5000)]

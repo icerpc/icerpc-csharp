@@ -18,7 +18,7 @@ namespace IceRpc.Tests.Api
     {
         private const string _austin = "/austin";
 
-        // the actual name of the payload encoding sent with the ice2 requests and responses
+        // the actual name of the payload encoding sent with the icerpc requests and responses
         private static readonly Encoding _customEncoding = Encoding.FromString("utf8");
 
         private const string _doingWell = "muy bien";
@@ -85,7 +85,7 @@ namespace IceRpc.Tests.Api
                 PipeReader.Create(payload));
 
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
-            Assert.That(response.PayloadEncoding, Is.EqualTo(Encoding.Ice20));
+            Assert.That(response.PayloadEncoding, Is.EqualTo(Encoding.Slice20));
             await response.Payload.CompleteAsync(); // done with payload
             // TODO: unfortunately there is currently no way to decode this response (2.0-encoded exception)
 

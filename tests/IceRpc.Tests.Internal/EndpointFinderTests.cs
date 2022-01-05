@@ -139,7 +139,7 @@ namespace IceRpc.Tests.Internal
                 Invocation? invocation,
                 CancellationToken cancel) =>
                     Task.FromResult<ServicePrx?>(
-                        ServicePrx.Parse(id.Name == "bad" ? "ice+foo://host/dummy" : "ice:dummy"));
+                        ServicePrx.Parse(id.Name == "bad" ? "icerpc+foo://host/dummy" : "icerpc:dummy"));
 
             Task<LocatorRegistryPrx?> ILocatorPrx.GetRegistryAsync(Invocation? invocation, CancellationToken cancel)
             {

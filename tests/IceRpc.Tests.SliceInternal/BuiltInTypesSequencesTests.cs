@@ -82,6 +82,20 @@ namespace IceRpc.Tests.SliceInternal
 
         [TestCase(0)]
         [TestCase(256)]
+        public void BuiltInTypesSequences_OptionalInt(int size)
+        {
+            var encoder = new IceEncoder(_bufferWriter, _encoding);
+            var decoder = new IceDecoder(_buffer, _encoding);
+            int[] p1 = Enumerable.Range(0, size).ToArray();
+            encoder.EncodeSequenceWithBitSequence(p1, (ref IceEncoder encoder, int v) => encoder.EncodeInt(v));
+            int[] r1 = decoder.DecodeSequenceWithBitSequence((ref IceDecoder decoder) => decoder.DecodeInt());
+
+            CollectionAssert.AreEqual(p1, r1);
+            Assert.AreEqual(decoder.Consumed, _bufferWriter.WrittenBuffer.Length);
+        }
+
+        [TestCase(0)]
+        [TestCase(256)]
         public void BuiltInTypesSequences_Long(int size)
         {
             var encoder = new IceEncoder(_bufferWriter, _encoding);

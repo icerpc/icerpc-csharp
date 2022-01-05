@@ -2,8 +2,8 @@
 
 namespace IceRpc.Features.Internal
 {
-    /// <summary>A feature that specifies the request ID of an Ice1 request or response.</summary>
-    internal sealed class Ice1Request
+    /// <summary>A feature that specifies the request ID of an Ice request or response.</summary>
+    internal sealed class IceRequest
     {
         /// <summary>The request ID.</summary>
         internal int Id { get; }
@@ -11,7 +11,7 @@ namespace IceRpc.Features.Internal
         /// <summary>The task completion source that will be completed when the response is received.</summary>
         internal TaskCompletionSource<(Memory<byte>, IDisposable)>? ResponseCompletionSource { get; }
 
-        internal Ice1Request(int id, bool outgoing)
+        internal IceRequest(int id, bool outgoing)
         {
             Id = id;
             if (outgoing)

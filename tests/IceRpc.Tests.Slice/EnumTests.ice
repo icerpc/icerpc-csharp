@@ -14,7 +14,7 @@ module IceRpc::Tests::Slice
         enum8,
         enum9 = 40,
         enum10,
-        enum11 = 226
+        enum11 = 226,
     }
 
     enum MyFixedLengthEnum : short
@@ -29,7 +29,7 @@ module IceRpc::Tests::Slice
         senum8,
         senum9 = 40,
         senum10,
-        senum11 = 32766
+        senum11 = 32766,
     }
 
     [cs:attribute("System.Flags")] unchecked enum MyUncheckedEnum : uint
@@ -49,11 +49,11 @@ module IceRpc::Tests::Slice
 
     interface EnumOperations
     {
-        (MyEnum r1, MyEnum r2) opMyEnum(MyEnum p1, MyEnum p2);
-        (MyFixedLengthEnum r1, MyFixedLengthEnum r2) opMyFixedLengthEnum(MyFixedLengthEnum p1, MyFixedLengthEnum p2);
-        (MyUncheckedEnum r1, MyUncheckedEnum r2) opMyUncheckedEnum(MyUncheckedEnum p1, MyUncheckedEnum p2);
+        opMyEnum(p1: MyEnum, p2: MyEnum) -> (r1: MyEnum, r2: MyEnum);
+        opMyFixedLengthEnum(p1: MyFixedLengthEnum, p2: MyFixedLengthEnum) -> (r1: MyFixedLengthEnum, r2: MyFixedLengthEnum);
+        opMyUncheckedEnum(p1: MyUncheckedEnum, p2: MyUncheckedEnum) -> (r1: MyUncheckedEnum, r2: MyUncheckedEnum);
 
-        MyEnum opInvalidMyEnum();
-        MyFixedLengthEnum opInvalidMyFixedLengthEnum();
+        opInvalidMyEnum() -> MyEnum;
+        opInvalidMyFixedLengthEnum() -> MyFixedLengthEnum;
     }
 }

@@ -10,6 +10,6 @@ module IceRpc
         /// retry same endpoint after delay ms
         AfterDelay,
         /// retry another replica known to the caller (if any)
-        OtherReplica
+        OtherReplica,
     }
 }

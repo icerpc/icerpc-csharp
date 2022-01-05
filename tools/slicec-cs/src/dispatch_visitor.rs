@@ -217,7 +217,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         let body = if operation.returns_classes() {
             format!(
                 "\
-IceRpc.Encoding.Ice11.{encoding_operation}(
+IceRpc.Encoding.Slice11.{encoding_operation}(
     {return_arg},
     {encode_action},
     {format})",
@@ -473,7 +473,7 @@ await request.CheckEmptyArgsAsync(false, cancel).ConfigureAwait(false);",
         );
 
         let encoding = if operation.returns_classes() {
-            "IceRpc.Encoding.Ice11"
+            "IceRpc.Encoding.Slice11"
         } else {
             "request.GetIceEncoding()"
         };
@@ -507,7 +507,7 @@ await request.CheckEmptyArgsAsync(false, cancel).ConfigureAwait(false);",
         );
 
         let encoding = if operation.returns_classes() {
-            "IceRpc.Encoding.Ice11"
+            "IceRpc.Encoding.Slice11"
         } else {
             code.writeln("var payloadEncoding = request.GetIceEncoding();");
             "payloadEncoding"

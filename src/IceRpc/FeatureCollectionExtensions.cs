@@ -26,7 +26,7 @@ namespace IceRpc
         /// <summary>Returns the request ID value from this feature collection.</summary>
         /// <param name="features">This feature collection.</param>
         /// <returns>The value of the request ID if found, null otherwise.</returns>
-        public static int? GetRequestId(this FeatureCollection features) => features.Get<Ice1Request>()?.Id;
+        public static int? GetRequestId(this FeatureCollection features) => features.Get<IceRequest>()?.Id;
 
         /// <summary>Updates this feature collection (if read-write) or creates a new feature collection (if read-only)
         /// and sets its T to the provided value.</summary>

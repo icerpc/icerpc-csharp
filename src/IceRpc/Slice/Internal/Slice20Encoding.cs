@@ -2,11 +2,11 @@
 
 namespace IceRpc.Slice.Internal
 {
-    /// <summary>The Ice 2.0 encoding class.</summary>
-    internal sealed class Ice20Encoding : IceEncoding
+    /// <summary>The Slice 2.0 encoding class.</summary>
+    internal sealed class Slice20Encoding : IceEncoding
     {
-        /// <summary>The Ice 2.0 encoding singleton.</summary>
-        internal static IceEncoding Instance { get; } = new Ice20Encoding();
+        /// <summary>The Slice 2.0 encoding singleton.</summary>
+        internal static IceEncoding Instance { get; } = new Slice20Encoding();
 
         internal static (int Size, int SizeLength) DecodeSize(ReadOnlySpan<byte> from)
         {
@@ -46,8 +46,8 @@ namespace IceRpc.Slice.Internal
         /// </summary>
         internal static int GetSizeLength(int size) => IceEncoder.GetVarULongEncodedSize(checked((ulong)size));
 
-        private Ice20Encoding()
-            : base(Ice20Name)
+        private Slice20Encoding()
+            : base(Slice20Name)
         {
         }
     }

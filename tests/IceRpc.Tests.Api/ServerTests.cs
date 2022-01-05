@@ -14,13 +14,13 @@ namespace IceRpc.Tests.Api
         {
             {
                 await using var server = new Server();
-                Assert.AreEqual(Endpoint.FromString("ice+tcp://[::0]"), server.Endpoint);
+                Assert.AreEqual(Endpoint.FromString("icerpc+tcp://[::0]"), server.Endpoint);
             }
 
             {
                 await using var server = new Server
                 {
-                    Endpoint = "ice+tcp://foo:10000"
+                    Endpoint = "icerpc+tcp://foo:10000"
                 };
 
                 // A DNS name cannot be used with a server endpoint
@@ -106,7 +106,7 @@ namespace IceRpc.Tests.Api
             {
                 await using var server1 = new Server
                 {
-                    Endpoint = "ice+tcp://127.0.0.1:15001"
+                    Endpoint = "icerpc+tcp://127.0.0.1:15001"
                 };
                 server1.Listen();
 
@@ -114,7 +114,7 @@ namespace IceRpc.Tests.Api
                     {
                         await using var server2 = new Server
                         {
-                            Endpoint = "ice+tcp://127.0.0.1:15001"
+                            Endpoint = "icerpc+tcp://127.0.0.1:15001"
                         };
                         server2.Listen();
                     });
@@ -143,7 +143,7 @@ namespace IceRpc.Tests.Api
                 // Setting Endpoint after calling Listen is not allowed
                 await using var server = new Server();
                 server.Listen();
-                Assert.Throws<InvalidOperationException>(() => server.Endpoint = "ice+tcp://127.0.0.1:15001");
+                Assert.Throws<InvalidOperationException>(() => server.Endpoint = "icerpc+tcp://127.0.0.1:15001");
             }
 
             {
@@ -263,10 +263,10 @@ namespace IceRpc.Tests.Api
             Assert.That(server.ShutdownComplete.IsCompleted, Is.True);
         }
 
-        [TestCase(false, ProtocolCode.Ice1)]
-        [TestCase(true, ProtocolCode.Ice1)]
-        [TestCase(false, ProtocolCode.Ice2)]
-        [TestCase(true, ProtocolCode.Ice2)]
+        [TestCase(false, ProtocolCode.Ice)]
+        [TestCase(true, ProtocolCode.Ice)]
+        [TestCase(false, ProtocolCode.IceRpc)]
+        [TestCase(true, ProtocolCode.IceRpc)]
         [Log(LogAttributeLevel.Debug)]
         // Canceling the cancellation token (source) of ShutdownAsync results in a DispatchException when the operation
         // completes with an OperationCanceledException. It also test calling DisposeAsync is called instead of
@@ -329,8 +329,9 @@ namespace IceRpc.Tests.Api
                 cancellationSource.Cancel();
             }
 
-            // Ensure the client gets a DispatchException with Ice1 and OperationCanceledException with Ice2.
-            if (protocol == ProtocolCode.Ice1)
+            // Ensures the client gets a DispatchException with the Ice protocol and OperationCanceledException with
+            // the IceRPC protocol.
+            if (protocol == ProtocolCode.Ice)
             {
                 Assert.ThrowsAsync<DispatchException>(async () => await task);
             }

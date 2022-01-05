@@ -27,7 +27,7 @@ namespace IceRpc.Tests.ClientServer
             var router = new Router();
             string path = $"/{Guid.NewGuid()}";
             router.Map(path, new Greeter());
-            string serverEndpoint = "ice+tcp://127.0.0.1:0?protocol=ice1&tls=false";
+            string serverEndpoint = "icerpc+tcp://127.0.0.1:0?protocol=ice&tls=false";
             _server = new Server
             {
                 Dispatcher = router,
@@ -37,7 +37,7 @@ namespace IceRpc.Tests.ClientServer
             _server.Listen();
 
             // Must be created after Listen to get the port number.
-            _greeter = GreeterPrx.FromPath(path, Protocol.Ice1);
+            _greeter = GreeterPrx.FromPath(path, Protocol.Ice);
             _greeter.Proxy.Endpoint = _server.Endpoint;
             _greeter.Proxy.Invoker = _pipeline;
         }
@@ -233,7 +233,7 @@ namespace IceRpc.Tests.ClientServer
             // Test with indirect endpoints
             string adapter = $"adapter/{identity.Category}/{identity.Name}";
             var indirectGreeter = GreeterPrx.Parse($"{identity} @ '{adapter}'", _pipeline, IceProxyFormat.Default);
-            Assert.AreEqual($"ice+loc://{adapter}:0?protocol=ice1", indirectGreeter.Proxy.Endpoint?.ToString());
+            Assert.AreEqual($"icerpc+loc://{adapter}:0?protocol=ice", indirectGreeter.Proxy.Endpoint?.ToString());
 
             locator.RegisterAdapter(adapter, greeter);
 
@@ -306,7 +306,7 @@ namespace IceRpc.Tests.ClientServer
                 if (dispatch.Context.ContainsKey("retry"))
                 {
                     // Other replica so that the retry interceptor clears the connection
-                    // We have to use ServiceNotFoundException because we use ice1.
+                    // We have to use ServiceNotFoundException because we use ice.
                     throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
                 }
                 return default;

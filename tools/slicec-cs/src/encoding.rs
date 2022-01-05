@@ -16,7 +16,6 @@ pub fn encode_data_members(
 
     let (required_members, tagged_members) = get_sorted_members(members);
 
-    let mut bit_sequence_index = -1;
     // Tagged members are encoded in a dictionary and don't count towards the optional bit sequence
     // size.
     let bit_sequence_size = get_bit_sequence_size(&required_members);
@@ -24,17 +23,15 @@ pub fn encode_data_members(
     if bit_sequence_size > 0 {
         writeln!(
             code,
-            "var bitSequence = encoder.EncodeBitSequence({});",
+            "var bitSequenceWriter = encoder.GetBitSequenceWriter({});",
             bit_sequence_size
         );
-        bit_sequence_index = 0;
     }
 
     for member in required_members {
         let param = format!("this.{}", member.field_name(field_type));
         code.writeln(&encode_type(
             member.data_type(),
-            &mut bit_sequence_index,
             true,
             namespace,
             &param,
@@ -52,7 +49,6 @@ pub fn encode_data_members(
 
 fn encode_type(
     type_ref: &TypeRef,
-    bit_sequence_index: &mut i64,
     for_nested_type: bool,
     namespace: &str,
     param: &str,
@@ -106,23 +102,17 @@ fn encode_type(
             };
 
             if type_ref.is_optional {
-                assert!(*bit_sequence_index >= 0);
                 // A null T[]? or List<T>? is implicitly converted into a default aka null
                 // ReadOnlyMemory<T> or ReadOnlySpan<T>. Furthermore, the span of a default
                 // ReadOnlyMemory<T> is a default ReadOnlySpan<T>, which is distinct from
                 // the span of an empty sequence. This is why the "value.Span != null" below
                 // works correctly.
-                let index = *bit_sequence_index;
-                *bit_sequence_index += 1;
                 format!(
                     "\
+bitSequenceWriter.Write({param} != null);
 if ({param} != null)
 {{
     {encode_type}
-}}
-else
-{{
-    bitSequence[{bit_sequence_index}] = false;
 }}
 ",
                     param = match concrete_typeref {
@@ -133,8 +123,7 @@ else
                             format!("{}.Span", param),
                         _ => param.to_owned(),
                     },
-                    encode_type = encode_type,
-                    bit_sequence_index = index
+                    encode_type = encode_type
                 )
             } else {
                 encode_type
@@ -469,23 +458,19 @@ pub fn encode_operation(operation: &Operation, return_type: bool) -> CodeBlock {
 
     let (required_members, tagged_members) = get_sorted_members(&members);
 
-    let mut bit_sequence_index: i64 = -1;
-
     let bit_sequence_size = get_bit_sequence_size(&members);
 
     if bit_sequence_size > 0 {
         writeln!(
             code,
-            "var bitSequence = encoder.EncodeBitSequence({});",
+            "var bitSequenceWriter = encoder.GetBitSequenceWriter({});",
             bit_sequence_size
         );
-        bit_sequence_index = 0;
     }
 
     for member in required_members {
         code.writeln(&encode_type(
             member.data_type(),
-            &mut bit_sequence_index,
             false,
             namespace,
             &match members.as_slice() {
@@ -493,10 +478,6 @@ pub fn encode_operation(operation: &Operation, return_type: bool) -> CodeBlock {
                 _ => format!("value.{}", &member.field_name(FieldType::NonMangled)),
             },
         ));
-    }
-
-    if bit_sequence_size > 0 {
-        assert_eq!(bit_sequence_index, bit_sequence_size as i64);
     }
 
     for member in tagged_members {

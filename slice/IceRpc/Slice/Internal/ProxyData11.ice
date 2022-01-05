@@ -10,22 +10,23 @@ module IceRpc::Slice::Internal
     struct Identity
     {
         /// The name of the identity. An empty name is not a valid name.
-        string name;
+        name: string,
 
         /// The category of the identity. Can be empty.
-        string category;
+        category: string,
     }
 
     // TODO: temporary, replace by typealias Facet = [cs::type("global::IceRpc.Slice.Internal.Facet")] sequence<string>;
     [cs:readonly]
     struct Facet
     {
-        sequence<string> Value;  // has 0 or 1 element
+        // TODO: should this identifier be capitalized?
+        value: sequence<string>,  // has 0 or 1 element
     }
 
-    /// The InvocationMode is carried by proxies that use the ice1 protocol, and it specifies the behavior when sending
+    /// The InvocationMode is carried by proxies that use the ice protocol, and it specifies the behavior when sending
     /// a request using such a proxy.
-    /// When marshaling an ice1 proxy, IceRPC only uses 2 values: Twoway and Datagram.
+    /// When marshaling an ice proxy, IceRPC only uses 2 values: Twoway and Datagram.
     enum InvocationMode : byte
     {
         /// This is the default invocation mode; a request using this mode always expects a response.
@@ -54,12 +55,12 @@ module IceRpc::Slice::Internal
     [cs:readonly]
     struct ProxyData11
     {
-        Facet facet;
-        InvocationMode invocationMode;
-        bool secure;
-        byte protocolMajor;
-        byte protocolMinor;
-        byte encodingMajor;
-        byte encodingMinor;
+        facet: Facet,
+        invocationMode: InvocationMode,
+        secure: bool,
+        protocolMajor: byte,
+        protocolMinor: byte,
+        encodingMajor: byte,
+        encodingMinor: byte,
     }
 }
