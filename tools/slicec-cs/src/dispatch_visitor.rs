@@ -268,9 +268,7 @@ fn request_decode_body(operation: &Operation) -> CodeBlock {
 
         if non_streamed_parameters.is_empty() {
             writeln!(code, "\
-await request.CheckEmptyArgsAsync(
-    true,
-    cancel).ConfigureAwait(false);
+await request.CheckEmptyArgsAsync(hasStream: true, cancel).ConfigureAwait(false);
 
 return {}",
                 decode_operation_stream(stream_member, namespace, true, false));
@@ -279,7 +277,7 @@ return {}",
 var {args} = await request.ToArgsAsync(
     _defaultActivator,
     {decode_func},
-    true,
+    hasStream: true,
     cancel).ConfigureAwait(false);
 
 {decode_request_stream}
@@ -300,7 +298,7 @@ return {args_and_stream};",
 await request.ToArgsAsync(
     _defaultActivator,
     {decode_func},
-    false,
+    hasStream: false,
     cancel).ConfigureAwait(false)
 ", decode_func = request_decode_func(operation).indent());
     }
@@ -426,7 +424,7 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
             // Verify the payload is indeed empty (it can contain tagged params that we have to skip).
             code.writeln(
                 "\
-await request.CheckEmptyArgsAsync(false, cancel).ConfigureAwait(false);",
+await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false);",
             );
         }
         [parameter] => {

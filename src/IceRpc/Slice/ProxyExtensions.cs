@@ -129,7 +129,7 @@ namespace IceRpc.Slice
                 await response.CheckVoidReturnValueAsync(
                     proxy.Invoker,
                     defaultActivator,
-                    false,
+                    hasStream: false,
                     cancel).ConfigureAwait(false);
             }
         }

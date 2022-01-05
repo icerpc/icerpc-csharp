@@ -618,7 +618,7 @@ fn response_operation_body(operation: &Operation) -> CodeBlock {
 await response.CheckVoidReturnValueAsync(
     invoker,
     _defaultActivator,
-    true,
+    hasStream: true,
     cancel).ConfigureAwait(false);
 
 return {}
@@ -629,7 +629,7 @@ var {return_value} = await response.ToReturnValueAsync(
     invoker,
     _defaultActivator,
     {response_decode_func},
-    true,
+    hasStream: true,
     cancel).ConfigureAwait(false);
 
 {decode_response_stream}
@@ -649,7 +649,7 @@ await response.ToReturnValueAsync(
     invoker,
     _defaultActivator,
     {response_decode_func},
-    false,
+    hasStream: false,
     cancel).ConfigureAwait(false)",
             response_decode_func = response_decode_func(operation).indent());
     }
@@ -662,8 +662,6 @@ fn response_decode_func(operation: &Operation) -> CodeBlock {
     // vec of members
     let members = operation.nonstreamed_return_members();
     assert!(!members.is_empty());
-
-    // TODO: simplify single stream response generated code
 
     if members.len() == 1
         && get_bit_sequence_size(&members) == 0

@@ -10,7 +10,8 @@ namespace IceRpc.Slice
     {
         /// <summary>Verifies that a request payload carries no argument or only unknown tagged arguments.</summary>
         /// <param name="request">The incoming request.</param>
-        /// <param name="hasStream">True if a stream segment is expected.</param>
+        /// <param name="hasStream"><c>true</c> if this void value is followed by a stream parameter;
+        /// otherwise, <c>false</c>.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>A value task that completes when the checking is complete.</returns>
         public static ValueTask CheckEmptyArgsAsync(

@@ -12,7 +12,8 @@ namespace IceRpc.Slice
         /// <param name="response">The incoming response.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <param name="defaultActivator">The default activator.</param>
-        /// <param name="hasStream">True if a stream segment is expected.</param>
+        /// <param name="hasStream"><c>true</c> if this void value is followed by a stream parameter;
+        /// otherwise, <c>false</c>.</param>
         /// <param name="cancel">The cancellation token.</param>
         public static async ValueTask CheckVoidReturnValueAsync(
             this IncomingResponse response,
@@ -62,7 +63,8 @@ namespace IceRpc.Slice
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <param name="defaultActivator">The default activator.</param>
         /// <param name="decodeFunc">The decode function for the return value.</param>
-        /// <param name="hasStream">When true, T is or includes a stream return.</param>
+        /// <param name="hasStream"><c>true</c> if the value is followed by a stream parameter;
+        /// otherwise, <c>false</c>.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The return value.</returns>
         public static async ValueTask<T> ToReturnValueAsync<T>(
