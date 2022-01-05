@@ -15,7 +15,7 @@ namespace IceRpc.Slice
         /// <param name="cancel">The cancellation token.</param>
         public static async ValueTask CheckVoidReturnValueAsync(
             this IncomingResponse response,
-            IInvoker? invoker,
+            IInvoker invoker,
             IActivator defaultActivator,
             CancellationToken cancel)
         {
@@ -42,7 +42,7 @@ namespace IceRpc.Slice
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
         public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this IncomingResponse response,
-            IInvoker? invoker,
+            IInvoker invoker,
             IActivator defaultActivator,
             DecodeFunc<T> decodeFunc) =>
             response.Payload.ToAsyncEnumerable<T>(
@@ -65,7 +65,7 @@ namespace IceRpc.Slice
         /// <returns>The return value.</returns>
         public static async ValueTask<T> ToReturnValueAsync<T>(
             this IncomingResponse response,
-            IInvoker? invoker,
+            IInvoker invoker,
             IActivator defaultActivator,
             DecodeFunc<T> decodeFunc,
             bool hasStream,

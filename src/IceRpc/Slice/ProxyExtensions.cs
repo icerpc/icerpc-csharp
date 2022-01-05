@@ -13,7 +13,7 @@ namespace IceRpc.Slice
     /// carries a failure.</returns>
     public delegate ValueTask<T> ResponseDecodeFunc<T>(
         IncomingResponse response,
-        IInvoker? invoker,
+        IInvoker invoker,
         CancellationToken cancel);
 
     /// <summary>Provides extension methods for class Proxy.</summary>

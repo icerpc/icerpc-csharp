@@ -39,7 +39,7 @@ namespace IceRpc
         public Protocol Protocol => IncomingRequest.Protocol;
 
         /// <summary>The invoker assigned to any proxy read from the payload of this request.</summary>
-        public IInvoker? ProxyInvoker => IncomingRequest.ProxyInvoker;
+        public IInvoker ProxyInvoker => IncomingRequest.ProxyInvoker;
 
         /// <summary>The features associated with the request.</summary>
         public FeatureCollection RequestFeatures => IncomingRequest.Features;

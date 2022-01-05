@@ -31,7 +31,7 @@ namespace IceRpc
         public string Path { get; init; }
 
         /// <summary>The invoker assigned to any proxy read from the payload of this request.</summary>
-        public IInvoker? ProxyInvoker { get; set; }
+        public IInvoker ProxyInvoker { get; set; } = Proxy.DefaultInvoker;
 
         /// <summary>Get the cancellation dispatch source.</summary>
         internal CancellationTokenSource? CancelDispatchSource { get; set; }
