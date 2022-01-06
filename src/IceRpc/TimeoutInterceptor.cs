@@ -38,8 +38,8 @@ namespace IceRpc
             {
                 using var timeoutTokenSource = new CancellationTokenSource(_timeout);
                 using CancellationTokenSource linkedTokenSource = cancel.CanBeCanceled ?
-                    CancellationTokenSource.CreateLinkedTokenSource(
-                        cancel, timeoutTokenSource.Token) : timeoutTokenSource;
+                    CancellationTokenSource.CreateLinkedTokenSource(cancel, timeoutTokenSource.Token) :
+                    timeoutTokenSource;
                 request.Deadline = DateTime.UtcNow + _timeout;
                 return await _next.InvokeAsync(request, linkedTokenSource.Token).ConfigureAwait(false);
             }
