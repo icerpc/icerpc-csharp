@@ -53,44 +53,28 @@ namespace IceRpc.Slice
                     nameof(invocation));
             }
 
-            (cancel, DateTime deadline, CancellationTokenSource? timeoutSource, CancellationTokenSource? combinedSource) = InjectTimeout(
-                invocation,
-                cancel);
-
-            try
+            var request = new OutgoingRequest(proxy, operation)
             {
-                var request = new OutgoingRequest(proxy, operation)
-                {
-                    Deadline = deadline,
-                    Features = invocation?.RequestFeatures ?? FeatureCollection.Empty,
-                    IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false),
-                    PayloadEncoding = payloadEncoding,
-                    PayloadSource = payloadSource,
-                    PayloadSourceStream = payloadSourceStream
-                };
+                Features = invocation?.RequestFeatures ?? FeatureCollection.Empty,
+                IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false),
+                PayloadEncoding = payloadEncoding,
+                PayloadSource = payloadSource,
+                PayloadSourceStream = payloadSourceStream
+            };
 
-                // We perform as much work as possible in a non async method to throw exceptions synchronously.
-                return ReadResponseAsync(proxy.Invoker.InvokeAsync(request, cancel));
-            }
-            catch
+            IInvoker invoker = proxy.Invoker;
+            if (invocation != null)
             {
-                timeoutSource?.Dispose();
-                combinedSource?.Dispose();
-                throw;
+                ConfigureTimeout(ref invoker, invocation);
+                CheckCancellationToken(invocation, cancel);
             }
+
+            // We perform as much work as possible in a non async method to throw exceptions synchronously.
+            return ReadResponseAsync(invoker.InvokeAsync(request, cancel));
 
             async Task<T> ReadResponseAsync(Task<IncomingResponse> responseTask)
             {
-                IncomingResponse response;
-                try
-                {
-                    response = await responseTask.ConfigureAwait(false);
-                }
-                finally
-                {
-                    timeoutSource?.Dispose();
-                    combinedSource?.Dispose();
-                }
+                IncomingResponse response = await responseTask.ConfigureAwait(false);
 
                 if (invocation != null)
                 {
@@ -129,46 +113,29 @@ namespace IceRpc.Slice
             bool oneway = false,
             CancellationToken cancel = default)
         {
-            (cancel, DateTime deadline, CancellationTokenSource? timeoutSource, CancellationTokenSource? combinedSource) = InjectTimeout(
-                invocation,
-                cancel);
-
-            try
+            var request = new OutgoingRequest(proxy, operation)
             {
-                var request = new OutgoingRequest(proxy, operation)
-                {
-                    Deadline = deadline,
-                    Features = invocation?.RequestFeatures ?? FeatureCollection.Empty,
-                    IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false),
-                    IsOneway = oneway || (invocation?.IsOneway ?? false),
-                    PayloadEncoding = payloadEncoding,
-                    PayloadSource = payloadSource,
-                    PayloadSourceStream = payloadSourceStream
-                };
+                Features = invocation?.RequestFeatures ?? FeatureCollection.Empty,
+                IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false),
+                IsOneway = oneway || (invocation?.IsOneway ?? false),
+                PayloadEncoding = payloadEncoding,
+                PayloadSource = payloadSource,
+                PayloadSourceStream = payloadSourceStream
+            };
 
-                // We perform as much work as possible in a non async method to throw exceptions synchronously.
-                return ReadResponseAsync(proxy.Invoker.InvokeAsync(request, cancel));
-            }
-            catch
+            IInvoker invoker = proxy.Invoker;
+            if (invocation != null)
             {
-                timeoutSource?.Dispose();
-                combinedSource?.Dispose();
-                throw;
+                ConfigureTimeout(ref invoker, invocation);
+                CheckCancellationToken(invocation, cancel);
             }
+
+            // We perform as much work as possible in a non async method to throw exceptions synchronously.
+            return ReadResponseAsync(invoker.InvokeAsync(request, cancel));
 
             async Task ReadResponseAsync(Task<IncomingResponse> responseTask)
             {
-                IncomingResponse response;
-
-                try
-                {
-                    response = await responseTask.ConfigureAwait(false);
-                }
-                finally
-                {
-                    timeoutSource?.Dispose();
-                    combinedSource?.Dispose();
-                }
+                IncomingResponse response = await responseTask.ConfigureAwait(false);
 
                 if (invocation != null)
                 {
@@ -179,58 +146,29 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Creates a new cancellation token and the corresponding cancellation token source(s) when the
-        /// invocation carries a timeout but no deadline.</summary>
+        /// <summary>When <paramref name="invocation"/> does not carry a deadline but sets a timeout, adds the
+        /// <see cref="DefaultTimeoutInterceptor"/> to <paramref name="invoker"/> with the invocation's timeout.
+        /// </summary>
+        private static void ConfigureTimeout(ref IInvoker invoker, Invocation invocation)
+        {
+            if ((invocation.Deadline is not DateTime deadline || deadline == DateTime.MaxValue) &&
+                invocation.Timeout is TimeSpan timeout && timeout != Timeout.InfiniteTimeSpan)
+            {
+                invoker = new DefaultTimeoutInterceptor(invoker, timeout);
+            }
+        }
+
+        /// <summary>Verifies that when <paramref name="invocation"/> carries a deadline, <paramref name="cancel"/> is
+        /// cancellable.</summary>
         /// <exception name="ArgumentException">Thrown when the invocation carries a deadline but
         /// <paramref name="cancel"/> is not cancellable.</exception>
-        /// <remarks>The caller must dispose the returned cancellation token source (if any) as soon as the response
-        /// is received.</remarks>
-        private static (CancellationToken Cancel, DateTime Deadline, CancellationTokenSource? TimeoutSource, CancellationTokenSource? CombinedSource) InjectTimeout(
-            Invocation? invocation,
-            CancellationToken cancel)
+        private static void CheckCancellationToken(Invocation invocation, CancellationToken cancel)
         {
-            CancellationTokenSource? timeoutSource = null;
-            CancellationTokenSource? combinedSource = null;
-
-            try
+            if (invocation.Deadline is DateTime deadline && deadline != DateTime.MaxValue && !cancel.CanBeCanceled)
             {
-                DateTime deadline = invocation?.Deadline ?? DateTime.MaxValue;
-                if (deadline == DateTime.MaxValue)
-                {
-                    TimeSpan timeout = invocation?.Timeout ?? Timeout.InfiniteTimeSpan;
-                    if (timeout != Timeout.InfiniteTimeSpan)
-                    {
-                        deadline = DateTime.UtcNow + timeout;
-
-                        timeoutSource = new CancellationTokenSource(timeout);
-                        if (cancel.CanBeCanceled)
-                        {
-                            combinedSource = CancellationTokenSource.CreateLinkedTokenSource(
-                                cancel,
-                                timeoutSource.Token);
-                            cancel = combinedSource.Token;
-                        }
-                        else
-                        {
-                            cancel = timeoutSource.Token;
-                        }
-                    }
-                    // else deadline remains MaxValue
-                }
-                else if (!cancel.CanBeCanceled)
-                {
-                    throw new ArgumentException(
-                        $"{nameof(cancel)} must be cancelable when the invocation deadline is set",
-                        nameof(cancel));
-                }
-
-                return (cancel, deadline, timeoutSource, combinedSource);
-            }
-            catch
-            {
-                combinedSource?.Dispose();
-                timeoutSource?.Dispose();
-                throw;
+                throw new ArgumentException(
+                    $"{nameof(cancel)} must be cancelable when the invocation deadline is set",
+                    nameof(cancel));
             }
         }
     }
