@@ -197,7 +197,7 @@ namespace IceRpc.Tests.Slice.Stream
             async IAsyncEnumerable<MyStruct> MyStructEnemerable0Async(
                 [EnumeratorCancellation] CancellationToken cancel = default)
             {
-                cancel.Register(() => canceled.SetResult(true));
+                using CancellationTokenRegistration _ = cancel.Register(() => canceled.SetResult(true));
                 for (int i = 0; i < 100; i++)
                 {
                     await semaphore.WaitAsync(cancel);

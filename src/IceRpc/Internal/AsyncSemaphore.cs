@@ -89,7 +89,7 @@ namespace IceRpc.Internal
             cancel.ThrowIfCancellationRequested();
 
             ManualResetValueTaskCompletionSource<bool> taskCompletionSource;
-            CancellationTokenRegistration? tokenRegistration = null;
+            CancellationTokenRegistration tokenRegistration = default;
             lock (_mutex)
             {
                 if (_exception != null)
@@ -125,17 +125,8 @@ namespace IceRpc.Internal
                 _queue.Enqueue(taskCompletionSource);
             }
 
-            try
-            {
-                await taskCompletionSource.ValueTask.ConfigureAwait(false);
-            }
-            finally
-            {
-                if (tokenRegistration != null)
-                {
-                    await tokenRegistration.Value.DisposeAsync().ConfigureAwait(false);
-                }
-            }
+            using CancellationTokenRegistration _ = tokenRegistration;
+            await taskCompletionSource.ValueTask.ConfigureAwait(false);
         }
 
         /// <summary>Release the semaphore to allow a waiting task to enter. If the semaphore is completed, this

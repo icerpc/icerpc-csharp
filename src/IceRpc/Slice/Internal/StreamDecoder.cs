@@ -90,7 +90,7 @@ namespace IceRpc.Slice.Internal
             Action? cancelCallback = null,
             [EnumeratorCancellation] CancellationToken cancel = default)
         {
-            _ = cancel.Register(() =>
+            using CancellationTokenRegistration _ = cancel.Register(() =>
             {
                 CompleteReader();
                 cancelCallback?.Invoke();
