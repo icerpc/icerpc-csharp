@@ -147,14 +147,14 @@ namespace IceRpc.Slice
         }
 
         /// <summary>When <paramref name="invocation"/> does not carry a deadline but sets a timeout, adds the
-        /// <see cref="DefaultTimeoutInterceptor"/> to <paramref name="invoker"/> with the invocation's timeout.
+        /// <see cref="TimeoutInterceptor"/> to <paramref name="invoker"/> with the invocation's timeout.
         /// </summary>
         private static void ConfigureTimeout(ref IInvoker invoker, Invocation invocation)
         {
             if ((invocation.Deadline is not DateTime deadline || deadline == DateTime.MaxValue) &&
                 invocation.Timeout is TimeSpan timeout && timeout != Timeout.InfiniteTimeSpan)
             {
-                invoker = new DefaultTimeoutInterceptor(invoker, timeout);
+                invoker = new TimeoutInterceptor(invoker, timeout);
             }
         }
 

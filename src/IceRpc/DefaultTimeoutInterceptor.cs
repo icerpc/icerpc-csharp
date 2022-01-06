@@ -7,7 +7,7 @@ namespace IceRpc
     /// <see cref="Invocation.Deadline"/> or <see cref="Invocation.Timeout"/> are set to a value other
     /// than <see cref="DateTime.MaxValue"/> or <see cref="Timeout.InfiniteTimeSpan"/> respectively,
     /// the invocation settings prevail and this interceptor does nothing.</summary>
-    public class DefaultTimeoutInterceptor : IInvoker
+    public class TimeoutInterceptor : IInvoker
     {
         private readonly IInvoker _next;
         private readonly TimeSpan _timeout;
@@ -15,7 +15,7 @@ namespace IceRpc
         /// <summary>Constructs a default timeout interceptor.</summary>
         /// <param name="next">The next invoker in the invocation pipeline.</param>
         /// <param name="timeout">The timeout for the invocation.</param>
-        public DefaultTimeoutInterceptor(IInvoker next, TimeSpan timeout)
+        public TimeoutInterceptor(IInvoker next, TimeSpan timeout)
         {
             if (timeout == Timeout.InfiniteTimeSpan)
             {

@@ -35,13 +35,6 @@ namespace IceRpc.Configure
         public static Pipeline UseCompressor(this Pipeline pipeline, CompressOptions options) =>
             pipeline.Use(next => new CompressorInterceptor(next, options));
 
-        /// <summary>Adds a <see cref="DefaultTimeoutInterceptor"/> to the pipeline.</summary>
-        /// <param name="pipeline">The pipeline being configured.</param>
-        /// <param name="timeout">The timeout for the invocation.</param>
-        /// <returns>The pipeline being configured.</returns>
-        public static Pipeline UseDefaultTimeout(this Pipeline pipeline, TimeSpan timeout) =>
-            pipeline.Use(next => new DefaultTimeoutInterceptor(next, timeout));
-
         /// <summary>Adds a <see cref="LoggerInterceptor"/> to the pipeline.</summary>
         /// <param name="pipeline">The pipeline being configured.</param>
         /// <param name="loggerFactory">The logger factory used to create the logger.</param>
@@ -91,5 +84,12 @@ namespace IceRpc.Configure
         /// <returns>The pipeline being configured.</returns>
         public static Pipeline UseTelemetry(this Pipeline pipeline, TelemetryOptions options) =>
             pipeline.Use(next => new TelemetryInterceptor(next, options));
+
+        /// <summary>Adds a <see cref="TimeoutInterceptor"/> to the pipeline.</summary>
+        /// <param name="pipeline">The pipeline being configured.</param>
+        /// <param name="timeout">The timeout for the invocation.</param>
+        /// <returns>The pipeline being configured.</returns>
+        public static Pipeline UseTimeout(this Pipeline pipeline, TimeSpan timeout) =>
+            pipeline.Use(next => new TimeoutInterceptor(next, timeout));
     }
 }
