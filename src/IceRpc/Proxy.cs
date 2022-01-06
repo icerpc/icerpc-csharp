@@ -198,7 +198,7 @@ namespace IceRpc
 
         /// <summary>Tries to create a proxy from a string and invoker.</summary>
         /// <param name="s">The string to parse.</param>
-        /// <param name="invoker">The invoker.<c>null</c> is equivalent to <see cref="DefaultInvoker"/>.</param>
+        /// <param name="invoker">The invoker. <c>null</c> is equivalent to <see cref="DefaultInvoker"/>.</param>
         /// <param name="format">The proxy format to use for parsing. <c>null</c> is equivalent to
         /// <see cref="UriProxyFormat.Instance"/>.</param>
         /// <param name="proxy">The parsed proxy.</param>
