@@ -151,10 +151,9 @@ namespace IceRpc.Slice
         /// </summary>
         private static void ConfigureTimeout(ref IInvoker invoker, Invocation invocation)
         {
-            if ((invocation.Deadline is not DateTime deadline || deadline == DateTime.MaxValue) &&
-                invocation.Timeout is TimeSpan timeout && timeout != Timeout.InfiniteTimeSpan)
+            if (invocation.Deadline == DateTime.MaxValue && invocation.Timeout != Timeout.InfiniteTimeSpan)
             {
-                invoker = new TimeoutInterceptor(invoker, timeout);
+                invoker = new TimeoutInterceptor(invoker, invocation.Timeout);
             }
         }
 
@@ -164,7 +163,7 @@ namespace IceRpc.Slice
         /// <paramref name="cancel"/> is not cancellable.</exception>
         private static void CheckCancellationToken(Invocation invocation, CancellationToken cancel)
         {
-            if (invocation.Deadline is DateTime deadline && deadline != DateTime.MaxValue && !cancel.CanBeCanceled)
+            if (invocation.Deadline != DateTime.MaxValue && !cancel.CanBeCanceled)
             {
                 throw new ArgumentException(
                     $"{nameof(cancel)} must be cancelable when the invocation deadline is set",
