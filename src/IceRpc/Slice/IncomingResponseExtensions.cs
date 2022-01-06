@@ -11,15 +11,18 @@ namespace IceRpc.Slice
         /// <summary>Decodes a response when the corresponding operation returns void.</summary>
         /// <param name="response">The incoming response.</param>
         /// <param name="defaultActivator">The default activator.</param>
+        /// <param name="hasStream"><c>true</c> if this void value is followed by a stream parameter;
+        /// otherwise, <c>false</c>.</param>
         /// <param name="cancel">The cancellation token.</param>
         public static async ValueTask CheckVoidReturnValueAsync(
             this IncomingResponse response,
             IActivator defaultActivator,
+            bool hasStream,
             CancellationToken cancel)
         {
             if (response.ResultType == ResultType.Success)
             {
-                await response.Payload.ReadVoidAsync(response.GetSlicePayloadEncoding(), cancel).ConfigureAwait(false);
+                await response.Payload.ReadVoidAsync(response.GetSlicePayloadEncoding(), hasStream, cancel).ConfigureAwait(false);
             }
             else
             {
@@ -38,7 +41,8 @@ namespace IceRpc.Slice
         /// <param name="response">The incoming response.</param>
         /// <param name="defaultActivator">The default activator.</param>
         /// <param name="decodeFunc">The decode function for the return value.</param>
-        /// <param name="hasStream">When true, T is or includes a stream return.</param>
+        /// <param name="hasStream"><c>true</c> if the value is followed by a stream parameter;
+        /// otherwise, <c>false</c>.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The return value.</returns>
         public static async ValueTask<T> ToReturnValueAsync<T>(

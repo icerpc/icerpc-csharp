@@ -131,7 +131,8 @@ namespace IceRpc.Slice.Internal
         /// <param name="activator">The Slice activator.</param>
         /// <param name="classGraphMaxDepth">The class graph max depth for the decoder created by this method.</param>
         /// <param name="decodeFunc">The decode function.</param>
-        /// <param name="hasStream">When true, T is or includes a stream parameter or return value.</param>
+        /// <param name="hasStream"><c>true</c> if the value is followed by a stream parameter;
+        /// otherwise, <c>false</c>.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The decoded value.</returns>
         /// <remarks>This method marks the reader as completed when this method throws an exception or when it succeeds
@@ -203,11 +204,14 @@ namespace IceRpc.Slice.Internal
         /// <summary>Reads/decodes empty args or a void return value.</summary>
         /// <param name="reader">The pipe reader.</param>
         /// <param name="encoding">The Slice encoding version.</param>
+        /// <param name="hasStream"><c>true</c> if this void value is followed by a stream parameter;
+        /// otherwise, <c>false</c>.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <remarks>The reader is always completed when this method returns.</remarks>
         internal static async ValueTask ReadVoidAsync(
             this PipeReader reader,
             IceEncoding encoding,
+            bool hasStream,
             CancellationToken cancel)
         {
             try
@@ -232,7 +236,11 @@ namespace IceRpc.Slice.Internal
                 await reader.CompleteAsync(ex).ConfigureAwait(false);
                 throw;
             }
-            await reader.CompleteAsync().ConfigureAwait(false);
+
+            if (!hasStream)
+            {
+                await reader.CompleteAsync().ConfigureAwait(false);
+            }
 
             void Decode(ReadOnlySequence<byte> buffer)
             {
@@ -291,10 +299,6 @@ namespace IceRpc.Slice.Internal
 
             async Task FillWriterAsync()
             {
-                // TODO: temporary work-around for bug #704: delay a little the start of the writer to allow the
-                // args/return reader.AdvanceTo to run first.
-                await Task.Delay(20).ConfigureAwait(false);
-
                 while (true)
                 {
                     // Each iteration decodes a segment with n values.

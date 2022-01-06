@@ -10,11 +10,14 @@ namespace IceRpc.Slice
     {
         /// <summary>Verifies that a request payload carries no argument or only unknown tagged arguments.</summary>
         /// <param name="request">The incoming request.</param>
+        /// <param name="hasStream"><c>true</c> if this void value is followed by a stream parameter;
+        /// otherwise, <c>false</c>.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>A value task that completes when the checking is complete.</returns>
         public static ValueTask CheckEmptyArgsAsync(
             this IncomingRequest request,
-            CancellationToken cancel) => request.Payload.ReadVoidAsync(request.GetSlicePayloadEncoding(), cancel);
+            bool hasStream,
+            CancellationToken cancel) => request.Payload.ReadVoidAsync(request.GetSlicePayloadEncoding(), hasStream, cancel);
 
         /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared
         /// idempotent, the request is not marked idempotent. If the request is marked idempotent, it means the caller

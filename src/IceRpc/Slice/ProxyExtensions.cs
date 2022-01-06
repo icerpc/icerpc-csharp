@@ -144,7 +144,10 @@ namespace IceRpc.Slice
                     invocation.ResponseFeatures = response.Features;
                 }
 
-                await response.CheckVoidReturnValueAsync(defaultActivator, cancel).ConfigureAwait(false);
+                await response.CheckVoidReturnValueAsync(
+                    defaultActivator,
+                    hasStream: false,
+                    cancel).ConfigureAwait(false);
             }
         }
 
