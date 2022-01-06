@@ -41,7 +41,7 @@ namespace IceRpc.Tests.Internal
                     return response;
                 }));
 
-            await pipeline.InvokeAsync(request, default);
+            await pipeline.InvokeAsync(request);
 
             Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc"));
             Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(2));
@@ -83,7 +83,7 @@ namespace IceRpc.Tests.Internal
             pipeline.UseLogger(loggerFactory);
             pipeline.Use(next => new InlineInvoker((request, cancel) => Task.FromResult(response)));
 
-            Assert.That(await pipeline.InvokeAsync(request, default), Is.EqualTo(response));
+            Assert.That(await pipeline.InvokeAsync(request), Is.EqualTo(response));
 
             Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc"));
             Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(twoway ? 2 : 1));
@@ -131,7 +131,7 @@ namespace IceRpc.Tests.Internal
             pipeline.UseLogger(loggerFactory);
             pipeline.Use(next => new InlineInvoker((request, cancel) => throw exception));
 
-            Assert.CatchAsync<ArgumentException>(async () => await pipeline.InvokeAsync(request, default));
+            Assert.CatchAsync<ArgumentException>(async () => await pipeline.InvokeAsync(request));
 
             Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(2));
 
@@ -164,7 +164,7 @@ namespace IceRpc.Tests.Internal
             router.UseLogger(loggerFactory);
             router.Use(next => new InlineDispatcher((request, cancel) => new(response)));
 
-            Assert.That(await ((IDispatcher)router).DispatchAsync(request, default), Is.EqualTo(response));
+            Assert.That(await ((IDispatcher)router).DispatchAsync(request), Is.EqualTo(response));
 
             Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc"));
             Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(twoway ? 2 : 1));
@@ -212,7 +212,7 @@ namespace IceRpc.Tests.Internal
             router.Use(next => new InlineDispatcher((request, cancel) => throw exception));
 
             Assert.CatchAsync<ArgumentException>(
-                async () => await ((IDispatcher)router).DispatchAsync(request, default));
+                async () => await ((IDispatcher)router).DispatchAsync(request));
 
             Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(2));
 

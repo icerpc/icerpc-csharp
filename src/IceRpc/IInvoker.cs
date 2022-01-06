@@ -9,7 +9,7 @@ namespace IceRpc
         /// <param name="request">The outgoing request being sent.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The corresponding <see cref="IncomingResponse"/>.</returns>
-        Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel);
+        Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default);
     }
 
     /// <summary>Adapts an invoker delegate to the <see cref="IInvoker"/> interface.</summary>

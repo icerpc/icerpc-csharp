@@ -14,7 +14,7 @@ namespace IceRpc.Configure
             ImmutableList<Func<IInvoker, IInvoker>>.Empty;
 
         /// <inheritdoc/>
-        public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
+        public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default) =>
             (_invoker ??= CreateInvokerPipeline()).InvokeAsync(request, cancel);
 
         /// <summary>Installs one or more interceptors.</summary>

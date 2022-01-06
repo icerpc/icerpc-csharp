@@ -59,7 +59,7 @@ namespace IceRpc.Tests.Api
                 PayloadEncoding = _customEncoding,
                 PayloadSource = PipeReader.Create(payload)
             };
-            IncomingResponse response = await joeProxy.Invoker.InvokeAsync(request, default).ConfigureAwait(false);
+            IncomingResponse response = await joeProxy.Invoker.InvokeAsync(request).ConfigureAwait(false);
 
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
             Assert.That(response.PayloadEncoding, Is.EqualTo(_customEncoding));
@@ -73,7 +73,7 @@ namespace IceRpc.Tests.Api
                 PayloadEncoding = _customEncoding,
                 PayloadSource = PipeReader.Create(payload)
             };
-            response = await austinProxy.Invoker.InvokeAsync(request, default);
+            response = await austinProxy.Invoker.InvokeAsync(request);
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
             Assert.That(response.PayloadEncoding, Is.EqualTo(_customEncoding));
             greetingResponse = _utf8.GetString((await ReadFullPayloadAsync(response.Payload)).Span);
@@ -93,7 +93,7 @@ namespace IceRpc.Tests.Api
                 PayloadSource = PipeReader.Create(payload)
             };
 
-            IncomingResponse response = await badProxy.Invoker.InvokeAsync(request, default);
+            IncomingResponse response = await badProxy.Invoker.InvokeAsync(request);
 
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
             Assert.That(response.PayloadEncoding, Is.EqualTo(Encoding.Slice20));
@@ -120,7 +120,7 @@ namespace IceRpc.Tests.Api
                 PayloadSource = PipeReader.Create(payload)
             };
 
-            IncomingResponse response = await joeProxy.Invoker.InvokeAsync(request, default);
+            IncomingResponse response = await joeProxy.Invoker.InvokeAsync(request);
 
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
             Assert.That(response.PayloadEncoding, Is.EqualTo(_customEncoding));

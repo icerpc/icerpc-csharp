@@ -4,7 +4,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Slice
 {
-    /// <summary>A function that decodes the return value from an Ice-encoded response.</summary>
+    /// <summary>A function that decodes the return value from a Slice-encoded response.</summary>
     /// <typeparam name="T">The type of the return value to read.</typeparam>
     /// <param name="response">The incoming response.</param>
     /// <param name="cancel">The cancellation token.</param>
@@ -55,6 +55,7 @@ namespace IceRpc.Slice
 
             var request = new OutgoingRequest(proxy, operation)
             {
+                Deadline = invocation?.Deadline ?? DateTime.MaxValue,
                 Features = invocation?.RequestFeatures ?? FeatureCollection.Empty,
                 IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false),
                 PayloadEncoding = payloadEncoding,
@@ -115,6 +116,7 @@ namespace IceRpc.Slice
         {
             var request = new OutgoingRequest(proxy, operation)
             {
+                Deadline = invocation?.Deadline ?? DateTime.MaxValue,
                 Features = invocation?.RequestFeatures ?? FeatureCollection.Empty,
                 IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false),
                 IsOneway = oneway || (invocation?.IsOneway ?? false),
