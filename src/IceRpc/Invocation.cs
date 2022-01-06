@@ -16,6 +16,8 @@ namespace IceRpc
         }
 
         /// <summary>Gets or sets the deadline of this invocation.</summary>
+        /// <value>The deadline of this invocation. The default value is <see cref="DateTime.MaxValue"/> and means no
+        /// deadline.</value>
         public DateTime Deadline { get; set; } = DateTime.MaxValue;
 
         /// <summary>Gets or sets whether the caller considers the implementation of the target operation idempotent.
@@ -35,7 +37,8 @@ namespace IceRpc
         public FeatureCollection ResponseFeatures { get; set; } = FeatureCollection.Empty;
 
         /// <summary>Gets or sets the timeout of this invocation.</summary>
-        /// <value>The timeout of this invocation.</value>
+        /// <value>The timeout of this invocation. The default value is
+        /// <see cref="System.Threading.Timeout.InfiniteTimeSpan"/> and means no timeout.</value>
         /// <seealso cerf="TimeoutInterceptor"/>
         public TimeSpan Timeout
         {
