@@ -2,17 +2,15 @@
 
 namespace IceRpc
 {
-    /// <summary>An interceptor that sets the invocation timeout, the interceptor sets the
-    /// <see cref="OutgoingRequest.Deadline"/> and creates a cancellation token that enforces it. If
-    /// <see cref="Invocation.Deadline"/> or <see cref="Invocation.Timeout"/> are set to a value other
-    /// than <see cref="DateTime.MaxValue"/> or <see cref="Timeout.InfiniteTimeSpan"/> respectively,
-    /// the invocation settings prevail and this interceptor does nothing.</summary>
+    /// <summary>The timeout interceptor adds and enforces a timeout for requests with no deadline set.</summary>
+    /// <remarks>This interceptor sets the request's deadline. As a result, if you insert more than one timeout
+    /// interceptor in an invocation pipeline, only the first one has any effect.</remarks>
     public class TimeoutInterceptor : IInvoker
     {
         private readonly IInvoker _next;
         private readonly TimeSpan _timeout;
 
-        /// <summary>Constructs a default timeout interceptor.</summary>
+        /// <summary>Constructs a timeout interceptor.</summary>
         /// <param name="next">The next invoker in the invocation pipeline.</param>
         /// <param name="timeout">The timeout for the invocation.</param>
         public TimeoutInterceptor(IInvoker next, TimeSpan timeout)
@@ -32,8 +30,6 @@ namespace IceRpc
 
         async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            // If the Invocation sets a timeout or deadline (other than max value), the timeout/deadline set
-            // by the Invocation prevails and the interceptor does nothing.
             if (request.Deadline != DateTime.MaxValue)
             {
                 return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
