@@ -30,10 +30,7 @@ namespace IceRpc
         /// <summary>The path of the target service.</summary>
         public string Path { get; init; }
 
-        /// <summary>The invoker assigned to any proxy read from the payload of this request.</summary>
-        public IInvoker? ProxyInvoker { get; set; }
-
-        /// <summary>Get the cancellation dispatch source.</summary>
+        /// <summary>Gets the cancellation dispatch source.</summary>
         internal CancellationTokenSource? CancelDispatchSource { get; set; }
 
         /// <summary>The pipe writer used by IceRPC to write the response, including the response header. This is also

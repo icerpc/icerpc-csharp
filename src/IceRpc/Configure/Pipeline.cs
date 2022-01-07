@@ -14,7 +14,7 @@ namespace IceRpc.Configure
             ImmutableList<Func<IInvoker, IInvoker>>.Empty;
 
         /// <inheritdoc/>
-        public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
+        public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel = default) =>
             (_invoker ??= CreateInvokerPipeline()).InvokeAsync(request, cancel);
 
         /// <summary>Installs one or more interceptors.</summary>
@@ -45,7 +45,7 @@ namespace IceRpc.Configure
         /// <returns>The pipeline of invokers.</returns>
         private IInvoker CreateInvokerPipeline()
         {
-            IInvoker pipeline = ProxyExtensions.NullInvoker;
+            IInvoker pipeline = Proxy.DefaultInvoker;
 
             IEnumerable<Func<IInvoker, IInvoker>> interceptorEnumerable = _interceptorList;
             foreach (Func<IInvoker, IInvoker> interceptor in interceptorEnumerable.Reverse())

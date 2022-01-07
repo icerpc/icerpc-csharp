@@ -13,6 +13,12 @@ namespace IceRpc
     /// <seealso cref="Slice.IPrx"/>
     public sealed class Proxy : IEquatable<Proxy>
     {
+        /// <summary>The default invoker of proxies.</summary>
+        public static IInvoker DefaultInvoker { get; } =
+            new InlineInvoker((request, cancel) =>
+                request.Connection?.InvokeAsync(request, cancel) ??
+                    throw new ArgumentNullException(nameof(request), $"{nameof(request.Connection)} is null"));
+
         /// <summary>Gets or sets the secondary endpoints of this proxy.</summary>
         /// <value>The secondary endpoints of this proxy.</value>
         public ImmutableList<Endpoint> AltEndpoints
@@ -122,7 +128,7 @@ namespace IceRpc
         }
 
         /// <summary>Gets or sets the invoker of this proxy.</summary>
-        public IInvoker? Invoker { get; set; }
+        public IInvoker Invoker { get; set; } = DefaultInvoker;
 
         /// <summary>Gets the path of this proxy. This path is a percent-escaped URI path.</summary>
         // private set only used in WithPath
@@ -171,7 +177,7 @@ namespace IceRpc
             var proxy = new Proxy(path, connection.Protocol);
             proxy.Endpoint = connection.IsServer ? null : connection.RemoteEndpoint;
             proxy.Connection = connection;
-            proxy.Invoker = invoker;
+            proxy.Invoker = invoker ?? DefaultInvoker;
             return proxy;
         }
 
@@ -192,7 +198,7 @@ namespace IceRpc
 
         /// <summary>Tries to create a proxy from a string and invoker.</summary>
         /// <param name="s">The string to parse.</param>
-        /// <param name="invoker">The invoker.</param>
+        /// <param name="invoker">The invoker. <c>null</c> is equivalent to <see cref="DefaultInvoker"/>.</param>
         /// <param name="format">The proxy format to use for parsing. <c>null</c> is equivalent to
         /// <see cref="UriProxyFormat.Instance"/>.</param>
         /// <param name="proxy">The parsed proxy.</param>

@@ -102,7 +102,7 @@ namespace IceRpc
 
             return new Proxy(uri.AbsolutePath, protocol)
             {
-                Invoker = invoker,
+                Invoker = invoker ?? Proxy.DefaultInvoker,
                 Endpoint = endpoint,
                 AltEndpoints = altEndpoints,
                 Encoding = encoding == null ? (protocol.IceEncoding ?? Encoding.Unknown) : Encoding.FromString(encoding),

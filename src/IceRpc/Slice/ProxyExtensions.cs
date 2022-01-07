@@ -4,17 +4,13 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Slice
 {
-    /// <summary>A function that decodes the return value from an Ice-encoded response.</summary>
+    /// <summary>A function that decodes the return value from a Slice-encoded response.</summary>
     /// <typeparam name="T">The type of the return value to read.</typeparam>
     /// <param name="response">The incoming response.</param>
-    /// <param name="invoker">The invoker of the proxy used to send this request.</param>
     /// <param name="cancel">The cancellation token.</param>
     /// <returns>A value task that contains the return value or a <see cref="RemoteException"/> when the response
     /// carries a failure.</returns>
-    public delegate ValueTask<T> ResponseDecodeFunc<T>(
-        IncomingResponse response,
-        IInvoker? invoker,
-        CancellationToken cancel);
+    public delegate ValueTask<T> ResponseDecodeFunc<T>(IncomingResponse response, CancellationToken cancel);
 
     /// <summary>Provides extension methods for class Proxy.</summary>
     public static class ProxyExtensions
@@ -57,27 +53,36 @@ namespace IceRpc.Slice
                     nameof(invocation));
             }
 
-            Task<IncomingResponse> responseTask =
-                proxy.InvokeAsync(
-                    operation,
-                    payloadEncoding,
-                    payloadSource,
-                    payloadSourceStream,
-                    invocation,
-                    idempotent,
-                    oneway: false,
-                    cancel);
+            var request = new OutgoingRequest(proxy, operation)
+            {
+                Deadline = invocation?.Deadline ?? DateTime.MaxValue,
+                Features = invocation?.RequestFeatures ?? FeatureCollection.Empty,
+                IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false),
+                PayloadEncoding = payloadEncoding,
+                PayloadSource = payloadSource,
+                PayloadSourceStream = payloadSourceStream
+            };
 
-            return ReadResponseAsync();
+            IInvoker invoker = proxy.Invoker;
+            if (invocation != null)
+            {
+                ConfigureTimeout(ref invoker, invocation);
+                CheckCancellationToken(invocation, cancel);
+            }
 
-            async Task<T> ReadResponseAsync()
+            // We perform as much work as possible in a non async method to throw exceptions synchronously.
+            return ReadResponseAsync(invoker.InvokeAsync(request, cancel));
+
+            async Task<T> ReadResponseAsync(Task<IncomingResponse> responseTask)
             {
                 IncomingResponse response = await responseTask.ConfigureAwait(false);
 
-                return await responseDecodeFunc(
-                    response,
-                    proxy.Invoker,
-                    cancel).ConfigureAwait(false);
+                if (invocation != null)
+                {
+                    invocation.ResponseFeatures = response.Features;
+                }
+
+                return await responseDecodeFunc(response, cancel).ConfigureAwait(false);
             }
         }
 
@@ -109,28 +114,65 @@ namespace IceRpc.Slice
             bool oneway = false,
             CancellationToken cancel = default)
         {
-            Task<IncomingResponse> responseTask =
-                proxy.InvokeAsync(
-                    operation,
-                    payloadEncoding,
-                    payloadSource,
-                    payloadSourceStream,
-                    invocation,
-                    idempotent,
-                    oneway,
-                    cancel);
+            var request = new OutgoingRequest(proxy, operation)
+            {
+                Deadline = invocation?.Deadline ?? DateTime.MaxValue,
+                Features = invocation?.RequestFeatures ?? FeatureCollection.Empty,
+                IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false),
+                IsOneway = oneway || (invocation?.IsOneway ?? false),
+                PayloadEncoding = payloadEncoding,
+                PayloadSource = payloadSource,
+                PayloadSourceStream = payloadSourceStream
+            };
 
-            return ReadResponseAsync();
+            IInvoker invoker = proxy.Invoker;
+            if (invocation != null)
+            {
+                ConfigureTimeout(ref invoker, invocation);
+                CheckCancellationToken(invocation, cancel);
+            }
 
-            async Task ReadResponseAsync()
+            // We perform as much work as possible in a non async method to throw exceptions synchronously.
+            return ReadResponseAsync(invoker.InvokeAsync(request, cancel));
+
+            async Task ReadResponseAsync(Task<IncomingResponse> responseTask)
             {
                 IncomingResponse response = await responseTask.ConfigureAwait(false);
 
+                if (invocation != null)
+                {
+                    invocation.ResponseFeatures = response.Features;
+                }
+
                 await response.CheckVoidReturnValueAsync(
-                    proxy.Invoker,
                     defaultActivator,
                     hasStream: false,
                     cancel).ConfigureAwait(false);
+            }
+        }
+
+        /// <summary>When <paramref name="invocation"/> does not carry a deadline but sets a timeout, adds the
+        /// <see cref="TimeoutInterceptor"/> to <paramref name="invoker"/> with the invocation's timeout.
+        /// </summary>
+        private static void ConfigureTimeout(ref IInvoker invoker, Invocation invocation)
+        {
+            if (invocation.Deadline == DateTime.MaxValue && invocation.Timeout != Timeout.InfiniteTimeSpan)
+            {
+                invoker = new TimeoutInterceptor(invoker, invocation.Timeout);
+            }
+        }
+
+        /// <summary>Verifies that when <paramref name="invocation"/> carries a deadline, <paramref name="cancel"/> is
+        /// cancellable.</summary>
+        /// <exception name="ArgumentException">Thrown when the invocation carries a deadline but
+        /// <paramref name="cancel"/> is not cancellable.</exception>
+        private static void CheckCancellationToken(Invocation invocation, CancellationToken cancel)
+        {
+            if (invocation.Deadline != DateTime.MaxValue && !cancel.CanBeCanceled)
+            {
+                throw new ArgumentException(
+                    $"{nameof(cancel)} must be cancelable when the invocation deadline is set",
+                    nameof(cancel));
             }
         }
     }

@@ -273,6 +273,7 @@ namespace IceRpc.Internal
             {
                 Features = features,
                 Fields = fields,
+                ProxyInvoker = request.Proxy.Invoker,
             };
 
             return response;
