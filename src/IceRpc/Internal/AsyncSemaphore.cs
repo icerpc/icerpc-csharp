@@ -125,6 +125,8 @@ namespace IceRpc.Internal
                 _queue.Enqueue(taskCompletionSource);
             }
 
+            // It's safe to call the synchronous Dispose of the token registration because its callback doesn't block
+            // (the ManualResetValueTaskCompletionSource continuation is always executed asynchronously).
             using CancellationTokenRegistration _ = tokenRegistration;
             await taskCompletionSource.ValueTask.ConfigureAwait(false);
         }
