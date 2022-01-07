@@ -113,19 +113,19 @@ namespace IceRpc.Slice
         /// <param name="sequenceFactory">The factory for creating the sequence instance.</param>
         /// <param name="decodeFunc">The decode function for each element of the sequence.</param>
         /// <returns>An IList of TElement.</returns>
-        public static TContainer DecodeSequence<TContainer, TElement>(
+        public static TSequence DecodeSequence<TSequence, TElement>(
             this ref IceDecoder decoder,
             int minElementSize,
-            Func<int, TContainer> sequenceFactory,
-            DecodeFunc<TElement> decodeFunc) where TContainer : IList<TElement>
+            Func<int, TSequence> sequenceFactory,
+            DecodeFunc<TElement> decodeFunc) where TSequence : IList<TElement>
         {
             int count = decoder.DecodeAndCheckSeqSize(minElementSize);
-            TContainer container = sequenceFactory(count);
+            TSequence sequence = sequenceFactory(count);
             for (int i = 0; i < count; ++i)
             {
-                container.Add(decodeFunc(ref decoder));
+                sequence.Add(decodeFunc(ref decoder));
             }
-            return container;
+            return sequence;
         }
 
         /// <summary>Decodes a sequence that encodes null values using a bit sequence.</summary>
@@ -156,10 +156,10 @@ namespace IceRpc.Slice
         /// <param name="sequenceFactory">The factory for creating the sequence instance.</param>
         /// <param name="decodeFunc">The decode function for each non-null element of the sequence.</param>
         /// <returns>An array of T.</returns>
-        public static TContainer DecodeSequenceWithBitSequence<TContainer, TElement>(
+        public static TSequence DecodeSequenceWithBitSequence<TSequence, TElement>(
             this ref IceDecoder decoder,
-            Func<int, TContainer> sequenceFactory,
-            DecodeFunc<TElement> decodeFunc) where TContainer : IList<TElement>
+            Func<int, TSequence> sequenceFactory,
+            DecodeFunc<TElement> decodeFunc) where TSequence : IList<TElement>
         {
             int count = decoder.DecodeAndCheckSeqSize(0);
             if (count == 0)
@@ -169,12 +169,12 @@ namespace IceRpc.Slice
             else
             {
                 BitSequenceReader bitSequenceReader = decoder.GetBitSequenceReader(count);
-                TContainer container = sequenceFactory(count);
+                TSequence sequence = sequenceFactory(count);
                 for (int i = 0; i < count; ++i)
                 {
-                    container.Add(bitSequenceReader.Read() ? decodeFunc(ref decoder) : default!);
+                    sequence.Add(bitSequenceReader.Read() ? decodeFunc(ref decoder) : default!);
                 }
-                return container;
+                return sequence;
             }
         }
 
