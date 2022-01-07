@@ -9,10 +9,11 @@ namespace IceRpc.Transports
     /// client transport.</summary>
     public class SlicClientTransport : IClientTransport<IMultiplexedNetworkConnection>
     {
+        private static readonly Func<ISlicFrameReader, ISlicFrameReader> _defaultSlicFrameReaderDecorator =
+            reader => reader;
+        private static readonly Func<ISlicFrameWriter, ISlicFrameWriter> _defaultSlicFrameWriterDecorator =
+            writer => writer;
         private readonly IClientTransport<ISimpleNetworkConnection> _simpleClientTransport;
-        private readonly Func<ISlicFrameReader, ISlicFrameReader> _slicFrameReaderDecorator;
-        private readonly Func<ISlicFrameWriter, ISlicFrameWriter> _slicFrameWriterDecorator;
-
         private readonly SlicOptions _slicOptions;
 
         /// <summary>Constructs a Slic client transport.</summary>
@@ -27,8 +28,6 @@ namespace IceRpc.Transports
             SlicOptions slicOptions)
         {
             _simpleClientTransport = simpleClientTransport;
-            _slicFrameReaderDecorator = reader => reader;
-            _slicFrameWriterDecorator = writer => writer;
             _slicOptions = slicOptions;
         }
 
@@ -42,8 +41,8 @@ namespace IceRpc.Transports
             ISimpleNetworkConnection simpleNetworkConnection =
                 _simpleClientTransport.CreateConnection(remoteEndpoint, logger);
 
-            Func<ISlicFrameReader, ISlicFrameReader> slicFrameReaderDecorator = _slicFrameReaderDecorator;
-            Func<ISlicFrameWriter, ISlicFrameWriter> slicFrameWriterDecorator = _slicFrameWriterDecorator;
+            Func<ISlicFrameReader, ISlicFrameReader> slicFrameReaderDecorator = _defaultSlicFrameReaderDecorator;
+            Func<ISlicFrameWriter, ISlicFrameWriter> slicFrameWriterDecorator = _defaultSlicFrameWriterDecorator;
 
             if (logger.IsEnabled(LogLevel.Error))
             {
