@@ -545,6 +545,17 @@ namespace IceRpc.Transports.Internal
             TrySetReadCompleted();
         }
 
+        internal void ReceivedStopSending(byte errorCode)
+        {
+            if (!IsBidirectional && !IsRemote)
+            {
+                throw new InvalidDataException("received reset frame on local unidirectional stream");
+            }
+
+            ResetErrorCode = errorCode;
+            TrySetWriteCompleted();
+        }
+
         internal bool TrySetReadCompleted() => TrySetState(State.ReadCompleted);
 
         internal bool TrySetWriteCompleted() => TrySetState(State.WriteCompleted);

@@ -448,11 +448,11 @@ namespace IceRpc.Transports.Internal
                             throw new InvalidDataException("stream stop sending frame too large");
                         }
 
-                        StreamStopSendingBody _ =
+                        StreamStopSendingBody streamStopSending =
                             await _reader.ReadStreamStopSendingAsync(dataSize, cancel).ConfigureAwait(false);
                         if (TryGetStream(streamId.Value, out SlicMultiplexedStream? stream))
                         {
-                            stream.TrySetWriteCompleted();
+                            stream.ReceivedStopSending((byte)streamStopSending.ApplicationProtocolErrorCode);
                         }
                         break;
                     }
