@@ -3,5 +3,5 @@
 module IceRpc
 {
     /// A request context.
-    typealias Context = [cs:generic(SortedDictionary)] dictionary<string, string>;
+    typealias Context = dictionary<string, string>;
 }

@@ -130,6 +130,7 @@ namespace IceRpc.Internal
                         (ref IceDecoder decoder) => decoder.DecodeDictionary(
                             minKeySize: 1,
                             minValueSize: 1,
+                            size => new Dictionary<string, string>(size),
                             keyDecodeFunc: (ref IceDecoder decoder) => decoder.DecodeString(),
                             valueDecodeFunc: (ref IceDecoder decoder) => decoder.DecodeString()))
                                 is Dictionary<string, string> context)

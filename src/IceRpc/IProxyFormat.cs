@@ -13,7 +13,6 @@ namespace IceRpc
         /// <returns>The new proxy.</returns>
         Proxy Parse(string s, IInvoker? invoker = null);
 
-
         /// <summary>Converts a proxy into a string.</summary>
         /// <param name="proxy">The proxy to convert.</param>
         /// <returns>The string representation of <see paramref="proxy"/> in this format.</returns>

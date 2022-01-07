@@ -36,25 +36,10 @@ namespace IceRpc.Tests.Slice
             await TestListAsync((p1, p2) => _prx.OpByteListAsync(p1, p2),
                                 Enumerable.Range(0, size).Select(i => (byte)i).ToList(),
                                 Enumerable.Range(0, size).Select(i => (byte)i).ToList());
-            await TestLinkedListAsync(
-                (p1, p2) => _prx.OpByteLinkedListAsync(p1, p2),
-                new LinkedList<byte>(Enumerable.Range(0, size).Select(i => (byte)i)),
-                new LinkedList<byte>(Enumerable.Range(0, size).Select(i => (byte)i).ToList()));
-
-            await TestQueueAsync(
-                (p1, p2) => _prx.OpByteQueueAsync(p1, p2),
-                new Queue<byte>(Enumerable.Range(0, size).Select(i => (byte)i)),
-                new Queue<byte>(Enumerable.Range(0, size).Select(i => (byte)i).ToList()));
-
-            await TestStackAsync(
-                (p1, p2) => _prx.OpByteStackAsync(p1, p2),
-                new Stack<byte>(Enumerable.Range(0, size).Select(i => (byte)i)),
-                new Stack<byte>(Enumerable.Range(0, size).Select(i => (byte)i).ToList()));
-
             await TestCustomSeqAsync(
                 (p1, p2) => _prx.OpByteCustomSeqAsync(p1, p2),
-                new Custom<byte>(Enumerable.Range(0, size).Select(i => (byte)i)),
-                new Custom<byte>(Enumerable.Range(0, size).Select(i => (byte)i).ToList()));
+                new CustomSeq<byte>(Enumerable.Range(0, size).Select(i => (byte)i)),
+                new CustomSeq<byte>(Enumerable.Range(0, size).Select(i => (byte)i).ToList()));
 
             await TestSeqAsync((p1, p2) => _prx.OpBoolSeqAsync(p1, p2),
                                Enumerable.Range(0, size).Select(i => i % 2 == 0).ToArray(),
@@ -62,25 +47,10 @@ namespace IceRpc.Tests.Slice
             await TestListAsync((p1, p2) => _prx.OpBoolListAsync(p1, p2),
                                 Enumerable.Range(0, size).Select(i => i % 2 == 0).ToList(),
                                 Enumerable.Range(0, size).Select(i => i % 2 == 0).ToList());
-            await TestLinkedListAsync(
-                (p1, p2) => _prx.OpBoolLinkedListAsync(p1, p2),
-                new LinkedList<bool>(Enumerable.Range(0, size).Select(i => i % 2 == 0)),
-                new LinkedList<bool>(Enumerable.Range(0, size).Select(i => i % 2 == 0).ToList()));
-
-            await TestQueueAsync(
-                (p1, p2) => _prx.OpBoolQueueAsync(p1, p2),
-                new Queue<bool>(Enumerable.Range(0, size).Select(i => i % 2 == 0)),
-                new Queue<bool>(Enumerable.Range(0, size).Select(i => i % 2 == 0).ToList()));
-
-            await TestStackAsync(
-                (p1, p2) => _prx.OpBoolStackAsync(p1, p2),
-                new Stack<bool>(Enumerable.Range(0, size).Select(i => i % 2 == 0)),
-                new Stack<bool>(Enumerable.Range(0, size).Select(i => i % 2 == 0).ToList()));
-
             await TestCustomSeqAsync(
                 (p1, p2) => _prx.OpBoolCustomSeqAsync(p1, p2),
-                new Custom<bool>(Enumerable.Range(0, size).Select(i => i % 2 == 0)),
-                new Custom<bool>(Enumerable.Range(0, size).Select(i => i % 2 == 0).ToList()));
+                new CustomSeq<bool>(Enumerable.Range(0, size).Select(i => i % 2 == 0)),
+                new CustomSeq<bool>(Enumerable.Range(0, size).Select(i => i % 2 == 0).ToList()));
 
             await TestSeqAsync((p1, p2) => _prx.OpShortSeqAsync(p1, p2),
                                Enumerable.Range(0, size).Select(i => (short)i).ToArray(),
@@ -101,26 +71,10 @@ namespace IceRpc.Tests.Slice
             await TestListAsync((p1, p2) => _prx.OpIntListAsync(p1, p2),
                                 Enumerable.Range(0, size).Select(i => i).ToList(),
                                 Enumerable.Range(0, size).Select(i => i).ToList());
-
-            await TestLinkedListAsync(
-                (p1, p2) => _prx.OpIntLinkedListAsync(p1, p2),
-                new LinkedList<int>(Enumerable.Range(0, size).Select(i => i)),
-                new LinkedList<int>(Enumerable.Range(0, size).Select(i => i).ToList()));
-
-            await TestQueueAsync(
-                (p1, p2) => _prx.OpIntQueueAsync(p1, p2),
-                new Queue<int>(Enumerable.Range(0, size).Select(i => i)),
-                new Queue<int>(Enumerable.Range(0, size).Select(i => i).ToList()));
-
-            await TestStackAsync(
-                (p1, p2) => _prx.OpIntStackAsync(p1, p2),
-                new Stack<int>(Enumerable.Range(0, size).Select(i => i)),
-                new Stack<int>(Enumerable.Range(0, size).Select(i => i).ToList()));
-
             await TestCustomSeqAsync(
                 (p1, p2) => _prx.OpIntCustomSeqAsync(p1, p2),
-                new Custom<int>(Enumerable.Range(0, size).Select(i => i)),
-                new Custom<int>(Enumerable.Range(0, size).Select(i => i).ToList()));
+                new CustomSeq<int>(Enumerable.Range(0, size).Select(i => i)),
+                new CustomSeq<int>(Enumerable.Range(0, size).Select(i => i).ToList()));
 
             await TestSeqAsync((p1, p2) => _prx.OpUIntSeqAsync(p1, p2),
                                Enumerable.Range(0, size).Select(i => (uint)i).ToArray(),
@@ -137,25 +91,10 @@ namespace IceRpc.Tests.Slice
                                 Enumerable.Range(0, size).Select(i => (long)i).ToList(),
                                 Enumerable.Range(0, size).Select(i => (long)i).ToList());
 
-            await TestLinkedListAsync(
-                (p1, p2) => _prx.OpLongLinkedListAsync(p1, p2),
-                new LinkedList<long>(Enumerable.Range(0, size).Select(i => (long)i)),
-                new LinkedList<long>(Enumerable.Range(0, size).Select(i => (long)i).ToList()));
-
-            await TestQueueAsync(
-                (p1, p2) => _prx.OpLongQueueAsync(p1, p2),
-                new Queue<long>(Enumerable.Range(0, size).Select(i => (long)i)),
-                new Queue<long>(Enumerable.Range(0, size).Select(i => (long)i).ToList()));
-
-            await TestStackAsync(
-                (p1, p2) => _prx.OpLongStackAsync(p1, p2),
-                new Stack<long>(Enumerable.Range(0, size).Select(i => (long)i)),
-                new Stack<long>(Enumerable.Range(0, size).Select(i => (long)i).ToList()));
-
             await TestCustomSeqAsync(
                 (p1, p2) => _prx.OpLongCustomSeqAsync(p1, p2),
-                new Custom<long>(Enumerable.Range(0, size).Select(i => (long)i)),
-                new Custom<long>(Enumerable.Range(0, size).Select(i => (long)i).ToList()));
+                new CustomSeq<long>(Enumerable.Range(0, size).Select(i => (long)i)),
+                new CustomSeq<long>(Enumerable.Range(0, size).Select(i => (long)i).ToList()));
 
             await TestEnumerableSeqAsync((p1, p2) => _prx.OpVarLongSeqAsync(p1, p2),
                                          Enumerable.Range(0, size).Select(i => (long)i).ToArray(),
@@ -177,25 +116,10 @@ namespace IceRpc.Tests.Slice
                                 Enumerable.Range(0, size).Select(i => (float)i).ToList(),
                                 Enumerable.Range(0, size).Select(i => (float)i).ToList());
 
-            await TestLinkedListAsync(
-                (p1, p2) => _prx.OpFloatLinkedListAsync(p1, p2),
-                new LinkedList<float>(Enumerable.Range(0, size).Select(i => (float)i)),
-                new LinkedList<float>(Enumerable.Range(0, size).Select(i => (float)i).ToList()));
-
-            await TestQueueAsync(
-                (p1, p2) => _prx.OpFloatQueueAsync(p1, p2),
-                new Queue<float>(Enumerable.Range(0, size).Select(i => (float)i)),
-                new Queue<float>(Enumerable.Range(0, size).Select(i => (float)i).ToList()));
-
-            await TestStackAsync(
-                (p1, p2) => _prx.OpFloatStackAsync(p1, p2),
-                new Stack<float>(Enumerable.Range(0, size).Select(i => (float)i)),
-                new Stack<float>(Enumerable.Range(0, size).Select(i => (float)i).ToList()));
-
             await TestCustomSeqAsync(
                 (p1, p2) => _prx.OpFloatCustomSeqAsync(p1, p2),
-                new Custom<float>(Enumerable.Range(0, size).Select(i => (float)i)),
-                new Custom<float>(Enumerable.Range(0, size).Select(i => (float)i).ToList()));
+                new CustomSeq<float>(Enumerable.Range(0, size).Select(i => (float)i)),
+                new CustomSeq<float>(Enumerable.Range(0, size).Select(i => (float)i).ToList()));
 
             await TestSeqAsync((p1, p2) => _prx.OpDoubleSeqAsync(p1, p2),
                                Enumerable.Range(0, size).Select(i => (double)i).ToArray(),
@@ -302,25 +226,10 @@ namespace IceRpc.Tests.Slice
                 Enumerable.Range(0, size).Select(i => GetEnum<MyEnum>(myEnumValues, i)).ToList(),
                 Enumerable.Range(0, size).Select(i => GetEnum<MyEnum>(myEnumValues, i)).ToList());
 
-            await TestLinkedListAsync(
-                (p1, p2) => _prx.OpMyEnumLinkedListAsync(p1, p2),
-                new LinkedList<MyEnum>(Enumerable.Range(0, size).Select(i => GetEnum<MyEnum>(myEnumValues, i))),
-                new LinkedList<MyEnum>(Enumerable.Range(0, size).Select(i => GetEnum<MyEnum>(myEnumValues, i))));
-
-            await TestQueueAsync(
-                (p1, p2) => _prx.OpMyEnumQueueAsync(p1, p2),
-                new Queue<MyEnum>(Enumerable.Range(0, size).Select(i => GetEnum<MyEnum>(myEnumValues, i))),
-                new Queue<MyEnum>(Enumerable.Range(0, size).Select(i => GetEnum<MyEnum>(myEnumValues, i))));
-
-            await TestStackAsync(
-                (p1, p2) => _prx.OpMyEnumStackAsync(p1, p2),
-                new Stack<MyEnum>(Enumerable.Range(0, size).Select(i => GetEnum<MyEnum>(myEnumValues, i))),
-                new Stack<MyEnum>(Enumerable.Range(0, size).Select(i => GetEnum<MyEnum>(myEnumValues, i))));
-
             await TestCustomSeqAsync(
                 (p1, p2) => _prx.OpMyEnumCustomSeqAsync(p1, p2),
-                new Custom<MyEnum>(Enumerable.Range(0, size).Select(i => GetEnum<MyEnum>(myEnumValues, i))),
-                new Custom<MyEnum>(Enumerable.Range(0, size).Select(i => GetEnum<MyEnum>(myEnumValues, i))));
+                new CustomSeq<MyEnum>(Enumerable.Range(0, size).Select(i => GetEnum<MyEnum>(myEnumValues, i))),
+                new CustomSeq<MyEnum>(Enumerable.Range(0, size).Select(i => GetEnum<MyEnum>(myEnumValues, i))));
 
             Array myFixedLengthEnumValues = Enum.GetValues(typeof(MyFixedLengthEnum));
             await TestReadOnlyMemorySeqAsync(
@@ -335,30 +244,11 @@ namespace IceRpc.Tests.Slice
                 Enumerable.Range(0, size).Select(i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i)).ToList(),
                 Enumerable.Range(0, size).Select(i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i)).ToList());
 
-            await TestLinkedListAsync(
-                (p1, p2) => _prx.OpMyFixedLengthEnumLinkedListAsync(p1, p2),
-                new LinkedList<MyFixedLengthEnum>(
-                    Enumerable.Range(0, size).Select(i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i))),
-                new LinkedList<MyFixedLengthEnum>(
-                    Enumerable.Range(0, size).Select(i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i))));
-
-            await TestQueueAsync(
-                (p1, p2) => _prx.OpMyFixedLengthEnumQueueAsync(p1, p2),
-                new Queue<MyFixedLengthEnum>(
-                    Enumerable.Range(0, size).Select(i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i))),
-                new Queue<MyFixedLengthEnum>(
-                    Enumerable.Range(0, size).Select(i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i))));
-            await TestStackAsync(
-                (p1, p2) => _prx.OpMyFixedLengthEnumStackAsync(p1, p2),
-                new Stack<MyFixedLengthEnum>(
-                    Enumerable.Range(0, size).Select(i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i))),
-                new Stack<MyFixedLengthEnum>(
-                    Enumerable.Range(0, size).Select(i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i))));
             await TestCustomSeqAsync(
                 (p1, p2) => _prx.OpMyFixedLengthEnumCustomSeqAsync(p1, p2),
-                new Custom<MyFixedLengthEnum>(
+                new CustomSeq<MyFixedLengthEnum>(
                     Enumerable.Range(0, size).Select(i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i))),
-                new Custom<MyFixedLengthEnum>(
+                new CustomSeq<MyFixedLengthEnum>(
                     Enumerable.Range(0, size).Select(i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i))));
 
             await TestReadOnlyMemorySeqAsync(
@@ -371,32 +261,11 @@ namespace IceRpc.Tests.Slice
                 Enumerable.Range(0, size).Select(i => (MyUncheckedEnum)i).ToList(),
                 Enumerable.Range(0, size).Select(i => (MyUncheckedEnum)i).ToList());
 
-            await TestLinkedListAsync(
-                (p1, p2) => _prx.OpMyUncheckedEnumLinkedListAsync(p1, p2),
-                new LinkedList<MyUncheckedEnum>(
-                    Enumerable.Range(0, size).Select(i => (MyUncheckedEnum)i)),
-                new LinkedList<MyUncheckedEnum>(
-                    Enumerable.Range(0, size).Select(i => (MyUncheckedEnum)i)));
-
-            await TestQueueAsync(
-                (p1, p2) => _prx.OpMyUncheckedEnumQueueAsync(p1, p2),
-                new Queue<MyUncheckedEnum>(
-                    Enumerable.Range(0, size).Select(i => (MyUncheckedEnum)i)),
-                new Queue<MyUncheckedEnum>(
-                    Enumerable.Range(0, size).Select(i => (MyUncheckedEnum)i)));
-
-            await TestStackAsync(
-                (p1, p2) => _prx.OpMyUncheckedEnumStackAsync(p1, p2),
-                new Stack<MyUncheckedEnum>(
-                    Enumerable.Range(0, size).Select(i => (MyUncheckedEnum)i)),
-                new Stack<MyUncheckedEnum>(
-                    Enumerable.Range(0, size).Select(i => (MyUncheckedEnum)i)));
-
             await TestCustomSeqAsync(
                 (p1, p2) => _prx.OpMyUncheckedEnumCustomSeqAsync(p1, p2),
-                new Custom<MyUncheckedEnum>(
+                new CustomSeq<MyUncheckedEnum>(
                     Enumerable.Range(0, size).Select(i => (MyUncheckedEnum)i)),
-                new Custom<MyUncheckedEnum>(
+                new CustomSeq<MyUncheckedEnum>(
                     Enumerable.Range(0, size).Select(i => (MyUncheckedEnum)i)));
 
             await TestEnumerableSeqAsync(
@@ -409,24 +278,10 @@ namespace IceRpc.Tests.Slice
                 Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1)).ToList(),
                 Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1)).ToList());
 
-            await TestLinkedListAsync(
-                (p1, p2) => _prx.OpMyStructLinkedListAsync(p1, p2),
-                new LinkedList<MyStruct>(Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1))),
-                new LinkedList<MyStruct>(Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1))));
-
-            await TestQueueAsync(
-                (p1, p2) => _prx.OpMyStructQueueAsync(p1, p2),
-                new Queue<MyStruct>(Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1))),
-                new Queue<MyStruct>(Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1))));
-            await TestStackAsync(
-                (p1, p2) => _prx.OpMyStructStackAsync(p1, p2),
-                new Stack<MyStruct>(Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1))),
-                new Stack<MyStruct>(Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1))));
-
             await TestCustomSeqAsync(
                 (p1, p2) => _prx.OpMyStructCustomSeqAsync(p1, p2),
-                new Custom<MyStruct>(Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1))),
-                new Custom<MyStruct>(Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1))));
+                new CustomSeq<MyStruct>(Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1))),
+                new CustomSeq<MyStruct>(Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1))));
 
             await TestEnumerableSeqAsync(
                 (p1, p2) => _prx.OpAnotherStructSeqAsync(p1, p2),
@@ -438,27 +293,10 @@ namespace IceRpc.Tests.Slice
                 Enumerable.Range(0, size).Select(i => GetAnotherStruct(myEnumValues, i)).ToList(),
                 Enumerable.Range(0, size).Select(i => GetAnotherStruct(myEnumValues, i)).ToList());
 
-            await TestLinkedListAsync(
-                (p1, p2) => _prx.OpAnotherStructLinkedListAsync(p1, p2),
-                new LinkedList<AnotherStruct>(
-                    Enumerable.Range(0, size).Select(i => GetAnotherStruct(myEnumValues, i))),
-                new LinkedList<AnotherStruct>(
-                    Enumerable.Range(0, size).Select(i => GetAnotherStruct(myEnumValues, i))));
-
-            await TestQueueAsync(
-                (p1, p2) => _prx.OpAnotherStructQueueAsync(p1, p2),
-                new Queue<AnotherStruct>(Enumerable.Range(0, size).Select(i => GetAnotherStruct(myEnumValues, i))),
-                new Queue<AnotherStruct>(Enumerable.Range(0, size).Select(i => GetAnotherStruct(myEnumValues, i))));
-
-            await TestStackAsync(
-                (p1, p2) => _prx.OpAnotherStructStackAsync(p1, p2),
-                new Stack<AnotherStruct>(Enumerable.Range(0, size).Select(i => GetAnotherStruct(myEnumValues, i))),
-                new Stack<AnotherStruct>(Enumerable.Range(0, size).Select(i => GetAnotherStruct(myEnumValues, i))));
-
             await TestCustomSeqAsync(
                 (p1, p2) => _prx.OpAnotherStructCustomSeqAsync(p1, p2),
-                new Custom<AnotherStruct>(Enumerable.Range(0, size).Select(i => GetAnotherStruct(myEnumValues, i))),
-                new Custom<AnotherStruct>(Enumerable.Range(0, size).Select(i => GetAnotherStruct(myEnumValues, i))));
+                new CustomSeq<AnotherStruct>(Enumerable.Range(0, size).Select(i => GetAnotherStruct(myEnumValues, i))),
+                new CustomSeq<AnotherStruct>(Enumerable.Range(0, size).Select(i => GetAnotherStruct(myEnumValues, i))));
 
             await TestEnumerableSeqAsync(
                 (p1, p2) => _prx.OpOperationsSeqAsync(p1, p2),
@@ -470,25 +308,10 @@ namespace IceRpc.Tests.Slice
                 Enumerable.Range(0, size).Select(i => GetOperationsPrx(i)).ToList(),
                 Enumerable.Range(0, size).Select(i => GetOperationsPrx(i)).ToList());
 
-            await TestLinkedListAsync(
-                (p1, p2) => _prx.OpOperationsLinkedListAsync(p1, p2),
-                new LinkedList<OperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))),
-                new LinkedList<OperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))));
-
-            await TestQueueAsync(
-                (p1, p2) => _prx.OpOperationsQueueAsync(p1, p2),
-                new Queue<OperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))),
-                new Queue<OperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))));
-
-            await TestStackAsync(
-                (p1, p2) => _prx.OpOperationsStackAsync(p1, p2),
-                new Stack<OperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))),
-                new Stack<OperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))));
-
             await TestCustomSeqAsync(
                 (p1, p2) => _prx.OpOperationsCustomSeqAsync(p1, p2),
-                new Custom<OperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))),
-                new Custom<OperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))));
+                new CustomSeq<OperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))),
+                new CustomSeq<OperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))));
         }
 
         [Test]
@@ -806,27 +629,9 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<byte> R1, IEnumerable<byte> R2)> OpByteLinkedListAsync(
-                LinkedList<byte> p1,
-                LinkedList<byte> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<byte> R1, IEnumerable<byte> R2)> OpByteQueueAsync(
-                Queue<byte> p1,
-                Queue<byte> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<byte> R1, IEnumerable<byte> R2)> OpByteStackAsync(
-                Stack<byte> p1,
-                Stack<byte> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
             public ValueTask<(IEnumerable<byte> R1, IEnumerable<byte> R2)> OpByteCustomSeqAsync(
-                Custom<byte> p1,
-                Custom<byte> p2,
+                CustomSeq<byte> p1,
+                CustomSeq<byte> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -836,27 +641,9 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<bool> R1, IEnumerable<bool> R2)> OpBoolLinkedListAsync(
-                LinkedList<bool> p1,
-                LinkedList<bool> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<bool> R1, IEnumerable<bool> R2)> OpBoolQueueAsync(
-                Queue<bool> p1,
-                Queue<bool> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<bool> R1, IEnumerable<bool> R2)> OpBoolStackAsync(
-                Stack<bool> p1,
-                Stack<bool> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
             public ValueTask<(IEnumerable<bool> R1, IEnumerable<bool> R2)> OpBoolCustomSeqAsync(
-                Custom<bool> p1,
-                Custom<bool> p2,
+                CustomSeq<bool> p1,
+                CustomSeq<bool> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -866,27 +653,9 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<int> R1, IEnumerable<int> R2)> OpIntLinkedListAsync(
-                LinkedList<int> p1,
-                LinkedList<int> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<int> R1, IEnumerable<int> R2)> OpIntQueueAsync(
-                Queue<int> p1,
-                Queue<int> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<int> R1, IEnumerable<int> R2)> OpIntStackAsync(
-                Stack<int> p1,
-                Stack<int> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
             public ValueTask<(IEnumerable<int> R1, IEnumerable<int> R2)> OpIntCustomSeqAsync(
-                Custom<int> p1,
-                Custom<int> p2,
+                CustomSeq<int> p1,
+                CustomSeq<int> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -896,27 +665,9 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<long> R1, IEnumerable<long> R2)> OpLongLinkedListAsync(
-                LinkedList<long> p1,
-                LinkedList<long> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<long> R1, IEnumerable<long> R2)> OpLongQueueAsync(
-                Queue<long> p1,
-                Queue<long> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<long> R1, IEnumerable<long> R2)> OpLongStackAsync(
-                Stack<long> p1,
-                Stack<long> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
             public ValueTask<(IEnumerable<long> R1, IEnumerable<long> R2)> OpLongCustomSeqAsync(
-                Custom<long> p1,
-                Custom<long> p2,
+                CustomSeq<long> p1,
+                CustomSeq<long> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -926,27 +677,9 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<float> R1, IEnumerable<float> R2)> OpFloatLinkedListAsync(
-                LinkedList<float> p1,
-                LinkedList<float> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<float> R1, IEnumerable<float> R2)> OpFloatQueueAsync(
-                Queue<float> p1,
-                Queue<float> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<float> R1, IEnumerable<float> R2)> OpFloatStackAsync(
-                Stack<float> p1,
-                Stack<float> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
             public ValueTask<(IEnumerable<float> R1, IEnumerable<float> R2)> OpFloatCustomSeqAsync(
-                Custom<float> p1,
-                Custom<float> p2,
+                CustomSeq<float> p1,
+                CustomSeq<float> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -956,27 +689,9 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<string> R1, IEnumerable<string> R2)> OpStringLinkedListAsync(
-                LinkedList<string> p1,
-                LinkedList<string> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<string> R1, IEnumerable<string> R2)> OpStringQueueAsync(
-                Queue<string> p1,
-                Queue<string> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<string> R1, IEnumerable<string> R2)> OpStringStackAsync(
-                Stack<string> p1,
-                Stack<string> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
             public ValueTask<(IEnumerable<string> R1, IEnumerable<string> R2)> OpStringCustomSeqAsync(
-                Custom<string> p1,
-                Custom<string> p2,
+                CustomSeq<string> p1,
+                CustomSeq<string> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -986,27 +701,9 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<MyEnum> R1, IEnumerable<MyEnum> R2)> OpMyEnumLinkedListAsync(
-                LinkedList<MyEnum> p1,
-                LinkedList<MyEnum> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<MyEnum> R1, IEnumerable<MyEnum> R2)> OpMyEnumQueueAsync(
-                Queue<MyEnum> p1,
-                Queue<MyEnum> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<MyEnum> R1, IEnumerable<MyEnum> R2)> OpMyEnumStackAsync(
-                Stack<MyEnum> p1,
-                Stack<MyEnum> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
             public ValueTask<(IEnumerable<MyEnum> R1, IEnumerable<MyEnum> R2)> OpMyEnumCustomSeqAsync(
-                Custom<MyEnum> p1,
-                Custom<MyEnum> p2,
+                CustomSeq<MyEnum> p1,
+                CustomSeq<MyEnum> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -1016,27 +713,9 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<MyFixedLengthEnum> R1, IEnumerable<MyFixedLengthEnum> R2)> OpMyFixedLengthEnumLinkedListAsync(
-                LinkedList<MyFixedLengthEnum> p1,
-                LinkedList<MyFixedLengthEnum> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<MyFixedLengthEnum> R1, IEnumerable<MyFixedLengthEnum> R2)> OpMyFixedLengthEnumQueueAsync(
-                Queue<MyFixedLengthEnum> p1,
-                Queue<MyFixedLengthEnum> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<MyFixedLengthEnum> R1, IEnumerable<MyFixedLengthEnum> R2)> OpMyFixedLengthEnumStackAsync(
-                Stack<MyFixedLengthEnum> p1,
-                Stack<MyFixedLengthEnum> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
             public ValueTask<(IEnumerable<MyFixedLengthEnum> R1, IEnumerable<MyFixedLengthEnum> R2)> OpMyFixedLengthEnumCustomSeqAsync(
-                Custom<MyFixedLengthEnum> p1,
-                Custom<MyFixedLengthEnum> p2,
+                CustomSeq<MyFixedLengthEnum> p1,
+                CustomSeq<MyFixedLengthEnum> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -1046,27 +725,9 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<MyUncheckedEnum> R1, IEnumerable<MyUncheckedEnum> R2)> OpMyUncheckedEnumLinkedListAsync(
-                LinkedList<MyUncheckedEnum> p1,
-                LinkedList<MyUncheckedEnum> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<MyUncheckedEnum> R1, IEnumerable<MyUncheckedEnum> R2)> OpMyUncheckedEnumQueueAsync(
-                Queue<MyUncheckedEnum> p1,
-                Queue<MyUncheckedEnum> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<MyUncheckedEnum> R1, IEnumerable<MyUncheckedEnum> R2)> OpMyUncheckedEnumStackAsync(
-                Stack<MyUncheckedEnum> p1,
-                Stack<MyUncheckedEnum> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
             public ValueTask<(IEnumerable<MyUncheckedEnum> R1, IEnumerable<MyUncheckedEnum> R2)> OpMyUncheckedEnumCustomSeqAsync(
-                Custom<MyUncheckedEnum> p1,
-                Custom<MyUncheckedEnum> p2,
+                CustomSeq<MyUncheckedEnum> p1,
+                CustomSeq<MyUncheckedEnum> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -1076,27 +737,9 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<MyStruct> R1, IEnumerable<MyStruct> R2)> OpMyStructLinkedListAsync(
-                LinkedList<MyStruct> p1,
-                LinkedList<MyStruct> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<MyStruct> R1, IEnumerable<MyStruct> R2)> OpMyStructQueueAsync(
-                Queue<MyStruct> p1,
-                Queue<MyStruct> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<MyStruct> R1, IEnumerable<MyStruct> R2)> OpMyStructStackAsync(
-                Stack<MyStruct> p1,
-                Stack<MyStruct> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
             public ValueTask<(IEnumerable<MyStruct> R1, IEnumerable<MyStruct> R2)> OpMyStructCustomSeqAsync(
-                Custom<MyStruct> p1,
-                Custom<MyStruct> p2,
+                CustomSeq<MyStruct> p1,
+                CustomSeq<MyStruct> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -1106,27 +749,9 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<OperationsPrx> R1, IEnumerable<OperationsPrx> R2)> OpOperationsLinkedListAsync(
-                LinkedList<OperationsPrx> p1,
-                LinkedList<OperationsPrx> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<OperationsPrx> R1, IEnumerable<OperationsPrx> R2)> OpOperationsQueueAsync(
-                Queue<OperationsPrx> p1,
-                Queue<OperationsPrx> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<OperationsPrx> R1, IEnumerable<OperationsPrx> R2)> OpOperationsStackAsync(
-                Stack<OperationsPrx> p1,
-                Stack<OperationsPrx> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
             public ValueTask<(IEnumerable<OperationsPrx> R1, IEnumerable<OperationsPrx> R2)> OpOperationsCustomSeqAsync(
-                Custom<OperationsPrx> p1,
-                Custom<OperationsPrx> p2,
+                CustomSeq<OperationsPrx> p1,
+                CustomSeq<OperationsPrx> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -1136,26 +761,9 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<AnotherStruct> R1, IEnumerable<AnotherStruct> R2)> OpAnotherStructLinkedListAsync(
-                LinkedList<AnotherStruct> p1,
-                LinkedList<AnotherStruct> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<AnotherStruct> R1, IEnumerable<AnotherStruct> R2)> OpAnotherStructQueueAsync(
-                Queue<AnotherStruct> p1,
-                Queue<AnotherStruct> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<AnotherStruct> R1, IEnumerable<AnotherStruct> R2)> OpAnotherStructStackAsync(
-                Stack<AnotherStruct> p1,
-                Stack<AnotherStruct> p2,
-                Dispatch dispatch, CancellationToken cancel) => new((p1, p2));
-
             public ValueTask<(IEnumerable<AnotherStruct> R1, IEnumerable<AnotherStruct> R2)> OpAnotherStructCustomSeqAsync(
-                Custom<AnotherStruct> p1,
-                Custom<AnotherStruct> p2,
+                CustomSeq<AnotherStruct> p1,
+                CustomSeq<AnotherStruct> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
         }
@@ -1210,42 +818,12 @@ namespace IceRpc.Tests.Slice
             CollectionAssert.AreEqual(r2, p2);
         }
 
-        private static async Task TestLinkedListAsync<T>(
-            Func<LinkedList<T>, LinkedList<T>, Task<(LinkedList<T>, LinkedList<T>)>> invoker,
-            LinkedList<T> p1,
-            LinkedList<T> p2)
-        {
-            (LinkedList<T> r1, LinkedList<T> r2) = await invoker(p1, p2);
-            CollectionAssert.AreEqual(r1, p1);
-            CollectionAssert.AreEqual(r2, p2);
-        }
-
-        private static async Task TestQueueAsync<T>(
-            Func<Queue<T>, Queue<T>, Task<(Queue<T>, Queue<T>)>> invoker,
-            Queue<T> p1,
-            Queue<T> p2)
-        {
-            (Queue<T> r1, Queue<T> r2) = await invoker(p1, p2);
-            CollectionAssert.AreEqual(r1, p1);
-            CollectionAssert.AreEqual(r2, p2);
-        }
-
-        private static async Task TestStackAsync<T>(
-            Func<Stack<T>, Stack<T>, Task<(Stack<T>, Stack<T>)>> invoker,
-            Stack<T> p1,
-            Stack<T> p2)
-        {
-            (Stack<T> r1, Stack<T> r2) = await invoker(p1, p2);
-            CollectionAssert.AreEqual(r1, p1);
-            CollectionAssert.AreEqual(r2, p2);
-        }
-
         private static async Task TestCustomSeqAsync<T>(
-            Func<Custom<T>, Custom<T>, Task<(Custom<T>, Custom<T>)>> invoker,
-            Custom<T> p1,
-            Custom<T> p2)
+            Func<CustomSeq<T>, CustomSeq<T>, Task<(CustomSeq<T>, CustomSeq<T>)>> invoker,
+            CustomSeq<T> p1,
+            CustomSeq<T> p2)
         {
-            (Custom<T> r1, Custom<T> r2) = await invoker(p1, p2);
+            (CustomSeq<T> r1, CustomSeq<T> r2) = await invoker(p1, p2);
             CollectionAssert.AreEqual(r1, p1);
             CollectionAssert.AreEqual(r2, p2);
         }

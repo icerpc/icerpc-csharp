@@ -140,7 +140,7 @@ namespace IceRpc.Tests.Api
                 return await next.InvokeAsync(request, cancel);
             }));
 
-            SortedDictionary<string, string> ctx = await prx.OpContextAsync(
+            Dictionary<string, string> ctx = await prx.OpContextAsync(
                 new Invocation
                 {
                     Context = new Dictionary<string, string> { ["foo"] = "baz" }
