@@ -1,11 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using System.IO.Compression;
-using System.IO.Pipelines;
 
 namespace IceRpc.Tests.Internal
 {
@@ -140,7 +137,6 @@ namespace IceRpc.Tests.Internal
             while (segment < bufferCount)
             {
                 ReadOnlyMemory<byte> sendSegmentBuffer = sendBuffers.Span[segment];
-
                 if (receiveBuffer.Length == 0)
                 {
                     int count = await serverStream.ReadAsync(buffer, default);
@@ -152,8 +148,9 @@ namespace IceRpc.Tests.Internal
                 {
                     // Received buffer is smaller than the data from the send buffer segment
                     Assert.That(
-                        receiveBuffer.ToArray(),
-                        Is.EqualTo(sendSegmentBuffer[segmentOffset..(segmentOffset + receiveBuffer.Length)].ToArray()));
+                        receiveBuffer.Span.SequenceEqual(
+                            sendSegmentBuffer[segmentOffset..(segmentOffset + receiveBuffer.Length)].Span),
+                        Is.True);
 
                     segmentOffset += receiveBuffer.Length;
                     if (segmentOffset == sendSegmentBuffer.Length)
@@ -167,8 +164,8 @@ namespace IceRpc.Tests.Internal
                 {
                     // Received buffer is larger or equal than the send buffer segment
                     Assert.That(
-                        receiveBuffer[0..sendSegmentLength].ToArray(),
-                        Is.EqualTo(sendSegmentBuffer[segmentOffset..].ToArray()));
+                        receiveBuffer[0..sendSegmentLength].Span.SequenceEqual(sendSegmentBuffer[segmentOffset..].Span),
+                        Is.True);
                     ++segment;
                     segmentOffset = 0;
                     receiveBuffer = receiveBuffer[sendSegmentLength..];
