@@ -16,6 +16,15 @@ namespace IceRpc.Transports.Internal
         private AsyncQueueCore<T> _queue = new();
 #pragma warning restore CA1805
 
+        /// <summary>Asynchronously dequeues an element.</summary>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        /// <returns name="value">The value of the element to enqueue.</returns>
+        internal ValueTask<T> DequeueAsync(CancellationToken cancel) => _queue.DequeueAsync(this, cancel);
+
+        /// <summary>Enqueue a new element.</summary>
+        /// <param name="value">The value of the element to enqueue</param>
+        internal void Enqueue(T value) => _queue.Enqueue(value);
+
         /// <summary>Attempts to mark the queue as being completed, meaning no more elements will be queued. The
         /// exception will be raised by <see cref="Enqueue"/> if it's called after this call. It will also be called by
         /// <see cref="DequeueAsync"/> after the last element has been dequeued.</summary>
@@ -24,15 +33,9 @@ namespace IceRpc.Transports.Internal
         /// completed.</returns>
         internal bool TryComplete(Exception exception) => _queue.TryComplete(exception);
 
-        /// <summary>Enqueue a new element.</summary>
-        /// <param name="value">The value of the element to enqueue</param>
-        internal void Enqueue(T value) => _queue.Enqueue(value);
-
-        /// <summary>Asynchronously dequeues an element.</summary>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns name="value">The value of the element to enqueue.</returns>
-        internal ValueTask<T> DequeueAsync(CancellationToken cancel) => _queue.DequeueAsync(this, cancel);
-
+        /// <summary>Cancels the pending DequeueAsync call by completing the queue with OperationCanceledException.
+        /// Completing the queue is fine for transports but might not be for general purpose use of an asynchronous
+        /// queue.</summary>
         void IAsyncQueueValueTaskSource<T>.Cancel() => _queue.TryComplete(new OperationCanceledException());
 
         T IValueTaskSource<T>.GetResult(short token) => _queue.GetResult(token);

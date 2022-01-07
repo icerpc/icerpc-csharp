@@ -169,8 +169,10 @@ namespace IceRpc.Transports.Internal
         {
             if (cancel.CanBeCanceled)
             {
+                // The returned ValueTask<T> always calls GetResult on completion. It will dispose the token
+                // registration. Note that we don't check if cancellation is requested on the token here. It's up to the
+                // IAsyncQueueValueTaskSource.Cancel() implementation to decide what to do upon cancellation.
                 Debug.Assert(_tokenRegistration == default);
-                cancel.ThrowIfCancellationRequested();
                 _tokenRegistration = cancel.Register(valueTaskSource.Cancel);
             }
             return new ValueTask<T>(valueTaskSource, _source.Version);
