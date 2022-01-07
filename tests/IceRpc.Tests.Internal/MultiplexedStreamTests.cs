@@ -69,7 +69,7 @@ namespace IceRpc.Tests.Internal
                 await serviceProvider.GetMultiplexedClientConnectionAsync();
             await using IMultiplexedNetworkConnection serverConnection = await serverTask;
 
-            Task<IMultiplexedStream> serverAcceptStream = AcceptServerStreamAsync();
+            Task<IMultiplexedStream> serverAcceptStream = AcceptServerStreamAsync(serverConnection);
 
             IMultiplexedStream clientStream = clientConnection.CreateStream(true);
             _ = clientStream.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, false, default).AsTask();
@@ -78,17 +78,18 @@ namespace IceRpc.Tests.Internal
 
             // Abort the read side of the stream. This sends the stop sending frame to the client stream.
             serverStream.AbortRead(156);
-            await Task.Delay(100);
-            MultiplexedStreamAbortedException? ex = Assert.ThrowsAsync<MultiplexedStreamAbortedException>(() =>
-                clientStream.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, endStream, default).AsTask());
-            Assert.That(ex!.ErrorCode, Is.EqualTo(156));
-
-            async Task<IMultiplexedStream> AcceptServerStreamAsync()
+            while (true)
             {
-                IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
-                int received = await serverStream.ReadAsync(new byte[256], default);
-                Assert.That(received, Is.EqualTo(1));
-                return serverStream;
+                try
+                {
+                    await clientStream.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, endStream, default);
+                    await Task.Delay(1);
+                }
+                catch (MultiplexedStreamAbortedException ex)
+                {
+                    Assert.That(ex!.ErrorCode, Is.EqualTo(156));
+                    break;
+                }
             }
         }
 
@@ -249,20 +250,12 @@ namespace IceRpc.Tests.Internal
                 await serviceProvider.GetMultiplexedClientConnectionAsync();
             await using IMultiplexedNetworkConnection serverConnection = await serverTask;
 
-            Task<IMultiplexedStream> serverAcceptStream = AcceptServerStreamAsync();
+            Task<IMultiplexedStream> serverAcceptStream = AcceptServerStreamAsync(serverConnection);
 
             IMultiplexedStream stream = clientConnection.CreateStream(true);
             _ = stream.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, false, default).AsTask();
 
             _ = await serverAcceptStream;
-
-            async Task<IMultiplexedStream> AcceptServerStreamAsync()
-            {
-                IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
-                int received = await serverStream.ReadAsync(new byte[256], default);
-                Assert.That(received, Is.EqualTo(1));
-                return serverStream;
-            }
         }
 
         /*  TODO: reenable with updated IMultiplexedStream API
@@ -278,7 +271,7 @@ namespace IceRpc.Tests.Internal
                 await serviceProvider.GetMultiplexedClientConnectionAsync();
             await using IMultiplexedNetworkConnection serverConnection = await serverTask;
 
-            Task<IMultiplexedStream> serverAcceptStream = AcceptServerStreamAsync();
+            Task<IMultiplexedStream> serverAcceptStream = AcceptServerStreamAsync(serverConnection);
 
             IMultiplexedStream stream = clientConnection.CreateStream(true);
             _ = stream.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, false, default).AsTask();
@@ -332,14 +325,6 @@ namespace IceRpc.Tests.Internal
             // the server.
             await serverStream.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, false, default);
             await stream.ReadAsync(new byte[1], default);
-
-            async Task<IMultiplexedStream> AcceptServerStreamAsync()
-            {
-                IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
-                int received = await serverStream.ReadAsync(new byte[256], default);
-                Assert.That(received, Is.EqualTo(1));
-                return serverStream;
-            }
         }
 
         private class TestMemoryStream : MemoryStream
@@ -380,5 +365,14 @@ namespace IceRpc.Tests.Internal
             }
         }
         */
+
+        private static async Task<IMultiplexedStream> AcceptServerStreamAsync(IMultiplexedNetworkConnection connection)
+        {
+            IMultiplexedStream serverStream = await connection.AcceptStreamAsync(default);
+            int received = await serverStream.ReadAsync(new byte[256], default);
+            Assert.That(received, Is.EqualTo(1));
+            return serverStream;
+        }
+
     }
 }
