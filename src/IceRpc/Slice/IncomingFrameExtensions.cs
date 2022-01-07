@@ -4,8 +4,8 @@ using IceRpc.Slice.Internal;
 
 namespace IceRpc.Slice
 {
-    /// <summary>Extension methods to decode the payload of an incoming frame when this payload is encoded with the
-    /// Ice encoding.</summary>
+    /// <summary>Extension methods to decode the payload of an incoming frame when this payload is encoded with a Slice
+    /// encoding.</summary>
     public static class IncomingFrameExtensions
     {
         /// <summary>Creates an async enumerable over the payload reader of an incoming frame.</summary>
