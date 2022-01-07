@@ -576,7 +576,6 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 
         builder.add_comment("summary", &format!(r#"The <see cref="ResponseDecodeFunc{{T}}"/> for the return value type of operation {}."#, operation.identifier()));
         builder.add_parameter("IceRpc.IncomingResponse", "response", None, None);
-        builder.add_parameter("IceRpc.IInvoker?", "invoker", None, None);
         builder.add_parameter(
             "global::System.Threading.CancellationToken",
             "cancel",
@@ -632,7 +631,6 @@ fn response_operation_body(operation: &Operation) -> CodeBlock {
                 code,
                 "\
 await response.CheckVoidReturnValueAsync(
-    invoker,
     _defaultActivator,
     hasStream: true,
     cancel).ConfigureAwait(false);
@@ -646,7 +644,6 @@ return {}
                 code,
                 "\
 var {return_value} = await response.ToReturnValueAsync(
-    invoker,
     _defaultActivator,
     {response_decode_func},
     hasStream: true,
@@ -668,7 +665,6 @@ return {return_value_and_stream};
             code,
             "\
 await response.ToReturnValueAsync(
-    invoker,
     _defaultActivator,
     {response_decode_func},
     hasStream: false,

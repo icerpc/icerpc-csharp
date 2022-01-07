@@ -245,7 +245,7 @@ namespace IceRpc
                 // Well-known proxy
                 return new Proxy(identity.ToPath(), Protocol.Ice)
                 {
-                    Invoker = invoker,
+                    Invoker = invoker ?? Proxy.DefaultInvoker,
                     Encoding = encoding,
                     Fragment = Uri.EscapeDataString(facet),
                 };
@@ -330,7 +330,7 @@ namespace IceRpc
 
                 return new Proxy(identity.ToPath(), Protocol.Ice)
                 {
-                    Invoker = invoker,
+                    Invoker = invoker ?? Proxy.DefaultInvoker,
                     Endpoint = endpoint,
                     AltEndpoints = altEndpoints,
                     Encoding = encoding,
@@ -388,7 +388,7 @@ namespace IceRpc
 
                 return new Proxy(identity.ToPath(), Protocol.Ice)
                 {
-                    Invoker = invoker,
+                    Invoker = invoker ?? Proxy.DefaultInvoker,
                     Endpoint = endpoint,
                     Encoding = encoding,
                     Fragment = Uri.EscapeDataString(facet)

@@ -10,6 +10,7 @@ using System.Reflection;
 namespace IceRpc
 {
     /// <summary>Base class of all services that implement Slice-defined interfaces.</summary>
+    /// <remarks>This class is part of the Slice engine code.</remarks>
     public class Service : IService, IDispatcher
     {
         /// <summary>A delegate that matches the signature of the generated IceDXxx methods, the only difference is that

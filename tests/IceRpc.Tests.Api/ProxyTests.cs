@@ -315,7 +315,7 @@ namespace IceRpc.Tests.Api
             // Check that the received proxy "inherits" the invoker of the caller.
             service.Prx = ProxyTestPrx.FromPath("/foo");
             received = await prx.ReceiveProxyAsync();
-            Assert.That(received?.Proxy.Invoker, Is.Null);
+            Assert.That(received?.Proxy.Invoker, Is.EqualTo(Proxy.DefaultInvoker));
 
             var pipeline = new Pipeline();
             prx.Proxy.Invoker = pipeline;
@@ -334,7 +334,8 @@ namespace IceRpc.Tests.Api
         {
             var service = new ProxyTest();
 
-            // First verify that the invoker of a proxy received over an incoming request is by default null.
+            // First verify that the invoker of a proxy received over an incoming request is by default the default
+            // invoker.
             await using ServiceProvider serviceProvider1 = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher>(_ => service)
                 .BuildServiceProvider();
@@ -342,7 +343,7 @@ namespace IceRpc.Tests.Api
             var prx = ProxyTestPrx.FromConnection(serviceProvider1.GetRequiredService<Connection>());
             await prx.SendProxyAsync(prx);
             Assert.That(service.Prx, Is.Not.Null);
-            Assert.That(service.Prx?.Proxy.Invoker, Is.Null);
+            Assert.That(service.Prx?.Proxy.Invoker, Is.EqualTo(Proxy.DefaultInvoker));
 
             // Now with a router and the ProxyInvoker middleware - we set the invoker on the proxy received by the
             // service.
