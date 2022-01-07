@@ -18,11 +18,11 @@ namespace IceRpc.Transports.Internal
 
         /// <summary>Asynchronously dequeues an element.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns name="value">The value of the element to enqueue.</returns>
+        /// <returns name="value">The value of the element to dequeue.</returns>
         internal ValueTask<T> DequeueAsync(CancellationToken cancel) => _queue.DequeueAsync(this, cancel);
 
-        /// <summary>Enqueue a new element.</summary>
-        /// <param name="value">The value of the element to enqueue</param>
+        /// <summary>Enqueues a new element.</summary>
+        /// <param name="value">The value of the element to enqueue.</param>
         internal void Enqueue(T value) => _queue.Enqueue(value);
 
         /// <summary>Attempts to mark the queue as being completed, meaning no more elements will be queued. The
