@@ -414,10 +414,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
     for member in required_members {
         writeln!(
             code,
-            "{param_type} {decode}",
-            param_type = member
-                .data_type()
-                .to_type_string(namespace, TypeContext::Incoming, false),
+            "var {decode}",
             decode = decode_member(
                 member,
                 namespace,
@@ -429,10 +426,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
     for member in tagged_members {
         writeln!(
             code,
-            "{param_type} {decode}",
-            param_type = member
-                .data_type()
-                .to_type_string(namespace, TypeContext::Incoming, false),
+            "var {decode}",
             decode = decode_tagged_member(
                 member,
                 namespace,

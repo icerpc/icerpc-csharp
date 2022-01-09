@@ -52,12 +52,19 @@ namespace IceRpc.Slice
             where TKey : notnull
             where TDictionary : IDictionary<TKey, TValue?>
         {
-            int sz = decoder.DecodeAndCheckSeqSize(minKeySize);
-            return decoder.DecodeDictionaryWithBitSequence(
-                dictionaryFactory(sz),
-                sz,
-                keyDecodeFunc,
-                valueDecodeFunc);
+            int count = decoder.DecodeAndCheckSeqSize(minKeySize);
+            TDictionary dictionary = dictionaryFactory(count);
+            if (count > 0)
+            {
+                BitSequenceReader bitSequenceReader = decoder.GetBitSequenceReader(count);
+                for (int i = 0; i < count; ++i)
+                {
+                    TKey key = keyDecodeFunc(ref decoder);
+                    TValue? value = bitSequenceReader.Read() ? valueDecodeFunc(ref decoder) : default;
+                    dictionary.Add(key, value);
+                }
+            }
+            return dictionary;
         }
 
         /// <summary>Decodes fields.</summary>
@@ -112,7 +119,7 @@ namespace IceRpc.Slice
         /// <param name="minElementSize">The minimum size of each element of the sequence, in bytes.</param>
         /// <param name="sequenceFactory">The factory for creating the sequence instance.</param>
         /// <param name="decodeFunc">The decode function for each element of the sequence.</param>
-        /// <returns>An IList of TElement.</returns>
+        /// <returns>A TSequence.</returns>
         public static TSequence DecodeSequence<TSequence, TElement>(
             this ref IceDecoder decoder,
             int minElementSize,
@@ -162,39 +169,16 @@ namespace IceRpc.Slice
             DecodeFunc<TElement> decodeFunc) where TSequence : IList<TElement>
         {
             int count = decoder.DecodeAndCheckSeqSize(0);
-            if (count == 0)
-            {
-                return sequenceFactory(count);
-            }
-            else
+            TSequence sequence = sequenceFactory(count);
+            if (count > 0)
             {
                 BitSequenceReader bitSequenceReader = decoder.GetBitSequenceReader(count);
-                TSequence sequence = sequenceFactory(count);
                 for (int i = 0; i < count; ++i)
                 {
                     sequence.Add(bitSequenceReader.Read() ? decodeFunc(ref decoder) : default!);
                 }
-                return sequence;
             }
-        }
-
-        private static TDict DecodeDictionaryWithBitSequence<TDict, TKey, TValue>(
-            this ref IceDecoder decoder,
-            TDict dict,
-            int size,
-            DecodeFunc<TKey> keyDecodeFunc,
-            DecodeFunc<TValue?> valueDecodeFunc)
-            where TDict : IDictionary<TKey, TValue?>
-            where TKey : notnull
-        {
-            BitSequenceReader bitSequenceReader = decoder.GetBitSequenceReader(size);
-            for (int i = 0; i < size; ++i)
-            {
-                TKey key = keyDecodeFunc(ref decoder);
-                TValue? value = bitSequenceReader.Read() ? valueDecodeFunc(ref decoder) : default(TValue?);
-                dict.Add(key, value);
-            }
-            return dict;
+            return sequence;
         }
     }
 }
