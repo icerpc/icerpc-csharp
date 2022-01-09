@@ -9,8 +9,6 @@ namespace IceRpc.Tests.Slice
     {
         private readonly List<T> _source;
 
-        public CustomSeq() => _source = new();
-
         public CustomSeq(int size) => _source = new(size);
 
         public CustomSeq(IEnumerable<T> elements) => _source = new(elements);
