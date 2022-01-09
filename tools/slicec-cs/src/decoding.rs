@@ -414,7 +414,16 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
     for member in required_members {
         writeln!(
             code,
-            "var {decode}",
+            "{param_type} {decode}",
+            // For optional value types we have to use the full type as the compiler cannot disambiguate between
+            // null and the actual value type.
+            param_type = match member.data_type().is_optional && member.data_type().is_value_type()
+            {
+                true => member
+                    .data_type()
+                    .to_type_string(namespace, TypeContext::Incoming, false),
+                false => String::from("var"),
+            },
             decode = decode_member(
                 member,
                 namespace,
@@ -426,7 +435,15 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
     for member in tagged_members {
         writeln!(
             code,
-            "var {decode}",
+            "{param_type} {decode}",
+            // For optional value types we have to use the full type as the compiler cannot disambiguate between
+            // null and the actual value type.
+            param_type = match member.data_type().is_value_type() {
+                true => member
+                    .data_type()
+                    .to_type_string(namespace, TypeContext::Incoming, false),
+                false => String::from("var"),
+            },
             decode = decode_tagged_member(
                 member,
                 namespace,
