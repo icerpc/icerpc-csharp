@@ -528,12 +528,12 @@ namespace IceRpc.Tests.Slice
             }
 
             {
-                (SortedDictionary<int, int>? r1, SortedDictionary<int, int>? r2) = await doublePrx.OpIntSortedDictAsync(null);
+                (CustomDictionary<int, int>? r1, CustomDictionary<int, int>? r2) = await doublePrx.OpIntCustomDictAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                var p1 = new SortedDictionary<int, int> { { 1, 1 } };
-                (r1, r2) = await doublePrx.OpIntSortedDictAsync(p1);
+                var p1 = new CustomDictionary<int, int> { { 1, 1 } };
+                (r1, r2) = await doublePrx.OpIntCustomDictAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p1, r2);
             }
@@ -550,13 +550,13 @@ namespace IceRpc.Tests.Slice
             }
 
             {
-                (SortedDictionary<int, int?>? r1, SortedDictionary<int, int?>? r2) =
-                    await doublePrx.OpOptionalIntSortedDictAsync(null);
+                (CustomDictionary<int, int?>? r1, CustomDictionary<int, int?>? r2) =
+                    await doublePrx.OpOptionalIntCustomDictAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                var p1 = new SortedDictionary<int, int?> { { 1, 1 } };
-                (r1, r2) = await doublePrx.OpOptionalIntSortedDictAsync(p1);
+                var p1 = new CustomDictionary<int, int?> { { 1, 1 } };
+                (r1, r2) = await doublePrx.OpOptionalIntCustomDictAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p1, r2);
             }
@@ -573,13 +573,13 @@ namespace IceRpc.Tests.Slice
             }
 
             {
-                (SortedDictionary<string, string>? r1, SortedDictionary<string, string>? r2) =
-                    await doublePrx.OpStringSortedDictAsync(null);
+                (CustomDictionary<string, string>? r1, CustomDictionary<string, string>? r2) =
+                    await doublePrx.OpStringCustomDictAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                var p1 = new SortedDictionary<string, string> { { "a", "b" } };
-                (r1, r2) = await doublePrx.OpStringSortedDictAsync(p1);
+                var p1 = new CustomDictionary<string, string> { { "a", "b" } };
+                (r1, r2) = await doublePrx.OpStringCustomDictAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p1, r2);
             }
@@ -597,13 +597,13 @@ namespace IceRpc.Tests.Slice
             }
 
             {
-                (SortedDictionary<string, string?>? r1, SortedDictionary<string, string?>? r2) =
-                    await doublePrx.OpOptionalStringSortedDictAsync(null);
+                (CustomDictionary<string, string?>? r1, CustomDictionary<string, string?>? r2) =
+                    await doublePrx.OpOptionalStringCustomDictAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                var p1 = new SortedDictionary<string, string?> { { "a", "b" } };
-                (r1, r2) = await doublePrx.OpOptionalStringSortedDictAsync(p1);
+                var p1 = new CustomDictionary<string, string?> { { "a", "b" } };
+                (r1, r2) = await doublePrx.OpOptionalStringCustomDictAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p1, r2);
             }
@@ -823,8 +823,8 @@ namespace IceRpc.Tests.Slice
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(IEnumerable<KeyValuePair<int, int>>? R1, IEnumerable<KeyValuePair<int, int>>? R2)> OpIntSortedDictAsync(
-            SortedDictionary<int, int>? p1,
+        public ValueTask<(IEnumerable<KeyValuePair<int, int>>? R1, IEnumerable<KeyValuePair<int, int>>? R2)> OpIntCustomDictAsync(
+            CustomDictionary<int, int>? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
@@ -833,8 +833,8 @@ namespace IceRpc.Tests.Slice
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(IEnumerable<KeyValuePair<int, int?>>? R1, IEnumerable<KeyValuePair<int, int?>>? R2)> OpOptionalIntSortedDictAsync(
-            SortedDictionary<int, int?>? p1,
+        public ValueTask<(IEnumerable<KeyValuePair<int, int?>>? R1, IEnumerable<KeyValuePair<int, int?>>? R2)> OpOptionalIntCustomDictAsync(
+            CustomDictionary<int, int?>? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
@@ -928,8 +928,8 @@ namespace IceRpc.Tests.Slice
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(IEnumerable<KeyValuePair<string, string>>? R1, IEnumerable<KeyValuePair<string, string>>? R2)> OpStringSortedDictAsync(
-            SortedDictionary<string, string>? p1,
+        public ValueTask<(IEnumerable<KeyValuePair<string, string>>? R1, IEnumerable<KeyValuePair<string, string>>? R2)> OpStringCustomDictAsync(
+            CustomDictionary<string, string>? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
@@ -938,8 +938,8 @@ namespace IceRpc.Tests.Slice
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(IEnumerable<KeyValuePair<string, string?>>? R1, IEnumerable<KeyValuePair<string, string?>>? R2)> OpOptionalStringSortedDictAsync(
-            SortedDictionary<string, string?>? p1,
+        public ValueTask<(IEnumerable<KeyValuePair<string, string?>>? R1, IEnumerable<KeyValuePair<string, string?>>? R2)> OpOptionalStringCustomDictAsync(
+            CustomDictionary<string, string?>? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
