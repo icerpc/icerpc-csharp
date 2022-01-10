@@ -59,7 +59,7 @@ namespace IceRpc.Tests.ClientServer
                             await (t ?? Task.CompletedTask);
 
                             // This delay ensure the metrics would be refresh while current-requests is still 10
-                            await Task.Delay(TimeSpan.FromSeconds(1), cancel);
+                            await Task.Delay(TimeSpan.FromSeconds(2), cancel);
                             return await next.DispatchAsync(request, cancel);
                         }));
                     router.Map<IGreeter>(new Greeter1());
@@ -119,7 +119,7 @@ namespace IceRpc.Tests.ClientServer
             var tasks = new List<Task>();
             for (int i = 0; i < 10; ++i)
             {
-                tasks.Add(greeter.SayHelloAsync("hello", new Invocation { Timeout = TimeSpan.FromSeconds(1) }));
+                tasks.Add(greeter.SayHelloAsync("hello", new Invocation { Timeout = TimeSpan.FromSeconds(2) }));
             }
 
             Assert.ThrowsAsync<OperationCanceledException>(async () => await Task.WhenAll(tasks));
