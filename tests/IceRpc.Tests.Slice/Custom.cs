@@ -5,13 +5,13 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace IceRpc.Tests.Slice
 {
-    public class CustomSeq<T> : IList<T>
+    public class CustomSequence<T> : IList<T>
     {
         private readonly List<T> _source;
 
-        public CustomSeq(int size) => _source = new(size);
+        public CustomSequence(int size) => _source = new(size);
 
-        public CustomSeq(IEnumerable<T> elements) => _source = new(elements);
+        public CustomSequence(IEnumerable<T> elements) => _source = new(elements);
 
         T IList<T>.this[int index] { get => ((IList<T>)_source)[index]; set => ((IList<T>)_source)[index] = value; }
 

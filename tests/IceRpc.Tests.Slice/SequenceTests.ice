@@ -52,46 +52,46 @@ module IceRpc::Tests::Slice
 
     // Sequence mapping
     typealias ByteList = [cs:generic("System.Collections.Generic.List")] sequence<byte>;
-    typealias ByteCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSeq")] sequence<byte>;
+    typealias ByteCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<byte>;
 
     typealias BoolList = [cs:generic("System.Collections.Generic.List")] sequence<bool>;
-    typealias BoolCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSeq")] sequence<bool>;
+    typealias BoolCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<bool>;
 
     typealias ShortList = [cs:generic("System.Collections.Generic.List")] sequence<short>;
-    typealias ShortCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSeq")] sequence<short>;
+    typealias ShortCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<short>;
 
     typealias IntList = [cs:generic("System.Collections.Generic.List")] sequence<int>;
-    typealias IntCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSeq")] sequence<int>;
+    typealias IntCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<int>;
 
     typealias LongList = [cs:generic("System.Collections.Generic.List")] sequence<long>;
-    typealias LongCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSeq")] sequence<long>;
+    typealias LongCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<long>;
 
     typealias FloatList = [cs:generic("System.Collections.Generic.List")] sequence<float>;
-    typealias FloatCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSeq")] sequence<float>;
+    typealias FloatCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<float>;
 
     typealias DoubleList = [cs:generic("System.Collections.Generic.List")] sequence<double>;
-    typealias DoubleCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSeq")] sequence<double>;
+    typealias DoubleCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<double>;
 
     typealias StringList = [cs:generic("System.Collections.Generic.List")] sequence<string>;
-    typealias StringCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSeq")] sequence<string>;
+    typealias StringCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<string>;
 
     typealias MyEnumList = [cs:generic("System.Collections.Generic.List")] sequence<MyEnum>;
-    typealias MyEnumCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSeq")] sequence<MyEnum>;
+    typealias MyEnumCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<MyEnum>;
 
     typealias MyFixedLengthEnumList = [cs:generic("System.Collections.Generic.List")] sequence<MyFixedLengthEnum>;
-    typealias MyFixedLengthEnumCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSeq")] sequence<MyFixedLengthEnum>;
+    typealias MyFixedLengthEnumCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<MyFixedLengthEnum>;
 
     typealias MyUncheckedEnumList = [cs:generic("System.Collections.Generic.List")] sequence<MyUncheckedEnum>;
-    typealias MyUncheckedEnumCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSeq")] sequence<MyUncheckedEnum>;
+    typealias MyUncheckedEnumCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<MyUncheckedEnum>;
 
     typealias MyStructList = [cs:generic("System.Collections.Generic.List")] sequence<MyStruct>;
-    typealias MyStructCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSeq")] sequence<MyStruct>;
+    typealias MyStructCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<MyStruct>;
 
     typealias OperationsList = [cs:generic("System.Collections.Generic.List")] sequence<Operations>;
-    typealias OperationsCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSeq")] sequence<Operations>;
+    typealias OperationsCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<Operations>;
 
     typealias AnotherStructList = [cs:generic("System.Collections.Generic.List")] sequence<AnotherStruct>;
-    typealias AnotherStructCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSeq")] sequence<AnotherStruct>;
+    typealias AnotherStructCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<AnotherStruct>;
 
     interface SequenceOperations
     {

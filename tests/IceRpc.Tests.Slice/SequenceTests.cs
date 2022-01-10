@@ -38,8 +38,8 @@ namespace IceRpc.Tests.Slice
                                 Enumerable.Range(0, size).Select(i => (byte)i).ToList());
             await TestCustomSeqAsync(
                 (p1, p2) => _prx.OpByteCustomSeqAsync(p1, p2),
-                new CustomSeq<byte>(Enumerable.Range(0, size).Select(i => (byte)i)),
-                new CustomSeq<byte>(Enumerable.Range(0, size).Select(i => (byte)i).ToList()));
+                new CustomSequence<byte>(Enumerable.Range(0, size).Select(i => (byte)i)),
+                new CustomSequence<byte>(Enumerable.Range(0, size).Select(i => (byte)i).ToList()));
 
             await TestSeqAsync((p1, p2) => _prx.OpBoolSeqAsync(p1, p2),
                                Enumerable.Range(0, size).Select(i => i % 2 == 0).ToArray(),
@@ -49,8 +49,8 @@ namespace IceRpc.Tests.Slice
                                 Enumerable.Range(0, size).Select(i => i % 2 == 0).ToList());
             await TestCustomSeqAsync(
                 (p1, p2) => _prx.OpBoolCustomSeqAsync(p1, p2),
-                new CustomSeq<bool>(Enumerable.Range(0, size).Select(i => i % 2 == 0)),
-                new CustomSeq<bool>(Enumerable.Range(0, size).Select(i => i % 2 == 0).ToList()));
+                new CustomSequence<bool>(Enumerable.Range(0, size).Select(i => i % 2 == 0)),
+                new CustomSequence<bool>(Enumerable.Range(0, size).Select(i => i % 2 == 0).ToList()));
 
             await TestSeqAsync((p1, p2) => _prx.OpShortSeqAsync(p1, p2),
                                Enumerable.Range(0, size).Select(i => (short)i).ToArray(),
@@ -73,8 +73,8 @@ namespace IceRpc.Tests.Slice
                                 Enumerable.Range(0, size).Select(i => i).ToList());
             await TestCustomSeqAsync(
                 (p1, p2) => _prx.OpIntCustomSeqAsync(p1, p2),
-                new CustomSeq<int>(Enumerable.Range(0, size).Select(i => i)),
-                new CustomSeq<int>(Enumerable.Range(0, size).Select(i => i).ToList()));
+                new CustomSequence<int>(Enumerable.Range(0, size).Select(i => i)),
+                new CustomSequence<int>(Enumerable.Range(0, size).Select(i => i).ToList()));
 
             await TestSeqAsync((p1, p2) => _prx.OpUIntSeqAsync(p1, p2),
                                Enumerable.Range(0, size).Select(i => (uint)i).ToArray(),
@@ -93,8 +93,8 @@ namespace IceRpc.Tests.Slice
 
             await TestCustomSeqAsync(
                 (p1, p2) => _prx.OpLongCustomSeqAsync(p1, p2),
-                new CustomSeq<long>(Enumerable.Range(0, size).Select(i => (long)i)),
-                new CustomSeq<long>(Enumerable.Range(0, size).Select(i => (long)i).ToList()));
+                new CustomSequence<long>(Enumerable.Range(0, size).Select(i => (long)i)),
+                new CustomSequence<long>(Enumerable.Range(0, size).Select(i => (long)i).ToList()));
 
             await TestEnumerableSeqAsync((p1, p2) => _prx.OpVarLongSeqAsync(p1, p2),
                                          Enumerable.Range(0, size).Select(i => (long)i).ToArray(),
@@ -118,8 +118,8 @@ namespace IceRpc.Tests.Slice
 
             await TestCustomSeqAsync(
                 (p1, p2) => _prx.OpFloatCustomSeqAsync(p1, p2),
-                new CustomSeq<float>(Enumerable.Range(0, size).Select(i => (float)i)),
-                new CustomSeq<float>(Enumerable.Range(0, size).Select(i => (float)i).ToList()));
+                new CustomSequence<float>(Enumerable.Range(0, size).Select(i => (float)i)),
+                new CustomSequence<float>(Enumerable.Range(0, size).Select(i => (float)i).ToList()));
 
             await TestSeqAsync((p1, p2) => _prx.OpDoubleSeqAsync(p1, p2),
                                Enumerable.Range(0, size).Select(i => (double)i).ToArray(),
@@ -228,8 +228,8 @@ namespace IceRpc.Tests.Slice
 
             await TestCustomSeqAsync(
                 (p1, p2) => _prx.OpMyEnumCustomSeqAsync(p1, p2),
-                new CustomSeq<MyEnum>(Enumerable.Range(0, size).Select(i => GetEnum<MyEnum>(myEnumValues, i))),
-                new CustomSeq<MyEnum>(Enumerable.Range(0, size).Select(i => GetEnum<MyEnum>(myEnumValues, i))));
+                new CustomSequence<MyEnum>(Enumerable.Range(0, size).Select(i => GetEnum<MyEnum>(myEnumValues, i))),
+                new CustomSequence<MyEnum>(Enumerable.Range(0, size).Select(i => GetEnum<MyEnum>(myEnumValues, i))));
 
             Array myFixedLengthEnumValues = Enum.GetValues(typeof(MyFixedLengthEnum));
             await TestReadOnlyMemorySeqAsync(
@@ -246,9 +246,9 @@ namespace IceRpc.Tests.Slice
 
             await TestCustomSeqAsync(
                 (p1, p2) => _prx.OpMyFixedLengthEnumCustomSeqAsync(p1, p2),
-                new CustomSeq<MyFixedLengthEnum>(
+                new CustomSequence<MyFixedLengthEnum>(
                     Enumerable.Range(0, size).Select(i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i))),
-                new CustomSeq<MyFixedLengthEnum>(
+                new CustomSequence<MyFixedLengthEnum>(
                     Enumerable.Range(0, size).Select(i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i))));
 
             await TestReadOnlyMemorySeqAsync(
@@ -263,9 +263,9 @@ namespace IceRpc.Tests.Slice
 
             await TestCustomSeqAsync(
                 (p1, p2) => _prx.OpMyUncheckedEnumCustomSeqAsync(p1, p2),
-                new CustomSeq<MyUncheckedEnum>(
+                new CustomSequence<MyUncheckedEnum>(
                     Enumerable.Range(0, size).Select(i => (MyUncheckedEnum)i)),
-                new CustomSeq<MyUncheckedEnum>(
+                new CustomSequence<MyUncheckedEnum>(
                     Enumerable.Range(0, size).Select(i => (MyUncheckedEnum)i)));
 
             await TestEnumerableSeqAsync(
@@ -280,8 +280,8 @@ namespace IceRpc.Tests.Slice
 
             await TestCustomSeqAsync(
                 (p1, p2) => _prx.OpMyStructCustomSeqAsync(p1, p2),
-                new CustomSeq<MyStruct>(Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1))),
-                new CustomSeq<MyStruct>(Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1))));
+                new CustomSequence<MyStruct>(Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1))),
+                new CustomSequence<MyStruct>(Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1))));
 
             await TestEnumerableSeqAsync(
                 (p1, p2) => _prx.OpAnotherStructSeqAsync(p1, p2),
@@ -295,8 +295,8 @@ namespace IceRpc.Tests.Slice
 
             await TestCustomSeqAsync(
                 (p1, p2) => _prx.OpAnotherStructCustomSeqAsync(p1, p2),
-                new CustomSeq<AnotherStruct>(Enumerable.Range(0, size).Select(i => GetAnotherStruct(myEnumValues, i))),
-                new CustomSeq<AnotherStruct>(Enumerable.Range(0, size).Select(i => GetAnotherStruct(myEnumValues, i))));
+                new CustomSequence<AnotherStruct>(Enumerable.Range(0, size).Select(i => GetAnotherStruct(myEnumValues, i))),
+                new CustomSequence<AnotherStruct>(Enumerable.Range(0, size).Select(i => GetAnotherStruct(myEnumValues, i))));
 
             await TestEnumerableSeqAsync(
                 (p1, p2) => _prx.OpOperationsSeqAsync(p1, p2),
@@ -310,8 +310,8 @@ namespace IceRpc.Tests.Slice
 
             await TestCustomSeqAsync(
                 (p1, p2) => _prx.OpOperationsCustomSeqAsync(p1, p2),
-                new CustomSeq<OperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))),
-                new CustomSeq<OperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))));
+                new CustomSequence<OperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))),
+                new CustomSequence<OperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))));
         }
 
         [Test]
@@ -630,8 +630,8 @@ namespace IceRpc.Tests.Slice
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<byte> R1, IEnumerable<byte> R2)> OpByteCustomSeqAsync(
-                CustomSeq<byte> p1,
-                CustomSeq<byte> p2,
+                CustomSequence<byte> p1,
+                CustomSequence<byte> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -642,8 +642,8 @@ namespace IceRpc.Tests.Slice
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<bool> R1, IEnumerable<bool> R2)> OpBoolCustomSeqAsync(
-                CustomSeq<bool> p1,
-                CustomSeq<bool> p2,
+                CustomSequence<bool> p1,
+                CustomSequence<bool> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -654,8 +654,8 @@ namespace IceRpc.Tests.Slice
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<int> R1, IEnumerable<int> R2)> OpIntCustomSeqAsync(
-                CustomSeq<int> p1,
-                CustomSeq<int> p2,
+                CustomSequence<int> p1,
+                CustomSequence<int> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -666,8 +666,8 @@ namespace IceRpc.Tests.Slice
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<long> R1, IEnumerable<long> R2)> OpLongCustomSeqAsync(
-                CustomSeq<long> p1,
-                CustomSeq<long> p2,
+                CustomSequence<long> p1,
+                CustomSequence<long> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -678,8 +678,8 @@ namespace IceRpc.Tests.Slice
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<float> R1, IEnumerable<float> R2)> OpFloatCustomSeqAsync(
-                CustomSeq<float> p1,
-                CustomSeq<float> p2,
+                CustomSequence<float> p1,
+                CustomSequence<float> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -690,8 +690,8 @@ namespace IceRpc.Tests.Slice
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<string> R1, IEnumerable<string> R2)> OpStringCustomSeqAsync(
-                CustomSeq<string> p1,
-                CustomSeq<string> p2,
+                CustomSequence<string> p1,
+                CustomSequence<string> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -702,8 +702,8 @@ namespace IceRpc.Tests.Slice
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyEnum> R1, IEnumerable<MyEnum> R2)> OpMyEnumCustomSeqAsync(
-                CustomSeq<MyEnum> p1,
-                CustomSeq<MyEnum> p2,
+                CustomSequence<MyEnum> p1,
+                CustomSequence<MyEnum> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -714,8 +714,8 @@ namespace IceRpc.Tests.Slice
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyFixedLengthEnum> R1, IEnumerable<MyFixedLengthEnum> R2)> OpMyFixedLengthEnumCustomSeqAsync(
-                CustomSeq<MyFixedLengthEnum> p1,
-                CustomSeq<MyFixedLengthEnum> p2,
+                CustomSequence<MyFixedLengthEnum> p1,
+                CustomSequence<MyFixedLengthEnum> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -726,8 +726,8 @@ namespace IceRpc.Tests.Slice
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyUncheckedEnum> R1, IEnumerable<MyUncheckedEnum> R2)> OpMyUncheckedEnumCustomSeqAsync(
-                CustomSeq<MyUncheckedEnum> p1,
-                CustomSeq<MyUncheckedEnum> p2,
+                CustomSequence<MyUncheckedEnum> p1,
+                CustomSequence<MyUncheckedEnum> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -738,8 +738,8 @@ namespace IceRpc.Tests.Slice
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<MyStruct> R1, IEnumerable<MyStruct> R2)> OpMyStructCustomSeqAsync(
-                CustomSeq<MyStruct> p1,
-                CustomSeq<MyStruct> p2,
+                CustomSequence<MyStruct> p1,
+                CustomSequence<MyStruct> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -750,8 +750,8 @@ namespace IceRpc.Tests.Slice
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<OperationsPrx> R1, IEnumerable<OperationsPrx> R2)> OpOperationsCustomSeqAsync(
-                CustomSeq<OperationsPrx> p1,
-                CustomSeq<OperationsPrx> p2,
+                CustomSequence<OperationsPrx> p1,
+                CustomSequence<OperationsPrx> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -762,8 +762,8 @@ namespace IceRpc.Tests.Slice
                 CancellationToken cancel) => new((p1, p2));
 
             public ValueTask<(IEnumerable<AnotherStruct> R1, IEnumerable<AnotherStruct> R2)> OpAnotherStructCustomSeqAsync(
-                CustomSeq<AnotherStruct> p1,
-                CustomSeq<AnotherStruct> p2,
+                CustomSequence<AnotherStruct> p1,
+                CustomSequence<AnotherStruct> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
         }
@@ -819,11 +819,11 @@ namespace IceRpc.Tests.Slice
         }
 
         private static async Task TestCustomSeqAsync<T>(
-            Func<CustomSeq<T>, CustomSeq<T>, Task<(CustomSeq<T>, CustomSeq<T>)>> invoker,
-            CustomSeq<T> p1,
-            CustomSeq<T> p2)
+            Func<CustomSequence<T>, CustomSequence<T>, Task<(CustomSequence<T>, CustomSequence<T>)>> invoker,
+            CustomSequence<T> p1,
+            CustomSequence<T> p2)
         {
-            (CustomSeq<T> r1, CustomSeq<T> r2) = await invoker(p1, p2);
+            (CustomSequence<T> r1, CustomSequence<T> r2) = await invoker(p1, p2);
             CollectionAssert.AreEqual(r1, p1);
             CollectionAssert.AreEqual(r2, p2);
         }
