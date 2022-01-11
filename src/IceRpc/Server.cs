@@ -45,6 +45,11 @@ namespace IceRpc
                 {
                     throw new InvalidOperationException("cannot change the endpoint of a server after calling Listen");
                 }
+                if (value.Scheme is not IceRpc.Protocol)
+                {
+                    throw new NotSupportedException($"cannot create server for endpoint with scheme '{value.Scheme}'");
+                }
+
                 _endpoint = value;
             }
         }
@@ -59,7 +64,7 @@ namespace IceRpc
 
         /// <summary>Gets the Ice protocol used by this server.</summary>
         /// <value>The Ice protocol of this server.</value>
-        public Protocol Protocol => Endpoint.Protocol;
+        public Protocol Protocol => (Protocol)Endpoint.Scheme;
 
         /// <summary>The <see cref="IServerTransport{ISimpleNetworkConnection}"/> used by this server to accept
         /// simple connections.</summary>
@@ -110,7 +115,7 @@ namespace IceRpc
                     throw new ObjectDisposedException($"{typeof(Server)}:{this}");
                 }
 
-                if (Protocol == Protocol.Ice)
+                if (Protocol == Scheme.Ice)
                 {
                     PerformListen(SimpleServerTransport,
                                   IceProtocol.Instance.ProtocolConnectionFactory,

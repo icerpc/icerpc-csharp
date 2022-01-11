@@ -54,11 +54,11 @@ namespace IceRpc.Internal
 
             bool firstOption = true;
 
-            if (endpoint.Protocol != Protocol.IceRpc)
+            if (endpoint.Scheme != Scheme.IceRpc)
             {
                 AppendQueryOption();
                 sb.Append("protocol=");
-                sb.Append(endpoint.Protocol);
+                sb.Append(endpoint.Scheme);
             }
             foreach ((string name, string value) in endpoint.Params)
             {

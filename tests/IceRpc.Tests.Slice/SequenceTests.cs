@@ -7,14 +7,14 @@ namespace IceRpc.Tests.Slice
 {
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    [TestFixture(ProtocolCode.Ice)]
-    [TestFixture(ProtocolCode.IceRpc)]
+    [TestFixture("ice")]
+    [TestFixture("icerpc")]
     public sealed class SequenceTests
     {
         private readonly ServiceProvider _serviceProvider;
         private readonly SequenceOperationsPrx _prx;
 
-        public SequenceTests(ProtocolCode protocol)
+        public SequenceTests(string protocol)
         {
             _serviceProvider = new IntegrationTestServiceCollection()
                 .UseProtocol(protocol)

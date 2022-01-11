@@ -12,8 +12,8 @@ using static IceRpc.Slice.Internal.Slice11Definitions;
 namespace IceRpc.Tests.SliceInternal
 {
     [Timeout(30000)]
-    [TestFixture(ProtocolCode.Ice)]
-    [TestFixture(ProtocolCode.IceRpc)]
+    [TestFixture("ice")]
+    [TestFixture("icerpc")]
     public sealed class ClassTests
     {
         private readonly ServiceProvider _serviceProvider;
@@ -21,7 +21,7 @@ namespace IceRpc.Tests.SliceInternal
         private readonly CompactFormatOperationsPrx _compact;
         private readonly ClassFormatOperationsPrx _classformat;
 
-        public ClassTests(ProtocolCode protocol)
+        public ClassTests(string protocol)
         {
             _serviceProvider = new IntegrationTestServiceCollection()
                 .UseProtocol(protocol)
@@ -238,7 +238,7 @@ namespace IceRpc.Tests.SliceInternal
             // an interceptor (client side).
 
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-                .UseProtocol(_serviceProvider.GetRequiredService<Connection>().Protocol.Code)
+                .UseProtocol(_serviceProvider.GetRequiredService<Connection>().Protocol.Name)
                 .AddTransient<IDispatcher>(_ =>
                 {
                     var router = new Router();

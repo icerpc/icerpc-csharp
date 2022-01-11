@@ -11,7 +11,7 @@ namespace IceRpc.Tests.Api
         [TestCase("icerpc+tcp://host:10000")]
         [TestCase("icerpc+foobar://host:10000")]
         [TestCase("icerpc+tcp://host:10000?protocol=icerpc")]
-        [TestCase("icerpc+tcp://host:10000?protocol=4")]
+        [TestCase("icerpc+tcp://host:10000?protocol=foobar")]
         [TestCase("icerpc+tcp://host")]
         [TestCase("icerpc+tcp://[::0]")]
         [TestCase("icerpc+tcp://[::0]?_foo=bar&tls=true&protocol=ice")]
@@ -31,8 +31,6 @@ namespace IceRpc.Tests.Api
         [TestCase("icerpc+tcp://host:10000/category/name")]                // unexpected path
         [TestCase("icerpc+tcp://host:10000#fragment")]                     // unexpected fragment
         [TestCase("icerpc+tcp://host:10000?encoding=1.1")]                 // encoding is proxy-only
-        [TestCase("icerpc+tcp://host:10000?protocol=icerpc422")]           // invalid protocol
-        [TestCase("icerpc+tcp://host:10000?protocol=icefoo")]              // invalid protocol
         [TestCase("icerpc+tcp://host:10000?alt-endpoint=host2")]           // alt-endpoint is proxy only
         [TestCase("icerpc+tcp://host:10000?tls")]                          // no = for tls parameter
         public void Endpoint_Parse_InvalidInput(string str) =>

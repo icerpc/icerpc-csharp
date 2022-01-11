@@ -248,7 +248,7 @@ namespace IceRpc.Transports.Internal
                 authenticationOptions.TargetHost ??= remoteEndpoint.Host;
                 authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
                     {
-                        new SslApplicationProtocol(remoteEndpoint.Protocol.Name)
+                        new SslApplicationProtocol(remoteEndpoint.Scheme.Name)
                     };
             }
 

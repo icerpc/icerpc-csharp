@@ -7,14 +7,14 @@ namespace IceRpc.Tests.Slice
 {
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    [TestFixture(ProtocolCode.Ice)]
-    [TestFixture(ProtocolCode.IceRpc)]
+    [TestFixture("ice")]
+    [TestFixture("icerpc")]
     public sealed class DictionaryTests
     {
         private readonly ServiceProvider _serviceProvider;
         private readonly DictionaryOperationsPrx _prx;
 
-        public DictionaryTests(ProtocolCode protocol)
+        public DictionaryTests(string protocol)
         {
             _serviceProvider = new IntegrationTestServiceCollection()
                 .UseProtocol(protocol)

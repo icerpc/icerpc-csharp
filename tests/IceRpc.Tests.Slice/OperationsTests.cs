@@ -7,15 +7,15 @@ namespace IceRpc.Tests.Slice
 {
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    [TestFixture(ProtocolCode.Ice)]
-    [TestFixture(ProtocolCode.IceRpc)]
+    [TestFixture("ice")]
+    [TestFixture("icerpc")]
     public sealed class OperationsTests : IAsyncDisposable
     {
         private readonly ServiceProvider _serviceProvider;
         private readonly OperationsPrx _prx;
         private readonly DerivedOperationsPrx _derivedPrx;
 
-        public OperationsTests(ProtocolCode protocol)
+        public OperationsTests(string protocol)
         {
             _serviceProvider = new IntegrationTestServiceCollection()
                 .UseProtocol(protocol)
@@ -87,7 +87,7 @@ namespace IceRpc.Tests.Slice
             var service = ServicePrx.Parse(proxy, format: format);
             ServicePrx result = await _prx.OpServiceAsync(service);
 
-            if (_prx.Proxy.Protocol == Protocol.Ice && actualIceProxy != null)
+            if (_prx.Proxy.Scheme == Scheme.Ice && actualIceProxy != null)
             {
                 var actual = ServicePrx.Parse(actualIceProxy, format: format);
                 Assert.AreEqual(actual, result);

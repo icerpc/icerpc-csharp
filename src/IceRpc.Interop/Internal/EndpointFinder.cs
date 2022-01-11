@@ -59,7 +59,7 @@ namespace IceRpc.Internal
 
                     if (prx?.Proxy is Proxy proxy)
                     {
-                        if (proxy.Endpoint == null || proxy.Protocol != Protocol.Ice)
+                        if (proxy.Endpoint == null || proxy.Scheme != Scheme.Ice)
                         {
                             throw new InvalidDataException($"findObjectById returned invalid proxy '{proxy}'");
                         }

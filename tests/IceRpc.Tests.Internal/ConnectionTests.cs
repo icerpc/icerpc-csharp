@@ -13,15 +13,15 @@ namespace IceRpc.Tests.Internal
     [Timeout(5000)]
     public class ConnectionTests
     {
-        [TestCase(ProtocolCode.IceRpc, "tcp", false)]
-        [TestCase(ProtocolCode.IceRpc, "tcp", true)]
-        [TestCase(ProtocolCode.Ice, "tcp", false)]
-        [TestCase(ProtocolCode.Ice, "tcp", true)]
-        [TestCase(ProtocolCode.IceRpc, "coloc", false)]
-        [TestCase(ProtocolCode.IceRpc, "coloc", true)]
-        [TestCase(ProtocolCode.Ice, "coloc", false)]
-        [TestCase(ProtocolCode.Ice, "coloc", true)]
-        public async Task Connection_CloseAsync(ProtocolCode protocol, string transport, bool closeClientSide)
+        [TestCase("icerpc", "tcp", false)]
+        [TestCase("icerpc", "tcp", true)]
+        [TestCase("ice", "tcp", false)]
+        [TestCase("ice", "tcp", true)]
+        [TestCase("icerpc", "coloc", false)]
+        [TestCase("icerpc", "coloc", true)]
+        [TestCase("ice", "coloc", false)]
+        [TestCase("ice", "coloc", true)]
+        public async Task Connection_CloseAsync(string protocol, string transport, bool closeClientSide)
         {
             using var semaphore = new SemaphoreSlim(0);
             await using var factory = new ConnectionFactory(new ConnectionTestServiceCollection(
@@ -48,11 +48,11 @@ namespace IceRpc.Tests.Internal
             semaphore.Release();
         }
 
-        [TestCase(ProtocolCode.Ice, false)]
-        [TestCase(ProtocolCode.Ice, true)]
-        [TestCase(ProtocolCode.IceRpc, false)]
-        [TestCase(ProtocolCode.IceRpc, true)]
-        public async Task Connection_ClosedEventAsync(ProtocolCode protocol, bool closeClientSide)
+        [TestCase("ice", false)]
+        [TestCase("ice", true)]
+        [TestCase("icerpc", false)]
+        [TestCase("icerpc", true)]
+        public async Task Connection_ClosedEventAsync(string protocol, bool closeClientSide)
         {
             await using var factory = new ConnectionFactory(new ConnectionTestServiceCollection("tcp", protocol));
 
@@ -72,11 +72,11 @@ namespace IceRpc.Tests.Internal
             await semaphore.WaitAsync();
         }
 
-        [TestCase(ProtocolCode.Ice, false)]
-        [TestCase(ProtocolCode.Ice, true)]
-        [TestCase(ProtocolCode.IceRpc, false)]
-        [TestCase(ProtocolCode.IceRpc, true)]
-        public async Task Connection_CloseOnIdleAsync(ProtocolCode protocol, bool idleOnClient)
+        [TestCase("ice", false)]
+        [TestCase("ice", true)]
+        [TestCase("icerpc", false)]
+        [TestCase("icerpc", true)]
+        public async Task Connection_CloseOnIdleAsync(string protocol, bool idleOnClient)
         {
             await using var factory = new ConnectionFactory(
                 new ConnectionTestServiceCollection("tcp", protocol)
@@ -96,16 +96,16 @@ namespace IceRpc.Tests.Internal
             await semaphore.WaitAsync();
         }
 
-        [TestCase(ProtocolCode.Ice)]
-        [TestCase(ProtocolCode.IceRpc)]
-        public async Task Connection_ConnectTimeoutAsync(ProtocolCode protocol)
+        [TestCase("ice")]
+        [TestCase("icerpc")]
+        public async Task Connection_ConnectTimeoutAsync(string protocol)
         {
             await using ServiceProvider serviceProvider = new InternalTestServiceCollection()
                 .UseTransport("tcp")
                 .UseProtocol(protocol)
                 .BuildServiceProvider();
 
-            IListener listener = protocol == Protocol.Ice.Code ?
+            IListener listener = protocol == Scheme.Ice.Name ?
                 serviceProvider.GetRequiredService<IListener<ISimpleNetworkConnection>>() :
                 serviceProvider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
 
@@ -159,9 +159,9 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        [TestCase(ProtocolCode.Ice)]
-        [TestCase(ProtocolCode.IceRpc)]
-        public async Task Connection_IdleTimeoutAsync(ProtocolCode protocol)
+        [TestCase("ice")]
+        [TestCase("icerpc")]
+        public async Task Connection_IdleTimeoutAsync(string protocol)
         {
             await using var factory = new ConnectionFactory(
                 new ConnectionTestServiceCollection("tcp", protocol)
@@ -177,7 +177,7 @@ namespace IceRpc.Tests.Internal
             Assert.That(factory.ClientConnection.NetworkConnectionInformation?.IdleTimeout,
                         Is.EqualTo(TimeSpan.FromSeconds(2)));
 
-            if (protocol == ProtocolCode.Ice)
+            if (protocol == "ice")
             {
                 Assert.That(factory.ServerConnection.NetworkConnectionInformation?.IdleTimeout,
                             Is.EqualTo(TimeSpan.FromSeconds(3)));
@@ -189,9 +189,9 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        [TestCase(ProtocolCode.Ice)]
-        [TestCase(ProtocolCode.IceRpc)]
-        public async Task Connection_KeepAliveAsync(ProtocolCode protocol)
+        [TestCase("ice")]
+        [TestCase("icerpc")]
+        public async Task Connection_KeepAliveAsync(string protocol)
         {
             await using var factory = new ConnectionFactory(
                 new ConnectionTestServiceCollection(protocol: protocol),
@@ -207,11 +207,11 @@ namespace IceRpc.Tests.Internal
             Assert.That(factory.ServerConnection.Options.KeepAlive, Is.True);
         }
 
-        [TestCase(ProtocolCode.Ice, false)]
-        [TestCase(ProtocolCode.Ice, true)]
-        [TestCase(ProtocolCode.IceRpc, false)]
-        [TestCase(ProtocolCode.IceRpc, true)]
-        public async Task Connection_KeepAliveOnIdleAsync(ProtocolCode protocol, bool heartbeatOnClient)
+        [TestCase("ice", false)]
+        [TestCase("ice", true)]
+        [TestCase("icerpc", false)]
+        [TestCase("icerpc", true)]
+        public async Task Connection_KeepAliveOnIdleAsync(string protocol, bool heartbeatOnClient)
         {
             await using var factory = new ConnectionFactory(
                 new ConnectionTestServiceCollection("tcp", protocol)
@@ -238,9 +238,9 @@ namespace IceRpc.Tests.Internal
             Assert.That(factory.ServerConnection.State, Is.EqualTo(ConnectionState.Active));
         }
 
-        [TestCase(ProtocolCode.Ice)]
-        [TestCase(ProtocolCode.IceRpc)]
-        public async Task Connection_KeepAliveOnInvocationAsync(ProtocolCode protocol)
+        [TestCase("ice")]
+        [TestCase("icerpc")]
+        public async Task Connection_KeepAliveOnInvocationAsync(string protocol)
         {
             using var dispatchSemaphore = new SemaphoreSlim(0);
             await using var factory = new ConnectionFactory(
@@ -264,11 +264,11 @@ namespace IceRpc.Tests.Internal
             await pingTask;
         }
 
-        [TestCase(ProtocolCode.IceRpc, false)]
-        [TestCase(ProtocolCode.Ice, false)]
-        [TestCase(ProtocolCode.IceRpc, true)]
-        [TestCase(ProtocolCode.Ice, true)]
-        public async Task Connection_Resumable(ProtocolCode protocol, bool closeClientSide)
+        [TestCase("icerpc", false)]
+        [TestCase("ice", false)]
+        [TestCase("icerpc", true)]
+        [TestCase("ice", true)]
+        public async Task Connection_Resumable(string protocol, bool closeClientSide)
         {
             // Don't use the connection factory since it doesn't create resumable connections.
             Connection? serverConnection = null;
@@ -314,11 +314,11 @@ namespace IceRpc.Tests.Internal
             Assert.That(clientConnection.State, Is.EqualTo(ConnectionState.Active));
         }
 
-        [TestCase(ProtocolCode.IceRpc, false)]
-        [TestCase(ProtocolCode.Ice, false)]
-        [TestCase(ProtocolCode.IceRpc, true)]
-        [TestCase(ProtocolCode.Ice, true)]
-        public async Task Connection_NotResumable(ProtocolCode protocol, bool closeClientSide)
+        [TestCase("icerpc", false)]
+        [TestCase("ice", false)]
+        [TestCase("icerpc", true)]
+        [TestCase("ice", true)]
+        public async Task Connection_NotResumable(string protocol, bool closeClientSide)
         {
             await using var factory = new ConnectionFactory(
                 new ConnectionTestServiceCollection(
@@ -343,13 +343,13 @@ namespace IceRpc.Tests.Internal
             Assert.ThrowsAsync<ConnectionClosedException>(() => factory.ServicePrx.IcePingAsync());
         }
 
-        [TestCase(ProtocolCode.IceRpc, "tcp", false)]
-        [TestCase(ProtocolCode.IceRpc, "tcp", true)]
-        [TestCase(ProtocolCode.Ice, "tcp", false)]
-        [TestCase(ProtocolCode.Ice, "tcp", true)]
-        [TestCase(ProtocolCode.IceRpc, "coloc", false)]
-        [TestCase(ProtocolCode.IceRpc, "coloc", true)]
-        public async Task Connection_ShutdownAsync(ProtocolCode protocol, string transport, bool closeClientSide)
+        [TestCase("icerpc", "tcp", false)]
+        [TestCase("icerpc", "tcp", true)]
+        [TestCase("ice", "tcp", false)]
+        [TestCase("ice", "tcp", true)]
+        [TestCase("icerpc", "coloc", false)]
+        [TestCase("icerpc", "coloc", true)]
+        public async Task Connection_ShutdownAsync(string protocol, string transport, bool closeClientSide)
         {
             using var waitForDispatchSemaphore = new SemaphoreSlim(0);
             using var dispatchSemaphore = new SemaphoreSlim(0);
@@ -372,7 +372,7 @@ namespace IceRpc.Tests.Internal
             Task shutdownTask =
                 (closeClientSide ? factory.ClientConnection : factory.ServerConnection).ShutdownAsync("message");
 
-            if (protocol == ProtocolCode.Ice && closeClientSide)
+            if (protocol == "ice" && closeClientSide)
             {
                 await shutdownTask;
 
@@ -391,11 +391,11 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        [TestCase(false, ProtocolCode.Ice)]
-        [TestCase(true, ProtocolCode.Ice)]
-        [TestCase(false, ProtocolCode.IceRpc)]
-        [TestCase(true, ProtocolCode.IceRpc)]
-        public async Task Connection_ShutdownCancellationAsync(bool closeClientSide, ProtocolCode protocol)
+        [TestCase(false, "ice")]
+        [TestCase(true, "ice")]
+        [TestCase(false, "icerpc")]
+        [TestCase(true, "icerpc")]
+        public async Task Connection_ShutdownCancellationAsync(bool closeClientSide, string protocol)
         {
             using var waitForDispatchSemaphore = new SemaphoreSlim(0);
             using var dispatchSemaphore = new SemaphoreSlim(0);
@@ -448,7 +448,7 @@ namespace IceRpc.Tests.Internal
                 await dispatchSemaphore.WaitAsync();
 
                 // The invocation on the connection should throw a DispatchException
-                if (protocol == ProtocolCode.Ice)
+                if (protocol == "ice")
                 {
                     DispatchException? ex = Assert.ThrowsAsync<DispatchException>(async () => await pingTask);
                     Assert.That(ex!.RetryPolicy, Is.EqualTo(RetryPolicy.NoRetry));
@@ -461,14 +461,14 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        [TestCase(ProtocolCode.IceRpc, "tcp", false)]
-        [TestCase(ProtocolCode.IceRpc, "tcp", true)]
-        [TestCase(ProtocolCode.Ice, "tcp", false)]
-        [TestCase(ProtocolCode.Ice, "tcp", true)]
-        [TestCase(ProtocolCode.IceRpc, "coloc", false)]
-        [TestCase(ProtocolCode.IceRpc, "coloc", true)]
+        [TestCase("icerpc", "tcp", false)]
+        [TestCase("icerpc", "tcp", true)]
+        [TestCase("ice", "tcp", false)]
+        [TestCase("ice", "tcp", true)]
+        [TestCase("icerpc", "coloc", false)]
+        [TestCase("icerpc", "coloc", true)]
         public async Task Connection_ShutdownAsync_CloseTimeoutAsync(
-            ProtocolCode protocol,
+            string protocol,
             string transport,
             bool closeClientSide)
         {
@@ -502,7 +502,7 @@ namespace IceRpc.Tests.Internal
             {
                 // Shutdown should trigger the abort of the connection after the close timeout
                 await factory.ClientConnection.ShutdownAsync();
-                if (protocol == ProtocolCode.Ice)
+                if (protocol == "ice")
                 {
                     // Invocations are canceled immediately on shutdown with Ice
                     Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
@@ -526,13 +526,13 @@ namespace IceRpc.Tests.Internal
         {
             internal ConnectionTestServiceCollection(
                 string transport = "coloc",
-                ProtocolCode? protocol = null,
+                string? protocol = null,
                 IDispatcher? dispatcher = null)
             {
                 this.UseTransport(transport);
                 if (protocol != null)
                 {
-                    this.UseProtocol(protocol.Value);
+                    this.UseProtocol(protocol);
                 }
                 if (dispatcher != null)
                 {
@@ -566,7 +566,7 @@ namespace IceRpc.Tests.Internal
                 _serviceProvider = serviceCollection.BuildServiceProvider();
 
                 (ServerConnection, ClientConnection) =
-                    _serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ?
+                    _serviceProvider.GetRequiredService<Protocol>() == Scheme.Ice ?
                         PerformAcceptAndConnectAsync(IceProtocol.Instance.ProtocolConnectionFactory).Result :
                         PerformAcceptAndConnectAsync(IceRpcProtocol.Instance.ProtocolConnectionFactory).Result;
 
@@ -588,7 +588,7 @@ namespace IceRpc.Tests.Internal
                 {
                     T networkConnection = await listener.AcceptAsync();
 
-                    var connection = new Connection(networkConnection, listener.Endpoint.Protocol)
+                    var connection = new Connection(networkConnection, (Protocol)listener.Endpoint.Scheme)
                     {
                         Dispatcher = _serviceProvider.GetService<IDispatcher>(),
                         Options = serverConnectionOptions ?? new(),

@@ -10,7 +10,7 @@ namespace IceRpc.Tests.ClientServer
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(ParallelScope.All)]
     [Timeout(30000)]
-    [Log(LogAttributeLevel.Information)]
+    // [Log(LogAttributeLevel.Information)]
     public sealed class LocatorTests : IAsyncDisposable
     {
         private Identity GreeterIdentity => Identity.FromPath(_greeter.Proxy.Path);
@@ -37,7 +37,7 @@ namespace IceRpc.Tests.ClientServer
             _server.Listen();
 
             // Must be created after Listen to get the port number.
-            _greeter = GreeterPrx.FromPath(path, Protocol.Ice);
+            _greeter = GreeterPrx.FromPath(path, Scheme.Ice);
             _greeter.Proxy.Endpoint = _server.Endpoint;
             _greeter.Proxy.Invoker = _pipeline;
         }

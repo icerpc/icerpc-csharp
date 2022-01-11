@@ -7,14 +7,14 @@ namespace IceRpc.Tests.Slice
 {
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    [TestFixture(ProtocolCode.Ice)]
-    [TestFixture(ProtocolCode.IceRpc)]
+    [TestFixture("ice")]
+    [TestFixture("icerpc")]
     public sealed class Exception
     {
         private readonly ServiceProvider _serviceProvider;
         private readonly ExceptionOperationsPrx _prx;
 
-        public Exception(ProtocolCode protocol)
+        public Exception(string protocol)
         {
             _serviceProvider = new IntegrationTestServiceCollection()
                 .UseProtocol(protocol)
@@ -71,7 +71,7 @@ namespace IceRpc.Tests.Slice
                 Assert.ThrowsAsync<RemoteException>(async () => await _prx.ThrowRemoteExceptionAsync());
 
             Assert.That(remoteEx, Is.Not.Null);
-            if (_prx.Proxy.Protocol == Protocol.IceRpc)
+            if (_prx.Proxy.Scheme == Scheme.IceRpc)
             {
                 Assert.AreEqual("some message", remoteEx!.Message);
             }

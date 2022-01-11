@@ -25,9 +25,9 @@ namespace IceRpc
         {
             string uriString = s.Trim();
 
-            bool iceScheme = uriString.StartsWith(IceRpcColon, StringComparison.Ordinal);
+            bool iceRpcScheme = uriString.StartsWith(IceRpcColon, StringComparison.Ordinal);
 
-            if (iceScheme)
+            if (iceRpcScheme)
             {
                 string body = uriString[IceRpcColon.Length..]; // chop-off "icerpc:"
                 if (body.StartsWith("//", StringComparison.Ordinal))
@@ -37,7 +37,7 @@ namespace IceRpc
                 // Add empty authority for Uri's constructor.
                 uriString = body.StartsWith('/') ? $"{IceRpcColon}//{body}" : $"{IceRpcColon}///{body}";
 
-                TryAddScheme("ice");
+                TryAddScheme("icerpc");
             }
             else
             {
@@ -46,26 +46,26 @@ namespace IceRpc
                     throw new FormatException($"'{uriString}' is not a proxy URI");
                 }
 
-                string scheme = uriString[0..uriString.IndexOf(':', IceRpcPlus.Length)];
-                if (scheme.Length == 0)
+                string iceRpcTransportScheme = uriString[0..uriString.IndexOf(':', IceRpcPlus.Length)];
+                if (iceRpcTransportScheme.Length == 0)
                 {
                     throw new FormatException($"endpoint '{uriString}' does not specify a transport");
                 }
-                TryAddScheme(scheme);
+                TryAddScheme(iceRpcTransportScheme);
             }
 
             var uri = new Uri(uriString);
 
-            (ImmutableList<EndpointParam> endpointParams, Protocol? protocol, string? altEndpointValue, string? encoding) =
+            (ImmutableList<EndpointParam> endpointParams, Scheme? scheme, string? altEndpointValue, string? encoding) =
                 ParseQuery(uri.Query, uriString);
 
-            protocol ??= Protocol.IceRpc;
+            scheme ??= Scheme.IceRpc;
 
             Endpoint? endpoint = null;
             ImmutableList<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
-            if (!iceScheme)
+            if (!iceRpcScheme)
             {
-                endpoint = CreateEndpoint(uri, endpointParams, protocol, uriString);
+                endpoint = CreateEndpoint(uri, endpointParams, scheme, uriString);
 
                 if (altEndpointValue != null)
                 {
@@ -83,12 +83,12 @@ namespace IceRpc
                         // before sending the string to ParseEndpointUri which uses & as separator.
                         altUriString = altUriString.Replace('$', '&');
 
-                        Endpoint parsedEndpoint = ParseEndpoint(altUriString, endpoint.Protocol);
+                        Endpoint parsedEndpoint = ParseEndpoint(altUriString, endpoint.Scheme);
 
-                        if (parsedEndpoint.Protocol != endpoint.Protocol)
+                        if (parsedEndpoint.Scheme != endpoint.Scheme)
                         {
                             throw new FormatException(
-                                $"the protocol of all endpoints in '{uriString}' must be the same");
+                                $"the scheme of all endpoints in '{uriString}' must be the same");
                         }
                         altEndpoints = altEndpoints.Add(parsedEndpoint);
                     }
@@ -100,12 +100,14 @@ namespace IceRpc
                 uri.AbsolutePath[0] == '/' &&
                 Proxy.IsValidPath(uri.AbsolutePath));
 
-            return new Proxy(uri.AbsolutePath, protocol)
+            return new Proxy(uri.AbsolutePath, scheme)
             {
                 Invoker = invoker ?? Proxy.DefaultInvoker,
                 Endpoint = endpoint,
                 AltEndpoints = altEndpoints,
-                Encoding = encoding == null ? (protocol.IceEncoding ?? Encoding.Unknown) : Encoding.FromString(encoding),
+                Encoding = encoding == null ?
+                    (scheme is Protocol protocol ? protocol.SliceEncoding : Encoding.Unknown) :
+                    Encoding.FromString(encoding),
                 Fragment = uri.Fragment.Length > 0 ? uri.Fragment[1..] : "" // remove #
             };
         }
@@ -121,7 +123,7 @@ namespace IceRpc
                 // Use icerpc+transport scheme
                 sb.AppendEndpoint(proxy.Endpoint, proxy.Path);
 
-                firstOption = proxy.Endpoint.Protocol == Protocol.IceRpc && proxy.Endpoint.Params.Count == 0;
+                firstOption = proxy.Endpoint.Scheme == Scheme.IceRpc && proxy.Endpoint.Params.Count == 0;
             }
             else
             {
@@ -129,8 +131,8 @@ namespace IceRpc
                 sb.Append(proxy.Path);
 
                 StartQueryOption(sb, ref firstOption);
-                sb.Append("protocol=");
-                sb.Append(proxy.Protocol);
+                sb.Append("scheme=");
+                sb.Append(proxy.Scheme);
             }
 
             // TODO: remove
@@ -180,26 +182,26 @@ namespace IceRpc
 
         /// <summary>Parses an icerpc+transport URI string that represents a single endpoint.</summary>
         /// <param name="uriString">The URI string to parse.</param>
-        /// <param name="defaultProtocol">The default protocol.</param>
+        /// <param name="defaultScheme">The default scheme.</param>
         /// <returns>The parsed endpoint.</returns>
-        internal static Endpoint ParseEndpoint(string uriString, Protocol defaultProtocol)
+        internal static Endpoint ParseEndpoint(string uriString, Scheme defaultScheme)
         {
             if (!uriString.StartsWith(IceRpcPlus, StringComparison.Ordinal))
             {
                 throw new FormatException($"endpoint '{uriString}' is not an {IceRpcPlus} URI");
             }
 
-            string scheme = uriString[0..uriString.IndexOf(':', IceRpcPlus.Length)];
-            if (scheme.Length == 0)
+            string iceRpcTransportScheme = uriString[0..uriString.IndexOf(':', IceRpcPlus.Length)];
+            if (iceRpcTransportScheme.Length == 0)
             {
                 throw new FormatException($"endpoint '{uriString}' does not specify a transport");
             }
 
-            TryAddScheme(scheme);
+            TryAddScheme(iceRpcTransportScheme);
 
             var uri = new Uri(uriString);
 
-            (ImmutableList<EndpointParam> endpointParams, Protocol? protocol, string? altEndpoint, string? encoding) =
+            (ImmutableList<EndpointParam> endpointParams, Scheme? scheme, string? altEndpoint, string? encoding) =
                 ParseQuery(uri.Query, uriString);
 
             if (uri.AbsolutePath.Length > 1)
@@ -218,25 +220,25 @@ namespace IceRpc
             {
                 throw new FormatException($"invalid encoding parameter in endpoint '{uriString}'");
             }
-            return CreateEndpoint(uri, endpointParams, protocol ?? defaultProtocol, uriString);
+            return CreateEndpoint(uri, endpointParams, scheme ?? defaultScheme, uriString);
         }
 
         private static Endpoint CreateEndpoint(
             Uri uri,
             ImmutableList<EndpointParam> endpointParams,
-            Protocol protocol,
-            string uriString) => new(protocol,
+            Scheme scheme,
+            string uriString) => new(scheme,
                                      uri.Scheme[IceRpcPlus.Length..],
                                      uri.DnsSafeHost,
                                      checked((ushort)uri.Port),
                                      endpointParams);
 
-        private static (ImmutableList<EndpointParam> EndpointParams, Protocol? Protocol, string? AltEndpoint, string? Encoding) ParseQuery(
+        private static (ImmutableList<EndpointParam> EndpointParams, Scheme? Scheme, string? AltEndpoint, string? Encoding) ParseQuery(
             string query,
             string uriString)
         {
             var endpointParams = new List<EndpointParam>();
-            Protocol? protocol = null;
+            Scheme? scheme = null;
             string? altEndpoint = null;
             string? encoding = null;
 
@@ -261,9 +263,9 @@ namespace IceRpc
                     encoding = encoding == null ? value :
                         throw new FormatException($"too many encoding query parameters in URI {uriString}");
                 }
-                else if (name == "protocol")
+                else if (name == "protocol") // temporary, remove
                 {
-                    protocol = protocol == null ? Protocol.Parse(value) :
+                    scheme = scheme == null ? Scheme.FromString(value) :
                         throw new FormatException($"too many protocol query parameters in URI {uriString}");
                 }
                 else
@@ -271,7 +273,7 @@ namespace IceRpc
                     endpointParams.Add(new EndpointParam(name, value));
                 }
             }
-            return (endpointParams.ToImmutableList(), protocol, altEndpoint, encoding);
+            return (endpointParams.ToImmutableList(), scheme, altEndpoint, encoding);
         }
 
         private static void TryAddScheme(string scheme)
@@ -288,7 +290,7 @@ namespace IceRpc
 
                     int defaultPort = DefaultUriPort;
 
-                    if (scheme == "ice")
+                    if (scheme == "icerpc")
                     {
                         parserOptions |= GenericUriParserOptions.AllowEmptyAuthority | GenericUriParserOptions.NoPort;
                         defaultPort = -1;

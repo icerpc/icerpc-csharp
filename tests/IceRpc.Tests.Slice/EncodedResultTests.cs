@@ -7,14 +7,14 @@ namespace IceRpc.Tests.Slice
 {
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    [TestFixture(ProtocolCode.Ice)]
-    [TestFixture(ProtocolCode.IceRpc)]
+    [TestFixture("ice")]
+    [TestFixture("icerpc")]
     public sealed class EncodedResultTests
     {
         private readonly ServiceProvider _serviceProvider;
         private readonly EncodedResultOperationsPrx _prx;
 
-        public EncodedResultTests(ProtocolCode protocol)
+        public EncodedResultTests(string protocol)
         {
             _serviceProvider = new IntegrationTestServiceCollection()
                 .UseProtocol(protocol)

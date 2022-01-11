@@ -13,8 +13,8 @@ namespace IceRpc
     [TypeConverter(typeof(EndpointTypeConverter))]
     public sealed record class Endpoint
     {
-        /// <summary>The Ice protocol of this endpoint.</summary>
-        public Protocol Protocol { get; set; }
+        /// <summary>The scheme of this endpoint.</summary>
+        public Scheme Scheme { get; set; }
 
         /// <summary>The transport of this endpoint, for example "tcp" or "quic".</summary>
         public string Transport { get; set; }
@@ -40,22 +40,22 @@ namespace IceRpc
         /// <returns>The new endpoint.</returns>
         /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of an endpoint.
         /// </exception>
-        public static Endpoint FromString(string s) => UriProxyFormat.ParseEndpoint(s, Protocol.IceRpc);
+        public static Endpoint FromString(string s) => UriProxyFormat.ParseEndpoint(s, Scheme.IceRpc);
 
         /// <summary>Constructs a new endpoint.</summary>
-        /// <param name="protocol">The Ice protocol of this endpoint.</param>
+        /// <param name="scheme">The Ice scheme of this endpoint.</param>
         /// <param name="transport">The transport of this endpoint, for example "tcp" or "quic".</param>
         /// <param name="host">The host name or address.</param>
         /// <param name="port">The port number.</param>
         /// <param name="params">Transport-specific parameters.</param>
         public Endpoint(
-            Protocol protocol,
+            Scheme scheme,
             string transport,
             string host,
             ushort port,
             ImmutableList<EndpointParam> @params)
         {
-            Protocol = protocol;
+            Scheme = scheme;
             Transport = transport;
             Host = host;
             Port = port;
@@ -68,7 +68,7 @@ namespace IceRpc
         /// same order); otherwise, <c>false</c>.</returns>
         public bool Equals(Endpoint? other) =>
             other != null &&
-            Protocol == other.Protocol &&
+            Scheme == other.Scheme &&
             Transport == other.Transport &&
             Host == other.Host &&
             Port == other.Port &&
@@ -78,15 +78,15 @@ namespace IceRpc
         /// <returns>The hash code.</returns>
         public override int GetHashCode() =>
             HashCode.Combine(
-                Protocol,
+                Scheme,
                 Transport,
                 Host,
                 Port,
                 Params.GetSequenceHashCode());
 
         /// <summary>Converts this endpoint into a string.</summary>
-        /// <returns>The string representation of this endpoint. It's an icerpc+transport URI when <see cref="Protocol"/>
-        /// is icerpc, and an ice string when the Protocol is ice.</returns>
+        /// <returns>The string representation of this endpoint. It's an icerpc+transport URI when <see cref="Scheme"/>
+        /// is icerpc, and an ice string when the Scheme is ice.</returns>
         public override string ToString()
         {
             var sb = new StringBuilder();
@@ -106,13 +106,13 @@ namespace IceRpc
             public override bool Equals(Endpoint? lhs, Endpoint? rhs) =>
                 ReferenceEquals(lhs, rhs) ||
                     (lhs != null && rhs != null &&
-                    lhs.Protocol == rhs.Protocol &&
+                    lhs.Scheme == rhs.Scheme &&
                     lhs.Transport == rhs.Transport &&
                     lhs.Host == rhs.Host &&
                     lhs.Port == rhs.Port);
 
             public override int GetHashCode(Endpoint endpoint) =>
-                HashCode.Combine(endpoint.Protocol,
+                HashCode.Combine(endpoint.Scheme,
                                  endpoint.Transport,
                                  endpoint.Host,
                                  endpoint.Port);

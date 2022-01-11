@@ -86,8 +86,8 @@ namespace IceRpc.Tests
 
     public static class IntegrationTestServiceCollectionExtensions
     {
-        public static IServiceCollection UseProtocol(this IServiceCollection collection, ProtocolCode protocolCode) =>
-            collection.AddScoped(_ => Protocol.FromProtocolCode(protocolCode));
+        public static IServiceCollection UseProtocol(this IServiceCollection collection, string protocol) =>
+            collection.AddScoped(_ => (Protocol)Scheme.FromString(protocol));
 
         public static IServiceCollection UseVoidDispatcher(this IServiceCollection collection) =>
             collection.AddTransient<IDispatcher>(_ => new InlineDispatcher((request, cancel) =>

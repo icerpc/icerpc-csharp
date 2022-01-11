@@ -7,8 +7,8 @@ module IceRpc::Slice::Internal
     [cs:readonly]
     struct EndpointData
     {
-        /// The protocol.
-        protocol: ProtocolCode,
+        /// The scheme (TODO: remove)
+        scheme: string,
 
         /// The name of the transport, for example tcp.
         transport: string,

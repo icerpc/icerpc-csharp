@@ -64,7 +64,10 @@ namespace IceRpc
         /// <param name="proxy">The <see cref="Proxy"/> used to send the request.</param>
         /// <param name="operation">The operation of the request.</param>
         public OutgoingRequest(Proxy proxy, string operation) :
-            base(proxy.Protocol, new DelayedPipeWriterDecorator())
+            base(
+                protocol: proxy.Scheme as Protocol ??
+                    throw new NotSupportedException($"cannot created outgoing request for scheme {proxy.Scheme}"),
+                new DelayedPipeWriterDecorator())
         {
             AltEndpoints = proxy.AltEndpoints;
             Connection = proxy.Connection;

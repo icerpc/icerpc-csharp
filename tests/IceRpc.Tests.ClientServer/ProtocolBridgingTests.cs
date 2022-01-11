@@ -13,17 +13,17 @@ namespace IceRpc.Tests.ClientServer
     [Timeout(30000)]
     public sealed class ProtocolBridgingTests
     {
-        [TestCase(ProtocolCode.IceRpc, ProtocolCode.IceRpc, true)]
-        [TestCase(ProtocolCode.Ice, ProtocolCode.Ice, true)]
-        [TestCase(ProtocolCode.IceRpc, ProtocolCode.IceRpc, false)]
-        [TestCase(ProtocolCode.Ice, ProtocolCode.Ice, false)]
-        [TestCase(ProtocolCode.IceRpc, ProtocolCode.Ice, true)]
-        [TestCase(ProtocolCode.Ice, ProtocolCode.IceRpc, true)]
-        [TestCase(ProtocolCode.IceRpc, ProtocolCode.Ice, false)]
-        [TestCase(ProtocolCode.Ice, ProtocolCode.IceRpc, false)]
+        [TestCase("icerpc", "icerpc", true)]
+        [TestCase("ice", "ice", true)]
+        [TestCase("icerpc", "icerpc", false)]
+        [TestCase("ice", "ice", false)]
+        [TestCase("icerpc", "ice", true)]
+        [TestCase("ice", "icerpc", true)]
+        [TestCase("icerpc", "ice", false)]
+        [TestCase("ice", "icerpc", false)]
         public async Task ProtocolBridging_Forward(
-            ProtocolCode forwarderProtocol,
-            ProtocolCode targetProtocol,
+            string forwarderProtocol,
+            string targetProtocol,
             bool colocated)
         {
             var router = new Router();
@@ -72,10 +72,10 @@ namespace IceRpc.Tests.ClientServer
             router.Map("/forward", new Forwarder(targetServicePrx.Proxy));
 
             // TODO: test with the other encoding; currently, the encoding is always the encoding of
-            // forwardService.Proxy.Protocol
+            // forwardService.Proxy.Scheme
 
             ProtocolBridgingTestPrx newPrx = await TestProxyAsync(forwarderServicePrx, direct: false);
-            Assert.AreEqual(targetProtocol, newPrx.Proxy.Protocol.Code);
+            Assert.AreEqual(targetProtocol, newPrx.Proxy.Scheme.Name);
             _ = await TestProxyAsync(newPrx, direct: true);
 
             async Task<ProtocolBridgingTestPrx> TestProxyAsync(ProtocolBridgingTestPrx prx, bool direct)
@@ -151,14 +151,14 @@ namespace IceRpc.Tests.ClientServer
             {
                 // First create an outgoing request to _target from the incoming request:
 
-                Protocol targetProtocol = _target.Protocol;
+                var targetProtocol = (Protocol)_target.Scheme;
 
                 // Fields and context forwarding
                 IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields =
                     ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
                 FeatureCollection features = FeatureCollection.Empty;
 
-                if (incomingRequest.Protocol == Protocol.IceRpc && targetProtocol == Protocol.IceRpc)
+                if (incomingRequest.Protocol == Scheme.IceRpc && targetProtocol == Scheme.IceRpc)
                 {
                     // The context is just another field, features remain empty
                     fields = incomingRequest.Fields;

@@ -81,7 +81,7 @@ namespace IceRpc.Transports.Internal
                 _authenticationOptions = _authenticationOptions.Clone();
                 _authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
                     {
-                        new SslApplicationProtocol(endpoint.Protocol.Name)
+                        new SslApplicationProtocol(endpoint.Scheme.Name)
                     };
             }
 

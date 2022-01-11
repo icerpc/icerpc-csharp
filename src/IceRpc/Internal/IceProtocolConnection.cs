@@ -151,7 +151,7 @@ namespace IceRpc.Internal
                     EncodePayloadSize(payloadSize, payloadEncoding, buffer.Span[0..4]);
 
                     var request = new IncomingRequest(
-                        Protocol.Ice,
+                        Scheme.Ice,
                         path: requestHeader.Identity.ToPath(),
                         fragment: requestHeader.Facet.ToFragment(),
                         operation: requestHeader.Operation,
@@ -265,7 +265,7 @@ namespace IceRpc.Internal
                 }
 
                 return new IncomingResponse(
-                    Protocol.Ice,
+                    Scheme.Ice,
                     resultType,
                     new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
                     payloadEncoding)

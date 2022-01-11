@@ -107,7 +107,7 @@ namespace IceRpc
         public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
 
         /// <summary>The protocol used by the connection.</summary>
-        public Protocol Protocol => _protocol ?? RemoteEndpoint.Protocol;
+        public Protocol Protocol => _protocol ?? (Protocol)RemoteEndpoint.Scheme;
 
         /// <summary>Gets or sets the options of the connection.</summary>
         public ConnectionOptions Options { get; init; } = new();
@@ -118,7 +118,16 @@ namespace IceRpc
             get => NetworkConnectionInformation?.RemoteEndpoint ??
                    _initialRemoteEndpoint ??
                    throw new InvalidOperationException($"{nameof(RemoteEndpoint)} is not set on the connection");
-            init => _initialRemoteEndpoint = value;
+            init
+            {
+                if (value.Scheme is not IceRpc.Protocol)
+                {
+                    throw new NotSupportedException(
+                        $"cannot create client connection to endpoint with scheme '{value.Scheme}'");
+                }
+
+                _initialRemoteEndpoint = value;
+            }
         }
 
         /// <summary>The <see cref="IClientTransport{ISimpleNetworkConnection}"/> used by this connection to create
@@ -209,7 +218,7 @@ namespace IceRpc
                             _protocolConnection == null &&
                             RemoteEndpoint != null);
 
-                        _stateTask = Protocol == Protocol.Ice ?
+                        _stateTask = Protocol == Scheme.Ice ?
                             PerformConnectAsync(SimpleClientTransport,
                                                 IceProtocol.Instance.ProtocolConnectionFactory,
                                                 LogSimpleNetworkConnectionDecorator.Decorate) :
@@ -601,7 +610,7 @@ namespace IceRpc
                     if (exception is OperationCanceledException)
                     {
                         // TODO: do we really need this protocol-dependent processing?
-                        if (Protocol == Protocol.Ice)
+                        if (Protocol == Scheme.Ice)
                         {
                             exception = new DispatchException("dispatch canceled by peer");
                         }

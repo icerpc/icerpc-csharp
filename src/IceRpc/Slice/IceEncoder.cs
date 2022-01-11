@@ -258,10 +258,10 @@ namespace IceRpc.Slice
 
                     var proxyData = new ProxyData11(
                         Facet.FromFragment(proxy.Fragment),
-                        proxy.Protocol == Protocol.Ice && (proxy.Endpoint?.Transport == TransportNames.Udp) ?
+                        proxy.Scheme == Scheme.Ice && (proxy.Endpoint?.Transport == TransportNames.Udp) ?
                             InvocationMode.Datagram : InvocationMode.Twoway,
                         secure: false,
-                        protocolMajor: (byte)proxy.Protocol.Code,
+                        protocolMajor: proxy.Scheme.ToByte(),
                         protocolMinor: 0,
                         encodingMajor,
                         encodingMinor);
@@ -272,7 +272,7 @@ namespace IceRpc.Slice
                         EncodeSize(0); // 0 endpoints
                         EncodeString(""); // empty adapter ID
                     }
-                    else if (proxy.Protocol == Protocol.Ice && proxy.Endpoint.Transport == TransportNames.Loc)
+                    else if (proxy.Scheme == Scheme.Ice && proxy.Endpoint.Transport == TransportNames.Loc)
                     {
                         EncodeSize(0); // 0 endpoints
                         EncodeString(proxy.Endpoint.Host); // adapter ID unless well-known
@@ -311,10 +311,10 @@ namespace IceRpc.Slice
                     }
 
                     var proxyData = new ProxyData20(
+                        scheme: proxy.Scheme != Scheme.IceRpc ? proxy.Scheme.Name : null,
                         proxy.Path,
                         proxy.Fragment,
-                        protocol: proxy.Protocol != Protocol.IceRpc ? proxy.Protocol.Code : null,
-                        encoding: proxy.Encoding == proxy.Protocol.IceEncoding ? null : proxy.Encoding.ToString(),
+                        encoding: proxy.Encoding == (proxy.Scheme as Protocol)?.SliceEncoding ? null : proxy.Encoding.ToString(),
                         endpoint: proxy.Endpoint?.ToEndpointData(),
                         altEndpoints:
                                 proxy.AltEndpoints.Count == 0 ? null :

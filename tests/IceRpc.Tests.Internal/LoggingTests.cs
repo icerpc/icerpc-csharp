@@ -258,7 +258,7 @@ namespace IceRpc.Tests.Internal
 
         private static IncomingRequest CreateIncomingRequest(Connection connection, bool twoway) =>
             new(
-                Protocol.IceRpc,
+                Scheme.IceRpc,
                 path: "/dummy",
                 fragment: "",
                 operation: "foo",
@@ -271,7 +271,7 @@ namespace IceRpc.Tests.Internal
             };
 
         private static IncomingResponse CreateIncomingResponse() => new(
-            Protocol.IceRpc,
+            Scheme.IceRpc,
             ResultType.Success,
             PipeReader.Create(new ReadOnlySequence<byte>(new byte[10])),
             Encoding.Slice20);

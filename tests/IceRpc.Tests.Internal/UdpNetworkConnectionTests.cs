@@ -180,7 +180,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(1)]
         [TestCase(1024)]
         [TestCase(4096)]
-        [Log(LogAttributeLevel.Trace)]
+        // [Log(LogAttributeLevel.Trace)]
         public async Task UdpNetworkConnection_ReadWriteAsync(int size)
         {
             byte[] writeBuffer = new byte[size];

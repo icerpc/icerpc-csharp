@@ -8,12 +8,12 @@ namespace IceRpc.Tests.Api
 {
     [Parallelizable(scope: ParallelScope.All)]
     [Timeout(5000)]
-    [Log(LogAttributeLevel.Information)]
+    // [Log(LogAttributeLevel.Information)]
     public class ProxyTests
     {
-        [TestCase(ProtocolCode.Ice)]
-        [TestCase(ProtocolCode.IceRpc)]
-        public async Task Proxy_ServiceAsync(ProtocolCode protocol)
+        [TestCase("ice")]
+        [TestCase("icerpc")]
+        public async Task Proxy_ServiceAsync(string protocol)
         {
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .UseProtocol(protocol)
@@ -89,9 +89,9 @@ namespace IceRpc.Tests.Api
         public void Proxy_SetProperty_ArgumentException()
         {
             var iceProxy = Proxy.Parse("hello:tcp -h localhost -p 10000", format: IceProxyFormat.Default);
-            Assert.AreEqual(Protocol.Ice, iceProxy.Protocol);
+            Assert.AreEqual(Scheme.Ice, iceProxy.Scheme);
             var icerpcProxy = Proxy.Parse("icerpc+tcp://host.zeroc.com/hello");
-            Assert.AreEqual(Protocol.IceRpc, icerpcProxy.Protocol);
+            Assert.AreEqual(Scheme.IceRpc, icerpcProxy.Scheme);
 
             // Endpoints protocol must match the proxy protocol
             Assert.Throws<ArgumentException>(() => iceProxy.Endpoint = icerpcProxy.Endpoint);
@@ -123,7 +123,7 @@ namespace IceRpc.Tests.Api
                 Assert.That(proxy.Fragment, Is.EqualTo(fragment));
             }
 
-            Assert.AreEqual(Protocol.Ice, proxy.Protocol);
+            Assert.AreEqual(Scheme.Ice, proxy.Scheme);
             Assert.That(Proxy.TryParse(
                 proxy.ToString(IceProxyFormat.Default),
                 invoker: null,
@@ -140,7 +140,7 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(proxy, proxy2);
 
             var prx = GreeterPrx.Parse(str, format: IceProxyFormat.Default);
-            Assert.AreEqual(Protocol.Ice, prx.Proxy.Protocol);
+            Assert.AreEqual(Scheme.Ice, prx.Proxy.Scheme);
             Assert.That(GreeterPrx.TryParse(
                 prx.ToString(IceProxyFormat.Default),
                 invoker: null,
@@ -218,7 +218,6 @@ namespace IceRpc.Tests.Api
         [TestCase("ice + tcp://host.zeroc.com:foo")] // missing host
         [TestCase("icerpc://host:1000/identity")] // host not allowed
         [TestCase("icerpc+foo:/identity")] // missing host
-        [TestCase("icerpc+tcp://host.zeroc.com//identity?protocol=ice5")] // invalid protocol
         [TestCase("icerpc+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&alt-endpoint=host2?transport=tcp$protocol=ice3")]
         [TestCase("")]
         [TestCase("\"\"")]
@@ -398,16 +397,14 @@ namespace IceRpc.Tests.Api
         }
 
         [TestCase("3")]
-        [TestCase("4")]
-        public async Task Proxy_NotSupportedProtocol(string protocol)
+        [TestCase("foo")]
+        public void Proxy_NotSupportedProtocol(string protocol)
         {
-            await using var connection = new Connection
+            Assert.Throws<NotSupportedException>(() =>
+            new Connection
             {
                 RemoteEndpoint = $"icerpc+tcp://localhost?transport=tcp&protocol={protocol}"
-            };
-
-            var prx = GreeterPrx.FromConnection(connection);
-            Assert.ThrowsAsync<NotSupportedException>(async () => await prx.IcePingAsync());
+            });
         }
 
         [Test]

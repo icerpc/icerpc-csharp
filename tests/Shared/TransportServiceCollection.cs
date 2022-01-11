@@ -34,7 +34,7 @@ namespace IceRpc.Tests
                 });
 
             // The default protocol is IceRpc
-            this.AddScoped(_ => Protocol.IceRpc);
+            this.AddScoped(_ => Scheme.IceRpc);
 
             // Use coloc as the default transport.
             this.UseTransport("coloc");
@@ -128,7 +128,7 @@ namespace IceRpc.Tests
             if (transport == "udp")
             {
                 // Override the protocol to Ice for udp since it's the only supported protocol for this transport.
-                collection.UseProtocol(Protocol.Ice.Code);
+                collection.UseProtocol("ice");
             }
 
             collection.AddScoped(serviceProvider =>
@@ -136,7 +136,7 @@ namespace IceRpc.Tests
                 Endpoint endpoint = $"icerpc+{transport}://{host}:{port}";
 
                 // Set the endpoint protocol to the configured protocol.
-                endpoint = endpoint with { Protocol = serviceProvider.GetRequiredService<Protocol>() };
+                endpoint = endpoint with { Scheme = serviceProvider.GetRequiredService<Protocol>() };
 
                 // For tcp set the "tls" parameter
                 if (endpoint.Transport == "tcp")

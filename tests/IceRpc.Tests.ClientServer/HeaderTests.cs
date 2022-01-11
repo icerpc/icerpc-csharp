@@ -32,7 +32,7 @@ namespace IceRpc.Tests.ClientServer
                         new InlineDispatcher(async (request, cancel) =>
                         {
                             OutgoingResponse response = await next.DispatchAsync(request, cancel);
-                            if (response.Protocol == Protocol.IceRpc && response.Features.Get<string>() is string value)
+                            if (response.Protocol == Scheme.IceRpc && response.Features.Get<string>() is string value)
                             {
                                 response.Fields[1] = (ref IceEncoder encoder) => encoder.EncodeString(value);
                             }
@@ -69,7 +69,7 @@ namespace IceRpc.Tests.ClientServer
 
             await greeter.SayHelloAsync("hello", invocation);
 
-            if (greeter.Proxy.Protocol == Protocol.IceRpc)
+            if (greeter.Proxy.Scheme == Scheme.IceRpc)
             {
                 Assert.AreEqual(largeValue, invocation.ResponseFeatures.Get<string>());
             }
