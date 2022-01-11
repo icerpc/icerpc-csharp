@@ -26,8 +26,6 @@ namespace IceRpc.Internal
             if (includeScheme)
             {
                 sb.Append(endpoint.Scheme.Name);
-                sb.Append('+');
-                sb.Append(endpoint.Transport);
                 sb.Append("://");
             }
 
@@ -53,29 +51,17 @@ namespace IceRpc.Internal
                 sb.Append(path);
             }
 
-            bool firstOption = true;
+            sb.Append("?transport=");
+            sb.Append(endpoint.Transport);
 
             foreach ((string name, string value) in endpoint.Params)
             {
-                AppendQueryOption();
+                sb.Append(paramSeparator);
                 sb.Append(name);
                 sb.Append('=');
                 sb.Append(value);
             }
             return sb;
-
-            void AppendQueryOption()
-            {
-                if (firstOption)
-                {
-                    sb.Append('?');
-                    firstOption = false;
-                }
-                else
-                {
-                    sb.Append(paramSeparator);
-                }
-            }
         }
     }
 }

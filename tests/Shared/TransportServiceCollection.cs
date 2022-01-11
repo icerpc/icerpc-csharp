@@ -128,15 +128,15 @@ namespace IceRpc.Tests
             if (transport == "udp")
             {
                 // Override the protocol to Ice for udp since it's the only supported protocol for this transport.
+                // TODO: remove
                 collection.UseProtocol("ice");
             }
 
             collection.AddScoped(serviceProvider =>
             {
-                Endpoint endpoint = $"icerpc+{transport}://{host}:{port}";
+                Scheme scheme = serviceProvider.GetRequiredService<Protocol>();
 
-                // Set the endpoint protocol to the configured protocol.
-                endpoint = endpoint with { Scheme = serviceProvider.GetRequiredService<Protocol>() };
+                Endpoint endpoint = $"{scheme}://{host}:{port}?transport={transport}";
 
                 // For tcp set the "tls" parameter
                 if (endpoint.Transport == "tcp")

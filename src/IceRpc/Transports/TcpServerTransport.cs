@@ -10,7 +10,7 @@ namespace IceRpc.Transports
     public class TcpServerTransport : IServerTransport<ISimpleNetworkConnection>
     {
         /// <inheritdoc/>
-        public Endpoint DefaultEndpoint => "icerpc+tcp://[::0]";
+        public Endpoint DefaultEndpoint => "icerpc://[::0]";
 
         private readonly TcpServerOptions _options;
 

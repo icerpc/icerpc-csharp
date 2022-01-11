@@ -85,8 +85,7 @@ namespace IceRpc
                 Params.GetSequenceHashCode());
 
         /// <summary>Converts this endpoint into a string.</summary>
-        /// <returns>The string representation of this endpoint. It's an icerpc+transport URI when <see cref="Scheme"/>
-        /// is icerpc, and an ice string when the Scheme is ice.</returns>
+        /// <returns>The string representation of this endpoint.</returns>
         public override string ToString()
         {
             var sb = new StringBuilder();

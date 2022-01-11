@@ -32,7 +32,7 @@ namespace IceRpc.Tests.Slice
             // TODO Parse below should not use a connection with a different endpoint
             await Test1Async(p1 => _prx.OpAnotherStruct1Async(p1),
                              new AnotherStruct("hello",
-                                              OperationsPrx.Parse("icerpc+tcp://foo/bar"),
+                                              OperationsPrx.Parse("icerpc://foo/bar"),
                                               MyEnum.enum1,
                                               new MyStruct(1, 2)));
 
@@ -45,7 +45,7 @@ namespace IceRpc.Tests.Slice
 
             await Test2Async(p1 => _prx.OpAnotherStruct2Async(p1),
                             new AnotherStruct("hello",
-                                              OperationsPrx.Parse("icerpc+tcp://foo/bar"),
+                                              OperationsPrx.Parse("icerpc://foo/bar"),
                                               MyEnum.enum1,
                                               new MyStruct(1, 2)));
 

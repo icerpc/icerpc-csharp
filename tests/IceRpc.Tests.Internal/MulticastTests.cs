@@ -96,10 +96,10 @@ namespace IceRpc.Tests.Internal
         private static string GetEndpoint(string host, int port, bool ipv6, bool client)
         {
             string address = ipv6 ? (OperatingSystem.IsLinux() ? "[ff15::1]" : "[ff02::1]") : "239.255.1.1";
-            string endpoint = $"ice+udp://{address}:{port}";
+            string endpoint = $"ice://{address}:{port}?transport=udp";
             if (client && !OperatingSystem.IsLinux())
             {
-                endpoint += $"?interface={host}";
+                endpoint += $"&interface={host}";
             }
             return endpoint;
         }

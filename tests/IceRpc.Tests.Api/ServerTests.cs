@@ -14,13 +14,13 @@ namespace IceRpc.Tests.Api
         {
             {
                 await using var server = new Server();
-                Assert.AreEqual(Endpoint.FromString("icerpc+tcp://[::0]"), server.Endpoint);
+                Assert.AreEqual(Endpoint.FromString("icerpc://[::0]"), server.Endpoint);
             }
 
             {
                 await using var server = new Server
                 {
-                    Endpoint = "icerpc+tcp://foo:10000"
+                    Endpoint = "icerpc://foo:10000"
                 };
 
                 // A DNS name cannot be used with a server endpoint
@@ -106,7 +106,7 @@ namespace IceRpc.Tests.Api
             {
                 await using var server1 = new Server
                 {
-                    Endpoint = "icerpc+tcp://127.0.0.1:15001"
+                    Endpoint = "icerpc://127.0.0.1:15001"
                 };
                 server1.Listen();
 
@@ -114,7 +114,7 @@ namespace IceRpc.Tests.Api
                     {
                         await using var server2 = new Server
                         {
-                            Endpoint = "icerpc+tcp://127.0.0.1:15001"
+                            Endpoint = "icerpc://127.0.0.1:15001"
                         };
                         server2.Listen();
                     });
@@ -143,7 +143,7 @@ namespace IceRpc.Tests.Api
                 // Setting Endpoint after calling Listen is not allowed
                 await using var server = new Server();
                 server.Listen();
-                Assert.Throws<InvalidOperationException>(() => server.Endpoint = "icerpc+tcp://127.0.0.1:15001");
+                Assert.Throws<InvalidOperationException>(() => server.Endpoint = "icerpc://127.0.0.1:15001");
             }
 
             {
@@ -159,7 +159,7 @@ namespace IceRpc.Tests.Api
         [TestCase("tcp: ")]
         [TestCase(":tcp")]
         public void Server_InvalidEndpoints(string endpoint) =>
-            Assert.Throws<FormatException>(() => new Server { Endpoint = endpoint });
+            Assert.Catch<FormatException>(() => new Server { Endpoint = endpoint });
 
         [Test]
         // When a client cancels a request, the dispatch is canceled.

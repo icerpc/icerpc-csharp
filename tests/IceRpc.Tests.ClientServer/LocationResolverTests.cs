@@ -15,9 +15,9 @@ namespace IceRpc.Tests.ClientServer
 
         // Note that transport loc has no special meaning with icerpc.
         [TestCase(
-            "icerpc+loc://testlocation/test",
-            "icerpc+loc://unknown-location/test",
-            "ice+loc://testlocation/test")]
+            "icerpc://testlocation/test?transport=loc",
+            "icerpc://unknown-location/test?transport=loc",
+            "ice://testlocation/test?transport=loc")]
         [TestCase("test @ adapter", "test @ unknown_adapter", "test")]
         [TestCase("test", "test @ adapter", "test2")]
         public async Task LocationResolver_ResolveAsync(string proxy, params string[] badProxies)
@@ -29,7 +29,7 @@ namespace IceRpc.Tests.ClientServer
             };
 
             var pipeline = new Pipeline();
-            IProxyFormat? format = proxy.StartsWith("icerpc+", StringComparison.Ordinal) ? null : IceProxyFormat.Default;
+            IProxyFormat? format = proxy.StartsWith("ice", StringComparison.Ordinal) ? null : IceProxyFormat.Default;
 
             var indirect = GreeterPrx.Parse(proxy, pipeline, format);
             GreeterPrx direct = SetupServer(indirect.Proxy.Scheme.Name, indirect.Proxy.Path, pipeline);
@@ -73,7 +73,7 @@ namespace IceRpc.Tests.ClientServer
         private GreeterPrx SetupServer(string protocol, string path, IInvoker invoker)
         {
             string serverEndpoint = protocol == "icerpc" ?
-                "icerpc+tcp://127.0.0.1:0?tls=false" : "ice+tcp://127.0.0.1:0?tls=false";
+                "icerpc://127.0.0.1:0?tls=false" : "ice://127.0.0.1:0?tls=false";
             _server = new Server
             {
                 Dispatcher = new Greeter(),

@@ -732,7 +732,7 @@ namespace IceRpc.Tests.Slice.Stream
 
         private static AnotherStruct GetAnotherStruct(int i) =>
             new($"hello-{i}",
-                 OperationsPrx.Parse("icerpc+tcp://localhost:10000/Operations"),
+                 OperationsPrx.Parse("icerpc://localhost:10000/Operations"),
                  MyEnumValues[i % MyEnumValues.Count],
                  new MyStruct(i, i + 1));
     }

@@ -31,7 +31,7 @@ namespace IceRpc.Tests.ClientServer
 
     public class CustomServerTransport : IServerTransport<IMultiplexedNetworkConnection>
     {
-        public Endpoint DefaultEndpoint => "icerpc+custom://[::0]";
+        public Endpoint DefaultEndpoint => "icerpc://[::0]?transport=custom";
 
         private readonly IServerTransport<IMultiplexedNetworkConnection> _transport =
             new SlicServerTransport(new TcpServerTransport());
@@ -61,7 +61,7 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 MultiplexedServerTransport = new CustomServerTransport(),
-                Endpoint = "icerpc+custom://127.0.0.1:0?tls=false",
+                Endpoint = "icerpc://127.0.0.1:0?tls=false&transport=custom",
                 Dispatcher = new MyService()
             };
 
@@ -85,7 +85,7 @@ namespace IceRpc.Tests.ClientServer
                 await using var server = new Server
                 {
                     MultiplexedServerTransport = new SlicServerTransport(new TcpServerTransport()),
-                    Endpoint = "icerpc+tcp://127.0.0.1:0?tls=false&custom-p=bar",
+                    Endpoint = "icerpc://127.0.0.1:0?tls=false&custom-p=bar",
                     Dispatcher = new MyService()
                 };
                 Assert.Throws<FormatException>(() => server.Listen());
@@ -96,7 +96,7 @@ namespace IceRpc.Tests.ClientServer
                 await using var server = new Server
                 {
                     MultiplexedServerTransport = new CustomServerTransport(),
-                    Endpoint = "icerpc+custom://127.0.0.1:0?tls=false&custom-p=bar",
+                    Endpoint = "icerpc://127.0.0.1:0?tls=false&transport=custom&custom-p=bar",
                     Dispatcher = new MyService()
                 };
                 server.Listen();

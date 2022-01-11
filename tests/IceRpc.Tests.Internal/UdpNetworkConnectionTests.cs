@@ -30,7 +30,9 @@ namespace IceRpc.Tests.Internal
         {
             _isIPv6 = addressFamily == AddressFamily.InterNetworkV6;
             string host = _isIPv6 ? "[::1]" : "127.0.0.1";
-            _listener = _serverTransport.Listen($"ice+udp://{host}:0", LogAttributeLoggerFactory.Instance.Logger);
+            _listener = _serverTransport.Listen(
+                $"ice://{host}:0?transport=udp",
+                LogAttributeLoggerFactory.Instance.Logger);
         }
 
         [OneTimeSetUp]
