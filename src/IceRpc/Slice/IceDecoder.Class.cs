@@ -46,7 +46,7 @@ namespace IceRpc.Slice
             }
         }
 
-         /// <summary>Tells the decoder the end of a class or remote exception slice was reached.</summary>
+        /// <summary>Tells the decoder the end of a class or remote exception slice was reached.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceEndSlice()
         {
@@ -420,7 +420,7 @@ namespace IceRpc.Slice
             return size - 4;
         }
 
-         /// <summary>Decodes the type ID of a class instance.</summary>
+        /// <summary>Decodes the type ID of a class instance.</summary>
         /// <param name="typeIdKind">The kind of type ID to decode.</param>
         /// <returns>The type ID or the compact ID, if any.</returns>
         private string? DecodeTypeId(TypeIdKind typeIdKind)

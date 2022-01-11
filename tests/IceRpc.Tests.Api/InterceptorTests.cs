@@ -109,7 +109,7 @@ namespace IceRpc.Tests.Api
                 {
                     response = await next.InvokeAsync(request, cancel);
 
-                    ReadResult readResult = await response.Payload.ReadAllAsync(cancel);;
+                    ReadResult readResult = await response.Payload.ReadAllAsync(cancel);
                     savedPayload = new ReadOnlySequence<byte>(readResult.Buffer.ToArray());
                     response.Payload.AdvanceTo(readResult.Buffer.End);
                 }

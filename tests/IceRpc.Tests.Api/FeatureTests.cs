@@ -62,7 +62,7 @@ namespace IceRpc.Tests.Api
                         {
                             int multiplier = request.Fields.Get(1, (ref IceDecoder decoder) => decoder.DecodeInt());
                             if (multiplier != 0) // 0 == default(int)
-                    {
+                            {
                                 if (request.Features.IsReadOnly)
                                 {
                                     request.Features = new FeatureCollection(request.Features);

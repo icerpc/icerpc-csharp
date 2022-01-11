@@ -93,7 +93,7 @@ namespace IceRpc.Tests.Slice
             // Set the request decode factories so that ClassB is not available
             static void SetupRequestActivator(Router router)
             {
-                IActivator activator = IceDecoder.GetActivator(typeof(ClassA).Assembly);;
+                IActivator activator = IceDecoder.GetActivator(typeof(ClassA).Assembly);
                 router.Use(next => new InlineDispatcher(
                 (request, cancel) =>
                 {

@@ -23,10 +23,10 @@ namespace IceRpc.Tests.Internal
         {
             _serviceProvider = new InternalTestServiceCollection()
                 .AddTransient(_ => new SlicOptions()
-                    {
-                        BidirectionalStreamMaxCount = 15,
-                        UnidirectionalStreamMaxCount = 10
-                    })
+                {
+                    BidirectionalStreamMaxCount = 15,
+                    UnidirectionalStreamMaxCount = 10
+                })
                 .BuildServiceProvider();
 
             Task<IMultiplexedNetworkConnection> serverTask = _serviceProvider.GetMultiplexedServerConnectionAsync();

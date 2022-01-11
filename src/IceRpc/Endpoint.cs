@@ -1,11 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Transports.Internal;
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Globalization;
 using System.Text;
-using System.ComponentModel;
 
 namespace IceRpc
 {

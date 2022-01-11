@@ -8,9 +8,9 @@ namespace IceRpc.Transports
 {
     /// <summary>A PipeWriter that must be completed asynchronously using <see cref="PipeWriter.CompleteAsync"/>.
     /// </summary>
-    #pragma warning disable CA1001 // _stream's DisposeAsync calls CompleteAsync on this class, not the other around
+#pragma warning disable CA1001 // _stream's DisposeAsync calls CompleteAsync on this class, not the other way around
     public abstract class AsyncCompletePipeWriter : PipeWriter
-    #pragma warning restore CA1001
+#pragma warning restore CA1001
     {
         /// <summary>The cancellation token used by <see cref="PipeWriter.CompleteAsync"/> for any async call it makes.
         /// </summary>

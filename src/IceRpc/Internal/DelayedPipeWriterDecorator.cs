@@ -5,9 +5,9 @@ using System.IO.Pipelines;
 namespace IceRpc.Internal
 {
     /// <summary>A PipeWriter decorator where the decoratee is provided later through SetDecoratee.</summary>
-    #pragma warning disable CA1001 // _stream's DisposeAsync calls CompleteAsync on this class, not the other around
+#pragma warning disable CA1001 // _stream's DisposeAsync calls CompleteAsync on this class, not the other way around
     internal class DelayedPipeWriterDecorator : PipeWriter
-    #pragma warning restore CA1001
+#pragma warning restore CA1001
     {
         public override bool CanGetUnflushedBytes => Decoratee.CanGetUnflushedBytes;
         public override long UnflushedBytes => Decoratee.UnflushedBytes;

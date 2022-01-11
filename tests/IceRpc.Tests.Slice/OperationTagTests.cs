@@ -20,7 +20,8 @@ namespace IceRpc.Tests.Slice
         public OperationTagTests(string encoding)
         {
             _serviceProvider = new IntegrationTestServiceCollection()
-                .AddTransient<IDispatcher>(_ => {
+                .AddTransient<IDispatcher>(_ =>
+                {
                     var router = new Router();
                     router.Map<IOperationTagDouble>(new OperationTagDouble());
                     router.Map<IOperationTagEncodedResult>(new OperationTagEncodedResult());

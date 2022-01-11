@@ -87,7 +87,7 @@ namespace IceRpc.Tests.Slice.Stream
             }
 
             {
-                 var sendPipeReader = PipeReader.Create(_sendBuffer);
+                var sendPipeReader = PipeReader.Create(_sendBuffer);
                 (r1, reader) = await _prx.OpStreamByteSendReceive1Async(0x08, sendPipeReader);
                 readResult = await reader.ReadAtLeastAsync(256);
                 Assert.That(readResult.IsCompleted);

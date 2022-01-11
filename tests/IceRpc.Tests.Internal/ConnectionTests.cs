@@ -6,7 +6,6 @@ using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
-using System.Diagnostics;
 
 namespace IceRpc.Tests.Internal
 {

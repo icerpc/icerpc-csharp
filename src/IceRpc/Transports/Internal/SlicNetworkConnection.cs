@@ -2,12 +2,9 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
-using IceRpc.Slice.Internal;
-using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {

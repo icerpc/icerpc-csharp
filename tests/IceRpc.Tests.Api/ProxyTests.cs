@@ -194,7 +194,7 @@ namespace IceRpc.Tests.Api
         public void Proxy_Parse_ValidInputUriFormat(string str, string? path = null, string? fragment = null)
         {
             var proxy = Proxy.Parse(str);
-            Assert.That(Proxy.TryParse(proxy.ToString(), invoker: null, format:null, out Proxy? proxy2), Is.True);
+            Assert.That(Proxy.TryParse(proxy.ToString(), invoker: null, format: null, out Proxy? proxy2), Is.True);
 
             if (path != null)
             {
@@ -209,7 +209,7 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(proxy, proxy2); // round-trip works
 
             var prx = GreeterPrx.Parse(str);
-            Assert.That(GreeterPrx.TryParse(prx.ToString(), invoker: null, format:null, out GreeterPrx prx2), Is.True);
+            Assert.That(GreeterPrx.TryParse(prx.ToString(), invoker: null, format: null, out GreeterPrx prx2), Is.True);
             Assert.AreEqual(prx, prx2); // round-trip works
         }
 
@@ -237,7 +237,7 @@ namespace IceRpc.Tests.Api
         {
             Assert.Catch<FormatException>(() => Proxy.Parse(str));
             Assert.Throws<FormatException>(() => Proxy.Parse(str, format: IceProxyFormat.Default));
-            Assert.That(Proxy.TryParse(str, invoker: null, format:null, out _), Is.False);
+            Assert.That(Proxy.TryParse(str, invoker: null, format: null, out _), Is.False);
             Assert.That(Proxy.TryParse(str, invoker: null, format: IceProxyFormat.Default, out _), Is.False);
         }
 
