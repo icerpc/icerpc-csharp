@@ -17,7 +17,7 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(
             "icerpc+loc://testlocation/test",
             "icerpc+loc://unknown-location/test",
-            "icerpc+loc://testlocation/test?protocol=ice")]
+            "ice+loc://testlocation/test")]
         [TestCase("test @ adapter", "test @ unknown_adapter", "test")]
         [TestCase("test", "test @ adapter", "test2")]
         public async Task LocationResolver_ResolveAsync(string proxy, params string[] badProxies)
@@ -73,7 +73,7 @@ namespace IceRpc.Tests.ClientServer
         private GreeterPrx SetupServer(string protocol, string path, IInvoker invoker)
         {
             string serverEndpoint = protocol == "icerpc" ?
-                "icerpc+tcp://127.0.0.1:0?tls=false" : "icerpc+tcp://127.0.0.1:0?protocol=ice&tls=false";
+                "icerpc+tcp://127.0.0.1:0?tls=false" : "ice+tcp://127.0.0.1:0?tls=false";
             _server = new Server
             {
                 Dispatcher = new Greeter(),

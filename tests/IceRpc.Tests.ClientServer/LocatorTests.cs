@@ -27,7 +27,7 @@ namespace IceRpc.Tests.ClientServer
             var router = new Router();
             string path = $"/{Guid.NewGuid()}";
             router.Map(path, new Greeter());
-            string serverEndpoint = "icerpc+tcp://127.0.0.1:0?protocol=ice&tls=false";
+            string serverEndpoint = "ice+tcp://127.0.0.1:0?tls=false";
             _server = new Server
             {
                 Dispatcher = router,
@@ -233,7 +233,7 @@ namespace IceRpc.Tests.ClientServer
             // Test with indirect endpoints
             string adapter = $"adapter/{identity.Category}/{identity.Name}";
             var indirectGreeter = GreeterPrx.Parse($"{identity} @ '{adapter}'", _pipeline, IceProxyFormat.Default);
-            Assert.AreEqual($"icerpc+loc://{adapter}:0?protocol=ice", indirectGreeter.Proxy.Endpoint?.ToString());
+            Assert.AreEqual($"ice+loc://{adapter}:0", indirectGreeter.Proxy.Endpoint?.ToString());
 
             locator.RegisterAdapter(adapter, greeter);
 

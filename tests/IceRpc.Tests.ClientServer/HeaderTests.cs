@@ -13,10 +13,10 @@ namespace IceRpc.Tests.ClientServer
     public class HeaderTests
     {
         [TestCase("icerpc+tcp://127.0.0.1:0?tls=false")]
-        [TestCase("icerpc+tcp://127.0.0.1:0?protocol=ice&tls=false")]
-        [TestCase("icerpc+udp://127.0.0.1:0?protocol=ice")]
+        [TestCase("ice+tcp://127.0.0.1:0?tls=false")]
+        [TestCase("ice+udp://127.0.0.1:0")]
         [TestCase("icerpc+coloc://header_request:10000")]
-        [TestCase("icerpc+coloc://header_request:10001?protocol=ice")]
+        [TestCase("ice+coloc://header_request:10001")]
         public async Task Header_RequestResponseAsync(string endpoint)
         {
             // This large value should be large enough to create multiple buffer for the request and responses headers.

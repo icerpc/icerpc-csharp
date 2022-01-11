@@ -160,8 +160,8 @@ namespace IceRpc.Tests.Api
         [TestCase("icerpc+tcp://host.zeroc.com/identity#facet#?!$x", "/identity", "facet#?!$x")]
         [TestCase("icerpc+tcp://host.zeroc.com/identity#", "/identity", "")]
         [TestCase("icerpc+tcp://host.zeroc.com/identity##%23f", "/identity", "#%23f")]
-        [TestCase("icerpc+tcp://host.zeroc.com/identity?protocol=ice&tls=false")]
-        [TestCase("icerpc+tcp://host.zeroc.com/identity?protocol=ice&tls=true")] // TODO: add no tls test
+        [TestCase("ice+tcp://host.zeroc.com/identity?tls=false")]
+        [TestCase("ice+tcp://host.zeroc.com/identity?tls=true")] // TODO: add no tls test
         [TestCase("icerpc+tcp://host.zeroc.com:1000/category/name")]
         [TestCase("icerpc+tcp://host.zeroc.com:1000/loc0/loc1/category/name")]
         [TestCase("icerpc+tcp://host.zeroc.com/category/name%20with%20space", "/category/name%20with%20space")]
@@ -187,8 +187,7 @@ namespace IceRpc.Tests.Api
         [TestCase("icerpc+loc://mylocation.domain.com/foo/bar", "/foo/bar")]
         [TestCase("icerpc+coloc://host:10000")]
         [TestCase("icerpc:tcp -p 10000")]
-        // ice3 proxies
-        [TestCase("icerpc+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&protocol=3")]
+        [TestCase("icerpc+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar")]
         [TestCase("icerpc+tcp://0.0.0.0/identity#facet")] // Any IPv4 in proxy endpoint (unusable but parses ok)
         [TestCase("icerpc+tcp://[::0]/identity#facet")] // Any IPv6 in proxy endpoint (unusable but parses ok)
         public void Proxy_Parse_ValidInputUriFormat(string str, string? path = null, string? fragment = null)
@@ -218,7 +217,6 @@ namespace IceRpc.Tests.Api
         [TestCase("ice + tcp://host.zeroc.com:foo")] // missing host
         [TestCase("icerpc://host:1000/identity")] // host not allowed
         [TestCase("icerpc+foo:/identity")] // missing host
-        [TestCase("icerpc+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&alt-endpoint=host2?transport=tcp$protocol=ice3")]
         [TestCase("")]
         [TestCase("\"\"")]
         [TestCase("\"\" test")] // invalid trailing characters
@@ -394,17 +392,6 @@ namespace IceRpc.Tests.Api
             var prx = GreeterPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
             prx.Proxy.Encoding = Encoding.FromString(encoding);
             await prx.IcePingAsync(); // works fine, we use the protocol's encoding in this case
-        }
-
-        [TestCase("3")]
-        [TestCase("foo")]
-        public void Proxy_NotSupportedProtocol(string protocol)
-        {
-            Assert.Throws<NotSupportedException>(() =>
-            new Connection
-            {
-                RemoteEndpoint = $"icerpc+tcp://localhost?transport=tcp&protocol={protocol}"
-            });
         }
 
         [Test]

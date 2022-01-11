@@ -40,7 +40,7 @@ namespace IceRpc
         /// <returns>The new endpoint.</returns>
         /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of an endpoint.
         /// </exception>
-        public static Endpoint FromString(string s) => UriProxyFormat.ParseEndpoint(s, Scheme.IceRpc);
+        public static Endpoint FromString(string s) => UriProxyFormat.ParseEndpoint(s);
 
         /// <summary>Constructs a new endpoint.</summary>
         /// <param name="scheme">The Ice scheme of this endpoint.</param>

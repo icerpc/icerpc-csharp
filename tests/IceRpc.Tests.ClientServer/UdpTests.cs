@@ -56,7 +56,7 @@ namespace IceRpc.Tests.ClientServer
         {
             await using var connection = new Connection
             {
-                RemoteEndpoint = "icerpc+udp://127.0.0.1:4061?protocol=ice"
+                RemoteEndpoint = "ice+udp://127.0.0.1:4061"
             };
             await connection.ConnectAsync();
 
