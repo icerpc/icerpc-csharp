@@ -124,6 +124,11 @@ namespace IceRpc.Tests.Internal
         public async Task Connection_InformationAsync(string transport, bool secure)
         {
             var serviceCollection = new InternalTestServiceCollection();
+            if (transport == "udp")
+            {
+                serviceCollection.UseProtocol("ice");
+            }
+
             if (secure)
             {
                 serviceCollection.UseTls();

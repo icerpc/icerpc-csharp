@@ -125,13 +125,6 @@ namespace IceRpc.Tests
             string host,
             int port)
         {
-            if (transport == "udp")
-            {
-                // Override the protocol to Ice for udp since it's the only supported protocol for this transport.
-                // TODO: remove
-                collection.UseProtocol("ice");
-            }
-
             collection.AddScoped(serviceProvider =>
             {
                 Scheme scheme = serviceProvider.GetRequiredService<Protocol>();
