@@ -10,6 +10,10 @@ namespace IceRpc.Transports.Internal
     /// the stream. There can only be a single consumer and producer.</summary>
     internal struct CircularBuffer : IDisposable
     {
+        public bool IsEmpty => Count == 0;
+
+        public int Capacity => _buffer.Length;
+
         /// <summary>Returns the number of bytes stored in the buffer.</summary>
         private int Count
         {
@@ -34,6 +38,8 @@ namespace IceRpc.Transports.Internal
         // The lock provides thread-safety for the _head, _full and _tail data members.
         private SpinLock _lock;
         private int _tail;
+        private SequenceSegment? _firstSegment;
+        private SequenceSegment? _secondSegment;
 
         public void Dispose() => _bufferOwner.Dispose();
 
@@ -59,7 +65,7 @@ namespace IceRpc.Transports.Internal
         /// <return>A buffer of the given size.</return>
         /// <exception cref="ArgumentOutOfRangeException">Raised if size if superior to the available space or inferior
         /// to one byte.</exception>
-        internal Memory<byte> Enqueue(int size)
+        internal Memory<byte> GetWriteBuffer(int size)
         {
             if (size <= 0)
             {
@@ -106,18 +112,8 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        /// <summary>Consumes data from the buffer. The data is copied to the given buffer and removed from this
-        /// circular buffer. The caller must ensure that there's enough data available.</summary>
-        /// <param name="buffer">The buffer to copy the consumed data to.</param>
-        /// <exception cref="ArgumentOutOfRangeException">Raised the buffer is empty or larger than the available data.
-        /// </exception>
-        internal void Consume(Memory<byte> buffer)
+        internal ReadOnlySequence<byte> GetReadBuffer()
         {
-            if (buffer.IsEmpty)
-            {
-                throw new ArgumentOutOfRangeException("empty buffer");
-            }
-
             bool lockTaken = false;
             try
             {
@@ -128,42 +124,22 @@ namespace IceRpc.Transports.Internal
                 {
                     throw new ArgumentOutOfRangeException("buffer is empty");
                 }
-                else if (buffer.Length > count)
+
+                if (_head < _tail)
                 {
-                    throw new ArgumentOutOfRangeException("not enough data available");
+                    return new ReadOnlySequence<byte>(_buffer[_head.._tail]);
                 }
-
-                int offset = 0;
-                while (offset < buffer.Length)
+                else if (_head < _buffer.Length)
                 {
-                    // Remaining size that needs to be filled up in the buffer
-                    int size = buffer.Length - offset;
-
-                    Memory<byte> chunk;
-                    if (_head < _tail)
-                    {
-                        count = Math.Min(_tail - _head, size);
-                        chunk = _buffer[_head..(_head + count)];
-                        _head += count;
-                    }
-                    else if (_head < _buffer.Length)
-                    {
-                        count = Math.Min(_buffer.Length - _head, size);
-                        chunk = _buffer[_head..(_head + count)];
-                        _head += count;
-                    }
-                    else
-                    {
-                        count = Math.Min(_tail, size);
-                        chunk = _buffer[0..count];
-                        _head = count;
-                    }
-
-                    Debug.Assert(chunk.Length <= buffer.Length);
-                    chunk.CopyTo(buffer[offset..]);
-                    offset += chunk.Length;
-
-                    _full = false;
+                    _secondSegment ??= new SequenceSegment();
+                    _firstSegment ??= new SequenceSegment(_secondSegment);
+                    _firstSegment.SetMemory(_buffer[_head.._buffer.Length]);
+                    _secondSegment.SetMemory(_buffer[0.._tail]);
+                    return new ReadOnlySequence<byte>(_firstSegment, 0, _secondSegment, _tail);
+                }
+                else
+                {
+                    return new ReadOnlySequence<byte>(_buffer[0.._tail]);
                 }
             }
             finally
@@ -173,6 +149,68 @@ namespace IceRpc.Transports.Internal
                     _lock.Exit();
                 }
             }
+        }
+
+        /// <summary>Consumes data from the buffer. The data is copied to the given buffer and removed from this
+        /// circular buffer. The caller must ensure that there's enough data available.</summary>
+        /// <param name="consumed">The buffer to copy the consumed data to.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Raised the buffer is empty or larger than the available data.
+        /// </exception>
+        internal void AdvanceTo(int consumed)
+        {
+            if (consumed <= 0)
+            {
+                throw new ArgumentOutOfRangeException($"{nameof(consumed)} can't be <= 0");
+            }
+
+            bool lockTaken = false;
+            try
+            {
+                _lock.Enter(ref lockTaken);
+
+                int count = Count;
+                if (count == 0 || consumed > count)
+                {
+                    throw new ArgumentOutOfRangeException("consumed more data than available");
+                }
+
+                if (_head < _tail)
+                {
+                    _head += consumed;
+                    Debug.Assert(_head <= _tail);
+                }
+                else if (_head < _buffer.Length)
+                {
+                    if (_head + consumed < _buffer.Length)
+                    {
+                        _head += consumed;
+                    }
+                    else
+                    {
+                        _head = consumed - (_buffer.Length - _head);
+                        Debug.Assert(_head <= _tail);
+                    }
+                }
+                else
+                {
+                    _head = consumed;
+                }
+                _full = false;
+            }
+            finally
+            {
+                if (lockTaken)
+                {
+                    _lock.Exit();
+                }
+            }
+        }
+
+        private sealed class SequenceSegment : ReadOnlySequenceSegment<byte>
+        {
+            internal SequenceSegment(SequenceSegment? next = null) => Next = next;
+
+            internal void SetMemory(ReadOnlyMemory<byte> memory) => Memory = memory;
         }
     }
 }

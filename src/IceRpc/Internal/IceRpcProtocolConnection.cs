@@ -78,7 +78,7 @@ namespace IceRpc.Internal
                     // Receives the request frame from the stream.
 
                     // We cancel reading when we shutdown the connection.
-                    reader = stream.ToPipeReader(CancellationToken.None);
+                    reader = stream.Input;
                 }
                 catch
                 {
@@ -340,9 +340,7 @@ namespace IceRpc.Internal
 
             if (!request.IsOneway)
             {
-                // TODO: is it correct to pass cancel to the new response reader, since it's used for reading the
-                // entire payload?
-                request.ResponseReader = stream.ToPipeReader(cancel);
+                request.ResponseReader = stream.Input;
             }
 
             void EncodeHeader()

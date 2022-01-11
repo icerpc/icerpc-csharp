@@ -54,8 +54,6 @@ namespace IceRpc.Transports.Internal
 
         public void AbortWrite(byte errorCode) => _decoratee.AbortWrite(errorCode);
 
-        public Stream AsByteStream() => _decoratee.AsByteStream();
-
         public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             Debug.Assert(IsStarted);

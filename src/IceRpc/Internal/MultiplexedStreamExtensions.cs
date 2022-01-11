@@ -42,6 +42,43 @@ namespace IceRpc.Internal
             }
         }
 
+        /// <summary>Aborts the stream read side.</summary>
+        /// <param name="errorCode">The reason of the abort.</param>
+        internal static void AbortRead(this IMultiplexedStream stream, byte errorCode)
+        {
+        }
+
+        /// <summary>Aborts the stream write side.</summary>
+        /// <param name="errorCode">The reason of the abort.</param>
+        internal static void AbortWrite(this IMultiplexedStream stream, byte errorCode)
+        {
+        }
+
+        /// <summary>Reads data from the stream.</summary>
+        /// <param name="buffer">The buffer that holds the read data.</param>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        /// <returns>The number of bytes read.</returns>
+        internal static ValueTask<int> ReadAsync(
+            this IMultiplexedStream stream,
+            Memory<byte> buffer,
+            CancellationToken cancel)
+        {
+        }
+
+        /// <summary>Writes data over the stream.</summary>
+        /// <param name="buffers">The buffers containing the data to write.</param>
+        /// <param name="endStream"><c>true</c> if no more data will be written over this stream, <c>false</c>
+        /// otherwise.</param>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        /// <returns>A value task that completes once the buffers are written.</returns>
+        internal static ValueTask WriteAsync(
+            this IMultiplexedStream stream,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            bool endStream,
+            CancellationToken cancel)
+        {
+        }
+
         internal static PipeReader ToPipeReader(this IMultiplexedStream stream, CancellationToken cancel)
         {
             // TODO: in the future, multiplexed stream should provide directly the PipeReader which may or may not

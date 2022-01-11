@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 using System.Diagnostics;
+using System.IO.Pipelines;
 using System.Threading.Tasks.Sources;
 
 namespace IceRpc.Transports.Internal
@@ -10,7 +11,7 @@ namespace IceRpc.Transports.Internal
     /// <summary>The stream implementation for Slic. The stream implementation implements flow control to ensure data
     /// isn't buffered indefinitely if the application doesn't consume it. Buffering and flow control are only enable
     /// when sending multiple Slic packet or if the Slic packet size exceeds the peer packet maximum size.</summary>
-    internal class SlicMultiplexedStream : IMultiplexedStream, IAsyncQueueValueTaskSource<(int, bool)>
+    internal class SlicMultiplexedStream : IMultiplexedStream
     {
         /// <inheritdoc/>
         public long Id
@@ -30,6 +31,8 @@ namespace IceRpc.Transports.Internal
                 Thread.VolatileWrite(ref _id, value);
             }
         }
+
+        public PipeReader Input => _pipeReader;
 
         /// <inheritdoc/>
         public bool IsBidirectional { get; }
@@ -87,8 +90,12 @@ namespace IceRpc.Transports.Internal
             }
         }
 
+        public PipeWriter Output { get; }
+
         /// <summary>Specifies whether or not this is a stream initiated by the peer.</summary>
         internal bool IsRemote => _id != -1 && _id % 2 == (_connection.IsServer ? 0 : 1);
+
+        internal bool ReadsCompleted => ((State)Thread.VolatileRead(ref _state)).HasFlag(State.ReadCompleted);
 
         /// <summary>The stream reset error code is set if the stream is reset by the peer or locally. It's used to set
         /// the correct error code for <see cref="MultiplexedStreamAbortedException"/> raised by the stream.</summary>
@@ -99,28 +106,12 @@ namespace IceRpc.Transports.Internal
         private bool IsShutdown =>
             ((State)Thread.VolatileRead(ref _state)).HasFlag(State.WriteCompleted | State.ReadCompleted);
 
-        private bool ReadsCompleted => ((State)Thread.VolatileRead(ref _state)).HasFlag(State.ReadCompleted);
-
         private readonly SlicNetworkConnection _connection;
         private long _id = -1;
         private SpinLock _lock;
 
-        // TODO: remove pragma warning disable/restore once analyser is fixed.
-        // It is necessary to call new() explicitly to execute the parameterless ctor of AsyncQueueCore, which is
-        // synthesized from AsyncQueueCore fields defaults.
-#pragma warning disable CA1805 // member is explicitly initialized to its default value
-        private AsyncQueueCore<(int, bool)> _queue = new();
-#pragma warning restore CA1805
+        private readonly ISlicFrameReader _frameReader;
 
-        private readonly ISlicFrameReader _reader;
-        private CircularBuffer _receiveBuffer;
-        // The receive credit. This is the amount of data received from the peer that we didn't acknowledge as
-        // received yet. Once the credit reach a given threshold, we'll notify the peer with a StreamConsumed
-        // frame data has been consumed and additional credit is therefore available for sending.
-        private int _receiveCredit;
-        private bool _receivedEndStream;
-        private int _receivedOffset;
-        private int _receivedSize;
         // The send credit left for sending data when flow control is enabled. When this reaches 0, no more
         // data can be sent to the peer until the _sendSemaphore is released. The _sendSemaphore will be
         // released when a StreamConsumed frame is received (indicating that the peer has additional space
@@ -130,8 +121,9 @@ namespace IceRpc.Transports.Internal
         private AsyncSemaphore? _sendSemaphore;
         private volatile Action? _shutdownAction;
         private TaskCompletionSource? _shutdownCompletedTaskSource;
+        private readonly SlicPipeReader _pipeReader;
         private int _state;
-        private readonly ISlicFrameWriter _writer;
+        private readonly ISlicFrameWriter _frameWriter;
 
         public void AbortRead(byte errorCode)
         {
@@ -140,16 +132,8 @@ namespace IceRpc.Transports.Internal
                 return;
             }
 
-            // Unblock ReadAsync which is blocked on _queue.WaitAsync()
             ResetErrorCode = errorCode;
-            try
-            {
-                _queue.Enqueue((0, true));
-            }
-            catch (OperationCanceledException)
-            {
-                // Ignore.
-            }
+            _pipeReader.CancelPendingRead();
 
             if (IsStarted && !IsShutdown)
             {
@@ -165,7 +149,7 @@ namespace IceRpc.Transports.Internal
             {
                 try
                 {
-                    await _writer.WriteStreamStopSendingAsync(
+                    await _frameWriter.WriteStreamStopSendingAsync(
                         this,
                         new StreamStopSendingBody(errorCode),
                         default).ConfigureAwait(false);
@@ -196,7 +180,7 @@ namespace IceRpc.Transports.Internal
             {
                 try
                 {
-                    await _writer.WriteStreamResetAsync(
+                    await _frameWriter.WriteStreamResetAsync(
                         this,
                         new StreamResetBody(errorCode),
                         default).ConfigureAwait(false);
@@ -207,76 +191,6 @@ namespace IceRpc.Transports.Internal
                 }
                 TrySetWriteCompleted();
             }
-        }
-
-        public virtual System.IO.Stream AsByteStream() => new ByteStream(this);
-
-        public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
-        {
-            if (ReadsCompleted)
-            {
-                if (ResetErrorCode != null)
-                {
-                    throw new MultiplexedStreamAbortedException(ResetErrorCode.Value);
-                }
-                else
-                {
-                    return 0;
-                }
-            }
-
-            if (_receivedSize == _receivedOffset)
-            {
-                _receivedOffset = 0;
-                _receivedSize = 0;
-
-                // Wait to be signaled for the reception of a new stream frame for this stream.
-                (_receivedSize, _receivedEndStream) = await _queue.DequeueAsync(this, cancel).ConfigureAwait(false);
-
-                if (_receivedSize == 0)
-                {
-                    if (!_receivedEndStream)
-                    {
-                        throw new InvalidDataException("empty Slic frame requires endStream to be set");
-                    }
-                    if (ResetErrorCode is byte streamError)
-                    {
-                        throw new MultiplexedStreamAbortedException(streamError);
-                    }
-                    TrySetReadCompleted();
-                    return 0;
-                }
-            }
-
-            int size = Math.Min(_receivedSize - _receivedOffset, buffer.Length);
-            _receivedOffset += size;
-
-            // Copy the data from the stream's circular receive buffer to the given buffer.
-            _receiveBuffer.Consume(buffer[0..size]);
-
-            // If we've consumed 75% or more of the circular buffer capacity, notify the peer to allow
-            // more data to be sent.
-            // TODO: is 75% a good setting?
-            int consumed = Interlocked.Add(ref _receiveCredit, size);
-            if (consumed >= _connection.StreamBufferMaxSize * 0.75)
-            {
-                // Reset _receiveCredit before notifying the peer.
-                Interlocked.Exchange(ref _receiveCredit, 0);
-
-                // Notify the peer that it can send additional data.
-                await _writer.WriteStreamConsumedAsync(
-                    this,
-                    new StreamConsumedBody((ulong)consumed),
-                    CancellationToken.None).ConfigureAwait(false);
-            }
-
-            // It's the end of the stream, we can complete reads.
-            if (_receivedOffset == _receivedSize && _receivedEndStream)
-            {
-                TrySetReadCompleted();
-            }
-
-            return size;
         }
 
         public async ValueTask WriteAsync(
@@ -452,9 +366,11 @@ namespace IceRpc.Transports.Internal
             ISlicFrameWriter writer)
         {
             _connection = connection;
-            _reader = reader;
-            _writer = writer;
-            _receiveBuffer = new CircularBuffer(_connection.StreamBufferMaxSize);
+
+            _frameReader = reader;
+            _frameWriter = writer;
+
+            _pipeReader = new SlicPipeReader(this, _connection.StreamBufferMaxSize);
 
             IsBidirectional = bidirectional;
             if (!IsBidirectional)
@@ -470,6 +386,7 @@ namespace IceRpc.Transports.Internal
                     TrySetReadCompleted();
                 }
             }
+
         }
 
         internal void ReceivedConsumed(int size)
@@ -509,19 +426,12 @@ namespace IceRpc.Transports.Internal
                 // Get a chunk from the buffer to receive the data. The buffer might return a smaller chunk than the
                 // requested size. If this is the case, we loop to receive the remaining data in a next available chunk.
                 // Enqueue will raise if the sender sent too much data. This will result in the connection closure.
-                Memory<byte> chunk = _receiveBuffer.Enqueue(size - offset);
-                await _reader.ReadFrameDataAsync(chunk, CancellationToken.None).ConfigureAwait(false);
+                Memory<byte> chunk = _pipeReader.GetWriteBuffer(size - offset);
+                await _frameReader.ReadFrameDataAsync(chunk, CancellationToken.None).ConfigureAwait(false);
                 offset += chunk.Length;
             }
 
-            try
-            {
-                _queue.Enqueue((size, endStream));
-            }
-            catch (OperationCanceledException)
-            {
-                // Ignore, ReadAsync has been canceled.
-            }
+            _pipeReader.FlushWrite(endStream);
         }
 
         internal void ReceivedReset(byte errorCode)
@@ -531,16 +441,8 @@ namespace IceRpc.Transports.Internal
                 throw new InvalidDataException("received reset frame on local unidirectional stream");
             }
 
-            // Unblock ReadAsync which is blocked on _queue.WaitAsync()
             ResetErrorCode = errorCode;
-            try
-            {
-                _queue.Enqueue((0, true));
-            }
-            catch (OperationCanceledException)
-            {
-                // Ignore, ReadAsync has been canceled.
-            }
+            _pipeReader.CancelPendingRead();
 
             TrySetReadCompleted();
         }
@@ -556,21 +458,15 @@ namespace IceRpc.Transports.Internal
             TrySetWriteCompleted();
         }
 
+        internal void SendStreamConsumed(int consumed) =>
+            _ = _frameWriter.WriteStreamConsumedAsync(
+                this,
+                new StreamConsumedBody((ulong)consumed),
+                CancellationToken.None).AsTask();
+
         internal bool TrySetReadCompleted() => TrySetState(State.ReadCompleted);
 
         internal bool TrySetWriteCompleted() => TrySetState(State.WriteCompleted);
-
-        (int, bool) IValueTaskSource<(int, bool)>.GetResult(short token) => _queue.GetResult(token);
-
-        ValueTaskSourceStatus IValueTaskSource<(int, bool)>.GetStatus(short token) => _queue.GetStatus(token);
-
-        void IValueTaskSource<(int, bool)>.OnCompleted(
-            Action<object?> continuation,
-            object? state,
-            short token,
-            ValueTaskSourceOnCompletedFlags flags) => _queue.OnCompleted(continuation, state, token, flags);
-
-        void IAsyncQueueValueTaskSource<(int, bool)>.Cancel() => _queue.TryComplete(new OperationCanceledException());
 
         private void Shutdown()
         {
@@ -615,7 +511,7 @@ namespace IceRpc.Transports.Internal
                 {
                     try
                     {
-                        _ = _writer.WriteUnidirectionalStreamReleasedAsync(this, default).AsTask();
+                        _ = _frameWriter.WriteUnidirectionalStreamReleasedAsync(this, default).AsTask();
                     }
                     catch
                     {
@@ -624,8 +520,7 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            // We're done with the receive buffer.
-            _receiveBuffer.Dispose();
+            _pipeReader.Dispose();
         }
 
         private bool TrySetState(State state)
@@ -650,60 +545,6 @@ namespace IceRpc.Transports.Internal
                 }
             }
             return true;
-        }
-
-        // A System.IO.Stream class to wrap WriteAsync/ReadAsync functionality of the SlicMultiplexedStream. For Quic,
-        // this won't be needed since the QuicStream is a System.IO.Stream.
-        private class ByteStream : System.IO.Stream
-        {
-            public override bool CanRead => true;
-            public override bool CanSeek => false;
-            public override bool CanWrite => true;
-            public override long Length => throw new NotImplementedException();
-
-            public override long Position
-            {
-                get => throw new NotImplementedException();
-                set => throw new NotImplementedException();
-            }
-
-            private readonly ReadOnlyMemory<byte>[] _buffers = new ReadOnlyMemory<byte>[1];
-            private readonly SlicMultiplexedStream _stream;
-
-            public override void Flush()
-            {
-            }
-
-            public override int Read(byte[] buffer, int offset, int count) => throw new NotImplementedException();
-
-            public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancel) =>
-                ReadAsync(new Memory<byte>(buffer, offset, count), cancel).AsTask();
-
-            public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
-            {
-                if (_stream.ReadsCompleted)
-                {
-                    return 0;
-                }
-                return await _stream.ReadAsync(buffer, cancel).ConfigureAwait(false);
-            }
-
-            public override long Seek(long offset, System.IO.SeekOrigin origin) => throw new NotImplementedException();
-
-            public override void SetLength(long value) => throw new NotImplementedException();
-
-            public override void Write(byte[] buffer, int offset, int count) => throw new NotImplementedException();
-
-            public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancel) =>
-                WriteAsync(new Memory<byte>(buffer, offset, count), cancel).AsTask();
-
-            public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
-            {
-                _buffers[0] = buffer;
-                await _stream.WriteAsync(_buffers, buffer.Length == 0, cancel).ConfigureAwait(false);
-            }
-
-            internal ByteStream(SlicMultiplexedStream stream) => _stream = stream;
         }
 
         [Flags]
