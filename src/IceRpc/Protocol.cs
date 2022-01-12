@@ -36,19 +36,8 @@ namespace IceRpc
         /// <param name="lhs">The left hand side operand.</param>
         /// <param name="rhs">The right hand side operand.</param>
         /// <returns><c>true</c> if the operands are equal, otherwise <c>false</c>.</returns>
-        public static bool operator ==(Protocol? lhs, Protocol? rhs)
-        {
-            if (ReferenceEquals(lhs, rhs))
-            {
-                return true;
-            }
-
-            if (lhs is null || rhs is null)
-            {
-                return false;
-            }
-            return lhs.Equals(rhs);
-        }
+        public static bool operator ==(Protocol? lhs, Protocol? rhs) =>
+            ReferenceEquals(lhs, rhs) || (lhs?.Equals(rhs) ?? false);
 
         /// <summary>The inequality operator != returns true if its operands are not equal, false otherwise.</summary>
         /// <param name="lhs">The left hand side operand.</param>
