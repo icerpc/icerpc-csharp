@@ -7,7 +7,7 @@ namespace IceRpc.Tests.Slice
 {
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    [TestFixture(ProtocolCode.Ice)]
+    // [TestFixture(ProtocolCode.Ice)]
     [TestFixture(ProtocolCode.IceRpc)]
     public sealed class OperationsTests : IAsyncDisposable
     {
@@ -30,6 +30,7 @@ namespace IceRpc.Tests.Slice
         public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
 
         [Test]
+        [Log(LogAttributeLevel.Trace)]
         public async Task Operations_BuiltinTypesAsync()
         {
             await TestAsync((prx, p1, p2) => prx.OpByteAsync(p1, p2), byte.MinValue, byte.MaxValue);

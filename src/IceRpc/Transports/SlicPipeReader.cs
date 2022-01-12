@@ -7,7 +7,7 @@ using System.Threading.Tasks.Sources;
 
 namespace IceRpc.Transports.Internal
 {
-    internal class SlicPipeReader : PipeReader, IAsyncQueueValueTaskSource<bool>, IDisposable
+    internal class SlicPipeReader : PipeReader, IAsyncQueueValueTaskSource<bool>
     {
         // TODO: remove pragma warning disable/restore once analyser is fixed.
         // It is necessary to call new() explicitly to execute the parameterless ctor of AsyncQueueCore, which is
@@ -27,14 +27,14 @@ namespace IceRpc.Transports.Internal
         {
             if (_buffer.IsEmpty)
             {
-                // TODO: isCompleted?
-                result = new ReadResult(_buffer.GetReadBuffer(), isCanceled: false, isCompleted: false);
-                return true;
+                result = new ReadResult(ReadOnlySequence<byte>.Empty, isCanceled: false, _stream.ReadsCompleted);
+                return false;
             }
             else
             {
-                result = new ReadResult(ReadOnlySequence<byte>.Empty, isCanceled: false, _stream.ReadsCompleted);
-                return false;
+                // TODO: isCompleted?
+                result = new ReadResult(_buffer.GetReadBuffer(), isCanceled: false, isCompleted: _receivedEndStream);
+                return true;
             }
         }
 
@@ -58,7 +58,6 @@ namespace IceRpc.Transports.Internal
                     Debug.Assert(_stream.ReadsCompleted);
                     if (_stream.ResetErrorCode is byte errorCode)
                     {
-                        Debug.Assert(_stream.ReadsCompleted);
                         throw new MultiplexedStreamAbortedException(errorCode);
                     }
                     _stream.TrySetReadCompleted();
@@ -66,27 +65,25 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            return new ReadResult(_buffer.GetReadBuffer(), isCanceled: false, isCompleted: false);
+            return new ReadResult(_buffer.GetReadBuffer(), isCanceled: false, isCompleted: _receivedEndStream);
         }
 
         public override void AdvanceTo(SequencePosition consumed) => AdvanceTo(consumed, consumed);
 
-        public override void AdvanceTo(SequencePosition consumedPosition, SequencePosition examinedPosition)
+        public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
         {
-            // TODO: add support for examined position!
+            // TODO: XXX add support for examined position!
 
-            int consumed = consumedPosition.GetInteger();
+            int consumedLength = _buffer.AdvanceTo(consumed);
 
-            _buffer.AdvanceTo(consumed);
-
-            int credit = Interlocked.Add(ref _receiveCredit, consumed);
+            int credit = Interlocked.Add(ref _receiveCredit, consumedLength);
             if (credit >= _buffer.Capacity * 0.5)
             {
                 // Reset _receiveCredit before notifying the peer that it can send more data.
                 Interlocked.Exchange(ref _receiveCredit, 0);
 
                 // Notify the peer that it can send additional data.
-                _stream.SendStreamConsumed(consumed);
+                _stream.SendStreamConsumed(credit);
             }
 
             if (_buffer.IsEmpty && _receivedEndStream)
@@ -99,21 +96,24 @@ namespace IceRpc.Transports.Internal
 
         public override void Complete(Exception? exception = null)
         {
-            if (exception is null)
+            if (!_stream.ReadsCompleted)
             {
-                _stream.TrySetReadCompleted();
+                if (exception is null)
+                {
+                    _stream.TrySetReadCompleted();
+                }
+                else if (exception is MultiplexedStreamAbortedException abortedException)
+                {
+                    _stream.AbortRead(abortedException.ErrorCode);
+                }
+                else
+                {
+                    throw new InvalidOperationException("unexpected Complete exception", exception);
+                }
             }
-            if (exception is MultiplexedStreamAbortedException abortedException)
-            {
-                _stream.AbortRead(abortedException.ErrorCode);
-            }
-            else
-            {
-                throw new InvalidOperationException("unexpected exception for Slic PipeReader completion", exception);
-            }
-        }
 
-        public void Dispose() => _buffer.Dispose();
+            _buffer.Dispose();
+        }
 
         internal SlicPipeReader(SlicMultiplexedStream stream, int maxSize)
         {

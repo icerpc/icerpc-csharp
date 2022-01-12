@@ -90,7 +90,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public PipeWriter Output { get; }
+        public PipeWriter Output => _pipeWriter;
 
         /// <summary>Specifies whether or not this is a stream initiated by the peer.</summary>
         internal bool IsRemote => _id != -1 && _id % 2 == (_connection.IsServer ? 0 : 1);
@@ -111,19 +111,12 @@ namespace IceRpc.Transports.Internal
         private SpinLock _lock;
 
         private readonly ISlicFrameReader _frameReader;
-
-        // The send credit left for sending data when flow control is enabled. When this reaches 0, no more
-        // data can be sent to the peer until the _sendSemaphore is released. The _sendSemaphore will be
-        // released when a StreamConsumed frame is received (indicating that the peer has additional space
-        // for receiving data).
-        private volatile int _sendCredit = int.MaxValue;
-        // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
-        private AsyncSemaphore? _sendSemaphore;
+        private readonly ISlicFrameWriter _frameWriter;
         private volatile Action? _shutdownAction;
         private TaskCompletionSource? _shutdownCompletedTaskSource;
         private readonly SlicPipeReader _pipeReader;
+        private readonly SlicPipeWriter _pipeWriter;
         private int _state;
-        private readonly ISlicFrameWriter _frameWriter;
 
         public void AbortRead(byte errorCode)
         {
@@ -193,146 +186,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public async ValueTask WriteAsync(
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
-            bool endStream,
-            CancellationToken cancel)
-        {
-            int size = buffers.GetByteCount();
-            if (size == 0)
-            {
-                // Send an empty last stream frame if there's no data to send. There's no need to check send flow
-                // control credit if there's no data to send.
-                Debug.Assert(endStream);
-                await _connection.SendStreamFrameAsync(
-                    this,
-                    new ReadOnlyMemory<byte>[] { SlicDefinitions.FrameHeader.ToArray() },
-                    true,
-                    cancel).ConfigureAwait(false);
-                return;
-            }
-
-            // If we are about to send data which is larger than what the peer allows or if there's more data to
-            // come, we enable flow control.
-            if (_sendSemaphore == null && (!endStream || size > _connection.PeerStreamBufferMaxSize))
-            {
-                // Assign the initial send credit based on the peer's stream buffer max size.
-                _sendCredit = _connection.PeerStreamBufferMaxSize;
-
-                // Create send semaphore for flow control. The send semaphore ensures that the stream doesn't send more
-                // data to the peer than its send credit.
-                _sendSemaphore = new AsyncSemaphore(1);
-            }
-
-            // The send buffers for the Slic stream frame. Reserve an additional buffer for the Slic header.
-            var sendBuffers = new ReadOnlyMemory<byte>[buffers.Length + 1];
-            Memory<byte> headerBuffer = SlicDefinitions.FrameHeader.ToArray();
-
-            // The amount of data sent so far.
-            int offset = 0;
-
-            // The position of the data to send next.
-            var start = new BufferWriter.Position();
-
-            while (offset < size)
-            {
-                if (WritesCompleted)
-                {
-                    if (ResetErrorCode is byte resetErrorCode)
-                    {
-                        // If the stream has been aborted by a reset, raise StreamAbortedException
-                        throw new MultiplexedStreamAbortedException(resetErrorCode);
-                    }
-                    else
-                    {
-                        // Otherwise if writes completed normally, the caller is bogus, it shouldn't call WriteAsync
-                        // after performing a write with endStream=true.
-                        throw new InvalidOperationException("the stream writes are already completed");
-                    }
-                }
-
-                if (_sendSemaphore != null)
-                {
-                    // Acquire the semaphore to ensure flow control allows sending additional data. It's important to
-                    // acquire the semaphore before checking _sendCredit. The semaphore acquisition will block if we
-                    // can't send additional data (_sendCredit == 0). Acquiring the semaphore ensures that we are
-                    // allowed to send additional data and _sendCredit can be used to figure out the size of the next
-                    // packet to send.
-                    await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
-                    Debug.Assert(_sendCredit > 0);
-                }
-
-                // The maximum packet size to send, it can't be larger than the flow control credit left or
-                // the peer's packet max size.
-                int maxPacketSize = Math.Min(_sendCredit, _connection.PeerPacketMaxSize);
-                int sendSize = 0;
-
-                int sendBufferIdx = 0;
-                sendBuffers[sendBufferIdx++] = headerBuffer;
-
-                // Append data until we reach the allowed packet size or the end of the buffer to send.
-                for (int i = start.Buffer; i < buffers.Length; ++i)
-                {
-                    int bufferOffset = i == start.Buffer ? start.Offset : 0;
-
-                    // Send the full buffer if there's still space left on the Slic packet. Otherwise, only send a chunk
-                    // of the buffer large enough to fill the Slic packet.
-                    int bufferSize = Math.Min(buffers.Span[i][bufferOffset..].Length, maxPacketSize - sendSize);
-                    sendBuffers[sendBufferIdx++] = buffers.Span[i][bufferOffset..(bufferOffset + bufferSize)];
-
-                    sendSize += bufferSize;
-
-                    if (sendSize == maxPacketSize)
-                    {
-                        // No space left on the Slic packet, remember the send position for the next packet.
-                        start = new BufferWriter.Position(i, bufferOffset + bufferSize);
-                        break;
-                    }
-                }
-
-                // Send the Slic stream frame.
-                offset += sendSize;
-                if (_sendSemaphore == null)
-                {
-                    await _connection.SendStreamFrameAsync(
-                        this,
-                        sendBuffers.AsMemory()[..sendBufferIdx],
-                        endStream: (offset == size) && endStream,
-                        cancel).ConfigureAwait(false);
-                }
-                else
-                {
-                    try
-                    {
-                        // If flow control is enabled, decrease the size of remaining data that we are allowed to send.
-                        // If all the credit for sending data is consumed, _sendMaxSize will be 0 and we don't release
-                        // the semaphore to prevent further sends. The semaphore will be released once the stream
-                        // receives a StreamConsumed frame. It's important to decrease _sendCredit before sending the
-                        // frame to avoid race conditions where the consumed frame could be received before we decreased
-                        // it.
-                        int value = Interlocked.Add(ref _sendCredit, -sendSize);
-
-                        await _connection.SendStreamFrameAsync(
-                            this,
-                            sendBuffers.AsMemory()[..sendBufferIdx],
-                            endStream: (offset == size) && endStream,
-                            cancel).ConfigureAwait(false);
-
-                        // If flow control allows sending more data, release the semaphore.
-                        if (value > 0)
-                        {
-                            _sendSemaphore.Release();
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _sendSemaphore.Complete(ex);
-                        throw;
-                    }
-                }
-            }
-        }
-
         public async Task WaitForShutdownAsync(CancellationToken cancel)
         {
             bool lockTaken = false;
@@ -371,6 +224,7 @@ namespace IceRpc.Transports.Internal
             _frameWriter = writer;
 
             _pipeReader = new SlicPipeReader(this, _connection.StreamBufferMaxSize);
+            _pipeWriter = new SlicPipeWriter(this, _connection);
 
             IsBidirectional = bidirectional;
             if (!IsBidirectional)
@@ -389,25 +243,7 @@ namespace IceRpc.Transports.Internal
 
         }
 
-        internal void ReceivedConsumed(int size)
-        {
-            if (_sendSemaphore == null)
-            {
-                throw new InvalidDataException("invalid stream consumed frame, flow control is not enabled");
-            }
-
-            int newValue = Interlocked.Add(ref _sendCredit, size);
-            if (newValue == size)
-            {
-                Debug.Assert(_sendSemaphore.Count == 0);
-                _sendSemaphore.Release();
-            }
-            else if (newValue > 2 * _connection.PeerPacketMaxSize)
-            {
-                // The peer is trying to increase the credit to a value which is larger than what it is allowed to.
-                throw new InvalidDataException("invalid flow control credit increase");
-            }
-        }
+        internal void ReceivedConsumed(int size) => _pipeWriter.ReceivedConsumed(size);
 
         internal async ValueTask ReceivedFrameAsync(int size, bool endStream)
         {
@@ -520,7 +356,8 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            _pipeReader.Dispose();
+            _pipeWriter.Complete();
+            _pipeReader.Complete();
         }
 
         private bool TrySetState(State state)

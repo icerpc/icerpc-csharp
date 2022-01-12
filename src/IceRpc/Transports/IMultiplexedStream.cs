@@ -9,7 +9,7 @@ namespace IceRpc.Transports
     {
         /// <summary>The stream ID.</summary>
         /// <exception cref="InvalidOperationException">Raised if the stream is not started. Local streams are not
-        /// started until the first <see cref="WriteAsync"/> call. A remote stream is always started.</exception>
+        /// started until data is written. A remote stream is always started.</exception>
         long Id { get; }
 
         /// <summary>Returns <c>true</c> if the stream is a bidirectional stream, <c>false</c> otherwise.</summary>

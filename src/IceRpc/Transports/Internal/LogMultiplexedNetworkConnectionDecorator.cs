@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {
@@ -38,9 +39,10 @@ namespace IceRpc.Transports.Internal
     internal sealed class LogMultiplexedStreamDecorator : IMultiplexedStream
     {
         public long Id => _decoratee.Id;
+        public PipeReader Input => _decoratee.Input;
         public bool IsBidirectional => _decoratee.IsBidirectional;
         public bool IsStarted => _decoratee.IsStarted;
-
+        public PipeWriter Output => _decoratee.Output;
         public Action? ShutdownAction
         {
             get => _decoratee.ShutdownAction;

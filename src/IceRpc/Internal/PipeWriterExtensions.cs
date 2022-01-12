@@ -23,58 +23,97 @@ namespace IceRpc.Internal
             CancellationToken cancel)
         {
             FlushResult flushResult;
-            ReadResult readResult;
-
-            var asyncCompleteSink = sink as AsyncCompletePipeWriter; // used by local functions below
-
-            while (true)
+            if (sink is Transports.Internal.IGatherWritePipeWriter writer)
             {
-                try
+                while (true)
                 {
-                    readResult = await source.ReadAsync(cancel).ConfigureAwait(false);
-                }
-                catch (TaskCanceledException)
-                {
-                    // TODO: is this exception translation correct?
-                    throw new OperationCanceledException();
-                }
+                    ReadResult readResult = await source.ReadAsync(cancel).ConfigureAwait(false);
+                    try
+                    {
+                        flushResult = await writer.WriteAsync(
+                            readResult.Buffer,
+                            completeWhenDone && readResult.IsCompleted,
+                            cancel).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        source.AdvanceTo(readResult.Buffer.End); // always fully consumed
+                    }
 
-                try
-                {
-                    flushResult = await WriteAsync(
-                        readResult.Buffer,
-                        complete: completeWhenDone && readResult.IsCompleted,
-                        cancel).ConfigureAwait(false);
+                    if (readResult.IsCompleted || flushResult.IsCompleted)
+                    {
+                        flushResult = new FlushResult(isCanceled: false, isCompleted: true);
+                        break;
+                    }
+                    else if (readResult.IsCanceled || flushResult.IsCanceled)
+                    {
+                        flushResult = new FlushResult(isCanceled: true, isCompleted: false);
+                        break;
+                    }
                 }
-                finally
+            }
+            else if (sink is AsyncCompletePipeWriter asyncWriter)
+            {
+                while (true)
                 {
-                    source.AdvanceTo(readResult.Buffer.End); // always fully consumed
-                }
+                    ReadResult readResult = await source.ReadAsync(cancel).ConfigureAwait(false);
+                    try
+                    {
+                        flushResult = await asyncWriter.WriteAsync(
+                            readResult.Buffer,
+                            completeWhenDone && readResult.IsCompleted,
+                            cancel).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        source.AdvanceTo(readResult.Buffer.End); // always fully consumed
+                    }
 
-                if (readResult.IsCompleted || readResult.IsCanceled ||
-                    flushResult.IsCompleted || flushResult.IsCanceled)
+                    if (readResult.IsCompleted || flushResult.IsCompleted)
+                    {
+                        flushResult = new FlushResult(isCanceled: false, isCompleted: true);
+                        break;
+                    }
+                    else if (readResult.IsCanceled || flushResult.IsCanceled)
+                    {
+                        flushResult = new FlushResult(isCanceled: true, isCompleted: false);
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                while (true)
                 {
-                    break;
+                    ReadResult readResult = await source.ReadAsync(cancel).ConfigureAwait(false);
+
+                    SequencePosition position = readResult.Buffer.Start;
+                    while (true)
+                    {
+                        if (readResult.Buffer.TryGet(ref position, out ReadOnlyMemory<byte> memory))
+                        {
+                            flushResult = await sink.WriteAsync(memory, cancel).ConfigureAwait(false);
+                            if (flushResult.IsCompleted || flushResult.IsCanceled)
+                            {
+                                break; // while
+                            }
+                        }
+                        else
+                        {
+                            flushResult = new(isCanceled: readResult.IsCanceled, isCompleted: readResult.IsCompleted);
+                            break;
+                        }
+                    }
                 }
             }
 
-            if (completeWhenDone &&
-                readResult.IsCompleted &&
-                !flushResult.IsCompleted && !flushResult.IsCanceled &&
-                asyncCompleteSink == null)
+            if (completeWhenDone && !flushResult.IsCompleted && !flushResult.IsCanceled)
             {
-                // Need to complete it now
+                // Complete the sink.
                 await sink.CompleteAsync().ConfigureAwait(false);
             }
 
             return flushResult;
-
-            // Helper local function that takes the "optimized path" when asyncCompleteSink is not null.
-            ValueTask<FlushResult> WriteAsync(
-                ReadOnlySequence<byte> source,
-                bool complete,
-                CancellationToken cancel) =>
-                asyncCompleteSink?.WriteAsync(source, complete, cancel) ?? sink.WriteAsync(source, cancel);
         }
 
         /// <summary>Writes a read only sequence of bytes to this writer.</summary>

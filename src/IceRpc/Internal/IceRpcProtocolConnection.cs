@@ -290,13 +290,11 @@ namespace IceRpc.Internal
         public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
             IMultiplexedStream stream;
-            MultiplexedStreamPipeWriter? requestWriter = null;
             try
             {
                 // Create the stream.
                 stream = _networkConnection.CreateStream(!request.IsOneway);
-                requestWriter = new MultiplexedStreamPipeWriter(stream);
-                request.InitialPayloadSink.SetDecoratee(requestWriter);
+                request.InitialPayloadSink.SetDecoratee(stream.Output);
 
                 // Keep track of the invocation for the shutdown logic.
                 if (!request.IsOneway || request.PayloadSourceStream != null)
@@ -328,12 +326,21 @@ namespace IceRpc.Internal
 
                 EncodeHeader();
 
-                await SendPayloadAsync(request, requestWriter, cancel).ConfigureAwait(false);
+                await SendPayloadAsync(
+                    request.PayloadSource,
+                    request.PayloadSourceStream,
+                    request.PayloadSink,
+                    cancel).ConfigureAwait(false);
+
                 request.IsSent = true;
             }
             catch (Exception ex)
             {
                 await request.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
+                if (request.PayloadSourceStream != null)
+                {
+                    await request.PayloadSourceStream.CompleteAsync(ex).ConfigureAwait(false);
+                }
                 await request.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
                 throw;
             }
@@ -345,7 +352,7 @@ namespace IceRpc.Internal
 
             void EncodeHeader()
             {
-                var encoder = new IceEncoder(requestWriter, Encoding.Slice20);
+                var encoder = new IceEncoder(stream.Output, Encoding.Slice20);
 
                 // Write the IceRpc request header.
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
@@ -401,23 +408,17 @@ namespace IceRpc.Internal
                 return;
             }
 
-            var responseWriter = (MultiplexedStreamPipeWriter)request.ResponseWriter;
+            EncodeHeader();
 
-            try
-            {
-                EncodeHeader();
-                await SendPayloadAsync(response, responseWriter, cancel).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                await response.PayloadSource.CompleteAsync(ex).ConfigureAwait(false);
-                await response.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
-                throw;
-            }
+            await SendPayloadAsync(
+                response.PayloadSource,
+                response.PayloadSourceStream,
+                response.PayloadSink,
+                cancel).ConfigureAwait(false);
 
             void EncodeHeader()
             {
-                var encoder = new IceEncoder(responseWriter, Encoding.Slice20);
+                var encoder = new IceEncoder(request.ResponseWriter, Encoding.Slice20);
 
                 // Write the IceRpc response header.
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
@@ -641,10 +642,12 @@ namespace IceRpc.Internal
             Encode(bufferWriter);
             buffer = bufferWriter.WrittenBuffer;
 
-            await _controlStream!.WriteAsync(
-                new ReadOnlyMemory<byte>[] { buffer }, // TODO: better API
-                frameType == IceRpcControlFrameType.GoAwayCompleted,
-                cancel).ConfigureAwait(false);
+            await _controlStream!.Output.WriteAsync(buffer, cancel).ConfigureAwait(false);
+            if (frameType == IceRpcControlFrameType.GoAwayCompleted)
+            {
+                // TODO: XXX: cancel token?
+                await _controlStream!.Output.CompleteAsync().ConfigureAwait(false);
+            }
 
             void Encode(IBufferWriter<byte> bufferWriter)
             {
@@ -659,66 +662,84 @@ namespace IceRpc.Internal
 
         /// <summary>Sends the payload source and payload source stream of an outgoing frame.</summary>
         private static async ValueTask SendPayloadAsync(
-            OutgoingFrame outgoingFrame,
-            MultiplexedStreamPipeWriter frameWriter,
+            PipeReader payloadSource,
+            PipeReader? payloadSourceStream,
+            PipeWriter payloadSink,
             CancellationToken cancel)
         {
-            bool completeWhenDone = outgoingFrame.PayloadSourceStream == null;
-            frameWriter.CompleteCancellationToken = cancel;
-
-            FlushResult flushResult = await outgoingFrame.PayloadSink.CopyFromAsync(
-                outgoingFrame.PayloadSource,
-                completeWhenDone,
-                cancel).ConfigureAwait(false);
-
-            await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
-
-            Debug.Assert(!flushResult.IsCanceled); // not implemented yet
-
-            if (flushResult.IsCompleted)
+            try
             {
-                // The remote reader stopped reading the stream without error.
-                // TODO: which exception should we throw here?
-                throw new MultiplexedStreamAbortedException((byte)MultiplexedStreamError.StreamingCanceledByReader);
+                await SendPayloadAsyncCore(payloadSource, payloadSourceStream == null).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                if (payloadSourceStream != null)
+                {
+                    await payloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
+                }
             }
 
-            // The caller calls CompleteAsync on the payload source/sink if an exception is thrown by CopyFromAsync
-            // above.
-
-            if (outgoingFrame.PayloadSourceStream is PipeReader payloadSourceStream)
+            if (payloadSourceStream != null)
             {
-                // TODO: better cancellation token?
-                cancel = CancellationToken.None;
-                frameWriter.CompleteCancellationToken = cancel;
-
-                // send payloadSourceStream in the background
-                _ = Task.Run(
-                    async () =>
-                    {
-                        Exception? completeReason = null;
-
-                        try
-                        {
-                            _ = await outgoingFrame.PayloadSink.CopyFromAsync(
-                                outgoingFrame.PayloadSourceStream,
-                                completeWhenDone: true,
-                                cancel).ConfigureAwait(false);
-                        }
-                        catch (Exception ex)
-                        {
-                            completeReason = ex;
-                        }
-
-                        await payloadSourceStream.CompleteAsync(completeReason).ConfigureAwait(false);
-
-                        if (completeReason == null)
-                        {
-                            // It wasn't called by CopyFromAsync, so call it now.
-                            await outgoingFrame.PayloadSink.CompleteAsync(completeReason).ConfigureAwait(false);
-                        }
-                    },
-                    cancel);
+                _ = Task.Run(() => SendPayloadAsyncCore(payloadSourceStream, true), CancellationToken.None);
             }
+
+            async Task SendPayloadAsyncCore(PipeReader source, bool completeWhenDone)
+            {
+                // TODO: XXX
+                //frameWriter.CompleteCancellationToken = cancel;
+                Exception? completeReason = null;
+                FlushResult result;
+                try
+                {
+                    result = await payloadSink.CopyFromAsync(source, completeWhenDone, cancel).ConfigureAwait(false);
+                }
+                catch (Exception exception)
+                {
+                    completeReason = exception;
+                }
+
+                await source.CompleteAsync(completeReason).ConfigureAwait(false);
+                if (completeWhenDone || completeReason != null)
+                {
+                    await payloadSink.CompleteAsync(completeReason).ConfigureAwait(false);
+                }
+            }
+
+            // if (payloadSourceStream == null)
+            // {
+            //     await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
+            //     await payloadSink.CompleteAsync().ConfigureAwait(false);
+            // }
+            // else
+            // {
+            //     // TODO: XXX
+            //     // TODO: better cancellation token?
+            //     // cancel = CancellationToken.None;
+            //     // frameWriter.CompleteCancellationToken = cancel;
+
+            //     // send payloadSourceStream in the background
+            //     _ = Task.Run(
+            //         async () =>
+            //         {
+            //             try
+            //             {
+            //                 _ = await payloadSink.CopyFromAsync(
+            //                     payloadSourceStream,
+            //                     completeWhenDone: true,
+            //                     cancel).ConfigureAwait(false);
+
+            //                 await payloadSourceStream.CompleteAsync().ConfigureAwait(false);
+            //                 await payloadSink.CompleteAsync().ConfigureAwait(false);
+            //             }
+            //             catch (Exception exception)
+            //             {
+            //                 await payloadSourceStream.CompleteAsync(exception).ConfigureAwait(false);
+            //                 await payloadSink.CompleteAsync(exception).ConfigureAwait(false);
+            //             }
+            //         },
+            //         cancel);
+            // }
         }
 
         private async Task WaitForShutdownAsync()

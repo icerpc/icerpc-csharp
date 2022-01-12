@@ -15,7 +15,7 @@ namespace IceRpc.Transports.Internal
         public int Capacity => _buffer.Length;
 
         /// <summary>Returns the number of bytes stored in the buffer.</summary>
-        private int Count
+        public int Count
         {
             get
             {
@@ -119,13 +119,7 @@ namespace IceRpc.Transports.Internal
             {
                 _lock.Enter(ref lockTaken);
 
-                int count = Count;
-                if (count == 0)
-                {
-                    throw new ArgumentOutOfRangeException("buffer is empty");
-                }
-
-                if (_head < _tail)
+                if (_head <= _tail && !_full)
                 {
                     return new ReadOnlySequence<byte>(_buffer[_head.._tail]);
                 }
@@ -156,46 +150,37 @@ namespace IceRpc.Transports.Internal
         /// <param name="consumed">The buffer to copy the consumed data to.</param>
         /// <exception cref="ArgumentOutOfRangeException">Raised the buffer is empty or larger than the available data.
         /// </exception>
-        internal void AdvanceTo(int consumed)
+        internal int AdvanceTo(SequencePosition consumed)
         {
-            if (consumed <= 0)
-            {
-                throw new ArgumentOutOfRangeException($"{nameof(consumed)} can't be <= 0");
-            }
-
             bool lockTaken = false;
             try
             {
                 _lock.Enter(ref lockTaken);
 
-                int count = Count;
-                if (count == 0 || consumed > count)
-                {
-                    throw new ArgumentOutOfRangeException("consumed more data than available");
-                }
+                int position = consumed.GetInteger();
+                int size;
 
-                if (_head < _tail)
+                if (_head < position)
                 {
-                    _head += consumed;
-                    Debug.Assert(_head <= _tail);
+                    size = position - _head;
                 }
-                else if (_head < _buffer.Length)
+                else if (_head == position && !_full)
                 {
-                    if (_head + consumed < _buffer.Length)
-                    {
-                        _head += consumed;
-                    }
-                    else
-                    {
-                        _head = consumed - (_buffer.Length - _head);
-                        Debug.Assert(_head <= _tail);
-                    }
+                    size = 0;
                 }
                 else
                 {
-                    _head = consumed;
+                    size = _buffer.Length - _head + position;
                 }
+
+                if (size > Count)
+                {
+                    throw new ArgumentOutOfRangeException($"can't consume more bytes ({size}) than available");
+                }
+
+                _head = position;
                 _full = false;
+                return size;
             }
             finally
             {

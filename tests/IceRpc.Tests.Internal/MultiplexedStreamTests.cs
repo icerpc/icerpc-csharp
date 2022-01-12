@@ -75,30 +75,23 @@ namespace IceRpc.Tests.Internal
 
             // Abort the read side of the stream. This sends the stop sending frame to the client stream.
             serverStream.AbortRead(156);
-            while (true)
-            {
-                try
-                {
-                    await clientStream.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, endStream, default);
-                    await Task.Delay(1);
-                }
-                catch (MultiplexedStreamAbortedException ex)
-                {
-                    Assert.That(ex!.ErrorCode, Is.EqualTo(156));
-                    break;
-                }
-            }
+            await Task.Delay(500); // wait for the client stream to receive the stop sending frame
+            MultiplexedStreamAbortedException? ex =
+                Assert.ThrowsAsync<MultiplexedStreamAbortedException>(() =>
+                    clientStream.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, endStream, default).AsTask());
+            Assert.That(ex!.ErrorCode, Is.EqualTo(156));
         }
 
-        [TestCase(1, 256, 256)]
-        [TestCase(1, 1024, 256)]
-        [TestCase(1, 256, 1024)]
+        // [TestCase(1, 256, 256)]
+        // [TestCase(1, 1024, 256)]
+        // [TestCase(1, 256, 1024)]
         [TestCase(1, 1024 * 1024, 1024)]
-        [TestCase(1, 1024, 1024 * 1024)]
-        [TestCase(2, 1024 * 1024, 1024)]
-        [TestCase(2, 1024, 1024 * 1024)]
-        [TestCase(3, 1024 * 1024, 1024)]
-        [TestCase(3, 1024, 1024 * 1024)]
+        // [TestCase(1, 1024, 1024 * 1024)]
+        // [TestCase(2, 1024 * 1024, 1024)]
+        // [TestCase(2, 1024, 1024 * 1024)]
+        // [TestCase(3, 1024 * 1024, 1024)]
+        // [TestCase(3, 1024, 1024 * 1024)]
+        [Log(LogAttributeLevel.Trace)]
         public async Task MultiplexedStream_StreamSendReceiveAsync(int bufferCount, int sendSize, int recvSize)
         {
             await using ServiceProvider serviceProvider = new InternalTestServiceCollection().BuildServiceProvider();
@@ -126,7 +119,18 @@ namespace IceRpc.Tests.Internal
                     sendBuffers.Span[i] = buffer;
                 }
             }
-            _ = clientStream.WriteAsync(sendBuffers, false, default).AsTask();
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await clientStream.WriteAsync(sendBuffers, false, default).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    await Console.Error.WriteLineAsync($"XXXX {ex}").ConfigureAwait(false);
+                    throw;
+                }
+            });
 
             IMultiplexedStream serverStream = await serverConnection.AcceptStreamAsync(default);
 
@@ -140,6 +144,7 @@ namespace IceRpc.Tests.Internal
                 if (receiveBuffer.Length == 0)
                 {
                     int count = await serverStream.ReadAsync(buffer, default);
+                    Assert.That(count, Is.Not.Zero);
                     receiveBuffer = buffer.AsMemory()[0..count];
                 }
 
