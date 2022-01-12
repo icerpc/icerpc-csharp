@@ -48,7 +48,7 @@ namespace IceRpc
 
             var uri = new Uri(uriString);
 
-            (ImmutableList<EndpointParam> endpointParams, string? altEndpointValue, string? encoding, string? transport) =
+            (ImmutableDictionary<string, string> endpointParams, string? altEndpointValue, string? encoding, string? transport) =
                 ParseQuery(uri.Query, uriString);
 
             transport ??= "tcp"; // temporary
@@ -177,7 +177,7 @@ namespace IceRpc
 
             var uri = new Uri(uriString);
 
-            (ImmutableList<EndpointParam> endpointParams, string? altEndpoint, string? encoding, string? transport) =
+            (ImmutableDictionary<string, string> endpointParams, string? altEndpoint, string? encoding, string? transport) =
                 ParseQuery(uri.Query, uriString);
 
             if (uri.AbsolutePath.Length > 1)
@@ -201,7 +201,7 @@ namespace IceRpc
 
         private static Endpoint CreateEndpoint(
             Uri uri,
-            ImmutableList<EndpointParam> endpointParams,
+            ImmutableDictionary<string, string> endpointParams,
             Protocol protocol,
             string transport,
             string uriString)
@@ -215,11 +215,11 @@ namespace IceRpc
             return new(protocol, transport, host, checked((ushort)uri.Port), endpointParams);
         }
 
-        private static (ImmutableList<EndpointParam> EndpointParams, string? AltEndpoint, string? Encoding, string? Transport) ParseQuery(
+        private static (ImmutableDictionary<string, string> EndpointParams, string? AltEndpoint, string? Encoding, string? Transport) ParseQuery(
             string query,
             string uriString)
         {
-            var endpointParams = new List<EndpointParam>();
+            var endpointParams = new Dictionary<string, string>();
             string? altEndpoint = null;
             string? encoding = null;
             string? transport = null;
@@ -250,12 +250,16 @@ namespace IceRpc
                     transport = transport == null ? value :
                         throw new FormatException($"too many transport query parameters in URI {uriString}");
                 }
+                else if (endpointParams.TryGetValue(name, out string? existingValue))
+                {
+                    endpointParams[name] = $"existingValue,{value}";
+                }
                 else
                 {
-                    endpointParams.Add(new EndpointParam(name, value));
+                    endpointParams.Add(name, value);
                 }
             }
-            return (endpointParams.ToImmutableList(), altEndpoint, encoding, transport);
+            return (endpointParams.ToImmutableDictionary(), altEndpoint, encoding, transport);
         }
 
         private static void TryRegisterParser(string schemeName)

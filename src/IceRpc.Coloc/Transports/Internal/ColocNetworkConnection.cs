@@ -27,7 +27,7 @@ namespace IceRpc.Transports.Internal
             if (remoteEndpoint.Params.Count > 0)
             {
                 throw new FormatException(
-                    $"unknown parameter '{remoteEndpoint.Params[0].Name}' in endpoint '{remoteEndpoint}'");
+                    $"unknown parameter '{remoteEndpoint.Params.Keys.First()}' in endpoint '{remoteEndpoint}'");
             }
             return !_isServer;
         }

@@ -384,7 +384,7 @@ namespace IceRpc
                                         TransportNames.Loc,
                                         host: adapterId,
                                         port: 0,
-                                        ImmutableList<EndpointParam>.Empty);
+                                        ImmutableDictionary<string, string>.Empty);
 
                 return new Proxy(identity.ToPath(), Protocol.Ice)
                 {
@@ -521,7 +521,7 @@ namespace IceRpc
 
             string? host = null;
             ushort? port = null;
-            var endpointParams = new List<EndpointParam>();
+            var endpointParams = new Dictionary<string, string>();
 
             // Parse args into name/value pairs (and skip transportName at args[0])
             for (int n = 1; n < args.Length; ++n)
@@ -594,20 +594,18 @@ namespace IceRpc
                     {
                         value = "true";
                     }
-                    endpointParams.Add(new EndpointParam(name, value));
+                    endpointParams.Add(name, value);
                 }
             }
 
             if (transportName == TransportNames.Tcp)
             {
-                // Since the order of the endpoint params matters for endpoint comparison, we
-                // always insert tls first.
-                endpointParams.Insert(0, new EndpointParam("tls", "false"));
+                endpointParams.Add("tls", "false");
             }
             else if (transportName == TransportNames.Ssl)
             {
                 transportName = TransportNames.Tcp;
-                endpointParams.Insert(0, new EndpointParam("tls", "true"));
+                endpointParams.Add("tls", "true");
             }
 
             return new Endpoint(
@@ -615,7 +613,7 @@ namespace IceRpc
                 transportName,
                 host ?? "",
                 port ?? 0,
-                endpointParams.ToImmutableList());
+                endpointParams.ToImmutableDictionary());
         }
 
         /// <summary>Converts an endpoint into a string in a format compatible with ZeroC Ice.</summary>
@@ -627,7 +625,7 @@ namespace IceRpc
 
             if (endpoint.Transport == TransportNames.Tcp)
             {
-                if (endpoint.Params.Find(p => p.Name == "tls").Value == "false")
+                if (endpoint.Params.TryGetValue("tls", out string? tlsValue) && tlsValue == "false")
                 {
                     sb.Append(TransportNames.Tcp);
                 }

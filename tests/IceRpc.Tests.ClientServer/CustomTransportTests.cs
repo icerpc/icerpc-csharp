@@ -17,8 +17,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 Endpoint newEndpoint = remoteEndpoint with
                 {
-                    Params = remoteEndpoint.Params.RemoveAll(
-                        p => p.Name.StartsWith("custom-", StringComparison.Ordinal))
+                    Params = remoteEndpoint.Params.Remove("custom-p")
                 };
                 return _transport.CreateConnection(newEndpoint, logger);
             }
@@ -42,7 +41,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 Endpoint newEndpoint = endpoint with
                 {
-                    Params = endpoint.Params.RemoveAll(p => p.Name.StartsWith("custom-", StringComparison.Ordinal))
+                    Params = endpoint.Params.Remove("custom-p")
                 };
                 return _transport.Listen(newEndpoint, logger);
             }
@@ -108,7 +107,7 @@ namespace IceRpc.Tests.ClientServer
                     // removes the parameter
                     RemoteEndpoint = server.Endpoint with
                     {
-                        Params = server.Endpoint.Params.Add(new EndpointParam("custom-p", "bar"))
+                        Params = server.Endpoint.Params.Add("custom-p", "bar")
                     }
                 };
 
@@ -122,7 +121,7 @@ namespace IceRpc.Tests.ClientServer
                     // removes the parameter
                     RemoteEndpoint = server.Endpoint with
                     {
-                        Params = server.Endpoint.Params.Add(new EndpointParam("custom-p", "bar"))
+                        Params = server.Endpoint.Params.Add("custom-p", "bar")
                     }
                 };
 

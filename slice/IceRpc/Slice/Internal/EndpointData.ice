@@ -21,6 +21,6 @@ module IceRpc::Slice::Internal
         port: ushort,
 
         /// The endpoint parameters.
-        params: sequence<EndpointParam>,
+        params: dictionary<string, string>,
     }
 }

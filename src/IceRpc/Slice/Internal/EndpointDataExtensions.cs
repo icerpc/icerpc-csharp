@@ -16,6 +16,6 @@ namespace IceRpc.Slice.Internal
                 string.IsInterned(endpointData.Transport) ?? endpointData.Transport,
                 endpointData.Host,
                 endpointData.Port,
-                endpointData.Params.ToImmutableList());
+                endpointData.Params.ToImmutableDictionary());
     }
 }

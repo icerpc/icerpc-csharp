@@ -20,7 +20,7 @@ namespace IceRpc.Transports
             if (remoteEndpoint.Params.Count > 0)
             {
                 throw new FormatException(
-                    $"unknown parameter '{remoteEndpoint.Params[0].Name}' in endpoint '{remoteEndpoint}'");
+                    $"unknown parameter '{remoteEndpoint.Params.Keys.First()}' in endpoint '{remoteEndpoint}'");
             }
 
             if (_listeners.TryGetValue(remoteEndpoint, out ColocListener? listener))

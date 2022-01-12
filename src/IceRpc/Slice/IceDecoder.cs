@@ -358,7 +358,7 @@ namespace IceRpc.Slice
                                                     TransportNames.Loc,
                                                     host: adapterId,
                                                     port: 0,
-                                                    @params: ImmutableList<EndpointParam>.Empty);
+                                                    @params: ImmutableDictionary<string, string>.Empty);
                         }
                         else
                         {
@@ -781,17 +781,20 @@ namespace IceRpc.Slice
                             int timeout = DecodeInt();
                             bool compress = DecodeBool();
 
-                            var endpointParams = ImmutableList.Create(
-                                new EndpointParam("tls", transportCode == TransportCode.SSL ? "true" : "false"));
+                            ImmutableDictionary<string, string> endpointParams =
+                                ImmutableDictionary<string, string>.Empty.Add(
+                                    "tls",
+                                    transportCode == TransportCode.SSL ? "true" : "false");
 
                             if (timeout != EndpointParseExtensions.DefaultTcpTimeout)
                             {
                                 endpointParams = endpointParams.Add(
-                                    new EndpointParam("t", timeout.ToString(CultureInfo.InvariantCulture)));
+                                    "t",
+                                    timeout.ToString(CultureInfo.InvariantCulture));
                             }
                             if (compress)
                             {
-                                endpointParams = endpointParams.Add(new EndpointParam("z", "true"));
+                                endpointParams = endpointParams.Add("z", "true");
                             }
 
                             endpoint = new Endpoint(
@@ -810,8 +813,11 @@ namespace IceRpc.Slice
                             ushort port = checked((ushort)DecodeInt());
                             bool compress = DecodeBool();
 
-                            var endpointParams = compress ? ImmutableList.Create(new EndpointParam("z", "true")) :
-                                ImmutableList<EndpointParam>.Empty;
+                            var endpointParams = ImmutableDictionary<string, string>.Empty;
+                            if (compress)
+                            {
+                                endpointParams = endpointParams.Add("z", "true");
+                            }
 
                             endpoint = new Endpoint(
                                 Protocol.Ice,
@@ -849,17 +855,17 @@ namespace IceRpc.Slice
                                 _reader.Advance(size);
                             }
 
-                            var endpointParams = ImmutableList.Create(
-                                new EndpointParam("t", ((short)transportCode).ToString(CultureInfo.InvariantCulture)),
-                                new EndpointParam("e", encoding.ToString()),
-                                new EndpointParam("v", Convert.ToBase64String(vSpan)));
+                            var builder = ImmutableDictionary.CreateBuilder<string, string>();
+                            builder.Add("t", ((short)transportCode).ToString(CultureInfo.InvariantCulture));
+                            builder.Add("e", encoding.ToString() );
+                            builder.Add("v", Convert.ToBase64String(vSpan));
 
                             endpoint = new Endpoint(
                                 Protocol.Ice,
                                 TransportNames.Opaque,
                                 host: "",
                                 port: 0,
-                                endpointParams);
+                                builder.ToImmutable());
                             break;
                         }
                     }

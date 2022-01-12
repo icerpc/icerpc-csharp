@@ -138,7 +138,7 @@ namespace IceRpc.Tests
                     bool tls = serviceProvider.GetService<SslServerAuthenticationOptions>() != null;
                     endpoint = endpoint with
                     {
-                        Params = ImmutableList.Create(new EndpointParam("tls", tls.ToString().ToLowerInvariant()))
+                        Params = ImmutableDictionary<string, string>.Empty.Add("tls", tls.ToString().ToLowerInvariant())
                     };
                 }
 
