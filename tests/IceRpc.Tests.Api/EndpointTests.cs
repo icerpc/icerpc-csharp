@@ -18,6 +18,7 @@ namespace IceRpc.Tests.Api
         [TestCase("icerpc://host:10000?transport=coloc")]
         [TestCase("ice://localhost?transport=udp")]
         [TestCase("ice://host:10000")]
+        [TestCase("foo://[::0]?tls=false&tls=true&foo=")]
         public void Endpoint_Parse_ValidInput(string str)
         {
             var endpoint = Endpoint.FromString(str);
@@ -30,7 +31,11 @@ namespace IceRpc.Tests.Api
         [TestCase("icerpc://host:10000?encoding=1.1")]                 // encoding is proxy-only
         [TestCase("icerpc://host:10000?alt-endpoint=host2")]           // alt-endpoint is proxy only
         [TestCase("icerpc://host:10000?tls")]                          // no = for tls parameter
+        [TestCase("icerpc:///foo")]                                    // path, empty authority
+        [TestCase("icerpc:///")]                                       // empty authority
+        [TestCase("icerpc:/foo")]                                      // no authority
+        [TestCase("icerpc:")]                                          // no authority
         public void Endpoint_Parse_InvalidInput(string str) =>
-            Assert.Throws<FormatException>(() => Endpoint.FromString(str));
+            Assert.Catch<FormatException>(() => Endpoint.FromString(str));
     }
 }

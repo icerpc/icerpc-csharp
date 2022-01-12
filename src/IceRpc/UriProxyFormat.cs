@@ -57,7 +57,7 @@ namespace IceRpc
             ImmutableList<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
             if (uri.Authority.Length > 0)
             {
-                endpoint = CreateEndpoint(uri, endpointParams, scheme, transport);
+                endpoint = CreateEndpoint(uri, endpointParams, scheme, transport, uriString);
 
                 if (altEndpointValue != null)
                 {
@@ -197,18 +197,24 @@ namespace IceRpc
             {
                 throw new FormatException($"invalid encoding parameter in endpoint '{uriString}'");
             }
-            return CreateEndpoint(uri, endpointParams, scheme, transport ?? "tcp");
+            return CreateEndpoint(uri, endpointParams, scheme, transport ?? "tcp", uriString);
         }
 
         private static Endpoint CreateEndpoint(
             Uri uri,
             ImmutableList<EndpointParam> endpointParams,
             Scheme scheme,
-            string transport) => new(scheme,
-                                     transport,
-                                     uri.DnsSafeHost,
-                                     checked((ushort)uri.Port),
-                                     endpointParams);
+            string transport,
+            string uriString)
+        {
+            string host = uri.DnsSafeHost;
+            if (host.Length == 0)
+            {
+                throw new FormatException($"missing authority in endpoint URI '{uriString}'");
+            }
+
+            return new(scheme, transport, host, checked((ushort)uri.Port), endpointParams);
+        }
 
         private static (ImmutableList<EndpointParam> EndpointParams, string? AltEndpoint, string? Encoding, string? Transport) ParseQuery(
             string query,

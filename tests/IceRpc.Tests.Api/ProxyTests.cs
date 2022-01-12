@@ -224,6 +224,9 @@ namespace IceRpc.Tests.Api
         [TestCase("id -f \'facet x")]
         [TestCase("test -f facet@test @test")]
         [TestCase("test -p 2.0")]
+        [TestCase("icerpc://host/path?alt-endpoint=")] // alt-endpoint authority cannot be empty
+        [TestCase("icerpc://host/path?alt-endpoint=/foo")] // alt-endpoint cannot have a path
+
         public void Proxy_Parse_InvalidInput(string str)
         {
             Assert.Catch<FormatException>(() => Proxy.Parse(str));
