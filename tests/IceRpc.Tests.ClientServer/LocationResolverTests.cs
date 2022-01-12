@@ -32,7 +32,7 @@ namespace IceRpc.Tests.ClientServer
             IProxyFormat? format = proxy.StartsWith("ice", StringComparison.Ordinal) ? null : IceProxyFormat.Default;
 
             var indirect = GreeterPrx.Parse(proxy, pipeline, format);
-            GreeterPrx direct = SetupServer(indirect.Proxy.Scheme.Name, indirect.Proxy.Path, pipeline);
+            GreeterPrx direct = SetupServer(indirect.Proxy.Protocol.Name, indirect.Proxy.Path, pipeline);
             Assert.That(direct.Proxy.Endpoint, Is.Not.Null);
 
             if (indirect.Proxy.Endpoint is Endpoint endpoint)
@@ -83,7 +83,7 @@ namespace IceRpc.Tests.ClientServer
             _server.Listen();
 
             // Need to create proxy after calling Listen; otherwise, the port number is still 0.
-            var greeter = GreeterPrx.FromPath(path, Scheme.FromString(protocol));
+            var greeter = GreeterPrx.FromPath(path, Protocol.FromString(protocol));
             greeter.Proxy.Endpoint = _server.Endpoint;
             greeter.Proxy.Invoker = invoker;
             Assert.AreNotEqual(0, greeter.Proxy.Endpoint!.Port);
@@ -99,13 +99,13 @@ namespace IceRpc.Tests.ClientServer
             next => new InlineInvoker(
                 (request, cancel) =>
                 {
-                    if ((request.Protocol == resolvedEndpoint.Scheme) &&
+                    if ((request.Protocol == resolvedEndpoint.Protocol) &&
                         ((request.Endpoint is Endpoint endpoint &&
                           endpoint.Transport == "loc" &&
                           endpoint.Host == location &&
                           category == null) ||
                          (request.Endpoint == null &&
-                          request.Protocol == Scheme.Ice &&
+                          request.Protocol == Protocol.Ice &&
                           category != null &&
                           request.Path == new Identity(location, category).ToPath())))
                     {

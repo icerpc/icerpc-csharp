@@ -248,7 +248,7 @@ namespace IceRpc.Slice
             // The Ice 1.1 encoding of ice endpoints is transport-specific, and hard-coded here. The preferred and
             // fallback encoding for new transports is TransportCode.Any, which uses an EndpointData like Ice 2.0.
 
-            if (endpoint.Scheme == Scheme.Ice && endpoint.Transport == TransportNames.Opaque)
+            if (endpoint.Protocol == Protocol.Ice && endpoint.Transport == TransportNames.Opaque)
             {
                 // Opaque endpoint encoding
 
@@ -275,7 +275,7 @@ namespace IceRpc.Slice
                 bool compress = false;
                 int timeout = -1;
 
-                if (endpoint.Scheme == Scheme.Ice)
+                if (endpoint.Protocol == Protocol.Ice)
                 {
                     if (endpoint.Transport == TransportNames.Tcp)
                     {

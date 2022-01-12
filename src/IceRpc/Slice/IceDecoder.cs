@@ -297,7 +297,7 @@ namespace IceRpc.Slice
                 if (_activator?.CreateInstance(typeId, ref this) is RemoteException remoteException)
                 {
                     // TODO: consider calling this Skip for the remaining exception tagged members from the generated
-                    // code to make the exception decoding constructor usable directly. See scheme bridging code.
+                    // code to make the exception decoding constructor usable directly. See protocol bridging code.
                     SkipTaggedParams();
                     return remoteException;
                 }
@@ -331,7 +331,7 @@ namespace IceRpc.Slice
 
                 if (proxyData.ProtocolMajor == 0)
                 {
-                    throw new InvalidDataException("received proxy with scheme set to 0");
+                    throw new InvalidDataException("received proxy with protocol set to 0");
                 }
                 if (proxyData.ProtocolMinor != 0)
                 {
@@ -345,16 +345,16 @@ namespace IceRpc.Slice
 
                 Endpoint? endpoint = null;
                 IEnumerable<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
-                var scheme = Scheme.FromByte(proxyData.ProtocolMajor);
+                var protocol = Protocol.FromByte(proxyData.ProtocolMajor);
 
                 if (size == 0)
                 {
                     string adapterId = DecodeString();
                     if (adapterId.Length > 0)
                     {
-                        if (scheme == Scheme.Ice)
+                        if (protocol == Protocol.Ice)
                         {
-                            endpoint = new Endpoint(Scheme.Ice,
+                            endpoint = new Endpoint(Protocol.Ice,
                                                     TransportNames.Loc,
                                                     host: adapterId,
                                                     port: 0,
@@ -362,19 +362,19 @@ namespace IceRpc.Slice
                         }
                         else
                         {
-                            throw new InvalidDataException($"received {scheme} proxy with an adapter ID");
+                            throw new InvalidDataException($"received {protocol} proxy with an adapter ID");
                         }
                     }
                 }
                 else
                 {
-                    endpoint = DecodeEndpoint(scheme);
+                    endpoint = DecodeEndpoint(protocol);
                     if (size >= 2)
                     {
                         var endpointArray = new Endpoint[size - 1];
                         for (int i = 0; i < size - 1; ++i)
                         {
-                            endpointArray[i] = DecodeEndpoint(scheme);
+                            endpointArray[i] = DecodeEndpoint(protocol);
                         }
                         altEndpoints = endpointArray;
                     }
@@ -382,11 +382,11 @@ namespace IceRpc.Slice
 
                 proxyData.Facet.CheckValue();
 
-                if (scheme == Scheme.Ice)
+                if (protocol == Protocol.Ice)
                 {
                     try
                     {
-                        return new Proxy(identity.ToPath(), Scheme.Ice)
+                        return new Proxy(identity.ToPath(), Protocol.Ice)
                         {
                             Encoding = IceRpc.Encoding.FromMajorMinor(
                                 proxyData.EncodingMajor,
@@ -411,7 +411,7 @@ namespace IceRpc.Slice
                     if (proxyData.InvocationMode != InvocationMode.Twoway)
                     {
                         throw new InvalidDataException(
-                            $"received proxy for scheme {scheme} with invocation mode set");
+                            $"received proxy for protocol {protocol} with invocation mode set");
                     }
 
                     try
@@ -424,7 +424,7 @@ namespace IceRpc.Slice
                         }
                         else
                         {
-                            proxy = new Proxy(identity.ToPath(), scheme)
+                            proxy = new Proxy(identity.ToPath(), protocol)
                             {
                                 Endpoint = endpoint,
                                 AltEndpoints = altEndpoints.ToImmutableList(),
@@ -453,7 +453,7 @@ namespace IceRpc.Slice
                     return null;
                 }
 
-                Scheme scheme = proxyData.Scheme != null ? Scheme.FromString(proxyData.Scheme) : Scheme.IceRpc;
+                Protocol protocol = proxyData.Protocol != null ? Protocol.FromString(proxyData.Protocol) : Protocol.IceRpc;
                 Endpoint? endpoint = proxyData.Endpoint is EndpointData data ? data.ToEndpoint() : null;
                 ImmutableList<Endpoint> altEndpoints =
                     proxyData.AltEndpoints?.Select(data => data.ToEndpoint()).ToImmutableList() ??
@@ -470,13 +470,13 @@ namespace IceRpc.Slice
 
                     Debug.Assert(proxyData.Fragment != null);
 
-                    if (endpoint == null && scheme != Scheme.Ice)
+                    if (endpoint == null && protocol != Protocol.Ice)
                     {
                         proxy = Proxy.FromConnection(_connection!, proxyData.Path, _invoker);
                     }
                     else
                     {
-                        proxy = new Proxy(proxyData.Path, scheme)
+                        proxy = new Proxy(proxyData.Path, protocol)
                         {
                             Endpoint = endpoint,
                             AltEndpoints = altEndpoints,
@@ -486,8 +486,7 @@ namespace IceRpc.Slice
 
                     proxy.Fragment = proxyData.Fragment;
                     proxy.Encoding = proxyData.Encoding is string encoding ?
-                        IceRpc.Encoding.FromString(encoding) :
-                        (proxy.Scheme is Protocol protocol ? protocol.SliceEncoding : IceRpc.Encoding.Unknown);
+                        IceRpc.Encoding.FromString(encoding) : protocol.SliceEncoding ?? IceRpc.Encoding.Unknown;
 
                     return proxy;
                 }
@@ -734,9 +733,9 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Decodes an endpoint (Slice 1.1).</summary>
-        /// <param name="scheme">The Ice scheme of this endpoint.</param>
+        /// <param name="protocol">The Ice protocol of this endpoint.</param>
         /// <returns>The endpoint decoded by this decoder.</returns>
-        private Endpoint DecodeEndpoint(Scheme scheme)
+        private Endpoint DecodeEndpoint(Protocol protocol)
         {
             Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
 
@@ -770,7 +769,7 @@ namespace IceRpc.Slice
             {
                 long oldPos = _reader.Consumed;
 
-                if (scheme == Scheme.Ice)
+                if (protocol == Protocol.Ice)
                 {
                     switch (transportCode)
                     {
@@ -796,7 +795,7 @@ namespace IceRpc.Slice
                             }
 
                             endpoint = new Endpoint(
-                                Scheme.Ice,
+                                Protocol.Ice,
                                 TransportNames.Tcp,
                                 host,
                                 port,
@@ -815,7 +814,7 @@ namespace IceRpc.Slice
                                 ImmutableList<EndpointParam>.Empty;
 
                             endpoint = new Endpoint(
-                                Scheme.Ice,
+                                Protocol.Ice,
                                 TransportNames.Udp,
                                 host,
                                 port,
@@ -856,7 +855,7 @@ namespace IceRpc.Slice
                                 new EndpointParam("v", Convert.ToBase64String(vSpan)));
 
                             endpoint = new Endpoint(
-                                Scheme.Ice,
+                                Protocol.Ice,
                                 TransportNames.Opaque,
                                 host: "",
                                 port: 0,
@@ -885,7 +884,7 @@ namespace IceRpc.Slice
 
             return endpoint ??
                 throw new InvalidDataException(
-                    @$"cannot decode endpoint for scheme '{scheme}' and transport '{transportName
+                    @$"cannot decode endpoint for protocol '{protocol}' and transport '{transportName
                     }' with endpoint encapsulation encoded with encoding '{encoding}'");
         }
 

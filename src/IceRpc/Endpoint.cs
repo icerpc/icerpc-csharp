@@ -13,8 +13,8 @@ namespace IceRpc
     [TypeConverter(typeof(EndpointTypeConverter))]
     public sealed record class Endpoint
     {
-        /// <summary>The scheme of this endpoint.</summary>
-        public Scheme Scheme { get; set; }
+        /// <summary>The protocol of this endpoint.</summary>
+        public Protocol Protocol { get; set; }
 
         /// <summary>The transport of this endpoint, for example "tcp" or "quic".</summary>
         public string Transport { get; set; }
@@ -43,19 +43,19 @@ namespace IceRpc
         public static Endpoint FromString(string s) => UriProxyFormat.ParseEndpoint(s);
 
         /// <summary>Constructs a new endpoint.</summary>
-        /// <param name="scheme">The Ice scheme of this endpoint.</param>
+        /// <param name="protocol">The protocol of this endpoint.</param>
         /// <param name="transport">The transport of this endpoint, for example "tcp" or "quic".</param>
         /// <param name="host">The host name or address.</param>
         /// <param name="port">The port number.</param>
         /// <param name="params">Transport-specific parameters.</param>
         public Endpoint(
-            Scheme scheme,
+            Protocol protocol,
             string transport,
             string host,
             ushort port,
             ImmutableList<EndpointParam> @params)
         {
-            Scheme = scheme;
+            Protocol = protocol;
             Transport = transport;
             Host = host;
             Port = port;
@@ -68,7 +68,7 @@ namespace IceRpc
         /// same order); otherwise, <c>false</c>.</returns>
         public bool Equals(Endpoint? other) =>
             other != null &&
-            Scheme == other.Scheme &&
+            Protocol == other.Protocol &&
             Transport == other.Transport &&
             Host == other.Host &&
             Port == other.Port &&
@@ -78,7 +78,7 @@ namespace IceRpc
         /// <returns>The hash code.</returns>
         public override int GetHashCode() =>
             HashCode.Combine(
-                Scheme,
+                Protocol,
                 Transport,
                 Host,
                 Port,
@@ -105,13 +105,13 @@ namespace IceRpc
             public override bool Equals(Endpoint? lhs, Endpoint? rhs) =>
                 ReferenceEquals(lhs, rhs) ||
                     (lhs != null && rhs != null &&
-                    lhs.Scheme == rhs.Scheme &&
+                    lhs.Protocol == rhs.Protocol &&
                     lhs.Transport == rhs.Transport &&
                     lhs.Host == rhs.Host &&
                     lhs.Port == rhs.Port);
 
             public override int GetHashCode(Endpoint endpoint) =>
-                HashCode.Combine(endpoint.Scheme,
+                HashCode.Combine(endpoint.Protocol,
                                  endpoint.Transport,
                                  endpoint.Host,
                                  endpoint.Port);

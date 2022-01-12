@@ -168,12 +168,12 @@ fn proxy_impl_static_methods(interface_def: &Interface) -> CodeBlock {
     IceRpc.IInvoker? invoker = null) =>
     new(IceRpc.Proxy.FromConnection(connection, path ?? DefaultPath, invoker));
 
-/// <summary>Creates a new <see cref="{prx_impl}"/> with the given path and scheme.</summary>
+/// <summary>Creates a new <see cref="{prx_impl}"/> with the given path and protocol.</summary>
 /// <param name="path">The path for the proxy.</param>
-/// <param name="scheme">The proxy scheme.</param>
+/// <param name="protocol">The protocol of the proxy.</param>
 /// <returns>The new proxy.</returns>
-{access} static {prx_impl} FromPath(string path, IceRpc.Scheme? scheme = null) =>
-    new(IceRpc.Proxy.FromPath(path, scheme ?? IceRpc.Scheme.IceRpc));
+{access} static {prx_impl} FromPath(string path, IceRpc.Protocol? protocol = null) =>
+    new(IceRpc.Proxy.FromPath(path, protocol ?? IceRpc.Protocol.IceRpc));
 
 /// <summary>Creates a new <see cref="{prx_impl}"/> from a string and invoker.</summary>
 /// <param name="s">The string representation of the proxy.</param>

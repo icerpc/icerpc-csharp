@@ -25,7 +25,7 @@ namespace IceRpc.Internal
         {
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             _decoratee.Dispose();
-            _logger.LogProtocolConnectionDispose((Protocol)_information.LocalEndpoint.Scheme);
+            _logger.LogProtocolConnectionDispose(_information.LocalEndpoint.Protocol);
         }
 
         async Task IProtocolConnection.PingAsync(CancellationToken cancel)
@@ -84,13 +84,13 @@ namespace IceRpc.Internal
                 {
                     try
                     {
-                        _logger.LogProtocolConnectionShutdownCanceled((Protocol)_information.LocalEndpoint.Scheme);
+                        _logger.LogProtocolConnectionShutdownCanceled(_information.LocalEndpoint.Protocol);
                     }
                     catch
                     {
                     }
                 });
-            _logger.LogProtocolConnectionShutdown((Protocol)_information.LocalEndpoint.Scheme, message);
+            _logger.LogProtocolConnectionShutdown(_information.LocalEndpoint.Protocol, message);
         }
 
         internal LogProtocolConnectionDecorator(

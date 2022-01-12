@@ -30,20 +30,20 @@ namespace IceRpc
 
             string schemeName = uriString[0..colonIndex];
 
-            // Uri.CheckSchemeName accepts 1-character long scheme name, but UriParser.Register does not.
+            // Uri.CheckSchemeName accepts 1-character long protocol name, but UriParser.Register does not.
             if (schemeName.Length < 2 || !Uri.CheckSchemeName(schemeName))
             {
                 throw new FormatException($"'{uriString}' is not a valid URI");
             }
 
-            var scheme = Scheme.FromString(schemeName);
+            var protocol = Protocol.FromString(schemeName);
             TryRegisterParser(schemeName);
 
             // If there is no authority in the string, we unfortunately need to add an explicit empty authority.
-            string body = uriString[(scheme.Name.Length + 1)..]; // chop-off "scheme:"
+            string body = uriString[(protocol.Name.Length + 1)..]; // chop-off "protocol:"
             if (!body.StartsWith("//", StringComparison.Ordinal))
             {
-                uriString = body.StartsWith('/') ? $"{scheme}://{body}" : $"{scheme}:///{body}";
+                uriString = body.StartsWith('/') ? $"{protocol}://{body}" : $"{protocol}:///{body}";
             }
 
             var uri = new Uri(uriString);
@@ -57,7 +57,7 @@ namespace IceRpc
             ImmutableList<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
             if (uri.Authority.Length > 0)
             {
-                endpoint = CreateEndpoint(uri, endpointParams, scheme, transport, uriString);
+                endpoint = CreateEndpoint(uri, endpointParams, protocol, transport, uriString);
 
                 if (altEndpointValue != null)
                 {
@@ -79,14 +79,13 @@ namespace IceRpc
                 uri.AbsolutePath[0] == '/' &&
                 Proxy.IsValidPath(uri.AbsolutePath));
 
-            return new Proxy(uri.AbsolutePath, scheme)
+            return new Proxy(uri.AbsolutePath, protocol)
             {
                 Invoker = invoker ?? Proxy.DefaultInvoker,
                 Endpoint = endpoint,
                 AltEndpoints = altEndpoints,
                 Encoding = encoding == null ?
-                    (scheme is Protocol protocol ? protocol.SliceEncoding : Encoding.Unknown) :
-                    Encoding.FromString(encoding),
+                    (protocol.SliceEncoding ?? Encoding.Unknown) : Encoding.FromString(encoding),
                 Fragment = uri.Fragment.Length > 0 ? uri.Fragment[1..] : "" // remove #
             };
         }
@@ -104,7 +103,7 @@ namespace IceRpc
             }
             else
             {
-                sb.Append(proxy.Scheme);
+                sb.Append(proxy.Protocol);
                 sb.Append(':');
                 sb.Append(proxy.Path);
             }
@@ -167,13 +166,13 @@ namespace IceRpc
 
             string schemeName = uriString[0..colonIndex];
 
-            // Uri.CheckSchemeName accepts 1-character long scheme name, but UriParser.Register does not.
+            // Uri.CheckSchemeName accepts 1-character long protocol name, but UriParser.Register does not.
             if (schemeName.Length < 2 || !Uri.CheckSchemeName(schemeName))
             {
                 throw new FormatException($"'{uriString}' is not a valid URI");
             }
 
-            var scheme = Scheme.FromString(schemeName);
+            var protocol = Protocol.FromString(schemeName);
             TryRegisterParser(schemeName);
 
             var uri = new Uri(uriString);
@@ -197,13 +196,13 @@ namespace IceRpc
             {
                 throw new FormatException($"invalid encoding parameter in endpoint '{uriString}'");
             }
-            return CreateEndpoint(uri, endpointParams, scheme, transport ?? "tcp", uriString);
+            return CreateEndpoint(uri, endpointParams, protocol, transport ?? "tcp", uriString);
         }
 
         private static Endpoint CreateEndpoint(
             Uri uri,
             ImmutableList<EndpointParam> endpointParams,
-            Scheme scheme,
+            Protocol protocol,
             string transport,
             string uriString)
         {
@@ -213,7 +212,7 @@ namespace IceRpc
                 throw new FormatException($"missing authority in endpoint URI '{uriString}'");
             }
 
-            return new(scheme, transport, host, checked((ushort)uri.Port), endpointParams);
+            return new(protocol, transport, host, checked((ushort)uri.Port), endpointParams);
         }
 
         private static (ImmutableList<EndpointParam> EndpointParams, string? AltEndpoint, string? Encoding, string? Transport) ParseQuery(
@@ -274,7 +273,7 @@ namespace IceRpc
                         GenericUriParserOptions.IriParsing |
                         GenericUriParserOptions.NoUserInfo;
 
-                    // UriParser.Register requires a separate UriParser instance per scheme.
+                    // UriParser.Register requires a separate UriParser instance per protocol.
                     UriParser.Register(new GenericUriParser(parserOptions), schemeName, DefaultUriPort);
                 }
             }

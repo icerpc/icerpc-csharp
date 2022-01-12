@@ -72,10 +72,10 @@ namespace IceRpc.Tests.ClientServer
             router.Map("/forward", new Forwarder(targetServicePrx.Proxy));
 
             // TODO: test with the other encoding; currently, the encoding is always the encoding of
-            // forwardService.Proxy.Scheme
+            // forwardService.Proxy.Proxy
 
             ProtocolBridgingTestPrx newPrx = await TestProxyAsync(forwarderServicePrx, direct: false);
-            Assert.AreEqual(targetProtocol, newPrx.Proxy.Scheme.Name);
+            Assert.AreEqual(targetProtocol, (object)newPrx.Proxy.Protocol.Name);
             _ = await TestProxyAsync(newPrx, direct: true);
 
             async Task<ProtocolBridgingTestPrx> TestProxyAsync(ProtocolBridgingTestPrx prx, bool direct)
@@ -151,14 +151,14 @@ namespace IceRpc.Tests.ClientServer
             {
                 // First create an outgoing request to _target from the incoming request:
 
-                var targetProtocol = (Protocol)_target.Scheme;
+                Protocol targetProtocol = _target.Protocol;
 
                 // Fields and context forwarding
                 IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields =
                     ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
                 FeatureCollection features = FeatureCollection.Empty;
 
-                if (incomingRequest.Protocol == Scheme.IceRpc && targetProtocol == Scheme.IceRpc)
+                if (incomingRequest.Protocol == Protocol.IceRpc && targetProtocol == Protocol.IceRpc)
                 {
                     // The context is just another field, features remain empty
                     fields = incomingRequest.Fields;

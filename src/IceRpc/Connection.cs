@@ -107,7 +107,7 @@ namespace IceRpc
         public NetworkConnectionInformation? NetworkConnectionInformation { get; private set; }
 
         /// <summary>The protocol used by the connection.</summary>
-        public Protocol Protocol => _protocol ?? (Protocol)RemoteEndpoint.Scheme;
+        public Protocol Protocol => _protocol ?? RemoteEndpoint.Protocol;
 
         /// <summary>Gets or sets the options of the connection.</summary>
         public ConnectionOptions Options { get; init; } = new();
@@ -120,10 +120,10 @@ namespace IceRpc
                    throw new InvalidOperationException($"{nameof(RemoteEndpoint)} is not set on the connection");
             init
             {
-                if (value.Scheme is not IceRpc.Protocol)
+                if (!value.Protocol.IsSupported)
                 {
                     throw new NotSupportedException(
-                        $"cannot create client connection to endpoint with scheme '{value.Scheme}'");
+                        $"cannot create client connection to endpoint with protocol '{value.Protocol}'");
                 }
 
                 _initialRemoteEndpoint = value;
@@ -218,7 +218,7 @@ namespace IceRpc
                             _protocolConnection == null &&
                             RemoteEndpoint != null);
 
-                        _stateTask = Protocol == Scheme.Ice ?
+                        _stateTask = Protocol == Protocol.Ice ?
                             PerformConnectAsync(SimpleClientTransport,
                                                 IceProtocol.Instance.ProtocolConnectionFactory,
                                                 LogSimpleNetworkConnectionDecorator.Decorate) :
@@ -610,7 +610,7 @@ namespace IceRpc
                     if (exception is OperationCanceledException)
                     {
                         // TODO: do we really need this protocol-dependent processing?
-                        if (Protocol == Scheme.Ice)
+                        if (Protocol == Protocol.Ice)
                         {
                             exception = new DispatchException("dispatch canceled by peer");
                         }

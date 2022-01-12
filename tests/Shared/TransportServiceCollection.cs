@@ -34,7 +34,7 @@ namespace IceRpc.Tests
                 });
 
             // The default protocol is IceRpc
-            this.AddScoped(_ => Scheme.IceRpc);
+            this.AddScoped(_ => Protocol.IceRpc);
 
             // Use coloc as the default transport.
             this.UseTransport("coloc");
@@ -127,9 +127,9 @@ namespace IceRpc.Tests
         {
             collection.AddScoped(serviceProvider =>
             {
-                Scheme scheme = serviceProvider.GetRequiredService<Protocol>();
+                Protocol protocol = serviceProvider.GetRequiredService<Protocol>();
 
-                Endpoint endpoint = $"{scheme}://{host}:{port}?transport={transport}";
+                Endpoint endpoint = $"{protocol}://{host}:{port}?transport={transport}";
 
                 // For tcp set the "tls" parameter
                 if (endpoint.Transport == "tcp")

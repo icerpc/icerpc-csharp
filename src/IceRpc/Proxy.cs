@@ -36,13 +36,13 @@ namespace IceRpc
                             nameof(AltEndpoints));
                     }
 
-                    if (value.Any(e => e.Scheme != Scheme))
+                    if (value.Any((Func<Endpoint, bool>)(e => (bool)(e.Protocol != Protocol))))
                     {
-                        throw new ArgumentException($"the scheme of all endpoints must be {Scheme}",
+                        throw new ArgumentException($"the protocol of all endpoints must be {Protocol}",
                                                     nameof(AltEndpoints));
                     }
 
-                    if (Scheme == Scheme.Ice)
+                    if (Protocol == Protocol.Ice)
                     {
                         if (_endpoint.Transport == TransportNames.Loc)
                         {
@@ -74,7 +74,7 @@ namespace IceRpc
         }
 
         /// <summary>The encoding that a caller should use when encoding request parameters when such a caller supports
-        /// multiple encodings. Its value is usually the encoding of the scheme.</summary>
+        /// multiple encodings. Its value is usually the encoding of the protocol.</summary>
         public Encoding Encoding { get; set; }
 
         /// <summary>Gets or sets the main endpoint of this proxy.</summary>
@@ -87,13 +87,13 @@ namespace IceRpc
             {
                 if (value != null)
                 {
-                    if (value.Scheme != Scheme)
+                    if (value.Protocol != Protocol)
                     {
-                        throw new ArgumentException("the new endpoint must use the proxy's scheme",
+                        throw new ArgumentException("the new endpoint must use the proxy's protocol",
                                                     nameof(Endpoint));
                     }
 
-                    if (Scheme == Scheme.Ice && _altEndpoints.Count > 0 && value.Transport == TransportNames.Loc)
+                    if (Protocol == Protocol.Ice && _altEndpoints.Count > 0 && value.Transport == TransportNames.Loc)
                     {
                         throw new ArgumentException(
                             "an ice proxy with a loc endpoint cannot have alt endpoints", nameof(Endpoint));
@@ -134,8 +134,8 @@ namespace IceRpc
         // private set only used in WithPath
         public string Path { get; private set; }
 
-        /// <summary>The scheme of this proxy.</summary>
-        public Scheme Scheme { get; }
+        /// <summary>The protocol of this proxy.</summary>
+        public Protocol Protocol { get; }
 
         private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
         private volatile Connection? _connection;
@@ -181,11 +181,11 @@ namespace IceRpc
             return proxy;
         }
 
-        /// <summary>Creates a proxy from a path and scheme.</summary>
+        /// <summary>Creates a proxy from a path and protocol.</summary>
         /// <param name="path">The path.</param>
-        /// <param name="scheme">The scheme.</param>
+        /// <param name="protocol">The protocol.</param>
         /// <returns>The new proxy.</returns>
-        public static Proxy FromPath(string path, Scheme? scheme = null) => new(path, scheme ?? Scheme.IceRpc);
+        public static Proxy FromPath(string path, Protocol? protocol = null) => new(path, protocol ?? Protocol.IceRpc);
 
         /// <summary>Creates a proxy from a string and an invoker.</summary>
         /// <param name="s">The string to parse.</param>
@@ -257,7 +257,7 @@ namespace IceRpc
             {
                 return false;
             }
-            if (Scheme != other.Scheme)
+            if (Protocol != other.Protocol)
             {
                 return false;
             }
@@ -275,7 +275,7 @@ namespace IceRpc
             var hash = new HashCode();
             hash.Add(Invoker);
             hash.Add(Path);
-            hash.Add(Scheme);
+            hash.Add(Protocol);
             if (_endpoint != null)
             {
                 hash.Add(_endpoint.GetHashCode());
@@ -301,7 +301,7 @@ namespace IceRpc
             Proxy proxy = Clone();
             proxy.Path = path;
 
-            if (Scheme == Scheme.Ice && proxy.Endpoint == null)
+            if (Protocol == Protocol.Ice && proxy.Endpoint == null)
             {
                 // clear cached connection of well-known proxy
                 proxy.Connection = null;
@@ -338,13 +338,13 @@ namespace IceRpc
 
         /// <summary>Constructs a new proxy.</summary>
         /// <param name="path">The proxy path.</param>
-        /// <param name="scheme">The proxy scheme.</param>
-        internal Proxy(string path, Scheme scheme)
+        /// <param name="protocol">The proxy protocol.</param>
+        internal Proxy(string path, Protocol protocol)
         {
-            Scheme = scheme;
+            Protocol = protocol;
             CheckPath(path, nameof(path));
             Path = path;
-            Encoding = (Scheme as Protocol)?.SliceEncoding ?? Encoding.Unknown;
+            Encoding = protocol.SliceEncoding ?? Encoding.Unknown;
         }
 
         private static bool IsValid(string s, string invalidChars)

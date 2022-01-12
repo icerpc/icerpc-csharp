@@ -71,7 +71,7 @@ namespace IceRpc.Tests.Slice
                 Assert.ThrowsAsync<RemoteException>(async () => await _prx.ThrowRemoteExceptionAsync());
 
             Assert.That(remoteEx, Is.Not.Null);
-            if (_prx.Proxy.Scheme == Scheme.IceRpc)
+            if (_prx.Proxy.Protocol == Protocol.IceRpc)
             {
                 Assert.AreEqual("some message", remoteEx!.Message);
             }

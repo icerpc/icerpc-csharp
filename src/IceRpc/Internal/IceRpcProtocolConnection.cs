@@ -150,7 +150,7 @@ namespace IceRpc.Internal
                 }
 
                 var request = new IncomingRequest(
-                    Scheme.IceRpc,
+                    Protocol.IceRpc,
                     path: header.Path,
                     fragment: header.Fragment,
                     operation: header.Operation,
@@ -266,7 +266,7 @@ namespace IceRpc.Internal
             }
 
             var response = new IncomingResponse(
-                Scheme.IceRpc,
+                Protocol.IceRpc,
                 header.ResultType,
                 responseReader,
                 payloadEncoding: header.PayloadEncoding.Length > 0 ?

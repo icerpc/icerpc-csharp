@@ -47,6 +47,11 @@ namespace IceRpc
         /// <param name="payloadSink">The outgoing frame's payload sink.</param>
         protected OutgoingFrame(Protocol protocol, PipeWriter payloadSink)
         {
+            if (!protocol.IsSupported)
+            {
+                throw new NotSupportedException($"cannot create outgoing frame for protocol {protocol}");
+            }
+
             Protocol = protocol;
             PayloadSink = payloadSink;
         }

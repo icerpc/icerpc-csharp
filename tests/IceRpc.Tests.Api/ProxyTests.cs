@@ -89,9 +89,9 @@ namespace IceRpc.Tests.Api
         public void Proxy_SetProperty_ArgumentException()
         {
             var iceProxy = Proxy.Parse("hello:tcp -h localhost -p 10000", format: IceProxyFormat.Default);
-            Assert.AreEqual(Scheme.Ice, iceProxy.Scheme);
+            Assert.AreEqual(Protocol.Ice, iceProxy.Protocol);
             var icerpcProxy = Proxy.Parse("icerpc://host.zeroc.com/hello");
-            Assert.AreEqual(Scheme.IceRpc, icerpcProxy.Scheme);
+            Assert.AreEqual(Protocol.IceRpc, icerpcProxy.Protocol);
 
             // Endpoints protocol must match the proxy protocol
             Assert.Throws<ArgumentException>(() => iceProxy.Endpoint = icerpcProxy.Endpoint);
@@ -123,7 +123,7 @@ namespace IceRpc.Tests.Api
                 Assert.That(proxy.Fragment, Is.EqualTo(fragment));
             }
 
-            Assert.AreEqual(Scheme.Ice, proxy.Scheme);
+            Assert.AreEqual(Protocol.Ice, proxy.Protocol);
             Assert.That(Proxy.TryParse(
                 proxy.ToString(IceProxyFormat.Default),
                 invoker: null,
@@ -140,7 +140,7 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(proxy, proxy2);
 
             var prx = GreeterPrx.Parse(str, format: IceProxyFormat.Default);
-            Assert.AreEqual(Scheme.Ice, prx.Proxy.Scheme);
+            Assert.AreEqual(Protocol.Ice, prx.Proxy.Protocol);
             Assert.That(GreeterPrx.TryParse(
                 prx.ToString(IceProxyFormat.Default),
                 invoker: null,

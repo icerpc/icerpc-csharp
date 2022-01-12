@@ -105,7 +105,7 @@ namespace IceRpc.Tests.Internal
                 .UseProtocol(protocol)
                 .BuildServiceProvider();
 
-            IListener listener = protocol == Scheme.Ice.Name ?
+            IListener listener = protocol == Protocol.Ice.Name ?
                 serviceProvider.GetRequiredService<IListener<ISimpleNetworkConnection>>() :
                 serviceProvider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
 
@@ -571,7 +571,7 @@ namespace IceRpc.Tests.Internal
                 _serviceProvider = serviceCollection.BuildServiceProvider();
 
                 (ServerConnection, ClientConnection) =
-                    _serviceProvider.GetRequiredService<Protocol>() == Scheme.Ice ?
+                    _serviceProvider.GetRequiredService<Protocol>() == Protocol.Ice ?
                         PerformAcceptAndConnectAsync(IceProtocol.Instance.ProtocolConnectionFactory).Result :
                         PerformAcceptAndConnectAsync(IceRpcProtocol.Instance.ProtocolConnectionFactory).Result;
 
@@ -593,7 +593,7 @@ namespace IceRpc.Tests.Internal
                 {
                     T networkConnection = await listener.AcceptAsync();
 
-                    var connection = new Connection(networkConnection, (Protocol)listener.Endpoint.Scheme)
+                    var connection = new Connection(networkConnection, listener.Endpoint.Protocol)
                     {
                         Dispatcher = _serviceProvider.GetService<IDispatcher>(),
                         Options = serverConnectionOptions ?? new(),

@@ -267,7 +267,7 @@ namespace IceRpc.Tests.Api
         [TestCase(true, "ice")]
         [TestCase(false, "icerpc")]
         [TestCase(true, "icerpc")]
-      //  [Log(LogAttributeLevel.Debug)]
+      //  [// [Log(LogAttributeLevel.Debug)]
         // Canceling the cancellation token (source) of ShutdownAsync results in a DispatchException when the operation
         // completes with an OperationCanceledException. It also test calling DisposeAsync is called instead of
         // shutdown, which call ShutdownAsync with a canceled token.
@@ -278,7 +278,7 @@ namespace IceRpc.Tests.Api
             using var semaphore = new SemaphoreSlim(0);
             Endpoint serverEndpoint = colocTransport.ServerTransport.DefaultEndpoint with
             {
-                Scheme = Scheme.FromString(protocol)
+                Protocol = Protocol.FromString(protocol)
             };
 
             await using var server = new Server

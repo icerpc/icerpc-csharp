@@ -87,7 +87,7 @@ namespace IceRpc.Transports.Internal
             _decoratee = decoratee;
             _connection = connection;
 
-            // We use the same stream ID numbering scheme as Quic
+            // We use the same stream ID numbering protocol as Quic
             if (connection.IsServer)
             {
                 _nextBidirectionalId = 1;
