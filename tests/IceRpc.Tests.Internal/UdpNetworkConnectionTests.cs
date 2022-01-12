@@ -30,7 +30,9 @@ namespace IceRpc.Tests.Internal
         {
             _isIPv6 = addressFamily == AddressFamily.InterNetworkV6;
             string host = _isIPv6 ? "[::1]" : "127.0.0.1";
-            _listener = _serverTransport.Listen($"icerpc+udp://{host}:0?protocol=ice", LogAttributeLoggerFactory.Instance.Logger);
+            _listener = _serverTransport.Listen(
+                $"ice://{host}:0?transport=udp",
+                LogAttributeLoggerFactory.Instance.Logger);
         }
 
         [OneTimeSetUp]
@@ -180,7 +182,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(1)]
         [TestCase(1024)]
         [TestCase(4096)]
-        [Log(LogAttributeLevel.Trace)]
+        // [Log(LogAttributeLevel.Trace)]
         public async Task UdpNetworkConnection_ReadWriteAsync(int size)
         {
             byte[] writeBuffer = new byte[size];

@@ -36,7 +36,7 @@ namespace IceRpc
                             nameof(AltEndpoints));
                     }
 
-                    if (value.Any(e => e.Protocol != Protocol))
+                    if (value.Any((Func<Endpoint, bool>)(e => (bool)(e.Protocol != Protocol))))
                     {
                         throw new ArgumentException($"the protocol of all endpoints must be {Protocol}",
                                                     nameof(AltEndpoints));
@@ -134,7 +134,7 @@ namespace IceRpc
         // private set only used in WithPath
         public string Path { get; private set; }
 
-        /// <summary>The Ice protocol of this proxy. Requests sent with this proxy use only this Ice protocol.</summary>
+        /// <summary>The protocol of this proxy.</summary>
         public Protocol Protocol { get; }
 
         private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
@@ -344,7 +344,7 @@ namespace IceRpc
             Protocol = protocol;
             CheckPath(path, nameof(path));
             Path = path;
-            Encoding = Protocol.IceEncoding ?? Encoding.Unknown;
+            Encoding = protocol.SliceEncoding ?? Encoding.Unknown;
         }
 
         private static bool IsValid(string s, string invalidChars)

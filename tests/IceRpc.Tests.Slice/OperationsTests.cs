@@ -7,15 +7,15 @@ namespace IceRpc.Tests.Slice
 {
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    [TestFixture(ProtocolCode.Ice)]
-    [TestFixture(ProtocolCode.IceRpc)]
+    [TestFixture("ice")]
+    [TestFixture("icerpc")]
     public sealed class OperationsTests : IAsyncDisposable
     {
         private readonly ServiceProvider _serviceProvider;
         private readonly OperationsPrx _prx;
         private readonly DerivedOperationsPrx _derivedPrx;
 
-        public OperationsTests(ProtocolCode protocol)
+        public OperationsTests(string protocol)
         {
             _serviceProvider = new IntegrationTestServiceCollection()
                 .UseProtocol(protocol)
@@ -71,7 +71,7 @@ namespace IceRpc.Tests.Slice
             await _prx.IcePingAsync();
         }
 
-        [TestCase("icerpc+tcp://host:1000/identity?foo=bar")]
+        [TestCase("icerpc://host:1000/identity?foo=bar")]
         [TestCase("identity:tcp -h host -p 10000")]
         [TestCase("identity:opaque -t 99 -e 1.1 -v abcd")] // 99 = unknown and -t -e -v in this order
         [TestCase("identity:opaque -t 99 -e 1.0 -v CTEyNy4wLjAuMeouAAAQJwAAAA==")]
@@ -81,7 +81,7 @@ namespace IceRpc.Tests.Slice
                   "identity:tcp -h 127.0.0.1 -p 12010 -t 10000")]
         public async Task Operations_ServiceAsync(string proxy, string? actualIceProxy = null)
         {
-            IProxyFormat? format = proxy.StartsWith("icerpc+", StringComparison.Ordinal) ?
+            IProxyFormat? format = proxy.StartsWith("ice", StringComparison.Ordinal) ?
                 null : IceProxyFormat.Default;
 
             var service = ServicePrx.Parse(proxy, format: format);

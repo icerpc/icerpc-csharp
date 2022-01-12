@@ -118,7 +118,16 @@ namespace IceRpc
             get => NetworkConnectionInformation?.RemoteEndpoint ??
                    _initialRemoteEndpoint ??
                    throw new InvalidOperationException($"{nameof(RemoteEndpoint)} is not set on the connection");
-            init => _initialRemoteEndpoint = value;
+            init
+            {
+                if (!value.Protocol.IsSupported)
+                {
+                    throw new NotSupportedException(
+                        $"cannot create client connection to endpoint with protocol '{value.Protocol}'");
+                }
+
+                _initialRemoteEndpoint = value;
+            }
         }
 
         /// <summary>The <see cref="IClientTransport{ISimpleNetworkConnection}"/> used by this connection to create

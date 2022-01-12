@@ -20,7 +20,7 @@ namespace ServerApp
     {
         public ConnectionOptions ConnectionOptions { get; set; } = new();
 
-        public Endpoint Endpoint { get; set; } = "icerpc+tcp://[::0]";
+        public Endpoint Endpoint { get; set; } = "icerpc://[::0]";
     }
 
     public class Program

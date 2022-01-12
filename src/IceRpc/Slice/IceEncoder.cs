@@ -261,7 +261,7 @@ namespace IceRpc.Slice
                         proxy.Protocol == Protocol.Ice && (proxy.Endpoint?.Transport == TransportNames.Udp) ?
                             InvocationMode.Datagram : InvocationMode.Twoway,
                         secure: false,
-                        protocolMajor: (byte)proxy.Protocol.Code,
+                        protocolMajor: proxy.Protocol.ToByte(),
                         protocolMinor: 0,
                         encodingMajor,
                         encodingMinor);
@@ -311,10 +311,10 @@ namespace IceRpc.Slice
                     }
 
                     var proxyData = new ProxyData20(
+                        protocol: proxy.Protocol != Protocol.IceRpc ? proxy.Protocol.Name : null,
                         proxy.Path,
                         proxy.Fragment,
-                        protocol: proxy.Protocol != Protocol.IceRpc ? proxy.Protocol.Code : null,
-                        encoding: proxy.Encoding == proxy.Protocol.IceEncoding ? null : proxy.Encoding.ToString(),
+                        encoding: proxy.Encoding == IceRpc.Encoding.Slice20 ? null : proxy.Encoding.ToString(),
                         endpoint: proxy.Endpoint?.ToEndpointData(),
                         altEndpoints:
                                 proxy.AltEndpoints.Count == 0 ? null :

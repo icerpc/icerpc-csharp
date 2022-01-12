@@ -10,6 +10,6 @@ namespace IceRpc.Slice.Internal
         /// <param name="endpoint">The endpoint.</param>
         /// <returns>An endpoint data with all the properties of this endpoint.</returns>
         internal static EndpointData ToEndpointData(this Endpoint endpoint) =>
-            new(endpoint.Protocol.Code, endpoint.Transport, endpoint.Host, endpoint.Port, endpoint.Params);
+            new(endpoint.Protocol.Name, endpoint.Transport, endpoint.Host, endpoint.Port, endpoint.Params);
     }
 }

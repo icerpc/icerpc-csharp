@@ -15,9 +15,9 @@ namespace IceRpc.Tests.ClientServer
 
         // Note that transport loc has no special meaning with icerpc.
         [TestCase(
-            "icerpc+loc://testlocation/test",
-            "icerpc+loc://unknown-location/test",
-            "icerpc+loc://testlocation/test?protocol=ice")]
+            "icerpc://testlocation/test?transport=loc",
+            "icerpc://unknown-location/test?transport=loc",
+            "ice://testlocation/test?transport=loc")]
         [TestCase("test @ adapter", "test @ unknown_adapter", "test")]
         [TestCase("test", "test @ adapter", "test2")]
         public async Task LocationResolver_ResolveAsync(string proxy, params string[] badProxies)
@@ -29,10 +29,10 @@ namespace IceRpc.Tests.ClientServer
             };
 
             var pipeline = new Pipeline();
-            IProxyFormat? format = proxy.StartsWith("icerpc+", StringComparison.Ordinal) ? null : IceProxyFormat.Default;
+            IProxyFormat? format = proxy.StartsWith("ice", StringComparison.Ordinal) ? null : IceProxyFormat.Default;
 
             var indirect = GreeterPrx.Parse(proxy, pipeline, format);
-            GreeterPrx direct = SetupServer(indirect.Proxy.Protocol.Code, indirect.Proxy.Path, pipeline);
+            GreeterPrx direct = SetupServer(indirect.Proxy.Protocol.Name, indirect.Proxy.Path, pipeline);
             Assert.That(direct.Proxy.Endpoint, Is.Not.Null);
 
             if (indirect.Proxy.Endpoint is Endpoint endpoint)
@@ -70,10 +70,10 @@ namespace IceRpc.Tests.ClientServer
             }
         }
 
-        private GreeterPrx SetupServer(ProtocolCode protocol, string path, IInvoker invoker)
+        private GreeterPrx SetupServer(string protocol, string path, IInvoker invoker)
         {
-            string serverEndpoint = protocol == ProtocolCode.IceRpc ?
-                "icerpc+tcp://127.0.0.1:0?tls=false" : "icerpc+tcp://127.0.0.1:0?protocol=ice&tls=false";
+            string serverEndpoint = protocol == "icerpc" ?
+                "icerpc://127.0.0.1:0?tls=false" : "ice://127.0.0.1:0?tls=false";
             _server = new Server
             {
                 Dispatcher = new Greeter(),
@@ -83,7 +83,7 @@ namespace IceRpc.Tests.ClientServer
             _server.Listen();
 
             // Need to create proxy after calling Listen; otherwise, the port number is still 0.
-            var greeter = GreeterPrx.FromPath(path, Protocol.FromProtocolCode(protocol));
+            var greeter = GreeterPrx.FromPath(path, Protocol.FromString(protocol));
             greeter.Proxy.Endpoint = _server.Endpoint;
             greeter.Proxy.Invoker = invoker;
             Assert.AreNotEqual(0, greeter.Proxy.Endpoint!.Port);

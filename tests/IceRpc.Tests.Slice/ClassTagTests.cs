@@ -58,7 +58,7 @@ namespace IceRpc.Tests.Slice
             multiTagged.MMyEnum = MyEnum.enum1;
             multiTagged.MAnotherStruct = new AnotherStruct(
                 "hello",
-                OperationsPrx.Parse("icerpc+tcp://localhost/hello"),
+                OperationsPrx.Parse("icerpc://localhost/hello"),
                 MyEnum.enum1,
                 new MyStruct(1, 1));
 

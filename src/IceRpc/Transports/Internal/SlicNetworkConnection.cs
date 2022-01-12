@@ -92,7 +92,7 @@ namespace IceRpc.Transports.Internal
                 // Check the application protocol and set the parameters.
                 try
                 {
-                    if (Protocol.Parse(initializeBody.Value.ApplicationProtocolName) != Protocol.IceRpc)
+                    if (Protocol.FromString(initializeBody.Value.ApplicationProtocolName) != Protocol.IceRpc)
                     {
                         throw new NotSupportedException(
                             $"application protocol '{initializeBody.Value.ApplicationProtocolName}' is not supported");

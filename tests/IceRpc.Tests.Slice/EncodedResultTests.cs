@@ -7,14 +7,14 @@ namespace IceRpc.Tests.Slice
 {
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    [TestFixture(ProtocolCode.Ice)]
-    [TestFixture(ProtocolCode.IceRpc)]
+    [TestFixture("ice")]
+    [TestFixture("icerpc")]
     public sealed class EncodedResultTests
     {
         private readonly ServiceProvider _serviceProvider;
         private readonly EncodedResultOperationsPrx _prx;
 
-        public EncodedResultTests(ProtocolCode protocol)
+        public EncodedResultTests(string protocol)
         {
             _serviceProvider = new IntegrationTestServiceCollection()
                 .UseProtocol(protocol)
@@ -32,7 +32,7 @@ namespace IceRpc.Tests.Slice
             // TODO Parse below should not use a connection with a different endpoint
             await Test1Async(p1 => _prx.OpAnotherStruct1Async(p1),
                              new AnotherStruct("hello",
-                                              OperationsPrx.Parse("icerpc+tcp://foo/bar"),
+                                              OperationsPrx.Parse("icerpc://foo/bar"),
                                               MyEnum.enum1,
                                               new MyStruct(1, 2)));
 
@@ -45,7 +45,7 @@ namespace IceRpc.Tests.Slice
 
             await Test2Async(p1 => _prx.OpAnotherStruct2Async(p1),
                             new AnotherStruct("hello",
-                                              OperationsPrx.Parse("icerpc+tcp://foo/bar"),
+                                              OperationsPrx.Parse("icerpc://foo/bar"),
                                               MyEnum.enum1,
                                               new MyStruct(1, 2)));
 

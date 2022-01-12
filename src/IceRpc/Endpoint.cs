@@ -13,7 +13,7 @@ namespace IceRpc
     [TypeConverter(typeof(EndpointTypeConverter))]
     public sealed record class Endpoint
     {
-        /// <summary>The Ice protocol of this endpoint.</summary>
+        /// <summary>The protocol of this endpoint.</summary>
         public Protocol Protocol { get; set; }
 
         /// <summary>The transport of this endpoint, for example "tcp" or "quic".</summary>
@@ -40,10 +40,10 @@ namespace IceRpc
         /// <returns>The new endpoint.</returns>
         /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of an endpoint.
         /// </exception>
-        public static Endpoint FromString(string s) => UriProxyFormat.ParseEndpoint(s, Protocol.IceRpc);
+        public static Endpoint FromString(string s) => UriProxyFormat.ParseEndpoint(s);
 
         /// <summary>Constructs a new endpoint.</summary>
-        /// <param name="protocol">The Ice protocol of this endpoint.</param>
+        /// <param name="protocol">The protocol of this endpoint.</param>
         /// <param name="transport">The transport of this endpoint, for example "tcp" or "quic".</param>
         /// <param name="host">The host name or address.</param>
         /// <param name="port">The port number.</param>
@@ -85,8 +85,7 @@ namespace IceRpc
                 Params.GetSequenceHashCode());
 
         /// <summary>Converts this endpoint into a string.</summary>
-        /// <returns>The string representation of this endpoint. It's an icerpc+transport URI when <see cref="Protocol"/>
-        /// is icerpc, and an ice string when the Protocol is ice.</returns>
+        /// <returns>The string representation of this endpoint.</returns>
         public override string ToString()
         {
             var sb = new StringBuilder();

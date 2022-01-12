@@ -151,7 +151,7 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new AnotherStruct(
                     "hello",
-                    OperationsPrx.Parse("icerpc+tcp://localhost/hello"),
+                    OperationsPrx.Parse("icerpc://localhost/hello"),
                     MyEnum.enum1,
                     new MyStruct(1, 1));
                 (r1, r2) = await doublePrx.OpAnotherStructAsync(p1);
@@ -465,7 +465,7 @@ namespace IceRpc.Tests.Slice
                 {
                     new AnotherStruct(
                         "hello",
-                        OperationsPrx.Parse("icerpc+tcp://localhost/hello"),
+                        OperationsPrx.Parse("icerpc://localhost/hello"),
                         MyEnum.enum1,
                         new MyStruct(1, 1))
                 };
@@ -483,7 +483,7 @@ namespace IceRpc.Tests.Slice
                 {
                     new AnotherStruct(
                         "hello",
-                        OperationsPrx.Parse("icerpc+tcp://localhost/hello"),
+                        OperationsPrx.Parse("icerpc://localhost/hello"),
                         MyEnum.enum1,
                         new MyStruct(1, 1))
                 };
@@ -501,13 +501,13 @@ namespace IceRpc.Tests.Slice
                 {
                     new AnotherStruct(
                         "hello",
-                        OperationsPrx.Parse("icerpc+tcp://localhost/hello"),
+                        OperationsPrx.Parse("icerpc://localhost/hello"),
                         MyEnum.enum1,
                         new MyStruct(1, 1)),
                     null,
                     new AnotherStruct(
                         "hello",
-                        OperationsPrx.Parse("icerpc+tcp://localhost/hello"),
+                        OperationsPrx.Parse("icerpc://localhost/hello"),
                         MyEnum.enum1,
                         new MyStruct(1, 1)),
 
