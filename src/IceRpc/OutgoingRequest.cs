@@ -66,7 +66,7 @@ namespace IceRpc
         public OutgoingRequest(Proxy proxy, string operation) :
             base(
                 protocol: proxy.Scheme as Protocol ??
-                    throw new NotSupportedException($"cannot created outgoing request for scheme {proxy.Scheme}"),
+                    throw new NotSupportedException($"cannot create outgoing request for scheme {proxy.Scheme}"),
                 new DelayedPipeWriterDecorator())
         {
             AltEndpoints = proxy.AltEndpoints;

@@ -345,12 +345,7 @@ namespace IceRpc.Slice
 
                 Endpoint? endpoint = null;
                 IEnumerable<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
-                Scheme scheme = proxyData.ProtocolMajor switch
-                {
-                    1 => Scheme.Ice,
-                    2 => Scheme.IceRpc,
-                    _ => Scheme.FromString($"ice-{proxyData.ProtocolMajor}.0")
-                };
+                var scheme = Scheme.FromByte(proxyData.ProtocolMajor);
 
                 if (size == 0)
                 {
