@@ -28,14 +28,19 @@ namespace IceRpc.Transports
         T IClientTransport<T>.CreateConnection(Endpoint remoteEndpoint, ILogger logger)
         {
             _transports ??= _builder;
-            if (_transports.TryGetValue(remoteEndpoint.Transport,
-                                        out IClientTransport<T>? clientTransport))
+
+            if (!remoteEndpoint.Params.TryGetValue("transport", out string? endpointTransport))
+            {
+                endpointTransport = "tcp";
+            }
+
+            if (_transports.TryGetValue(endpointTransport, out IClientTransport<T>? clientTransport))
             {
                 return clientTransport.CreateConnection(remoteEndpoint, logger);
             }
             else
             {
-                throw new UnknownTransportException(remoteEndpoint.Transport);
+                throw new UnknownTransportException(endpointTransport);
             }
         }
     }

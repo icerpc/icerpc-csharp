@@ -43,7 +43,9 @@ namespace IceRpc
                     location = cachedResolution.Location;
                     refreshCache = true;
                 }
-                else if (request.Endpoint is Endpoint endpoint && endpoint.Transport == TransportNames.Loc)
+                else if (request.Endpoint is Endpoint endpoint &&
+                    endpoint.Params.TryGetValue("transport", out string? transportName) &&
+                    transportName == TransportNames.Loc)
                 {
                     // Typically first attempt since a successful resolution replaces this loc endpoint.
                     location = new Location(endpoint.Host);

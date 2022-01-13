@@ -257,12 +257,14 @@ namespace IceRpc.Internal
 
                 FeatureCollection features = FeatureCollection.Empty;
 
+                /* TODO: fix
                 // For compatibility with ZeroC Ice
                 if (replyStatus == ReplyStatus.ObjectNotExistException &&
                     (request.Proxy.Endpoint == null || request.Proxy.Endpoint.Transport == TransportNames.Loc)) // "indirect" proxy
                 {
                     features = features.With(RetryPolicy.OtherReplica);
                 }
+                */
 
                 return new IncomingResponse(
                     Protocol.Ice,

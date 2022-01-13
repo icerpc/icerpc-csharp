@@ -101,7 +101,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     if ((request.Protocol == resolvedEndpoint.Protocol) &&
                         ((request.Endpoint is Endpoint endpoint &&
-                          endpoint.Transport == "loc" &&
+                          endpoint.Params["transport"] == "loc" &&
                           endpoint.Host == location &&
                           category == null) ||
                          (request.Endpoint == null &&

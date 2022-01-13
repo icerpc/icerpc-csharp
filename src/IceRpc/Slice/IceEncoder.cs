@@ -256,10 +256,25 @@ namespace IceRpc.Slice
 
                     (byte encodingMajor, byte encodingMinor) = proxy.Encoding.ToMajorMinor();
 
+                    InvocationMode invocationMode = InvocationMode.Twoway;
+                    bool loc = false;
+                    if (proxy.Protocol == Protocol.Ice &&
+                        proxy.Endpoint is Endpoint endpoint &&
+                        endpoint.Params.TryGetValue("transport", out string? transportValue))
+                    {
+                        if (transportValue == TransportNames.Udp)
+                        {
+                            invocationMode = InvocationMode.Oneway;
+                        }
+                        else if (transportValue == TransportNames.Loc)
+                        {
+                            loc = true;
+                        }
+                    }
+
                     var proxyData = new ProxyData11(
                         Facet.FromFragment(proxy.Fragment),
-                        proxy.Protocol == Protocol.Ice && (proxy.Endpoint?.Transport == TransportNames.Udp) ?
-                            InvocationMode.Datagram : InvocationMode.Twoway,
+                        invocationMode,
                         secure: false,
                         protocolMajor: proxy.Protocol.ToByte(),
                         protocolMinor: 0,
@@ -272,7 +287,7 @@ namespace IceRpc.Slice
                         EncodeSize(0); // 0 endpoints
                         EncodeString(""); // empty adapter ID
                     }
-                    else if (proxy.Protocol == Protocol.Ice && proxy.Endpoint.Transport == TransportNames.Loc)
+                    else if (loc)
                     {
                         EncodeSize(0); // 0 endpoints
                         EncodeString(proxy.Endpoint.Host); // adapter ID unless well-known

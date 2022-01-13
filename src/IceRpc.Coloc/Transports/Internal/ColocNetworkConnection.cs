@@ -24,10 +24,9 @@ namespace IceRpc.Transports.Internal
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
-            if (remoteEndpoint.Params.Count > 0)
+            if (remoteEndpoint.Params.Count > 1)
             {
-                throw new FormatException(
-                    $"unknown parameter '{remoteEndpoint.Params.Keys.First()}' in endpoint '{remoteEndpoint}'");
+                throw new FormatException($"unknown parameter in endpoint '{remoteEndpoint}'");
             }
             return !_isServer;
         }

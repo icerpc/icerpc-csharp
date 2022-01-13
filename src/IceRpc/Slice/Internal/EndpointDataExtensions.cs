@@ -11,11 +11,10 @@ namespace IceRpc.Slice.Internal
         /// </summary>
         /// <param name="endpointData">The endpoint data struct.</param>
         /// <returns>The new endpoint.</returns>
-        internal static Endpoint ToEndpoint(this in EndpointData endpointData) =>
-            new(Protocol.FromString(endpointData.Protocol),
-                string.IsInterned(endpointData.Transport) ?? endpointData.Transport,
-                endpointData.Host,
-                endpointData.Port,
-                endpointData.Params.ToImmutableDictionary());
+        internal static Endpoint ToEndpoint(this in EndpointData endpointData) => new(
+            Protocol.FromString(endpointData.Protocol),
+            endpointData.Host,
+            endpointData.Port,
+            endpointData.Params.ToImmutableDictionary());
     }
 }

@@ -22,6 +22,14 @@ namespace IceRpc.Transports.Internal
             {
                 switch (name)
                 {
+                    case "transport":
+                        if (value != TransportNames.Opaque)
+                        {
+                            throw new FormatException(
+                                    $"invalid value for transport parameter in endpoint '{endpoint}'");
+                        }
+                        continue;
+
                     case "e":
                         if (encoding != null)
                         {
@@ -104,6 +112,14 @@ namespace IceRpc.Transports.Internal
             {
                 switch (name)
                 {
+                    case "transport":
+                        if (value != TransportNames.Tcp)
+                        {
+                            throw new FormatException(
+                                    $"invalid value for transport parameter in endpoint '{endpoint}'");
+                        }
+                        continue;
+
                     case "t":
                         if (timeout != null)
                         {
@@ -170,6 +186,14 @@ namespace IceRpc.Transports.Internal
             {
                 switch (name)
                 {
+                    case "transport":
+                        if (value != TransportNames.Udp)
+                        {
+                            throw new FormatException(
+                                    $"invalid value for transport parameter in endpoint '{endpoint}'");
+                        }
+                        continue;
+
                     case "z":
                         if (compress)
                         {

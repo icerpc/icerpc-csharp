@@ -33,7 +33,9 @@ namespace IceRpc.Internal
 
                     if (prx?.Proxy is Proxy proxy)
                     {
-                        if (proxy.Endpoint == null || proxy.Endpoint.Transport == TransportNames.Loc)
+                        if (proxy.Endpoint is not Endpoint endpoint ||
+                            (endpoint.Params.TryGetValue("transport", out string? transportName) &&
+                                transportName == TransportNames.Loc))
                         {
                             throw new InvalidDataException($"findAdapterById returned invalid proxy '{proxy}'");
                         }

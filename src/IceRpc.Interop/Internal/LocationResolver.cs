@@ -24,7 +24,9 @@ namespace IceRpc.Internal
             Proxy? proxy = await _endpointFinder.FindAsync(location, cancel).ConfigureAwait(false);
 
             // A well-known proxy resolution can return a loc endpoint:
-            if (proxy != null && proxy.Endpoint!.Transport == TransportNames.Loc)
+            if (proxy != null &&
+                proxy.Endpoint!.Params.TryGetValue("transport", out string? transportName) &&
+                transportName == TransportNames.Loc)
             {
                 (proxy, _) = await ResolveAsync(new Location(proxy!.Endpoint!.Host), cancel).ConfigureAwait(false);
             }
@@ -92,7 +94,9 @@ namespace IceRpc.Internal
             }
 
             // A well-known proxy resolution can return a loc endpoint
-            if (proxy != null && proxy.Endpoint!.Transport == TransportNames.Loc)
+            if (proxy != null &&
+                proxy.Endpoint!.Params.TryGetValue("transport", out string? transportName) &&
+                transportName == TransportNames.Loc)
             {
                 try
                 {
@@ -107,7 +111,9 @@ namespace IceRpc.Internal
                     // When the second resolution fails, we clear the cache entry for the initial successful
                     // resolution, since the overall resolution is a failure.
                     // proxy below can hold a loc endpoint only when an exception is thrown.
-                    if (proxy == null || proxy.Endpoint!.Transport == TransportNames.Loc)
+                    if (proxy == null ||
+                        (proxy.Endpoint!.Params.TryGetValue("transport", out transportName) &&
+                        transportName == TransportNames.Loc))
                     {
                         _endpointCache.Remove(location);
                     }

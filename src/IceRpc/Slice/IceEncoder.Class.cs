@@ -245,10 +245,16 @@ namespace IceRpc.Slice
         {
             Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
 
+            // If there is no transport parameter, we default to TCP.
+            if (!endpoint.Params.TryGetValue("transport", out string? transportName))
+            {
+                transportName = TransportNames.Tcp;
+            }
+
             // The Ice 1.1 encoding of ice endpoints is transport-specific, and hard-coded here. The preferred and
             // fallback encoding for new transports is TransportCode.Any, which uses an EndpointData like Ice 2.0.
 
-            if (endpoint.Protocol == Protocol.Ice && endpoint.Transport == TransportNames.Opaque)
+            if (endpoint.Protocol == Protocol.Ice && transportName == TransportNames.Opaque)
             {
                 // Opaque endpoint encoding
 
@@ -277,12 +283,12 @@ namespace IceRpc.Slice
 
                 if (endpoint.Protocol == Protocol.Ice)
                 {
-                    if (endpoint.Transport == TransportNames.Tcp)
+                    if (transportName == TransportNames.Tcp)
                     {
                         (compress, timeout, bool? tls) = endpoint.ParseTcpParams();
                         transportCode = (tls ?? true) ? TransportCode.SSL : TransportCode.TCP;
                     }
-                    else if (endpoint.Transport == TransportNames.Udp)
+                    else if (transportName == TransportNames.Udp)
                     {
                         transportCode = TransportCode.UDP;
                         compress = endpoint.ParseUdpParams().Compress;

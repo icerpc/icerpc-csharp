@@ -309,10 +309,12 @@ namespace IceRpc
                         {
                             endpoint = ParseEndpoint(es);
 
+                            /*
                             if (endpoint.Transport == TransportNames.Loc)
                             {
                                 throw new FormatException("use @ adapterId instead of loc in proxy");
                             }
+                            */
                         }
                         else
                         {
@@ -380,11 +382,11 @@ namespace IceRpc
                     throw new FormatException($"empty adapter ID in proxy '{s}'");
                 }
 
-                endpoint = new Endpoint(Protocol.Ice,
-                                        TransportNames.Loc,
-                                        host: adapterId,
-                                        port: 0,
-                                        ImmutableDictionary<string, string>.Empty);
+                endpoint = new Endpoint(
+                    Protocol.Ice,
+                    host: adapterId,
+                    port: 0,
+                    ImmutableDictionary<string, string>.Empty.Add("transport", TransportNames.Loc));
 
                 return new Proxy(identity.ToPath(), Protocol.Ice)
                 {
@@ -443,7 +445,9 @@ namespace IceRpc
                 }
             }
 
-            if (proxy.Endpoint?.Transport == TransportNames.Udp)
+            if (proxy.Endpoint is Endpoint endpoint &&
+                endpoint.Params.TryGetValue("transport", out string? transportName) &&
+                transportName == TransportNames.Udp)
             {
                 sb.Append(" -d");
             }
@@ -459,7 +463,8 @@ namespace IceRpc
 
             if (proxy.Endpoint != null)
             {
-                if (proxy.Endpoint.Transport == TransportNames.Loc)
+                if (proxy.Endpoint.Params.TryGetValue("transport", out transportName) &&
+                    transportName == TransportNames.Loc)
                 {
                     string adapterId = proxy.Endpoint.Host;
 
@@ -510,6 +515,7 @@ namespace IceRpc
             string transportName = args[0];
             if (transportName == "default")
             {
+                // TODO: should default map to no transport parameter?
                 transportName = "tcp";
             }
             else if (transportName.Length == 0 ||
@@ -521,7 +527,7 @@ namespace IceRpc
 
             string? host = null;
             ushort? port = null;
-            var endpointParams = new Dictionary<string, string>();
+            var endpointParams = new Dictionary<string, string>() { ["transport"] = transportName };
 
             // Parse args into name/value pairs (and skip transportName at args[0])
             for (int n = 1; n < args.Length; ++n)
@@ -610,7 +616,6 @@ namespace IceRpc
 
             return new Endpoint(
                 Protocol.Ice,
-                transportName,
                 host ?? "",
                 port ?? 0,
                 endpointParams.ToImmutableDictionary());
@@ -623,7 +628,11 @@ namespace IceRpc
         {
             var sb = new StringBuilder();
 
-            if (endpoint.Transport == TransportNames.Tcp)
+            // We default to tcp
+            string transport = endpoint.Params.TryGetValue("transport", out string? transportValue) ?
+                transportValue : TransportNames.Tcp;
+
+            if (transport == TransportNames.Tcp)
             {
                 if (endpoint.Params.TryGetValue("tls", out string? tlsValue) && tlsValue == "false")
                 {
@@ -636,7 +645,7 @@ namespace IceRpc
             }
             else
             {
-                sb.Append(endpoint.Transport);
+                sb.Append(transport);
             }
 
             if (endpoint.Host.Length > 0)
@@ -655,7 +664,7 @@ namespace IceRpc
             }
 
             // For backwards compatibility, we don't output "-p 0" for opaque endpoints.
-            if (endpoint.Transport != TransportNames.Opaque || endpoint.Port != 0)
+            if (transport != TransportNames.Opaque || endpoint.Port != 0)
             {
                 sb.Append(" -p ");
                 sb.Append(endpoint.Port.ToString(CultureInfo.InvariantCulture));
@@ -663,7 +672,7 @@ namespace IceRpc
 
             foreach ((string name, string value) in endpoint.Params)
             {
-                if (name != "tls")
+                if (name != "transport" && name != "tls")
                 {
                     sb.Append(' ');
 

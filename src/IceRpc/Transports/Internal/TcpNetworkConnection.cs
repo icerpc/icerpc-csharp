@@ -303,6 +303,23 @@ namespace IceRpc.Transports.Internal
 
         internal TcpClientNetworkConnection(Endpoint remoteEndpoint, TcpClientOptions options)
         {
+            if (remoteEndpoint.Params.TryGetValue("transport", out string? endpointTransport))
+            {
+                if (endpointTransport != TransportNames.Tcp)
+                {
+                    throw new ArgumentException(
+                        $"cannot use TCP transport with endpoint '{remoteEndpoint}'",
+                        nameof(remoteEndpoint));
+                }
+            }
+            else
+            {
+                remoteEndpoint = remoteEndpoint with
+                {
+                    Params = remoteEndpoint.Params.Add("transport", TransportNames.Tcp)
+                };
+            }
+
             _remoteEndpoint = remoteEndpoint;
 
             _addr = IPAddress.TryParse(_remoteEndpoint.Host, out IPAddress? ipAddress) ?

@@ -59,8 +59,22 @@ namespace IceRpc.Transports.Internal
             TcpServerOptions options,
             Func<TcpServerNetworkConnection, ISimpleNetworkConnection> serverConnectionDecorator)
         {
-            // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
-            // a tcp or ssl endpoint regardless of its actual transport name.
+            if (endpoint.Params.TryGetValue("transport", out string? endpointTransport))
+            {
+                if (endpointTransport != TransportNames.Tcp)
+                {
+                    throw new ArgumentException(
+                        $"cannot use TCP transport with endpoint '{endpoint}'",
+                        nameof(endpoint));
+                }
+            }
+            else
+            {
+                endpoint = endpoint with
+                {
+                    Params = endpoint.Params.Add("transport", TransportNames.Tcp)
+                };
+            }
 
             if (!IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress))
             {
@@ -69,6 +83,7 @@ namespace IceRpc.Transports.Internal
             }
 
             _tls = endpoint.ParseTcpParams().Tls;
+
             _idleTimeout = options.IdleTimeout;
 
             _serverConnectionDecorator = serverConnectionDecorator;

@@ -16,9 +16,6 @@ namespace IceRpc
         /// <summary>The protocol of this endpoint.</summary>
         public Protocol Protocol { get; set; }
 
-        /// <summary>The transport of this endpoint, for example "tcp" or "quic".</summary>
-        public string Transport { get; set; }
-
         /// <summary>The host name or address.</summary>
         public string Host { get; set; }
 
@@ -44,19 +41,16 @@ namespace IceRpc
 
         /// <summary>Constructs a new endpoint.</summary>
         /// <param name="protocol">The protocol of this endpoint.</param>
-        /// <param name="transport">The transport of this endpoint, for example "tcp" or "quic".</param>
         /// <param name="host">The host name or address.</param>
         /// <param name="port">The port number.</param>
         /// <param name="params">Transport-specific parameters.</param>
         public Endpoint(
             Protocol protocol,
-            string transport,
             string host,
             ushort port,
             ImmutableDictionary<string, string> @params)
         {
             Protocol = protocol;
-            Transport = transport;
             Host = host;
             Port = port;
             Params = @params;
@@ -69,15 +63,13 @@ namespace IceRpc
         public bool Equals(Endpoint? other) =>
             other != null &&
             Protocol == other.Protocol &&
-            Transport == other.Transport &&
             Host == other.Host &&
             Port == other.Port &&
             Params.DictionaryEqual(other.Params);
 
         /// <summary>Computes the hash code for this endpoint.</summary>
         /// <returns>The hash code.</returns>
-        public override int GetHashCode() =>
-            HashCode.Combine(Protocol, Transport, Host, Port);
+        public override int GetHashCode() => HashCode.Combine(Protocol, Host, Port, Params.Count);
 
         /// <summary>Converts this endpoint into a string.</summary>
         /// <returns>The string representation of this endpoint.</returns>
@@ -101,15 +93,11 @@ namespace IceRpc
                 ReferenceEquals(lhs, rhs) ||
                     (lhs != null && rhs != null &&
                     lhs.Protocol == rhs.Protocol &&
-                    lhs.Transport == rhs.Transport &&
                     lhs.Host == rhs.Host &&
                     lhs.Port == rhs.Port);
 
             public override int GetHashCode(Endpoint endpoint) =>
-                HashCode.Combine(endpoint.Protocol,
-                                 endpoint.Transport,
-                                 endpoint.Host,
-                                 endpoint.Port);
+                HashCode.Combine(endpoint.Protocol, endpoint.Host, endpoint.Port);
         }
     }
 

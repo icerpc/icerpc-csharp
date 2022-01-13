@@ -10,9 +10,6 @@ module IceRpc::Slice::Internal
         /// The protocol (TODO: remove)
         protocol: string,
 
-        /// The name of the transport, for example tcp.
-        transport: string,
-
         /// The host name or address. Its exact meaning depends on the transport. For IP-based transports, it's a DNS
         /// name or IP address. For Bluetooth RFCOMM, it's a Bluetooth Device Address.
         host: string,

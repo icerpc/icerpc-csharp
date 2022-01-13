@@ -36,13 +36,19 @@ namespace IceRpc.Transports
         IListener<T> IServerTransport<T>.Listen(Endpoint endpoint, ILogger logger)
         {
             _transports ??= _builder;
-            if (_transports.TryGetValue(endpoint.Transport, out IServerTransport<T>? serverTransport))
+
+            if (!endpoint.Params.TryGetValue("transport", out string? endpointTransport))
+            {
+                endpointTransport = "tcp";
+            }
+
+            if (_transports.TryGetValue(endpointTransport, out IServerTransport<T>? serverTransport))
             {
                 return serverTransport.Listen(endpoint, logger);
             }
             else
             {
-                throw new UnknownTransportException(endpoint.Transport);
+                throw new UnknownTransportException(endpointTransport);
             }
         }
     }

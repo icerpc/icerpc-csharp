@@ -41,7 +41,7 @@ namespace IceRpc.Tests
 
             // The default simple server transport is based on the configured endpoint.
             this.AddScoped(serviceProvider =>
-                serviceProvider.GetRequiredService<Endpoint>().Transport switch
+                GetTransport(serviceProvider.GetRequiredService<Endpoint>()) switch
                 {
                     "tcp" => new TcpServerTransport(serviceProvider.GetService<TcpServerOptions>() ?? new()),
                     "ssl" => new TcpServerTransport(serviceProvider.GetService<TcpServerOptions>() ?? new()),
@@ -52,7 +52,7 @@ namespace IceRpc.Tests
 
             // The default multiplexed server transport is Slic.
             this.AddScoped<IServerTransport<IMultiplexedNetworkConnection>>(serviceProvider =>
-                serviceProvider.GetRequiredService<Endpoint>().Transport switch
+                GetTransport(serviceProvider.GetRequiredService<Endpoint>()) switch
                 {
                     "udp" => new CompositeMultiplexedServerTransport(),
                     _ => new SlicServerTransport(
@@ -62,7 +62,7 @@ namespace IceRpc.Tests
 
             // The default simple client transport is based on the configured endpoint.
             this.AddScoped(serviceProvider =>
-                serviceProvider.GetRequiredService<Endpoint>().Transport switch
+                GetTransport(serviceProvider.GetRequiredService<Endpoint>()) switch
                 {
                     "tcp" => new TcpClientTransport(serviceProvider.GetService<TcpClientOptions>() ?? new()),
                     "ssl" => new TcpClientTransport(serviceProvider.GetService<TcpClientOptions>() ?? new()),
@@ -73,13 +73,17 @@ namespace IceRpc.Tests
 
             // The default multiplexed client transport is Slic.
             this.AddScoped<IClientTransport<IMultiplexedNetworkConnection>>(serviceProvider =>
-                serviceProvider.GetRequiredService<Endpoint>().Transport switch
+                GetTransport(serviceProvider.GetRequiredService<Endpoint>()) switch
                 {
                     "udp" => new CompositeMultiplexedClientTransport(),
                     _ => new SlicClientTransport(
                         serviceProvider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
                         serviceProvider.GetService<SlicOptions>() ?? new())
                 });
+
+            // TODO: would be nicer to have a null default
+            static string? GetTransport(Endpoint endpoint) =>
+                endpoint.Params.TryGetValue("transport", out string? value) ? value : "tcp";
         }
     }
 
@@ -132,7 +136,7 @@ namespace IceRpc.Tests
                 Endpoint endpoint = $"{protocol}://{host}:{port}?transport={transport}";
 
                 // For tcp set the "tls" parameter
-                if (endpoint.Transport == "tcp")
+                if (transport == "tcp")
                 {
                     // If server authentication options are configured, set the tls=true endpoint parameter.
                     bool tls = serviceProvider.GetService<SslServerAuthenticationOptions>() != null;

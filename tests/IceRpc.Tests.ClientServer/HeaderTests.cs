@@ -64,7 +64,9 @@ namespace IceRpc.Tests.ClientServer
             var invocation = new Invocation
             {
                 Context = new Dictionary<string, string> { ["foo"] = largeValue },
-                IsOneway = serviceProvider.GetRequiredService<Endpoint>().Transport == "udp"
+                IsOneway = serviceProvider.GetRequiredService<Endpoint>().Params.TryGetValue(
+                    "transport",
+                    out string? transport) && transport == "udp"
             };
 
             await greeter.SayHelloAsync("hello", invocation);

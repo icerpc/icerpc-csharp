@@ -41,21 +41,6 @@ namespace IceRpc
                         throw new ArgumentException($"the protocol of all endpoints must be {Protocol}",
                                                     nameof(AltEndpoints));
                     }
-
-                    if (Protocol == Protocol.Ice)
-                    {
-                        if (_endpoint.Transport == TransportNames.Loc)
-                        {
-                            throw new ArgumentException(
-                                @$"cannot set {nameof(AltEndpoints)} when {nameof(Endpoint)} uses the loc transport",
-                                nameof(AltEndpoints));
-                        }
-
-                        if (value.Any(e => e.Transport == TransportNames.Loc))
-                        {
-                            throw new ArgumentException("cannot use loc transport", nameof(AltEndpoints));
-                        }
-                    }
                 }
                 // else, no need to check anything, an empty list is always fine.
 
@@ -91,12 +76,6 @@ namespace IceRpc
                     {
                         throw new ArgumentException("the new endpoint must use the proxy's protocol",
                                                     nameof(Endpoint));
-                    }
-
-                    if (Protocol == Protocol.Ice && _altEndpoints.Count > 0 && value.Transport == TransportNames.Loc)
-                    {
-                        throw new ArgumentException(
-                            "an ice proxy with a loc endpoint cannot have alt endpoints", nameof(Endpoint));
                     }
                 }
                 else if (_altEndpoints.Count > 0)
