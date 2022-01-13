@@ -451,9 +451,9 @@ namespace IceRpc.Slice
                 }
 
                 Protocol protocol = proxyData.Protocol != null ? Protocol.FromString(proxyData.Protocol) : Protocol.IceRpc;
-                Endpoint? endpoint = proxyData.Endpoint is EndpointData data ? data.ToEndpoint() : null;
+                Endpoint? endpoint = proxyData.Endpoint is EndpointData data ? data.ToEndpoint(protocol) : null;
                 ImmutableList<Endpoint> altEndpoints =
-                    proxyData.AltEndpoints?.Select(data => data.ToEndpoint()).ToImmutableList() ??
+                    proxyData.AltEndpoints?.Select(data => data.ToEndpoint(protocol)).ToImmutableList() ??
                         ImmutableList<Endpoint>.Empty;
 
                 if (endpoint == null && altEndpoints.Count > 0)
@@ -834,7 +834,7 @@ namespace IceRpc.Slice
                         }
 
                         case TransportCode.Any:
-                            endpoint = new EndpointData(ref this).ToEndpoint();
+                            endpoint = new EndpointData(ref this).ToEndpoint(protocol);
                             break;
 
                         default:
@@ -871,7 +871,7 @@ namespace IceRpc.Slice
                 }
                 else if (transportCode == TransportCode.Any)
                 {
-                    endpoint = new EndpointData(ref this).ToEndpoint();
+                    endpoint = new EndpointData(ref this).ToEndpoint(protocol);
                 }
 
                 if (endpoint != null)
