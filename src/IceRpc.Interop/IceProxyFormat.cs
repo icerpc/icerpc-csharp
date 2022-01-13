@@ -308,13 +308,6 @@ namespace IceRpc
                         if (endpoint == null)
                         {
                             endpoint = ParseEndpoint(es);
-
-                            /*
-                            if (endpoint.Transport == TransportNames.Loc)
-                            {
-                                throw new FormatException("use @ adapterId instead of loc in proxy");
-                            }
-                            */
                         }
                         else
                         {
@@ -382,18 +375,12 @@ namespace IceRpc
                     throw new FormatException($"empty adapter ID in proxy '{s}'");
                 }
 
-                endpoint = new Endpoint(
-                    Protocol.Ice,
-                    host: adapterId,
-                    port: 0,
-                    ImmutableDictionary<string, string>.Empty.Add("transport", TransportNames.Loc));
-
                 return new Proxy(identity.ToPath(), Protocol.Ice)
                 {
                     Invoker = invoker ?? Proxy.DefaultInvoker,
-                    Endpoint = endpoint,
                     Encoding = encoding,
-                    Fragment = Uri.EscapeDataString(facet)
+                    Fragment = Uri.EscapeDataString(facet),
+                    Params = ImmutableDictionary<string, string>.Empty.Add("adapter-id", adapterId)
                 };
             }
 
@@ -461,13 +448,10 @@ namespace IceRpc
             sb.Append(" -e ");
             sb.Append(proxy.Encoding);
 
-            if (proxy.Endpoint != null)
+            if (proxy.Endpoint == null)
             {
-                if (proxy.Endpoint.Params.TryGetValue("transport", out transportName) &&
-                    transportName == TransportNames.Loc)
+                if (proxy.Params.TryGetValue("adapter-id", out string? adapterId))
                 {
-                    string adapterId = proxy.Endpoint.Host;
-
                     sb.Append(" @ ");
 
                     // If the encoded adapter ID contains characters which the proxy parser uses as separators, then
@@ -484,17 +468,17 @@ namespace IceRpc
                         sb.Append(adapterId);
                     }
                 }
-                else
-                {
-                    sb.Append(':');
-                    sb.Append(ToString(proxy.Endpoint));
+            }
+            else
+            {
+               sb.Append(':');
+               sb.Append(ToString(proxy.Endpoint));
 
-                    foreach (Endpoint e in proxy.AltEndpoints)
-                    {
-                        sb.Append(':');
-                        sb.Append(ToString(e));
-                    }
-                }
+               foreach (Endpoint e in proxy.AltEndpoints)
+               {
+                    sb.Append(':');
+                    sb.Append(ToString(e));
+               }
             }
             return sb.ToString();
         }

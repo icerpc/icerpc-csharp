@@ -129,6 +129,14 @@ namespace IceRpc
                 }
             }
 
+            foreach ((string name, string value) in proxy.Params)
+            {
+                StartQueryOption(sb, ref firstOption);
+                sb.Append(name);
+                sb.Append('=');
+                sb.Append(value);
+            }
+
             if (proxy.Fragment.Length > 0)
             {
                 sb.Append('#');

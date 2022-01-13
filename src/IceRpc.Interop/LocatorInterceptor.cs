@@ -43,23 +43,24 @@ namespace IceRpc
                     location = cachedResolution.Location;
                     refreshCache = true;
                 }
-                else if (request.Endpoint is Endpoint endpoint &&
-                    endpoint.Params.TryGetValue("transport", out string? transportName) &&
-                    transportName == TransportNames.Loc)
-                {
-                    // Typically first attempt since a successful resolution replaces this loc endpoint.
-                    location = new Location(endpoint.Host);
-                }
                 else if (request.Endpoint == null)
                 {
-                    // Well-known proxy
-                    try
+                    // TODO: copy Params into OutgoingRequest?
+                    if (request.Proxy.Params.TryGetValue("adapter-id", out string? adapterId))
                     {
-                        location = new Location(Identity.FromPath(request.Path));
+                        location = new Location(adapterId);
                     }
-                    catch (FormatException)
+                    else
                     {
-                        // ignore path that can't be converted, location remains default
+                        // Well-known proxy
+                        try
+                        {
+                            location = new Location(Identity.FromPath(request.Path));
+                        }
+                        catch (FormatException)
+                        {
+                            // ignore path that can't be converted, location remains default
+                        }
                     }
                 }
                 // else it could be a retry where the first attempt provided non-cached endpoint(s)

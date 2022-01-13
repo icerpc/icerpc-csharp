@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
-using System.Diagnostics;
 
 namespace IceRpc.Internal
 {
@@ -33,13 +31,8 @@ namespace IceRpc.Internal
 
                     if (prx?.Proxy is Proxy proxy)
                     {
-                        if (proxy.Endpoint is not Endpoint endpoint ||
-                            (endpoint.Params.TryGetValue("transport", out string? transportName) &&
-                                transportName == TransportNames.Loc))
-                        {
+                        return proxy.Protocol == Protocol.Ice && proxy.Endpoint != null ? proxy :
                             throw new InvalidDataException($"findAdapterById returned invalid proxy '{proxy}'");
-                        }
-                        return proxy;
                     }
                     else
                     {
@@ -61,11 +54,10 @@ namespace IceRpc.Internal
 
                     if (prx?.Proxy is Proxy proxy)
                     {
-                        if (proxy.Endpoint == null || proxy.Protocol != Protocol.Ice)
-                        {
-                            throw new InvalidDataException($"findObjectById returned invalid proxy '{proxy}'");
-                        }
-                        return proxy;
+                        // findObjectById can return an indirect proxy with an adapter ID
+                        return proxy.Protocol == Protocol.Ice &&
+                            (proxy.Endpoint != null || proxy.Params.ContainsKey("adapter-id")) ? proxy :
+                                throw new InvalidDataException($"findObjectById returned invalid proxy '{proxy}'");
                     }
                     else
                     {
@@ -101,7 +93,6 @@ namespace IceRpc.Internal
 
                 if (proxy != null)
                 {
-                    Debug.Assert(proxy.Endpoint != null);
                     _logger.LogFound(location.Kind, location, proxy);
                 }
                 else

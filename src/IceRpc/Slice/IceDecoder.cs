@@ -346,24 +346,13 @@ namespace IceRpc.Slice
                 Endpoint? endpoint = null;
                 IEnumerable<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
                 var protocol = Protocol.FromByte(proxyData.ProtocolMajor);
+                ImmutableDictionary<string, string> proxyParams = ImmutableDictionary<string, string>.Empty;
 
                 if (size == 0)
                 {
-                    string adapterId = DecodeString();
-                    if (adapterId.Length > 0)
+                    if (DecodeString() is string adapterId && adapterId.Length > 0)
                     {
-                        if (protocol == Protocol.Ice)
-                        {
-                            endpoint = new Endpoint(
-                                Protocol.Ice,
-                                host: adapterId,
-                                port: 0,
-                                @params: ImmutableDictionary<string, string>.Empty.Add("transport", TransportNames.Loc));
-                        }
-                        else
-                        {
-                            throw new InvalidDataException($"received {protocol} proxy with an adapter ID");
-                        }
+                        proxyParams = proxyParams.Add("adapter-id", adapterId);
                     }
                 }
                 else
@@ -394,7 +383,8 @@ namespace IceRpc.Slice
                             Endpoint = endpoint,
                             AltEndpoints = altEndpoints.ToImmutableList(),
                             Invoker = _invoker,
-                            Fragment = proxyData.Facet.ToFragment()
+                            Fragment = proxyData.Facet.ToFragment(),
+                            Params = proxyParams
                         };
                     }
                     catch (InvalidDataException)
@@ -436,6 +426,13 @@ namespace IceRpc.Slice
 
                         proxy.Encoding = IceRpc.Encoding.FromMajorMinor(proxyData.EncodingMajor,
                             proxyData.EncodingMinor);
+
+                        // TODO: revisit with relative proxy decoding
+                        if (proxy.Endpoint == null)
+                        {
+                            proxy.Params = proxyParams;
+                        }
+
                         return proxy;
                     }
                     catch (Exception ex)

@@ -13,11 +13,14 @@ namespace IceRpc.Tests.ClientServer
         private ConnectionPool? _pool;
         private Server? _server;
 
-        // Note that transport loc has no special meaning with icerpc.
         [TestCase(
-            "icerpc://testlocation/test?transport=loc",
-            "icerpc://unknown-location/test?transport=loc",
-            "ice://testlocation/test?transport=loc")]
+            "icerpc:/test?adapter-id=adapter",
+            "icerpc:/test?adapter-id=unknown-adapter",
+            "icerpc:/test")]
+        [TestCase(
+            "icerpc:/test",
+            "icerpc:/test?adapter-id=adapter",
+            "icerpc:/test2")]
         [TestCase("test @ adapter", "test @ unknown_adapter", "test")]
         [TestCase("test", "test @ adapter", "test2")]
         public async Task LocationResolver_ResolveAsync(string proxy, params string[] badProxies)
@@ -35,9 +38,9 @@ namespace IceRpc.Tests.ClientServer
             GreeterPrx direct = SetupServer(indirect.Proxy.Protocol.Name, indirect.Proxy.Path, pipeline);
             Assert.That(direct.Proxy.Endpoint, Is.Not.Null);
 
-            if (indirect.Proxy.Endpoint is Endpoint endpoint)
+            if (indirect.Proxy.Params.TryGetValue("adapter-id", out string? adapterId))
             {
-                pipeline.Use(LocationResolver(endpoint.Host, category: null, direct.Proxy.Endpoint!))
+                pipeline.Use(LocationResolver(adapterId, category: null, direct.Proxy.Endpoint!))
                         .UseBinder(_pool);
             }
             else
@@ -99,15 +102,13 @@ namespace IceRpc.Tests.ClientServer
             next => new InlineInvoker(
                 (request, cancel) =>
                 {
-                    if ((request.Protocol == resolvedEndpoint.Protocol) &&
-                        ((request.Endpoint is Endpoint endpoint &&
-                          endpoint.Params["transport"] == "loc" &&
-                          endpoint.Host == location &&
-                          category == null) ||
-                         (request.Endpoint == null &&
-                          request.Protocol == Protocol.Ice &&
-                          category != null &&
-                          request.Path == new Identity(location, category).ToPath())))
+                    string? adapterId =
+                        request.Proxy.Params.TryGetValue("adapter-id", out string? value) ? value : null;
+
+                    if (request.Protocol == resolvedEndpoint.Protocol &&
+                        ((category == null && location == adapterId) ||
+                        (category != null && adapterId == null &&
+                         Identity.FromPath(request.Path) == new Identity(location, category))))
                     {
                         request.Endpoint = resolvedEndpoint;
                         CollectionAssert.IsEmpty(request.AltEndpoints);
