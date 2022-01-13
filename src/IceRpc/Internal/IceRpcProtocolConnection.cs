@@ -152,7 +152,7 @@ namespace IceRpc.Internal
                 var request = new IncomingRequest(
                     Protocol.IceRpc,
                     path: header.Path,
-                    fragment: header.Fragment,
+                    fragment: "", // no fragment with icerpc
                     operation: header.Operation,
                     payload: reader,
                     payloadEncoding: header.PayloadEncoding.Length > 0 ?
@@ -290,6 +290,11 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
+            if (request.Fragment.Length > 0)
+            {
+                throw new NotSupportedException("the icerpc protocol does not support fragments");
+            }
+
             IMultiplexedStream stream;
             MultiplexedStreamPipeWriter? requestWriter = null;
             try
@@ -360,7 +365,6 @@ namespace IceRpc.Internal
 
                 var header = new IceRpcRequestHeader(
                     request.Path,
-                    request.Fragment,
                     request.Operation,
                     request.IsIdempotent,
                     deadline,
