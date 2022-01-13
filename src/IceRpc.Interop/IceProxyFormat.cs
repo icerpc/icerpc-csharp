@@ -433,8 +433,8 @@ namespace IceRpc
             }
 
             if (proxy.Endpoint is Endpoint endpoint &&
-                endpoint.Params.TryGetValue("transport", out string? transportName) &&
-                transportName == TransportNames.Udp)
+                endpoint.Params.TryGetValue("transport", out string? transport) &&
+                transport == TransportNames.Udp)
             {
                 sb.Append(" -d");
             }
@@ -496,24 +496,23 @@ namespace IceRpc
                 throw new FormatException("no non-whitespace character in endpoint string");
             }
 
-            string transportName = args[0];
-            if (transportName == "default")
+            string transport = args[0];
+            if (transport.Length == 0 ||
+                !char.IsLetter(transport, 0) ||
+                !transport.Skip(1).All(c => char.IsLetterOrDigit(c)))
             {
-                // TODO: should default map to no transport parameter?
-                transportName = "tcp";
-            }
-            else if (transportName.Length == 0 ||
-                    !char.IsLetter(transportName, 0) ||
-                    !transportName.Skip(1).All(c => char.IsLetterOrDigit(c)))
-            {
-                throw new FormatException($"invalid transport name '{transportName}' in endpoint '{endpointString}");
+                throw new FormatException($"invalid transport name '{transport}' in endpoint '{endpointString}");
             }
 
             string? host = null;
             ushort? port = null;
-            var endpointParams = new Dictionary<string, string>() { ["transport"] = transportName };
+            var endpointParams = new Dictionary<string, string>();
+            if (transport != "default")
+            {
+                endpointParams.Add("transport", transport);
+            }
 
-            // Parse args into name/value pairs (and skip transportName at args[0])
+            // Parse args into name/value pairs (and skip transport at args[0])
             for (int n = 1; n < args.Length; ++n)
             {
                 // Any name with < 2 characters or that does not start with - is illegal
@@ -588,13 +587,13 @@ namespace IceRpc
                 }
             }
 
-            if (transportName == TransportNames.Tcp)
+            if (transport == TransportNames.Tcp)
             {
                 endpointParams.Add("tls", "false");
             }
-            else if (transportName == TransportNames.Ssl)
+            else if (transport == TransportNames.Ssl)
             {
-                transportName = TransportNames.Tcp;
+                transport = TransportNames.Tcp;
                 endpointParams.Add("tls", "true");
             }
 
@@ -612,9 +611,9 @@ namespace IceRpc
         {
             var sb = new StringBuilder();
 
-            // We default to tcp
+            // The default transport is "default"
             string transport = endpoint.Params.TryGetValue("transport", out string? transportValue) ?
-                transportValue : TransportNames.Tcp;
+                transportValue : "default";
 
             if (transport == TransportNames.Tcp)
             {

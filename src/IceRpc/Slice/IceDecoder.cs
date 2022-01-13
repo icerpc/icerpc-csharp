@@ -885,12 +885,12 @@ namespace IceRpc.Slice
                 }
             }
 
-            string transportName = endpoint != null && endpoint.Params.TryGetValue("transport", out string? value) ?
+            string transport = endpoint != null && endpoint.Params.TryGetValue("transport", out string? value) ?
                 value : transportCode.ToString().ToLowerInvariant();
 
             return endpoint ??
                 throw new InvalidDataException(
-                    @$"cannot decode endpoint for protocol '{protocol}' and transport '{transportName
+                    @$"cannot decode endpoint for protocol '{protocol}' and transport '{transport
                     }' with endpoint encapsulation encoded with encoding '{encoding}'");
         }
 
