@@ -11,9 +11,10 @@ namespace IceRpc.Transports
         public Endpoint DefaultEndpoint =>
             _defaultEndpoint ?? throw new InvalidOperationException("no transport configured");
 
-        private Endpoint? _defaultEndpoint;
-        private IReadOnlyDictionary<string, IServerTransport<T>>? _transports;
         private readonly Dictionary<string, IServerTransport<T>> _builder = new();
+        private Endpoint? _defaultEndpoint;
+        private string? _defaultTransport; // the name of the first transport added to _transports
+        private IReadOnlyDictionary<string, IServerTransport<T>>? _transports;
 
         /// <summary>Adds a new server transport to this composite server transport.</summary>
         /// <param name="name">The transport name.</param>
@@ -29,7 +30,9 @@ namespace IceRpc.Transports
 
             // The composite default endpoint is the default endpoint of the first added server transport.
             _defaultEndpoint ??= transport.DefaultEndpoint;
+
             _builder.Add(name, transport);
+            _defaultTransport ??= name;
             return this;
         }
 
@@ -39,7 +42,7 @@ namespace IceRpc.Transports
 
             if (!endpoint.Params.TryGetValue("transport", out string? endpointTransport))
             {
-                endpointTransport = "tcp";
+                endpointTransport = _defaultTransport ?? throw new InvalidOperationException("no transport configured");
             }
 
             if (_transports.TryGetValue(endpointTransport, out IServerTransport<T>? serverTransport))
