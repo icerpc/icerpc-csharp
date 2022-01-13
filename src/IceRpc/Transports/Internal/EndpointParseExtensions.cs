@@ -26,15 +26,11 @@ namespace IceRpc.Transports.Internal
                         if (value != TransportNames.Opaque)
                         {
                             throw new FormatException(
-                                    $"invalid value for transport parameter in endpoint '{endpoint}'");
+                                $"invalid value for transport parameter in endpoint '{endpoint}'");
                         }
-                        continue;
+                        break;
 
                     case "e":
-                        if (encoding != null)
-                        {
-                            throw new FormatException($"multiple e parameters in endpoint '{endpoint}'");
-                        }
                         encoding = value switch
                         {
                             "1.0" => Encoding.Slice10,
@@ -44,11 +40,6 @@ namespace IceRpc.Transports.Internal
                         break;
 
                     case "t":
-                        if (transportCode != null)
-                        {
-                            throw new FormatException($"multiple t parameters in endpoint '{endpoint}'");
-                        }
-
                         short t;
                         try
                         {
@@ -70,11 +61,6 @@ namespace IceRpc.Transports.Internal
                         break;
 
                     case "v":
-                        if (bytes.Length > 0)
-                        {
-                            throw new FormatException($"multiple v parameters in endpoint '{endpoint}'");
-                        }
-
                         try
                         {
                             bytes = Convert.FromBase64String(value);
@@ -116,15 +102,11 @@ namespace IceRpc.Transports.Internal
                         if (value != TransportNames.Tcp)
                         {
                             throw new FormatException(
-                                    $"invalid value for transport parameter in endpoint '{endpoint}'");
+                                $"invalid value for transport parameter in endpoint '{endpoint}'");
                         }
-                        continue;
+                        break;
 
                     case "t":
-                        if (timeout != null)
-                        {
-                            throw new FormatException($"multiple t parameters in endpoint '{endpoint}'");
-                        }
                         if (value == "infinite")
                         {
                             timeout = -1;
@@ -138,13 +120,9 @@ namespace IceRpc.Transports.Internal
                                     $"invalid value for t parameter in endpoint '{endpoint}'");
                             }
                         }
-                        continue;
+                        break;
 
                     case "tls":
-                        if (tls != null)
-                        {
-                            throw new FormatException($"multiple tls parameters in endpoint '{endpoint}'");
-                        }
                         try
                         {
                             tls = bool.Parse(value);
@@ -153,20 +131,16 @@ namespace IceRpc.Transports.Internal
                         {
                             throw new FormatException($"invalid value for tls parameter in endpoint '{endpoint}'", ex);
                         }
-                        continue;
+                        break;
 
                     case "z":
-                        if (compress)
-                        {
-                            throw new FormatException($"multiple z parameters in endpoint '{endpoint}'");
-                        }
                         if (value != "true")
                         {
                             throw new FormatException(
                                 $"invalid value '{value}' for parameter z in endpoint '{endpoint}'");
                         }
                         compress = true;
-                        continue;
+                        break;
 
                     default:
                         throw new FormatException($"unknown parameter '{name}' in endpoint '{endpoint}'");
@@ -190,15 +164,11 @@ namespace IceRpc.Transports.Internal
                         if (value != TransportNames.Udp)
                         {
                             throw new FormatException(
-                                    $"invalid value for transport parameter in endpoint '{endpoint}'");
+                                $"invalid value for transport parameter in endpoint '{endpoint}'");
                         }
-                        continue;
+                        break;
 
                     case "z":
-                        if (compress)
-                        {
-                            throw new FormatException($"multiple z parameters in endpoint '{endpoint}'");
-                        }
                         if (value != "true")
                         {
                             throw new FormatException(
@@ -208,11 +178,6 @@ namespace IceRpc.Transports.Internal
                         break;
 
                     case "ttl":
-                        if (ttl >= 0)
-                        {
-                            throw new FormatException($"multiple ttl parameters in endpoint '{endpoint}'");
-                        }
-
                         if (value.Length == 0)
                         {
                             throw new FormatException(
@@ -235,10 +200,6 @@ namespace IceRpc.Transports.Internal
                         break;
 
                     case "interface":
-                        if (multicastInterface != null)
-                        {
-                            throw new FormatException($"multiple interface parameters in endpoint '{endpoint}'");
-                        }
                         if (value.Length == 0)
                         {
                             throw new FormatException(
