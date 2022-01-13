@@ -330,6 +330,7 @@ namespace IceRpc.Slice
                         proxy.Path,
                         proxy.Fragment,
                         encoding: proxy.Encoding == IceRpc.Encoding.Slice20 ? null : proxy.Encoding.ToString(),
+                        @params: proxy.Params,
                         endpoint: proxy.Endpoint?.ToEndpointData(),
                         altEndpoints:
                                 proxy.AltEndpoints.Count == 0 ? null :

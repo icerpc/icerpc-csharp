@@ -48,14 +48,14 @@ namespace IceRpc
 
             var uri = new Uri(uriString);
 
-            (ImmutableDictionary<string, string> endpointParams, string? altEndpointValue, string? encoding) =
+            (ImmutableDictionary<string, string> queryParams, string? altEndpointValue, string? encoding) =
                 ParseQuery(uri.Query, uriString);
 
             Endpoint? endpoint = null;
             ImmutableList<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
             if (uri.Authority.Length > 0)
             {
-                endpoint = CreateEndpoint(uri, endpointParams, protocol, uriString);
+                endpoint = CreateEndpoint(uri, queryParams, protocol, uriString);
 
                 if (altEndpointValue != null)
                 {
@@ -84,7 +84,8 @@ namespace IceRpc
                 AltEndpoints = altEndpoints,
                 Encoding = encoding == null ?
                     (protocol.SliceEncoding ?? Encoding.Unknown) : Encoding.FromString(encoding),
-                Fragment = uri.Fragment.Length > 0 ? uri.Fragment[1..] : "" // remove #
+                Fragment = uri.Fragment.Length > 0 ? uri.Fragment[1..] : "", // remove #
+                Params = endpoint == null ? queryParams : ImmutableDictionary<string, string>.Empty
             };
         }
 
@@ -211,11 +212,11 @@ namespace IceRpc
             return new(protocol, host, checked((ushort)uri.Port), endpointParams);
         }
 
-        private static (ImmutableDictionary<string, string> EndpointParams, string? AltEndpoint, string? Encoding) ParseQuery(
+        private static (ImmutableDictionary<string, string> QueryParams, string? AltEndpoint, string? Encoding) ParseQuery(
             string query,
             string uriString)
         {
-            var endpointParams = new Dictionary<string, string>();
+            var queryParams = new Dictionary<string, string>();
             string? altEndpoint = null;
             string? encoding = null;
 
@@ -240,16 +241,16 @@ namespace IceRpc
                     encoding = encoding == null ? value :
                         throw new FormatException($"too many encoding query parameters in URI {uriString}");
                 }
-                else if (endpointParams.TryGetValue(name, out string? existingValue))
+                else if (queryParams.TryGetValue(name, out string? existingValue))
                 {
-                    endpointParams[name] = $"existingValue,{value}";
+                    queryParams[name] = $"existingValue,{value}";
                 }
                 else
                 {
-                    endpointParams.Add(name, value);
+                    queryParams.Add(name, value);
                 }
             }
-            return (endpointParams.ToImmutableDictionary(), altEndpoint, encoding);
+            return (queryParams.ToImmutableDictionary(), altEndpoint, encoding);
         }
 
         private static void TryRegisterParser(string schemeName)

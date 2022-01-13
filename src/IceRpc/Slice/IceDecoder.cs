@@ -487,6 +487,7 @@ namespace IceRpc.Slice
                     proxy.Fragment = proxyData.Fragment;
                     proxy.Encoding = proxyData.Encoding is string encoding ?
                         IceRpc.Encoding.FromString(encoding) : protocol.SliceEncoding ?? IceRpc.Encoding.Unknown;
+                    proxy.Params = proxyData.Params?.ToImmutableDictionary() ?? proxy.Params;
 
                     return proxy;
                 }
