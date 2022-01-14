@@ -51,12 +51,18 @@ namespace IceRpc.Internal
                 sb.Append(path);
             }
 
-            sb.Append("?transport=");
-            sb.Append(endpoint.Transport);
-
+            bool firstOption = true;
             foreach ((string name, string value) in endpoint.Params)
             {
-                sb.Append(paramSeparator);
+                if (firstOption)
+                {
+                    sb.Append('?');
+                    firstOption = false;
+                }
+                else
+                {
+                    sb.Append(paramSeparator);
+                }
                 sb.Append(name);
                 sb.Append('=');
                 sb.Append(value);

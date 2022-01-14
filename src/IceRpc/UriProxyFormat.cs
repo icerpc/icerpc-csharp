@@ -48,16 +48,14 @@ namespace IceRpc
 
             var uri = new Uri(uriString);
 
-            (ImmutableList<EndpointParam> endpointParams, string? altEndpointValue, string? encoding, string? transport) =
+            (ImmutableDictionary<string, string> queryParams, string? altEndpointValue, string? encoding) =
                 ParseQuery(uri.Query, uriString);
-
-            transport ??= "tcp"; // temporary
 
             Endpoint? endpoint = null;
             ImmutableList<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
             if (uri.Authority.Length > 0)
             {
-                endpoint = CreateEndpoint(uri, endpointParams, protocol, transport, uriString);
+                endpoint = CreateEndpoint(uri, queryParams, protocol, uriString);
 
                 if (altEndpointValue != null)
                 {
@@ -86,7 +84,8 @@ namespace IceRpc
                 AltEndpoints = altEndpoints,
                 Encoding = encoding == null ?
                     (protocol.SliceEncoding ?? Encoding.Unknown) : Encoding.FromString(encoding),
-                Fragment = uri.Fragment.Length > 0 ? uri.Fragment[1..] : "" // remove #
+                Fragment = uri.Fragment.Length > 0 ? uri.Fragment[1..] : "", // remove #
+                Params = endpoint == null ? queryParams : ImmutableDictionary<string, string>.Empty
             };
         }
 
@@ -99,7 +98,7 @@ namespace IceRpc
             if (proxy.Endpoint != null)
             {
                 sb.AppendEndpoint(proxy.Endpoint, proxy.Path);
-                firstOption = false;
+                firstOption = proxy.Endpoint.Params.Count == 0;
             }
             else
             {
@@ -118,7 +117,6 @@ namespace IceRpc
 
             if (proxy.AltEndpoints.Count > 0)
             {
-                string mainTransport = proxy.Endpoint!.Transport;
                 StartQueryOption(sb, ref firstOption);
                 sb.Append("alt-endpoint=");
                 for (int i = 0; i < proxy.AltEndpoints.Count; ++i)
@@ -127,8 +125,16 @@ namespace IceRpc
                     {
                         sb.Append(',');
                     }
-                    sb.AppendEndpoint(proxy.AltEndpoints[i], "", mainTransport != proxy.AltEndpoints[i].Transport, '$');
+                    sb.AppendEndpoint(proxy.AltEndpoints[i], path: "", includeScheme: false, paramSeparator: '$');
                 }
+            }
+
+            foreach ((string name, string value) in proxy.Params)
+            {
+                StartQueryOption(sb, ref firstOption);
+                sb.Append(name);
+                sb.Append('=');
+                sb.Append(value);
             }
 
             if (proxy.Fragment.Length > 0)
@@ -177,7 +183,7 @@ namespace IceRpc
 
             var uri = new Uri(uriString);
 
-            (ImmutableList<EndpointParam> endpointParams, string? altEndpoint, string? encoding, string? transport) =
+            (ImmutableDictionary<string, string> endpointParams, string? altEndpoint, string? encoding) =
                 ParseQuery(uri.Query, uriString);
 
             if (uri.AbsolutePath.Length > 1)
@@ -196,14 +202,13 @@ namespace IceRpc
             {
                 throw new FormatException($"invalid encoding parameter in endpoint '{uriString}'");
             }
-            return CreateEndpoint(uri, endpointParams, protocol, transport ?? "tcp", uriString);
+            return CreateEndpoint(uri, endpointParams, protocol, uriString);
         }
 
         private static Endpoint CreateEndpoint(
             Uri uri,
-            ImmutableList<EndpointParam> endpointParams,
+            ImmutableDictionary<string, string> endpointParams,
             Protocol protocol,
-            string transport,
             string uriString)
         {
             string host = uri.DnsSafeHost;
@@ -212,17 +217,16 @@ namespace IceRpc
                 throw new FormatException($"missing authority in endpoint URI '{uriString}'");
             }
 
-            return new(protocol, transport, host, checked((ushort)uri.Port), endpointParams);
+            return new(protocol, host, checked((ushort)uri.Port), endpointParams);
         }
 
-        private static (ImmutableList<EndpointParam> EndpointParams, string? AltEndpoint, string? Encoding, string? Transport) ParseQuery(
+        private static (ImmutableDictionary<string, string> QueryParams, string? AltEndpoint, string? Encoding) ParseQuery(
             string query,
             string uriString)
         {
-            var endpointParams = new List<EndpointParam>();
+            var queryParams = new Dictionary<string, string>();
             string? altEndpoint = null;
             string? encoding = null;
-            string? transport = null;
 
             string[] nvPairs = query.Length >= 2 ? query.TrimStart('?').Split('&') : Array.Empty<string>();
 
@@ -245,17 +249,16 @@ namespace IceRpc
                     encoding = encoding == null ? value :
                         throw new FormatException($"too many encoding query parameters in URI {uriString}");
                 }
-                else if (name == "transport")
+                else if (queryParams.TryGetValue(name, out string? existingValue))
                 {
-                    transport = transport == null ? value :
-                        throw new FormatException($"too many transport query parameters in URI {uriString}");
+                    queryParams[name] = $"{existingValue},{value}";
                 }
                 else
                 {
-                    endpointParams.Add(new EndpointParam(name, value));
+                    queryParams.Add(name, value);
                 }
             }
-            return (endpointParams.ToImmutableList(), altEndpoint, encoding, transport);
+            return (queryParams.ToImmutableDictionary(), altEndpoint, encoding);
         }
 
         private static void TryRegisterParser(string schemeName)

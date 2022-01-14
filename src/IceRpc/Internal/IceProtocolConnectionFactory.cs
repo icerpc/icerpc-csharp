@@ -16,7 +16,9 @@ namespace IceRpc.Internal
             CancellationToken cancel)
         {
             // Check if we're using the special udp transport for ice
-            bool isUdp = connectionInfo.LocalEndpoint.Transport == TransportNames.Udp;
+            bool isUdp = connectionInfo.LocalEndpoint.Params.TryGetValue("transport", out string? transport) &&
+                transport == TransportNames.Udp;
+
             if (isUdp)
             {
                 incomingFrameMaxSize = Math.Min(incomingFrameMaxSize, UdpUtils.MaxPacketSize);

@@ -7,8 +7,10 @@ namespace IceRpc.Transports
     /// <summary>A composite client transport.</summary>
     public class CompositeClientTransport<T> : IClientTransport<T> where T : INetworkConnection
     {
-        private IReadOnlyDictionary<string, IClientTransport<T>>? _transports;
         private readonly Dictionary<string, IClientTransport<T>> _builder = new();
+        private IReadOnlyDictionary<string, IClientTransport<T>>? _transports;
+
+        private string? _defaultTransport; // the name of the first transport added to _transports
 
         /// <summary>Adds a new client transport to this composite client transport.</summary>
         /// <param name="name">The transport name.</param>
@@ -22,20 +24,26 @@ namespace IceRpc.Transports
                     $"cannot call {nameof(Add)} after calling {nameof(IClientTransport<T>.CreateConnection)}");
             }
             _builder.Add(name, transport);
+            _defaultTransport ??= name;
             return this;
         }
 
         T IClientTransport<T>.CreateConnection(Endpoint remoteEndpoint, ILogger logger)
         {
             _transports ??= _builder;
-            if (_transports.TryGetValue(remoteEndpoint.Transport,
-                                        out IClientTransport<T>? clientTransport))
+
+            if (!remoteEndpoint.Params.TryGetValue("transport", out string? endpointTransport))
+            {
+                endpointTransport = _defaultTransport ?? throw new InvalidOperationException("no transport configured");
+            }
+
+            if (_transports.TryGetValue(endpointTransport, out IClientTransport<T>? clientTransport))
             {
                 return clientTransport.CreateConnection(remoteEndpoint, logger);
             }
             else
             {
-                throw new UnknownTransportException(remoteEndpoint.Transport);
+                throw new UnknownTransportException(endpointTransport);
             }
         }
     }

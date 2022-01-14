@@ -256,10 +256,14 @@ namespace IceRpc.Slice
 
                     (byte encodingMajor, byte encodingMinor) = proxy.Encoding.ToMajorMinor();
 
+                    InvocationMode invocationMode = proxy.Protocol == Protocol.Ice &&
+                        proxy.Endpoint is Endpoint endpoint &&
+                        endpoint.Params.TryGetValue("transport", out string? transport) &&
+                        transport == TransportNames.Udp ? InvocationMode.Oneway : InvocationMode.Twoway;
+
                     var proxyData = new ProxyData11(
                         Facet.FromFragment(proxy.Fragment),
-                        proxy.Protocol == Protocol.Ice && (proxy.Endpoint?.Transport == TransportNames.Udp) ?
-                            InvocationMode.Datagram : InvocationMode.Twoway,
+                        invocationMode,
                         secure: false,
                         protocolMajor: proxy.Protocol.ToByte(),
                         protocolMinor: 0,
@@ -270,28 +274,15 @@ namespace IceRpc.Slice
                     if (proxy.Endpoint == null)
                     {
                         EncodeSize(0); // 0 endpoints
-                        EncodeString(""); // empty adapter ID
-                    }
-                    else if (proxy.Protocol == Protocol.Ice && proxy.Endpoint.Transport == TransportNames.Loc)
-                    {
-                        EncodeSize(0); // 0 endpoints
-                        EncodeString(proxy.Endpoint.Host); // adapter ID unless well-known
+                        EncodeString(proxy.Params.TryGetValue("adapter-id", out string? value) ? value : "");
                     }
                     else
                     {
-                        IEnumerable<Endpoint> endpoints = Enumerable.Empty<Endpoint>().Append(proxy.Endpoint).Concat(
-                            proxy.AltEndpoints);
-
-                        if (endpoints.Any())
+                        EncodeSize(1 + proxy.AltEndpoints.Count); // endpoint count
+                        EncodeEndpoint(proxy.Endpoint);
+                        foreach (Endpoint altEndpoint in proxy.AltEndpoints)
                         {
-                            this.EncodeSequence(
-                                endpoints,
-                                (ref IceEncoder encoder, Endpoint endpoint) => encoder.EncodeEndpoint(endpoint));
-                        }
-                        else // encoded as an endpointless proxy
-                        {
-                            EncodeSize(0); // 0 endpoints
-                            EncodeString(""); // empty adapter ID
+                            EncodeEndpoint(altEndpoint);
                         }
                     }
                 }
@@ -315,6 +306,7 @@ namespace IceRpc.Slice
                         proxy.Path,
                         proxy.Fragment,
                         encoding: proxy.Encoding == IceRpc.Encoding.Slice20 ? null : proxy.Encoding.ToString(),
+                        @params: proxy.Params,
                         endpoint: proxy.Endpoint?.ToEndpointData(),
                         altEndpoints:
                                 proxy.AltEndpoints.Count == 0 ? null :

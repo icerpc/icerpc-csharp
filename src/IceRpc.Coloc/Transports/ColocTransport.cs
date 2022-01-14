@@ -9,6 +9,9 @@ namespace IceRpc.Transports
     /// communications.</summary>
     public sealed class ColocTransport
     {
+        /// <summary>The transport name.</summary>
+        public const string Name = "coloc";
+
         /// <summary>The colocated client transport.</summary>
         public IClientTransport<ISimpleNetworkConnection> ClientTransport { get; }
 

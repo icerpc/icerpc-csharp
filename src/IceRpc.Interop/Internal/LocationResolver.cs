@@ -23,10 +23,10 @@ namespace IceRpc.Internal
         {
             Proxy? proxy = await _endpointFinder.FindAsync(location, cancel).ConfigureAwait(false);
 
-            // A well-known proxy resolution can return a loc endpoint:
-            if (proxy != null && proxy.Endpoint!.Transport == TransportNames.Loc)
+            // A well-known proxy resolution can return a proxy with an adapter ID
+            if (proxy != null && proxy.Params.TryGetValue("adapter-id", out string? adapterId))
             {
-                (proxy, _) = await ResolveAsync(new Location(proxy!.Endpoint!.Host), cancel).ConfigureAwait(false);
+                (proxy, _) = await ResolveAsync(new Location(adapterId), cancel).ConfigureAwait(false);
             }
 
             return (proxy, false);
@@ -92,22 +92,26 @@ namespace IceRpc.Internal
             }
 
             // A well-known proxy resolution can return a loc endpoint
-            if (proxy != null && proxy.Endpoint!.Transport == TransportNames.Loc)
+            if (proxy != null && proxy.Params.TryGetValue("adapter-id", out string? adapterId))
             {
                 try
                 {
                     // Resolves adapter ID recursively, by checking first the cache. If we resolved the well-known
                     // proxy, we request a cache refresh for the adapter ID.
-                    (proxy, _) = await ResolveAsync(new Location(proxy!.Endpoint!.Host),
+                    (proxy, _) = await ResolveAsync(new Location(adapterId),
                                                     refreshCache || resolved,
                                                     cancel).ConfigureAwait(false);
+                }
+                catch
+                {
+                    proxy = null;
+                    throw;
                 }
                 finally
                 {
                     // When the second resolution fails, we clear the cache entry for the initial successful
                     // resolution, since the overall resolution is a failure.
-                    // proxy below can hold a loc endpoint only when an exception is thrown.
-                    if (proxy == null || proxy.Endpoint!.Transport == TransportNames.Loc)
+                    if (proxy == null)
                     {
                         _endpointCache.Remove(location);
                     }

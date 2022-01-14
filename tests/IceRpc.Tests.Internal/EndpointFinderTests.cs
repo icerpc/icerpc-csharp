@@ -21,7 +21,6 @@ namespace IceRpc.Tests.Internal
 
             proxy = await endpointFinder.FindAsync(new Location(new Identity("good", "category")), cancel: default);
             Assert.That(proxy, Is.Not.Null);
-            Assert.That(proxy.Endpoint, Is.Not.Null);
             proxy = await endpointFinder.FindAsync(new Location(new Identity("bad", "category")), cancel: default);
             Assert.That(proxy, Is.Null);
         }

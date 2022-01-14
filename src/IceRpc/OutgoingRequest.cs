@@ -46,6 +46,9 @@ namespace IceRpc
         /// <summary>The operation called on the service.</summary>
         public string Operation { get; }
 
+        /// <summary>The parameters of this request.</summary>
+        public ImmutableDictionary<string, string> Params { get; set; }
+
         /// <summary>The path of the target service.</summary>
         public string Path { get; }
 
@@ -75,6 +78,7 @@ namespace IceRpc
 
             Endpoint = proxy.Endpoint;
             Operation = operation;
+            Params = proxy.Params;
             Path = proxy.Path;
             Proxy = proxy;
         }

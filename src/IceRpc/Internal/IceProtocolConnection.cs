@@ -4,7 +4,6 @@ using IceRpc.Features.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
-using IceRpc.Transports.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
@@ -257,9 +256,8 @@ namespace IceRpc.Internal
 
                 FeatureCollection features = FeatureCollection.Empty;
 
-                // For compatibility with ZeroC Ice
-                if (replyStatus == ReplyStatus.ObjectNotExistException &&
-                    (request.Proxy.Endpoint == null || request.Proxy.Endpoint.Transport == TransportNames.Loc)) // "indirect" proxy
+                // For compatibility with ZeroC Ice "indirect" proxies
+                if (replyStatus == ReplyStatus.ObjectNotExistException && request.Proxy.Endpoint == null)
                 {
                     features = features.With(RetryPolicy.OtherReplica);
                 }
