@@ -59,22 +59,7 @@ namespace IceRpc.Transports.Internal
             TcpServerOptions options,
             Func<TcpServerNetworkConnection, ISimpleNetworkConnection> serverConnectionDecorator)
         {
-            if (endpoint.Params.TryGetValue("transport", out string? endpointTransport))
-            {
-                if (endpointTransport != TransportNames.Tcp)
-                {
-                    throw new ArgumentException(
-                        $"cannot use TCP transport with endpoint '{endpoint}'",
-                        nameof(endpoint));
-                }
-            }
-            else
-            {
-                endpoint = endpoint with
-                {
-                    Params = endpoint.Params.Add("transport", TransportNames.Tcp)
-                };
-            }
+            endpoint = endpoint.WithTransport(TransportNames.Tcp);
 
             if (!IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress))
             {

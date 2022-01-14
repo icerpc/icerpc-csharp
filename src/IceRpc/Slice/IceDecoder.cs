@@ -788,7 +788,7 @@ namespace IceRpc.Slice
                                     "tls",
                                     transportCode == TransportCode.SSL ? "true" : "false");
 
-                            if (timeout != EndpointParseExtensions.DefaultTcpTimeout)
+                            if (timeout != Transports.Internal.EndpointExtensions.DefaultTcpTimeout)
                             {
                                 builder.Add(
                                     "t",

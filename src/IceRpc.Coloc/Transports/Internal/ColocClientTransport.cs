@@ -17,33 +17,11 @@ namespace IceRpc.Transports
             Endpoint remoteEndpoint,
             ILogger logger)
         {
-            if (remoteEndpoint.Params.TryGetValue("transport", out string? endpointTransport))
-            {
-                if (endpointTransport != ColocTransport.Name)
-                {
-                    throw new ArgumentException(
-                        $"cannot use coloc transport with endpoint '{remoteEndpoint}'",
-                        nameof(remoteEndpoint));
-                }
+            remoteEndpoint = remoteEndpoint.WithTransport(ColocTransport.Name);
 
-                if (remoteEndpoint.Params.Count > 1)
-                {
-                    throw new ArgumentException("unknown endpoint parameter", nameof(remoteEndpoint));
-                }
-            }
-            else
+            if (remoteEndpoint.Params.Count > 1)
             {
-                if (remoteEndpoint.Params.Count > 0)
-                {
-                    throw new ArgumentException(
-                        $"unknown endpoint parameter '{remoteEndpoint.Params.Keys.First()}'",
-                        nameof(remoteEndpoint));
-                }
-
-                remoteEndpoint = remoteEndpoint with
-                {
-                    Params = remoteEndpoint.Params.Add("transport", ColocTransport.Name)
-                };
+                throw new ArgumentException("unknown endpoint parameter", nameof(remoteEndpoint));
             }
 
             if (_listeners.TryGetValue(remoteEndpoint, out ColocListener? listener))

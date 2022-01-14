@@ -6,8 +6,8 @@ using System.Net;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>Various parse extension methods for class Endpoint.</summary>
-    internal static class EndpointParseExtensions
+    /// <summary>Extension methods for class Endpoint.</summary>
+    internal static class EndpointExtensions
     {
         internal const int DefaultTcpTimeout = 60_000; // 60s
 
@@ -237,6 +237,31 @@ namespace IceRpc.Transports.Internal
             }
 
             return (compress, ttl, multicastInterface);
+        }
+
+        /// <summary>Adds the transport parameter to this endpoint if null, and does nothing if it's already set to the
+        /// correct value.</summary>
+        /// <exception name="ArgumentException">Thrown if endpoint already holds another transport.</exception>
+        internal static Endpoint WithTransport(this Endpoint endpoint, string transport)
+        {
+            if (endpoint.Params.TryGetValue("transport", out string? endpointTransport))
+            {
+                if (endpointTransport != transport)
+                {
+                    throw new ArgumentException(
+                        $"cannot use {transport} transport with endpoint '{endpoint}'",
+                        nameof(endpoint));
+                }
+            }
+            else
+            {
+                endpoint = endpoint with
+                {
+                    Params = endpoint.Params.Add("transport", transport)
+                };
+            }
+
+            return endpoint;
         }
     }
 }

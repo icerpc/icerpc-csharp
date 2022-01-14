@@ -27,36 +27,11 @@ namespace IceRpc.Transports.Internal
 
         internal ColocListener(Endpoint endpoint)
         {
-            if (endpoint.Params.TryGetValue("transport", out string? endpointTransport))
+            Endpoint = endpoint.WithTransport(ColocTransport.Name);
+            if (Endpoint.Params.Count > 1)
             {
-                if (endpointTransport != ColocTransport.Name)
-                {
-                    throw new ArgumentException(
-                        $"cannot use coloc transport with endpoint '{endpoint}'",
-                        nameof(endpoint));
-                }
-
-                if (endpoint.Params.Count > 1)
-                {
-                    throw new ArgumentException("unknown endpoint parameter", nameof(endpoint));
-                }
+                throw new ArgumentException("unknown endpoint parameter", nameof(endpoint));
             }
-            else
-            {
-                if (endpoint.Params.Count > 0)
-                {
-                    throw new ArgumentException(
-                        $"unknown endpoint parameter '{endpoint.Params.Keys.First()}'",
-                        nameof(endpoint));
-                }
-
-                endpoint = endpoint with
-                {
-                    Params = endpoint.Params.Add("transport", ColocTransport.Name)
-                };
-            }
-
-            Endpoint = endpoint;
         }
 
         internal (PipeReader, PipeWriter) NewClientConnection()
