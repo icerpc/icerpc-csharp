@@ -2,97 +2,65 @@
 
 using System.Buffers;
 using System.IO.Pipelines;
-using System.Diagnostics;
-using System.Threading.Tasks.Sources;
 
 namespace IceRpc.Transports.Internal
 {
-    internal class SlicPipeReader : PipeReader, IAsyncQueueValueTaskSource<bool>
+    internal class SlicPipeReader : PipeReader
     {
-        // TODO: remove pragma warning disable/restore once analyser is fixed.
-        // It is necessary to call new() explicitly to execute the parameterless ctor of AsyncQueueCore, which is
-        // synthesized from AsyncQueueCore fields defaults.
-#pragma warning disable CA1805 // member is explicitly initialized to its default value
-        private AsyncQueueCore<bool> _queue = new();
-#pragma warning restore CA1805
-        private CircularBuffer _buffer;
-        // The receive credit. This is the amount of data received from the peer that we didn't acknowledge as
-        // received yet. Once the credit reach a given threshold, we'll notify the peer with a StreamConsumed
-        // frame data has been consumed and additional credit is therefore available for sending.
-        private int _receiveCredit;
-        private bool _receivedEndStream;
+        private int _consumed;
+        private readonly PipeReader _reader;
+        private ReadOnlySequence<byte> _readSequence;
+        private readonly int _resumeThreeshold;
         private readonly SlicMultiplexedStream _stream;
 
         public override bool TryRead(out ReadResult result)
         {
-            if (_buffer.IsEmpty)
+            CheckIfReadsCompleted();
+            if (_reader.TryRead(out result))
             {
-                result = new ReadResult(ReadOnlySequence<byte>.Empty, isCanceled: false, _stream.ReadsCompleted);
-                return false;
+                if (result.IsCompleted)
+                {
+                    _stream.TrySetReadCompleted();
+                }
+                _readSequence = result.Buffer;
+                return true;
             }
             else
             {
-                // TODO: isCompleted?
-                result = new ReadResult(_buffer.GetReadBuffer(), isCanceled: false, isCompleted: _receivedEndStream);
-                return true;
+                return false;
             }
         }
 
         public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancel = default)
         {
-            if (_stream.ReadsCompleted)
+            CheckIfReadsCompleted();
+            ReadResult result = await _reader.ReadAsync(cancel).ConfigureAwait(false);
+            if (result.IsCompleted)
             {
-                if (_stream.ResetErrorCode is byte errorCode)
-                {
-                    throw new MultiplexedStreamAbortedException(errorCode);
-                }
-                return new ReadResult(ReadOnlySequence<byte>.Empty, isCanceled: false, isCompleted: true);
+                _stream.TrySetReadCompleted();
             }
-
-            if (_buffer.IsEmpty)
-            {
-                _receivedEndStream = await _queue.DequeueAsync(this, cancel).ConfigureAwait(false);
-
-                if (_buffer.IsEmpty)
-                {
-                    Debug.Assert(_stream.ReadsCompleted);
-                    if (_stream.ResetErrorCode is byte errorCode)
-                    {
-                        throw new MultiplexedStreamAbortedException(errorCode);
-                    }
-                    _stream.TrySetReadCompleted();
-                    return new ReadResult(ReadOnlySequence<byte>.Empty, isCanceled: false, isCompleted: true);
-                }
-            }
-
-            return new ReadResult(_buffer.GetReadBuffer(), isCanceled: false, isCompleted: _receivedEndStream);
+            _readSequence = result.Buffer;
+            return result;
         }
 
         public override void AdvanceTo(SequencePosition consumed) => AdvanceTo(consumed, consumed);
 
         public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
         {
-            // TODO: XXX add support for examined position!
+            CheckIfReadsCompleted();
 
-            int consumedLength = _buffer.AdvanceTo(consumed);
-
-            int credit = Interlocked.Add(ref _receiveCredit, consumedLength);
-            if (credit >= _buffer.Capacity * 0.5)
+            // Figure out how much data has been consumed and add it to _consumed.
+            int length = (int)(_readSequence.GetOffset(consumed) - _readSequence.GetOffset(_readSequence.Start));
+            if (Interlocked.Add(ref _consumed, length) >= _resumeThreeshold)
             {
-                // Reset _receiveCredit before notifying the peer that it can send more data.
-                Interlocked.Exchange(ref _receiveCredit, 0);
-
                 // Notify the peer that it can send additional data.
-                _stream.SendStreamConsumed(credit);
+                _stream.SendStreamConsumed(Interlocked.Exchange(ref _consumed, 0));
             }
 
-            if (_buffer.IsEmpty && _receivedEndStream)
-            {
-                _stream.TrySetReadCompleted();
-            }
+            _reader.AdvanceTo(consumed, examined);
         }
 
-        public override void CancelPendingRead() => _queue.Enqueue(true);
+        public override void CancelPendingRead() => _reader.CancelPendingRead();
 
         public override void Complete(Exception? exception = null)
         {
@@ -100,7 +68,10 @@ namespace IceRpc.Transports.Internal
             {
                 if (exception is null)
                 {
-                    _stream.TrySetReadCompleted();
+                    // Unlike SlicePipeWriter.Complete we can't gracefully complete the read side without calling
+                    // AbortRead (which will send the StopSending frame to the peer). We use the error code -1 here to
+                    // not conflict with protocol error codes.
+                    _stream.AbortRead(-1);
                 }
                 else if (exception is MultiplexedStreamAbortedException abortedException)
                 {
@@ -112,29 +83,35 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            _buffer.Dispose();
+            _reader.Complete(exception);
         }
 
-        internal SlicPipeReader(SlicMultiplexedStream stream, int maxSize)
+        internal SlicPipeReader(SlicMultiplexedStream stream, PipeReader reader, int resumeThreeshold)
         {
             _stream = stream;
-            _buffer = new CircularBuffer(maxSize);
+            _reader = reader;
+            _resumeThreeshold = resumeThreeshold;
         }
 
-        internal Memory<byte> GetWriteBuffer(int size) => _buffer.GetWriteBuffer(size);
-
-        internal void FlushWrite(bool endStream) => _queue.Enqueue(endStream);
-
-        bool IValueTaskSource<bool>.GetResult(short token) => _queue.GetResult(token);
-
-        ValueTaskSourceStatus IValueTaskSource<bool>.GetStatus(short token) => _queue.GetStatus(token);
-
-        void IValueTaskSource<bool>.OnCompleted(
-            Action<object?> continuation,
-            object? state,
-            short token,
-            ValueTaskSourceOnCompletedFlags flags) => _queue.OnCompleted(continuation, state, token, flags);
-
-        void IAsyncQueueValueTaskSource<bool>.Cancel() => _queue.TryComplete(new OperationCanceledException());
+        private void CheckIfReadsCompleted()
+        {
+            if (_stream.IsShutdown)
+            {
+                throw new ObjectDisposedException($"{typeof(IMultiplexedStream)}:{this}");
+            }
+            else if (_stream.ReadsCompleted)
+            {
+                if (_stream.ResetErrorCode is long resetErrorCode)
+                {
+                    throw new MultiplexedStreamAbortedException(resetErrorCode);
+                }
+                else
+                {
+                    // If reads completed normally, the caller is bogus, it shouldn't call ReadAsync after completing
+                    // the pipe reader.
+                    throw new InvalidOperationException("reading is not allowed after reader was completed");
+                }
+            }
+        }
     }
 }

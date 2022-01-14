@@ -95,11 +95,11 @@ namespace IceRpc.Transports
     public class MultiplexedStreamAbortedException : TransportException
     {
         /// <summary>The stream error code.</summary>
-        public byte ErrorCode { get; }
+        public long ErrorCode { get; }
 
         /// <summary>Constructs a new exception.</summary>
         /// <param name="errorCode">The stream error code.</param>
-        public MultiplexedStreamAbortedException(byte errorCode) :
+        public MultiplexedStreamAbortedException(long errorCode) :
             base($"stream aborted with error code {errorCode}") => ErrorCode = errorCode;
     }
 }

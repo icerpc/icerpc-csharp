@@ -2,7 +2,6 @@
 
 using IceRpc.Transports;
 using System.Buffers;
-using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Internal
@@ -15,7 +14,7 @@ namespace IceRpc.Internal
         /// <param name="source">The source pipe reader.</param>
         /// <param name="completeWhenDone">When true, this method completes the writer after a successful copy.</param>
         /// <param name="cancel">The cancellation token.</param>
-        /// <returns>The flush result from the last WriteAsync or the FlushAsync if there was no WriteAsync.</returns>
+        /// <returns>The flush result.</returns>
         internal static async Task<FlushResult> CopyFromAsync(
             this PipeWriter sink,
             PipeReader source,
@@ -23,7 +22,7 @@ namespace IceRpc.Internal
             CancellationToken cancel)
         {
             FlushResult flushResult;
-            if (sink is Transports.Internal.IGatherWritePipeWriter writer)
+            if (sink is IMultiplexedStreamPipeWriter writer)
             {
                 while (true)
                 {
@@ -86,23 +85,23 @@ namespace IceRpc.Internal
                 while (true)
                 {
                     ReadResult readResult = await source.ReadAsync(cancel).ConfigureAwait(false);
-
-                    SequencePosition position = readResult.Buffer.Start;
-                    while (true)
+                    try
                     {
-                        if (readResult.Buffer.TryGet(ref position, out ReadOnlyMemory<byte> memory))
+                        // If readResult.Buffer.Length is small, it might be better to call a single
+                        // sink.WriteAsync(readResult.Buffer.ToArray()) instead of calling multiple times WriteAsync
+                        // that will end up in multiple network calls?
+                        foreach (ReadOnlyMemory<byte> memory in readResult.Buffer)
                         {
                             flushResult = await sink.WriteAsync(memory, cancel).ConfigureAwait(false);
                             if (flushResult.IsCompleted || flushResult.IsCanceled)
                             {
-                                break; // while
+                                break;
                             }
                         }
-                        else
-                        {
-                            flushResult = new(isCanceled: readResult.IsCanceled, isCompleted: readResult.IsCompleted);
-                            break;
-                        }
+                    }
+                    finally
+                    {
+                        source.AdvanceTo(readResult.Buffer.End);
                     }
                 }
             }
@@ -114,6 +113,56 @@ namespace IceRpc.Internal
             }
 
             return flushResult;
+        }
+
+        /// <summary>Writes a read only sequence of bytes to this writer.</summary>
+        /// <param name="pipeWriter">The pipe writer.</param>
+        /// <param name="source">The source sequence.</param>
+        /// <param name="completeWhenDone">When true, this method completes the writer after a successful write.</param>
+        /// <param name="cancel">The cancellation token.</param>
+        /// <returns>The flush result.</returns>
+        internal static ValueTask<FlushResult> WriteAsync(
+            this PipeWriter pipeWriter,
+            ReadOnlyMemory<byte> source,
+            bool completeWhenDone,
+            CancellationToken cancel) =>
+            WriteAsync(pipeWriter, new ReadOnlySequence<byte>(source), completeWhenDone, cancel);
+
+        /// <summary>Writes a read only sequence of bytes to this writer.</summary>
+        /// <param name="pipeWriter">The pipe writer.</param>
+        /// <param name="source">The source sequence.</param>
+        /// <param name="completeWhenDone">When true, this method completes the writer after a successful write.</param>
+        /// <param name="cancel">The cancellation token.</param>
+        /// <returns>The flush result.</returns>
+        internal static async ValueTask<FlushResult> WriteAsync(
+            this PipeWriter pipeWriter,
+            ReadOnlySequence<byte> source,
+            bool completeWhenDone,
+            CancellationToken cancel)
+        {
+            if (pipeWriter is IMultiplexedStreamPipeWriter writer)
+            {
+                return await writer.WriteAsync(source, completeWhenDone, cancel).ConfigureAwait(false);
+            }
+            else
+            {
+                SequencePosition position = source.Start;
+                while (source.TryGet(ref position, out ReadOnlyMemory<byte> memory))
+                {
+                    FlushResult result = await pipeWriter.WriteAsync(memory, cancel).ConfigureAwait(false);
+                    if (result.IsCompleted || result.IsCanceled)
+                    {
+                        break; // while
+                    }
+                }
+
+                if (completeWhenDone)
+                {
+                    await pipeWriter.CompleteAsync().ConfigureAwait(false);
+                }
+
+                return new FlushResult(isCanceled: false, isCompleted: completeWhenDone);
+            }
         }
 
         /// <summary>Writes a read only sequence of bytes to this writer.</summary>

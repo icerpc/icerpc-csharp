@@ -1,5 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
+using System.IO.Pipelines;
+
 namespace IceRpc.Internal
 {
     /// <summary>Error codes for stream errors.</summary>
@@ -28,5 +31,14 @@ namespace IceRpc.Internal
 
         /// <summary>Stream data is not expected.</summary>
         UnexpectedStreamData,
+    }
+
+    internal static class PipeExtensions
+    {
+        internal static void Complete(this PipeReader reader, MultiplexedStreamError errorCode) =>
+            reader.Complete(new MultiplexedStreamAbortedException((byte)errorCode));
+
+        internal static void Complete(this PipeWriter writer, MultiplexedStreamError errorCode) =>
+            writer.Complete(new MultiplexedStreamAbortedException((byte)errorCode));
     }
 }

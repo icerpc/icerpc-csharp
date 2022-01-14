@@ -92,7 +92,7 @@ module IceRpc::Transports::Internal
     struct StreamResetBody
     {
         /// The application protocol error code indicating the reason of the reset.
-        applicationProtocolErrorCode: varulong,
+        applicationProtocolErrorCode: varlong,
     }
 
     /// The body of the Stream consumed frame. This frame is sent to notify the peer that the receiver
@@ -110,6 +110,6 @@ module IceRpc::Transports::Internal
     struct StreamStopSendingBody
     {
         /// The application protocol error code indicating the reason why the peer no longer needs to receive data.
-        applicationProtocolErrorCode: varulong,
+        applicationProtocolErrorCode: varlong,
     }
 }

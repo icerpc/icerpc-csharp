@@ -36,6 +36,7 @@ namespace IceRpc.Transports.Internal
             : base(decoratee, endpoint, isServer, logger) => _decoratee = decoratee;
     }
 
+    // TODO: support PipeReader/PipeWriter, shutdown and dispose logging
     internal sealed class LogMultiplexedStreamDecorator : IMultiplexedStream
     {
         public long Id => _decoratee.Id;
@@ -52,36 +53,7 @@ namespace IceRpc.Transports.Internal
         private readonly IMultiplexedStream _decoratee;
         private readonly ILogger _logger;
 
-        public void AbortRead(byte errorCode) => _decoratee.AbortRead(errorCode);
-
-        public void AbortWrite(byte errorCode) => _decoratee.AbortWrite(errorCode);
-
-        public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
-        {
-            Debug.Assert(IsStarted);
-            using IDisposable _ = _logger.StartMultiplexedStreamScope(Id);
-            int received = await _decoratee.ReadAsync(buffer, cancel).ConfigureAwait(false);
-            _logger.LogMultiplexedStreamRead(
-                received,
-                LogNetworkConnectionDecorator.ToHexString(buffer[0..received]));
-            return received;
-        }
-
-        public async ValueTask WriteAsync(
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
-            bool endStream,
-            CancellationToken cancel)
-        {
-            using IDisposable? scope = IsStarted ? _logger.StartMultiplexedStreamScope(Id) : null;
-            await _decoratee.WriteAsync(buffers, endStream, cancel).ConfigureAwait(false);
-
-            // If the scope is null, we start it now:
-            using IDisposable? _ = scope == null ? _logger.StartMultiplexedStreamScope(Id) : null;
-
-            _logger.LogMultiplexedStreamWrite(
-                buffers.GetByteCount(),
-                LogNetworkConnectionDecorator.ToHexString(buffers));
-        }
+        public void Dispose() => _decoratee.Dispose();
 
         public Task WaitForShutdownAsync(CancellationToken cancel) => _decoratee.WaitForShutdownAsync(cancel);
 

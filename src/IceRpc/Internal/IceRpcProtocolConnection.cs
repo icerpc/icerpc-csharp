@@ -56,7 +56,11 @@ namespace IceRpc.Internal
         private bool _shutdown;
         private readonly CancellationTokenSource _waitForShutdownCancellationSource = new();
 
-        public void Dispose() => _waitForShutdownCancellationSource.Dispose();
+        public void Dispose()
+        {
+            _waitForShutdownCancellationSource.Dispose();
+            _controlStream?.Dispose();
+        }
 
         public Task PingAsync(CancellationToken cancel) => SendControlFrameAsync(IceRpcControlFrameType.Ping, null, cancel);
 
@@ -156,8 +160,7 @@ namespace IceRpc.Internal
                     payload: reader,
                     payloadEncoding: header.PayloadEncoding.Length > 0 ?
                         Encoding.FromString(header.PayloadEncoding) : IceRpcDefinitions.Encoding,
-                    responseWriter: stream.IsBidirectional ?
-                        new MultiplexedStreamPipeWriter(stream) : InvalidPipeWriter.Instance)
+                    responseWriter: stream.IsBidirectional ? stream.Output : InvalidPipeWriter.Instance)
                 {
                     IsIdempotent = header.Idempotent,
                     IsOneway = !stream.IsBidirectional,
@@ -303,7 +306,7 @@ namespace IceRpc.Internal
                     {
                         if (_shutdown)
                         {
-                            stream.Abort(MultiplexedStreamError.ConnectionShutdown);
+                            stream.Output.Complete(MultiplexedStreamError.ConnectionShutdown);
                             throw new ConnectionClosedException("connection shutdown");
                         }
                         _invocations.Add(stream);
@@ -789,7 +792,7 @@ namespace IceRpc.Internal
 
             foreach (IMultiplexedStream stream in invocations)
             {
-                stream.Abort(MultiplexedStreamError.ConnectionShutdownByPeer);
+                stream.Output.Complete(MultiplexedStreamError.ConnectionShutdownByPeer);
             }
 
             if (!alreadyShuttingDown)
@@ -834,7 +837,7 @@ namespace IceRpc.Internal
 
                 foreach (IMultiplexedStream stream in invocations)
                 {
-                    stream.Abort(MultiplexedStreamError.ConnectionShutdown);
+                    stream.Output.Complete(MultiplexedStreamError.ConnectionShutdown);
                 }
 
                 // Wait again for dispatches and invocations to complete.
@@ -856,7 +859,7 @@ namespace IceRpc.Internal
                 throw new InvalidDataException($"{nameof(IceRpcControlFrameType.GoAwayCompleted)} frame is not empty");
             }
 
-            IceRpcGoAwayBody DecodeIceRpcGoAwayBody(ReadOnlyMemory<byte> buffer)
+            static IceRpcGoAwayBody DecodeIceRpcGoAwayBody(ReadOnlyMemory<byte> buffer)
             {
                 var decoder = new IceDecoder(buffer, Encoding.Slice20);
                 return new IceRpcGoAwayBody(ref decoder);

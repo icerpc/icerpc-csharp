@@ -161,23 +161,13 @@ namespace IceRpc.Transports.Internal
             await _simpleNetworkConnection.DisposeAsync().ConfigureAwait(false);
 
             // Unblock requests waiting on the semaphores.
-            var exception = new ConnectionClosedException();
+            var exception = new ObjectDisposedException($"{typeof(IMultiplexedNetworkConnection)}:{this}");
             _bidirectionalStreamSemaphore?.Complete(exception);
             _unidirectionalStreamSemaphore?.Complete(exception);
 
-            // Abort streams.
             foreach (IMultiplexedStream stream in _streams.Values)
             {
-                try
-                {
-                    // It's not ideal to use the Ice protocol stream error here. Another option would be to add
-                    // a Close(byte errorCode) method.
-                    stream.Abort(MultiplexedStreamError.ConnectionAborted);
-                }
-                catch (Exception ex)
-                {
-                    Debug.Assert(false, $"unexpected exception on Stream.Abort: {ex}");
-                }
+                stream.Dispose();
             }
 
             // Unblock task blocked on AcceptStreamAsync
@@ -438,7 +428,7 @@ namespace IceRpc.Transports.Internal
                             await _reader.ReadStreamResetAsync(dataSize, cancel).ConfigureAwait(false);
                         if (TryGetStream(streamId.Value, out SlicMultiplexedStream? stream))
                         {
-                            stream.ReceivedReset((byte)streamReset.ApplicationProtocolErrorCode);
+                            stream.ReceivedReset(streamReset.ApplicationProtocolErrorCode);
                         }
                         break;
                     }
@@ -453,7 +443,7 @@ namespace IceRpc.Transports.Internal
                             await _reader.ReadStreamStopSendingAsync(dataSize, cancel).ConfigureAwait(false);
                         if (TryGetStream(streamId.Value, out SlicMultiplexedStream? stream))
                         {
-                            stream.ReceivedStopSending((byte)streamStopSending.ApplicationProtocolErrorCode);
+                            stream.ReceivedStopSending(streamStopSending.ApplicationProtocolErrorCode);
                         }
                         break;
                     }

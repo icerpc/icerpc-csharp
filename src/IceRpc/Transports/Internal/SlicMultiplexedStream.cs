@@ -32,7 +32,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public PipeReader Input => _pipeReader;
+        public PipeReader Input => _inputPipeReader;
 
         /// <inheritdoc/>
         public bool IsBidirectional { get; }
@@ -90,35 +90,34 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public PipeWriter Output => _pipeWriter;
+        public PipeWriter Output => _outputPipeWriter;
 
         /// <summary>Specifies whether or not this is a stream initiated by the peer.</summary>
         internal bool IsRemote => _id != -1 && _id % 2 == (_connection.IsServer ? 0 : 1);
+
+        internal bool IsShutdown => ReadsCompleted && WritesCompleted;
 
         internal bool ReadsCompleted => ((State)Thread.VolatileRead(ref _state)).HasFlag(State.ReadCompleted);
 
         /// <summary>The stream reset error code is set if the stream is reset by the peer or locally. It's used to set
         /// the correct error code for <see cref="MultiplexedStreamAbortedException"/> raised by the stream.</summary>
-        internal byte? ResetErrorCode { get; private set; }
+        internal long? ResetErrorCode { get; private set; }
 
         internal bool WritesCompleted => ((State)Thread.VolatileRead(ref _state)).HasFlag(State.WriteCompleted);
 
-        private bool IsShutdown =>
-            ((State)Thread.VolatileRead(ref _state)).HasFlag(State.WriteCompleted | State.ReadCompleted);
-
         private readonly SlicNetworkConnection _connection;
         private long _id = -1;
-        private SpinLock _lock;
-
+        private readonly PipeWriter _inputPipeWriter;
         private readonly ISlicFrameReader _frameReader;
         private readonly ISlicFrameWriter _frameWriter;
+        private SpinLock _lock;
         private volatile Action? _shutdownAction;
         private TaskCompletionSource? _shutdownCompletedTaskSource;
-        private readonly SlicPipeReader _pipeReader;
-        private readonly SlicPipeWriter _pipeWriter;
+        private readonly SlicPipeReader _inputPipeReader;
+        private readonly SlicPipeWriter _outputPipeWriter;
         private int _state;
 
-        public void AbortRead(byte errorCode)
+        public void AbortRead(long errorCode)
         {
             if (ReadsCompleted)
             {
@@ -126,7 +125,7 @@ namespace IceRpc.Transports.Internal
             }
 
             ResetErrorCode = errorCode;
-            _pipeReader.CancelPendingRead();
+            _inputPipeReader.CancelPendingRead();
 
             if (IsStarted && !IsShutdown)
             {
@@ -155,7 +154,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public void AbortWrite(byte errorCode)
+        public void AbortWrite(long errorCode)
         {
             ResetErrorCode = errorCode;
 
@@ -185,6 +184,8 @@ namespace IceRpc.Transports.Internal
                 TrySetWriteCompleted();
             }
         }
+
+        public void Dispose() => TrySetState(State.ReadCompleted | State.WriteCompleted);
 
         public async Task WaitForShutdownAsync(CancellationToken cancel)
         {
@@ -223,8 +224,13 @@ namespace IceRpc.Transports.Internal
             _frameReader = reader;
             _frameWriter = writer;
 
-            _pipeReader = new SlicPipeReader(this, _connection.StreamBufferMaxSize);
-            _pipeWriter = new SlicPipeWriter(this, _connection);
+            // TODO: we could optimize the SlicPipeReader to not rely on a pipe and instead perform the receive
+            // buffering.
+            var inputPipe = new Pipe(new PipeOptions(pauseWriterThreshold: _connection.StreamBufferMaxSize + 1));
+            _inputPipeWriter = inputPipe.Writer;
+            _inputPipeReader = new SlicPipeReader(this, inputPipe.Reader, _connection.StreamBufferMaxSize / 2);
+
+            _outputPipeWriter = new SlicPipeWriter(this, _connection);
 
             IsBidirectional = bidirectional;
             if (!IsBidirectional)
@@ -243,7 +249,7 @@ namespace IceRpc.Transports.Internal
 
         }
 
-        internal void ReceivedConsumed(int size) => _pipeWriter.ReceivedConsumed(size);
+        internal void ReceivedConsumed(int size) => _outputPipeWriter.ReceivedConsumed(size);
 
         internal async ValueTask ReceivedFrameAsync(int size, bool endStream)
         {
@@ -256,21 +262,42 @@ namespace IceRpc.Transports.Internal
                 throw new InvalidDataException("invalid stream frame, received 0 bytes without end of stream");
             }
 
-            // Read and append the received data into the circular buffer.
-            for (int offset = 0; offset < size;)
+            // Read and append the received data to input pipe writer.
+            if (size > 0)
             {
-                // Get a chunk from the buffer to receive the data. The buffer might return a smaller chunk than the
-                // requested size. If this is the case, we loop to receive the remaining data in a next available chunk.
-                // Enqueue will raise if the sender sent too much data. This will result in the connection closure.
-                Memory<byte> chunk = _pipeReader.GetWriteBuffer(size - offset);
-                await _frameReader.ReadFrameDataAsync(chunk, CancellationToken.None).ConfigureAwait(false);
-                offset += chunk.Length;
+                while (size > 0)
+                {
+                    Memory<byte> chunk = _inputPipeWriter.GetMemory();
+                    if (chunk.Length > size)
+                    {
+                        chunk = chunk[0..size];
+                    }
+                    await _frameReader.ReadFrameDataAsync(chunk, CancellationToken.None).ConfigureAwait(false);
+                    _inputPipeWriter.Advance(chunk.Length);
+                    size -= chunk.Length;
+                }
+
+                // This should always complete synchronously because the sender isn't supposed to send more data than
+                // it is allowed and the pipe is configured to pause when this size is reached.
+                ValueTask<FlushResult> flushTask = _inputPipeWriter.FlushAsync(CancellationToken.None);
+                if (!flushTask.IsCompleted)
+                {
+                    _ = flushTask.AsTask();
+                    throw new InvalidDataException("received more data than flow control permits");
+                }
+            }
+            else
+            {
+                TrySetReadCompleted();
             }
 
-            _pipeReader.FlushWrite(endStream);
+            if (endStream)
+            {
+                await _inputPipeWriter.CompleteAsync().ConfigureAwait(false);
+            }
         }
 
-        internal void ReceivedReset(byte errorCode)
+        internal void ReceivedReset(long errorCode)
         {
             if (!IsBidirectional && !IsRemote)
             {
@@ -278,12 +305,12 @@ namespace IceRpc.Transports.Internal
             }
 
             ResetErrorCode = errorCode;
-            _pipeReader.CancelPendingRead();
-
             TrySetReadCompleted();
+
+            _inputPipeReader.CancelPendingRead();
         }
 
-        internal void ReceivedStopSending(byte errorCode)
+        internal void ReceivedStopSending(long errorCode)
         {
             if (!IsBidirectional && !IsRemote)
             {
@@ -356,8 +383,8 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            _pipeWriter.Complete();
-            _pipeReader.Complete();
+            _outputPipeWriter.Complete();
+            _inputPipeReader.Complete();
         }
 
         private bool TrySetState(State state)
