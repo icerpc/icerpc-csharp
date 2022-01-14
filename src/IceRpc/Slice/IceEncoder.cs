@@ -274,8 +274,7 @@ namespace IceRpc.Slice
                     if (proxy.Endpoint == null)
                     {
                         EncodeSize(0); // 0 endpoints
-                        string adapterId = proxy.Params.TryGetValue("adapter-id", out string? value) ? value : "";
-                        EncodeString(adapterId);
+                        EncodeString(proxy.Params.TryGetValue("adapter-id", out string? value) ? value : "");
                     }
                     else
                     {

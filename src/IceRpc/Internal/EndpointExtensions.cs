@@ -54,15 +54,6 @@ namespace IceRpc.Internal
             bool firstOption = true;
             foreach ((string name, string value) in endpoint.Params)
             {
-                StartQueryOption(sb, ref firstOption);
-                sb.Append(name);
-                sb.Append('=');
-                sb.Append(value);
-            }
-            return sb;
-
-            void StartQueryOption(StringBuilder sb, ref bool firstOption)
-            {
                 if (firstOption)
                 {
                     sb.Append('?');
@@ -72,7 +63,11 @@ namespace IceRpc.Internal
                 {
                     sb.Append(paramSeparator);
                 }
+                sb.Append(name);
+                sb.Append('=');
+                sb.Append(value);
             }
+            return sb;
         }
     }
 }

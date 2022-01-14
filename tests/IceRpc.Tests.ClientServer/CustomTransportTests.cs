@@ -148,7 +148,6 @@ namespace IceRpc.Tests.ClientServer
             Endpoint defaultEndpoint = server.MultiplexedServerTransport.DefaultEndpoint;
             Assert.That(server.Endpoint, Is.EqualTo(defaultEndpoint));
             server.Listen();
-            // Assert.That(server.Endpoint, Is.EqualTo(defaultEndpoint)); // TODO: it's now tcp
         }
 
         public class MyService : Service, IService

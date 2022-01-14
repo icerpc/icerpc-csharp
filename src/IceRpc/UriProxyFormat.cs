@@ -251,7 +251,7 @@ namespace IceRpc
                 }
                 else if (queryParams.TryGetValue(name, out string? existingValue))
                 {
-                    queryParams[name] = $"existingValue,{value}";
+                    queryParams[name] = $"{existingValue},{value}";
                 }
                 else
                 {

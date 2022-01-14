@@ -783,16 +783,11 @@ namespace IceRpc.Slice
                                 ImmutableDictionary.CreateBuilder<string, string>();
 
                             builder.Add("transport", TransportNames.Tcp);
-
-                            builder.Add(
-                                    "tls",
-                                    transportCode == TransportCode.SSL ? "true" : "false");
+                            builder.Add("tls", transportCode == TransportCode.SSL ? "true" : "false");
 
                             if (timeout != Transports.Internal.EndpointExtensions.DefaultTcpTimeout)
                             {
-                                builder.Add(
-                                    "t",
-                                    timeout.ToString(CultureInfo.InvariantCulture));
+                                builder.Add("t", timeout.ToString(CultureInfo.InvariantCulture));
                             }
                             if (compress)
                             {
@@ -885,13 +880,16 @@ namespace IceRpc.Slice
                 }
             }
 
-            string transport = endpoint != null && endpoint.Params.TryGetValue("transport", out string? value) ?
-                value : transportCode.ToString().ToLowerInvariant();
-
-            return endpoint ??
+            if (endpoint == null)
+            {
                 throw new InvalidDataException(
-                    @$"cannot decode endpoint for protocol '{protocol}' and transport '{transport
+                    @$"cannot decode endpoint for protocol '{protocol
+                    }' and transport '{transportCode.ToString().ToLowerInvariant()
                     }' with endpoint encapsulation encoded with encoding '{encoding}'");
+            }
+
+            return endpoint;
+
         }
 
         /// <summary>Determines if a tagged parameter or data member is available.</summary>
