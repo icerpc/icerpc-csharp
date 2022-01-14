@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports.Internal;
 using System.Buffers;
@@ -346,24 +345,14 @@ namespace IceRpc.Slice
 
                 Endpoint? endpoint = null;
                 IEnumerable<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
-                var protocol = Protocol.FromProtocolCode((ProtocolCode)proxyData.ProtocolMajor);
+                var protocol = Protocol.FromByte(proxyData.ProtocolMajor);
+                ImmutableDictionary<string, string> proxyParams = ImmutableDictionary<string, string>.Empty;
+
                 if (size == 0)
                 {
-                    string adapterId = DecodeString();
-                    if (adapterId.Length > 0)
+                    if (DecodeString() is string adapterId && adapterId.Length > 0)
                     {
-                        if (protocol == Protocol.Ice)
-                        {
-                            endpoint = new Endpoint(Protocol.Ice,
-                                                    TransportNames.Loc,
-                                                    host: adapterId,
-                                                    port: 0,
-                                                    @params: ImmutableList<EndpointParam>.Empty);
-                        }
-                        else
-                        {
-                            throw new InvalidDataException($"received {protocol} proxy with an adapter ID");
-                        }
+                        proxyParams = proxyParams.Add("adapter-id", adapterId);
                     }
                 }
                 else
@@ -394,7 +383,8 @@ namespace IceRpc.Slice
                             Endpoint = endpoint,
                             AltEndpoints = altEndpoints.ToImmutableList(),
                             Invoker = _invoker,
-                            Fragment = proxyData.Facet.ToFragment()
+                            Fragment = proxyData.Facet.ToFragment(),
+                            Params = proxyParams
                         };
                     }
                     catch (InvalidDataException)
@@ -436,6 +426,13 @@ namespace IceRpc.Slice
 
                         proxy.Encoding = IceRpc.Encoding.FromMajorMinor(proxyData.EncodingMajor,
                             proxyData.EncodingMinor);
+
+                        // TODO: revisit with relative proxy decoding
+                        if (proxy.Endpoint == null)
+                        {
+                            proxy.Params = proxyParams;
+                        }
+
                         return proxy;
                     }
                     catch (Exception ex)
@@ -453,12 +450,10 @@ namespace IceRpc.Slice
                     return null;
                 }
 
-                Protocol protocol = proxyData.Protocol != null ?
-                    Protocol.FromProtocolCode(proxyData.Protocol.Value) :
-                    Protocol.IceRpc;
-                Endpoint? endpoint = proxyData.Endpoint is EndpointData data ? data.ToEndpoint() : null;
+                Protocol protocol = proxyData.Protocol != null ? Protocol.FromString(proxyData.Protocol) : Protocol.IceRpc;
+                Endpoint? endpoint = proxyData.Endpoint is EndpointData data ? data.ToEndpoint(protocol) : null;
                 ImmutableList<Endpoint> altEndpoints =
-                    proxyData.AltEndpoints?.Select(data => data.ToEndpoint()).ToImmutableList() ??
+                    proxyData.AltEndpoints?.Select(data => data.ToEndpoint(protocol)).ToImmutableList() ??
                         ImmutableList<Endpoint>.Empty;
 
                 if (endpoint == null && altEndpoints.Count > 0)
@@ -488,7 +483,8 @@ namespace IceRpc.Slice
 
                     proxy.Fragment = proxyData.Fragment;
                     proxy.Encoding = proxyData.Encoding is string encoding ?
-                        IceRpc.Encoding.FromString(encoding) : (proxy.Protocol.IceEncoding ?? IceRpc.Encoding.Unknown);
+                        IceRpc.Encoding.FromString(encoding) : protocol.SliceEncoding ?? IceRpc.Encoding.Unknown;
+                    proxy.Params = proxyData.Params?.ToImmutableDictionary() ?? proxy.Params;
 
                     return proxy;
                 }
@@ -783,25 +779,26 @@ namespace IceRpc.Slice
                             int timeout = DecodeInt();
                             bool compress = DecodeBool();
 
-                            var endpointParams = ImmutableList.Create(
-                                new EndpointParam("tls", transportCode == TransportCode.SSL ? "true" : "false"));
+                            ImmutableDictionary<string, string>.Builder builder =
+                                ImmutableDictionary.CreateBuilder<string, string>();
 
-                            if (timeout != EndpointParseExtensions.DefaultTcpTimeout)
+                            builder.Add("transport", TransportNames.Tcp);
+                            builder.Add("tls", transportCode == TransportCode.SSL ? "true" : "false");
+
+                            if (timeout != Transports.Internal.EndpointExtensions.DefaultTcpTimeout)
                             {
-                                endpointParams = endpointParams.Add(
-                                    new EndpointParam("t", timeout.ToString(CultureInfo.InvariantCulture)));
+                                builder.Add("t", timeout.ToString(CultureInfo.InvariantCulture));
                             }
                             if (compress)
                             {
-                                endpointParams = endpointParams.Add(new EndpointParam("z", "true"));
+                                builder.Add("z", "true");
                             }
 
                             endpoint = new Endpoint(
                                 Protocol.Ice,
-                                TransportNames.Tcp,
                                 host,
                                 port,
-                                endpointParams);
+                                builder.ToImmutable());
 
                             break;
                         }
@@ -812,22 +809,27 @@ namespace IceRpc.Slice
                             ushort port = checked((ushort)DecodeInt());
                             bool compress = DecodeBool();
 
-                            var endpointParams = compress ? ImmutableList.Create(new EndpointParam("z", "true")) :
-                                ImmutableList<EndpointParam>.Empty;
+                            ImmutableDictionary<string, string>.Builder builder =
+                                ImmutableDictionary.CreateBuilder<string, string>();
+
+                            builder.Add("transport", TransportNames.Udp);
+                            if (compress)
+                            {
+                                builder.Add("z", "true");
+                            }
 
                             endpoint = new Endpoint(
                                 Protocol.Ice,
-                                TransportNames.Udp,
                                 host,
                                 port,
-                                endpointParams);
+                                builder.ToImmutable());
 
                             // else endpoint remains null and we throw below
                             break;
                         }
 
                         case TransportCode.Any:
-                            endpoint = new EndpointData(ref this).ToEndpoint();
+                            endpoint = new EndpointData(ref this).ToEndpoint(protocol);
                             break;
 
                         default:
@@ -851,24 +853,20 @@ namespace IceRpc.Slice
                                 _reader.Advance(size);
                             }
 
-                            var endpointParams = ImmutableList.Create(
-                                new EndpointParam("t", ((short)transportCode).ToString(CultureInfo.InvariantCulture)),
-                                new EndpointParam("e", encoding.ToString()),
-                                new EndpointParam("v", Convert.ToBase64String(vSpan)));
+                            var builder = ImmutableDictionary.CreateBuilder<string, string>();
+                            builder.Add("transport", "opaque");
+                            builder.Add("t", ((short)transportCode).ToString(CultureInfo.InvariantCulture));
+                            builder.Add("e", encoding.ToString() );
+                            builder.Add("v", Convert.ToBase64String(vSpan));
 
-                            endpoint = new Endpoint(
-                                Protocol.Ice,
-                                TransportNames.Opaque,
-                                host: "",
-                                port: 0,
-                                endpointParams);
+                            endpoint = new Endpoint(Protocol.Ice, host: "", port: 0, builder.ToImmutable());
                             break;
                         }
                     }
                 }
                 else if (transportCode == TransportCode.Any)
                 {
-                    endpoint = new EndpointData(ref this).ToEndpoint();
+                    endpoint = new EndpointData(ref this).ToEndpoint(protocol);
                 }
 
                 if (endpoint != null)
@@ -882,12 +880,16 @@ namespace IceRpc.Slice
                 }
             }
 
-            string transportName = endpoint?.Transport ?? transportCode.ToString().ToLowerInvariant();
-
-            return endpoint ??
+            if (endpoint == null)
+            {
                 throw new InvalidDataException(
-                    @$"cannot decode endpoint for protocol '{protocol}' and transport '{transportName
+                    @$"cannot decode endpoint for protocol '{protocol
+                    }' and transport '{transportCode.ToString().ToLowerInvariant()
                     }' with endpoint encapsulation encoded with encoding '{encoding}'");
+            }
+
+            return endpoint;
+
         }
 
         /// <summary>Determines if a tagged parameter or data member is available.</summary>

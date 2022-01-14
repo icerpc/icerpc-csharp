@@ -17,7 +17,7 @@ namespace IceRpc.Slice
     {
         /// <summary>Computes the Ice encoding to use when encoding a Slice-generated request.</summary>
         public static IceEncoding GetIceEncoding(this Proxy proxy) =>
-            proxy.Encoding as IceEncoding ?? proxy.Protocol.IceEncoding ??
+            proxy.Encoding as IceEncoding ?? proxy.Protocol?.SliceEncoding ??
                 throw new NotSupportedException($"unknown protocol {proxy.Protocol}");
 
         /// <summary>Sends a request to a service and decodes the response.</summary>

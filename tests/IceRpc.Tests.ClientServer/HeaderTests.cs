@@ -12,11 +12,11 @@ namespace IceRpc.Tests.ClientServer
     [Parallelizable(ParallelScope.All)]
     public class HeaderTests
     {
-        [TestCase("icerpc+tcp://127.0.0.1:0?tls=false")]
-        [TestCase("icerpc+tcp://127.0.0.1:0?protocol=ice&tls=false")]
-        [TestCase("icerpc+udp://127.0.0.1:0?protocol=ice")]
-        [TestCase("icerpc+coloc://header_request:10000")]
-        [TestCase("icerpc+coloc://header_request:10001?protocol=ice")]
+        [TestCase("icerpc://127.0.0.1:0?tls=false")]
+        [TestCase("ice://127.0.0.1:0?tls=false")]
+        [TestCase("ice://127.0.0.1:0?transport=udp")]
+        [TestCase("icerpc://header_request:10000?transport=coloc")]
+        [TestCase("ice://header_request:10001?transport=coloc")]
         public async Task Header_RequestResponseAsync(string endpoint)
         {
             // This large value should be large enough to create multiple buffer for the request and responses headers.
@@ -64,7 +64,9 @@ namespace IceRpc.Tests.ClientServer
             var invocation = new Invocation
             {
                 Context = new Dictionary<string, string> { ["foo"] = largeValue },
-                IsOneway = serviceProvider.GetRequiredService<Endpoint>().Transport == "udp"
+                IsOneway = serviceProvider.GetRequiredService<Endpoint>().Params.TryGetValue(
+                    "transport",
+                    out string? transport) && transport == "udp"
             };
 
             await greeter.SayHelloAsync("hello", invocation);

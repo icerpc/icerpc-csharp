@@ -17,10 +17,11 @@ namespace IceRpc.Transports
             Endpoint remoteEndpoint,
             ILogger logger)
         {
-            if (remoteEndpoint.Params.Count > 0)
+            remoteEndpoint = remoteEndpoint.WithTransport(ColocTransport.Name);
+
+            if (remoteEndpoint.Params.Count > 1)
             {
-                throw new FormatException(
-                    $"unknown parameter '{remoteEndpoint.Params[0].Name}' in endpoint '{remoteEndpoint}'");
+                throw new ArgumentException("unknown endpoint parameter", nameof(remoteEndpoint));
             }
 
             if (_listeners.TryGetValue(remoteEndpoint, out ColocListener? listener))

@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports.Internal;
+using IceRpc.Internal;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 
@@ -36,25 +36,10 @@ namespace IceRpc
                             nameof(AltEndpoints));
                     }
 
-                    if (value.Any(e => e.Protocol != Protocol))
+                    if (value.Any((Func<Endpoint, bool>)(e => (bool)(e.Protocol != Protocol))))
                     {
                         throw new ArgumentException($"the protocol of all endpoints must be {Protocol}",
                                                     nameof(AltEndpoints));
-                    }
-
-                    if (Protocol == Protocol.Ice)
-                    {
-                        if (_endpoint.Transport == TransportNames.Loc)
-                        {
-                            throw new ArgumentException(
-                                @$"cannot set {nameof(AltEndpoints)} when {nameof(Endpoint)} uses the loc transport",
-                                nameof(AltEndpoints));
-                        }
-
-                        if (value.Any(e => e.Transport == TransportNames.Loc))
-                        {
-                            throw new ArgumentException("cannot use loc transport", nameof(AltEndpoints));
-                        }
                     }
                 }
                 // else, no need to check anything, an empty list is always fine.
@@ -89,14 +74,15 @@ namespace IceRpc
                 {
                     if (value.Protocol != Protocol)
                     {
-                        throw new ArgumentException("the new endpoint must use the proxy's protocol",
-                                                    nameof(Endpoint));
+                        throw new ArgumentException(
+                            "the new endpoint must use the proxy's protocol",
+                            nameof(Endpoint));
                     }
-
-                    if (Protocol == Protocol.Ice && _altEndpoints.Count > 0 && value.Transport == TransportNames.Loc)
+                    if (_params.Count > 0)
                     {
                         throw new ArgumentException(
-                            "an ice proxy with a loc endpoint cannot have alt endpoints", nameof(Endpoint));
+                            "cannot set endpoint on a proxy with parameters",
+                            nameof(Endpoint));
                     }
                 }
                 else if (_altEndpoints.Count > 0)
@@ -120,7 +106,7 @@ namespace IceRpc
                     throw new ArgumentException(
                         @$"invalid fragment '{value
                         }'; a valid fragment contains only unreserved characters, reserved characters or '%'",
-                        nameof(value));
+                        nameof(Fragment));
                 }
 
                 _fragment = value;
@@ -134,13 +120,29 @@ namespace IceRpc
         // private set only used in WithPath
         public string Path { get; private set; }
 
-        /// <summary>The Ice protocol of this proxy. Requests sent with this proxy use only this Ice protocol.</summary>
+        /// <summary>The parameters of this proxy. Always empty when this <see cref="Endpoint"/> is not null.</summary>
+        public ImmutableDictionary<string, string> Params
+        {
+            get => _params;
+            set
+            {
+                if (_endpoint != null && value.Count > 0)
+                {
+                    throw new ArgumentException("cannot set parameters on a proxy with an endpoint", nameof(Params));
+                }
+                _params = value;
+            }
+        }
+
+        /// <summary>The protocol of this proxy.</summary>
         public Protocol Protocol { get; }
 
         private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
         private volatile Connection? _connection;
         private Endpoint? _endpoint;
         private string _fragment = "";
+
+        private ImmutableDictionary<string, string> _params = ImmutableDictionary<string, string>.Empty;
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
         /// <param name="lhs">The left hand side operand.</param>
@@ -210,8 +212,8 @@ namespace IceRpc
             [NotNullWhen(true)] out Proxy? proxy) =>
             (format ?? UriProxyFormat.Instance).TryParse(s, invoker, out proxy);
 
-        /// <summary>Creates a shallow copy of this proxy. It's a safe copy since the only container property
-        /// (AltEndpoints) is immutable.</summary>
+        /// <summary>Creates a shallow copy of this proxy. It's a safe copy since all the container properties
+        /// (AltEndpoints, Params) are immutable.</summary>
         /// <returns>A copy of this proxy.</returns>
         public Proxy Clone() => (Proxy)MemberwiseClone();
 
@@ -258,6 +260,10 @@ namespace IceRpc
                 return false;
             }
             if (Protocol != other.Protocol)
+            {
+                return false;
+            }
+            if (!Params.DictionaryEqual(other.Params))
             {
                 return false;
             }
@@ -344,7 +350,7 @@ namespace IceRpc
             Protocol = protocol;
             CheckPath(path, nameof(path));
             Path = path;
-            Encoding = Protocol.IceEncoding ?? Encoding.Unknown;
+            Encoding = protocol.SliceEncoding ?? Encoding.Unknown;
         }
 
         private static bool IsValid(string s, string invalidChars)

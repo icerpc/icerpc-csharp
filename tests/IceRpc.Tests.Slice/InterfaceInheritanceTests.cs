@@ -19,7 +19,8 @@ namespace IceRpc.Tests.Slice
         public InterfaceInheritanceTests()
         {
             _serviceProvider = new IntegrationTestServiceCollection()
-                .AddTransient<IDispatcher>(_ => {
+                .AddTransient<IDispatcher>(_ =>
+                {
                     var router = new Router();
                     router.Map<IA>(new A());
                     router.Map<IB>(new B());

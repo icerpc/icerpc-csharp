@@ -5,8 +5,8 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests.ClientServer
 {
-    [TestFixture(ProtocolCode.Ice)]
-    [TestFixture(ProtocolCode.IceRpc)]
+    [TestFixture("ice")]
+    [TestFixture("icerpc")]
     [Parallelizable(ParallelScope.All)]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Timeout(5000)]
@@ -16,7 +16,7 @@ namespace IceRpc.Tests.ClientServer
         private readonly StressTest _service = new();
         private readonly IStressTestPrx _prx;
 
-        public StressTests(ProtocolCode protocol)
+        public StressTests(string protocol)
         {
             _serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher>(_ => _service)

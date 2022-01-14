@@ -134,6 +134,7 @@ namespace IceRpc.Internal
                         (ref IceDecoder decoder) => decoder.DecodeDictionary(
                             minKeySize: 1,
                             minValueSize: 1,
+                            size => new Dictionary<string, string>(size),
                             keyDecodeFunc: (ref IceDecoder decoder) => decoder.DecodeString(),
                             valueDecodeFunc: (ref IceDecoder decoder) => decoder.DecodeString()))
                                 is Dictionary<string, string> context)
@@ -155,7 +156,7 @@ namespace IceRpc.Internal
                 var request = new IncomingRequest(
                     Protocol.IceRpc,
                     path: header.Path,
-                    fragment: header.Fragment,
+                    fragment: "", // no fragment with icerpc
                     operation: header.Operation,
                     payload: reader,
                     payloadEncoding: header.PayloadEncoding.Length > 0 ?
@@ -292,6 +293,11 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
+            if (request.Fragment.Length > 0)
+            {
+                throw new NotSupportedException("the icerpc protocol does not support fragments");
+            }
+
             IMultiplexedStream stream;
             try
             {
@@ -367,7 +373,6 @@ namespace IceRpc.Internal
 
                 var header = new IceRpcRequestHeader(
                     request.Path,
-                    request.Fragment,
                     request.Operation,
                     request.IsIdempotent,
                     deadline,

@@ -231,8 +231,7 @@ namespace IceRpc.Transports.Internal
                 tls = true;
                 remoteEndpoint = remoteEndpoint with
                 {
-                    // always insert tls as the first param
-                    Params = remoteEndpoint.Params.Insert(0, new EndpointParam("tls", "true"))
+                    Params = remoteEndpoint.Params.Add("tls", "true")
                 };
             }
 
@@ -304,7 +303,7 @@ namespace IceRpc.Transports.Internal
 
         internal TcpClientNetworkConnection(Endpoint remoteEndpoint, TcpClientOptions options)
         {
-            _remoteEndpoint = remoteEndpoint;
+            _remoteEndpoint = remoteEndpoint.WithTransport(TransportNames.Tcp);
 
             _addr = IPAddress.TryParse(_remoteEndpoint.Host, out IPAddress? ipAddress) ?
                 new IPEndPoint(ipAddress, _remoteEndpoint.Port) :
@@ -417,12 +416,11 @@ namespace IceRpc.Transports.Internal
                     await _sslStream.AuthenticateAsServerAsync(_authenticationOptions, cancel).ConfigureAwait(false);
                 }
 
-                ImmutableList<EndpointParam> endpointParams = _localEndpoint.Params;
+                ImmutableDictionary<string, string> endpointParams = _localEndpoint.Params;
                 if (_tls == null)
                 {
                     // the accepted endpoint gets a tls parameter
-                    endpointParams =
-                        endpointParams.Insert(0, new EndpointParam("tls", _sslStream == null ? "false" : "true"));
+                    endpointParams = endpointParams.Add("tls", _sslStream == null ? "false" : "true");
                 }
 
                 var ipEndPoint = (IPEndPoint)Socket.RemoteEndPoint!;

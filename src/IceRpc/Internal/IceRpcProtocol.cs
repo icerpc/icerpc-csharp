@@ -8,18 +8,19 @@ namespace IceRpc.Internal
     /// <summary>The IceRPC protocol class.</summary>
     internal sealed class IceRpcProtocol : Protocol
     {
+        public override bool HasFieldSupport => true;
+        public override bool IsSupported => true;
+
         /// <summary>The IceRpc protocol singleton.</summary>
         internal static IceRpcProtocol Instance { get; } = new();
-
-        internal override IceEncoding? IceEncoding => Encoding.Slice20;
-
-        internal override bool HasFieldSupport => true;
 
         internal IProtocolConnectionFactory<IMultiplexedNetworkConnection> ProtocolConnectionFactory { get; } =
             new IceRpcProtocolConnectionFactory();
 
+        internal override IceEncoding? SliceEncoding => Encoding.Slice20;
+
         private IceRpcProtocol()
-            : base(ProtocolCode.IceRpc, IceRpcName)
+            : base(IceRpcName)
         {
         }
     }

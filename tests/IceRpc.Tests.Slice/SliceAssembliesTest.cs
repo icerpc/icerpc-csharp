@@ -57,7 +57,7 @@ namespace IceRpc.Tests.Slice
         {
             {
                 await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-                    .UseProtocol(ProtocolCode.Ice)
+                    .UseProtocol("ice")
                     .AddTransient<IDispatcher>(_ =>
                     {
                         var router = new Router();
@@ -75,7 +75,7 @@ namespace IceRpc.Tests.Slice
             // Repeat but this time use SliceAssemblies middleware to include ClassB factory
             {
                 await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-                    .UseProtocol(ProtocolCode.Ice)
+                    .UseProtocol("ice")
                     .AddTransient<IDispatcher>(_ =>
                     {
                         var router = new Router();
@@ -93,7 +93,7 @@ namespace IceRpc.Tests.Slice
             // Set the request decode factories so that ClassB is not available
             static void SetupRequestActivator(Router router)
             {
-                IActivator activator = IceDecoder.GetActivator(typeof(ClassA).Assembly);;
+                IActivator activator = IceDecoder.GetActivator(typeof(ClassA).Assembly);
                 router.Use(next => new InlineDispatcher(
                 (request, cancel) =>
                 {

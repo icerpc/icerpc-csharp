@@ -108,10 +108,10 @@ namespace IceRpc.Tests.Api
             Assert.That(connection1, Is.EqualTo(connection2));
         }
 
-        [TestCase("icerpc+coloc://connectPoolTests.1", "icerpc+coloc://connectPoolTests.2")]
-        [TestCase("icerpc+coloc://connectPoolTests:1000", "icerpc+coloc://connectPoolTests:1002")]
-        [TestCase("icerpc+tcp://127.0.0.1:0?tls=true", "icerpc+tcp://127.0.0.1:0?tls=false")]
-        [TestCase("icerpc+tcp://127.0.0.1:0?tls=true", "icerpc+tcp://127.0.0.1:0")]
+        [TestCase("icerpc://connectPoolTests.1?transport=coloc", "icerpc://connectPoolTests.2?transport=coloc")]
+        [TestCase("icerpc://connectPoolTests:1000?transport=coloc", "icerpc://connectPoolTests:1002?transport=coloc")]
+        [TestCase("icerpc://127.0.0.1:0?tls=true", "icerpc://127.0.0.1:0?tls=false")]
+        [TestCase("icerpc://127.0.0.1:0?tls=true", "icerpc://127.0.0.1:0")]
         public async Task ConnectionPool_ConnectionNotReused(string endpoint1Str, string endpoint2Str)
         {
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()

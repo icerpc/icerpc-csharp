@@ -2,12 +2,9 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
-using IceRpc.Slice.Internal;
-using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {
@@ -95,7 +92,7 @@ namespace IceRpc.Transports.Internal
                 // Check the application protocol and set the parameters.
                 try
                 {
-                    if (Protocol.Parse(initializeBody.Value.ApplicationProtocolName) != Protocol.IceRpc)
+                    if (Protocol.FromString(initializeBody.Value.ApplicationProtocolName) != Protocol.IceRpc)
                     {
                         throw new NotSupportedException(
                             $"application protocol '{initializeBody.Value.ApplicationProtocolName}' is not supported");

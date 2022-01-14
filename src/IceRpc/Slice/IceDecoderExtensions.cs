@@ -11,19 +11,25 @@ namespace IceRpc.Slice
         /// <param name="decoder">The Ice decoder.</param>
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
         /// <param name="minValueSize">The minimum size of each value of the dictionary, in bytes.</param>
+        /// <param name="dictionaryFactory">The factory for creating the dictionary instance.</param>
         /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
         /// <param name="valueDecodeFunc">The decode function for each value of the dictionary.</param>
+        /// <typeparam name="TDictionary">The type of the returned dictionary.</typeparam>
+        /// <typeparam name="TKey">The type of the keys in the dictionary.</typeparam>
+        /// <typeparam name="TValue">The type of the values in the dictionary.</typeparam>
         /// <returns>The dictionary decoded by this decoder.</returns>
-        public static Dictionary<TKey, TValue> DecodeDictionary<TKey, TValue>(
+        public static TDictionary DecodeDictionary<TDictionary, TKey, TValue>(
             this ref IceDecoder decoder,
             int minKeySize,
             int minValueSize,
+            Func<int, TDictionary> dictionaryFactory,
             DecodeFunc<TKey> keyDecodeFunc,
             DecodeFunc<TValue> valueDecodeFunc)
             where TKey : notnull
+            where TDictionary : IDictionary<TKey, TValue>
         {
             int sz = decoder.DecodeAndCheckSeqSize(minKeySize + minValueSize);
-            var dict = new Dictionary<TKey, TValue>(sz);
+            TDictionary dict = dictionaryFactory(sz);
             for (int i = 0; i < sz; ++i)
             {
                 TKey key = keyDecodeFunc(ref decoder);
@@ -36,22 +42,35 @@ namespace IceRpc.Slice
         /// <summary>Decodes a dictionary with null values encoded using a bit sequence.</summary>
         /// <param name="decoder">The Ice decoder.</param>
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
+        /// <param name="dictionaryFactory">The factory for creating the dictionary instance.</param>
         /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
         /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
+        /// <typeparam name="TDictionary">The type of the returned dictionary.</typeparam>
+        /// <typeparam name="TKey">The type of the keys in the dictionary.</typeparam>
+        /// <typeparam name="TValue">The type of the values in the dictionary.</typeparam>
         /// <returns>The dictionary decoded by this decoder.</returns>
-        public static Dictionary<TKey, TValue?> DecodeDictionaryWithBitSequence<TKey, TValue>(
+        public static TDictionary DecodeDictionaryWithBitSequence<TDictionary, TKey, TValue>(
             this ref IceDecoder decoder,
             int minKeySize,
+            Func<int, TDictionary> dictionaryFactory,
             DecodeFunc<TKey> keyDecodeFunc,
             DecodeFunc<TValue?> valueDecodeFunc)
             where TKey : notnull
+            where TDictionary : IDictionary<TKey, TValue?>
         {
-            int sz = decoder.DecodeAndCheckSeqSize(minKeySize);
-            return decoder.DecodeDictionaryWithBitSequence(
-                new Dictionary<TKey, TValue?>(sz),
-                sz,
-                keyDecodeFunc,
-                valueDecodeFunc);
+            int count = decoder.DecodeAndCheckSeqSize(minKeySize);
+            TDictionary dictionary = dictionaryFactory(count);
+            if (count > 0)
+            {
+                BitSequenceReader bitSequenceReader = decoder.GetBitSequenceReader(count);
+                for (int i = 0; i < count; ++i)
+                {
+                    TKey key = keyDecodeFunc(ref decoder);
+                    TValue? value = bitSequenceReader.Read() ? valueDecodeFunc(ref decoder) : default;
+                    dictionary.Add(key, value);
+                }
+            }
+            return dictionary;
         }
 
         /// <summary>Decodes fields.</summary>
@@ -79,6 +98,7 @@ namespace IceRpc.Slice
         /// <param name="decoder">The Ice decoder.</param>
         /// <param name="minElementSize">The minimum size of each element of the sequence, in bytes.</param>
         /// <param name="decodeFunc">The decode function for each element of the sequence.</param>
+        /// <typeparam name="T">The type of the elements in the array.</typeparam>
         /// <returns>An array of T.</returns>
         public static T[] DecodeSequence<T>(
             this ref IceDecoder decoder,
@@ -101,9 +121,33 @@ namespace IceRpc.Slice
             }
         }
 
+        /// <summary>Decodes a sequence.</summary>
+        /// <param name="decoder">The Ice decoder.</param>
+        /// <param name="minElementSize">The minimum size of each element of the sequence, in bytes.</param>
+        /// <param name="sequenceFactory">The factory for creating the sequence instance.</param>
+        /// <param name="decodeFunc">The decode function for each element of the sequence.</param>
+        /// <typeparam name="TSequence">The type of the returned sequence.</typeparam>
+        /// <typeparam name="TElement">The type of the elements in the sequence.</typeparam>
+        /// <returns>A TSequence.</returns>
+        public static TSequence DecodeSequence<TSequence, TElement>(
+            this ref IceDecoder decoder,
+            int minElementSize,
+            Func<int, TSequence> sequenceFactory,
+            DecodeFunc<TElement> decodeFunc) where TSequence : IList<TElement>
+        {
+            int count = decoder.DecodeAndCheckSeqSize(minElementSize);
+            TSequence sequence = sequenceFactory(count);
+            for (int i = 0; i < count; ++i)
+            {
+                sequence.Add(decodeFunc(ref decoder));
+            }
+            return sequence;
+        }
+
         /// <summary>Decodes a sequence that encodes null values using a bit sequence.</summary>
         /// <param name="decoder">The Ice decoder.</param>
         /// <param name="decodeFunc">The decode function for each non-null element of the sequence.</param>
+        /// <typeparam name="T">The type of the elements in the array.</typeparam>
         /// <returns>An array of T.</returns>
         public static T[] DecodeSequenceWithBitSequence<T>(this ref IceDecoder decoder, DecodeFunc<T> decodeFunc)
         {
@@ -124,67 +168,29 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Decodes a sorted dictionary.</summary>
+        /// <summary>Decodes a sequence that encodes null values using a bit sequence.</summary>
         /// <param name="decoder">The Ice decoder.</param>
-        /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
-        /// <param name="minValueSize">The minimum size of each value of the dictionary, in bytes.</param>
-        /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
-        /// <param name="valueDecodeFunc">The decode function for each value of the dictionary.</param>
-        /// <returns>The sorted dictionary decoded by this decoder.</returns>
-        public static SortedDictionary<TKey, TValue> DecodeSortedDictionary<TKey, TValue>(
+        /// <param name="sequenceFactory">The factory for creating the sequence instance.</param>
+        /// <param name="decodeFunc">The decode function for each non-null element of the sequence.</param>
+        /// <typeparam name="TSequence">The type of the returned sequence.</typeparam>
+        /// <typeparam name="TElement">The type of the elements in the sequence.</typeparam>
+        /// <returns>A TSequence.</returns>
+        public static TSequence DecodeSequenceWithBitSequence<TSequence, TElement>(
             this ref IceDecoder decoder,
-            int minKeySize,
-            int minValueSize,
-            DecodeFunc<TKey> keyDecodeFunc,
-            DecodeFunc<TValue> valueDecodeFunc)
-            where TKey : notnull
+            Func<int, TSequence> sequenceFactory,
+            DecodeFunc<TElement> decodeFunc) where TSequence : IList<TElement>
         {
-            int sz = decoder.DecodeAndCheckSeqSize(minKeySize + minValueSize);
-            var dict = new SortedDictionary<TKey, TValue>();
-            for (int i = 0; i < sz; ++i)
+            int count = decoder.DecodeAndCheckSeqSize(0);
+            TSequence sequence = sequenceFactory(count);
+            if (count > 0)
             {
-                TKey key = keyDecodeFunc(ref decoder);
-                TValue value = valueDecodeFunc(ref decoder);
-                dict.Add(key, value);
+                BitSequenceReader bitSequenceReader = decoder.GetBitSequenceReader(count);
+                for (int i = 0; i < count; ++i)
+                {
+                    sequence.Add(bitSequenceReader.Read() ? decodeFunc(ref decoder) : default!);
+                }
             }
-            return dict;
-        }
-
-        /// <summary>Decodes a sorted dictionary.</summary>
-        /// <param name="decoder">The Ice decoder.</param>
-        /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
-        /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
-        /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
-        /// <returns>The sorted dictionary decoded by this decoder.</returns>
-        public static SortedDictionary<TKey, TValue?> DecodeSortedDictionaryWithBitSequence<TKey, TValue>(
-            this ref IceDecoder decoder,
-            int minKeySize,
-            DecodeFunc<TKey> keyDecodeFunc,
-            DecodeFunc<TValue?> valueDecodeFunc)
-            where TKey : notnull =>
-            decoder.DecodeDictionaryWithBitSequence(
-                new SortedDictionary<TKey, TValue?>(),
-                decoder.DecodeAndCheckSeqSize(minKeySize),
-                keyDecodeFunc,
-                valueDecodeFunc);
-
-        private static TDict DecodeDictionaryWithBitSequence<TDict, TKey, TValue>(
-            this ref IceDecoder decoder,
-            TDict dict,
-            int size,
-            DecodeFunc<TKey> keyDecodeFunc,
-            DecodeFunc<TValue?> valueDecodeFunc)
-            where TDict : IDictionary<TKey, TValue?>
-            where TKey : notnull
-        {
-            BitSequenceReader bitSequenceReader = decoder.GetBitSequenceReader(size);
-            for (int i = 0; i < size; ++i)
-            {
-                TKey key = keyDecodeFunc(ref decoder);
-                TValue? value = bitSequenceReader.Read() ? valueDecodeFunc(ref decoder) : default(TValue?);
-                dict.Add(key, value);
-            }
-            return dict;
+            return sequence;
         }
     }
 }

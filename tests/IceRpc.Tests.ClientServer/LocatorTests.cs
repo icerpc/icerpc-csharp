@@ -10,7 +10,7 @@ namespace IceRpc.Tests.ClientServer
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(ParallelScope.All)]
     [Timeout(30000)]
-    [Log(LogAttributeLevel.Information)]
+    // [Log(LogAttributeLevel.Trace)]
     public sealed class LocatorTests : IAsyncDisposable
     {
         private Identity GreeterIdentity => Identity.FromPath(_greeter.Proxy.Path);
@@ -27,7 +27,7 @@ namespace IceRpc.Tests.ClientServer
             var router = new Router();
             string path = $"/{Guid.NewGuid()}";
             router.Map(path, new Greeter());
-            string serverEndpoint = "icerpc+tcp://127.0.0.1:0?protocol=ice&tls=false";
+            string serverEndpoint = "ice://127.0.0.1:0?tls=false";
             _server = new Server
             {
                 Dispatcher = router,
@@ -74,7 +74,6 @@ namespace IceRpc.Tests.ClientServer
             locator.RegisterAdapter(adapter, greeter);
 
             CollectionAssert.IsEmpty(indirectGreeter.Proxy.AltEndpoints);
-            Assert.AreEqual("loc", indirectGreeter.Proxy.Endpoint!.Transport);
 
             ServicePrx? found = await locator.FindAdapterByIdAsync(adapter);
             Assert.That(found, Is.Not.Null);
@@ -114,15 +113,13 @@ namespace IceRpc.Tests.ClientServer
                 (request, cancel) =>
                 {
                     // Only test if the resolution was successful
-                    if (request.Proxy == indirectGreeter.Proxy && request.Endpoint?.Transport != "loc")
+                    if (request.Endpoint != null)
                     {
-                        Assert.AreEqual(_greeter.Proxy.Endpoint, request.Endpoint);
-                        _called = true;
-                    }
-                    else if (request.Proxy == wellKnownGreeter.Proxy && request.Endpoint != null)
-                    {
-                        Assert.AreEqual(_greeter.Proxy.Endpoint, request.Endpoint);
-                        _called = true;
+                        if (request.Proxy == indirectGreeter.Proxy || request.Proxy == wellKnownGreeter.Proxy)
+                        {
+                            Assert.AreEqual(_greeter.Proxy.Endpoint, request.Endpoint);
+                            _called = true;
+                        }
                     }
                     return next.InvokeAsync(request, cancel);
                 }));
@@ -233,7 +230,6 @@ namespace IceRpc.Tests.ClientServer
             // Test with indirect endpoints
             string adapter = $"adapter/{identity.Category}/{identity.Name}";
             var indirectGreeter = GreeterPrx.Parse($"{identity} @ '{adapter}'", _pipeline, IceProxyFormat.Default);
-            Assert.AreEqual($"icerpc+loc://{adapter}:0?protocol=ice", indirectGreeter.Proxy.Endpoint?.ToString());
 
             locator.RegisterAdapter(adapter, greeter);
 

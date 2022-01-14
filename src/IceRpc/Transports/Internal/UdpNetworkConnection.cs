@@ -143,21 +143,14 @@ namespace IceRpc.Transports.Internal
 
         internal UdpClientNetworkConnection(Endpoint remoteEndpoint, UdpClientOptions options)
         {
-            // udp is a special transport that requires "udp" endpoints.
-            if (remoteEndpoint.Transport != TransportNames.Udp)
-            {
-                throw new ArgumentException($"cannot use UDP transport with endpoint '{remoteEndpoint}'",
-                                            nameof(remoteEndpoint));
-            }
+            _remoteEndpoint = remoteEndpoint.WithTransport(TransportNames.Udp);
 
-            (bool _, _ttl, _multicastInterface) = remoteEndpoint.ParseUdpParams();
-
+            (bool _, _ttl, _multicastInterface) = _remoteEndpoint.ParseUdpParams();
             _idleTimeout = options.IdleTimeout;
-            _remoteEndpoint = remoteEndpoint;
 
-            _addr = IPAddress.TryParse(remoteEndpoint.Host, out IPAddress? ipAddress) ?
-                new IPEndPoint(ipAddress, remoteEndpoint.Port) :
-                new DnsEndPoint(remoteEndpoint.Host, remoteEndpoint.Port);
+            _addr = IPAddress.TryParse(_remoteEndpoint.Host, out IPAddress? ipAddress) ?
+                new IPEndPoint(ipAddress, _remoteEndpoint.Port) :
+                new DnsEndPoint(_remoteEndpoint.Host, _remoteEndpoint.Port);
 
             if (_multicastInterface == "*")
             {
@@ -279,12 +272,7 @@ namespace IceRpc.Transports.Internal
 
         internal UdpServerNetworkConnection(Endpoint endpoint, UdpServerOptions options)
         {
-            // udp is a special transport that requires "udp" endpoints.
-            if (endpoint.Transport != TransportNames.Udp)
-            {
-                throw new ArgumentException($"cannot use UDP transport with endpoint '{endpoint}'",
-                                            nameof(endpoint));
-            }
+            endpoint = endpoint.WithTransport(TransportNames.Udp);
 
             if (!IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress))
             {

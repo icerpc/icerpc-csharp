@@ -83,9 +83,9 @@ namespace IceRpc.Tests.Slice
             Assert.Throws<InvalidDataException>(() => MyFixedLengthEnumHelper.AsMyFixedLengthEnum(22));
         }
 
-        [TestCase(ProtocolCode.Ice)]
-        [TestCase(ProtocolCode.IceRpc)]
-        public async Task Enum_OperationsAsync(ProtocolCode protocol)
+        [TestCase("ice")]
+        [TestCase("icerpc")]
+        public async Task Enum_OperationsAsync(string protocol)
         {
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .UseProtocol(protocol)

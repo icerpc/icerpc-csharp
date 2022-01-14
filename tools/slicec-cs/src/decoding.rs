@@ -142,21 +142,15 @@ pub fn decode_dictionary(dictionary_ref: &TypeRef<Dictionary>, namespace: &str) 
         );
     }
 
-    let method = match dictionary_ref.get_attribute("cs:generic", false) {
-        Some(attributes) if attributes.first().unwrap() == "SortedDictionary" => {
-            String::from("DecodeSortedDictionary")
-        }
-        _ => String::from("DecodeDictionary"),
-    };
-
     if value_type.is_bit_sequence_encodable() {
         format!(
             "\
-decoder.{method}WithBitSequence(
+decoder.DecodeDictionaryWithBitSequence(
     minKeySize: {min_key_size},
+    size => new {dictionary_type}(size),
     {decode_key},
     {decode_value})",
-            method = method,
+            dictionary_type = dictionary_ref.to_type_string(namespace, TypeContext::Incoming, true),
             min_key_size = key_type.min_wire_size(),
             decode_key = decode_key.indent(),
             decode_value = decode_value.indent()
@@ -164,14 +158,15 @@ decoder.{method}WithBitSequence(
     } else {
         format!(
             "\
-decoder.{method}(
+decoder.DecodeDictionary(
     minKeySize: {min_key_size},
     minValueSize: {min_value_size},
+    size => new {dictionary_type}(size),
     {decode_key},
     {decode_value})",
-            method = method,
             min_key_size = key_type.min_wire_size(),
             min_value_size = value_type.min_wire_size(),
+            dictionary_type = dictionary_ref.to_type_string(namespace, TypeContext::Incoming, true),
             decode_key = decode_key.indent(),
             decode_value = decode_value.indent()
         )
@@ -183,28 +178,28 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str) -> Cod
     let mut code = CodeBlock::new();
     let element_type = &sequence_ref.element_type;
 
-    if let Some(generic_attribute) = sequence_ref.get_attribute("cs:generic", false) {
-        let mut arg: CodeBlock = match element_type.concrete_type() {
+    if let Some(_) = sequence_ref.get_attribute("cs:generic", false) {
+        let arg: Option<String> = match element_type.concrete_type() {
             Types::Primitive(primitive)
                 if primitive.is_numeric_or_bool() && primitive.is_fixed_size() =>
             {
                 // We always read an array even when mapped to a collection, as it's expected to be
                 // faster than unmarshaling the collection elements one by one.
-                format!(
+                Some(format!(
                     "decoder.DecodeSequence<{}>()",
                     element_type.to_type_string(namespace, TypeContext::Incoming, true)
-                )
+                ))
             }
             Types::Enum(enum_def) if enum_def.underlying.is_some() => {
                 // We always read an array even when mapped to a collection, as it's expected to be
                 // faster than unmarshaling the collection elements one by one.
                 if enum_def.is_unchecked {
-                    format!(
+                    Some(format!(
                         "decoder.DecodeSequence<{}>()",
                         element_type.to_type_string(namespace, TypeContext::Incoming, true)
-                    )
+                    ))
                 } else {
-                    format!(
+                    Some(format!(
                         "\
 decoder.DecodeSequence(
     ({enum_type_name} e) => _ = {helper}.As{name}(({underlying_type})e))",
@@ -213,52 +208,49 @@ decoder.DecodeSequence(
                         helper = enum_def.helper_name(namespace),
                         name = enum_def.identifier(),
                         underlying_type = enum_def.underlying_type().cs_keyword()
-                    )
+                    ))
                 }
             }
             _ => {
                 if element_type.is_bit_sequence_encodable() {
-                    format!(
+                    write!(
+                        code,
                         "\
 decoder.DecodeSequenceWithBitSequence(
-    {})",
-                        decode_func(element_type, namespace).indent()
-                    )
+    sequenceFactory: (size) => new {sequence_type}(size),
+    {decode_func})",
+                        sequence_type =
+                            sequence_ref.to_type_string(namespace, TypeContext::Incoming, true),
+                        decode_func = decode_func(element_type, namespace).indent()
+                    );
                 } else {
-                    format!(
+                    write!(
+                        code,
                         "\
 decoder.DecodeSequence(
-    minElementSize: {},
-    {})",
-                        element_type.min_wire_size(),
-                        decode_func(element_type, namespace).indent()
-                    )
+    minElementSize: {min_element_size},
+    sequenceFactory: (size) => new {sequence_type}(size),
+    {decode_func})",
+                        min_element_size = element_type.min_wire_size(),
+                        sequence_type =
+                            sequence_ref.to_type_string(namespace, TypeContext::Incoming, true),
+                        decode_func = decode_func(element_type, namespace).indent()
+                    );
                 }
+                None
             }
-        }
-        .into();
+        };
 
-        let mut block = CodeBlock::new();
-        write!(
-            code,
-            "\
+        if let Some(arg) = arg {
+            write!(
+                code,
+                "\
 new {}(
     {})",
-            sequence_ref.to_type_string(namespace, TypeContext::Incoming, true),
-            match generic_attribute.first().unwrap().as_str() {
-                "Stack" => {
-                    write!(
-                        block,
-                        "\
-global::System.Linq.Enumerable.Reverse(
-    {})",
-                        arg.indent()
-                    );
-                    block.indent()
-                }
-                _ => arg.indent(),
-            }
-        );
+                sequence_ref.to_type_string(namespace, TypeContext::Incoming, true),
+                CodeBlock::from(arg).indent(),
+            );
+        }
     } else if element_type.is_bit_sequence_encodable() {
         write!(
             code,
@@ -423,9 +415,15 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
         writeln!(
             code,
             "{param_type} {decode}",
-            param_type = member
-                .data_type()
-                .to_type_string(namespace, TypeContext::Incoming, false),
+            // For optional value types we have to use the full type as the compiler cannot disambiguate between
+            // null and the actual value type.
+            param_type = match member.data_type().is_optional && member.data_type().is_value_type()
+            {
+                true => member
+                    .data_type()
+                    .to_type_string(namespace, TypeContext::Incoming, false),
+                false => String::from("var"),
+            },
             decode = decode_member(
                 member,
                 namespace,
@@ -438,9 +436,14 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
         writeln!(
             code,
             "{param_type} {decode}",
-            param_type = member
-                .data_type()
-                .to_type_string(namespace, TypeContext::Incoming, false),
+            // For optional value types we have to use the full type as the compiler cannot disambiguate between
+            // null and the actual value type.
+            param_type = match member.data_type().is_value_type() {
+                true => member
+                    .data_type()
+                    .to_type_string(namespace, TypeContext::Incoming, false),
+                false => String::from("var"),
+            },
             decode = decode_tagged_member(
                 member,
                 namespace,

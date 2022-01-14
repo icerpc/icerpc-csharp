@@ -44,25 +44,25 @@ module IceRpc::Tests::Slice
     typealias OptionalOperationsDict = dictionary<string, Operations?>;
     typealias OptionalAnotherStructDict = dictionary<string, AnotherStruct?>;
 
-    typealias ByteSortedDict = [cs:generic(SortedDictionary)] dictionary<byte, byte>;
-    typealias BoolSortedDict = [cs:generic(SortedDictionary)] dictionary<bool, bool>;
-    typealias ShortSortedDict = [cs:generic(SortedDictionary)] dictionary<short, short>;
-    typealias UShortSortedDict = [cs:generic(SortedDictionary)] dictionary<ushort, ushort>;
-    typealias IntSortedDict = [cs:generic(SortedDictionary)] dictionary<int, int>;
-    typealias OptionalIntSortedDict = [cs:generic(SortedDictionary)] dictionary<int, int?>;
-    typealias VarIntSortedDict = [cs:generic(SortedDictionary)] dictionary<varint, varint>;
-    typealias UIntSortedDict = [cs:generic(SortedDictionary)] dictionary<uint, uint>;
-    typealias VarUIntSortedDict = [cs:generic(SortedDictionary)] dictionary<varuint, varuint>;
-    typealias LongSortedDict = [cs:generic(SortedDictionary)] dictionary<long, long>;
-    typealias VarLongSortedDict = [cs:generic(SortedDictionary)] dictionary<varlong, varlong>;
-    typealias ULongSortedDict = [cs:generic(SortedDictionary)] dictionary<ulong, ulong>;
-    typealias VarULongSortedDict = [cs:generic(SortedDictionary)] dictionary<varulong, varulong>;
-    typealias StringSortedDict = [cs:generic(SortedDictionary)] dictionary<string, string>;
-    typealias OptionalStringSortedDict = [cs:generic(SortedDictionary)] dictionary<string, string?>;
+    typealias ByteCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<byte, byte>;
+    typealias BoolCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<bool, bool>;
+    typealias ShortCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<short, short>;
+    typealias UShortCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<ushort, ushort>;
+    typealias IntCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<int, int>;
+    typealias OptionalIntCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<int, int?>;
+    typealias VarIntCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<varint, varint>;
+    typealias UIntCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<uint, uint>;
+    typealias VarUIntCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<varuint, varuint>;
+    typealias LongCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<long, long>;
+    typealias VarLongCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<varlong, varlong>;
+    typealias ULongCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<ulong, ulong>;
+    typealias VarULongCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<varulong, varulong>;
+    typealias StringCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<string, string>;
+    typealias OptionalStringCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<string, string?>;
 
-    typealias MyEnumSortedDict = [cs:generic(SortedDictionary)] dictionary<MyEnum, MyEnum>;
-    typealias MyFixedLengthEnumSortedDict = [cs:generic(SortedDictionary)] dictionary<MyFixedLengthEnum, MyFixedLengthEnum>;
-    typealias MyUncheckedEnumSortedDict = [cs:generic(SortedDictionary)] dictionary<MyUncheckedEnum, MyUncheckedEnum>;
+    typealias MyEnumCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<MyEnum, MyEnum>;
+    typealias MyFixedLengthEnumCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<MyFixedLengthEnum, MyFixedLengthEnum>;
+    typealias MyUncheckedEnumCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<MyUncheckedEnum, MyUncheckedEnum>;
 
     interface DictionaryOperations
     {
@@ -164,46 +164,46 @@ module IceRpc::Tests::Slice
         );
 
         // Sorted dictionaries with builtin types
-        opByteSortedDict(p1: ByteSortedDict, p2: ByteSortedDict) -> (r1: ByteSortedDict, r2: ByteSortedDict);
-        opBoolSortedDict(p1: BoolSortedDict, p2: BoolSortedDict) -> (r1: BoolSortedDict, r2: BoolSortedDict);
-        opShortSortedDict(p1: ShortSortedDict, p2: ShortSortedDict) -> (r1: ShortSortedDict, r2: ShortSortedDict);
-        opUShortSortedDict(p1: UShortSortedDict, p2: UShortSortedDict) -> (r1: UShortSortedDict, r2: UShortSortedDict);
-        opIntSortedDict(p1: IntSortedDict, p2: IntSortedDict) -> (r1: IntSortedDict, r2: IntSortedDict);
-        opOptionalIntSortedDict(p1: OptionalIntSortedDict, p2: OptionalIntSortedDict) -> (
-            r1: OptionalIntSortedDict,
-            r2: OptionalIntSortedDict,
+        opByteCustomDict(p1: ByteCustomDict, p2: ByteCustomDict) -> (r1: ByteCustomDict, r2: ByteCustomDict);
+        opBoolCustomDict(p1: BoolCustomDict, p2: BoolCustomDict) -> (r1: BoolCustomDict, r2: BoolCustomDict);
+        opShortCustomDict(p1: ShortCustomDict, p2: ShortCustomDict) -> (r1: ShortCustomDict, r2: ShortCustomDict);
+        opUShortCustomDict(p1: UShortCustomDict, p2: UShortCustomDict) -> (r1: UShortCustomDict, r2: UShortCustomDict);
+        opIntCustomDict(p1: IntCustomDict, p2: IntCustomDict) -> (r1: IntCustomDict, r2: IntCustomDict);
+        opOptionalIntCustomDict(p1: OptionalIntCustomDict, p2: OptionalIntCustomDict) -> (
+            r1: OptionalIntCustomDict,
+            r2: OptionalIntCustomDict,
         );
-        opVarIntSortedDict(p1: VarIntSortedDict, p2: VarIntSortedDict) -> (r1: VarIntSortedDict, r2: VarIntSortedDict);
-        opUIntSortedDict(p1: UIntSortedDict, p2: UIntSortedDict) -> (r1: UIntSortedDict, r2: UIntSortedDict);
-        opVarUIntSortedDict(p1: VarUIntSortedDict, p2: VarUIntSortedDict) -> (
-            r1: VarUIntSortedDict,
-            r2: VarUIntSortedDict,
+        opVarIntCustomDict(p1: VarIntCustomDict, p2: VarIntCustomDict) -> (r1: VarIntCustomDict, r2: VarIntCustomDict);
+        opUIntCustomDict(p1: UIntCustomDict, p2: UIntCustomDict) -> (r1: UIntCustomDict, r2: UIntCustomDict);
+        opVarUIntCustomDict(p1: VarUIntCustomDict, p2: VarUIntCustomDict) -> (
+            r1: VarUIntCustomDict,
+            r2: VarUIntCustomDict,
         );
-        opLongSortedDict(p1: LongSortedDict, p2: LongSortedDict) -> (r1: LongSortedDict, r2: LongSortedDict);
-        opVarLongSortedDict(p1: VarLongSortedDict, p2: VarLongSortedDict) -> (
-            r1: VarLongSortedDict,
-            r2: VarLongSortedDict,
+        opLongCustomDict(p1: LongCustomDict, p2: LongCustomDict) -> (r1: LongCustomDict, r2: LongCustomDict);
+        opVarLongCustomDict(p1: VarLongCustomDict, p2: VarLongCustomDict) -> (
+            r1: VarLongCustomDict,
+            r2: VarLongCustomDict,
         );
-        opULongSortedDict(p1: ULongSortedDict, p2: ULongSortedDict) -> (r1: ULongSortedDict, r2: ULongSortedDict);
-        opVarULongSortedDict(p1: VarULongSortedDict, p2: VarULongSortedDict) -> (
-            r1: VarULongSortedDict,
-            r2: VarULongSortedDict,
+        opULongCustomDict(p1: ULongCustomDict, p2: ULongCustomDict) -> (r1: ULongCustomDict, r2: ULongCustomDict);
+        opVarULongCustomDict(p1: VarULongCustomDict, p2: VarULongCustomDict) -> (
+            r1: VarULongCustomDict,
+            r2: VarULongCustomDict,
         );
-        opStringSortedDict(p1: StringSortedDict, p2: StringSortedDict) -> (r1: StringSortedDict, r2: StringSortedDict);
-        opOptionalStringSortedDict(p1: OptionalStringSortedDict, p2: OptionalStringSortedDict) -> (
-            r1: OptionalStringSortedDict,
-            r2: OptionalStringSortedDict,
+        opStringCustomDict(p1: StringCustomDict, p2: StringCustomDict) -> (r1: StringCustomDict, r2: StringCustomDict);
+        opOptionalStringCustomDict(p1: OptionalStringCustomDict, p2: OptionalStringCustomDict) -> (
+            r1: OptionalStringCustomDict,
+            r2: OptionalStringCustomDict,
         );
 
         // Sorted dictionaries with constructed types
-        opMyEnumSortedDict(p1: MyEnumSortedDict, p2: MyEnumSortedDict) -> (r1: MyEnumSortedDict, r2: MyEnumSortedDict);
-        opMyFixedLengthEnumSortedDict(p1: MyFixedLengthEnumSortedDict, p2: MyFixedLengthEnumSortedDict) -> (
-            r1: MyFixedLengthEnumSortedDict,
-            r2: MyFixedLengthEnumSortedDict,
+        opMyEnumCustomDict(p1: MyEnumCustomDict, p2: MyEnumCustomDict) -> (r1: MyEnumCustomDict, r2: MyEnumCustomDict);
+        opMyFixedLengthEnumCustomDict(p1: MyFixedLengthEnumCustomDict, p2: MyFixedLengthEnumCustomDict) -> (
+            r1: MyFixedLengthEnumCustomDict,
+            r2: MyFixedLengthEnumCustomDict,
         );
-        opMyUncheckedEnumSortedDict(p1: MyUncheckedEnumSortedDict, p2: MyUncheckedEnumSortedDict) -> (
-            r1: MyUncheckedEnumSortedDict,
-            r2: MyUncheckedEnumSortedDict,
+        opMyUncheckedEnumCustomDict(p1: MyUncheckedEnumCustomDict, p2: MyUncheckedEnumCustomDict) -> (
+            r1: MyUncheckedEnumCustomDict,
+            r2: MyUncheckedEnumCustomDict,
         );
         // TODO Allow structs as sorted dictionary keys, implementing IComparable
     }

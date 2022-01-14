@@ -114,19 +114,19 @@ module IceRpc::Tests::Slice
         opIntDict(p1: tag(1) IntDict?) -> (r1: tag(1) IntDict?, r2: tag(2) IntDict?);
         opStringDict(p1: tag(1) StringDict?) -> (r1: tag(1) StringDict?, r2: tag(2) StringDict?);
 
-        opIntSortedDict(p1: tag(1) IntSortedDict?) -> (r1: tag(1) IntSortedDict?, r2: tag(2) IntSortedDict?);
-        opStringSortedDict(p1: tag(1) StringSortedDict?) -> (
-            r1: tag(1) StringSortedDict?,
-            r2: tag(2) StringSortedDict?,
+        opIntCustomDict(p1: tag(1) IntCustomDict?) -> (r1: tag(1) IntCustomDict?, r2: tag(2) IntCustomDict?);
+        opStringCustomDict(p1: tag(1) StringCustomDict?) -> (
+            r1: tag(1) StringCustomDict?,
+            r2: tag(2) StringCustomDict?,
         );
 
-        opOptionalIntSortedDict(p1: tag(1) OptionalIntSortedDict?) -> (
-            r1: tag(1) OptionalIntSortedDict?,
-            r2: tag(2) OptionalIntSortedDict?,
+        opOptionalIntCustomDict(p1: tag(1) OptionalIntCustomDict?) -> (
+            r1: tag(1) OptionalIntCustomDict?,
+            r2: tag(2) OptionalIntCustomDict?,
         );
-        opOptionalStringSortedDict(p1: tag(1) OptionalStringSortedDict?) -> (
-            r1: tag(1) OptionalStringSortedDict?,
-            r2: tag(2) OptionalStringSortedDict?,
+        opOptionalStringCustomDict(p1: tag(1) OptionalStringCustomDict?) -> (
+            r1: tag(1) OptionalStringCustomDict?,
+            r2: tag(2) OptionalStringCustomDict?,
         );
 
         opOptionalIntDict(p1: tag(1) OptionalIntDict?) -> (r1: tag(1) OptionalIntDict?, r2: tag(2) OptionalIntDict?);

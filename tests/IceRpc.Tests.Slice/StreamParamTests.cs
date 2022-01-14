@@ -12,7 +12,7 @@ namespace IceRpc.Tests.Slice.Stream
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    [Log(LogAttributeLevel.Debug)]
+    // [Log(LogAttributeLevel.Debug)]
     public sealed class StreamParamTests : IAsyncDisposable
     {
         private readonly ServiceProvider _serviceProvider;
@@ -46,19 +46,19 @@ namespace IceRpc.Tests.Slice.Stream
 
             reader = await _prx.OpStreamByteReceive0Async();
             ReadResult readResult = await reader.ReadAtLeastAsync(256);
-            Assert.That(readResult.IsCompleted);
+            Assert.That(readResult.Buffer.Length, Is.EqualTo(256));
             Assert.That(readResult.Buffer.FirstSpan.SequenceEqual(_sendBuffer.FirstSpan));
 
             (r1, reader) = await _prx.OpStreamByteReceive1Async();
             readResult = await reader.ReadAtLeastAsync(256);
-            Assert.That(readResult.IsCompleted);
+            Assert.That(readResult.Buffer.Length, Is.EqualTo(256));
             Assert.That(readResult.Buffer.FirstSpan.SequenceEqual(_sendBuffer.FirstSpan));
             Assert.That(r1, Is.EqualTo(0x05));
             await reader.CompleteAsync();
 
             (r1, r2, reader) = await _prx.OpStreamByteReceive2Async();
             readResult = await reader.ReadAtLeastAsync(256);
-            Assert.That(readResult.IsCompleted);
+            Assert.That(readResult.Buffer.Length, Is.EqualTo(256));
             Assert.That(readResult.Buffer.FirstSpan.SequenceEqual(_sendBuffer.FirstSpan));
             Assert.That(r1, Is.EqualTo(0x05));
             Assert.That(r2, Is.EqualTo(6));
@@ -81,16 +81,16 @@ namespace IceRpc.Tests.Slice.Stream
                 var sendPipeReader = PipeReader.Create(_sendBuffer);
                 reader = await _prx.OpStreamByteSendReceive0Async(sendPipeReader);
                 readResult = await reader.ReadAtLeastAsync(256);
-                Assert.That(readResult.IsCompleted);
+                Assert.That(readResult.Buffer.Length, Is.EqualTo(256));
                 Assert.That(readResult.Buffer.FirstSpan.SequenceEqual(_sendBuffer.FirstSpan));
                 await reader.CompleteAsync();
             }
 
             {
-                 var sendPipeReader = PipeReader.Create(_sendBuffer);
+                var sendPipeReader = PipeReader.Create(_sendBuffer);
                 (r1, reader) = await _prx.OpStreamByteSendReceive1Async(0x08, sendPipeReader);
                 readResult = await reader.ReadAtLeastAsync(256);
-                Assert.That(readResult.IsCompleted);
+                Assert.That(readResult.Buffer.Length, Is.EqualTo(256));
                 Assert.That(readResult.Buffer.FirstSpan.SequenceEqual(_sendBuffer.FirstSpan));
                 Assert.That(r1, Is.EqualTo(0x08));
                 await reader.CompleteAsync();
@@ -102,7 +102,7 @@ namespace IceRpc.Tests.Slice.Stream
                     10,
                     sendPipeReader);
                 readResult = await reader.ReadAtLeastAsync(256);
-                Assert.That(readResult.IsCompleted);
+                Assert.That(readResult.Buffer.Length, Is.EqualTo(256));
                 Assert.That(readResult.Buffer.FirstSpan.SequenceEqual(_sendBuffer.FirstSpan));
                 Assert.That(r1, Is.EqualTo(0x08));
                 Assert.That(r2, Is.EqualTo(10));
@@ -264,7 +264,7 @@ namespace IceRpc.Tests.Slice.Stream
         }
 
         [Test]
-        [Log(LogAttributeLevel.Debug)]
+        // [Log(LogAttributeLevel.Debug)]
         public async Task StreamParam_Receive_AnotherStruct()
         {
             AnotherStruct v1 = GetAnotherStruct(1);
@@ -421,7 +421,7 @@ namespace IceRpc.Tests.Slice.Stream
                 CancellationToken cancel)
             {
                 ReadResult readResult = await p1.ReadAtLeastAsync(256, cancel);
-                Assert.That(readResult.IsCompleted);
+                Assert.That(readResult.Buffer.Length, Is.EqualTo(256));
                 Assert.That(readResult.Buffer.FirstSpan.SequenceEqual(_sendBuffer.FirstSpan));
                 await p1.CompleteAsync();
             }
@@ -433,7 +433,7 @@ namespace IceRpc.Tests.Slice.Stream
                 CancellationToken cancel)
             {
                 ReadResult readResult = await p2.ReadAtLeastAsync(256, cancel);
-                Assert.That(readResult.IsCompleted);
+                Assert.That(readResult.Buffer.Length, Is.EqualTo(256));
                 Assert.That(readResult.Buffer.FirstSpan.SequenceEqual(_sendBuffer.FirstSpan));
                 await p2.CompleteAsync();
             }
@@ -446,7 +446,7 @@ namespace IceRpc.Tests.Slice.Stream
                 CancellationToken cancel)
             {
                 ReadResult readResult = await p3.ReadAtLeastAsync(256, cancel);
-                Assert.That(readResult.IsCompleted);
+                Assert.That(readResult.Buffer.Length, Is.EqualTo(256));
                 Assert.That(readResult.Buffer.FirstSpan.SequenceEqual(_sendBuffer.FirstSpan));
                 await p3.CompleteAsync();
             }
@@ -732,7 +732,7 @@ namespace IceRpc.Tests.Slice.Stream
 
         private static AnotherStruct GetAnotherStruct(int i) =>
             new($"hello-{i}",
-                 OperationsPrx.Parse("icerpc+tcp://localhost:10000/Operations"),
+                 OperationsPrx.Parse("icerpc://localhost:10000/Operations"),
                  MyEnumValues[i % MyEnumValues.Count],
                  new MyStruct(i, i + 1));
     }

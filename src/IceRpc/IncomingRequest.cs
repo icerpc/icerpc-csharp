@@ -4,7 +4,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc
 {
-    /// <summary>Represents a request protocol frame received by the application.</summary>
+    /// <summary>Represents a request frame received by the application.</summary>
     public sealed class IncomingRequest : IncomingFrame
     {
         /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
@@ -15,7 +15,7 @@ namespace IceRpc
         /// on the server-side even though the invocation timeout is usually not infinite.</summary>
         public DateTime Deadline { get; init; }
 
-        /// <summary>The fragment of the target service.</summary>
+        /// <summary>The fragment of the target service. It's always empty with the icerpc protocol.</summary>
         public string Fragment { get; init; }
 
         /// <summary>When <c>true</c>, the operation is idempotent.</summary>

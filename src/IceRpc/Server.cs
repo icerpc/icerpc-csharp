@@ -34,7 +34,7 @@ namespace IceRpc
         /// <summary>Gets or sets the endpoint of this server.</summary>
         /// <value>The endpoint of this server. The endpoint's host is usually an IP address, and it cannot be a DNS
         /// name. Once <see cref="Listen"/> is called, the endpoint can't be updated and its value is the listening
-        /// endpoint returned by the transport. The default value is transport specific (<c>icerpc+tcp://[::0]</c> for
+        /// endpoint returned by the transport. The default value is transport specific (<c>icerpc://[::0]</c> for
         /// TCP).</value>
         public Endpoint Endpoint
         {
@@ -45,6 +45,12 @@ namespace IceRpc
                 {
                     throw new InvalidOperationException("cannot change the endpoint of a server after calling Listen");
                 }
+                if (!value.Protocol.IsSupported)
+                {
+                    throw new NotSupportedException(
+                        $"cannot create server for endpoint with protocol '{value.Protocol}'");
+                }
+
                 _endpoint = value;
             }
         }
@@ -57,8 +63,8 @@ namespace IceRpc
         public IServerTransport<IMultiplexedNetworkConnection> MultiplexedServerTransport { get; init; } =
             DefaultMultiplexedServerTransport;
 
-        /// <summary>Gets the Ice protocol used by this server.</summary>
-        /// <value>The Ice protocol of this server.</value>
+        /// <summary>Gets the protocol used by this server.</summary>
+        /// <value>The protocol of this server.</value>
         public Protocol Protocol => Endpoint.Protocol;
 
         /// <summary>The <see cref="IServerTransport{ISimpleNetworkConnection}"/> used by this server to accept

@@ -4,9 +4,7 @@ using IceRpc.Configure;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using System.Buffers;
 using System.Collections.Immutable;
-using System.IO.Pipelines;
 
 namespace IceRpc.Tests.ClientServer
 {
@@ -15,17 +13,17 @@ namespace IceRpc.Tests.ClientServer
     [Timeout(30000)]
     public sealed class ProtocolBridgingTests
     {
-        [TestCase(ProtocolCode.IceRpc, ProtocolCode.IceRpc, true)]
-        [TestCase(ProtocolCode.Ice, ProtocolCode.Ice, true)]
-        [TestCase(ProtocolCode.IceRpc, ProtocolCode.IceRpc, false)]
-        [TestCase(ProtocolCode.Ice, ProtocolCode.Ice, false)]
-        [TestCase(ProtocolCode.IceRpc, ProtocolCode.Ice, true)]
-        [TestCase(ProtocolCode.Ice, ProtocolCode.IceRpc, true)]
-        [TestCase(ProtocolCode.IceRpc, ProtocolCode.Ice, false)]
-        [TestCase(ProtocolCode.Ice, ProtocolCode.IceRpc, false)]
+        [TestCase("icerpc", "icerpc", true)]
+        [TestCase("ice", "ice", true)]
+        [TestCase("icerpc", "icerpc", false)]
+        [TestCase("ice", "ice", false)]
+        [TestCase("icerpc", "ice", true)]
+        [TestCase("ice", "icerpc", true)]
+        [TestCase("icerpc", "ice", false)]
+        [TestCase("ice", "icerpc", false)]
         public async Task ProtocolBridging_Forward(
-            ProtocolCode forwarderProtocol,
-            ProtocolCode targetProtocol,
+            string forwarderProtocol,
+            string targetProtocol,
             bool colocated)
         {
             var router = new Router();
@@ -74,10 +72,10 @@ namespace IceRpc.Tests.ClientServer
             router.Map("/forward", new Forwarder(targetServicePrx.Proxy));
 
             // TODO: test with the other encoding; currently, the encoding is always the encoding of
-            // forwardService.Proxy.Protocol
+            // forwardService.Proxy.Proxy
 
             ProtocolBridgingTestPrx newPrx = await TestProxyAsync(forwarderServicePrx, direct: false);
-            Assert.AreEqual(targetProtocol, newPrx.Proxy.Protocol.Code);
+            Assert.AreEqual(targetProtocol, (object)newPrx.Proxy.Protocol.Name);
             _ = await TestProxyAsync(newPrx, direct: true);
 
             async Task<ProtocolBridgingTestPrx> TestProxyAsync(ProtocolBridgingTestPrx prx, bool direct)

@@ -86,12 +86,6 @@ fn sequence_type_to_string(
         }
         TypeContext::Incoming => match sequence_ref.get_attribute("cs:generic", false) {
             Some(args) => match args.first().unwrap().as_str() {
-                value @ "List" | value @ "LinkedList" | value @ "Queue" | value @ "Stack" => {
-                    format!(
-                        "global::System.Collections.Generic.{}<{}>",
-                        value, element_type
-                    )
-                }
                 value => format!("{}<{}>", value, element_type),
             },
             None => format!("{}[]", element_type),
@@ -135,17 +129,7 @@ fn dictionary_type_to_string(
         }
         TypeContext::Incoming => match dictionary_ref.get_attribute("cs:generic", false) {
             Some(args) => {
-                let prefix = match args.first().unwrap().as_str() {
-                    "SortedDictionary" => "global::System.Collections.Generic.",
-                    _ => "",
-                };
-                format!(
-                    "{}{}<{}, {}>",
-                    prefix,
-                    args.first().unwrap(),
-                    key_type,
-                    value_type
-                )
+                format!("{}<{}, {}>", args.first().unwrap(), key_type, value_type)
             }
             None => format!(
                 "global::System.Collections.Generic.Dictionary<{}, {}>",

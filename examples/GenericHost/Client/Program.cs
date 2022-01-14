@@ -22,7 +22,7 @@ namespace ClientApp
         {
             public ConnectionOptions ConnectionOptions { get; set; } = new();
 
-            public Endpoint Endpoint { get; set; } = "icerpc+tcp://[::1]";
+            public Endpoint Endpoint { get; set; } = "icerpc://[::1]";
         }
 
         public static void Main(string[] args) => CreateHostBuilder(args).Build().Run();

@@ -8,19 +8,17 @@ namespace IceRpc.Tests.Api
     [Timeout(30000)]
     public class EndpointTests
     {
-        [TestCase("icerpc+tcp://host:10000")]
-        [TestCase("icerpc+foobar://host:10000")]
-        [TestCase("icerpc+tcp://host:10000?protocol=icerpc")]
-        [TestCase("icerpc+tcp://host:10000?protocol=4")]
-        [TestCase("icerpc+tcp://host")]
-        [TestCase("icerpc+tcp://[::0]")]
-        [TestCase("icerpc+tcp://[::0]?_foo=bar&tls=true&protocol=ice")]
-        [TestCase("icerpc+tcp://[::0]?tls=false&tls=true&foo=&b=")]
-        [TestCase("icerpc+tcp://host:10000?tls=foo")]
-        [TestCase("icerpc+coloc://host:10000")]
-        [TestCase("icerpc+xyz://host:10000")]
-        [TestCase("icerpc+udp://localhost")]
-        [TestCase("icerpc+tcp://host:10000?protocol=ice")]
+        [TestCase("icerpc://host:10000")]
+        [TestCase("icerpc://host:10000?transport=foobar")]
+        [TestCase("icerpc://host")]
+        [TestCase("icerpc://[::0]")]
+        [TestCase("ice://[::0]?_foo=bar&tls=true")]
+        [TestCase("icerpc://[::0]?tls=false&tls=true&foo=&b=")]
+        [TestCase("icerpc://host:10000?tls=foo")]
+        [TestCase("icerpc://host:10000?transport=coloc")]
+        [TestCase("ice://localhost?transport=udp")]
+        [TestCase("ice://host:10000")]
+        [TestCase("foo://[::0]?tls=false&tls=true&foo=")]
         public void Endpoint_Parse_ValidInput(string str)
         {
             var endpoint = Endpoint.FromString(str);
@@ -28,14 +26,16 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(endpoint, endpoint2); // round trip works
         }
 
-        [TestCase("icerpc+tcp://host:10000/category/name")]                // unexpected path
-        [TestCase("icerpc+tcp://host:10000#fragment")]                     // unexpected fragment
-        [TestCase("icerpc+tcp://host:10000?encoding=1.1")]                 // encoding is proxy-only
-        [TestCase("icerpc+tcp://host:10000?protocol=icerpc422")]           // invalid protocol
-        [TestCase("icerpc+tcp://host:10000?protocol=icefoo")]              // invalid protocol
-        [TestCase("icerpc+tcp://host:10000?alt-endpoint=host2")]           // alt-endpoint is proxy only
-        [TestCase("icerpc+tcp://host:10000?tls")]                          // no = for tls parameter
+        [TestCase("icerpc://host:10000/category/name")]                // unexpected path
+        [TestCase("icerpc://host:10000#fragment")]                     // unexpected fragment
+        [TestCase("icerpc://host:10000?encoding=1.1")]                 // encoding is proxy-only
+        [TestCase("icerpc://host:10000?alt-endpoint=host2")]           // alt-endpoint is proxy only
+        [TestCase("icerpc://host:10000?tls")]                          // no = for tls parameter
+        [TestCase("icerpc:///foo")]                                    // path, empty authority
+        [TestCase("icerpc:///")]                                       // empty authority
+        [TestCase("icerpc:/foo")]                                      // no authority
+        [TestCase("icerpc:")]                                          // no authority
         public void Endpoint_Parse_InvalidInput(string str) =>
-            Assert.Throws<FormatException>(() => Endpoint.FromString(str));
+            Assert.Catch<FormatException>(() => Endpoint.FromString(str));
     }
 }

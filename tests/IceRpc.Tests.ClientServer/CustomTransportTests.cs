@@ -13,43 +13,49 @@ namespace IceRpc.Tests.ClientServer
 
         public IMultiplexedNetworkConnection CreateConnection(Endpoint remoteEndpoint, ILogger logger)
         {
-            if (remoteEndpoint.Transport == "custom")
+            if (remoteEndpoint.Params.TryGetValue("transport", out string? endpointTransport))
             {
-                Endpoint newEndpoint = remoteEndpoint with
+                if (endpointTransport != "tcp" && endpointTransport != "custom")
                 {
-                    Params = remoteEndpoint.Params.RemoveAll(
-                        p => p.Name.StartsWith("custom-", StringComparison.Ordinal))
-                };
-                return _transport.CreateConnection(newEndpoint, logger);
+                    throw new ArgumentException(
+                        $"cannot use custom transport with endpoint '{remoteEndpoint}'",
+                        nameof(remoteEndpoint));
+                }
             }
-            else
+
+            remoteEndpoint = remoteEndpoint with
             {
-                throw new UnknownTransportException(remoteEndpoint.Transport);
-            }
+                Params = remoteEndpoint.Params.Remove("custom-p").SetItem("transport", "tcp")
+            };
+
+            return _transport.CreateConnection(remoteEndpoint, logger);
         }
     }
 
     public class CustomServerTransport : IServerTransport<IMultiplexedNetworkConnection>
     {
-        public Endpoint DefaultEndpoint => "icerpc+custom://[::0]";
+        public Endpoint DefaultEndpoint => "icerpc://[::0]?transport=custom";
 
         private readonly IServerTransport<IMultiplexedNetworkConnection> _transport =
             new SlicServerTransport(new TcpServerTransport());
 
         public IListener<IMultiplexedNetworkConnection> Listen(Endpoint endpoint, ILogger logger)
         {
-            if (endpoint.Transport == "custom")
+            if (endpoint.Params.TryGetValue("transport", out string? endpointTransport))
             {
-                Endpoint newEndpoint = endpoint with
+                if (endpointTransport != "tcp" && endpointTransport != "custom")
                 {
-                    Params = endpoint.Params.RemoveAll(p => p.Name.StartsWith("custom-", StringComparison.Ordinal))
-                };
-                return _transport.Listen(newEndpoint, logger);
+                    throw new ArgumentException(
+                        $"cannot use custom transport with endpoint '{endpoint}'",
+                        nameof(endpoint));
+                }
             }
-            else
+
+            endpoint = endpoint with
             {
-                throw new UnknownTransportException(endpoint.Transport);
-            }
+                Params = endpoint.Params.Remove("custom-p").SetItem("transport", "tcp")
+            };
+            return _transport.Listen(endpoint, logger);
         }
     }
 
@@ -61,7 +67,7 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 MultiplexedServerTransport = new CustomServerTransport(),
-                Endpoint = "icerpc+custom://127.0.0.1:0?tls=false",
+                Endpoint = "icerpc://127.0.0.1:0?tls=false&transport=custom",
                 Dispatcher = new MyService()
             };
 
@@ -85,7 +91,7 @@ namespace IceRpc.Tests.ClientServer
                 await using var server = new Server
                 {
                     MultiplexedServerTransport = new SlicServerTransport(new TcpServerTransport()),
-                    Endpoint = "icerpc+tcp://127.0.0.1:0?tls=false&custom-p=bar",
+                    Endpoint = "icerpc://127.0.0.1:0?tls=false&custom-p=bar",
                     Dispatcher = new MyService()
                 };
                 Assert.Throws<FormatException>(() => server.Listen());
@@ -96,7 +102,7 @@ namespace IceRpc.Tests.ClientServer
                 await using var server = new Server
                 {
                     MultiplexedServerTransport = new CustomServerTransport(),
-                    Endpoint = "icerpc+custom://127.0.0.1:0?tls=false&custom-p=bar",
+                    Endpoint = "icerpc://127.0.0.1:0?tls=false&transport=custom&custom-p=bar",
                     Dispatcher = new MyService()
                 };
                 server.Listen();
@@ -108,7 +114,7 @@ namespace IceRpc.Tests.ClientServer
                     // removes the parameter
                     RemoteEndpoint = server.Endpoint with
                     {
-                        Params = server.Endpoint.Params.Add(new EndpointParam("custom-p", "bar"))
+                        Params = server.Endpoint.Params.Add("custom-p", "bar")
                     }
                 };
 
@@ -122,7 +128,7 @@ namespace IceRpc.Tests.ClientServer
                     // removes the parameter
                     RemoteEndpoint = server.Endpoint with
                     {
-                        Params = server.Endpoint.Params.Add(new EndpointParam("custom-p", "bar"))
+                        Params = server.Endpoint.Params.Add("custom-p", "bar")
                     }
                 };
 
@@ -142,7 +148,6 @@ namespace IceRpc.Tests.ClientServer
             Endpoint defaultEndpoint = server.MultiplexedServerTransport.DefaultEndpoint;
             Assert.That(server.Endpoint, Is.EqualTo(defaultEndpoint));
             server.Listen();
-            Assert.That(server.Endpoint, Is.EqualTo(defaultEndpoint));
         }
 
         public class MyService : Service, IService

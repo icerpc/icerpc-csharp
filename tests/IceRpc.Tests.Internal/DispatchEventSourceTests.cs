@@ -2,8 +2,8 @@
 
 using IceRpc.Internal;
 using NUnit.Framework;
-using System.Diagnostics.Tracing;
 using System.Buffers;
+using System.Diagnostics.Tracing;
 using System.IO.Pipelines;
 
 namespace IceRpc.Tests.Internal

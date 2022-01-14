@@ -7,14 +7,14 @@ namespace IceRpc.Tests.Slice
 {
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    [TestFixture(ProtocolCode.Ice)]
-    [TestFixture(ProtocolCode.IceRpc)]
+    [TestFixture("ice")]
+    [TestFixture("icerpc")]
     public sealed class DictionaryTests
     {
         private readonly ServiceProvider _serviceProvider;
         private readonly DictionaryOperationsPrx _prx;
 
-        public DictionaryTests(ProtocolCode protocol)
+        public DictionaryTests(string protocol)
         {
             _serviceProvider = new IntegrationTestServiceCollection()
                 .UseProtocol(protocol)
@@ -96,91 +96,91 @@ namespace IceRpc.Tests.Slice
                 Enumerable.Range(0, size).Select(i => $"hello-{i}").ToDictionary(key => key, value => value));
 
             // Sorted dictionaries
-            await TestSortedDictAsync(
-               (p1, p2) => _prx.OpByteSortedDictAsync(p1, p2),
-               new SortedDictionary<byte, byte>(
+            await TestCustomDictAsync(
+               (p1, p2) => _prx.OpByteCustomDictAsync(p1, p2),
+               new CustomDictionary<byte, byte>(
                    Enumerable.Range(0, size).Select(i => (byte)i).ToDictionary(key => key, value => value)),
-               new SortedDictionary<byte, byte>(
+               new CustomDictionary<byte, byte>(
                    Enumerable.Range(0, size).Select(i => (byte)i).ToDictionary(key => key, value => value)));
 
-            await TestSortedDictAsync(
-                (p1, p2) => _prx.OpBoolSortedDictAsync(p1, p2),
-                new SortedDictionary<bool, bool>(
+            await TestCustomDictAsync(
+                (p1, p2) => _prx.OpBoolCustomDictAsync(p1, p2),
+                new CustomDictionary<bool, bool>(
                     Enumerable.Range(0, 2).Select(i => i % 2 == 0).ToDictionary(key => key, value => value)),
-                new SortedDictionary<bool, bool>(
+                new CustomDictionary<bool, bool>(
                     Enumerable.Range(0, 2).Select(i => i % 2 == 0).ToDictionary(key => key, value => value)));
 
-            await TestSortedDictAsync(
-                (p1, p2) => _prx.OpShortSortedDictAsync(p1, p2),
-                new SortedDictionary<short, short>(
+            await TestCustomDictAsync(
+                (p1, p2) => _prx.OpShortCustomDictAsync(p1, p2),
+                new CustomDictionary<short, short>(
                     Enumerable.Range(0, size).Select(i => (short)i).ToDictionary(key => key, value => value)),
-                new SortedDictionary<short, short>(
+                new CustomDictionary<short, short>(
                     Enumerable.Range(0, size).Select(i => (short)i).ToDictionary(key => key, value => value)));
 
-            await TestSortedDictAsync(
-                (p1, p2) => _prx.OpUShortSortedDictAsync(p1, p2),
-                new SortedDictionary<ushort, ushort>(
+            await TestCustomDictAsync(
+                (p1, p2) => _prx.OpUShortCustomDictAsync(p1, p2),
+                new CustomDictionary<ushort, ushort>(
                     Enumerable.Range(0, size).Select(i => (ushort)i).ToDictionary(key => key, value => value)),
-                new SortedDictionary<ushort, ushort>(
+                new CustomDictionary<ushort, ushort>(
                     Enumerable.Range(0, size).Select(i => (ushort)i).ToDictionary(key => key, value => value)));
 
-            await TestSortedDictAsync(
-                (p1, p2) => _prx.OpIntSortedDictAsync(p1, p2),
-                new SortedDictionary<int, int>(Enumerable.Range(0, size).ToDictionary(key => key, value => value)),
-                new SortedDictionary<int, int>(Enumerable.Range(0, size).ToDictionary(key => key, value => value)));
+            await TestCustomDictAsync(
+                (p1, p2) => _prx.OpIntCustomDictAsync(p1, p2),
+                new CustomDictionary<int, int>(Enumerable.Range(0, size).ToDictionary(key => key, value => value)),
+                new CustomDictionary<int, int>(Enumerable.Range(0, size).ToDictionary(key => key, value => value)));
 
-            await TestSortedDictAsync(
-                (p1, p2) => _prx.OpVarIntSortedDictAsync(p1, p2),
-                new SortedDictionary<int, int>(Enumerable.Range(0, size).ToDictionary(key => key, value => value)),
-                new SortedDictionary<int, int>(Enumerable.Range(0, size).ToDictionary(key => key, value => value)));
+            await TestCustomDictAsync(
+                (p1, p2) => _prx.OpVarIntCustomDictAsync(p1, p2),
+                new CustomDictionary<int, int>(Enumerable.Range(0, size).ToDictionary(key => key, value => value)),
+                new CustomDictionary<int, int>(Enumerable.Range(0, size).ToDictionary(key => key, value => value)));
 
-            await TestSortedDictAsync(
-                (p1, p2) => _prx.OpUIntSortedDictAsync(p1, p2),
-                new SortedDictionary<uint, uint>(
+            await TestCustomDictAsync(
+                (p1, p2) => _prx.OpUIntCustomDictAsync(p1, p2),
+                new CustomDictionary<uint, uint>(
                     Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(key => key, value => value)),
-                new SortedDictionary<uint, uint>(
+                new CustomDictionary<uint, uint>(
                     Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(key => key, value => value)));
 
-            await TestSortedDictAsync(
-                (p1, p2) => _prx.OpVarUIntSortedDictAsync(p1, p2),
-                new SortedDictionary<uint, uint>(
+            await TestCustomDictAsync(
+                (p1, p2) => _prx.OpVarUIntCustomDictAsync(p1, p2),
+                new CustomDictionary<uint, uint>(
                     Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(key => key, value => value)),
-                new SortedDictionary<uint, uint>(
+                new CustomDictionary<uint, uint>(
                     Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(key => key, value => value)));
 
-            await TestSortedDictAsync(
-                (p1, p2) => _prx.OpLongSortedDictAsync(p1, p2),
-                new SortedDictionary<long, long>(
+            await TestCustomDictAsync(
+                (p1, p2) => _prx.OpLongCustomDictAsync(p1, p2),
+                new CustomDictionary<long, long>(
                     Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(key => key, value => value)),
-                new SortedDictionary<long, long>(
+                new CustomDictionary<long, long>(
                     Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(key => key, value => value)));
 
-            await TestSortedDictAsync(
-                (p1, p2) => _prx.OpVarLongSortedDictAsync(p1, p2),
-                new SortedDictionary<long, long>(
+            await TestCustomDictAsync(
+                (p1, p2) => _prx.OpVarLongCustomDictAsync(p1, p2),
+                new CustomDictionary<long, long>(
                     Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(key => key, value => value)),
-                new SortedDictionary<long, long>(
+                new CustomDictionary<long, long>(
                     Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(key => key, value => value)));
 
-            await TestSortedDictAsync(
-                (p1, p2) => _prx.OpULongSortedDictAsync(p1, p2),
-                new SortedDictionary<ulong, ulong>(
+            await TestCustomDictAsync(
+                (p1, p2) => _prx.OpULongCustomDictAsync(p1, p2),
+                new CustomDictionary<ulong, ulong>(
                     Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(key => key, value => value)),
-                new SortedDictionary<ulong, ulong>(
+                new CustomDictionary<ulong, ulong>(
                     Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(key => key, value => value)));
 
-            await TestSortedDictAsync(
-                (p1, p2) => _prx.OpVarULongSortedDictAsync(p1, p2),
-                new SortedDictionary<ulong, ulong>(
+            await TestCustomDictAsync(
+                (p1, p2) => _prx.OpVarULongCustomDictAsync(p1, p2),
+                new CustomDictionary<ulong, ulong>(
                     Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(key => key, value => value)),
-                new SortedDictionary<ulong, ulong>(
+                new CustomDictionary<ulong, ulong>(
                     Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(key => key, value => value)));
 
-            await TestSortedDictAsync(
-                (p1, p2) => _prx.OpStringSortedDictAsync(p1, p2),
-                new SortedDictionary<string, string>(
+            await TestCustomDictAsync(
+                (p1, p2) => _prx.OpStringCustomDictAsync(p1, p2),
+                new CustomDictionary<string, string>(
                     Enumerable.Range(0, size).Select(i => $"hello-{i}").ToDictionary(key => key, value => value)),
-                new SortedDictionary<string, string>(
+                new CustomDictionary<string, string>(
                     Enumerable.Range(0, size).Select(i => $"hello-{i}").ToDictionary(key => key, value => value)));
         }
 
@@ -360,27 +360,27 @@ namespace IceRpc.Tests.Slice
                     i => GetEnum<MyEnum>(myEnumValues, i),
                     i => GetEnum<MyEnum>(myEnumValues, i)));
 
-            await TestSortedDictAsync(
-                (p1, p2) => _prx.OpMyFixedLengthEnumSortedDictAsync(p1, p2),
-                new SortedDictionary<MyFixedLengthEnum, MyFixedLengthEnum>(
+            await TestCustomDictAsync(
+                (p1, p2) => _prx.OpMyFixedLengthEnumCustomDictAsync(p1, p2),
+                new CustomDictionary<MyFixedLengthEnum, MyFixedLengthEnum>(
                     Enumerable.Range(0, myFixedLengthEnumValues.Length).ToDictionary(
                         i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i),
                         i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i))),
-                new SortedDictionary<MyFixedLengthEnum, MyFixedLengthEnum>(
+                new CustomDictionary<MyFixedLengthEnum, MyFixedLengthEnum>(
                     Enumerable.Range(0, myFixedLengthEnumValues.Length).ToDictionary(
                         i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i),
                         i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i))));
 
-            await TestSortedDictAsync(
-                (p1, p2) => _prx.OpMyUncheckedEnumSortedDictAsync(p1, p2),
-                new SortedDictionary<MyUncheckedEnum, MyUncheckedEnum>(
+            await TestCustomDictAsync(
+                (p1, p2) => _prx.OpMyUncheckedEnumCustomDictAsync(p1, p2),
+                new CustomDictionary<MyUncheckedEnum, MyUncheckedEnum>(
                     Enumerable.Range(0, size).ToDictionary(i => (MyUncheckedEnum)i, i => (MyUncheckedEnum)i)),
-                new SortedDictionary<MyUncheckedEnum, MyUncheckedEnum>(
+                new CustomDictionary<MyUncheckedEnum, MyUncheckedEnum>(
                     Enumerable.Range(0, size).ToDictionary(i => (MyUncheckedEnum)i, i => (MyUncheckedEnum)i)));
 
             static T GetEnum<T>(Array values, int i) => (T)values.GetValue(i % values.Length)!;
 
-            OperationsPrx GetOperationsPrx(int i) => OperationsPrx.Parse($"icerpc+tcp://host/foo-{i}");
+            OperationsPrx GetOperationsPrx(int i) => OperationsPrx.Parse($"icerpc://host/foo-{i}");
 
             AnotherStruct GetAnotherStruct(int i)
             {
@@ -453,7 +453,7 @@ namespace IceRpc.Tests.Slice
 
             static T GetEnum<T>(Array values, int i) => (T)values.GetValue(i % values.Length)!;
 
-            OperationsPrx GetOperationsPrx(int i) => OperationsPrx.Parse($"icerpc+tcp://host/foo-{i}");
+            OperationsPrx GetOperationsPrx(int i) => OperationsPrx.Parse($"icerpc://host/foo-{i}");
 
             AnotherStruct GetAnotherStruct(int i)
             {
@@ -661,109 +661,109 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<byte, byte>> R1, IEnumerable<KeyValuePair<byte, byte>> R2)> OpByteSortedDictAsync(
-                SortedDictionary<byte, byte> p1,
-                SortedDictionary<byte, byte> p2,
+            public ValueTask<(IEnumerable<KeyValuePair<byte, byte>> R1, IEnumerable<KeyValuePair<byte, byte>> R2)> OpByteCustomDictAsync(
+                CustomDictionary<byte, byte> p1,
+                CustomDictionary<byte, byte> p2,
                 Dispatch dispatch, CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<bool, bool>> R1, IEnumerable<KeyValuePair<bool, bool>> R2)> OpBoolSortedDictAsync(
-                SortedDictionary<bool, bool> p1,
-                SortedDictionary<bool, bool> p2,
+            public ValueTask<(IEnumerable<KeyValuePair<bool, bool>> R1, IEnumerable<KeyValuePair<bool, bool>> R2)> OpBoolCustomDictAsync(
+                CustomDictionary<bool, bool> p1,
+                CustomDictionary<bool, bool> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<short, short>> R1, IEnumerable<KeyValuePair<short, short>> R2)> OpShortSortedDictAsync(
-                SortedDictionary<short, short> p1,
-                SortedDictionary<short, short> p2,
+            public ValueTask<(IEnumerable<KeyValuePair<short, short>> R1, IEnumerable<KeyValuePair<short, short>> R2)> OpShortCustomDictAsync(
+                CustomDictionary<short, short> p1,
+                CustomDictionary<short, short> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<ushort, ushort>> R1, IEnumerable<KeyValuePair<ushort, ushort>> R2)> OpUShortSortedDictAsync(
-                SortedDictionary<ushort, ushort> p1,
-                SortedDictionary<ushort, ushort> p2,
+            public ValueTask<(IEnumerable<KeyValuePair<ushort, ushort>> R1, IEnumerable<KeyValuePair<ushort, ushort>> R2)> OpUShortCustomDictAsync(
+                CustomDictionary<ushort, ushort> p1,
+                CustomDictionary<ushort, ushort> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<int, int>> R1, IEnumerable<KeyValuePair<int, int>> R2)> OpIntSortedDictAsync(
-                SortedDictionary<int, int> p1,
-                SortedDictionary<int, int> p2,
+            public ValueTask<(IEnumerable<KeyValuePair<int, int>> R1, IEnumerable<KeyValuePair<int, int>> R2)> OpIntCustomDictAsync(
+                CustomDictionary<int, int> p1,
+                CustomDictionary<int, int> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<int, int?>> R1, IEnumerable<KeyValuePair<int, int?>> R2)> OpOptionalIntSortedDictAsync(
-                SortedDictionary<int, int?> p1,
-                SortedDictionary<int, int?> p2,
+            public ValueTask<(IEnumerable<KeyValuePair<int, int?>> R1, IEnumerable<KeyValuePair<int, int?>> R2)> OpOptionalIntCustomDictAsync(
+                CustomDictionary<int, int?> p1,
+                CustomDictionary<int, int?> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<int, int>> R1, IEnumerable<KeyValuePair<int, int>> R2)> OpVarIntSortedDictAsync(
-                SortedDictionary<int, int> p1,
-                SortedDictionary<int, int> p2,
+            public ValueTask<(IEnumerable<KeyValuePair<int, int>> R1, IEnumerable<KeyValuePair<int, int>> R2)> OpVarIntCustomDictAsync(
+                CustomDictionary<int, int> p1,
+                CustomDictionary<int, int> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
-            public ValueTask<(IEnumerable<KeyValuePair<uint, uint>> R1, IEnumerable<KeyValuePair<uint, uint>> R2)> OpUIntSortedDictAsync(
-                SortedDictionary<uint, uint> p1,
-                SortedDictionary<uint, uint> p2,
-                Dispatch dispatch,
-                CancellationToken cancel) => new((p1, p2));
-
-            public ValueTask<(IEnumerable<KeyValuePair<uint, uint>> R1, IEnumerable<KeyValuePair<uint, uint>> R2)> OpVarUIntSortedDictAsync(
-                SortedDictionary<uint, uint> p1,
-                SortedDictionary<uint, uint> p2,
+            public ValueTask<(IEnumerable<KeyValuePair<uint, uint>> R1, IEnumerable<KeyValuePair<uint, uint>> R2)> OpUIntCustomDictAsync(
+                CustomDictionary<uint, uint> p1,
+                CustomDictionary<uint, uint> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<long, long>> R1, IEnumerable<KeyValuePair<long, long>> R2)> OpLongSortedDictAsync(
-                SortedDictionary<long, long> p1,
-                SortedDictionary<long, long> p2,
+            public ValueTask<(IEnumerable<KeyValuePair<uint, uint>> R1, IEnumerable<KeyValuePair<uint, uint>> R2)> OpVarUIntCustomDictAsync(
+                CustomDictionary<uint, uint> p1,
+                CustomDictionary<uint, uint> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<long, long>> R1, IEnumerable<KeyValuePair<long, long>> R2)> OpVarLongSortedDictAsync(
-                SortedDictionary<long, long> p1,
-                SortedDictionary<long, long> p2,
+            public ValueTask<(IEnumerable<KeyValuePair<long, long>> R1, IEnumerable<KeyValuePair<long, long>> R2)> OpLongCustomDictAsync(
+                CustomDictionary<long, long> p1,
+                CustomDictionary<long, long> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<ulong, ulong>> R1, IEnumerable<KeyValuePair<ulong, ulong>> R2)> OpULongSortedDictAsync(
-                SortedDictionary<ulong, ulong> p1,
-                SortedDictionary<ulong, ulong> p2,
+            public ValueTask<(IEnumerable<KeyValuePair<long, long>> R1, IEnumerable<KeyValuePair<long, long>> R2)> OpVarLongCustomDictAsync(
+                CustomDictionary<long, long> p1,
+                CustomDictionary<long, long> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<ulong, ulong>> R1, IEnumerable<KeyValuePair<ulong, ulong>> R2)> OpVarULongSortedDictAsync(
-                SortedDictionary<ulong, ulong> p1,
-                SortedDictionary<ulong, ulong> p2,
+            public ValueTask<(IEnumerable<KeyValuePair<ulong, ulong>> R1, IEnumerable<KeyValuePair<ulong, ulong>> R2)> OpULongCustomDictAsync(
+                CustomDictionary<ulong, ulong> p1,
+                CustomDictionary<ulong, ulong> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<string, string>> R1, IEnumerable<KeyValuePair<string, string>> R2)> OpStringSortedDictAsync(
-                SortedDictionary<string, string> p1,
-                SortedDictionary<string, string> p2,
+            public ValueTask<(IEnumerable<KeyValuePair<ulong, ulong>> R1, IEnumerable<KeyValuePair<ulong, ulong>> R2)> OpVarULongCustomDictAsync(
+                CustomDictionary<ulong, ulong> p1,
+                CustomDictionary<ulong, ulong> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<string, string?>> R1, IEnumerable<KeyValuePair<string, string?>> R2)> OpOptionalStringSortedDictAsync(
-                SortedDictionary<string, string?> p1,
-                SortedDictionary<string, string?> p2,
+            public ValueTask<(IEnumerable<KeyValuePair<string, string>> R1, IEnumerable<KeyValuePair<string, string>> R2)> OpStringCustomDictAsync(
+                CustomDictionary<string, string> p1,
+                CustomDictionary<string, string> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<MyEnum, MyEnum>> R1, IEnumerable<KeyValuePair<MyEnum, MyEnum>> R2)> OpMyEnumSortedDictAsync(
-                SortedDictionary<MyEnum, MyEnum> p1,
-                SortedDictionary<MyEnum, MyEnum> p2,
+            public ValueTask<(IEnumerable<KeyValuePair<string, string?>> R1, IEnumerable<KeyValuePair<string, string?>> R2)> OpOptionalStringCustomDictAsync(
+                CustomDictionary<string, string?> p1,
+                CustomDictionary<string, string?> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<MyFixedLengthEnum, MyFixedLengthEnum>> R1, IEnumerable<KeyValuePair<MyFixedLengthEnum, MyFixedLengthEnum>> R2)> OpMyFixedLengthEnumSortedDictAsync(
-                SortedDictionary<MyFixedLengthEnum, MyFixedLengthEnum> p1,
-                SortedDictionary<MyFixedLengthEnum, MyFixedLengthEnum> p2,
+            public ValueTask<(IEnumerable<KeyValuePair<MyEnum, MyEnum>> R1, IEnumerable<KeyValuePair<MyEnum, MyEnum>> R2)> OpMyEnumCustomDictAsync(
+                CustomDictionary<MyEnum, MyEnum> p1,
+                CustomDictionary<MyEnum, MyEnum> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<MyUncheckedEnum, MyUncheckedEnum>> R1, IEnumerable<KeyValuePair<MyUncheckedEnum, MyUncheckedEnum>> R2)> OpMyUncheckedEnumSortedDictAsync(
-                SortedDictionary<MyUncheckedEnum, MyUncheckedEnum> p1,
-                SortedDictionary<MyUncheckedEnum, MyUncheckedEnum> p2,
+            public ValueTask<(IEnumerable<KeyValuePair<MyFixedLengthEnum, MyFixedLengthEnum>> R1, IEnumerable<KeyValuePair<MyFixedLengthEnum, MyFixedLengthEnum>> R2)> OpMyFixedLengthEnumCustomDictAsync(
+                CustomDictionary<MyFixedLengthEnum, MyFixedLengthEnum> p1,
+                CustomDictionary<MyFixedLengthEnum, MyFixedLengthEnum> p2,
+                Dispatch dispatch,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IEnumerable<KeyValuePair<MyUncheckedEnum, MyUncheckedEnum>> R1, IEnumerable<KeyValuePair<MyUncheckedEnum, MyUncheckedEnum>> R2)> OpMyUncheckedEnumCustomDictAsync(
+                CustomDictionary<MyUncheckedEnum, MyUncheckedEnum> p1,
+                CustomDictionary<MyUncheckedEnum, MyUncheckedEnum> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -815,12 +815,12 @@ namespace IceRpc.Tests.Slice
             CollectionAssert.AreEqual(p2, r2);
         }
 
-        static async Task TestSortedDictAsync<Key, Value>(
-                Func<SortedDictionary<Key, Value>, SortedDictionary<Key, Value>, Task<(SortedDictionary<Key, Value>, SortedDictionary<Key, Value>)>> invoker,
-                SortedDictionary<Key, Value> p1,
-                SortedDictionary<Key, Value> p2) where Key : notnull
+        static async Task TestCustomDictAsync<Key, Value>(
+                Func<CustomDictionary<Key, Value>, CustomDictionary<Key, Value>, Task<(CustomDictionary<Key, Value>, CustomDictionary<Key, Value>)>> invoker,
+                CustomDictionary<Key, Value> p1,
+                CustomDictionary<Key, Value> p2) where Key : notnull
         {
-            (SortedDictionary<Key, Value> r1, SortedDictionary<Key, Value> r2) = await invoker(p1, p2);
+            (CustomDictionary<Key, Value> r1, CustomDictionary<Key, Value> r2) = await invoker(p1, p2);
             CollectionAssert.AreEqual(p1, r1);
             CollectionAssert.AreEqual(p2, r2);
         }

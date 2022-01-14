@@ -308,11 +308,6 @@ namespace IceRpc
                         if (endpoint == null)
                         {
                             endpoint = ParseEndpoint(es);
-
-                            if (endpoint.Transport == TransportNames.Loc)
-                            {
-                                throw new FormatException("use @ adapterId instead of loc in proxy");
-                            }
                         }
                         else
                         {
@@ -380,18 +375,12 @@ namespace IceRpc
                     throw new FormatException($"empty adapter ID in proxy '{s}'");
                 }
 
-                endpoint = new Endpoint(Protocol.Ice,
-                                        TransportNames.Loc,
-                                        host: adapterId,
-                                        port: 0,
-                                        ImmutableList<EndpointParam>.Empty);
-
                 return new Proxy(identity.ToPath(), Protocol.Ice)
                 {
                     Invoker = invoker ?? Proxy.DefaultInvoker,
-                    Endpoint = endpoint,
                     Encoding = encoding,
-                    Fragment = Uri.EscapeDataString(facet)
+                    Fragment = Uri.EscapeDataString(facet),
+                    Params = ImmutableDictionary<string, string>.Empty.Add("adapter-id", adapterId)
                 };
             }
 
@@ -443,7 +432,9 @@ namespace IceRpc
                 }
             }
 
-            if (proxy.Endpoint?.Transport == TransportNames.Udp)
+            if (proxy.Endpoint is Endpoint endpoint &&
+                endpoint.Params.TryGetValue("transport", out string? transport) &&
+                transport == TransportNames.Udp)
             {
                 sb.Append(" -d");
             }
@@ -457,12 +448,10 @@ namespace IceRpc
             sb.Append(" -e ");
             sb.Append(proxy.Encoding);
 
-            if (proxy.Endpoint != null)
+            if (proxy.Endpoint == null)
             {
-                if (proxy.Endpoint.Transport == TransportNames.Loc)
+                if (proxy.Params.TryGetValue("adapter-id", out string? adapterId))
                 {
-                    string adapterId = proxy.Endpoint.Host;
-
                     sb.Append(" @ ");
 
                     // If the encoded adapter ID contains characters which the proxy parser uses as separators, then
@@ -479,17 +468,17 @@ namespace IceRpc
                         sb.Append(adapterId);
                     }
                 }
-                else
-                {
-                    sb.Append(':');
-                    sb.Append(ToString(proxy.Endpoint));
+            }
+            else
+            {
+               sb.Append(':');
+               sb.Append(ToString(proxy.Endpoint));
 
-                    foreach (Endpoint e in proxy.AltEndpoints)
-                    {
-                        sb.Append(':');
-                        sb.Append(ToString(e));
-                    }
-                }
+               foreach (Endpoint e in proxy.AltEndpoints)
+               {
+                    sb.Append(':');
+                    sb.Append(ToString(e));
+               }
             }
             return sb.ToString();
         }
@@ -507,23 +496,24 @@ namespace IceRpc
                 throw new FormatException("no non-whitespace character in endpoint string");
             }
 
-            string transportName = args[0];
-            if (transportName == "default")
+            string transport = args[0];
+            if (transport.Length == 0 ||
+                !char.IsLetter(transport, 0) ||
+                !transport.Skip(1).All(c => char.IsLetterOrDigit(c)))
             {
-                transportName = "tcp";
-            }
-            else if (transportName.Length == 0 ||
-                    !char.IsLetter(transportName, 0) ||
-                    !transportName.Skip(1).All(c => char.IsLetterOrDigit(c)))
-            {
-                throw new FormatException($"invalid transport name '{transportName}' in endpoint '{endpointString}");
+                throw new FormatException($"invalid transport name '{transport}' in endpoint '{endpointString}");
             }
 
             string? host = null;
             ushort? port = null;
-            var endpointParams = new List<EndpointParam>();
 
-            // Parse args into name/value pairs (and skip transportName at args[0])
+            // We map "default" to tcp for consistency with the Slice 1.1 Encoder/Decoder.
+            var endpointParams = new Dictionary<string, string>
+            {
+                ["transport"] = transport == "default" ? TransportNames.Tcp : transport,
+            };
+
+            // Parse args into name/value pairs (and skip transport at args[0])
             for (int n = 1; n < args.Length; ++n)
             {
                 // Any name with < 2 characters or that does not start with - is illegal
@@ -594,28 +584,25 @@ namespace IceRpc
                     {
                         value = "true";
                     }
-                    endpointParams.Add(new EndpointParam(name, value));
+                    endpointParams.Add(name, value);
                 }
             }
 
-            if (transportName == TransportNames.Tcp)
+            if (transport == TransportNames.Tcp)
             {
-                // Since the order of the endpoint params matters for endpoint comparison, we
-                // always insert tls first.
-                endpointParams.Insert(0, new EndpointParam("tls", "false"));
+                endpointParams.Add("tls", "false");
             }
-            else if (transportName == TransportNames.Ssl)
+            else if (transport == TransportNames.Ssl)
             {
-                transportName = TransportNames.Tcp;
-                endpointParams.Insert(0, new EndpointParam("tls", "true"));
+                transport = TransportNames.Tcp;
+                endpointParams.Add("tls", "true");
             }
 
             return new Endpoint(
                 Protocol.Ice,
-                transportName,
                 host ?? "",
                 port ?? 0,
-                endpointParams.ToImmutableList());
+                endpointParams.ToImmutableDictionary());
         }
 
         /// <summary>Converts an endpoint into a string in a format compatible with ZeroC Ice.</summary>
@@ -625,9 +612,13 @@ namespace IceRpc
         {
             var sb = new StringBuilder();
 
-            if (endpoint.Transport == TransportNames.Tcp)
+            // The default transport is "tcp" for consistency with the Slice 1.1 Encoder/Decoder.
+            string transport = endpoint.Params.TryGetValue("transport", out string? transportValue) ?
+                transportValue : TransportNames.Tcp;
+
+            if (transport == TransportNames.Tcp)
             {
-                if (endpoint.Params.Find(p => p.Name == "tls").Value == "false")
+                if (endpoint.Params.TryGetValue("tls", out string? tlsValue) && tlsValue == "false")
                 {
                     sb.Append(TransportNames.Tcp);
                 }
@@ -638,7 +629,7 @@ namespace IceRpc
             }
             else
             {
-                sb.Append(endpoint.Transport);
+                sb.Append(transport);
             }
 
             if (endpoint.Host.Length > 0)
@@ -657,7 +648,7 @@ namespace IceRpc
             }
 
             // For backwards compatibility, we don't output "-p 0" for opaque endpoints.
-            if (endpoint.Transport != TransportNames.Opaque || endpoint.Port != 0)
+            if (transport != TransportNames.Opaque || endpoint.Port != 0)
             {
                 sb.Append(" -p ");
                 sb.Append(endpoint.Port.ToString(CultureInfo.InvariantCulture));
@@ -665,7 +656,7 @@ namespace IceRpc
 
             foreach ((string name, string value) in endpoint.Params)
             {
-                if (name != "tls")
+                if (name != "transport" && name != "tls")
                 {
                     sb.Append(' ');
 

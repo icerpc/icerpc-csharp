@@ -40,7 +40,6 @@ module IceRpc::Internal
     struct IceRpcRequestHeader
     {
         path: string,
-        fragment: string,
         operation: string,
         \idempotent: bool,
         deadline: varlong,

@@ -51,9 +51,9 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(5, value); // 2 more interceptors executed with prx2
         }
 
-        [TestCase(ProtocolCode.Ice)]
-        [TestCase(ProtocolCode.IceRpc)]
-        public async Task Pipeline_CoalesceInterceptor(ProtocolCode protocol)
+        [TestCase("ice")]
+        [TestCase("icerpc")]
+        public async Task Pipeline_CoalesceInterceptor(string protocol)
         {
             string lastOperation = "";
 

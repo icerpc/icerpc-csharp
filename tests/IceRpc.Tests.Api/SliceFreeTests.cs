@@ -12,7 +12,7 @@ namespace IceRpc.Tests.Api
 
     [Parallelizable(scope: ParallelScope.All)]
     [Timeout(5000)]
-    [Log(LogAttributeLevel.Information)]
+    // [Log(LogAttributeLevel.Information)]
     [FixtureLifeCycle(LifeCycle.SingleInstance)]
     public sealed class SliceFreeTests : IAsyncDisposable
     {

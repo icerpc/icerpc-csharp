@@ -2,7 +2,6 @@
 
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
-using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
 

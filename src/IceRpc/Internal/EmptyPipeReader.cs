@@ -26,7 +26,7 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
         {
-           // no-op
+            // no-op
         }
 
         /// <inheritdoc/>

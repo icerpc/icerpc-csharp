@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 
@@ -13,7 +12,7 @@ namespace IceRpc.Internal
         /// <param name="sb">The string builder.</param>
         /// <param name="endpoint">The endpoint to append.</param>
         /// <param name="path">The path of the endpoint URI. Use this parameter to start building a proxy URI.</param>
-        /// <param name="includeScheme">When true, first appends the endpoint's scheme followed by ://.</param>
+        /// <param name="includeScheme">When true, first appends the endpoint's protocol followed by ://.</param>
         /// <param name="paramSeparator">The character that separates parameters in the query component of the URI.
         /// </param>
         /// <returns>The string builder <paramref name="sb"/>.</returns>
@@ -26,8 +25,7 @@ namespace IceRpc.Internal
         {
             if (includeScheme)
             {
-                sb.Append("icerpc+");
-                sb.Append(endpoint.Transport);
+                sb.Append(endpoint.Protocol.Name);
                 sb.Append("://");
             }
 
@@ -54,23 +52,7 @@ namespace IceRpc.Internal
             }
 
             bool firstOption = true;
-
-            if (endpoint.Protocol != Protocol.IceRpc)
-            {
-                AppendQueryOption();
-                sb.Append("protocol=");
-                sb.Append(endpoint.Protocol);
-            }
             foreach ((string name, string value) in endpoint.Params)
-            {
-                AppendQueryOption();
-                sb.Append(name);
-                sb.Append('=');
-                sb.Append(value);
-            }
-            return sb;
-
-            void AppendQueryOption()
             {
                 if (firstOption)
                 {
@@ -81,7 +63,11 @@ namespace IceRpc.Internal
                 {
                     sb.Append(paramSeparator);
                 }
+                sb.Append(name);
+                sb.Append('=');
+                sb.Append(value);
             }
+            return sb;
         }
     }
 }
