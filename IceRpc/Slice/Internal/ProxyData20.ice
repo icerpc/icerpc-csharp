@@ -12,6 +12,7 @@ module IceRpc::Slice::Internal
         path: string?,                        // Percent-escaped URI path. Null means null proxy.
         fragment: string?,                    // Percent-escaped string. Null is equivalent to the empty string.
         encoding: string?,                    // TODO: remove
+        params: dictionary<string, string>?,
         endpoint: EndpointData?,
         altEndpoints: sequence<EndpointData>?,
     }
