@@ -103,7 +103,7 @@ namespace IceRpc.Tests.ClientServer
                 (request, cancel) =>
                 {
                     string? adapterId =
-                        request.Proxy.Params.TryGetValue("adapter-id", out string? value) ? value : null;
+                        request.Params.TryGetValue("adapter-id", out string? value) ? value : null;
 
                     if (request.Protocol == resolvedEndpoint.Protocol &&
                         ((category == null && location == adapterId) ||

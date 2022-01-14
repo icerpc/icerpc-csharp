@@ -212,8 +212,8 @@ namespace IceRpc
             [NotNullWhen(true)] out Proxy? proxy) =>
             (format ?? UriProxyFormat.Instance).TryParse(s, invoker, out proxy);
 
-        /// <summary>Creates a shallow copy of this proxy. It's a safe copy since the only container property
-        /// (AltEndpoints) is immutable.</summary>
+        /// <summary>Creates a shallow copy of this proxy. It's a safe copy since all the container properties
+        /// (AltEndpoints, Params) are immutable.</summary>
         /// <returns>A copy of this proxy.</returns>
         public Proxy Clone() => (Proxy)MemberwiseClone();
 

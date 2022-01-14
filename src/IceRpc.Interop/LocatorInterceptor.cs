@@ -45,8 +45,7 @@ namespace IceRpc
                 }
                 else if (request.Endpoint == null)
                 {
-                    // TODO: copy Params into OutgoingRequest?
-                    if (request.Proxy.Params.TryGetValue("adapter-id", out string? adapterId))
+                    if (request.Params.TryGetValue("adapter-id", out string? adapterId))
                     {
                         location = new Location(adapterId);
                     }
