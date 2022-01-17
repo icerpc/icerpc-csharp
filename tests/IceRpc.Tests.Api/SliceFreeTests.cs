@@ -53,7 +53,7 @@ namespace IceRpc.Tests.Api
         {
             var payload = new ReadOnlySequence<byte>(_utf8.GetBytes(_greeting));
 
-            var joeProxy = _proxy.WithPath(_joe);
+            var joeProxy = _proxy with { Path = _joe };
             var request = new OutgoingRequest(joeProxy, _sayHelloOperation)
             {
                 PayloadEncoding = _customEncoding,
@@ -67,7 +67,7 @@ namespace IceRpc.Tests.Api
             await response.Payload.CompleteAsync(); // done with payload
             Assert.That(greetingResponse, Is.EqualTo(_doingWell));
 
-            var austinProxy = _proxy.WithPath(_austin);
+            var austinProxy = _proxy with { Path = _austin };
             request = new OutgoingRequest(austinProxy, _sayHelloOperation)
             {
                 PayloadEncoding = _customEncoding,
@@ -86,7 +86,7 @@ namespace IceRpc.Tests.Api
         {
             var payload = new ReadOnlySequence<byte>(_utf8.GetBytes(_greeting));
 
-            var badProxy = _proxy.WithPath("/bad");
+            var badProxy = _proxy with { Path = "/bad" };
             var request = new OutgoingRequest(badProxy, _sayHelloOperation)
             {
                 PayloadEncoding = _customEncoding,
@@ -100,7 +100,7 @@ namespace IceRpc.Tests.Api
             await response.Payload.CompleteAsync(); // done with payload
             // TODO: unfortunately there is currently no way to decode this response (2.0-encoded exception)
 
-            var joeProxy = _proxy.WithPath(_joe);
+            var joeProxy = _proxy with { Path = _joe };
             IServicePrx slicePrx = new ServicePrx(joeProxy);
 
             // the greeter does not implement ice_ping since ice_ping is a Slice operation:
@@ -111,7 +111,7 @@ namespace IceRpc.Tests.Api
         public async Task SliceFree_InvocationAsync()
         {
             var payload = new ReadOnlySequence<byte>(_utf8.GetBytes(_greeting));
-            var joeProxy = _proxy.WithPath(_joe);
+            var joeProxy = _proxy with { Path = _joe };
 
             var request = new OutgoingRequest(joeProxy, _sayHelloOperation)
             {

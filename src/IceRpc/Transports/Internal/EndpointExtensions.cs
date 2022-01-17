@@ -241,7 +241,7 @@ namespace IceRpc.Transports.Internal
 
         /// <summary>Adds the transport parameter to this endpoint if null, and does nothing if it's already set to the
         /// correct value.</summary>
-        /// <exception name="ArgumentException">Thrown if endpoint already holds another transport.</exception>
+        /// <exception cref="ArgumentException">Thrown if endpoint already holds another transport.</exception>
         internal static Endpoint WithTransport(this Endpoint endpoint, string transport)
         {
             if (endpoint.Params.TryGetValue("transport", out string? endpointTransport))

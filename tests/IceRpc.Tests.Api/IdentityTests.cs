@@ -25,13 +25,8 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(normalizedPath ?? path, identity.ToPath());
         }
 
-        /// <summary>Identity.FromPath for an invalid path throws ArgumentException.</summary>
+        /// <summary>Identity.FromPath for an invalid path throws FormatException.</summary>
         [TestCase("foo/bar/abc")] // does not start with a slash
-        public void Identity_FromPath_ArgumentException(string path) =>
-            Assert.Throws<ArgumentException>(() => Identity.FromPath(path));
-
-        /// <summary>Identity.FromPath for a valid path that can't be converted to an identity throws FormatException.
-        /// </summary>
         [TestCase("/foo/bar/abc")] // too many slashes
         [TestCase("///")] // too many slashes
         public void Identity_FromPath_FormatException(string path) =>

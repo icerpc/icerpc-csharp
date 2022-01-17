@@ -644,7 +644,7 @@ namespace IceRpc
                         ResultType = ResultType.Failure
                     };
 
-                    if (Protocol.HasFieldSupport && remoteException.RetryPolicy != RetryPolicy.NoRetry)
+                    if (Protocol.HasFields && remoteException.RetryPolicy != RetryPolicy.NoRetry)
                     {
                         RetryPolicy retryPolicy = remoteException.RetryPolicy;
                         response.Fields.Add(

@@ -17,7 +17,7 @@ namespace IceRpc.Transports
         /// within the log scopes created by IceRPC.</param>
         /// <returns>The new network connection. This connection is not yet connected.</returns>
         /// <returns>The new listener.</returns>
-        /// <exception name="UnknownTransportException">Thrown if this server transport does not support the endpoint's
+        /// <exception cref="UnknownTransportException">Thrown if this server transport does not support the endpoint's
         /// transport.</exception>
         IListener<T> Listen(Endpoint endpoint, ILogger logger);
     }

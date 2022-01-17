@@ -38,9 +38,11 @@ namespace IceRpc.Configure
 
         /// <summary>Constructs a router with an absolute prefix.</summary>
         /// <param name="absolutePrefix">The absolute prefix of the new router. It must start with a <c>/</c>.</param>
+        /// <exception cref="FormatException">Thrown if <paramref name="absolutePrefix"/> is not a valid path.
+        /// </exception>
         public Router(string absolutePrefix)
         {
-            Proxy.CheckPath(absolutePrefix, nameof(absolutePrefix));
+            Proxy.CheckPath(absolutePrefix);
             absolutePrefix = NormalizePrefix(absolutePrefix);
             AbsolutePrefix = absolutePrefix.Length > 1 ? absolutePrefix : "";
         }
@@ -53,7 +55,7 @@ namespace IceRpc.Configure
         /// <param name="path">The path of this route. It must match exactly the path of the request. In particular, it
         /// must start with a <c>/</c>.</param>
         /// <param name="dispatcher">The target of this route. It is typically an <see cref="IService"/>.</param>
-        /// <exception cref="ArgumentException">Thrown if path does not start with a <c>/</c>.</exception>
+        /// <exception cref="FormatException">Thrown if <paramref name="path"/> is not a valid path.</exception>
         /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync"/> was already
         /// called on this router.</exception>
         /// <seealso cref="Mount"/>
@@ -64,7 +66,7 @@ namespace IceRpc.Configure
                 throw new InvalidOperationException(
                     $"cannot call {nameof(Map)} after calling {nameof(IDispatcher.DispatchAsync)}");
             }
-            Proxy.CheckPath(path, nameof(path));
+            Proxy.CheckPath(path);
             _exactMatchRoutes[path] = dispatcher;
         }
 
@@ -82,7 +84,7 @@ namespace IceRpc.Configure
         /// <param name="prefix">The prefix of this route. This prefix will be compared with the start of the path of
         /// the request.</param>
         /// <param name="dispatcher">The target of this route.</param>
-        /// <exception cref="ArgumentException">Thrown if prefix does not start with a <c>/</c>.</exception>
+        /// <exception cref="FormatException">Thrown if <paramref name="prefix"/> is not a valid path.</exception>
         /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync"/> was already
         /// called on this router.</exception>
         /// <seealso cref="Map(string, IDispatcher)"/>
@@ -93,7 +95,7 @@ namespace IceRpc.Configure
                 throw new InvalidOperationException(
                     $"cannot call {nameof(Mount)} after calling {nameof(IDispatcher.DispatchAsync)}");
             }
-            Proxy.CheckPath(prefix, nameof(prefix));
+            Proxy.CheckPath(prefix);
             prefix = NormalizePrefix(prefix);
             _prefixMatchRoutes[prefix] = dispatcher;
         }
@@ -103,10 +105,10 @@ namespace IceRpc.Configure
         /// <param name="prefix">The prefix of the route to the sub-router.</param>
         /// <param name="configure">A delegate that configures the new sub-router.</param>
         /// <returns>The new sub-router.</returns>
-        /// <exception cref="ArgumentException">Thrown if prefix does not start with a <c>/</c>.</exception>
+        /// <exception cref="FormatException">Thrown if <paramref name="prefix"/> is not a valid path.</exception>
         public Router Route(string prefix, Action<Router> configure)
         {
-            Proxy.CheckPath(prefix, nameof(prefix));
+            Proxy.CheckPath(prefix);
             var subRouter = new Router($"{AbsolutePrefix}{prefix}");
             configure(subRouter);
             Mount(prefix, subRouter);

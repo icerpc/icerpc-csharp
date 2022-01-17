@@ -201,7 +201,7 @@ namespace IceRpc.Internal
         internal ResettablePipeReaderDecorator(PipeReader decoratee) => _decoratee = decoratee;
 
         /// <summary>Resets this pipe reader.</summary>
-        /// <exception name="InvalidOperationException">Thrown if <see cref="IsResettable"/> is false.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if <see cref="IsResettable"/> is false.</exception>
         internal void Reset()
         {
             if (IsResettable)

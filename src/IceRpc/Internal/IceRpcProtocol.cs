@@ -8,7 +8,8 @@ namespace IceRpc.Internal
     /// <summary>The IceRPC protocol class.</summary>
     internal sealed class IceRpcProtocol : Protocol
     {
-        public override bool HasFieldSupport => true;
+        public override int DefaultUriPort => 4062;
+        public override bool HasFields => true;
         public override bool IsSupported => true;
 
         /// <summary>The IceRpc protocol singleton.</summary>

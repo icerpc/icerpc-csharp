@@ -37,7 +37,7 @@ namespace IceRpc.Tests.ClientServer
             _server.Listen();
 
             // Must be created after Listen to get the port number.
-            _greeter = GreeterPrx.FromPath(path, Protocol.Ice);
+            _greeter = GreeterPrx.Parse($"ice:{path}");
             _greeter.Proxy.Endpoint = _server.Endpoint;
             _greeter.Proxy.Invoker = _pipeline;
         }

@@ -30,7 +30,7 @@ namespace IceRpc
 
         async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(IncomingRequest request, CancellationToken cancel)
         {
-            if (request.Protocol.HasFieldSupport)
+            if (request.Protocol.HasFields)
             {
                 Activity? activity = _options.ActivitySource?.CreateActivity(
                     $"{request.Path}/{request.Operation}",

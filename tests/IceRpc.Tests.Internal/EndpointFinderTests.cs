@@ -138,7 +138,7 @@ namespace IceRpc.Tests.Internal
                 Invocation? invocation,
                 CancellationToken cancel) =>
                     Task.FromResult<ServicePrx?>(
-                        ServicePrx.Parse(id.Name == "bad" ? "icerpc://host/dummy?transport=foo" : "icerpc:dummy"));
+                        ServicePrx.Parse(id.Name == "bad" ? "icerpc://host/dummy?transport=foo" : "icerpc:/dummy"));
 
             Task<LocatorRegistryPrx?> ILocatorPrx.GetRegistryAsync(Invocation? invocation, CancellationToken cancel)
             {

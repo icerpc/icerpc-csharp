@@ -14,9 +14,20 @@ namespace IceRpc
         /// <summary>The <c>icerpc</c> protocol.</summary>
         public static Protocol IceRpc => IceRpcProtocol.Instance;
 
+        /// <summary>The protocol of relative proxies.</summary>
+        public static Protocol Relative { get; } = new(RelativeName);
+
+        /// <summary>Returns the default port for this protocol.</summary>
+        /// <value>The value is either -1 (no default port) or between 0 and 65,535.</value>
+        public virtual int DefaultUriPort => -1;
+
         /// <summary>Returns whether or not this protocol supports fields.</summary>
         /// <returns><c>true</c> if the protocol supports fields; otherwise, <c>false</c>.</returns>
-        public virtual bool HasFieldSupport => false;
+        public virtual bool HasFields => false;
+
+        /// <summary>Returns whether or not this protocol supports fragments in proxies.</summary>
+        /// <returns><c>true</c> if the protocol supports fragments; otherwise, <c>false</c>.</returns>
+        public virtual bool HasFragment => false;
 
         /// <summary>Checks if IceRPC can an establish a connection using this protocol.</summary>
         /// <returns><c>true</c> if the protocol is supported; otherwise, <c>false</c>.</returns>
@@ -29,8 +40,10 @@ namespace IceRpc
         /// <returns>The Slice encoding.</returns>
         internal virtual IceEncoding? SliceEncoding => null;
 
-        private protected const string IceName = "ice";
-        private protected const string IceRpcName = "icerpc";
+        internal const string IceName = "ice";
+        internal const string IceRpcName = "icerpc";
+
+        private protected const string RelativeName = "";
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
         /// <param name="lhs">The left hand side operand.</param>
@@ -47,13 +60,19 @@ namespace IceRpc
 
         /// <summary>Returns a protocol with the given name. This method always succeeds.</summary>
         /// <param name="name">The name of the protocol.</param>
-        /// <returns>A protocol with the given name.</returns>
-        public static Protocol FromString(string name) => name switch
+        /// <returns>A protocol with the given name in lowercase.</returns>
+        public static Protocol FromString(string name)
         {
-            IceName => Ice,
-            IceRpcName => IceRpc,
-            _ => new Protocol(name)
-        };
+            name = name.ToLowerInvariant();
+
+            return name switch
+            {
+                IceName => Ice,
+                IceRpcName => IceRpc,
+                RelativeName => Relative,
+                _ => new Protocol(name)
+            };
+        }
 
         /// <inheritdoc/>
         public override bool Equals(object? obj) => obj is Protocol value && Equals(value);

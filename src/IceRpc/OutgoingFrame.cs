@@ -49,7 +49,14 @@ namespace IceRpc
         {
             if (!protocol.IsSupported)
             {
-                throw new NotSupportedException($"cannot create outgoing frame for protocol {protocol}");
+                if (protocol == Protocol.Relative)
+                {
+                    throw new NotSupportedException($"cannot create an outgoing frame for a relative proxy");
+                }
+                else
+                {
+                    throw new NotSupportedException($"cannot create an outgoing frame for protocol '{protocol}'");
+                }
             }
 
             Protocol = protocol;

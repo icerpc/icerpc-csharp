@@ -13,7 +13,7 @@ namespace IceRpc.Transports
         /// APIs it calls. The transport implementation can use this logger to log implementation-specific details
         /// within the log scopes created by IceRPC.</param>
         /// <returns>The new network connection. This connection is not yet connected.</returns>
-        /// <exception name="UnknownTransportException">Thrown if this client transport does not support the remote
+        /// <exception cref="UnknownTransportException">Thrown if this client transport does not support the remote
         /// endpoint's transport.</exception>
         T CreateConnection(Endpoint remoteEndpoint, ILogger logger);
     }

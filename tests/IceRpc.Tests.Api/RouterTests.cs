@@ -39,8 +39,8 @@ namespace IceRpc.Tests.Api
         [Test]
         public void Router_BadPath()
         {
-            Assert.Throws<ArgumentException>(() => _router.Map("foo", _failDispatcher));
-            Assert.Throws<ArgumentException>(() => _router.Mount("foo", _failDispatcher));
+            Assert.Throws<FormatException>(() => _router.Map("foo", _failDispatcher));
+            Assert.Throws<FormatException>(() => _router.Mount("foo", _failDispatcher));
 
             _router.Mount("/", _failDispatcher);
             string badPath = "/a/b/c/d/e/f/g/h/i/j/k/l/m/n/o/p/q";

@@ -84,7 +84,7 @@ namespace IceRpc
             };
 
         /// <summary>Returns the major and minor byte versions of this encoding.</summary>
-        /// <exception name="NotSupportedException">Thrown when this encoding's name is not in the major.minor format.
+        /// <exception cref="NotSupportedException">Thrown when this encoding's name is not in the major.minor format.
         /// </exception>
         internal (byte Major, byte Minor) ToMajorMinor()
         {
