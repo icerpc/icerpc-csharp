@@ -704,6 +704,11 @@ namespace IceRpc.Slice
                         case TransportCode.SSL:
                         {
                             string host = DecodeString();
+                            if (Uri.CheckHostName(host) == UriHostNameType.Unknown)
+                            {
+                                throw new InvalidDataException($"received proxy with invalid host '{host}'");
+                            }
+
                             ushort port = checked((ushort)DecodeInt());
                             int timeout = DecodeInt();
                             bool compress = DecodeBool();
@@ -723,18 +728,18 @@ namespace IceRpc.Slice
                                 builder.Add("z", "true");
                             }
 
-                            endpoint = new Endpoint(Protocol.Ice, host)
-                            {
-                                Port = port,
-                                Params = builder.ToImmutable()
-                            };
-
+                            endpoint = new Endpoint(Protocol.Ice, host, port, builder.ToImmutable());
                             break;
                         }
 
                         case TransportCode.UDP:
                         {
                             string host = DecodeString();
+                            if (Uri.CheckHostName(host) == UriHostNameType.Unknown)
+                            {
+                                throw new InvalidDataException($"received proxy with invalid host '{host}'");
+                            }
+
                             ushort port = checked((ushort)DecodeInt());
                             bool compress = DecodeBool();
 
@@ -747,13 +752,7 @@ namespace IceRpc.Slice
                                 builder.Add("z", "true");
                             }
 
-                            endpoint = new Endpoint(Protocol.Ice, host)
-                            {
-                                Port = port,
-                                Params = builder.ToImmutable()
-                            };
-
-                            // else endpoint remains null and we throw below
+                            endpoint = new Endpoint(Protocol.Ice, host, port, builder.ToImmutable());
                             break;
                         }
 
@@ -793,11 +792,11 @@ namespace IceRpc.Slice
                             builder.Add("e", encoding.ToString() );
                             builder.Add("v", Convert.ToBase64String(vSpan));
 
-                            endpoint = new Endpoint(Protocol.Ice, OpaqueTransport.Host)
-                            {
-                                Port = OpaqueTransport.Port,
-                                Params = builder.ToImmutable()
-                            };
+                            endpoint = new Endpoint(
+                                Protocol.Ice,
+                                OpaqueTransport.Host,
+                                OpaqueTransport.Port,
+                                builder.ToImmutable());
                             break;
                         }
                     }

@@ -335,7 +335,22 @@ namespace IceRpc
 
                     if (uri.Authority.Length > 0)
                     {
-                        _endpoint = new Endpoint(uri, Protocol, queryParams);
+                        if (uri.UserInfo.Length > 0)
+                        {
+                            throw new ArgumentException("cannot create an endpoint with a user info", nameof(uri));
+                        }
+
+                        string host = uri.IdnHost;
+                        if (host.Length == 0)
+                        {
+                            throw new ArgumentException("cannot create an endpoint with an empty host", nameof(uri));
+                        }
+
+                        _endpoint = new Endpoint(
+                            Protocol,
+                            host,
+                            port: checked((ushort)(uri.Port == -1 ? Protocol.DefaultUriPort : uri.Port)),
+                            queryParams);
 
                         if (altEndpointValue != null)
                         {
