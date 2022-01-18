@@ -402,24 +402,26 @@ namespace IceRpc.Slice
                     return null;
                 }
 
-                bool isRelative = proxyString.StartsWith('/');
-
-                Proxy proxy;
                 try
                 {
-                    proxy = isRelative ? Proxy.FromConnection(_connection!, proxyString, _invoker) :
-                        new Proxy(new Uri(proxyString, UriKind.Absolute));
+                    if (proxyString.StartsWith('/')) // relative proxy
+                    {
+                        return Proxy.FromConnection(_connection!, proxyString, _invoker);
+                    }
+                    else
+                    {
+                        var proxy = new Proxy(new Uri(proxyString, UriKind.Absolute));
+                        if (proxy.Protocol.IsSupported)
+                        {
+                            proxy.Invoker = _invoker;
+                        }
+                        return proxy;
+                    }
                 }
                 catch (Exception ex)
                 {
                     throw new InvalidDataException("received invalid proxy", ex);
                 }
-
-                if (!isRelative && proxy.Protocol.IsSupported)
-                {
-                    proxy.Invoker = _invoker;
-                }
-                return proxy;
             }
         }
 

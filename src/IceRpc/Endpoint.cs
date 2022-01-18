@@ -80,14 +80,14 @@ namespace IceRpc
         /// <summary>Converts a string into an endpoint implicitly using <see cref="FromString"/>.</summary>
         /// <param name="s">The string representation of the endpoint.</param>
         /// <returns>The new endpoint.</returns>
-        /// <exception cref="FormatException">Thrown when <paramref name="s"/> is not valid endpoint URI string.
+        /// <exception cref="FormatException">Thrown when <paramref name="s"/> is not a valid endpoint URI string.
         /// </exception>
         public static implicit operator Endpoint(string s) => FromString(s);
 
         /// <summary>Creates an endpoint from a URI string.</summary>
         /// <param name="s">The string representation of the endpoint.</param>
         /// <returns>The new endpoint.</returns>
-        /// <exception cref="FormatException">Thrown when <paramref name="s"/> is not valid endpoint URI string.
+        /// <exception cref="FormatException">Thrown when <paramref name="s"/> is not a valid endpoint URI string.
         /// </exception>
         public static Endpoint FromString(string s)
         {

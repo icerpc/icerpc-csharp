@@ -38,7 +38,7 @@ namespace IceRpc
                             $"cannot set {nameof(AltEndpoints)} when {nameof(Endpoint)} is empty");
                     }
 
-                    if (value.Any((Func<Endpoint, bool>)(e => (bool)(e.Protocol != Protocol))))
+                    if (value.Any((e => (bool)(e.Protocol != Protocol))))
                     {
                         throw new ArgumentException(
                             $"the protocol of all alt endpoints must be {Protocol}",

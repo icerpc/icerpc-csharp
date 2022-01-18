@@ -144,11 +144,11 @@ namespace IceRpc.Tests.Api
                 Assert.Throws<InvalidOperationException>(
                     () => proxy.AltEndpoints = ImmutableList.Create(new Endpoint(proxy.Protocol, "localhost")));
 
+                Assert.Throws<ArgumentException>(
+                    () => proxy.Endpoint = Endpoint.FromString(
+                        proxy.Protocol == Protocol.IceRpc ? "ice://localhost" : "icerpc://localhost"));
+
                 proxy.Endpoint = new Endpoint(proxy.Protocol, "localhost");
-                if (proxy.Protocol == Protocol.IceRpc)
-                {
-                    Assert.Throws<ArgumentException>(() => proxy.Endpoint = Endpoint.FromString("ice://localhost"));
-                }
 
                 proxy.Params = ImmutableDictionary<string, string>.Empty; // always ok
                 Assert.Throws<InvalidOperationException>(() => proxy.Params = proxy.Params.Add("name", "value"));
@@ -318,7 +318,7 @@ namespace IceRpc.Tests.Api
             }
         }
 
-        // <summary>Tests that parsing an invalid proxies fails with <see cref="FormatException"/>.</summary>
+        /// <summary>Tests that parsing an invalid proxy fails with <see cref="FormatException"/>.</summary>
         /// <param name="str">The string to parse as a proxy.</param>
         [TestCase("")]
         [TestCase("\"\"")]
@@ -335,7 +335,7 @@ namespace IceRpc.Tests.Api
             Assert.That(Proxy.TryParse(str, invoker: null, format: null, out _), Is.False);
         }
 
-        // <summary>Tests that parsing an invalid proxies fails with <see cref="FormatException"/>.</summary>
+        /// <summary>Tests that parsing an invalid proxy fails with <see cref="FormatException"/>.</summary>
         /// <param name="str">The string to parse as a proxy.</param>
         [TestCase("ice + tcp://host.zeroc.com:foo")] // missing host
         [TestCase("")]
