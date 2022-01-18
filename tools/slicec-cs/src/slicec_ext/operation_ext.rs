@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use super::{EntityExt, InterfaceExt, ParameterExt, ParameterSliceExt};
+use super::{EntityExt, ParameterExt, ParameterSliceExt};
 use slice::code_gen_util::TypeContext;
 use slice::grammar::{Attributable, Contained, Operation};
 

@@ -1,16 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 use super::entity_ext::EntityExt;
-use slice::code_gen_util::{fix_case, CaseStyle};
-use slice::grammar::{Interface, NamedSymbol};
+use slice::grammar::Interface;
 
 pub trait InterfaceExt: EntityExt {
-    /// The name of the generated C# interface for this Slice interface.
-    /// eg. If the slice interface is `Foo`, the C# interface is `IFoo`.
-    /// The name is always prefixed with `I` and the first letter is always
-    /// capitalized.
-    fn interface_name(&self) -> String;
-
     /// Name of the generated implementation struct for this Slice interface's proxy.
     /// eg. If the slice interface is `Foo`, the C# proxy implementation is `FooPrx`.
     fn proxy_implementation_name(&self) -> String {
@@ -42,19 +35,4 @@ pub trait InterfaceExt: EntityExt {
     }
 }
 
-impl InterfaceExt for Interface {
-    fn interface_name(&self) -> String {
-        let identifier = fix_case(self.identifier(), CaseStyle::Pascal);
-        let mut chars = identifier.chars();
-
-        // Check if the interface already follows the 'I' prefix convention.
-        if identifier.chars().count() > 2
-            && chars.next().unwrap() == 'I'
-            && chars.next().unwrap().is_uppercase()
-        {
-            identifier.to_owned()
-        } else {
-            format!("I{}", identifier)
-        }
-    }
-}
+impl InterfaceExt for Interface {}
