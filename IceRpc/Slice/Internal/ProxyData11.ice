@@ -20,7 +20,6 @@ module IceRpc::Slice::Internal
     [cs:readonly]
     struct Facet
     {
-        // TODO: should this identifier be capitalized?
         value: sequence<string>,  // has 0 or 1 element
     }
 
