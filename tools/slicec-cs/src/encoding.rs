@@ -79,6 +79,7 @@ fn encode_type(
                     format!("encoder.Encode{}({});", primitive_ref.type_suffix(), value)
                 }
                 TypeRefs::Struct(_) => format!("{}.Encode(ref encoder);", value),
+                TypeRefs::Trait(_) => format!("{}.EncodeTrait(ref encoder);", param),
                 TypeRefs::Sequence(sequence_ref) => format!(
                     "{};",
                     encode_sequence(
@@ -439,6 +440,13 @@ pub fn encode_action(
                 "(ref IceEncoder encoder, {value_type} value) => {value}.Encode(ref encoder)",
                 value_type = value_type,
                 value = value
+            )
+        }
+        TypeRefs::Trait(_) => {
+            write!(
+                code,
+                "(ref IceEncoder encoder, {value_type} value) => value.EncodeTrait(ref encoder)",
+                value_type = value_type,
             )
         }
     }

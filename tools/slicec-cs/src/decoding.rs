@@ -96,6 +96,9 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str) -> CodeBloc
                 enum_ref.identifier(),
             );
         }
+        TypeRefs::Trait(_) => {
+            write!(code, "decoder.DecodeTrait<{}>()", type_string);
+        }
     }
 
     if data_type.is_optional {
@@ -374,6 +377,12 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
         }
         TypeRefs::Struct(_) => {
             format!("(ref IceDecoder decoder) => new {}(ref decoder)", type_name)
+        }
+        TypeRefs::Trait(_) => {
+            format!(
+                "(ref IceDecoder decoder) => decoder.DecodeTrait<{}>()",
+                type_name
+            )
         }
         TypeRefs::Class(_) => panic!("unexpected, see is_class_type above"),
     }
