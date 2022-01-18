@@ -19,6 +19,7 @@ mod module_visitor;
 mod proxy_visitor;
 mod slicec_ext;
 mod struct_visitor;
+mod trait_visitor;
 
 use blake2::{Blake2b, Digest};
 use class_visitor::ClassVisitor;
@@ -37,6 +38,7 @@ use std::io::prelude::*;
 use std::path::Path;
 use struct_visitor::StructVisitor;
 use structopt::StructOpt;
+use trait_visitor::TraitVisitor;
 
 use crate::code_block::CodeBlock;
 
@@ -95,6 +97,11 @@ fn try_main() -> Result<(), ()> {
                 generated_code: &mut generated_code,
             };
             slice_file.visit_with(&mut class_visitor);
+
+            let mut trait_visitor = TraitVisitor {
+                generated_code: &mut generated_code,
+            };
+            slice_file.visit_with(&mut trait_visitor);
 
             let mut module_visitor = ModuleVisitor {
                 generated_code: &mut generated_code,
