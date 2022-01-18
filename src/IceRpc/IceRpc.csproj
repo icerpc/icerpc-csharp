@@ -53,6 +53,6 @@
       <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
       <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
       <PackageReference Include="System.IO.Pipelines" Version="6.0.1" />
-      <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview2" PrivateAssets="All" />
+      <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview3" PrivateAssets="All" />
     </ItemGroup>
 </Project>

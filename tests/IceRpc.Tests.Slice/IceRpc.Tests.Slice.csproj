@@ -30,7 +30,7 @@
     <PackageReference Include="NUnit" Version="3.13.2" />
     <PackageReference Include="NUnit.Analyzers" Version="3.3.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.2.0" />
-    <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview2" PrivateAssets="All" />
+    <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview3" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>
