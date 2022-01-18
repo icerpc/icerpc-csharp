@@ -2,7 +2,6 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice.Internal;
-using IceRpc.Transports.Internal;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -239,99 +238,6 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes an endpoint in a nested encapsulation (1.1).</summary>
-        /// <param name="endpoint">The endpoint to encode.</param>
-        private void EncodeEndpoint(Endpoint endpoint)
-        {
-            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
-
-            // If there is no transport parameter, we default to TCP.
-            if (!endpoint.Params.TryGetValue("transport", out string? transport))
-            {
-                transport = TransportNames.Tcp;
-            }
-
-            // The Ice 1.1 encoding of ice endpoints is transport-specific, and hard-coded here. The preferred and
-            // fallback encoding for new transports is TransportCode.Any, which uses an EndpointData like Ice 2.0.
-
-            if (endpoint.Protocol == Protocol.Ice && transport == TransportNames.Opaque)
-            {
-                // Opaque endpoint encoding
-
-                (TransportCode transportCode, Encoding encoding, ReadOnlyMemory<byte> bytes) =
-                    endpoint.ParseOpaqueParams();
-
-                this.EncodeTransportCode(transportCode);
-                EncodeInt(4 + 2 + bytes.Length); // encapsulation size includes size-length and 2 bytes for encoding
-                EncodeByte(1); // encoding version major
-                if (encoding == IceRpc.Encoding.Slice11)
-                {
-                    EncodeByte(1); // encoding version minor
-                }
-                else
-                {
-                    Debug.Assert(encoding == IceRpc.Encoding.Slice10);
-                    EncodeByte(0); // encoding version minor
-                }
-                WriteByteSpan(bytes.Span);
-            }
-            else
-            {
-                TransportCode transportCode = TransportCode.Any;
-                bool compress = false;
-                int timeout = -1;
-
-                if (endpoint.Protocol == Protocol.Ice)
-                {
-                    if (transport == TransportNames.Tcp)
-                    {
-                        (compress, timeout, bool? tls) = endpoint.ParseTcpParams();
-                        transportCode = (tls ?? true) ? TransportCode.SSL : TransportCode.TCP;
-                    }
-                    else if (transport == TransportNames.Udp)
-                    {
-                        transportCode = TransportCode.UDP;
-                        compress = endpoint.ParseUdpParams().Compress;
-                    }
-                }
-
-                this.EncodeTransportCode(transportCode);
-
-                int startPos = EncodedByteCount; // size includes size-length
-                Span<byte> sizePlaceholder = GetPlaceholderSpan(4); // encapsulation size
-                EncodeByte(1); // encoding version major
-                EncodeByte(1); // encoding version minor
-
-                switch (transportCode)
-                {
-                    case TransportCode.TCP:
-                    case TransportCode.SSL:
-                    {
-                        EncodeString(endpoint.Host);
-                        EncodeInt(endpoint.Port);
-                        EncodeInt(timeout);
-                        EncodeBool(compress);
-                        break;
-                    }
-
-                    case TransportCode.UDP:
-                    {
-                        EncodeString(endpoint.Host);
-                        EncodeInt(endpoint.Port);
-                        EncodeBool(compress);
-                        break;
-                    }
-
-                    default:
-                        Debug.Assert(transportCode == TransportCode.Any);
-                        endpoint.ToEndpointData().Encode(ref this);
-                        break;
-                }
-
-                EncodeInt(EncodedByteCount - startPos, sizePlaceholder);
-            }
-        }
-
         /// <summary>Encodes this class instance inline if not previously encoded, otherwise just encode its instance
         /// ID.</summary>
         /// <param name="v">The class instance.</param>
@@ -369,32 +275,6 @@ namespace IceRpc.Slice
 
                 // Restore previous _current.
                 _classContext.Current = previousCurrent;
-            }
-        }
-
-        /// <summary>Encodes the header for a tagged parameter or data member.</summary>
-        /// <param name="tag">The numeric tag associated with the parameter or data member.</param>
-        /// <param name="format">The tag format.</param>
-        private void EncodeTaggedParamHeader(int tag, TagFormat format)
-        {
-            Debug.Assert(format != TagFormat.VInt && format != TagFormat.OVSize); // VInt/OVSize cannot be encoded
-
-            int v = (int)format;
-            if (tag < 30)
-            {
-                v |= tag << 3;
-                EncodeByte((byte)v);
-            }
-            else
-            {
-                v |= 0x0F0; // tag = 30
-                EncodeByte((byte)v);
-                EncodeSize(tag);
-            }
-
-            if (_classContext.Current.InstanceType != InstanceType.None)
-            {
-                _classContext.Current.SliceFlags |= SliceFlags.HasTaggedMembers;
             }
         }
 

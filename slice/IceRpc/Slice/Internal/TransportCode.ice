@@ -3,11 +3,11 @@
 [cs:internal]
 module IceRpc::Slice::Internal
 {
-    /// TransportCode is used by the Ice 1.1 encoding to encode a transport name (such as "tcp") as a short value.
+    /// TransportCode is used by the Slice 1.1 encoding to encode a transport name (such as "tcp") as a short value.
     unchecked enum TransportCode : short
     {
-        /// This special code means the Ice 1.1 endpoint encapsulation contains an EndpointData.
-        Any = 0,
+        /// This endpoint encapsulation contains an endpoint URI string.
+        Uri = 0,
 
         /// TCP transport.
         TCP = 1,

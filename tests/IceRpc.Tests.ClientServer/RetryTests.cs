@@ -54,9 +54,10 @@ namespace IceRpc.Tests.ClientServer
             Server server2 = serviceProvider2.GetRequiredService<Server>();
             Server server3 = serviceProvider3.GetRequiredService<Server>();
 
-            var prx = new RetryReplicatedTestPrx(Proxy.Parse(
-                $"{server1.Endpoint}",
-                serviceProvider1.GetRequiredService<IInvoker>()).WithPath("/retry"));
+            var proxy = Proxy.Parse($"{server1.Endpoint}",serviceProvider1.GetRequiredService<IInvoker>());
+            proxy = proxy with { Path = "/retry" };
+
+            var prx = new RetryReplicatedTestPrx(proxy);
 
             prx.Proxy.AltEndpoints = ImmutableList.Create(server2.Endpoint, server3.Endpoint);
 
@@ -80,13 +81,13 @@ namespace IceRpc.Tests.ClientServer
                 .AddTransient<IDispatcher, Bidir>()
                 .BuildServiceProvider();
 
-            var retryBidir = RetryBidirTestPrx.FromPath("/retry");
+            var retryBidir = RetryBidirTestPrx.Parse("icerpc:/retry");
             retryBidir.Proxy.Endpoint = serviceProvider.GetRequiredService<Server>().Endpoint;
             retryBidir.Proxy.Invoker = serviceProvider.GetRequiredService<IInvoker>();
             await retryBidir.IcePingAsync();
 
-            var bidir = new RetryBidirTestPrx(retryBidir.Proxy.Clone()); // keeps Connection
-            bidir.Proxy.Endpoint = null; // endpointless proxy with a connection
+            // endpointless proxy with a connection
+            var bidir = new RetryBidirTestPrx(retryBidir.Proxy with { Endpoint = null });
 
             Assert.ThrowsAsync<ServiceNotFoundException>(
                 async () => await bidir.OtherReplicaAsync(cancel: CancellationToken.None));
@@ -527,8 +528,9 @@ namespace IceRpc.Tests.ClientServer
                 });
                 this.AddScoped(serviceProvider =>
                 {
-                    var proxy = Proxy.FromPath("/retry", serviceProvider.GetService<Protocol>() ?? Protocol.IceRpc);
-                    proxy.Endpoint = serviceProvider.GetRequiredService<Server>().Endpoint;
+                    Endpoint serverEndpoint = serviceProvider.GetRequiredService<Server>().Endpoint;
+                    var proxy = Proxy.Parse($"{serverEndpoint.Protocol}:/retry");
+                    proxy.Endpoint = serverEndpoint;
                     proxy.Invoker = serviceProvider.GetRequiredService<IInvoker>();
                     return proxy;
                 });

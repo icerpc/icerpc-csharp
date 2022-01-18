@@ -11,13 +11,12 @@ namespace IceRpc.Slice.Internal
 
         /// <summary>Creates an Ice identity from a URI path.</summary>
         /// <param name="path">A URI path.</param>
-        /// <exception cref="ArgumentException">Thrown when <paramref name="path"/> is not a valid path.</exception>
-        /// <exception cref="FormatException">Thrown when <paramref name="path"/> is a valid path but cannot be
+        /// <exception cref="FormatException">Thrown when <paramref name="path"/> is a not a valid path or cannot be
         /// converted into an identity.</exception>
         /// <returns>A new Ice identity struct.</returns>
         internal static Identity FromPath(string path)
         {
-            Proxy.CheckPath(path, nameof(path));
+            Proxy.CheckPath(path);
             string workingPath = path[1..]; // removes leading /.
 
             int firstSlash = workingPath.IndexOf('/', StringComparison.Ordinal);

@@ -2,7 +2,7 @@
 
 module IceRpc
 {
-    /// All services implement this interface.
+    /// All services defined in Slice implement this interface.
     interface Service
     {
         /// Gets the Ice type IDs of all the interfaces implemented by the target service.

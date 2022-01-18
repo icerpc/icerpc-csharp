@@ -31,10 +31,9 @@ namespace IceRpc.Tests.Api
         [Test]
         public void Interceptor_Throws_ArgumentException()
         {
-            var proxy = _prx.Proxy.Clone();
-            var prx = new InterceptorTestPrx(proxy);
             var pipeline = new Pipeline();
-            proxy.Invoker = pipeline;
+            var prx = new InterceptorTestPrx(_prx.Proxy with { Invoker = pipeline });
+
             pipeline.Use(next => new InlineInvoker((request, cancel) => throw new ArgumentException("message")));
             Assert.ThrowsAsync<ArgumentException>(async () => await prx.IcePingAsync());
         }
@@ -43,10 +42,9 @@ namespace IceRpc.Tests.Api
         [Test]
         public void Interceptor_Timeout_OperationCanceledException()
         {
-            var proxy = _prx.Proxy.Clone();
-            var prx = new InterceptorTestPrx(proxy);
             var pipeline = new Pipeline();
-            proxy.Invoker = pipeline;
+            var prx = new InterceptorTestPrx(_prx.Proxy with { Invoker = pipeline });
+
             pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 await Task.Delay(100, default);
@@ -62,10 +60,9 @@ namespace IceRpc.Tests.Api
         public async Task Interceptor_CallOrder()
         {
             var interceptorCalls = new List<string>();
-            var proxy = _prx.Proxy.Clone();
-            var prx = new InterceptorTestPrx(proxy);
             var pipeline = new Pipeline();
-            proxy.Invoker = pipeline;
+            var prx = new InterceptorTestPrx(_prx.Proxy with { Invoker = pipeline });
+
             pipeline.Use(
                 next => new InlineInvoker(async (request, cancel) =>
                 {
@@ -99,10 +96,9 @@ namespace IceRpc.Tests.Api
             IncomingResponse? response = null;
             ReadOnlySequence<byte> savedPayload = default;
 
-            var proxy = _prx.Proxy.Clone();
-            var prx = new InterceptorTestPrx(proxy);
             var pipeline = new Pipeline();
-            proxy.Invoker = pipeline;
+            var prx = new InterceptorTestPrx(_prx.Proxy with { Invoker = pipeline });
+
             pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 if (response == null)
@@ -129,10 +125,8 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task Interceptor_Overwrite_RequestContext()
         {
-            var proxy = _prx.Proxy.Clone();
-            var prx = new InterceptorTestPrx(proxy);
             var pipeline = new Pipeline();
-            proxy.Invoker = pipeline;
+            var prx = new InterceptorTestPrx(_prx.Proxy with { Invoker = pipeline });
 
             pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
             {

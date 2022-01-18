@@ -32,10 +32,11 @@ namespace IceRpc.Tests.Slice
         [Test]
         public void ExceptionTag_Minus()
         {
-            var prx = new ExceptionTagPrx(_prx.Clone());
+            var pipeline = new Pipeline();
+            var prx = new ExceptionTagPrx(_prx with { Invoker = pipeline });
 
             // We decode TaggedException as a TaggedExceptionMinus using a custom activator
-            var pipeline = new Pipeline();
+
             pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 var response = await next.InvokeAsync(request, cancel);
@@ -43,8 +44,6 @@ namespace IceRpc.Tests.Slice
                 response.Features = response.Features.With<IActivator>(new ActivatorMinus());
                 return response;
             }));
-
-            prx.Proxy.Invoker = pipeline;
 
             var ts = new TaggedExceptionStruct("bar", null);
 
@@ -60,10 +59,11 @@ namespace IceRpc.Tests.Slice
         [Test]
         public void ExceptionTag_Plus()
         {
-            var prx = new ExceptionTagPrx(_prx.Clone());
+            var pipeline = new Pipeline();
+            var prx = new ExceptionTagPrx(_prx with { Invoker = pipeline });
 
             // We decode TaggedException as a TaggedExceptionPlus using a custom activator and get a null MFloat
-            var pipeline = new Pipeline();
+
             pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 var response = await next.InvokeAsync(request, cancel);
@@ -71,8 +71,6 @@ namespace IceRpc.Tests.Slice
                 response.Features = response.Features.With<IActivator>(new ActivatorPlus());
                 return response;
             }));
-
-            prx.Proxy.Invoker = pipeline;
 
             var ts = new TaggedExceptionStruct("bar", null);
 
@@ -91,7 +89,7 @@ namespace IceRpc.Tests.Slice
         [Test]
         public void ExceptionTag_Throw()
         {
-            var prx = new ExceptionTagPrx(_prx.Clone());
+            var prx = new ExceptionTagPrx(_prx);
 
             var ts = new TaggedExceptionStruct("bar", null);
 

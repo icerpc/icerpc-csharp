@@ -30,7 +30,7 @@ namespace IceRpc
                 proxy = Parse(s, invoker);
                 return true;
             }
-            catch
+            catch (FormatException)
             {
                 proxy = null;
                 return false;

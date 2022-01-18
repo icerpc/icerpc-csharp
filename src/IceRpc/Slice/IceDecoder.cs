@@ -369,124 +369,54 @@ namespace IceRpc.Slice
                     }
                 }
 
-                proxyData.Facet.CheckValue();
-
-                if (protocol == Protocol.Ice)
+                try
                 {
-                    try
+                    proxyData.Facet.CheckValue();
+
+                    return new Proxy(protocol)
                     {
-                        return new Proxy(identity.ToPath(), Protocol.Ice)
-                        {
-                            Encoding = IceRpc.Encoding.FromMajorMinor(
-                                proxyData.EncodingMajor,
-                                proxyData.EncodingMinor),
-                            Endpoint = endpoint,
-                            AltEndpoints = altEndpoints.ToImmutableList(),
-                            Invoker = _invoker,
-                            Fragment = proxyData.Facet.ToFragment(),
-                            Params = proxyParams
-                        };
-                    }
-                    catch (InvalidDataException)
-                    {
-                        throw;
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new InvalidDataException("received invalid proxy", ex);
-                    }
+                        Path = identity.ToPath(),
+                        Fragment = proxyData.Facet.ToFragment(),
+                        Encoding = IceRpc.Encoding.FromMajorMinor(proxyData.EncodingMajor, proxyData.EncodingMinor),
+                        Endpoint = endpoint,
+                        AltEndpoints = altEndpoints.ToImmutableList(),
+                        Invoker = _invoker,
+                        Params = proxyParams
+                    };
                 }
-                else
+                catch (InvalidDataException)
                 {
-                    if (proxyData.InvocationMode != InvocationMode.Twoway)
-                    {
-                        throw new InvalidDataException(
-                            $"received proxy for protocol {protocol} with invocation mode set");
-                    }
-
-                    try
-                    {
-                        Proxy proxy;
-
-                        if (endpoint == null)
-                        {
-                            proxy = Proxy.FromConnection(_connection!, identity.ToPath(), _invoker);
-                        }
-                        else
-                        {
-                            proxy = new Proxy(identity.ToPath(), protocol)
-                            {
-                                Endpoint = endpoint,
-                                AltEndpoints = altEndpoints.ToImmutableList(),
-                                Invoker = _invoker
-                            };
-                        }
-
-                        proxy.Fragment = proxyData.Facet.ToFragment();
-
-                        proxy.Encoding = IceRpc.Encoding.FromMajorMinor(proxyData.EncodingMajor,
-                            proxyData.EncodingMinor);
-
-                        // TODO: revisit with relative proxy decoding
-                        if (proxy.Endpoint == null)
-                        {
-                            proxy.Params = proxyParams;
-                        }
-
-                        return proxy;
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new InvalidDataException("received invalid proxy", ex);
-                    }
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidDataException("received invalid proxy", ex);
                 }
             }
             else
             {
-                var proxyData = new ProxyData20(ref this);
+                string proxyString = DecodeString();
 
-                if (proxyData.Path == null)
+                if (proxyString.Length == 0)
                 {
                     return null;
                 }
 
-                Protocol protocol = proxyData.Protocol != null ? Protocol.FromString(proxyData.Protocol) : Protocol.IceRpc;
-                Endpoint? endpoint = proxyData.Endpoint is EndpointData data ? data.ToEndpoint(protocol) : null;
-                ImmutableList<Endpoint> altEndpoints =
-                    proxyData.AltEndpoints?.Select(data => data.ToEndpoint(protocol)).ToImmutableList() ??
-                        ImmutableList<Endpoint>.Empty;
-
-                if (endpoint == null && altEndpoints.Count > 0)
-                {
-                    throw new InvalidDataException("received proxy with only alt endpoints");
-                }
-
                 try
                 {
-                    Proxy proxy;
-
-                    Debug.Assert(proxyData.Fragment != null);
-
-                    if (endpoint == null && protocol != Protocol.Ice)
+                    if (proxyString.StartsWith('/')) // relative proxy
                     {
-                        proxy = Proxy.FromConnection(_connection!, proxyData.Path, _invoker);
+                        return Proxy.FromConnection(_connection!, proxyString, _invoker);
                     }
                     else
                     {
-                        proxy = new Proxy(proxyData.Path, protocol)
+                        var proxy = new Proxy(new Uri(proxyString, UriKind.Absolute));
+                        if (proxy.Protocol.IsSupported)
                         {
-                            Endpoint = endpoint,
-                            AltEndpoints = altEndpoints,
-                            Invoker = _invoker
-                        };
+                            proxy.Invoker = _invoker;
+                        }
+                        return proxy;
                     }
-
-                    proxy.Fragment = proxyData.Fragment;
-                    proxy.Encoding = proxyData.Encoding is string encoding ?
-                        IceRpc.Encoding.FromString(encoding) : protocol.SliceEncoding ?? IceRpc.Encoding.Unknown;
-                    proxy.Params = proxyData.Params?.ToImmutableDictionary() ?? proxy.Params;
-
-                    return proxy;
                 }
                 catch (Exception ex)
                 {
@@ -731,15 +661,14 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Decodes an endpoint (Slice 1.1).</summary>
-        /// <param name="protocol">The Ice protocol of this endpoint.</param>
+        /// <param name="protocol">The protocol of this endpoint.</param>
         /// <returns>The endpoint decoded by this decoder.</returns>
         private Endpoint DecodeEndpoint(Protocol protocol)
         {
             Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
 
-            // The Ice 1.1 encoding of ice endpoints is transport-specific, and hard-coded here and in the
-            // IceEncoder. The preferred and fallback encoding for new transports is TransportCode.Any, which uses an
-            // EndpointData like Ice 2.0.
+            // The Slice 1.1 encoding of ice endpoints is transport-specific, and hard-coded here and in the
+            // IceEncoder. The preferred and fallback encoding for new transports is TransportCode.Uri.
 
             Debug.Assert(_connection != null);
 
@@ -794,11 +723,11 @@ namespace IceRpc.Slice
                                 builder.Add("z", "true");
                             }
 
-                            endpoint = new Endpoint(
-                                Protocol.Ice,
-                                host,
-                                port,
-                                builder.ToImmutable());
+                            endpoint = new Endpoint(Protocol.Ice, host)
+                            {
+                                Port = port,
+                                Params = builder.ToImmutable()
+                            };
 
                             break;
                         }
@@ -818,18 +747,23 @@ namespace IceRpc.Slice
                                 builder.Add("z", "true");
                             }
 
-                            endpoint = new Endpoint(
-                                Protocol.Ice,
-                                host,
-                                port,
-                                builder.ToImmutable());
+                            endpoint = new Endpoint(Protocol.Ice, host)
+                            {
+                                Port = port,
+                                Params = builder.ToImmutable()
+                            };
 
                             // else endpoint remains null and we throw below
                             break;
                         }
 
-                        case TransportCode.Any:
-                            endpoint = new EndpointData(ref this).ToEndpoint(protocol);
+                        case TransportCode.Uri:
+                            endpoint = Endpoint.FromString(DecodeString());
+                            if (endpoint.Protocol != protocol)
+                            {
+                                throw new InvalidDataException(
+                                    $"expected endpoint for {protocol} but received '{endpoint}'");
+                            }
                             break;
 
                         default:
@@ -854,19 +788,30 @@ namespace IceRpc.Slice
                             }
 
                             var builder = ImmutableDictionary.CreateBuilder<string, string>();
-                            builder.Add("transport", "opaque");
+                            builder.Add("transport", TransportNames.Opaque);
                             builder.Add("t", ((short)transportCode).ToString(CultureInfo.InvariantCulture));
                             builder.Add("e", encoding.ToString() );
                             builder.Add("v", Convert.ToBase64String(vSpan));
 
-                            endpoint = new Endpoint(Protocol.Ice, host: "", port: 0, builder.ToImmutable());
+                            endpoint = new Endpoint(Protocol.Ice, OpaqueTransport.Host)
+                            {
+                                Port = OpaqueTransport.Port,
+                                Params = builder.ToImmutable()
+                            };
                             break;
                         }
                     }
                 }
-                else if (transportCode == TransportCode.Any)
+                else if (transportCode == TransportCode.Uri)
                 {
-                    endpoint = new EndpointData(ref this).ToEndpoint(protocol);
+                    // The endpoints of 1.1-encoded icerpc proxies only use TransportCode.Uri.
+
+                    endpoint = Endpoint.FromString(DecodeString());
+                    if (endpoint.Protocol != protocol)
+                    {
+                        throw new InvalidDataException(
+                            $"expected {protocol} endpoint but received '{endpoint}'");
+                    }
                 }
 
                 if (endpoint != null)
@@ -889,7 +834,6 @@ namespace IceRpc.Slice
             }
 
             return endpoint;
-
         }
 
         /// <summary>Determines if a tagged parameter or data member is available.</summary>

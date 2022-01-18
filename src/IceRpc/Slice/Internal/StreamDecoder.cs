@@ -83,7 +83,7 @@ namespace IceRpc.Slice.Internal
         /// <see cref="TaskAsyncEnumerableExtensions.WithCancellation{T}"/> extension method on the returned async
         /// enumerable.</param>
         /// <returns>An async enumerable of T.</returns>
-        /// <exception name="InvalidOperationException">Thrown if this method is called more than once.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if this method is called more than once.</exception>
         /// <remarks>If the reader does not want to read the full async enumerable, it should cancel the cancellation
         /// token when done to notify the writer and avoid unnecessary writing/decoding.</remarks>
         internal async IAsyncEnumerable<T> ReadAsync(

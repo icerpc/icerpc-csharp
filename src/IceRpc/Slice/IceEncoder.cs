@@ -9,6 +9,8 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
+using static IceRpc.Slice.Internal.Slice11Definitions;
+
 namespace IceRpc.Slice
 {
     /// <summary>Encodes data into one or more byte buffers using the Ice encoding.</summary>
@@ -291,8 +293,8 @@ namespace IceRpc.Slice
             {
                 if (proxy == null)
                 {
-                    ProxyData20 proxyData = default;
-                    proxyData.Encode(ref this);
+                    // For now we encode null as the empty string.
+                    EncodeString("");
                 }
                 else
                 {
@@ -301,18 +303,7 @@ namespace IceRpc.Slice
                         throw new InvalidOperationException("cannot encode a proxy bound to a server connection");
                     }
 
-                    var proxyData = new ProxyData20(
-                        protocol: proxy.Protocol != Protocol.IceRpc ? proxy.Protocol.Name : null,
-                        proxy.Path,
-                        proxy.Fragment,
-                        encoding: proxy.Encoding == IceRpc.Encoding.Slice20 ? null : proxy.Encoding.ToString(),
-                        @params: proxy.Params,
-                        endpoint: proxy.Endpoint?.ToEndpointData(),
-                        altEndpoints:
-                                proxy.AltEndpoints.Count == 0 ? null :
-                                    proxy.AltEndpoints.Select(e => e.ToEndpointData()).ToArray());
-
-                    proxyData.Encode(ref this);
+                    EncodeString(proxy.ToString()); // a URI or an absolute path
                 }
             }
         }
@@ -661,6 +652,100 @@ namespace IceRpc.Slice
             EncodedByteCount += count;
         }
 
+         /// <summary>Encodes an endpoint in a nested encapsulation (1.1 only).</summary>
+        /// <param name="endpoint">The endpoint to encode.</param>
+        private void EncodeEndpoint(Endpoint endpoint)
+        {
+            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
+
+            // If there is no transport parameter, we default to TCP.
+            if (!endpoint.Params.TryGetValue("transport", out string? transport))
+            {
+                transport = TransportNames.Tcp;
+            }
+
+            // The 1.1 encoding of ice endpoints is transport-specific, and hard-coded here. The preferred and
+            // fallback encoding for new transports is TransportCode.Uri.
+
+            if (endpoint.Protocol == Protocol.Ice && transport == TransportNames.Opaque)
+            {
+                // Opaque endpoint encoding
+
+                (TransportCode transportCode, Encoding encoding, ReadOnlyMemory<byte> bytes) =
+                    endpoint.ParseOpaqueParams();
+
+                this.EncodeTransportCode(transportCode);
+                EncodeInt(4 + 2 + bytes.Length); // encapsulation size includes size-length and 2 bytes for encoding
+                EncodeByte(1); // encoding version major
+                if (encoding == IceRpc.Encoding.Slice11)
+                {
+                    EncodeByte(1); // encoding version minor
+                }
+                else
+                {
+                    Debug.Assert(encoding == IceRpc.Encoding.Slice10);
+                    EncodeByte(0); // encoding version minor
+                }
+                WriteByteSpan(bytes.Span);
+            }
+            else
+            {
+                TransportCode transportCode = TransportCode.Uri;
+                bool compress = false;
+                int timeout = -1;
+
+                if (endpoint.Protocol == Protocol.Ice)
+                {
+                    if (transport == TransportNames.Tcp)
+                    {
+                        (compress, timeout, bool? tls) = endpoint.ParseTcpParams();
+                        transportCode = (tls ?? true) ? TransportCode.SSL : TransportCode.TCP;
+                    }
+                    else if (transport == TransportNames.Udp)
+                    {
+                        transportCode = TransportCode.UDP;
+                        compress = endpoint.ParseUdpParams().Compress;
+                    }
+                }
+                // else transportCode remains Uri
+
+                this.EncodeTransportCode(transportCode);
+
+                int startPos = EncodedByteCount; // size includes size-length
+                Span<byte> sizePlaceholder = GetPlaceholderSpan(4); // encapsulation size
+                EncodeByte(1); // encoding version major
+                EncodeByte(1); // encoding version minor
+
+                switch (transportCode)
+                {
+                    case TransportCode.TCP:
+                    case TransportCode.SSL:
+                    {
+                        EncodeString(endpoint.Host);
+                        EncodeInt(endpoint.Port);
+                        EncodeInt(timeout);
+                        EncodeBool(compress);
+                        break;
+                    }
+
+                    case TransportCode.UDP:
+                    {
+                        EncodeString(endpoint.Host);
+                        EncodeInt(endpoint.Port);
+                        EncodeBool(compress);
+                        break;
+                    }
+
+                    default:
+                        Debug.Assert(transportCode == TransportCode.Uri);
+                        EncodeString(endpoint.ToString());
+                        break;
+                }
+
+                EncodeInt(EncodedByteCount - startPos, sizePlaceholder);
+            }
+        }
+
         /// <summary>Encodes a fixed-size numeric value.</summary>
         /// <param name="v">The numeric value to encode.</param>
         private void EncodeFixedSizeNumeric<T>(T v) where T : struct
@@ -669,6 +754,33 @@ namespace IceRpc.Slice
             Span<byte> data = _bufferWriter.GetSpan(elementSize)[0..elementSize];
             MemoryMarshal.Write(data, ref v);
             Advance(elementSize);
+        }
+
+        /// <summary>Encodes the header for a tagged parameter or data member. Slice 1.1 only.</summary>
+        /// <param name="tag">The numeric tag associated with the parameter or data member.</param>
+        /// <param name="format">The tag format.</param>
+        private void EncodeTaggedParamHeader(int tag, TagFormat format)
+        {
+            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
+            Debug.Assert(format != TagFormat.VInt && format != TagFormat.OVSize); // VInt/OVSize cannot be encoded
+
+            int v = (int)format;
+            if (tag < 30)
+            {
+                v |= tag << 3;
+                EncodeByte((byte)v);
+            }
+            else
+            {
+                v |= 0x0F0; // tag = 30
+                EncodeByte((byte)v);
+                EncodeSize(tag);
+            }
+
+            if (_classContext.Current.InstanceType != InstanceType.None)
+            {
+                _classContext.Current.SliceFlags |= SliceFlags.HasTaggedMembers;
+            }
         }
     }
 }

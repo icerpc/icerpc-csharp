@@ -3,6 +3,7 @@
 using IceRpc.Configure;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Collections.Immutable;
 
 namespace IceRpc.Tests.Api
 {
@@ -64,25 +65,118 @@ namespace IceRpc.Tests.Api
             await prx.AsAsync<GreeterPrx>(invocation);
         }
 
-        [TestCase("icerpc://localhost:10000/test")]
-        [TestCase("test:tcp -h localhost -p 10000")]
-        public void Proxy_SetProperty(string s)
+        [TestCase("icerpc://localhost:10000/test?alt-endpoint=host2")]
+        [TestCase("ice://localhost:10000/test")]
+        [TestCase("icerpc:/test?name=value")]
+        [TestCase("ice:/test#fragment")]
+        [TestCase("/x/y/z")]
+        [TestCase("foobar:/path#fragment")]
+        [TestCase("foobar://host/path#fragment")]
+        public void Proxy_GetSetProperty(string s)
         {
-            IProxyFormat? format = s.StartsWith("icerpc", StringComparison.Ordinal) ? null : IceProxyFormat.Default;
+            var proxy = Proxy.Parse(s);
 
-            var proxy = Proxy.Parse(s, format: format);
+            Proxy proxy2 = proxy.Protocol == Protocol.Relative ?
+                new Proxy(proxy.Protocol) { Path = proxy.Path } : new Proxy(proxy.OriginalUri!);
 
-            proxy.Encoding = Encoding.Slice11;
-            Assert.AreEqual(Encoding.Slice11, proxy.Encoding);
-            proxy.Encoding = Encoding.Slice20;
-            Assert.AreEqual(Encoding.Slice20, proxy.Encoding);
+            // Can always read all properties
+            Assert.Multiple(
+                () =>
+                {
+                    Assert.That(proxy, Is.EqualTo(proxy2));
 
-            var proxy2 = proxy.Clone();
-            proxy2.Endpoint = proxy2.Endpoint! with { Port = (ushort)(proxy.Endpoint!.Port + 1) };
+                    CollectionAssert.AreEqual(proxy.AltEndpoints, proxy2.AltEndpoints);
+                    Assert.That(proxy.Connection, Is.EqualTo(proxy2.Connection));
+                    Assert.That(proxy.Encoding, Is.EqualTo(proxy2.Encoding));
+                    Assert.That(proxy.Endpoint, Is.EqualTo(proxy2.Endpoint));
+                    Assert.That(proxy.Fragment, Is.EqualTo(proxy2.Fragment));
+                    Assert.That(proxy.Invoker, Is.EqualTo(proxy2.Invoker));
+                    Assert.That(proxy.OriginalUri, Is.EqualTo(proxy2.OriginalUri));
+                    CollectionAssert.AreEqual(proxy.Params, proxy2.Params);
+                    Assert.That(proxy.Path, Is.EqualTo(proxy2.Path));
+                });
 
-            Assert.AreNotEqual(proxy.Endpoint, proxy2.Endpoint);
-            proxy.Endpoint = proxy2.Endpoint;
-            Assert.AreEqual(proxy.Endpoint, proxy2.Endpoint);
+            if (proxy.OriginalUri is Uri uri)
+            {
+                Assert.That(proxy.ToUri(), Is.EqualTo(uri));
+
+                if (proxy.Protocol.IsSupported)
+                {
+                    proxy.Endpoint = proxy.Endpoint;
+                    Assert.That(proxy.OriginalUri, Is.Null);
+                    Assert.That(proxy.ToUri().IsAbsoluteUri, Is.True);
+                }
+            }
+            else
+            {
+                Assert.That(proxy.ToUri().IsAbsoluteUri, Is.False);
+            }
+
+            if (proxy.Protocol.IsSupported)
+            {
+                // Basic sets/init
+
+                proxy2 = proxy.Endpoint is Endpoint endpoint ?
+                    proxy with { Endpoint = endpoint with { Port = (ushort)(endpoint.Port + 1) } } :
+                    proxy with { Path = $"{proxy.Path}/extra" };
+
+                Assert.That(proxy, Is.Not.EqualTo(proxy2));
+
+                proxy.AltEndpoints = ImmutableList<Endpoint>.Empty;
+                Assert.That(proxy.OriginalUri, Is.Null);
+                proxy.Endpoint = null;
+                proxy.Connection = null;
+                proxy = proxy with { Fragment = "" }; // always ok
+                if (proxy.Protocol.HasFragment)
+                {
+                    proxy = proxy with { Fragment = "bar" };
+                }
+                else
+                {
+                    Assert.Throws<InvalidOperationException>(() => proxy = proxy with { Fragment = "bar" });
+                }
+                proxy.Invoker = Proxy.DefaultInvoker;
+                proxy.Params = ImmutableDictionary<string, string>.Empty;
+                proxy = proxy with { Path = "/foo" };
+
+                // Erroneous sets/init
+
+                Assert.Throws<InvalidOperationException>(
+                    () => proxy.AltEndpoints = ImmutableList.Create(new Endpoint(proxy.Protocol, "localhost")));
+
+                Assert.Throws<ArgumentException>(
+                    () => proxy.Endpoint = Endpoint.FromString(
+                        proxy.Protocol == Protocol.IceRpc ? "ice://localhost" : "icerpc://localhost"));
+
+                proxy.Endpoint = new Endpoint(proxy.Protocol, "localhost");
+
+                proxy.Params = ImmutableDictionary<string, string>.Empty; // always ok
+                Assert.Throws<InvalidOperationException>(() => proxy.Params = proxy.Params.Add("name", "value"));
+
+                proxy.Endpoint = null;
+                proxy.Params = proxy.Params.Add("name", "value");
+                Assert.Throws<InvalidOperationException>(
+                    () => proxy.Endpoint = new Endpoint(proxy.Protocol, "localhost"));
+            }
+            else
+            {
+                Assert.Throws<InvalidOperationException>(() => proxy.AltEndpoints = ImmutableList<Endpoint>.Empty);
+                Assert.Throws<InvalidOperationException>(() => proxy.Connection = null);
+                Assert.Throws<InvalidOperationException>(() => proxy.Endpoint = "icerpc://host");
+                Assert.Throws<InvalidOperationException>(() => proxy = proxy with { Fragment = "bar" });
+                Assert.Throws<InvalidOperationException>(() => proxy.Invoker = Proxy.DefaultInvoker);
+                Assert.Throws<InvalidOperationException>(
+                    () => proxy.Params = ImmutableDictionary<string, string>.Empty);
+
+                if (proxy.Protocol != Protocol.Relative)
+                {
+                    Assert.Throws<InvalidOperationException>(() => proxy = proxy with { Path = "/foo" });
+                }
+                else
+                {
+                    proxy = proxy with { Path = "/foo" };
+                }
+            }
         }
 
         [Test]
@@ -156,12 +250,12 @@ namespace IceRpc.Tests.Api
         }
 
         [TestCase("icerpc://host.zeroc.com/path?encoding=foo")]
-        [TestCase("icerpc://host.zeroc.com/identity#facet", "/identity", "facet")]
-        [TestCase("icerpc://host.zeroc.com/identity#facet#?!$x", "/identity", "facet#?!$x")]
-        [TestCase("icerpc://host.zeroc.com/identity#", "/identity", "")]
-        [TestCase("icerpc://host.zeroc.com/identity##%23f", "/identity", "#%23f")]
+        [TestCase("ice://host.zeroc.com/identity#facet", "/identity", "facet")]
+        [TestCase("ice://host.zeroc.com/identity#facet#?!$x", "/identity", "facet#?!$x")]
+        [TestCase("ice://host.zeroc.com/identity#", "/identity", "")]
+        [TestCase("ice://host.zeroc.com/identity#%24%23f", "/identity", "%24%23f")]
         [TestCase("ice://host.zeroc.com/identity?tls=false")]
-        [TestCase("ice://host.zeroc.com/identity?tls=true")] // TODO: add no tls test
+        [TestCase("ice://host.zeroc.com/identity?tls=true")]
         [TestCase("icerpc://host.zeroc.com:1000/category/name")]
         [TestCase("icerpc://host.zeroc.com:1000/loc0/loc1/category/name")]
         [TestCase("icerpc://host.zeroc.com/category/name%20with%20space", "/category/name%20with%20space")]
@@ -171,11 +265,14 @@ namespace IceRpc.Tests.Api
         [TestCase("icerpc://host.zeroc.com//identity?alt-endpoint=host2.zeroc.com:10000")]
         [TestCase("icerpc://[::1]:10000/identity?alt-endpoint=host1:10000,host2,host3,host4")]
         [TestCase("icerpc://[::1]:10000/identity?alt-endpoint=host1:10000&alt-endpoint=host2,host3&alt-endpoint=[::2]")]
-        [TestCase("icerpc:location//identity#facet", "/location//identity")]
+        [TestCase("icerpc://[::1]/path?alt-endpoint=host1?adapter-id=foo=bar$name=value&alt-endpoint=host2?foo=bar$123=456")]
+        [TestCase("ice:/location//identity#facet", "/location//identity")]
+        [TestCase("ice:///location//identity#facet", "/location//identity")] // we tolerate an empty host
         [TestCase("icerpc://host.zeroc.com//identity")]
-        [TestCase("icerpc://host.zeroc.com/\x7f€$%/!#$'()*+,:;=@[] %2F", "/%7F%E2%82%AC$%25/!", "$'()*+,:;=@[]%20%2F")]
-        [TestCase("icerpc://host.zeroc.com/identity#\x7f€$%/!#$'()*+,:;=@[] %2F", "/identity", "%7F%E2%82%AC$%25/!#$'()*+,:;=@[]%20%2F")]
-        [TestCase(@"icerpc://host.zeroc.com/foo\bar\n\t!", "/foo/bar/n/t!")] // Parser converts \ to /
+        [TestCase("ice://host.zeroc.com/\x7f€$%/!#$'()*+,:;=@[] %2F", "/%7F%E2%82%AC$%25/!", "$'()*+,:;=@[]%20%2F")]
+        // TODO: add test with # in fragment
+        [TestCase("ice://host.zeroc.com/identity#\x7f€$%/!$'()*+,:;=@[] %2F", "/identity", "%7F%E2%82%AC$%25/!$'()*+,:;=@[]%20%2F")]
+        [TestCase(@"icerpc://host.zeroc.com/foo\bar\n\t!", "/foo/bar/n/t!")] // \ becomes /
         // another syntax for empty port
         [TestCase("icerpc://host.zeroc.com:/identity", "/identity")]
         [TestCase("icerpc://com.zeroc.ice/identity?transport=iaps&option=a,b%2Cb,c&option=d")]
@@ -186,14 +283,28 @@ namespace IceRpc.Tests.Api
         [TestCase("icerpc://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar")]
         [TestCase("icerpc://mylocation.domain.com/foo/bar?transport=loc", "/foo/bar")]
         [TestCase("icerpc://host:10000?transport=coloc")]
-        [TestCase("icerpc:tcp -p 10000")]
+        [TestCase("icerpc:/tcp -p 10000", "/tcp%20-p%2010000")] // not recommended
         [TestCase("icerpc://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar")]
-        [TestCase("icerpc://0.0.0.0/identity#facet")] // Any IPv4 in proxy endpoint (unusable but parses ok)
-        [TestCase("icerpc://[::0]/identity#facet")] // Any IPv6 in proxy endpoint (unusable but parses ok)
+        [TestCase("ice://0.0.0.0/identity#facet")] // Any IPv4 in proxy endpoint (unusable but parses ok)
+        [TestCase("ice://[::0]/identity#facet")] // Any IPv6 in proxy endpoint (unusable but parses ok)
+        // IDN
+        [TestCase("icerpc://München-Ost:10000/path")]
+        [TestCase("icerpc://xn--mnchen-ost-9db.com/path")]
+        // relative proxies
+        [TestCase("/foo/bar")]
+        [TestCase("//foo/bar")]
+        [TestCase("/foo:bar")]
+        // non-supported protocols
+        [TestCase("foobar://host:10000/path")]
+        [TestCase("foobar://host/path#fragment", "/path", "fragment")]
+        [TestCase("foobar:path", "path")]  // not a valid path since it doesn't start with /, and that's ok
+        [TestCase("foobar:path#fragment", "path", "fragment")]
         public void Proxy_Parse_ValidInputUriFormat(string str, string? path = null, string? fragment = null)
         {
             var proxy = Proxy.Parse(str);
             Assert.That(Proxy.TryParse(proxy.ToString(), invoker: null, format: null, out Proxy? proxy2), Is.True);
+
+            Assert.That(proxy, Is.EqualTo(proxy2));
 
             if (path != null)
             {
@@ -203,16 +314,28 @@ namespace IceRpc.Tests.Api
             if (fragment != null)
             {
                 Assert.That(proxy.Fragment, Is.EqualTo(fragment));
+                Assert.That(proxy2!.Fragment, Is.EqualTo(fragment));
             }
-
-            Assert.AreEqual(proxy, proxy2); // round-trip works
-
-            var prx = GreeterPrx.Parse(str);
-            Assert.That(GreeterPrx.TryParse(prx.ToString(), invoker: null, format: null, out GreeterPrx prx2), Is.True);
-            Assert.AreEqual(prx, prx2); // round-trip works
         }
 
-        /// <summary>Tests that parsing an invalid proxies fails with <see cref="FormatException"/>.</summary>
+        /// <summary>Tests that parsing an invalid proxy fails with <see cref="FormatException"/>.</summary>
+        /// <param name="str">The string to parse as a proxy.</param>
+        [TestCase("")]
+        [TestCase("\"\"")]
+        [TestCase("icerpc://host/path?alt-endpoint=")] // alt-endpoint authority cannot be empty
+        [TestCase("icerpc://host/path?alt-endpoint=/foo")] // alt-endpoint cannot have a path
+        [TestCase("icerpc://host/path?alt-endpoint=icerpc://host")] // alt-endpoint cannot have a scheme
+        [TestCase("icerpc:path")] // bad path
+        [TestCase("icerpc:/host/path#fragment")] // bad fragment
+        [TestCase("icerpc:/path#fragment")]      // bad fragment
+        [TestCase("icerpc://user@host/path")]    // bad user info
+        public void Proxy_Parse_InvalidUriInput(string str)
+        {
+            Assert.Catch<FormatException>(() => Proxy.Parse(str));
+            Assert.That(Proxy.TryParse(str, invoker: null, format: null, out _), Is.False);
+        }
+
+        /// <summary>Tests that parsing an invalid proxy fails with <see cref="FormatException"/>.</summary>
         /// <param name="str">The string to parse as a proxy.</param>
         [TestCase("ice + tcp://host.zeroc.com:foo")] // missing host
         [TestCase("")]
@@ -224,14 +347,10 @@ namespace IceRpc.Tests.Api
         [TestCase("id -f \'facet x")]
         [TestCase("test -f facet@test @test")]
         [TestCase("test -p 2.0")]
-        [TestCase("icerpc://host/path?alt-endpoint=")] // alt-endpoint authority cannot be empty
-        [TestCase("icerpc://host/path?alt-endpoint=/foo")] // alt-endpoint cannot have a path
 
-        public void Proxy_Parse_InvalidInput(string str)
+        public void Proxy_Parse_InvalidIceInput(string str)
         {
-            Assert.Catch<FormatException>(() => Proxy.Parse(str));
             Assert.Throws<FormatException>(() => Proxy.Parse(str, format: IceProxyFormat.Default));
-            Assert.That(Proxy.TryParse(str, invoker: null, format: null, out _), Is.False);
             Assert.That(Proxy.TryParse(str, invoker: null, format: IceProxyFormat.Default, out _), Is.False);
         }
 
@@ -254,7 +373,7 @@ namespace IceRpc.Tests.Api
             IProxyFormat? format = proxyString.StartsWith("ice", StringComparison.Ordinal) ?
                 null : IceProxyFormat.Default;
             var proxy1 = Proxy.Parse(proxyString, format: format);
-            var proxy2 = proxy1.Clone();
+            var proxy2 = proxy1 with { }; // shallow clone
             var proxy3 = Proxy.Parse(proxy2.ToString());
 
             CheckGetHashCode(proxy1, proxy2);
@@ -317,7 +436,7 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(pipeline, received?.Proxy.Invoker);
 
             // Same with an endpoint
-            service.Prx!.Value.Proxy.Endpoint = "icerpc://localhost";
+            service.Prx = ProxyTestPrx.Parse("icerpc://localhost/foo");
             received = await prx.ReceiveProxyAsync();
             Assert.AreEqual(service.Prx?.Proxy.Endpoint, received?.Proxy.Endpoint);
             Assert.AreEqual(pipeline, received?.Proxy.Invoker);

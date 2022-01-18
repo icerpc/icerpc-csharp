@@ -207,7 +207,7 @@ namespace IceRpc
 
         /// <summary>Converts a location into an Identity.</summary>
         /// <returns>The identity.</returns>
-        /// <exception name="InvalidOperationException">Thrown when <see cref="Category"/> is null.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when <see cref="Category"/> is null.</exception>
         public Identity ToIdentity() =>
             Category is string category ? new Identity(AdapterId, category) : throw new InvalidOperationException();
 
