@@ -28,7 +28,7 @@ namespace IceRpc.Tests.Api
             endpoint = endpoint with { Host = "[::0]" };
             endpoint = endpoint with { Host = "::1" };
 
-            endpoint = endpoint with { Params = endpoint.Params.Add("name", "value") };
+            endpoint = endpoint with { Params = endpoint.Params.Add("name%23[]", "value%25[]@!") };
 
             Assert.Catch<ArgumentException>(() => _ = endpoint with { Protocol = Protocol.Relative });
             Assert.Catch<ArgumentException>(() => _ = endpoint with { Protocol = Protocol.FromString("foo") });
@@ -39,8 +39,8 @@ namespace IceRpc.Tests.Api
             Assert.Catch<ArgumentException>(() => _ = endpoint with { Params = endpoint.Params.Add("", "value") });
             Assert.Catch<ArgumentException>(
                 () => _ = endpoint with { Params = endpoint.Params.Add("alt-endpoint", "value") });
-            Assert.Catch<ArgumentException>(() => _ = endpoint with { Params = endpoint.Params.Add("a=b", "value") });
-            Assert.Catch<ArgumentException>(() => _ = endpoint with { Params = endpoint.Params.Add("a.b", "value") });
+            Assert.Catch<ArgumentException>(() => _ = endpoint with { Params = endpoint.Params.Add("", "value") });
+            Assert.Catch<ArgumentException>(() => _ = endpoint with { Params = endpoint.Params.Add(" a", "value") });
             Assert.Catch<ArgumentException>(() => _ = endpoint with { Params = endpoint.Params.Add("x", "a#b") });
             Assert.Catch<ArgumentException>(() => _ = endpoint with { Params = endpoint.Params.Add("x", "a&b") });
         }
@@ -58,6 +58,7 @@ namespace IceRpc.Tests.Api
         [TestCase("icerpc://host:10000?tls")]
         [TestCase("icerpc://host:10000?tls&adapter-id=ok")]
         [TestCase("IceRpc://host:10000")]
+        [TestCase("icerpc://host:10000? =bar")]                        // parses ok even though not a valid name
         public void Endpoint_Parse_ValidInput(string str)
         {
             var endpoint = Endpoint.FromString(str);
@@ -78,9 +79,6 @@ namespace IceRpc.Tests.Api
         [TestCase("icerpc://user:password@host:10000")]                // bad user-info
         [TestCase("icerpc://host:70000")]                              // bad port
         [TestCase("icerpc://host:10_000")]                             // bad port
-        [TestCase("icerpc://host:10000? =bar")]                        // bad param name
-        [TestCase("icerpc://host:10000?a.b=bar")]                      // bad param name
-        [TestCase("icerpc://host:10000?a_b=bar")]                      // bad param name
         public void Endpoint_Parse_InvalidInput(string str)
         {
             Assert.Catch<FormatException>(() => Endpoint.FromString(str));

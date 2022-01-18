@@ -225,11 +225,15 @@ namespace IceRpc
         /// <returns><c>true</c> if <paramref name="fragment"/> is a valid fragment; otherwise, <c>false</c>.</returns>
         public static bool IsValidFragment(string fragment) => IsValid(fragment, "\"<>\\^`{|}");
 
-        /// <summary>Checks if <paramref name="name"/> is not empty and contains only lowercase ASCII letters, digits
-        /// or <c>-</c>.</summary>
+        /// <summary>Checks if <paramref name="name"/> is not empty nor equal to <c>alt-endpoint</c> and contains only
+        /// unreserved characters, <c>%</c>, or reserved characters other than <c>#</c>, <c>&#38;</c> and <c>=</c>.
+        /// </summary>
         /// <param name="name">The name to check.</param>
         /// <returns><c>true</c> if <paramref name="name"/> is a valid parameter name; otherwise, <c>false</c>.
         /// </returns>
+        /// <remarks>The range of valid names is much larger than the range of names you should use. For example, you
+        /// should avoid parameter names with a <c>%</c> or <c>$</c> character, even though these characters are valid
+        /// in a name.</remarks>
         public static bool IsValidParamName(string name)
         {
             if (name.Length == 0 || name == "alt-endpoint")
@@ -237,16 +241,7 @@ namespace IceRpc
                 return false;
             }
 
-            foreach (char c in name)
-            {
-                if (!(c.CompareTo('0') >= 0 && c.CompareTo('9') <= 0) &&
-                    !(c.CompareTo('a') >= 0 && c.CompareTo('z') <= 0) &&
-                    c != '-')
-                {
-                    return false;
-                }
-            }
-            return true;
+            return IsValid(name, "\"<>#&=\\^`{|}");
         }
 
         /// <summary>Checks if <paramref name="value"/> contains only unreserved characters, <c>%</c>, or reserved

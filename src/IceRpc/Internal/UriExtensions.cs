@@ -34,13 +34,13 @@ namespace IceRpc.Internal
                     }
                     else
                     {
-                        if (!Proxy.IsValidParamName(name))
+                        if (name.Length == 0)
                         {
                             throw new FormatException(
-                                $"invalid query parameter name '{name}' in URI '{uri.OriginalString}'");
+                                $"invalid empty query parameter name in URI '{uri.OriginalString}'");
                         }
 
-                        // we assume the C# URI parser validates the value sufficiently
+                        // we assume the C# URI parser validates the name and value sufficiently
 
                         if (queryParams.TryGetValue(name, out string? existingValue))
                         {
