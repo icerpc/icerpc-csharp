@@ -32,7 +32,9 @@ impl<'a> Visitor for StructVisitor<'a> {
 
         builder
             .add_comment("summary", &doc_comment_message(struct_def))
-            .add_container_attributes(struct_def);
+            .add_type_id_attribute(struct_def)
+            .add_container_attributes(struct_def)
+            .add_base("IceRpc.Slice.ITrait".to_owned());
 
         builder.add_block(
             members
@@ -120,6 +122,30 @@ impl<'a> Visitor for StructVisitor<'a> {
                 &namespace,
                 FieldType::NonMangled,
             ))
+            .build(),
+        );
+
+        // EncodeTrait method
+        builder.add_block(
+            FunctionBuilder::new(
+                "public",
+                "void",
+                "EncodeTrait",
+                FunctionType::BlockBody,
+            )
+            .add_comment(
+                "summary",
+                "Encodes this struct as a trait, by encoding its TypeId followed by its fields.",
+            )
+            .add_parameter("ref IceEncoder", "encoder", None, Some("The encoder."))
+            .set_body(
+                format!(
+                    r#"encoder.EncodeString(typeof({}).GetIceTypeId()!);
+this.Encode(ref encoder);"#,
+                    &escaped_identifier,
+                )
+                .into(),
+            )
             .build(),
         );
 
