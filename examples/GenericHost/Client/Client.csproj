@@ -25,13 +25,13 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <SliceCompile Include="../Hello.ice" />
+    <SliceCompile Include="../Hello.slice" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="6.0.0" />
     <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview2" PrivateAssets="All" />
     <PackageReference Include="icerpc" Version="0.1.0-preview1" />
     <Compile Update="generated\Hello.cs">
-      <SliceCompileSource>../Hello.ice</SliceCompileSource>
+      <SliceCompileSource>../Hello.slice</SliceCompileSource>
     </Compile>
   </ItemGroup>
 </Project>

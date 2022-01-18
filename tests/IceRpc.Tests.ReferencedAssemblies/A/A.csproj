@@ -8,7 +8,7 @@
 
   <ItemGroup>
     <Compile Update="generated\A.cs">
-      <SliceCompileSource>A.ice</SliceCompileSource>
+      <SliceCompileSource>A.slice</SliceCompileSource>
     </Compile>
   </ItemGroup>
 

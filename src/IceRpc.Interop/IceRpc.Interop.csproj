@@ -21,7 +21,7 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" PrivateAssets="All" />
         <ProjectReference Include="..\IceRpc\IceRpc.csproj" />
-        <SliceCompile Include="../../slice/Ice/*.ice" OutputDir="$(MSBuildProjectDirectory)/generated" />
+        <SliceCompile Include="../../slice/Ice/*.slice" OutputDir="$(MSBuildProjectDirectory)/generated" />
         <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview2" PrivateAssets="All" />
     </ItemGroup>
     <!-- NuGet package contents-->

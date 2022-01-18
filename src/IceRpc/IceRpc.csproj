@@ -19,12 +19,12 @@
         <PackageTags>IceRPC</PackageTags>
     </PropertyGroup>
     <ItemGroup>
-      <SliceCompile Include="../../slice/$(AssemblyName)/*.ice" OutputDir="$(MSBuildProjectDirectory)/generated" />
-      <SliceCompile Include="../../slice/$(AssemblyName)/Internal/*.ice" OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
-      <SliceCompile Include="../../slice/$(AssemblyName)/Slice/*.ice" OutputDir="$(MSBuildProjectDirectory)/Slice/generated" />
-      <SliceCompile Include="../../slice/$(AssemblyName)/Slice/Internal/*.ice" OutputDir="$(MSBuildProjectDirectory)/Slice/Internal/generated" />
-      <SliceCompile Include="../../slice/$(AssemblyName)/Transports/*.ice" OutputDir="$(MSBuildProjectDirectory)/Transports/generated" />
-      <SliceCompile Include="../../slice/$(AssemblyName)/Transports/Internal/*.ice" OutputDir="$(MSBuildProjectDirectory)/Transports/Internal/generated" />
+      <SliceCompile Include="../../slice/$(AssemblyName)/*.slice" OutputDir="$(MSBuildProjectDirectory)/generated" />
+      <SliceCompile Include="../../slice/$(AssemblyName)/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
+      <SliceCompile Include="../../slice/$(AssemblyName)/Slice/*.slice" OutputDir="$(MSBuildProjectDirectory)/Slice/generated" />
+      <SliceCompile Include="../../slice/$(AssemblyName)/Slice/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Slice/Internal/generated" />
+      <SliceCompile Include="../../slice/$(AssemblyName)/Transports/*.slice" OutputDir="$(MSBuildProjectDirectory)/Transports/generated" />
+      <SliceCompile Include="../../slice/$(AssemblyName)/Transports/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Transports/Internal/generated" />
     </ItemGroup>
     <!-- NuGet package contents-->
     <ItemGroup>
@@ -44,7 +44,7 @@
           <Pack>true</Pack>
           <PackagePath>build</PackagePath>
       </Content>
-      <Content Include="..\..\slice\**\*.ice">
+      <Content Include="..\..\slice\**\*.slice">
         <Pack>true</Pack>
         <PackagePath>slice</PackagePath>
       </Content>

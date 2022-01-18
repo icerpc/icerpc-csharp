@@ -15,7 +15,7 @@
     <Compile Include="..\Shared\PipeReaderExtensions.cs" Link="PipeReaderExtensions.cs" />
     <Compile Include="..\Shared\PipeWriterDecorator.cs" Link="PipeWriterDecorator.cs" />
     <Compile Update="generated\SliceDefinitions.cs">
-      <SliceCompileSource>SliceDefinitions.ice</SliceCompileSource>
+      <SliceCompileSource>SliceDefinitions.slice</SliceCompileSource>
     </Compile>
   </ItemGroup>
 

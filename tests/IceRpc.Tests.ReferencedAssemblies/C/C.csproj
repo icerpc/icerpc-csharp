@@ -14,7 +14,7 @@
 
   <ItemGroup>
     <Compile Update="generated\C.cs">
-      <SliceCompileSource>C.ice</SliceCompileSource>
+      <SliceCompileSource>C.slice</SliceCompileSource>
     </Compile>
   </ItemGroup>
 

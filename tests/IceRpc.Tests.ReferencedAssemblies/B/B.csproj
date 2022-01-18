@@ -14,7 +14,7 @@
 
   <ItemGroup>
     <Compile Update="generated\Bcs">
-      <SliceCompileSource>B.ice</SliceCompileSource>
+      <SliceCompileSource>B.slice</SliceCompileSource>
     </Compile>
   </ItemGroup>
 
