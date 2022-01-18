@@ -5,7 +5,7 @@ using System.IO.Pipelines;
 namespace IceRpc.Transports
 {
     /// <summary>A multiplexed stream enables byte data exchange over a multiplexed transport.</summary>
-    public interface IMultiplexedStream : IDuplexPipe, IDisposable
+    public interface IMultiplexedStream : IDuplexPipe
     {
         /// <summary>The stream ID.</summary>
         /// <exception cref="InvalidOperationException">Raised if the stream is not started. Local streams are not

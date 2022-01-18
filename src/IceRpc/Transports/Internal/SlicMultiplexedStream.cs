@@ -11,7 +11,7 @@ namespace IceRpc.Transports.Internal
     /// <summary>The stream implementation for Slic. The stream implementation implements flow control to ensure data
     /// isn't buffered indefinitely if the application doesn't consume it. Buffering and flow control are only enable
     /// when sending multiple Slic packet or if the Slic packet size exceeds the peer packet maximum size.</summary>
-    internal class SlicMultiplexedStream : IMultiplexedStream
+    internal class SlicMultiplexedStream : IMultiplexedStream, IDisposable
     {
         /// <inheritdoc/>
         public long Id
@@ -125,7 +125,6 @@ namespace IceRpc.Transports.Internal
             }
 
             ResetErrorCode = errorCode;
-            _inputPipeReader.CancelPendingRead();
 
             if (IsStarted && !IsShutdown)
             {
@@ -262,7 +261,7 @@ namespace IceRpc.Transports.Internal
                 throw new InvalidDataException("invalid stream frame, received 0 bytes without end of stream");
             }
 
-            // Read and append the received data to input pipe writer.
+            // Read and append the received data to the input pipe writer.
             if (size > 0)
             {
                 while (size > 0)
@@ -277,6 +276,17 @@ namespace IceRpc.Transports.Internal
                     size -= chunk.Length;
                 }
 
+                if (endStream)
+                {
+                    // We complete the input pipe writer but we don't complete reads on the stream. Reads will be
+                    // completed by the Slic pipe reader once the application calls TryRead/ReadAsync. It's important
+                    // for unidirectional stream which would otherwise be completed before the data hasn't been consumed
+                    // by the application. This would allow a malicious client to open many unidirectional streams
+                    // before the application got a chance to consume the data, defeating the purpose of the
+                    // UnidirectionalStreamMaxCount option.
+                    await _inputPipeWriter.CompleteAsync().ConfigureAwait(false);
+                }
+
                 // This should always complete synchronously because the sender isn't supposed to send more data than
                 // it is allowed and the pipe is configured to pause when this size is reached.
                 ValueTask<FlushResult> flushTask = _inputPipeWriter.FlushAsync(CancellationToken.None);
@@ -287,11 +297,6 @@ namespace IceRpc.Transports.Internal
                 }
             }
             else
-            {
-                TrySetReadCompleted();
-            }
-
-            if (endStream)
             {
                 await _inputPipeWriter.CompleteAsync().ConfigureAwait(false);
             }
@@ -305,9 +310,7 @@ namespace IceRpc.Transports.Internal
             }
 
             ResetErrorCode = errorCode;
-            TrySetReadCompleted();
-
-            _inputPipeReader.CancelPendingRead();
+            _inputPipeWriter.Complete(new MultiplexedStreamAbortedException(errorCode));
         }
 
         internal void ReceivedStopSending(long errorCode)
@@ -383,8 +386,16 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            _outputPipeWriter.Complete();
+            if (ResetErrorCode is long errorCode)
+            {
+                _inputPipeWriter.Complete(new MultiplexedStreamAbortedException(errorCode));
+            }
+            else
+            {
+                _inputPipeWriter.Complete(new OperationCanceledException("connection closed"));
+            }
             _inputPipeReader.Complete();
+            _outputPipeWriter.Complete();
         }
 
         private bool TrySetState(State state)

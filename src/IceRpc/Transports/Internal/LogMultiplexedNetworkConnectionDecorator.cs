@@ -36,7 +36,7 @@ namespace IceRpc.Transports.Internal
             : base(decoratee, endpoint, isServer, logger) => _decoratee = decoratee;
     }
 
-    // TODO: support PipeReader/PipeWriter, shutdown and dispose logging
+    // TODO: XXX, support PipeReader/PipeWriter, shutdown and dispose logging
     internal sealed class LogMultiplexedStreamDecorator : IMultiplexedStream
     {
         public long Id => _decoratee.Id;
@@ -52,8 +52,6 @@ namespace IceRpc.Transports.Internal
 
         private readonly IMultiplexedStream _decoratee;
         private readonly ILogger _logger;
-
-        public void Dispose() => _decoratee.Dispose();
 
         public Task WaitForShutdownAsync(CancellationToken cancel) => _decoratee.WaitForShutdownAsync(cancel);
 

@@ -59,8 +59,7 @@ namespace IceRpc.Tests.Internal
 
             await _clientConnection.DisposeAsync();
 
-            // Calling ReadAsync after the stream disposable is invalid.
-            Assert.ThrowsAsync<ObjectDisposedException>(async () => await clientStream.Input.ReadAsync());
+            Assert.ThrowsAsync<InvalidOperationException>(async () => await clientStream.Input.ReadAsync());
 
             // Can't create new stream
             clientStream = _clientConnection.CreateStream(true);
@@ -111,8 +110,9 @@ namespace IceRpc.Tests.Internal
             Assert.That(clientStream.Id, Is.GreaterThanOrEqualTo(0));
         }
 
-        [Test]
-        public async Task MultiplexedNetworkConnection_StreamMaxCount_BidirectionalAsync()
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task MultiplexedNetworkConnection_StreamMaxCount_BidirectionalAsync(bool complete)
         {
             var clientStreams = new List<IMultiplexedStream>();
             var serverStreams = new List<IMultiplexedStream>();
@@ -130,6 +130,7 @@ namespace IceRpc.Tests.Internal
                 serverStream = await _serverConnection.AcceptStreamAsync(default);
                 serverStreams.Add(serverStream);
                 readResult = await serverStream.Input.ReadAsync();
+                serverStream.Input.AdvanceTo(readResult.Buffer.End);
                 Assert.That(readResult.IsCompleted);
             }
 
@@ -147,8 +148,17 @@ namespace IceRpc.Tests.Internal
 
             // Close one stream by sending EOS after receiving the payload.
             await serverStreams.Last().Output.WriteAsync(new byte[10], completeWhenDone: true, default);
-            readResult = await clientStreams.Last().Input.ReadAsync(default);
-            Assert.That(readResult.IsCompleted);
+
+            if (complete)
+            {
+                await clientStreams.Last().Input.CompleteAsync();
+            }
+            else
+            {
+                readResult = await clientStreams.Last().Input.ReadAsync(default);
+                Assert.That(readResult.IsCompleted);
+                clientStreams.Last().Input.AdvanceTo(readResult.Buffer.End);
+            }
 
             // Ensure streams are shutdown.
             await serverStreams.Last().WaitForShutdownAsync(default);
@@ -189,7 +199,10 @@ namespace IceRpc.Tests.Internal
 
                 if (bidirectional)
                 {
-                    Assert.That((await stream.Input.ReadAsync(default)).IsCompleted, Is.True);
+                    // Consume the data (the stream isn't shutdown until the data is consumed)
+                    ReadResult readResult = await stream.Input.ReadAsync(default);
+                    Assert.That(readResult.IsCompleted, Is.True);
+                    stream.Input.AdvanceTo(readResult.Buffer.End);
                 }
             }
 
@@ -205,7 +218,9 @@ namespace IceRpc.Tests.Internal
                     Interlocked.Decrement(ref streamCount);
                 }
 
-                _ = await stream.Input.ReadAsync();
+                ReadResult readResult = await stream.Input.ReadAsync();
+                Assert.That(readResult.IsCompleted, Is.True);
+                stream.Input.AdvanceTo(readResult.Buffer.End);
 
                 if (bidirectional)
                 {
@@ -219,8 +234,9 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        [Test]
-        public async Task MultiplexedNetworkConnection_StreamMaxCount_UnidirectionalAsync()
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task MultiplexedNetworkConnection_StreamMaxCount_UnidirectionalAsync(bool complete)
         {
             SlicOptions slicOptions = _serviceProvider.GetRequiredService<SlicOptions>();
             var clientStreams = new List<IMultiplexedStream>();
@@ -232,7 +248,10 @@ namespace IceRpc.Tests.Internal
             }
 
             IMultiplexedStream clientStream = _clientConnection.CreateStream(false);
-            ValueTask<FlushResult> sendTask = clientStream.Output.WriteAsync(new byte[10], completeWhenDone: true, default);
+            ValueTask<FlushResult> sendTask = clientStream.Output.WriteAsync(
+                new byte[10],
+                completeWhenDone: true,
+                default);
 
             // Accept a new unidirectional stream. This shouldn't allow the new stream send to complete since
             // the payload wasn't read yet on the stream.
@@ -240,13 +259,24 @@ namespace IceRpc.Tests.Internal
 
             await Task.Delay(200);
 
-            // New stream can't be accepted since max stream count are already opened.The stream isn't opened
+            // New stream can't be accepted since max stream count are already opened. The stream isn't opened
             // on the client side until we have confirmation from the server that we can open a new stream, so
             // the send should not complete.
             Assert.That(sendTask.IsCompleted, Is.False);
 
-            // Close the server-side stream by receiving the payload from the stream.
-            Assert.That((await serverStream.Input.ReadAsync(default)).IsCompleted, Is.True);
+            // Close the server-side stream by consuming the payload from the stream or by completing the input
+            // pipe of the stream.
+            if (complete)
+            {
+                await serverStream.Input.CompleteAsync();
+            }
+            else
+            {
+                ReadResult readResult = await serverStream.Input.ReadAsync(default);
+                Assert.That(readResult.IsCompleted, Is.True);
+                Assert.That(sendTask.IsCompleted, Is.False);
+                serverStream.Input.AdvanceTo(readResult.Buffer.End);
+            }
 
             // The send task of the new stream should now succeed.
             await sendTask;
@@ -264,13 +294,15 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task MultiplexedNetworkConnection_SendAsync_FailureAsync()
         {
-            IMultiplexedStream stream = _clientConnection.CreateStream(true);
-            await stream.Output.WriteAsync(new byte[10], true, default);
+            IMultiplexedStream clientStream = _clientConnection.CreateStream(true);
+            await clientStream.Output.WriteAsync(new byte[10], true, default);
 
             IMultiplexedStream serverStream = await _serverConnection.AcceptStreamAsync(default);
-            await serverStream.Input.ReadAsync();
+            ReadResult readResult = await serverStream.Input.ReadAsync();
+            Assert.That(readResult.IsCompleted, Is.True);
             await _serverConnection.DisposeAsync();
-            Assert.CatchAsync<ObjectDisposedException>(
+
+            Assert.CatchAsync<InvalidOperationException>(
                 async () => await serverStream.Output.WriteAsync(new byte[10], true, default));
         }
     }

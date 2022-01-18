@@ -8,6 +8,7 @@ using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Diagnostics;
+using System.IO.Pipelines;
 
 namespace IceRpc
 {
@@ -658,18 +659,12 @@ namespace IceRpc
                     request,
                     CancellationToken.None).ConfigureAwait(false);
             }
-            catch (OperationCanceledException ex)
+            catch (OperationCanceledException)
             {
                 // The two calls are equivalent except the response.PayloadSink version goes through the decorators
                 // installed by the middleware, if any.
-                if (response != null)
-                {
-                    await response.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
-                }
-                else
-                {
-                    await request.ResponseWriter.CompleteAsync(ex).ConfigureAwait(false);
-                }
+                PipeWriter writer = response?.PayloadSink ?? request.ResponseWriter;
+                await writer.CompleteAsync(MultiplexedStreamError.DispatchCanceled).ConfigureAwait(false);
             }
             catch (MultiplexedStreamAbortedException)
             {

@@ -39,14 +39,9 @@ namespace IceRpc.Internal
                         source.AdvanceTo(readResult.Buffer.End); // always fully consumed
                     }
 
-                    if (readResult.IsCompleted || flushResult.IsCompleted)
+                    if (readResult.IsCompleted || flushResult.IsCompleted ||
+                        readResult.IsCanceled || flushResult.IsCanceled)
                     {
-                        flushResult = new FlushResult(isCanceled: false, isCompleted: true);
-                        break;
-                    }
-                    else if (readResult.IsCanceled || flushResult.IsCanceled)
-                    {
-                        flushResult = new FlushResult(isCanceled: true, isCompleted: false);
                         break;
                     }
                 }
@@ -68,23 +63,20 @@ namespace IceRpc.Internal
                         source.AdvanceTo(readResult.Buffer.End); // always fully consumed
                     }
 
-                    if (readResult.IsCompleted || flushResult.IsCompleted)
+                    if (readResult.IsCompleted || flushResult.IsCompleted ||
+                        readResult.IsCanceled || flushResult.IsCanceled)
                     {
-                        flushResult = new FlushResult(isCanceled: false, isCompleted: true);
-                        break;
-                    }
-                    else if (readResult.IsCanceled || flushResult.IsCanceled)
-                    {
-                        flushResult = new FlushResult(isCanceled: true, isCompleted: false);
                         break;
                     }
                 }
             }
             else
             {
+                ReadResult readResult;
                 while (true)
                 {
-                    ReadResult readResult = await source.ReadAsync(cancel).ConfigureAwait(false);
+                    readResult = await source.ReadAsync(cancel).ConfigureAwait(false);
+                    flushResult = default;
                     try
                     {
                         // If readResult.Buffer.Length is small, it might be better to call a single
@@ -103,13 +95,22 @@ namespace IceRpc.Internal
                     {
                         source.AdvanceTo(readResult.Buffer.End);
                     }
-                }
-            }
 
-            if (completeWhenDone && !flushResult.IsCompleted && !flushResult.IsCanceled)
-            {
-                // Complete the sink.
-                await sink.CompleteAsync().ConfigureAwait(false);
+                    if (readResult.IsCompleted || readResult.IsCanceled ||
+                        flushResult.IsCompleted || flushResult.IsCanceled)
+                    {
+                        break;
+                    }
+                }
+
+                if (completeWhenDone &&
+                    readResult.IsCompleted &&
+                    !flushResult.IsCompleted &&
+                    !flushResult.IsCanceled)
+                {
+                    // Complete the sink.
+                    await sink.CompleteAsync().ConfigureAwait(false);
+                }
             }
 
             return flushResult;

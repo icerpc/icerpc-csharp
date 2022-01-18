@@ -6,6 +6,7 @@ using System.IO.Pipelines;
 namespace IceRpc.Internal
 {
     /// <summary>Error codes for stream errors.</summary>
+    // TODO: XXX Review unused values
     internal enum MultiplexedStreamError : byte
     {
         /// <summary>The stream was aborted because the invocation was canceled.</summary>
@@ -13,12 +14,6 @@ namespace IceRpc.Internal
 
         /// <summary>The stream was aborted because the dispatch was canceled.</summary>
         DispatchCanceled,
-
-        /// <summary>Streaming was canceled by the reader.</summary>
-        StreamingCanceledByReader,
-
-        /// <summary>Streaming was canceled by the writer.</summary>
-        StreamingCanceledByWriter,
 
         /// <summary>The stream was aborted because the connection was shutdown.</summary>
         ConnectionShutdown,
@@ -38,7 +33,27 @@ namespace IceRpc.Internal
         internal static void Complete(this PipeReader reader, MultiplexedStreamError errorCode) =>
             reader.Complete(new MultiplexedStreamAbortedException((byte)errorCode));
 
+        internal static ValueTask CompleteAsync(this PipeReader reader, MultiplexedStreamError errorCode) =>
+            reader.CompleteAsync(new MultiplexedStreamAbortedException((byte)errorCode));
+
         internal static void Complete(this PipeWriter writer, MultiplexedStreamError errorCode) =>
             writer.Complete(new MultiplexedStreamAbortedException((byte)errorCode));
+
+        internal static ValueTask CompleteAsync(this PipeWriter writer, MultiplexedStreamError errorCode) =>
+            writer.CompleteAsync(new MultiplexedStreamAbortedException((byte)errorCode));
+    }
+
+    internal static class MultiplexedStreamAbortedExceptionExtensions
+    {
+        internal static Exception ToProtocolException(this MultiplexedStreamAbortedException exception) =>
+            (MultiplexedStreamError)exception.ErrorCode switch
+            {
+                MultiplexedStreamError.DispatchCanceled =>
+                    new OperationCanceledException("dispatch canceled by peer"),
+                MultiplexedStreamError.ConnectionShutdownByPeer =>
+                    new ConnectionClosedException("connection shutdown by peer"),
+                MultiplexedStreamError.ConnectionShutdown => new OperationCanceledException("connection shutdown"),
+                _ => new ArgumentException("invalid stream error {exception.ErrorCode}"),
+            };
     }
 }
