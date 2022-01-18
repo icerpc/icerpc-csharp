@@ -318,11 +318,6 @@ namespace IceRpc
 
                 if (Protocol.IsSupported)
                 {
-                    if (!_path.StartsWith('/'))
-                    {
-                        throw new FormatException($"invalid path in proxy URI '{uri.OriginalString}'");
-                    }
-
                     if (_fragment.Length > 0 && !Protocol.HasFragment)
                     {
                         throw new FormatException($"invalid fragment in proxy URI '{uri.OriginalString}'");
@@ -357,6 +352,11 @@ namespace IceRpc
                     }
                     else
                     {
+                        if (!_path.StartsWith('/'))
+                        {
+                            throw new FormatException($"invalid path in proxy URI '{uri.OriginalString}'");
+                        }
+
                         if (altEndpointValue != null)
                         {
                             throw new FormatException($"invalid alt-endpoint parameter in URI '{uri.OriginalString}'");
