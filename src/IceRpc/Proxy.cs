@@ -114,24 +114,15 @@ namespace IceRpc
             get => _fragment;
             init
             {
-                if (Protocol.HasFragment)
+                CheckSupportedProtocol(nameof(Fragment));
+                Protocol.CheckFragment(value); // make sure it's properly escaped
+                if (!Protocol.HasFragment && value.Length > 0)
                 {
-                    if (!IsValidFragment(value))
-                    {
-                        throw new FormatException(
-                            @$"invalid fragment '{value
-                            }'; a valid fragment contains only unreserved characters, reserved characters or '%'");
-                    }
+                    throw new InvalidOperationException($"cannot set {Fragment} on a {this} proxy");
+                }
 
-                    _fragment = value;
-                    OriginalUri = null;
-                }
-                else if (value.Length > 0 || !Protocol.IsSupported)
-                {
-                    throw new InvalidOperationException($"cannot set {nameof(Fragment)} on a '{Protocol}' proxy");
-                }
-                // else we ignore initializing an empty fragment on a proxy with a supported protocol that does not
-                // support fragments
+                _fragment = value;
+                OriginalUri = null;
             }
         }
 
@@ -158,7 +149,8 @@ namespace IceRpc
             {
                 if (Protocol == Protocol.Relative || Protocol.IsSupported)
                 {
-                    CheckPath(value);
+                    Protocol.CheckPath(value); // make sure it's properly escaped
+                    Protocol.CheckUriPath(value); // make sure the protocol is happy with this path
                     _path = value;
                     OriginalUri = null;
                 }
@@ -219,52 +211,6 @@ namespace IceRpc
         /// <returns>The new relative proxy.</returns>
         public static Proxy FromPath(string path) => new(Protocol.Relative) { Path = path };
 
-        /// <summary>Checks if <paramref name="fragment"/> contains only unreserved characters, reserved characters, or
-        /// <c>%</c>.</summary>
-        /// <param name="fragment">The fragment to check.</param>
-        /// <returns><c>true</c> if <paramref name="fragment"/> is a valid fragment; otherwise, <c>false</c>.</returns>
-        public static bool IsValidFragment(string fragment) => IsValid(fragment, "\"<>\\^`{|}");
-
-        /// <summary>Checks if <paramref name="name"/> is not empty nor equal to <c>alt-endpoint</c> and contains only
-        /// unreserved characters, <c>%</c>, or reserved characters other than <c>#</c>, <c>&#38;</c> and <c>=</c>.
-        /// </summary>
-        /// <param name="name">The name to check.</param>
-        /// <returns><c>true</c> if <paramref name="name"/> is a valid parameter name; otherwise, <c>false</c>.
-        /// </returns>
-        /// <remarks>The range of valid names is much larger than the range of names you should use. For example, you
-        /// should avoid parameter names with a <c>%</c> or <c>$</c> character, even though these characters are valid
-        /// in a name.</remarks>
-        public static bool IsValidParamName(string name)
-        {
-            if (name.Length == 0 || name == "alt-endpoint")
-            {
-                return false;
-            }
-
-            return IsValid(name, "\"<>#&=\\^`{|}");
-        }
-
-        /// <summary>Checks if <paramref name="value"/> contains only unreserved characters, <c>%</c>, or reserved
-        /// characters other than <c>#</c> and <c>&#38;</c>.</summary>
-        /// <param name="value">The value to check.</param>
-        /// <returns><c>true</c> if <paramref name="value"/> is a valid parameter value; otherwise, <c>false</c>.
-        /// </returns>
-        public static bool IsValidParamValue(string value) => IsValid(value, "\"<>#&\\^`{|}");
-
-        /// <summary>Checks if <paramref name="path"/> starts with <c>/</c> and contains only unreserved characters,
-        /// <c>%</c>, or reserved characters other than <c>?</c> and <c>#</c>.</summary>
-        /// <param name="path">The path to check.</param>
-        /// <returns><c>true</c> if <paramref name="path"/> is a valid path; otherwise, <c>false</c>.</returns>
-        public static bool IsValidPath(string path)
-        {
-            if (path.Length == 0 || path[0] != '/')
-            {
-                return false;
-            }
-
-            return IsValid(path, "\"<>#?\\^`{|}");
-        }
-
         /// <summary>Creates a proxy from a string and an invoker.</summary>
         /// <param name="s">The string to parse.</param>
         /// <param name="invoker">The invoker of the new proxy.</param>
@@ -318,9 +264,10 @@ namespace IceRpc
 
                 if (Protocol.IsSupported)
                 {
-                    if (_fragment.Length > 0 && !Protocol.HasFragment)
+                    Protocol.CheckUriPath(_path);
+                    if (!Protocol.HasFragment && _fragment.Length > 0)
                     {
-                        throw new FormatException($"invalid fragment in proxy URI '{uri.OriginalString}'");
+                        throw new ArgumentException($"cannot create a {Protocol} proxy with a fragment", nameof(uri));
                     }
 
                     (ImmutableDictionary<string, string> queryParams, string? altEndpointValue) = uri.ParseQuery();
@@ -386,7 +333,7 @@ namespace IceRpc
             {
                 Protocol = Protocol.Relative;
                 _path = uri.ToString();
-                CheckPath(_path);
+                Protocol.CheckPath(_path);
             }
 
             OriginalUri = uri;
@@ -507,18 +454,6 @@ namespace IceRpc
             OriginalUri ?? (Protocol == Protocol.Relative ?
                 new Uri(Path, UriKind.Relative) : new Uri(ToString(), UriKind.Absolute));
 
-        /// <summary>Makes sure path is valid.</summary>
-        /// <exception cref="FormatException">Thrown if <paramref name="path"/> is not valid.</exception>
-        internal static void CheckPath(string path)
-        {
-            if (!IsValidPath(path))
-            {
-                throw new FormatException(
-                    @$"invalid path '{path
-                    }'; a valid path starts with '/' and contains only unreserved characters, '%' or reserved characters other than '?' and '#'");
-            }
-        }
-
         internal static void CheckParams(ImmutableDictionary<string, string> @params, string paramName)
         {
             foreach ((string name, string value) in @params)
@@ -548,6 +483,52 @@ namespace IceRpc
                 }
             }
             return true;
+        }
+
+        /// <summary>Checks if <paramref name="name"/> is not empty nor equal to <c>alt-endpoint</c> and contains only
+        /// unreserved characters, <c>%</c>, or reserved characters other than <c>#</c>, <c>&#38;</c> and <c>=</c>.
+        /// </summary>
+        /// <param name="name">The name to check.</param>
+        /// <returns><c>true</c> if <paramref name="name"/> is a valid parameter name; otherwise, <c>false</c>.
+        /// </returns>
+        /// <remarks>The range of valid names is much larger than the range of names you should use. For example, you
+        /// should avoid parameter names with a <c>%</c> or <c>$</c> character, even though these characters are valid
+        /// in a name.</remarks>
+        private static bool IsValidParamName(string name)
+        {
+            if (name.Length == 0 || name == "alt-endpoint")
+            {
+                return false;
+            }
+
+            return IsValid(name, "\"<>#&=\\^`{|}");
+        }
+
+        /// <summary>Checks if <paramref name="value"/> contains only unreserved characters, <c>%</c>, or reserved
+        /// characters other than <c>#</c> and <c>&#38;</c>.</summary>
+        /// <param name="value">The value to check.</param>
+        /// <returns><c>true</c> if <paramref name="value"/> is a valid parameter value; otherwise, <c>false</c>.
+        /// </returns>
+        private static bool IsValidParamValue(string value) => IsValid(value, "\"<>#&\\^`{|}");
+
+        /// <summary>"unchecked" constructor used by the Slice decoder when decoding a 1.1-encoded proxy.</summary>
+        internal Proxy(
+            Protocol protocol,
+            string path,
+            Endpoint? endpoint,
+            ImmutableList<Endpoint> altEndpoints,
+            ImmutableDictionary<string, string> proxyParams,
+            string fragment,
+            IInvoker invoker)
+        {
+            Protocol = protocol;
+            Encoding = protocol.SliceEncoding!;
+            _path = path;
+            _endpoint = endpoint;
+            _altEndpoints = altEndpoints;
+            _params = proxyParams;
+            _fragment = fragment;
+            _invoker = invoker;
         }
 
         private void CheckSupportedProtocol(string propertyName)

@@ -372,17 +372,21 @@ namespace IceRpc.Slice
                 try
                 {
                     proxyData.Facet.CheckValue();
+                    string fragment = proxyData.Facet.ToFragment();
 
-                    return new Proxy(protocol)
+                    if (!protocol.HasFragment && fragment.Length > 0)
                     {
-                        Path = identity.ToPath(),
-                        Fragment = proxyData.Facet.ToFragment(),
-                        Encoding = IceRpc.Encoding.FromMajorMinor(proxyData.EncodingMajor, proxyData.EncodingMinor),
-                        Endpoint = endpoint,
-                        AltEndpoints = altEndpoints.ToImmutableList(),
-                        Invoker = _invoker,
-                        Params = proxyParams
-                    };
+                        throw new InvalidDataException($"unexpected fragment in {protocol} proxy");
+                    }
+
+                    return new Proxy(
+                        protocol,
+                        identity.ToPath(),
+                        endpoint,
+                        altEndpoints.ToImmutableList(),
+                        proxyParams,
+                        fragment,
+                        _invoker);
                 }
                 catch (InvalidDataException)
                 {

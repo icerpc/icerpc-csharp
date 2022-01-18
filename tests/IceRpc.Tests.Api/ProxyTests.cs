@@ -266,8 +266,8 @@ namespace IceRpc.Tests.Api
         [TestCase("icerpc://[::1]:10000/identity?alt-endpoint=host1:10000,host2,host3,host4")]
         [TestCase("icerpc://[::1]:10000/identity?alt-endpoint=host1:10000&alt-endpoint=host2,host3&alt-endpoint=[::2]")]
         [TestCase("icerpc://[::1]/path?alt-endpoint=host1?adapter-id=foo=bar$name=value&alt-endpoint=host2?foo=bar$123=456")]
-        [TestCase("ice:/location//identity#facet", "/location//identity")]
-        [TestCase("ice:///location//identity#facet", "/location//identity")] // we tolerate an empty host
+        [TestCase("ice:/location/identity#facet", "/location/identity")]
+        [TestCase("ice:///location/identity#facet", "/location/identity")] // we tolerate an empty host
         [TestCase("icerpc://host.zeroc.com//identity")]
         [TestCase("ice://host.zeroc.com/\x7f€$%/!#$'()*+,:;=@[] %2F", "/%7F%E2%82%AC$%25/!", "$'()*+,:;=@[]%20%2F")]
         // TODO: add test with # in fragment
@@ -329,6 +329,9 @@ namespace IceRpc.Tests.Api
         [TestCase("icerpc:/host/path#fragment")] // bad fragment
         [TestCase("icerpc:/path#fragment")]      // bad fragment
         [TestCase("icerpc://user@host/path")]    // bad user info
+        [TestCase("ice://host/s1/s2/s3")]        // too many slashes in path
+        [TestCase("ice://host/cat/")]            // empty identity name
+        [TestCase("ice://host/")]                // empty identity name
         public void Proxy_Parse_InvalidUriInput(string str)
         {
             Assert.Catch<FormatException>(() => Proxy.Parse(str));
