@@ -110,7 +110,7 @@ impl<'a> Visitor for StructVisitor<'a> {
         // Encode method
         builder.add_block(
             FunctionBuilder::new(
-                &struct_def.modifiers(),
+                &(struct_def.access_modifier() + " readonly"),
                 "void",
                 "Encode",
                 FunctionType::BlockBody,
@@ -128,7 +128,7 @@ impl<'a> Visitor for StructVisitor<'a> {
         // EncodeTrait method
         builder.add_block(
             FunctionBuilder::new(
-                "public",
+                "public readonly",
                 "void",
                 "EncodeTrait",
                 FunctionType::BlockBody,

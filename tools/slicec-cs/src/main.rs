@@ -68,10 +68,10 @@ fn try_main() -> Result<(), ()> {
 
             generated_code.code_blocks.push(preamble(slice_file));
 
-            let mut visitor = StructVisitor {
+            let mut struct_visitor = StructVisitor {
                 generated_code: &mut generated_code,
             };
-            slice_file.visit_with(&mut visitor);
+            slice_file.visit_with(&mut struct_visitor);
 
             let mut proxy_visitor = ProxyVisitor {
                 generated_code: &mut generated_code,

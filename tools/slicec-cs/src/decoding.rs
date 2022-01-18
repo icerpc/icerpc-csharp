@@ -78,11 +78,7 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str) -> CodeBloc
             write!(code, "decoder.Decode{}()", primitive_ref.type_suffix());
         }
         TypeRefs::Struct(struct_ref) => {
-            write!(
-                code,
-                "new {}(ref decoder)",
-                struct_ref.escape_scoped_identifier(namespace),
-            );
+            write!(code, "new {}(ref decoder)", type_string);
         }
         TypeRefs::Dictionary(dictionary_ref) => {
             code.write(&decode_dictionary(dictionary_ref, namespace))
