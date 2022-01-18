@@ -15,18 +15,18 @@
     <Compile Include="..\Shared\PipeReaderExtensions.cs" Link="PipeReaderExtensions.cs" />
     <Compile Include="..\Shared\PipeWriterDecorator.cs" Link="PipeWriterDecorator.cs" />
     <Compile Update="generated\RetryTests.cs">
-      <SliceCompileSource>RetryTests.ice</SliceCompileSource>
+      <SliceCompileSource>RetryTests.slice</SliceCompileSource>
     </Compile>
     <Compile Update="generated\SliceDefinitions.cs">
-      <SliceCompileSource>SliceDefinitions.ice</SliceCompileSource>
+      <SliceCompileSource>SliceDefinitions.slice</SliceCompileSource>
     </Compile>
     <Compile Update="generated\ProtocolBridgingTests.cs">
-      <SliceCompileSource>ProtocolBridgingTests.ice</SliceCompileSource>
+      <SliceCompileSource>ProtocolBridgingTests.slice</SliceCompileSource>
     </Compile>
   </ItemGroup>
   <ItemGroup>
     <Compile Update="generated\StressTests.cs">
-      <SliceCompileSource>StressTests.ice</SliceCompileSource>
+      <SliceCompileSource>StressTests.slice</SliceCompileSource>
     </Compile>
   </ItemGroup>
 
@@ -42,7 +42,7 @@
     <PackageReference Include="NUnit" Version="3.13.2" />
     <PackageReference Include="NUnit.Analyzers" Version="3.3.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.2.0" />
-    <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview2" PrivateAssets="All" />
+    <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview4" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>
