@@ -15,10 +15,7 @@ namespace IceRpc.Tests.Api
         [TestCase("/foo/bar")]
         [TestCase("/foo/bar")]
         [TestCase("/foo:foo/bar$bar", "/foo%3Afoo/bar%24bar")]
-        [TestCase("/")]
-        [TestCase("/foo/")]
         [TestCase("//foo", "/foo")]
-        [TestCase("//", "/")]
         public void Identity_FromPathToPath(string path, string? normalizedPath = null)
         {
             var identity = Identity.FromPath(path);
@@ -29,6 +26,9 @@ namespace IceRpc.Tests.Api
         [TestCase("foo/bar/abc")] // does not start with a slash
         [TestCase("/foo/bar/abc")] // too many slashes
         [TestCase("///")] // too many slashes
+        [TestCase("/")] // empty name
+        [TestCase("/foo/")] // empty name
+        [TestCase("//")] // empty name
         public void Identity_FromPath_FormatException(string path) =>
             Assert.Throws<FormatException>(() => Identity.FromPath(path));
 
@@ -78,8 +78,6 @@ namespace IceRpc.Tests.Api
         [TestCase("/foo", "bar", "/bar/%2Ffoo")]
         [TestCase("/foo", "/bar/", "/%2Fbar%2F/%2Ffoo")]
         [TestCase("foo/// ///#@", "/bar/", "/%2Fbar%2F/foo%2F%2F%2F%20%2F%2F%2F%23%40")]
-        [TestCase("", "", "/")] // empty identity
-        [TestCase("", "cat/", "/cat%2F/")] // category with trailing slash and empty name
         public void Identity_ToPathFromPath(string name, string category, string path)
         {
             var identity = new Identity(name, category);

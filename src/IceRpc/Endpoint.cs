@@ -63,7 +63,14 @@ namespace IceRpc
             get => _params;
             init
             {
-                Proxy.CheckParams(value, nameof(Params));
+                try
+                {
+                    Proxy.CheckParams(value);
+                }
+                catch (FormatException ex)
+                {
+                    throw new ArgumentException($"invalid parameters", nameof(Params), ex);
+                }
                 _params = value;
                 OriginalUri = null; // new params invalidates OriginalUri
             }
@@ -196,31 +203,20 @@ namespace IceRpc
         /// <returns>The URI.</returns>
         public Uri ToUri() => OriginalUri ?? new Uri(ToString(), UriKind.Absolute);
 
-        /// <summary>Constructs an endpoint from a <see cref="Uri"/>, a protocol and parsed parameters.</summary>
-        /// <remarks>This constructor is used by <see cref="Proxy"/> for its main endpoint.</remarks>
-        internal Endpoint(Uri uri, Protocol protocol, ImmutableDictionary<string, string> endpointParams)
+        /// <summary>Constructs an endpoint from a protocol, a host, a port and parsed parameters, without parameter
+        /// validation.</summary>
+        /// <remarks>This constructor is used by <see cref="Proxy"/> for its main endpoint and by the Slice decoder for
+        /// 1.1-encoded endpoints.</remarks>
+        internal Endpoint(
+            Protocol protocol,
+            string host,
+            ushort port,
+            ImmutableDictionary<string, string> endpointParams)
         {
-            Debug.Assert(uri.Scheme == protocol.Name);
-            Debug.Assert(uri.IsAbsoluteUri);
-            Debug.Assert(protocol.IsSupported);
-
             _protocol = protocol;
-            _host = uri.IdnHost;
-            if (_host.Length == 0)
-            {
-                throw new ArgumentException("cannot create an endpoint with an empty host", nameof(uri));
-            }
-
-            _port = checked((ushort)(uri.Port == -1 ? _protocol.DefaultUriPort : uri.Port));
+            _host = host;
+            _port = port;
             _params = endpointParams;
-
-            if (uri.UserInfo.Length > 0)
-            {
-                throw new ArgumentException("cannot create an endpoint with a user info", nameof(uri));
-            }
-
-            // ignore path, fragment
-            // don't set OriginalUri as uri typically has a path, alt-endpoint and more.
         }
     }
 

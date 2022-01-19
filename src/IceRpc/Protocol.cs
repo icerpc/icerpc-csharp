@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
+using System.Diagnostics;
 
 namespace IceRpc
 {
@@ -96,6 +97,14 @@ namespace IceRpc
             2 => IceRpc,
             _ => throw new NotSupportedException($"cannot convert '{protocolMajor}.0' into a protocol")
         };
+
+        /// <summary>Checks if a URI absolute path is valid for this protocol.</summary>
+        /// <param name="uriPath">The absolute path to check. The caller guarantees it's a valid URI absolute path.
+        /// </param>
+        /// <exception cref="FormatException">Thrown if the path is not valid.</exception>
+        internal virtual void CheckUriPath(string uriPath) =>
+            // by default, any URI absolute path is ok
+            Debug.Assert(IsSupported || this == Relative);
 
         internal byte ToByte() => Name switch
         {
