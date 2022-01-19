@@ -42,7 +42,7 @@ namespace IceRpc.Configure
         /// </exception>
         public Router(string absolutePrefix)
         {
-            Protocol.CheckPath(absolutePrefix);
+            Proxy.CheckPath(absolutePrefix);
             absolutePrefix = NormalizePrefix(absolutePrefix);
             AbsolutePrefix = absolutePrefix.Length > 1 ? absolutePrefix : "";
         }
@@ -66,7 +66,7 @@ namespace IceRpc.Configure
                 throw new InvalidOperationException(
                     $"cannot call {nameof(Map)} after calling {nameof(IDispatcher.DispatchAsync)}");
             }
-            Protocol.CheckPath(path);
+            Proxy.CheckPath(path);
             _exactMatchRoutes[path] = dispatcher;
         }
 
@@ -95,7 +95,7 @@ namespace IceRpc.Configure
                 throw new InvalidOperationException(
                     $"cannot call {nameof(Mount)} after calling {nameof(IDispatcher.DispatchAsync)}");
             }
-            Protocol.CheckPath(prefix);
+            Proxy.CheckPath(prefix);
             prefix = NormalizePrefix(prefix);
             _prefixMatchRoutes[prefix] = dispatcher;
         }
@@ -108,7 +108,7 @@ namespace IceRpc.Configure
         /// <exception cref="FormatException">Thrown if <paramref name="prefix"/> is not a valid path.</exception>
         public Router Route(string prefix, Action<Router> configure)
         {
-            Protocol.CheckPath(prefix);
+            Proxy.CheckPath(prefix);
             var subRouter = new Router($"{AbsolutePrefix}{prefix}");
             configure(subRouter);
             Mount(prefix, subRouter);

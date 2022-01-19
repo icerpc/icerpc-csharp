@@ -15,6 +15,7 @@ namespace IceRpc
         /// <returns>A new Ice identity struct.</returns>
         public static Identity FromPath(string path)
         {
+            Proxy.CheckPath(path); // make sure the input is a valid URI path
             var identity = Slice.Internal.Identity.FromPath(path);
             return new(identity.Name, identity.Category);
         }

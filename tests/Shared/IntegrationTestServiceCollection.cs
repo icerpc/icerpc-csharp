@@ -75,7 +75,7 @@ namespace IceRpc.Tests
             // The default proxy is created from the Connection configured on the service collection.
             this.AddScoped(serviceProvider => Proxy.FromConnection(
                 serviceProvider.GetRequiredService<Connection>(),
-                path: "/",
+                path: "/test",
                 invoker: serviceProvider.GetService<IInvoker>()));
         }
 

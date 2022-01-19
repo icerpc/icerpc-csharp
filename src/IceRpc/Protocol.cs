@@ -37,46 +37,9 @@ namespace IceRpc
         /// <summary>The name of this protocol.</summary>
         public string Name { get; }
 
-        /// <summary>Checks if <paramref name="fragment"/> contains only unreserved characters, reserved characters or
-        /// '%'.</summary>
-        /// <param name="fragment">The path to check.</param>
-        /// <exception cref="FormatException">Thrown if the fragment is not valid.</exception>
-        /// <remarks>The fragment of a URI with a supported protocol satisfies these requirements.</remarks>
-        internal static void CheckFragment(string fragment)
-        {
-            if (!IsValid(fragment, "\"<>\\^`{|}"))
-            {
-                throw new FormatException(
-                    @$"invalid fragment '{fragment
-                    }'; a valid fragment contains only unreserved characters, reserved characters or '%'");
-            }
-        }
-
-        /// <summary>Checks if <paramref name="path"/> starts with a <c>/</c> and contains only unreserved characters,
-        /// <c>%</c>, or reserved characters other than <c>?</c> and <c>#</c>.</summary>
-        /// <param name="path">The path to check.</param>
-        /// <exception cref="FormatException">Thrown if the path is not valid.</exception>
-        /// <remarks>The absolute path of a URI with a supported protocol satisfies these requirements.</remarks>
-        internal static void CheckPath(string path)
-        {
-            if (path.Length == 0 || path[0] != '/' || !IsValid(path, "\"<>#?\\^`{|}"))
-            {
-                throw new FormatException(
-                    @$"invalid path '{path
-                    }'; a valid path starts with '/' and contains only unreserved characters, '%' or reserved characters other than '?' and '#'");
-            }
-        }
-
         /// <summary>Returns the Slice encoding that this protocol uses for its headers.</summary>
         /// <returns>The Slice encoding.</returns>
         internal virtual IceEncoding? SliceEncoding => null;
-
-        /// <summary>Checks if a properly escaped URI absolute path is valid for this protocol.</summary>
-        /// <param name="uriPath">The absolute path to check.</param>
-        /// <exception cref="FormatException">Thrown if the path is not valid.</exception>
-        internal virtual void CheckUriPath(string uriPath) =>
-            // by default, any URI path is ok
-            Debug.Assert(IsSupported || this == Relative); // should not be called for other protocols
 
         internal const string IceName = "ice";
         internal const string IceRpcName = "icerpc";
@@ -135,28 +98,20 @@ namespace IceRpc
             _ => throw new NotSupportedException($"cannot convert '{protocolMajor}.0' into a protocol")
         };
 
+        /// <summary>Checks if a URI absolute path is valid for this protocol.</summary>
+        /// <param name="uriPath">The absolute path to check. The caller guarantees it's a valid URI absolute path.
+        /// </param>
+        /// <exception cref="FormatException">Thrown if the path is not valid.</exception>
+        internal virtual void CheckUriPath(string uriPath) =>
+            // by default, any URI absolute path is ok
+            Debug.Assert(IsSupported || this == Relative);
+
         internal byte ToByte() => Name switch
         {
             IceName => 1,
             IceRpcName => 2,
             _ => throw new NotSupportedException($"cannot convert protocol '{Name}' into a byte")
         };
-
-        /// <summary>Checks if <paramref name="s"/> contains only printable ASCII characters other than space (x20) and
-        /// the characters included held by the <paramref name="invalidChars"/> string.</summary>
-        private protected static bool IsValid(string s, string invalidChars)
-        {
-            foreach (char c in s)
-            {
-                if (c.CompareTo('\x20') <= 0 ||
-                    c.CompareTo('\x7F') >= 0 ||
-                    invalidChars.Contains(c, StringComparison.InvariantCulture))
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
 
         private protected Protocol(string name) => Name = name;
     }

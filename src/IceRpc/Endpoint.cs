@@ -63,7 +63,14 @@ namespace IceRpc
             get => _params;
             init
             {
-                Proxy.CheckParams(value, nameof(Params));
+                try
+                {
+                    Proxy.CheckParams(value);
+                }
+                catch (FormatException ex)
+                {
+                    throw new ArgumentException($"invalid parameters", nameof(Params), ex);
+                }
                 _params = value;
                 OriginalUri = null; // new params invalidates OriginalUri
             }

@@ -21,7 +21,7 @@ namespace IceRpc.Internal
         internal IProtocolConnectionFactory<ISimpleNetworkConnection> ProtocolConnectionFactory { get; } =
             new IceProtocolConnectionFactory();
 
-        /// <summary>Checks if this properly escaped URI absolute path holds a valid identity.</summary>
+        /// <summary>Checks if this absolute path holds a valid identity.</summary>
         internal override void CheckUriPath(string uriPath)
         {
             string workingPath = uriPath[1..]; // removes leading /.
