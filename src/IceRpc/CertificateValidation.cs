@@ -74,7 +74,6 @@ namespace IceRpc
                     chain = new X509Chain(useMachineContext);
                     try
                     {
-                        chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllFlags;
                         chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
                         chain.ChainPolicy.DisableCertificateDownloads = true;
                         if (certificateAuthorities != null)
