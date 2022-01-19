@@ -67,14 +67,16 @@ namespace IceRpc
                 }
 
                 bool buildCustomChain = (certificateAuthorities != null || useMachineContext) && certificate != null;
-                try
+                // If using custom certificate authorities or the machine context and the peer provides a
+                // certificate, we rebuild the certificate chain with our custom chain policy.
+                if (buildCustomChain)
                 {
-                    // If using custom certificate authorities or the machine context and the peer provides a
-                    // certificate, we rebuild the certificate chain with our custom chain policy.
-                    if (buildCustomChain)
+                    chain = new X509Chain(useMachineContext);
+                    try
                     {
-                        chain = new X509Chain(useMachineContext);
+                        chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllFlags;
                         chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+                        chain.ChainPolicy.DisableCertificateDownloads = true;
                         if (certificateAuthorities != null)
                         {
                             chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
@@ -83,15 +85,15 @@ namespace IceRpc
                         }
                         return chain.Build((X509Certificate2)certificate!);
                     }
-                }
-                finally
-                {
-                    if (buildCustomChain)
+                    finally
                     {
-                        chain!.Dispose();
+                        chain.Dispose();
                     }
                 }
-                return errors == 0;
+                else
+                {
+                    return errors == 0;
+                }
             };
         }
     }
