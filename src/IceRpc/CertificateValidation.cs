@@ -5,7 +5,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc
 {
-    /// <summary>This class allows creating certificate validation callback to validate client and server certificates.
+    /// <summary>This class allows creating certificate validation callbacks to validate client and server certificates.
     /// </summary>
     public static class CertificateValidaton
     {
@@ -75,51 +75,13 @@ namespace IceRpc
                     {
                         chain = new X509Chain(useMachineContext);
                         chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-
                         if (certificateAuthorities != null)
                         {
-                            // We need to set this flag to be able to use a certificate authority from the extra store.
-                            chain.ChainPolicy.VerificationFlags =
-                                X509VerificationFlags.AllowUnknownCertificateAuthority;
-                            foreach (X509Certificate2 cert in certificateAuthorities)
-                            {
-                                chain.ChainPolicy.ExtraStore.Add(cert);
-                            }
+                            chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
+                            chain.ChainPolicy.CustomTrustStore.Clear();
+                            chain.ChainPolicy.CustomTrustStore.AddRange(certificateAuthorities);
                         }
-                        chain.Build((X509Certificate2)certificate!);
-                    }
-
-                    if (chain != null && chain.ChainStatus != null)
-                    {
-                        var chainStatus = new List<X509ChainStatus>(chain.ChainStatus);
-
-                        if (certificateAuthorities != null)
-                        {
-                            // Untrusted root is OK when using our custom chain engine if the CA certificate is present
-                            // in the chain policy extra store.
-                            X509ChainElement root = chain.ChainElements[^1];
-                            if (chain.ChainPolicy.ExtraStore.Contains(root.Certificate) &&
-                                chainStatus.Exists(status => status.Status == X509ChainStatusFlags.UntrustedRoot))
-                            {
-                                chainStatus.Remove(
-                                    chainStatus.Find(status => status.Status == X509ChainStatusFlags.UntrustedRoot));
-                                errors ^= SslPolicyErrors.RemoteCertificateChainErrors;
-                            }
-                            else if (!chain.ChainPolicy.ExtraStore.Contains(root.Certificate) &&
-                                     !chainStatus.Exists(status => status.Status == X509ChainStatusFlags.UntrustedRoot))
-                            {
-                                chainStatus.Add(new X509ChainStatus() { Status = X509ChainStatusFlags.UntrustedRoot });
-                                errors |= SslPolicyErrors.RemoteCertificateChainErrors;
-                            }
-                        }
-
-                        foreach (X509ChainStatus status in chainStatus)
-                        {
-                            if (status.Status != X509ChainStatusFlags.NoError)
-                            {
-                                errors |= SslPolicyErrors.RemoteCertificateChainErrors;
-                            }
-                        }
+                        return chain.Build((X509Certificate2)certificate!);
                     }
                 }
                 finally
