@@ -203,10 +203,10 @@ namespace IceRpc
         /// <returns>The URI.</returns>
         public Uri ToUri() => OriginalUri ?? new Uri(ToString(), UriKind.Absolute);
 
-        /// <summary>Constructs an endpoint from a protocol, a host, a port and parsed parameters without validation.
-        /// </summary>
-        /// <remarks>This constructor is used by <see cref="Proxy"/> for its main endpoint and also by the Slice decoder
-        /// when decoding most 1.1-encoded endpoints.</remarks>
+        /// <summary>Constructs an endpoint from a protocol, a host, a port and parsed parameters, without parameter
+        /// validation.</summary>
+        /// <remarks>This constructor is used by <see cref="Proxy"/> for its main endpoint and by the Slice decoder for
+        /// 1.1-encoded endpoints.</remarks>
         internal Endpoint(
             Protocol protocol,
             string host,
