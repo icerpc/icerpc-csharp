@@ -69,7 +69,7 @@ namespace IceRpc.Slice.Internal
 
                         foreach (Type type in assembly.GetExportedTypes())
                         {
-                            if (type.GetIceTypeId() is string typeId && IsMatchingType(type))
+                            if (type.GetIceTypeId() is string typeId && !type.IsInterface)
                             {
                                 var lazy = new Lazy<ActivateObject>(() => CreateFactory(type));
 
@@ -110,12 +110,10 @@ namespace IceRpc.Slice.Internal
 
                 ParameterExpression decoderParam = Expression.Parameter(typeof(IceDecoder).MakeByRefType(), "decoder");
 
-                return Expression.Lambda<ActivateObject>(
-                    Expression.New(constructor, decoderParam), decoderParam).Compile();
+                var constructorExpression = Expression.New(constructor, decoderParam);
+                var boxedExpression = Expression.Convert(constructorExpression, typeof(object));
+                return Expression.Lambda<ActivateObject>(boxedExpression, decoderParam).Compile();
             }
-
-            static bool IsMatchingType(Type type) =>
-                typeof(RemoteException).IsAssignableFrom(type) || typeof(AnyClass).IsAssignableFrom(type);
         }
 
         private ActivatorFactory()
