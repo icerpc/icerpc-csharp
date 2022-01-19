@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
+using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
@@ -36,14 +37,13 @@ namespace IceRpc.Transports.Internal
             : base(decoratee, endpoint, isServer, logger) => _decoratee = decoratee;
     }
 
-    // TODO: XXX, support PipeReader/PipeWriter, shutdown and dispose logging
     internal sealed class LogMultiplexedStreamDecorator : IMultiplexedStream
     {
         public long Id => _decoratee.Id;
-        public PipeReader Input => _decoratee.Input;
+        public PipeReader Input => _input ??= new LogMultiplexedStreamPipeReader(_decoratee.Input, this, _logger);
         public bool IsBidirectional => _decoratee.IsBidirectional;
         public bool IsStarted => _decoratee.IsStarted;
-        public PipeWriter Output => _decoratee.Output;
+        public PipeWriter Output => _output ??= new LogMultiplexedStreamPipeWriter(_decoratee.Output, this, _logger);
         public Action? ShutdownAction
         {
             get => _decoratee.ShutdownAction;
@@ -51,7 +51,9 @@ namespace IceRpc.Transports.Internal
         }
 
         private readonly IMultiplexedStream _decoratee;
+        private PipeReader? _input;
         private readonly ILogger _logger;
+        private PipeWriter? _output;
 
         public Task WaitForShutdownAsync(CancellationToken cancel) => _decoratee.WaitForShutdownAsync(cancel);
 
@@ -60,6 +62,103 @@ namespace IceRpc.Transports.Internal
         internal LogMultiplexedStreamDecorator(IMultiplexedStream decoratee, ILogger logger)
         {
             _decoratee = decoratee;
+            _logger = logger;
+        }
+    }
+
+    internal sealed class LogMultiplexedStreamPipeWriter : PipeWriter, IMultiplexedStreamPipeWriter
+    {
+        private readonly PipeWriter _decoratee;
+        private readonly ILogger _logger;
+        private readonly IMultiplexedStream _stream;
+
+        public override void Advance(int bytes)
+        {
+            using IDisposable _ = _logger.StartMultiplexedStreamScope(_stream);
+            _decoratee.Advance(bytes);
+        }
+
+        public override void CancelPendingFlush()
+        {
+            using IDisposable _ = _logger.StartMultiplexedStreamScope(_stream);
+            _decoratee.CancelPendingFlush();
+        }
+
+        public override void Complete(Exception? exception = null)
+        {
+            using IDisposable _ = _logger.StartMultiplexedStreamScope(_stream);
+            _decoratee.Complete(exception);
+        }
+
+        public override async ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken = default)
+        {
+            using IDisposable _ = _logger.StartMultiplexedStreamScope(_stream);
+            return await _decoratee.FlushAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        public override Memory<byte> GetMemory(int sizeHint = 0) => _decoratee.GetMemory(sizeHint);
+
+        public override Span<byte> GetSpan(int sizeHint = 0) => _decoratee.GetSpan(sizeHint);
+
+        public ValueTask<FlushResult> WriteAsync(
+            ReadOnlySequence<byte> source,
+            bool completeWhenDone,
+            CancellationToken cancel) => _decoratee.WriteAsync(source, completeWhenDone, cancel);
+
+        internal LogMultiplexedStreamPipeWriter(PipeWriter decoratee, IMultiplexedStream stream, ILogger logger)
+        {
+            _decoratee = decoratee;
+            _logger = logger;
+            _stream = stream;
+        }
+    }
+
+    internal sealed class LogMultiplexedStreamPipeReader : PipeReader
+    {
+        private readonly PipeReader _decoratee;
+        private readonly IMultiplexedStream _stream;
+        private readonly ILogger _logger;
+
+        public override void AdvanceTo(SequencePosition consumed)
+        {
+            using IDisposable _ = _logger.StartMultiplexedStreamScope(_stream);
+            _decoratee.AdvanceTo(consumed);
+        }
+
+        public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
+        {
+            using IDisposable _ = _logger.StartMultiplexedStreamScope(_stream);
+            _decoratee.AdvanceTo(consumed, examined);
+        }
+
+        public override void CancelPendingRead()
+        {
+            using IDisposable _ = _logger.StartMultiplexedStreamScope(_stream);
+            _decoratee.CancelPendingRead();
+        }
+
+        public override void Complete(Exception? exception = null)
+        {
+            using IDisposable _ = _logger.StartMultiplexedStreamScope(_stream);
+            _decoratee.Complete(exception);
+        }
+
+        public override async ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
+        {
+            using IDisposable _ = _logger.StartMultiplexedStreamScope(_stream);
+            return await _decoratee.ReadAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        public override bool TryRead(out ReadResult result)
+        {
+            using IDisposable _ = _logger.StartMultiplexedStreamScope(_stream);
+            return _decoratee.TryRead(out result);
+        }
+
+        internal LogMultiplexedStreamPipeReader(PipeReader decoratee, IMultiplexedStream stream, ILogger logger)
+        {
+            _decoratee = decoratee;
+            _stream = stream;
             _logger = logger;
         }
     }

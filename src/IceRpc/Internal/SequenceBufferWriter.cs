@@ -28,9 +28,10 @@ namespace IceRpc.Internal
             }
         }
 
-        private SequenceSegment? _start;
         private SequenceSegment? _end;
+        private readonly int _minimumSegmentSize;
         private ReadOnlySequence<byte>? _sequence;
+        private SequenceSegment? _start;
 
         public void Advance(int count)
         {
@@ -59,33 +60,40 @@ namespace IceRpc.Internal
             _end?.Dispose();
         }
 
-        public Memory<byte> GetMemory(int sizeHint)
+        public Memory<byte> GetMemory(int sizeHint = 0)
         {
             if (_sequence != null)
             {
                 throw new InvalidOperationException("can't write once reading started");
             }
 
+            int size = Math.Max(sizeHint, _minimumSegmentSize);
+
             if (_end == null)
             {
-                _start = new SequenceSegment(sizeHint);
+                _start = new SequenceSegment(size);
                 _end = _start;
-            }
-
-            Memory<byte> buffer = _end.GetMemory();
-            if (buffer.Length > sizeHint)
-            {
-                return buffer;
+                return _end.GetMemory();
             }
             else
             {
-                // Add new segment if there's not enough space in the last segment.
-                _end = new SequenceSegment(_end, sizeHint);
-                return _end.GetMemory();
+                Memory<byte> buffer = _end.GetMemory();
+                if (buffer.Length > sizeHint)
+                {
+                    return buffer;
+                }
+                else
+                {
+                    // Add new segment if there's not enough space in the last segment.
+                    _end = new SequenceSegment(_end, size);
+                    return _end.GetMemory();
+                }
             }
         }
 
-        public Span<byte> GetSpan(int sizeHint) => GetMemory(sizeHint).Span;
+        public Span<byte> GetSpan(int sizeHint = 0) => GetMemory(sizeHint).Span;
+
+        internal SequenceBufferWriter(int minimumSegmentSize) => _minimumSegmentSize = minimumSegmentSize;
 
         /// <summary>A sequence segment is first used to write data and then used the create the readonly sequence
         /// used for the pipe reader.</summary>
@@ -98,14 +106,17 @@ namespace IceRpc.Internal
 
             public void Dispose() => _owner.Dispose();
 
-            internal SequenceSegment(int sizeHint)
+            internal SequenceSegment(int size)
             {
+                Debug.Assert(size > 0);
                 RunningIndex = 0;
-                _owner = MemoryPool<byte>.Shared.Rent(sizeHint);
+                _owner = MemoryPool<byte>.Shared.Rent(size);
             }
 
             internal SequenceSegment(SequenceSegment previous, int size)
             {
+                Debug.Assert(size > 0);
+
                 // Complete writes on the previous segment.
                 previous.Complete();
                 previous.Next = this;
@@ -114,7 +125,6 @@ namespace IceRpc.Internal
                 // the ReadOnlySequence to figure out its length.
                 RunningIndex = previous.RunningIndex + previous.Memory.Length;
 
-                // Allocate a buffer which is twice the size of the previous segment buffer.
                 _owner = MemoryPool<byte>.Shared.Rent(size);
             }
 

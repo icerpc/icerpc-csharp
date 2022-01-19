@@ -22,6 +22,7 @@ namespace IceRpc.Internal
             CancellationToken cancel)
         {
             FlushResult flushResult;
+
             if (sink is IMultiplexedStreamPipeWriter writer)
             {
                 while (true)
@@ -147,22 +148,16 @@ namespace IceRpc.Internal
             }
             else
             {
-                SequencePosition position = source.Start;
-                while (source.TryGet(ref position, out ReadOnlyMemory<byte> memory))
+                FlushResult result = default;
+                foreach (ReadOnlyMemory<byte> buffer in source)
                 {
-                    FlushResult result = await pipeWriter.WriteAsync(memory, cancel).ConfigureAwait(false);
-                    if (result.IsCompleted || result.IsCanceled)
-                    {
-                        break; // while
-                    }
+                    result = await pipeWriter.WriteAsync(buffer, cancel).ConfigureAwait(false);
                 }
-
                 if (completeWhenDone)
                 {
                     await pipeWriter.CompleteAsync().ConfigureAwait(false);
                 }
-
-                return new FlushResult(isCanceled: false, isCompleted: completeWhenDone);
+                return result;
             }
         }
 

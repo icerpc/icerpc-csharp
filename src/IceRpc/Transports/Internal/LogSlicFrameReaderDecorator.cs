@@ -18,10 +18,7 @@ namespace IceRpc.Transports.Internal
         public async ValueTask ReadFrameDataAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             await _decoratee.ReadFrameDataAsync(buffer, cancel).ConfigureAwait(false);
-            if (_frameType != FrameType.Stream && _frameType != FrameType.StreamLast)
-            {
-                LogReadFrame(_frameType, _frameDataSize, buffer);
-            }
+            LogReadFrame(_frameType, _frameDataSize, buffer);
         }
 
         public async ValueTask<(FrameType, int, long?)> ReadFrameHeaderAsync(CancellationToken cancel)

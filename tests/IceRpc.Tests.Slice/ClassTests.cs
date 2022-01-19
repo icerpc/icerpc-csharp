@@ -5,12 +5,15 @@ using IceRpc.Slice;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
+using NUnit.Framework.Internal;
+
 namespace IceRpc.Tests.Slice
 {
-    [Timeout(30000)]
+    [Timeout(5000)]
     [Parallelizable(ParallelScope.All)]
-    [TestFixture("ice")]
+    // [TestFixture("ice")]
     [TestFixture("icerpc")]
+    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class ClassTests
     {
         private readonly ServiceProvider _serviceProvider;
@@ -194,6 +197,7 @@ namespace IceRpc.Tests.Slice
             Assert.That(await _prx.GetCompactAsync(), Is.Not.Null);
 
         [Test]
+        [Log(LogAttributeLevel.Debug)]
         public async Task Class_RecursiveTypeAsync()
         {
             // testing recursive type

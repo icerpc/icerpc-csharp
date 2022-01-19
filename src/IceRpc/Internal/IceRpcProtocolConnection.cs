@@ -56,12 +56,7 @@ namespace IceRpc.Internal
         private bool _shutdown;
         private readonly CancellationTokenSource _waitForShutdownCancellationSource = new();
 
-        public void Dispose()
-        {
-            _waitForShutdownCancellationSource.Dispose();
-            _controlStream?.Output.Complete();
-            _controlStream?.Input.Complete();
-        }
+        public void Dispose() => _waitForShutdownCancellationSource.Dispose();
 
         public Task PingAsync(CancellationToken cancel) =>
             SendControlFrameAsync(IceRpcControlFrameType.Ping, null, cancel);
@@ -96,10 +91,9 @@ namespace IceRpc.Internal
                 IceRpcRequestHeader header;
                 IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields;
                 FeatureCollection features = FeatureCollection.Empty;
+                PipeReader reader = stream.Input;
                 try
                 {
-                    PipeReader reader = stream.Input;
-
                     ReadResult readResult = await reader.ReadSegmentAsync(
                         Encoding.Slice20,
                         cancel).ConfigureAwait(false);
@@ -157,7 +151,7 @@ namespace IceRpc.Internal
                     path: header.Path,
                     fragment: "", // no fragment with icerpc
                     operation: header.Operation,
-                    payload: stream.Input,
+                    payload: reader,
                     payloadEncoding: header.PayloadEncoding.Length > 0 ?
                         Encoding.FromString(header.PayloadEncoding) : IceRpcDefinitions.Encoding,
                     responseWriter: stream.IsBidirectional ? stream.Output : InvalidPipeWriter.Instance)
@@ -267,11 +261,12 @@ namespace IceRpc.Internal
             }
             catch (Exception ex)
             {
+                // TODO: What about the stream output?
                 await responseReader.CompleteAsync(ex).ConfigureAwait(false);
                 throw;
             }
 
-            var response = new IncomingResponse(
+            return new IncomingResponse(
                 Protocol.IceRpc,
                 header.ResultType,
                 payload: responseReader,
@@ -282,8 +277,6 @@ namespace IceRpc.Internal
                 Fields = fields,
                 ProxyInvoker = request.Proxy.Invoker,
             };
-
-            return response;
 
             static (IceRpcResponseHeader, IReadOnlyDictionary<int, ReadOnlyMemory<byte>>) DecodeHeader(
                 ReadOnlySequence<byte> buffer)

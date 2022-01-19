@@ -34,8 +34,8 @@ namespace IceRpc.Transports.Internal
             bool readsCompleted = consumedOffset == _readSequence.GetOffset(_readSequence.End) && _readCompleted;
             _reader.AdvanceTo(consumed, examined);
 
-            // If all the data has been consumed and the writer has been complete, we can mark the reads as completed on
-            // the stream. This will eventually shutdown the streams if writes are also marked as completed.
+            // If all the data has been consumed and the writer has been completed, we can mark the reads as completed
+            // on the stream. This will eventually shutdown the streams if writes are also marked as completed.
             if (readsCompleted)
             {
                 _stream.TrySetReadCompleted();
@@ -64,8 +64,7 @@ namespace IceRpc.Transports.Internal
                     }
                     else
                     {
-                        Debug.Assert(false, $"unexpected exception ${exception}");
-                        throw new InvalidOperationException("invalid complete exception", exception);
+                        _stream.AbortRead(-2);
                     }
                 }
 
@@ -110,11 +109,6 @@ namespace IceRpc.Transports.Internal
         {
             if (_isReaderCompleted)
             {
-                // if (_stream.IsShutdown)
-                // {
-                //     throw new ObjectDisposedException($"{typeof(IMultiplexedStream)}:{this}");
-                // }
-
                 // If the reader is completed, the caller is bogus, it shouldn't call reader operations after completing
                 // the pipe reader.
                 throw new InvalidOperationException("reading is not allowed once the reader is completed");
