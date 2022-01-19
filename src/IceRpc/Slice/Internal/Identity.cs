@@ -40,7 +40,7 @@ namespace IceRpc.Slice.Internal
             }
 
             return name.Length > 0 ? new Identity(name, category) :
-                throw new FormatException($"invalid empty identity name is '{uriPath}'");
+                throw new FormatException($"invalid empty identity name in '{uriPath}'");
         }
 
         /// <summary>Converts this identity into a URI path.</summary>

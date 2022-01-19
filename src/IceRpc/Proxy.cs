@@ -127,7 +127,7 @@ namespace IceRpc
 
                 if (!Protocol.HasFragment && value.Length > 0)
                 {
-                    throw new InvalidOperationException($"cannot set {Fragment} on a {this} proxy");
+                    throw new InvalidOperationException($"cannot set {Fragment} on an {Protocol} proxy");
                 }
 
                 _fragment = value;
@@ -291,7 +291,7 @@ namespace IceRpc
                     Protocol.CheckUriPath(_path);
                     if (!Protocol.HasFragment && _fragment.Length > 0)
                     {
-                        throw new ArgumentException($"cannot create a {Protocol} proxy with a fragment", nameof(uri));
+                        throw new ArgumentException($"cannot create an {Protocol} proxy with a fragment", nameof(uri));
                     }
 
                     (ImmutableDictionary<string, string> queryParams, string? altEndpointValue) = uri.ParseQuery();
@@ -513,22 +513,6 @@ namespace IceRpc
             }
         }
 
-        private static bool IsValid(string s, string invalidChars)
-        {
-            // The printable ASCII character range is x20 (space) to x7E inclusive. Space is an invalid character in
-            // addition to the invalid characters in the invalidChars string.
-            foreach (char c in s)
-            {
-                if (c.CompareTo('\x20') <= 0 ||
-                    c.CompareTo('\x7F') >= 0 ||
-                    invalidChars.Contains(c, StringComparison.InvariantCulture))
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-
         /// <summary>"unchecked" constructor used by the Slice decoder when decoding a 1.1-encoded proxy.</summary>
         internal Proxy(
             Protocol protocol,
@@ -562,6 +546,22 @@ namespace IceRpc
                     @$"invalid fragment '{fragment
                     }'; a valid fragment contains only unreserved characters, reserved characters or '%'");
             }
+        }
+
+        private static bool IsValid(string s, string invalidChars)
+        {
+            // The printable ASCII character range is x20 (space) to x7E inclusive. Space is an invalid character in
+            // addition to the invalid characters in the invalidChars string.
+            foreach (char c in s)
+            {
+                if (c.CompareTo('\x20') <= 0 ||
+                    c.CompareTo('\x7F') >= 0 ||
+                    invalidChars.Contains(c, StringComparison.InvariantCulture))
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         /// <summary>Checks if <paramref name="name"/> is not empty nor equal to <c>alt-endpoint</c> and contains only
