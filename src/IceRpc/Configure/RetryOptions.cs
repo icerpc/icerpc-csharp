@@ -14,7 +14,7 @@ namespace IceRpc.Configure
         public int BufferMaxSize
         {
             get => _bufferMaxSize;
-            set
+            init
             {
                 if (value < 1)
                 {
@@ -26,13 +26,13 @@ namespace IceRpc.Configure
         }
 
         /// <summary>A logger factory used to create the retry interceptor logger.</summary>
-        public ILoggerFactory LoggerFactory { get; set; } = NullLoggerFactory.Instance;
+        public ILoggerFactory LoggerFactory { get; init; } = NullLoggerFactory.Instance;
 
         /// <summary>The maximum number of attempts for retrying a request.</summary>
         public int MaxAttempts
         {
             get => _maxAttempts;
-            set
+            init
             {
                 if (value < 1)
                 {
@@ -48,7 +48,7 @@ namespace IceRpc.Configure
         public int RequestMaxSize
         {
             get => _requestMaxSize;
-            set
+            init
             {
                 if (value < 1)
                 {

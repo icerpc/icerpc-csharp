@@ -11,9 +11,9 @@ namespace IceRpc.Configure
     {
         /// <summary>If set to a non null object the <see cref="ActivitySource"/> is used to start the request and
         /// response activities.</summary>
-        public ActivitySource? ActivitySource { get; set; }
+        public ActivitySource? ActivitySource { get; init; }
 
         /// <summary>The logger factory used to create the IceRpc logger.</summary>
-        public ILoggerFactory? LoggerFactory { get; set; }
+        public ILoggerFactory? LoggerFactory { get; init; }
     }
 }
