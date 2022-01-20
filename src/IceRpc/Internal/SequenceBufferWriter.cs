@@ -7,7 +7,7 @@ namespace IceRpc.Internal
 {
     internal sealed class SequenceBufferWriter : IBufferWriter<byte>, IDisposable
     {
-        internal ReadOnlySequence<byte> Sequence
+        internal ReadOnlySequence<byte> WrittenSequence
         {
             get
             {
@@ -30,7 +30,7 @@ namespace IceRpc.Internal
 
         private SequenceSegment? _end;
         private readonly int _minimumSegmentSize;
-        private MemoryPool<byte> _pool;
+        private readonly MemoryPool<byte> _pool;
         private ReadOnlySequence<byte>? _sequence;
         private SequenceSegment? _start;
 
@@ -94,9 +94,9 @@ namespace IceRpc.Internal
 
         public Span<byte> GetSpan(int sizeHint = 0) => GetMemory(sizeHint).Span;
 
-        internal SequenceBufferWriter(MemoryPool<byte> pool, int minimumSegmentSize)
+        internal SequenceBufferWriter(MemoryPool<byte>? pool = null, int minimumSegmentSize = 4096)
         {
-            _pool = pool;
+            _pool = pool ?? MemoryPool<byte>.Shared;
             _minimumSegmentSize = minimumSegmentSize;
         }
 

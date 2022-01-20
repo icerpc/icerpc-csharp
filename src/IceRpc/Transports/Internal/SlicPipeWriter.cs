@@ -109,7 +109,7 @@ namespace IceRpc.Transports.Internal
             }
             else
             {
-                sendSource = _buffer.Sequence;
+                sendSource = _buffer.WrittenSequence;
             }
 
             // Adopt the buffer to prevent it from being disposed before the write completes. The stream can complete

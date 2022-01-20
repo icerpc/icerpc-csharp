@@ -5,10 +5,10 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports
 {
-    /// <summary>This inferface can be implemented by the multiplexed stream output pipe writer to provides an improved
-    /// <see cref="PipeWriter.WriteAsync"/> method that supports gather-writes and ending the stream. This interface is
-    /// used by the IceRPC core to optimize the copy of a <see cref="PipeReader"/> to a pipe writer that supports this
-    /// interface.</summary>
+    /// <summary>This inferface can be implemented by the multiplexed stream output pipe writer to provide a <see
+    /// cref="PipeWriter.WriteAsync"/> method that supports a <see cref="ReadOnlySequence{T}"/> source and ending the
+    /// completing the writer. This interface is used by the IceRPC core to optimize the copy of a <see
+    /// cref="PipeReader"/> to a pipe writer that supports this interface.</summary>
     internal interface IMultiplexedStreamPipeWriter
     {
         /// <summary>Writes a readonly sequence and eventually completes the pipe writer once the write

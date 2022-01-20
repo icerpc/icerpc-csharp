@@ -586,56 +586,40 @@ namespace IceRpc.Internal
             IceRpcControlFrameType expectedFrameType,
             CancellationToken cancel)
         {
-            byte[] bufferArray = new byte[256];
             while (true)
             {
-                var buffer = new Memory<byte>(bufferArray);
+                ReadResult readResult = await _remoteControlStream!.Input.ReadSegmentAsync(
+                    Encoding.Slice20,
+                    cancel).ConfigureAwait(false);
+                try
+                {
+                    if (readResult.Buffer.Length == 0)
+                    {
+                        throw new InvalidDataException("invalid empty control frame");
+                    }
 
-                // Read the frame type and first byte of the size.
-                await _remoteControlStream!.ReadUntilFullAsync(buffer[0..2], cancel).ConfigureAwait(false);
-                var frameType = (IceRpcControlFrameType)buffer.Span[0];
-                if (frameType > IceRpcControlFrameType.GoAwayCompleted)
-                {
-                    throw new InvalidDataException($"invalid IceRpc frame type {frameType}");
+                    var frameType = (IceRpcControlFrameType)readResult.Buffer.FirstSpan[0];
+                    if (frameType == IceRpcControlFrameType.Ping)
+                    {
+                        // expected, nothing to do
+                        if (readResult.Buffer.Length > 1)
+                        {
+                            throw new InvalidDataException("invalid non-empty ping control frame");
+                        }
+                    }
+                    else if (frameType != expectedFrameType)
+                    {
+                        throw new InvalidDataException(
+                            $"received frame type {frameType} but expected {expectedFrameType}");
+                    }
+                    else
+                    {
+                        return readResult.Buffer.Slice(1).ToArray();
+                    }
                 }
-
-                // Read the remainder of the size if needed.
-                int sizeLength = Slice20Encoding.DecodeSizeLength(buffer.Span[1]);
-                if (sizeLength > 1)
+                finally
                 {
-                    await _remoteControlStream!.ReadUntilFullAsync(
-                        buffer.Slice(2, sizeLength - 1), cancel).ConfigureAwait(false);
-                }
-
-                int frameSize = Slice20Encoding.DecodeSize(buffer[1..].AsReadOnlySpan()).Size;
-                if (frameSize > _incomingFrameMaxSize)
-                {
-                    throw new InvalidDataException(
-                        $"frame with {frameSize} bytes exceeds IncomingFrameMaxSize connection option value");
-                }
-
-                if (frameSize > 0)
-                {
-                    // TODO: rent buffer from Memory pool
-                    buffer = frameSize > buffer.Length ? new byte[frameSize] : buffer[..frameSize];
-                    await _remoteControlStream!.ReadUntilFullAsync(buffer, cancel).ConfigureAwait(false);
-                }
-                else
-                {
-                    buffer = Memory<byte>.Empty;
-                }
-
-                if (frameType == IceRpcControlFrameType.Ping)
-                {
-                    // expected, nothing to do
-                }
-                else if (frameType != expectedFrameType)
-                {
-                    throw new InvalidDataException($"received frame type {frameType} but expected {expectedFrameType}");
-                }
-                else
-                {
-                    return buffer;
+                    _remoteControlStream!.Input.AdvanceTo(readResult.Buffer.End);
                 }
             }
         }
@@ -645,22 +629,20 @@ namespace IceRpc.Internal
             EncodeAction? frameEncodeAction,
             CancellationToken cancel)
         {
-            Memory<byte> buffer = new byte[1024]; // TODO: use pooled memory?
-            var bufferWriter = new SingleBufferWriter(buffer);
-            Encode(bufferWriter);
-            buffer = bufferWriter.WrittenBuffer;
+            using var bufferWriter = new SequenceBufferWriter();
+            EncodeFrame(bufferWriter);
 
             await _controlStream!.Output.WriteAsync(
-                new ReadOnlySequence<byte>(buffer),
+                bufferWriter.WrittenSequence,
                 completeWhenDone: frameType == IceRpcControlFrameType.GoAwayCompleted,
                 cancel).ConfigureAwait(false);
 
-            void Encode(IBufferWriter<byte> bufferWriter)
+            void EncodeFrame(IBufferWriter<byte> bufferWriter)
             {
                 var encoder = new IceEncoder(bufferWriter, Encoding.Slice20);
-                encoder.EncodeByte((byte)frameType);
-                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4); // TODO: reduce bytes
+                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4); // TODO: reduce bytes?
                 int startPos = encoder.EncodedByteCount; // does not include the size
+                encoder.EncodeByte((byte)frameType);
                 frameEncodeAction?.Invoke(ref encoder);
                 Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
             }
