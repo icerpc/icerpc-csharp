@@ -3,6 +3,7 @@
 using IceRpc.Configure;
 using IceRpc.Transports;
 using NUnit.Framework;
+using System.Collections.Immutable;
 
 namespace IceRpc.Tests.Api
 {
@@ -267,7 +268,7 @@ namespace IceRpc.Tests.Api
         [TestCase(true, "ice")]
         [TestCase(false, "icerpc")]
         [TestCase(true, "icerpc")]
-      //  [// [Log(LogAttributeLevel.Debug)]
+        // [[Log(LogAttributeLevel.Debug)]
         // Canceling the cancellation token (source) of ShutdownAsync results in a DispatchException when the operation
         // completes with an OperationCanceledException. It also test calling DisposeAsync is called instead of
         // shutdown, which call ShutdownAsync with a canceled token.
@@ -278,16 +279,10 @@ namespace IceRpc.Tests.Api
             Assert.That(protocol.IsSupported, Is.True);
 
             using var semaphore = new SemaphoreSlim(0);
-            Endpoint serverEndpoint = colocTransport.ServerTransport.DefaultEndpoint;
-            if (serverEndpoint.Protocol != protocol) // TODO: too hacky
+            var serverEndpoint = new Endpoint(protocol)
             {
-                serverEndpoint = new Endpoint(protocol)
-                {
-                    Host = serverEndpoint.Host,
-                    Port = serverEndpoint.Port, // TODO: not quite correct with default port
-                    Params = serverEndpoint.Params
-                };
-            }
+                Params = ImmutableDictionary<string, string>.Empty.Add("transport", ColocTransport.Name)
+            };
 
             await using var server = new Server
             {
