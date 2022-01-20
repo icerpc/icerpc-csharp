@@ -8,9 +8,8 @@ namespace IceRpc.Tests.Api
     [Timeout(30000)]
     public class EndpointTests
     {
-        [TestCase("icerpc://host:10000?transport=foobar")]
-        [TestCase("ice://host")]
-        public void Endpoint_GetInit(string str)
+        [Test]
+        public void Endpoint_GetInit()
         {
             Endpoint endpoint = default;
             Assert.That(endpoint.Protocol, Is.Null);
@@ -24,7 +23,7 @@ namespace IceRpc.Tests.Api
             Assert.That(endpoint.Port, Is.EqualTo(Protocol.IceRpc.DefaultUriPort));
             Assert.That(endpoint.Params.Count, Is.EqualTo(0));
 
-            endpoint = Endpoint.FromString(str);
+            endpoint = Endpoint.FromString("icerpc://host:10000?transport=foobar");
             Assert.That(endpoint.OriginalUri, Is.Not.Null);
 
             var endpoint2 = new Endpoint(endpoint.OriginalUri!);
