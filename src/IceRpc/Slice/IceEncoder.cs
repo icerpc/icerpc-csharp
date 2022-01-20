@@ -222,95 +222,88 @@ namespace IceRpc.Slice
         /// <param name="proxy">The proxy to encode, or null.</param>
         public void EncodeNullableProxy(Proxy? proxy)
         {
+            if (proxy != null)
+            {
+                EncodeProxy(proxy);
+            }
+            else if (Encoding == IceRpc.Encoding.Slice11)
+            {
+                Identity.Empty.Encode(ref this);
+            }
+            else
+            {
+                // For now we encode null as the empty string.
+                EncodeString("");
+            }
+        }
+
+        /// <summary>Encodes a non-null proxy.</summary>
+        /// <param name="proxy">The proxy to encode.</param>
+        public void EncodeProxy(Proxy proxy)
+        {
+            if (proxy.Connection?.IsServer ?? false)
+            {
+                throw new InvalidOperationException("cannot encode a proxy bound to a server connection");
+            }
+
             if (Encoding == IceRpc.Encoding.Slice11)
             {
-                if (proxy == null)
+                try
                 {
-                    Identity.Empty.Encode(ref this);
+                    Identity.FromPath(proxy.Path).Encode(ref this);
+                }
+                catch (FormatException ex)
+                {
+                    throw new NotSupportedException(
+                        $"cannot encode proxy with path '{proxy.Path}' using encoding 1.1",
+                        ex);
+                }
+
+                (byte encodingMajor, byte encodingMinor) = proxy.Encoding.ToMajorMinor();
+
+                var proxyData = new ProxyData11(
+                    Facet.FromFragment(proxy.Fragment),
+                    GetInvocationMode(proxy),
+                    secure: false,
+                    protocolMajor: proxy.Protocol.ToByte(),
+                    protocolMinor: 0,
+                    encodingMajor,
+                    encodingMinor);
+                proxyData.Encode(ref this);
+
+                if (proxy.Endpoint is Endpoint endpoint)
+                {
+                    EncodeSize(1 + proxy.AltEndpoints.Count); // endpoint count
+                    EncodeEndpoint(endpoint);
+                    foreach (Endpoint altEndpoint in proxy.AltEndpoints)
+                    {
+                        EncodeEndpoint(altEndpoint);
+                    }
                 }
                 else
                 {
-                    if (proxy.Connection?.IsServer ?? false)
+                    EncodeSize(0); // 0 endpoints
+                    int maxCount = proxy.Params.TryGetValue("adapter-id", out string? adapterId) ? 1 : 0;
+
+                    if (proxy.Params.Count > maxCount)
                     {
-                        throw new InvalidOperationException("cannot encode a proxy bound to a server connection");
+                        throw new NotSupportedException(
+                            "cannot encode proxy with parameter other than adapter-id using encoding 1.1");
                     }
-
-                    Identity identity;
-
-                    try
-                    {
-                        identity = Identity.FromPath(proxy.Path);
-                    }
-                    catch (FormatException ex)
-                    {
-                        throw new InvalidOperationException(
-                            $"cannot encode proxy with path '{proxy.Path}' using encoding 1.1",
-                            ex);
-                    }
-
-                    if (identity.Name.Length == 0)
-                    {
-                        throw new InvalidOperationException(
-                            $"cannot encode proxy with path '{proxy.Path}' using encoding 1.1");
-                    }
-
-                    identity.Encode(ref this);
-
-                    (byte encodingMajor, byte encodingMinor) = proxy.Encoding.ToMajorMinor();
-
-                    InvocationMode invocationMode = proxy.Protocol == Protocol.Ice &&
-                        proxy.Endpoint is Endpoint endpoint &&
-                        endpoint.Params.TryGetValue("transport", out string? transport) &&
-                        transport == TransportNames.Udp ? InvocationMode.Oneway : InvocationMode.Twoway;
-
-                    var proxyData = new ProxyData11(
-                        Facet.FromFragment(proxy.Fragment),
-                        invocationMode,
-                        secure: false,
-                        protocolMajor: proxy.Protocol.ToByte(),
-                        protocolMinor: 0,
-                        encodingMajor,
-                        encodingMinor);
-                    proxyData.Encode(ref this);
-
-                    if (proxy.Endpoint == null)
-                    {
-                        EncodeSize(0); // 0 endpoints
-                        EncodeString(proxy.Params.TryGetValue("adapter-id", out string? value) ? value : "");
-                    }
-                    else
-                    {
-                        EncodeSize(1 + proxy.AltEndpoints.Count); // endpoint count
-                        EncodeEndpoint(proxy.Endpoint);
-                        foreach (Endpoint altEndpoint in proxy.AltEndpoints)
-                        {
-                            EncodeEndpoint(altEndpoint);
-                        }
-                    }
+                    EncodeString(adapterId ?? "");
                 }
             }
             else
             {
-                if (proxy == null)
-                {
-                    // For now we encode null as the empty string.
-                    EncodeString("");
-                }
-                else
-                {
-                    if (proxy.Connection?.IsServer ?? false)
-                    {
-                        throw new InvalidOperationException("cannot encode a proxy bound to a server connection");
-                    }
-
-                    EncodeString(proxy.ToString()); // a URI or an absolute path
-                }
+                EncodeString(proxy.ToString()); // a URI or an absolute path
             }
-        }
 
-        /// <summary>Encodes a proxy.</summary>
-        /// <param name="proxy">The proxy to encode.</param>
-        public void EncodeProxy(Proxy proxy) => EncodeNullableProxy(proxy);
+            static InvocationMode GetInvocationMode(Proxy proxy) =>
+                proxy.Protocol == Protocol.Ice &&
+                proxy.Endpoint is Endpoint endpoint &&
+                endpoint.Params.TryGetValue("transport", out string? transport) &&
+                transport == TransportNames.Udp ? InvocationMode.Oneway : InvocationMode.Twoway;
+        }
 
         /// <summary>Encodes a sequence of fixed-size numeric values, such as int and long,.</summary>
         /// <param name="v">The sequence of numeric values represented by a ReadOnlySpan.</param>
@@ -652,7 +645,7 @@ namespace IceRpc.Slice
             EncodedByteCount += count;
         }
 
-         /// <summary>Encodes an endpoint in a nested encapsulation (1.1 only).</summary>
+        /// <summary>Encodes an endpoint in a nested encapsulation (1.1 only).</summary>
         /// <param name="endpoint">The endpoint to encode.</param>
         private void EncodeEndpoint(Endpoint endpoint)
         {
