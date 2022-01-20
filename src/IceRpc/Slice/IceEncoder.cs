@@ -664,21 +664,13 @@ namespace IceRpc.Slice
             {
                 // Opaque endpoint encoding
 
-                (TransportCode transportCode, Encoding encoding, ReadOnlyMemory<byte> bytes) =
+                (TransportCode transportCode, byte encodingMajor, byte encodingMinor, ReadOnlyMemory<byte> bytes) =
                     endpoint.ParseOpaqueParams();
 
                 this.EncodeTransportCode(transportCode);
                 EncodeInt(4 + 2 + bytes.Length); // encapsulation size includes size-length and 2 bytes for encoding
-                EncodeByte(1); // encoding version major
-                if (encoding == IceRpc.Encoding.Slice11)
-                {
-                    EncodeByte(1); // encoding version minor
-                }
-                else
-                {
-                    Debug.Assert(encoding == IceRpc.Encoding.Slice10);
-                    EncodeByte(0); // encoding version minor
-                }
+                EncodeByte(encodingMajor);
+                EncodeByte(encodingMinor);
                 WriteByteSpan(bytes.Span);
             }
             else
