@@ -588,11 +588,6 @@ namespace IceRpc
                     {
                         name = name[1..];
                     }
-
-                    if (value.Length == 0)
-                    {
-                        value = "true";
-                    }
                     endpointParams.Add(name, value);
                 }
             }
@@ -683,7 +678,7 @@ namespace IceRpc
                         sb.Append('-');
                     }
                     sb.Append(name);
-                    if (value != "true")
+                    if (value.Length > 0)
                     {
                         sb.Append(' ');
                         sb.Append(value);

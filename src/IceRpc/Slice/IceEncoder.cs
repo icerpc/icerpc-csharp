@@ -288,7 +288,7 @@ namespace IceRpc.Slice
                     if (proxy.Params.Count > maxCount)
                     {
                         throw new NotSupportedException(
-                            "cannot encode proxy with parameter other than adapter-id using encoding 1.1");
+                            "cannot encode proxy with parameter other than adapter-id using Slice 1.1");
                     }
                     EncodeString(adapterId ?? "");
                 }
