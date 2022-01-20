@@ -281,7 +281,7 @@ namespace IceRpc.Slice
                     else
                     {
                         EncodeSize(1 + proxy.AltEndpoints.Count); // endpoint count
-                        EncodeEndpoint(proxy.Endpoint);
+                        EncodeEndpoint(proxy.Endpoint.Value);
                         foreach (Endpoint altEndpoint in proxy.AltEndpoints)
                         {
                             EncodeEndpoint(altEndpoint);

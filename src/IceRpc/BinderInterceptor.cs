@@ -30,7 +30,7 @@ namespace IceRpc
                 // Filter-out excluded endpoints
                 if (request.ExcludedEndpoints.Any())
                 {
-                    if (request.Endpoint != null && request.ExcludedEndpoints.Contains(request.Endpoint))
+                    if (request.Endpoint is Endpoint endpoint && request.ExcludedEndpoints.Contains(endpoint))
                     {
                         request.Endpoint = null;
                     }
@@ -48,7 +48,7 @@ namespace IceRpc
                     throw new NoEndpointException(request.Proxy);
                 }
 
-                return PerformAsync(_connectionProvider.GetConnectionAsync(request.Endpoint,
+                return PerformAsync(_connectionProvider.GetConnectionAsync(request.Endpoint.Value,
                                                                            request.AltEndpoints,
                                                                            cancel));
             }

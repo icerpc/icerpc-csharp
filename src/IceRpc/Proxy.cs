@@ -225,7 +225,7 @@ namespace IceRpc
             new(connection.Protocol)
             {
                 Path = path,
-                Endpoint = connection.IsServer ? null : connection.RemoteEndpoint,
+                Endpoint = connection.IsServer ? null as Endpoint? : connection.RemoteEndpoint,
                 Connection = connection,
                 Invoker = invoker ?? DefaultInvoker
             };
@@ -332,7 +332,8 @@ namespace IceRpc
 
                                 // The separator for endpoint parameters in alt-endpoint is $, so we replace these '$'
                                 // by '&' before sending the string to Endpoint.FromString which uses '&' as separator.
-                                _altEndpoints = _altEndpoints.Add(Endpoint.FromString(altUriString.Replace('$', '&')));
+                                _altEndpoints = _altEndpoints.Add(
+                                    IceRpc.Endpoint.FromString(altUriString.Replace('$', '&')));
                             }
                         }
                     }

@@ -129,25 +129,27 @@ namespace IceRpc.Tests
             string host,
             int port)
         {
-            collection.AddScoped(serviceProvider =>
-            {
-                Protocol protocol = serviceProvider.GetRequiredService<Protocol>();
-
-                Endpoint endpoint = $"{protocol}://{host}:{port}?transport={transport}";
-
-                // For tcp set the "tls" parameter
-                if (transport == "tcp")
+            collection.AddScoped(
+                typeof(Endpoint),
+                serviceProvider =>
                 {
-                    // If server authentication options are configured, set the tls=true endpoint parameter.
-                    bool tls = serviceProvider.GetService<SslServerAuthenticationOptions>() != null;
-                    endpoint = endpoint with
-                    {
-                        Params = ImmutableDictionary<string, string>.Empty.Add("tls", tls.ToString().ToLowerInvariant())
-                    };
-                }
+                    Protocol protocol = serviceProvider.GetRequiredService<Protocol>();
 
-                return endpoint;
-            });
+                    Endpoint endpoint = $"{protocol}://{host}:{port}?transport={transport}";
+
+                    // For tcp set the "tls" parameter
+                    if (transport == "tcp")
+                    {
+                        // If server authentication options are configured, set the tls=true endpoint parameter.
+                        bool tls = serviceProvider.GetService<SslServerAuthenticationOptions>() != null;
+                        endpoint = endpoint with
+                        {
+                            Params = ImmutableDictionary<string, string>.Empty.Add("tls", tls.ToString().ToLowerInvariant())
+                        };
+                    }
+
+                    return endpoint;
+                });
 
             return collection;
         }

@@ -12,13 +12,27 @@ namespace IceRpc.Tests.Api
         [TestCase("ice://host")]
         public void Endpoint_GetInit(string str)
         {
-            var endpoint = Endpoint.FromString(str);
+            Endpoint endpoint = default;
+            Assert.That(endpoint.Protocol, Is.Null);
+            Assert.That(endpoint.Host, Is.Null);
+            Assert.That(endpoint.Port, Is.EqualTo(0));
+            Assert.That(endpoint.Params, Is.Null);
+
+            endpoint = new Endpoint();
+            Assert.That(endpoint.Protocol, Is.EqualTo(Protocol.IceRpc));
+            Assert.That(endpoint.Host, Is.EqualTo("::0"));
+            Assert.That(endpoint.Port, Is.EqualTo(Protocol.IceRpc.DefaultUriPort));
+            Assert.That(endpoint.Params.Count, Is.EqualTo(0));
+
+            endpoint = Endpoint.FromString(str);
+            Assert.That(endpoint.OriginalUri, Is.Not.Null);
 
             var endpoint2 = new Endpoint(endpoint.OriginalUri!);
             Assert.That(endpoint, Is.EqualTo(endpoint2));
 
             endpoint2 = endpoint with { Port = (ushort)(endpoint.Port + 1) };
             Assert.That(endpoint, Is.Not.EqualTo(endpoint2));
+            Assert.That(endpoint2.OriginalUri, Is.Null);
 
             endpoint = endpoint.Protocol == Protocol.IceRpc ?
                 endpoint with { Protocol = Protocol.Ice } : endpoint with { Protocol = Protocol.IceRpc };

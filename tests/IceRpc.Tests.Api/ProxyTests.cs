@@ -142,13 +142,13 @@ namespace IceRpc.Tests.Api
                 // Erroneous sets/init
 
                 Assert.Throws<InvalidOperationException>(
-                    () => proxy.AltEndpoints = ImmutableList.Create(new Endpoint(proxy.Protocol, "localhost")));
+                    () => proxy.AltEndpoints = ImmutableList.Create(new Endpoint { Protocol = proxy.Protocol }));
 
                 Assert.Throws<ArgumentException>(
                     () => proxy.Endpoint = Endpoint.FromString(
                         proxy.Protocol == Protocol.IceRpc ? "ice://localhost" : "icerpc://localhost"));
 
-                proxy.Endpoint = new Endpoint(proxy.Protocol, "localhost");
+                proxy.Endpoint = new Endpoint { Protocol = proxy.Protocol, Host = "localhost" };
 
                 proxy.Params = ImmutableDictionary<string, string>.Empty; // always ok
                 Assert.Throws<InvalidOperationException>(() => proxy.Params = proxy.Params.Add("name", "value"));
@@ -156,7 +156,7 @@ namespace IceRpc.Tests.Api
                 proxy.Endpoint = null;
                 proxy.Params = proxy.Params.Add("name", "value");
                 Assert.Throws<InvalidOperationException>(
-                    () => proxy.Endpoint = new Endpoint(proxy.Protocol, "localhost"));
+                    () => proxy.Endpoint = new Endpoint { Protocol = proxy.Protocol, Host = "localhost" });
             }
             else
             {
