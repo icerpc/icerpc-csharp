@@ -30,12 +30,7 @@ pub fn encode_data_members(
 
     for member in required_members {
         let param = format!("this.{}", member.field_name(field_type));
-        code.writeln(&encode_type(
-            member.data_type(),
-            true,
-            namespace,
-            &param,
-        ));
+        code.writeln(&encode_type(member.data_type(), true, namespace, &param));
     }
 
     // Encode tagged
@@ -285,8 +280,7 @@ fn encode_sequence(
     is_read_only: bool,
 ) -> CodeBlock {
     let has_custom_type = sequence_ref.has_attribute("cs:generic", false);
-
-    if sequence_ref.has_fixed_size_numeric_elements() && (is_read_only || !has_custom_type) {
+    if sequence_ref.has_fixed_size_numeric_elements() {
         if is_param && is_read_only && !has_custom_type {
             format!("encoder.EncodeSequence({}.Span)", value)
         } else {
@@ -430,7 +424,8 @@ pub fn encode_action(
                 code,
                 "(ref IceEncoder encoder, {value_type} value) => {encode_sequence}",
                 value_type = value_type,
-                encode_sequence = encode_sequence(sequence_ref, namespace, "value", is_read_only, is_param)
+                encode_sequence =
+                    encode_sequence(sequence_ref, namespace, "value", is_read_only, is_param)
             )
         }
         TypeRefs::Struct(_) => {
