@@ -37,11 +37,11 @@ namespace IceRpc.Tests.Api
 
             // Test that Service operation correctly forward the cancel param
             var canceled = new CancellationToken(canceled: true);
-            Assert.ThrowsAsync<OperationCanceledException>(async () => await prx.IcePingAsync(cancel: canceled));
-            Assert.ThrowsAsync<OperationCanceledException>(async () => await prx.IceIdsAsync(cancel: canceled));
-            Assert.ThrowsAsync<OperationCanceledException>(
+            Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync(cancel: canceled));
+            Assert.CatchAsync<OperationCanceledException>(async () => await prx.IceIdsAsync(cancel: canceled));
+            Assert.CatchAsync<OperationCanceledException>(
                 async () => await prx.IceIsAAsync("::IceRpc::Tests::Api::Greeter", cancel: canceled));
-            Assert.ThrowsAsync<OperationCanceledException>(
+            Assert.CatchAsync<OperationCanceledException>(
                 async () => await prx.AsAsync<GreeterPrx>(cancel: canceled));
 
             // Test that Service operations correctly forward the context

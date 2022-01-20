@@ -3,8 +3,8 @@
 using IceRpc.Internal;
 using IceRpc.Slice;
 using System.Collections.Concurrent;
+using System.Buffers;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 
 namespace IceRpc.Transports.Internal
 {
@@ -19,8 +19,11 @@ namespace IceRpc.Transports.Internal
         internal TimeSpan IdleTimeout { get; set; }
         internal bool IsServer { get; }
         internal int PeerPacketMaxSize { get; private set; }
-        internal int PeerStreamBufferMaxSize { get; private set; }
-        internal int StreamBufferMaxSize { get; }
+        internal int PeerPauseWriterThreeshold { get; private set; }
+        internal int PauseWriterThreeshold { get; }
+        internal int ResumeWriterThreeshold { get; }
+        public MemoryPool<byte> Pool { get; }
+        public int MinimumSegmentSize { get; }
 
         private readonly AsyncQueue<IMultiplexedStream> _acceptedStreamQueue = new();
         private int _bidirectionalStreamCount;
@@ -204,16 +207,20 @@ namespace IceRpc.Transports.Internal
 
             _simpleNetworkConnection = simpleNetworkConnection;
             _packetMaxSize = slicOptions.PacketMaxSize;
-            StreamBufferMaxSize = slicOptions.StreamBufferMaxSize;
+            PauseWriterThreeshold = slicOptions.PauseWriterThreeshold;
+            ResumeWriterThreeshold = slicOptions.ResumeWriterThreeshold;
 
             // Initially set the peer packet max size to the local max size to ensure we can receive the first
             // initialize frame.
             PeerPacketMaxSize = _packetMaxSize;
-            PeerStreamBufferMaxSize = StreamBufferMaxSize;
+            PeerPauseWriterThreeshold = PauseWriterThreeshold;
 
             // Configure the maximum stream counts to ensure the peer won't open more than one stream.
             _bidirectionalMaxStreams = slicOptions.BidirectionalStreamMaxCount;
             _unidirectionalMaxStreams = slicOptions.UnidirectionalStreamMaxCount;
+
+            Pool = slicOptions.Pool;
+            MinimumSegmentSize = slicOptions.MinimumSegmentSize;
         }
 
         internal void AddStream(long id, SlicMultiplexedStream stream)
@@ -319,7 +326,7 @@ namespace IceRpc.Transports.Internal
                     EncodeParameter(ParameterKey.MaxBidirectionalStreams, (ulong)_bidirectionalMaxStreams),
                     EncodeParameter(ParameterKey.MaxUnidirectionalStreams, (ulong)_unidirectionalMaxStreams),
                     EncodeParameter(ParameterKey.PacketMaxSize, (ulong)_packetMaxSize),
-                    EncodeParameter(ParameterKey.StreamBufferMaxSize, (ulong)StreamBufferMaxSize)
+                    EncodeParameter(ParameterKey.PauseWriterThreeshold, (ulong)PauseWriterThreeshold)
                 };
             if (IdleTimeout != TimeSpan.MaxValue && IdleTimeout != Timeout.InfiniteTimeSpan)
             {
@@ -521,9 +528,9 @@ namespace IceRpc.Transports.Internal
                 {
                     PeerPacketMaxSize = (int)value;
                 }
-                else if (key == ParameterKey.StreamBufferMaxSize)
+                else if (key == ParameterKey.PauseWriterThreeshold)
                 {
-                    PeerStreamBufferMaxSize = (int)value;
+                    PeerPauseWriterThreeshold = (int)value;
                 }
                 else
                 {

@@ -9,9 +9,6 @@ namespace IceRpc.Transports.Internal
 {
     internal class SlicPipeWriter : PipeWriter, IMultiplexedStreamPipeWriter
     {
-        // TODO: make this configurable through SlicOptions
-        private const int DefaultMinimumSegmentSize = 4096;
-
         private bool _isWriterCompleted;
         private readonly SlicNetworkConnection _connection;
         private SequenceBufferWriter? _buffer;
@@ -46,11 +43,13 @@ namespace IceRpc.Transports.Internal
         {
             if (!_isWriterCompleted)
             {
+                // If writes aren't marked as completed yet, abort stream writes. This will send a stream reset frame to
+                // the peer to notify it won't receive additional data.
                 if (!_stream.WritesCompleted)
                 {
                     if (exception is null)
                     {
-                        // Send empty stream frame to terminate the stream.
+                        // Send empty stream frame to terminate the stream gracefully.
                         _ = WriteAsync(ReadOnlySequence<byte>.Empty, true, CancellationToken.None).AsTask();
                     }
                     else if (exception is MultiplexedStreamAbortedException abortedException)
@@ -59,6 +58,8 @@ namespace IceRpc.Transports.Internal
                     }
                     else
                     {
+                        // TODO: we use the -2 error code for unexpected exception. Improve the reset frame
+                        // instead or stick with this error code to continue matching the Quic reset frame?
                         _stream.AbortWrite(-2);
                     }
                 }
@@ -140,6 +141,7 @@ namespace IceRpc.Transports.Internal
                 // packet to send.
                 await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
                 Debug.Assert(_sendCredit > 0);
+                int sendMaxSize = Math.Min(_sendCredit, _connection.PeerPacketMaxSize);
 
                 // Gather the next buffers into _sendBuffers to send the stream frame. We get up to _sendCredit bytes
                 // from the internal buffer or given source. If there are more bytes to send they will be sent into a
@@ -147,7 +149,7 @@ namespace IceRpc.Transports.Internal
                 int sendSize = 0;
                 _sendBuffers[0] = _sendHeader;
                 int sendBufferIndex = 1;
-                while (sendSize < _sendCredit)
+                while (sendSize < sendMaxSize)
                 {
                     if (sendSource.IsEmpty && sendingInternalBuffer)
                     {
@@ -163,7 +165,7 @@ namespace IceRpc.Transports.Internal
                     }
 
                     // Add the send source data to the send buffers.
-                    sendSize += FillSendBuffers(ref sendSource, ref sendBufferIndex, _sendCredit - sendSize);
+                    sendSize += FillSendBuffers(ref sendSource, ref sendBufferIndex, sendMaxSize - sendSize);
                 }
 
                 try
@@ -208,10 +210,10 @@ namespace IceRpc.Transports.Internal
         }
 
         public override Memory<byte> GetMemory(int sizeHint) =>
-            (_buffer ??= new(DefaultMinimumSegmentSize)).GetMemory(sizeHint);
+            (_buffer ??= new(_connection.Pool, _connection.MinimumSegmentSize)).GetMemory(sizeHint);
 
         public override Span<byte> GetSpan(int sizeHint) =>
-            (_buffer ??= new(DefaultMinimumSegmentSize)).GetSpan(sizeHint);
+            (_buffer ??= new(_connection.Pool, _connection.MinimumSegmentSize)).GetSpan(sizeHint);
 
         internal SlicPipeWriter(SlicMultiplexedStream stream, SlicNetworkConnection connection)
         {
@@ -221,7 +223,7 @@ namespace IceRpc.Transports.Internal
             // The first send buffer is always reserved for the Slic frame header.
             _sendHeader = SlicDefinitions.FrameHeader.ToArray();
             _sendBuffers[0] = _sendHeader;
-            _sendCredit = _connection.PeerStreamBufferMaxSize;
+            _sendCredit = _connection.PeerPauseWriterThreeshold;
         }
 
         internal void ReceivedConsumed(int size)
@@ -237,7 +239,7 @@ namespace IceRpc.Transports.Internal
                 Debug.Assert(_sendSemaphore.Count == 0);
                 _sendSemaphore.Release();
             }
-            else if (newValue > 2 * _connection.PeerPacketMaxSize)
+            else if (newValue > _connection.PauseWriterThreeshold)
             {
                 // The peer is trying to increase the credit to a value which is larger than what it is allowed to.
                 throw new InvalidDataException("invalid flow control credit increase");

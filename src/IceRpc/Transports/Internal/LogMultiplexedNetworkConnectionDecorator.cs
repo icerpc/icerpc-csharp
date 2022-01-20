@@ -84,13 +84,13 @@ namespace IceRpc.Transports.Internal
             _decoratee.CancelPendingFlush();
         }
 
-        public override void Complete(Exception? exception = null)
+        public override void Complete(Exception? exception)
         {
             using IDisposable _ = _logger.StartMultiplexedStreamScope(_stream);
             _decoratee.Complete(exception);
         }
 
-        public override async ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken = default)
+        public override async ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken)
         {
             using IDisposable _ = _logger.StartMultiplexedStreamScope(_stream);
             return await _decoratee.FlushAsync(cancellationToken).ConfigureAwait(false);
@@ -100,10 +100,20 @@ namespace IceRpc.Transports.Internal
 
         public override Span<byte> GetSpan(int sizeHint = 0) => _decoratee.GetSpan(sizeHint);
 
-        public ValueTask<FlushResult> WriteAsync(
+        public override async ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancel)
+        {
+            using IDisposable _ = _logger.StartMultiplexedStreamScope(_stream);
+            return await _decoratee.WriteAsync(source, cancel).ConfigureAwait(false);
+        }
+
+        public async ValueTask<FlushResult> WriteAsync(
             ReadOnlySequence<byte> source,
             bool completeWhenDone,
-            CancellationToken cancel) => _decoratee.WriteAsync(source, completeWhenDone, cancel);
+            CancellationToken cancel)
+        {
+            using IDisposable _ = _logger.StartMultiplexedStreamScope(_stream);
+            return await _decoratee.WriteAsync(source, completeWhenDone, cancel).ConfigureAwait(false);
+        }
 
         internal LogMultiplexedStreamPipeWriter(PipeWriter decoratee, IMultiplexedStream stream, ILogger logger)
         {

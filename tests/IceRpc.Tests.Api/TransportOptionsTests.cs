@@ -72,22 +72,22 @@ namespace IceRpc.Tests.Api
         public void TransportOptions_SlicOptions()
         {
             var options = new SlicOptions();
-            Assert.AreEqual(100, options.BidirectionalStreamMaxCount);
-            // Can't be less than 1
-            Assert.Throws<ArgumentException>(() => options.BidirectionalStreamMaxCount = 0);
-
-            Assert.AreEqual(32 * 1024, options.PacketMaxSize);
-            // Can't be less than 1Kb
-            Assert.Throws<ArgumentException>(() => options.PacketMaxSize = 1);
-
-            // The StreamBufferMaxSize default is twice the PacketSize
-            Assert.AreEqual(2 * options.PacketMaxSize, options.StreamBufferMaxSize);
-            // Can't be less than 1KB
-            Assert.Throws<ArgumentException>(() => options.StreamBufferMaxSize = 1);
 
             Assert.AreEqual(100, options.UnidirectionalStreamMaxCount);
+            Assert.AreEqual(100, options.BidirectionalStreamMaxCount);
+
             // Can't be less than 1
+            Assert.Throws<ArgumentException>(() => options.BidirectionalStreamMaxCount = 0);
             Assert.Throws<ArgumentException>(() => options.UnidirectionalStreamMaxCount = 0);
+
+            Assert.AreEqual(32 * 1024, options.PacketMaxSize);
+            Assert.AreEqual(64 * 1024, options.PauseWriterThreeshold);
+            Assert.AreEqual(32 * 1024, options.ResumeWriterThreeshold);
+
+            // Can't be less than 1Kb
+            Assert.Throws<ArgumentException>(() => options.PacketMaxSize = 1);
+            Assert.Throws<ArgumentException>(() => options.PauseWriterThreeshold = 1);
+            Assert.Throws<ArgumentException>(() => options.ResumeWriterThreeshold = 1);
         }
     }
 }

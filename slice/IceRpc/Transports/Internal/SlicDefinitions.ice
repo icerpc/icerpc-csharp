@@ -47,11 +47,8 @@ module IceRpc::Transports::Internal
         IdleTimeout = 2,
         /// The maximum Slic packet size.
         PacketMaxSize = 3,
-        /// The maximum size of the buffer used for streaming data. This is used when flow
-        /// control is enabled to limit the amount of data that can be received. The sender
-        /// shouldn't send more data than this maximum size. It needs to wait to receive
-        /// a stream consumed frame to send additional data.
-        StreamBufferMaxSize = 4,
+        /// The pause writer threeshold.
+        PauseWriterThreeshold = 4,
     }
 
     typealias ParameterFields = dictionary<varint, sequence<byte>>;

@@ -8,8 +8,9 @@ namespace IceRpc.Transports.Internal
 {
     internal class SlicPipeReader : PipeReader
     {
-        private int _consumed;
+        private int _examined;
         private bool _isReaderCompleted;
+        private long _lastExaminedOffset;
         private readonly PipeReader _reader;
         private bool _readCompleted;
         private ReadOnlySequence<byte> _readSequence;
@@ -22,21 +23,38 @@ namespace IceRpc.Transports.Internal
         {
             CheckIfCompleted();
 
-            // Figure out how much data has been consumed and add it to _consumed.
-            long consumedOffset = _readSequence.GetOffset(consumed);
-            int length = (int)(consumedOffset - _readSequence.GetOffset(_readSequence.Start));
-            if (Interlocked.Add(ref _consumed, length) >= _resumeThreeshold)
+            if (_lastExaminedOffset == 0)
             {
-                // Notify the peer that it can send additional data.
-                _stream.SendStreamConsumed(Interlocked.Exchange(ref _consumed, 0));
+                _lastExaminedOffset = _readSequence.GetOffset(_readSequence.Start);
             }
 
-            bool readsCompleted = consumedOffset == _readSequence.GetOffset(_readSequence.End) && _readCompleted;
+            // Figure out how much data was examined since last AdvanceTo call.
+            long examinedOffset = _readSequence.GetOffset(examined);
+            int examinedLength = (int)(examinedOffset - _lastExaminedOffset);
+
+            // If all the examined data has been consumed, the next pipe ReadAsync call will start reading from a new
+            // buffer. In this case, we reset _lastExaminedOffset to 0. The next AdvanceTo call will compute the
+            // examined data length from the start of the buffer.
+            long consumedOffset = _readSequence.GetOffset(consumed);
+            _lastExaminedOffset = consumedOffset == examinedOffset ? 0 : examinedOffset;
+
+            // Add the examined length to the total examined length. If it's larger than the resume threeshold, send the
+            // stream consumed frame to the peer to obtain additional data and reset the total examined length.
+            _examined += examinedLength;
+            if (_examined >= _resumeThreeshold)
+            {
+                _stream.SendStreamConsumed(_examined);
+                _examined = 0;
+            }
+
+            // Check if we reached the end of the sequence.
+            bool endOfSequence = consumedOffset == _readSequence.GetOffset(_readSequence.End);
+
             _reader.AdvanceTo(consumed, examined);
 
-            // If all the data has been consumed and the writer has been completed, we can mark the reads as completed
-            // on the stream. This will eventually shutdown the streams if writes are also marked as completed.
-            if (readsCompleted)
+            // If we reached the end of the sequence and we peer won't be sending additional data, we can mark reads
+            // as completed on the stream.
+            if (endOfSequence && _readCompleted)
             {
                 _stream.TrySetReadCompleted();
             }
@@ -48,14 +66,16 @@ namespace IceRpc.Transports.Internal
         {
             if (!_isReaderCompleted)
             {
+                // If reads aren't marked as completed yet, abort stream reads. This will send a stream stop sending
+                // frame to the peer to notify it shouldn't send additional data.
                 if (!_stream.ReadsCompleted)
                 {
                     if (exception is null)
                     {
-                        // Unlike SlicePipeWriter.Complete we can't gracefully complete the read side without calling
-                        // AbortRead (which will send the StopSending frame to the peer). We use the error code -1 here
-                        // to not conflict with protocol error codes. TODO: Add a STOP_RECEIVING frame instead to notify
-                        // the peer of the graceful writer completion?
+                        // Unlike SlicePipeWriter.Complete that writes an empty stream frame, we can't gracefully
+                        // complete the stream on the peer without calling AbortRead. We use the error code -1 here to
+                        // not conflict with protocol error codes.
+                        // TODO: optional error code support for the stop sending frame?
                         _stream.AbortRead(-1);
                     }
                     else if (exception is MultiplexedStreamAbortedException abortedException)
@@ -64,6 +84,8 @@ namespace IceRpc.Transports.Internal
                     }
                     else
                     {
+                        // TODO: we use the -2 error code for unexpected exception. Improve the stop sending frame
+                        // instead or stick with this error code to continue matching the Quic stop sending frame?
                         _stream.AbortRead(-2);
                     }
                 }

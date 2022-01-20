@@ -1,10 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
-using IceRpc.Slice.Internal;
 using System.Diagnostics;
 using System.IO.Pipelines;
-using System.Threading.Tasks.Sources;
 
 namespace IceRpc.Transports.Internal
 {
@@ -223,11 +220,16 @@ namespace IceRpc.Transports.Internal
             _frameReader = reader;
             _frameWriter = writer;
 
-            // TODO: we could optimize the SlicPipeReader to not rely on a pipe and instead perform the receive
-            // buffering.
-            var inputPipe = new Pipe(new PipeOptions(pauseWriterThreshold: _connection.StreamBufferMaxSize + 1));
+            // TODO: cache resetable SlicPipeReader/SlicPipeWriter on the connection for re-use here.
+
+            // TODO: using a Pipe for the SlicReader implementation is a bit overkill. We ensure the pipe never
+            // blocks by setting a larger pause writer threeshold than the peer stream pause writer threeshold.
+            var inputPipe = new Pipe(new PipeOptions(
+                pool: _connection.Pool,
+                minimumSegmentSize: _connection.MinimumSegmentSize,
+                pauseWriterThreshold: _connection.PeerPauseWriterThreeshold + 1));
             _inputPipeWriter = inputPipe.Writer;
-            _inputPipeReader = new SlicPipeReader(this, inputPipe.Reader, _connection.StreamBufferMaxSize / 2);
+            _inputPipeReader = new SlicPipeReader(this, inputPipe.Reader, _connection.ResumeWriterThreeshold);
 
             _outputPipeWriter = new SlicPipeWriter(this, _connection);
 
@@ -266,6 +268,7 @@ namespace IceRpc.Transports.Internal
             {
                 while (size > 0)
                 {
+                    // Receive the data and push it to the SlicReader pipe.
                     Memory<byte> chunk = _inputPipeWriter.GetMemory();
                     if (chunk.Length > size)
                     {
@@ -274,26 +277,27 @@ namespace IceRpc.Transports.Internal
                     await _frameReader.ReadFrameDataAsync(chunk, CancellationToken.None).ConfigureAwait(false);
                     _inputPipeWriter.Advance(chunk.Length);
                     size -= chunk.Length;
+
+                    // This should always complete synchronously since the sender isn't supposed to send more data than
+                    // it is allowed.
+                    ValueTask<FlushResult> flushTask = _inputPipeWriter.FlushAsync(CancellationToken.None);
+                    if (!flushTask.IsCompletedSuccessfully)
+                    {
+                        _ = flushTask.AsTask();
+                        throw new InvalidDataException("received more data than flow control permits");
+                    }
+                    await flushTask.ConfigureAwait(false);
                 }
 
                 if (endStream)
                 {
-                    // We complete the input pipe writer but we don't complete reads on the stream. Reads will be
+                    // We complete the input pipe writer but we don't mark reads as completed. Reads will be marked as
                     // completed by the Slic pipe reader once the application calls TryRead/ReadAsync. It's important
-                    // for unidirectional stream which would otherwise be completed before the data hasn't been consumed
-                    // by the application. This would allow a malicious client to open many unidirectional streams
-                    // before the application got a chance to consume the data, defeating the purpose of the
+                    // for unidirectional stream which would otherwise be shutdown before the data has been consumed by
+                    // the application. This would allow a malicious client to open many unidirectional streams before
+                    // the application gets a chance to consume the data, defeating the purpose of the
                     // UnidirectionalStreamMaxCount option.
                     await _inputPipeWriter.CompleteAsync().ConfigureAwait(false);
-                }
-
-                // This should always complete synchronously because the sender isn't supposed to send more data than
-                // it is allowed and the pipe is configured to pause when this size is reached.
-                ValueTask<FlushResult> flushTask = _inputPipeWriter.FlushAsync(CancellationToken.None);
-                if (!flushTask.IsCompleted)
-                {
-                    _ = flushTask.AsTask();
-                    throw new InvalidDataException("received more data than flow control permits");
                 }
             }
             else
@@ -310,6 +314,7 @@ namespace IceRpc.Transports.Internal
             }
 
             ResetErrorCode = errorCode;
+            TrySetReadCompleted();
             _inputPipeWriter.Complete(new MultiplexedStreamAbortedException(errorCode));
         }
 

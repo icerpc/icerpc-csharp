@@ -30,6 +30,7 @@ namespace IceRpc.Internal
 
         private SequenceSegment? _end;
         private readonly int _minimumSegmentSize;
+        private MemoryPool<byte> _pool;
         private ReadOnlySequence<byte>? _sequence;
         private SequenceSegment? _start;
 
@@ -71,7 +72,7 @@ namespace IceRpc.Internal
 
             if (_end == null)
             {
-                _start = new SequenceSegment(size);
+                _start = new SequenceSegment(_pool.Rent(size));
                 _end = _start;
                 return _end.GetMemory();
             }
@@ -85,7 +86,7 @@ namespace IceRpc.Internal
                 else
                 {
                     // Add new segment if there's not enough space in the last segment.
-                    _end = new SequenceSegment(_end, size);
+                    _end = new SequenceSegment(_end, _pool.Rent(size));
                     return _end.GetMemory();
                 }
             }
@@ -93,7 +94,11 @@ namespace IceRpc.Internal
 
         public Span<byte> GetSpan(int sizeHint = 0) => GetMemory(sizeHint).Span;
 
-        internal SequenceBufferWriter(int minimumSegmentSize) => _minimumSegmentSize = minimumSegmentSize;
+        internal SequenceBufferWriter(MemoryPool<byte> pool, int minimumSegmentSize)
+        {
+            _pool = pool;
+            _minimumSegmentSize = minimumSegmentSize;
+        }
 
         /// <summary>A sequence segment is first used to write data and then used the create the readonly sequence
         /// used for the pipe reader.</summary>
@@ -106,16 +111,16 @@ namespace IceRpc.Internal
 
             public void Dispose() => _owner.Dispose();
 
-            internal SequenceSegment(int size)
+            internal SequenceSegment(IMemoryOwner<byte> owner)
             {
-                Debug.Assert(size > 0);
+                Debug.Assert(owner.Memory.Length > 0);
                 RunningIndex = 0;
-                _owner = MemoryPool<byte>.Shared.Rent(size);
+                _owner = owner;
             }
 
-            internal SequenceSegment(SequenceSegment previous, int size)
+            internal SequenceSegment(SequenceSegment previous, IMemoryOwner<byte> owner)
             {
-                Debug.Assert(size > 0);
+                Debug.Assert(owner.Memory.Length > 0);
 
                 // Complete writes on the previous segment.
                 previous.Complete();
@@ -125,7 +130,7 @@ namespace IceRpc.Internal
                 // the ReadOnlySequence to figure out its length.
                 RunningIndex = previous.RunningIndex + previous.Memory.Length;
 
-                _owner = MemoryPool<byte>.Shared.Rent(size);
+                _owner = owner;
             }
 
             internal void Advance(int written) => _index += written;

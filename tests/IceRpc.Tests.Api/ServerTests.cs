@@ -267,7 +267,6 @@ namespace IceRpc.Tests.Api
         [TestCase(true, "ice")]
         [TestCase(false, "icerpc")]
         [TestCase(true, "icerpc")]
-      //  [// [Log(LogAttributeLevel.Debug)]
         // Canceling the cancellation token (source) of ShutdownAsync results in a DispatchException when the operation
         // completes with an OperationCanceledException. It also test calling DisposeAsync is called instead of
         // shutdown, which call ShutdownAsync with a canceled token.
@@ -339,6 +338,7 @@ namespace IceRpc.Tests.Api
             {
                 Assert.ThrowsAsync<OperationCanceledException>(async () => await task);
             }
+
             // Shutdown shouldn't throw.
             Assert.DoesNotThrowAsync(async () => await shutdownTask);
 
