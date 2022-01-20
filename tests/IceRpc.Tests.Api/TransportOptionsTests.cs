@@ -5,7 +5,6 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests.Api
 {
-    [Timeout(30000)]
     [Parallelizable(scope: ParallelScope.All)]
     public sealed class TransportOptionsTests
     {
