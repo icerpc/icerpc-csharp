@@ -34,8 +34,6 @@ namespace IceRpc.Tests.ClientServer
 
     public class CustomServerTransport : IServerTransport<IMultiplexedNetworkConnection>
     {
-        public Endpoint DefaultEndpoint => "icerpc://[::0]?transport=custom";
-
         private readonly IServerTransport<IMultiplexedNetworkConnection> _transport =
             new SlicServerTransport(new TcpServerTransport());
 
@@ -145,8 +143,6 @@ namespace IceRpc.Tests.ClientServer
                 MultiplexedServerTransport = new CustomServerTransport(),
                 Dispatcher = new MyService()
             };
-            Endpoint defaultEndpoint = server.MultiplexedServerTransport.DefaultEndpoint;
-            Assert.That(server.Endpoint, Is.EqualTo(defaultEndpoint));
             server.Listen();
         }
 

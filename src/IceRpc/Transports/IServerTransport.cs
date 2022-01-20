@@ -7,9 +7,6 @@ namespace IceRpc.Transports
     /// <summary>Gives class <see cref="Server"/> the ability to create incoming transport connections.</summary>
     public interface IServerTransport<T> where T : INetworkConnection
     {
-        /// <summary>The default listener endpoint.</summary>
-        Endpoint DefaultEndpoint { get; }
-
         /// <summary>Starts listening on an endpoint.</summary>
         /// <param name="endpoint">The endpoint.</param>
         /// <param name="logger">The logger created by IceRPC. IceRPC uses this logger to log calls to all Transport

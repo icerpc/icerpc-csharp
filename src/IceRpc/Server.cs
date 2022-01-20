@@ -14,6 +14,9 @@ namespace IceRpc
     /// <see cref="Listen"/> and finally shut down with <see cref="ShutdownAsync"/>.</summary>
     public sealed class Server : IAsyncDisposable
     {
+        /// <summary>The default value for <see cref="Endpoint"/>.</summary>
+        public static Endpoint DefaultEndpoint { get; } = new Endpoint(Protocol.IceRpc);
+
         /// <summary>The default value for <see cref="MultiplexedServerTransport"/>.</summary>
         public static IServerTransport<IMultiplexedNetworkConnection> DefaultMultiplexedServerTransport { get; } =
             new CompositeMultiplexedServerTransport().UseSlicOverTcp();
@@ -38,7 +41,7 @@ namespace IceRpc
         /// TCP).</value>
         public Endpoint Endpoint
         {
-            get => _endpoint ?? MultiplexedServerTransport.DefaultEndpoint;
+            get => _endpoint;
             set
             {
                 if (_listening)
@@ -78,7 +81,7 @@ namespace IceRpc
 
         private readonly HashSet<Connection> _connections = new();
 
-        private Endpoint? _endpoint;
+        private Endpoint _endpoint = DefaultEndpoint;
 
         private IListener? _listener;
 

@@ -15,7 +15,8 @@ namespace IceRpc.Tests.Api
         {
             {
                 await using var server = new Server();
-                Assert.AreEqual(Endpoint.FromString("icerpc://[::0]"), server.Endpoint);
+                Assert.That(server.Endpoint, Is.EqualTo(Server.DefaultEndpoint));
+                Assert.That(server.Endpoint.ToString(), Is.EqualTo("icerpc://[::0]"));
             }
 
             {
