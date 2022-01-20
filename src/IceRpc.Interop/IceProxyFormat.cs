@@ -612,9 +612,8 @@ namespace IceRpc
                 throw new FormatException($"no -h in endpoint '{endpointString}'");
             }
 
-            return new Endpoint
+            return new Endpoint(Protocol.Ice)
             {
-                Protocol = Protocol.Ice,
                 Host = host,
                 Port = port ?? 0,
                 Params = endpointParams.ToImmutableDictionary()

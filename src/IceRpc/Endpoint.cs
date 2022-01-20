@@ -15,21 +15,7 @@ namespace IceRpc
     public readonly record struct Endpoint
     {
         /// <summary>The protocol of this endpoint.</summary>
-        public Protocol Protocol
-        {
-            get => _protocol;
-            init
-            {
-                if (!value.IsSupported)
-                {
-                    throw new ArgumentException(
-                        $"cannot set {nameof(Protocol)} to a non-supported protocol",
-                        nameof(Protocol));
-                }
-                _protocol = value;
-                OriginalUri = null; // new protocol invalidates OriginalUri
-            }
-        }
+        public Protocol Protocol { get; }
 
         /// <summary>The host name or address.</summary>
         public string Host
@@ -81,8 +67,7 @@ namespace IceRpc
 
         private readonly string _host = "::0";
         private readonly ImmutableDictionary<string, string> _params = ImmutableDictionary<string, string>.Empty;
-        private readonly ushort _port = (ushort)Protocol.IceRpc.DefaultUriPort;
-        private readonly Protocol _protocol = Protocol.IceRpc;
+        private readonly ushort _port;
 
         /// <summary>Converts a string into an endpoint implicitly using <see cref="FromString"/>.</summary>
         /// <param name="s">The string representation of the endpoint.</param>
@@ -109,7 +94,24 @@ namespace IceRpc
         }
 
         /// <summary>Constructs an endpoint with default values.</summary>
-        public Endpoint() => OriginalUri = null;
+        public Endpoint()
+            : this(Protocol.IceRpc)
+        {
+        }
+
+        /// <summary>Constructs an endpoint from a protocol.</summary>
+        public Endpoint(Protocol protocol)
+        {
+            if (!protocol.IsSupported)
+            {
+                throw new ArgumentException(
+                    "cannot create an endpoint with a non-supported protocol",
+                    nameof(protocol));
+            }
+            Protocol = protocol;
+            _port = (ushort)Protocol.DefaultUriPort;
+            OriginalUri = null;
+        }
 
         /// <summary>Constructs an endpoint from a <see cref="Uri"/>.</summary>
         /// <param name="uri">An absolute URI.</param>
@@ -123,10 +125,10 @@ namespace IceRpc
             {
                 throw new ArgumentException("cannot create an endpoint from a relative reference", nameof(uri));
             }
-            _protocol = Protocol.FromString(uri.Scheme);
-            if (!_protocol.IsSupported)
+            Protocol = Protocol.FromString(uri.Scheme);
+            if (!Protocol.IsSupported)
             {
-                throw new ArgumentException($"cannot create an endpoint with protocol '{_protocol}'", nameof(uri));
+                throw new ArgumentException($"cannot create an endpoint with protocol '{Protocol}'", nameof(uri));
             }
             _host = uri.IdnHost;
             if (_host.Length == 0)
@@ -135,7 +137,7 @@ namespace IceRpc
             }
 
             // bug if it throws OverflowException
-            _port = checked((ushort)(uri.Port == -1 ? _protocol.DefaultUriPort : uri.Port));
+            _port = checked((ushort)(uri.Port == -1 ? Protocol.DefaultUriPort : uri.Port));
 
             if (uri.UserInfo.Length > 0)
             {
@@ -196,7 +198,7 @@ namespace IceRpc
             ushort port,
             ImmutableDictionary<string, string> endpointParams)
         {
-            _protocol = protocol;
+            Protocol = protocol;
             _host = host;
             _port = port;
             _params = endpointParams;

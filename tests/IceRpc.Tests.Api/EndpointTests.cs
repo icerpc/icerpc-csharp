@@ -34,18 +34,11 @@ namespace IceRpc.Tests.Api
             Assert.That(endpoint, Is.Not.EqualTo(endpoint2));
             Assert.That(endpoint2.OriginalUri, Is.Null);
 
-            endpoint = endpoint.Protocol == Protocol.IceRpc ?
-                endpoint with { Protocol = Protocol.Ice } : endpoint with { Protocol = Protocol.IceRpc };
-            Assert.That(endpoint.OriginalUri, Is.Null);
-
             endpoint = endpoint with { Host = "localhost", Port = 1000 };
             endpoint = endpoint with { Host = "[::0]" };
             endpoint = endpoint with { Host = "::1" };
 
             endpoint = endpoint with { Params = endpoint.Params.Add("name%23[]", "value%25[]@!") };
-
-            Assert.Catch<ArgumentException>(() => _ = endpoint with { Protocol = Protocol.Relative });
-            Assert.Catch<ArgumentException>(() => _ = endpoint with { Protocol = Protocol.FromString("foo") });
 
             Assert.Catch<ArgumentException>(() => _ = endpoint with { Host = "" });
             Assert.Catch<ArgumentException>(() => _ = endpoint with { Host = "::1.2" });
