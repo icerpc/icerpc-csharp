@@ -169,7 +169,7 @@ namespace IceRpc.Transports.Internal
                         break;
 
                     case "z":
-                        if (value != "true")
+                        if (value.Length > 0)
                         {
                             throw new FormatException(
                                 $"invalid value '{value}' for parameter z in endpoint '{endpoint}'");
