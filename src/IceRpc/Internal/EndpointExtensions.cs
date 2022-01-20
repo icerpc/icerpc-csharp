@@ -25,7 +25,7 @@ namespace IceRpc.Internal
         {
             if (includeScheme)
             {
-                sb.Append(endpoint.Protocol.Name);
+                sb.Append(endpoint.Protocol);
                 sb.Append("://");
             }
 
@@ -40,7 +40,7 @@ namespace IceRpc.Internal
                 sb.Append(endpoint.Host);
             }
 
-            if (endpoint.Port != UriProxyFormat.DefaultUriPort)
+            if (endpoint.Port != endpoint.Protocol.DefaultUriPort)
             {
                 sb.Append(':');
                 sb.Append(endpoint.Port.ToString(CultureInfo.InvariantCulture));

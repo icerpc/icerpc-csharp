@@ -39,8 +39,10 @@ namespace IceRpc.Tests.Api
             Assert.Throws<InvalidOperationException>(() => pipeline.Use(next => next));
 
             // Add more interceptors with With
-            var prx2 = new GreeterPrx(prx.Proxy.Clone());
-            prx2.Proxy.Invoker = pipeline.With(CheckValue(nextValue, 4), CheckValue(nextValue, 5));
+            var prx2 = new GreeterPrx(prx.Proxy with
+            {
+                Invoker = pipeline.With(CheckValue(nextValue, 4), CheckValue(nextValue, 5))
+            });
 
             value = 0;
             Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());

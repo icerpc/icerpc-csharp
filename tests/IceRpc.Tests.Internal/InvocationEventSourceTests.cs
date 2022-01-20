@@ -25,7 +25,7 @@ namespace IceRpc.Tests.Internal
             using var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            var proxy = Proxy.FromPath("/service");
+            var proxy = new Proxy(Protocol.IceRpc) { Path = "/service" };
             _eventSource.RequestStart(new OutgoingRequest(proxy, operation: "ice_id"));
 
             EventWrittenEventArgs? eventData = eventListener.EventData;
@@ -45,7 +45,7 @@ namespace IceRpc.Tests.Internal
             using var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            var proxy = Proxy.FromPath("/service");
+            var proxy = new Proxy(Protocol.IceRpc) { Path = "/service" };
             _eventSource.RequestStop(new OutgoingRequest(proxy, operation: "ice_id"));
 
             EventWrittenEventArgs? eventData = eventListener.EventData;
@@ -65,7 +65,7 @@ namespace IceRpc.Tests.Internal
             using var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            var proxy = Proxy.FromPath("/service");
+            var proxy = new Proxy(Protocol.IceRpc) { Path = "/service" };
             _eventSource.RequestCanceled(new OutgoingRequest(proxy, operation: "ice_id"));
 
             EventWrittenEventArgs? eventData = eventListener.EventData;
@@ -85,7 +85,7 @@ namespace IceRpc.Tests.Internal
             using var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            var proxy = Proxy.FromPath("/service");
+            var proxy = new Proxy(Protocol.IceRpc) { Path = "/service" };
             _eventSource.RequestFailed(
                 new OutgoingRequest(proxy, operation: "ice_id"),
                 "IceRpc.RemoteException");

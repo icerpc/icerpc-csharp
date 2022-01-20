@@ -28,7 +28,7 @@ namespace IceRpc.Tests.Slice
         [Test]
         public async Task NamespaceMetadata_Definitions()
         {
-            var prx = new NamespaceMDOperationsPrx(_prx.Clone());
+            var prx = new NamespaceMDOperationsPrx(_prx with { });
 
             C1 c1 = await prx.GetWithNamespaceC2AsC1Async();
             Assert.That(c1, Is.Not.Null);

@@ -50,19 +50,21 @@ namespace ServerApp
                         {
                             // Get the transport options from the configuration.
                             IConfiguration configuration = hostContext.Configuration.GetSection("Transport");
-                            TcpServerOptions tcpOptions = configuration?.GetValue<TcpServerOptions>("Tcp") ?? new();
-
-                            // Create the authentication options with the certificate defined in the configured
-                            // certificate file.
-                            tcpOptions.AuthenticationOptions = new SslServerAuthenticationOptions()
-                            {
-                                ServerCertificate = new X509Certificate2(
-                                    Path.Combine(
-                                        hostContext.HostingEnvironment.ContentRootPath,
-                                        configuration.GetValue<string>("CertificateFile")),
-                                    configuration.GetValue<string>("CertificatePassword"))
-                            };
-
+                            TcpServerOptions tcpOptions =
+                                configuration?.GetValue<TcpServerOptions>("Tcp") ??
+                                new()
+                                {
+                                    // Create the authentication options with the certificate defined in the configured
+                                    // certificate file.
+                                    AuthenticationOptions = new SslServerAuthenticationOptions()
+                                    {
+                                        ServerCertificate = new X509Certificate2(
+                                            Path.Combine(
+                                                hostContext.HostingEnvironment.ContentRootPath,
+                                                configuration.GetValue<string>("CertificateFile")),
+                                            configuration.GetValue<string>("CertificatePassword"))
+                                    }
+                                };
                             return new SlicServerTransport(new TcpServerTransport(tcpOptions));
                         });
 

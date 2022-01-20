@@ -169,7 +169,7 @@ namespace IceRpc
         /// <param name="refreshCache">When <c>true</c>, requests a cache refresh.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>A tuple with a nullable dummy proxy that holds the endpoint(s) (if resolved), and a bool that
-        /// indicates whether these endpoints were retrieved from the implemention's cache. Proxy is null when
+        /// indicates whether these endpoints were retrieved from the implementation's cache. Proxy is null when
         /// the location resolver fails to resolve a location.</returns>
         ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync(
             Location location,
@@ -207,7 +207,7 @@ namespace IceRpc
 
         /// <summary>Converts a location into an Identity.</summary>
         /// <returns>The identity.</returns>
-        /// <exception name="InvalidOperationException">Thrown when <see cref="Category"/> is null.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when <see cref="Category"/> is null.</exception>
         public Identity ToIdentity() =>
             Category is string category ? new Identity(AdapterId, category) : throw new InvalidOperationException();
 

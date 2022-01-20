@@ -40,7 +40,7 @@ namespace IceRpc.Tests.Internal
                 _serverTransport.Listen(serverEndpoint, LogAttributeLoggerFactory.Instance.Logger);
             listenerList.Add(listener);
 
-            serverEndpoint.Port = listener.Endpoint.Port;
+            serverEndpoint = serverEndpoint with { Port = listener.Endpoint.Port };
 
             // We create serverCount servers all listening on the same endpoint (including same port)
             for (int i = 0; i < serverCount; ++i)

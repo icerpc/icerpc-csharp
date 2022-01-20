@@ -243,11 +243,12 @@ namespace IceRpc
             if (beg == -1)
             {
                 // Well-known proxy
-                return new Proxy(identity.ToPath(), Protocol.Ice)
+                return new Proxy(Protocol.Ice)
                 {
+                    Path = identity.ToPath(),
+                    Fragment = Uri.EscapeDataString(facet),
                     Invoker = invoker ?? Proxy.DefaultInvoker,
                     Encoding = encoding,
-                    Fragment = Uri.EscapeDataString(facet),
                 };
             }
 
@@ -323,13 +324,14 @@ namespace IceRpc
 
                 Debug.Assert(endpoint != null);
 
-                return new Proxy(identity.ToPath(), Protocol.Ice)
+                return new Proxy(Protocol.Ice)
                 {
+                    Path = identity.ToPath(),
+                    Fragment = Uri.EscapeDataString(facet),
                     Invoker = invoker ?? Proxy.DefaultInvoker,
                     Endpoint = endpoint,
                     AltEndpoints = altEndpoints,
                     Encoding = encoding,
-                    Fragment = Uri.EscapeDataString(facet)
                 };
             }
             else if (s[beg] == '@')
@@ -375,11 +377,12 @@ namespace IceRpc
                     throw new FormatException($"empty adapter ID in proxy '{s}'");
                 }
 
-                return new Proxy(identity.ToPath(), Protocol.Ice)
+                return new Proxy(Protocol.Ice)
                 {
+                    Path = identity.ToPath(),
+                    Fragment = Uri.EscapeDataString(facet),
                     Invoker = invoker ?? Proxy.DefaultInvoker,
                     Encoding = encoding,
-                    Fragment = Uri.EscapeDataString(facet),
                     Params = ImmutableDictionary<string, string>.Empty.Add("adapter-id", adapterId)
                 };
             }
@@ -513,6 +516,12 @@ namespace IceRpc
                 ["transport"] = transport == "default" ? TransportNames.Tcp : transport,
             };
 
+            if (transport == TransportNames.Opaque)
+            {
+                host = OpaqueTransport.Host;
+                port = OpaqueTransport.Port;
+            }
+
             // Parse args into name/value pairs (and skip transport at args[0])
             for (int n = 1; n < args.Length; ++n)
             {
@@ -598,11 +607,16 @@ namespace IceRpc
                 endpointParams.Add("tls", "true");
             }
 
-            return new Endpoint(
-                Protocol.Ice,
-                host ?? "",
-                port ?? 0,
-                endpointParams.ToImmutableDictionary());
+            if (host == null)
+            {
+                throw new FormatException($"no -h in endpoint '{endpointString}'");
+            }
+
+            return new Endpoint(Protocol.Ice, host)
+            {
+                Port = port ?? 0,
+                Params = endpointParams.ToImmutableDictionary()
+            };
         }
 
         /// <summary>Converts an endpoint into a string in a format compatible with ZeroC Ice.</summary>
@@ -632,26 +646,28 @@ namespace IceRpc
                 sb.Append(transport);
             }
 
-            if (endpoint.Host.Length > 0)
+            if (transport != TransportNames.Opaque) // no -h -p for opaque
             {
-                sb.Append(" -h ");
-                bool addQuote = endpoint.Host.IndexOf(':', StringComparison.Ordinal) != -1;
-                if (addQuote)
+                if (endpoint.Host.Length > 0)
                 {
-                    sb.Append('"');
+                    sb.Append(" -h ");
+                    bool addQuote = endpoint.Host.IndexOf(':', StringComparison.Ordinal) != -1;
+                    if (addQuote)
+                    {
+                        sb.Append('"');
+                    }
+                    sb.Append(endpoint.Host);
+                    if (addQuote)
+                    {
+                        sb.Append('"');
+                    }
                 }
-                sb.Append(endpoint.Host);
-                if (addQuote)
-                {
-                    sb.Append('"');
-                }
-            }
 
-            // For backwards compatibility, we don't output "-p 0" for opaque endpoints.
-            if (transport != TransportNames.Opaque || endpoint.Port != 0)
-            {
-                sb.Append(" -p ");
-                sb.Append(endpoint.Port.ToString(CultureInfo.InvariantCulture));
+                if (endpoint.Port != 0)
+                {
+                    sb.Append(" -p ");
+                    sb.Append(endpoint.Port.ToString(CultureInfo.InvariantCulture));
+                }
             }
 
             foreach ((string name, string value) in endpoint.Params)

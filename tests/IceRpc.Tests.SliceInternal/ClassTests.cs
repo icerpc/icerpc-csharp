@@ -46,9 +46,9 @@ namespace IceRpc.Tests.SliceInternal
         [Test]
         public async Task Class_FormatMetadata()
         {
-            var prx1 = new SlicedFormatOperationsPrx(_sliced.Proxy.Clone());
             var pipeline1 = new Pipeline();
-            prx1.Proxy.Invoker = pipeline1;
+            var prx1 = new SlicedFormatOperationsPrx(_sliced.Proxy with { Invoker = pipeline1 });
+
             pipeline1.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
@@ -92,9 +92,8 @@ namespace IceRpc.Tests.SliceInternal
             }));
             await prx1.OpMyClassAsync(new MyClassCustomFormat("foo"));
 
-            var prx2 = new CompactFormatOperationsPrx(_compact.Proxy.Clone());
             var pipeline2 = new Pipeline();
-            prx2.Proxy.Invoker = pipeline2;
+            var prx2 = new CompactFormatOperationsPrx(_compact.Proxy with { Invoker = pipeline2 });
             pipeline2.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);
@@ -136,9 +135,8 @@ namespace IceRpc.Tests.SliceInternal
             }));
             await prx2.OpMyClassAsync(new MyClassCustomFormat("foo"));
 
-            var prx3 = new ClassFormatOperationsPrx(_classformat.Proxy.Clone());
             var pipeline3 = new Pipeline();
-            prx3.Proxy.Invoker = pipeline3;
+            var prx3 = new ClassFormatOperationsPrx(_classformat.Proxy with { Invoker = pipeline3 });
             pipeline3.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 ReadResult readResult = await request.PayloadSource.ReadAllAsync(cancel);

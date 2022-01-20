@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using System.Collections.Immutable;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 
@@ -14,46 +15,168 @@ namespace IceRpc
     public sealed record class Endpoint
     {
         /// <summary>The protocol of this endpoint.</summary>
-        public Protocol Protocol { get; set; }
+        public Protocol Protocol
+        {
+            get => _protocol;
+            init
+            {
+                if (!value.IsSupported)
+                {
+                    throw new ArgumentException(
+                        $"cannot set {nameof(Protocol)} to a non-supported protocol",
+                        nameof(Protocol));
+                }
+                _protocol = value;
+                OriginalUri = null; // new protocol invalidates OriginalUri
+            }
+        }
 
         /// <summary>The host name or address.</summary>
-        public string Host { get; set; }
+        public string Host
+        {
+            get => _host;
+            init
+            {
+                if (Uri.CheckHostName(value) == UriHostNameType.Unknown)
+                {
+                    throw new ArgumentException($"cannot set {nameof(Host)} to '{value}'", nameof(Host));
+                }
+                _host = value;
+                OriginalUri = null; // new host invalidates OriginalUri
+            }
+        }
 
         /// <summary>The port number.</summary>
-        public ushort Port { get; set; }
+        public ushort Port
+        {
+            get => _port;
+            init
+            {
+                _port = value;
+                OriginalUri = null; // new port invalidates OriginalUri
+            }
+        }
 
         /// <summary>Transport-specific parameters.</summary>
-        public ImmutableDictionary<string, string> Params { get; set; }
+        public ImmutableDictionary<string, string> Params
+        {
+            get => _params;
+            init
+            {
+                try
+                {
+                    Proxy.CheckParams(value);
+                }
+                catch (FormatException ex)
+                {
+                    throw new ArgumentException($"invalid parameters", nameof(Params), ex);
+                }
+                _params = value;
+                OriginalUri = null; // new params invalidates OriginalUri
+            }
+        }
+
+        /// <summary>Returns the URI used to create this endpoint, if this endpoint was created from a URI.</summary>
+        public Uri? OriginalUri { get; private init; }
+
+        private string _host;
+        private ImmutableDictionary<string, string> _params = ImmutableDictionary<string, string>.Empty;
+        private ushort _port;
+        private Protocol _protocol;
 
         /// <summary>Converts a string into an endpoint implicitly using <see cref="FromString"/>.</summary>
         /// <param name="s">The string representation of the endpoint.</param>
         /// <returns>The new endpoint.</returns>
-        /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of an endpoint.
+        /// <exception cref="FormatException">Thrown when <paramref name="s"/> is not a valid endpoint URI string.
         /// </exception>
         public static implicit operator Endpoint(string s) => FromString(s);
 
-        /// <summary>Creates an endpoint from its string representation.</summary>
+        /// <summary>Creates an endpoint from a URI string.</summary>
         /// <param name="s">The string representation of the endpoint.</param>
         /// <returns>The new endpoint.</returns>
-        /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of an endpoint.
+        /// <exception cref="FormatException">Thrown when <paramref name="s"/> is not a valid endpoint URI string.
         /// </exception>
-        public static Endpoint FromString(string s) => UriProxyFormat.ParseEndpoint(s);
-
-        /// <summary>Constructs a new endpoint.</summary>
-        /// <param name="protocol">The protocol of this endpoint.</param>
-        /// <param name="host">The host name or address.</param>
-        /// <param name="port">The port number.</param>
-        /// <param name="params">Transport-specific parameters.</param>
-        public Endpoint(
-            Protocol protocol,
-            string host,
-            ushort port,
-            ImmutableDictionary<string, string> @params)
+        public static Endpoint FromString(string s)
         {
-            Protocol = protocol;
-            Host = host;
-            Port = port;
-            Params = @params;
+            try
+            {
+                return new Endpoint(new Uri(s, UriKind.Absolute));
+            }
+            catch (ArgumentException ex)
+            {
+                throw new FormatException($"'{s}' is not a valid endpoint URI", ex);
+            }
+        }
+
+        /// <summary>Constructs an endpoint from a protocol and host.</summary>
+        /// <param name="protocol">The protocol of this endpoint. Must be a supported protocol.</param>
+        /// <param name="host">The host name. Cannot be empty.</param>
+        public Endpoint(Protocol protocol, string host)
+        {
+            if (!protocol.IsSupported)
+            {
+                throw new ArgumentException($"cannot create an endpoint with protocol '{protocol}'", nameof(protocol));
+            }
+            if (Uri.CheckHostName(host) == UriHostNameType.Unknown)
+            {
+                throw new ArgumentException($"cannot create an endpoint with host '{host}'", nameof(host));
+            }
+
+            _protocol = protocol;
+            _host = host;
+            _port = (ushort)protocol.DefaultUriPort;
+        }
+
+        /// <summary>Constructs an endpoint from a <see cref="Uri"/>.</summary>
+        /// <param name="uri">An absolute URI.</param>
+        /// <exception cref="ArgumentException">Thrown if the <paramref name="uri"/> is not an absolute URI, or if its
+        /// scheme is not a supported protocol, or if it has a non-empty path or fragment, or if it has an empty host,
+        /// or if its query can't be parsed or if it has an alt-endpoint query parameter.</exception>
+        /// <exception cref="FormatException">Thrown if the query portion of the URI cannot be parsed.</exception>
+        public Endpoint(Uri uri)
+        {
+            if (!uri.IsAbsoluteUri)
+            {
+                throw new ArgumentException("cannot create an endpoint from a relative reference", nameof(uri));
+            }
+            _protocol = Protocol.FromString(uri.Scheme);
+            if (!_protocol.IsSupported)
+            {
+                throw new ArgumentException($"cannot create an endpoint with protocol '{_protocol}'", nameof(uri));
+            }
+            _host = uri.IdnHost;
+            if (_host.Length == 0)
+            {
+                throw new ArgumentException("cannot create an endpoint with an empty host", nameof(uri));
+            }
+
+            // bug if it throws OverflowException
+            _port = checked((ushort)(uri.Port == -1 ? _protocol.DefaultUriPort : uri.Port));
+
+            if (uri.UserInfo.Length > 0)
+            {
+                throw new ArgumentException("cannot create an endpoint with a user info", nameof(uri));
+            }
+
+            if (uri.AbsolutePath.Length > 1)
+            {
+                throw new ArgumentException("cannot create an endpoint with a path", nameof(uri));
+            }
+
+            if (uri.Fragment.Length > 0)
+            {
+                throw new ArgumentException("cannot create an endpoint with a fragment", nameof(uri));
+            }
+
+            (_params, string? altEndpointValue) = uri.ParseQuery();
+            if (altEndpointValue != null)
+            {
+                throw new ArgumentException(
+                    "cannot create an endpoint with an alt-endpoint query parameter",
+                    nameof(uri));
+            }
+
+            OriginalUri = uri;
         }
 
         /// <summary>Checks if this endpoint is equal to another endpoint.</summary>
@@ -73,11 +196,27 @@ namespace IceRpc
 
         /// <summary>Converts this endpoint into a string.</summary>
         /// <returns>The string representation of this endpoint.</returns>
-        public override string ToString()
+        public override string ToString() =>
+            OriginalUri?.ToString() ?? new StringBuilder().AppendEndpoint(this).ToString();
+
+        /// <summary>Converts this endpoint into a URI.</summary>
+        /// <returns>The URI.</returns>
+        public Uri ToUri() => OriginalUri ?? new Uri(ToString(), UriKind.Absolute);
+
+        /// <summary>Constructs an endpoint from a protocol, a host, a port and parsed parameters, without parameter
+        /// validation.</summary>
+        /// <remarks>This constructor is used by <see cref="Proxy"/> for its main endpoint and by the Slice decoder for
+        /// 1.1-encoded endpoints.</remarks>
+        internal Endpoint(
+            Protocol protocol,
+            string host,
+            ushort port,
+            ImmutableDictionary<string, string> endpointParams)
         {
-            var sb = new StringBuilder();
-            sb.AppendEndpoint(this);
-            return sb.ToString();
+            _protocol = protocol;
+            _host = host;
+            _port = port;
+            _params = endpointParams;
         }
     }
 

@@ -21,10 +21,7 @@ namespace IceRpc.Tests.ClientServer
         [TestCase("ice", "icerpc", true)]
         [TestCase("icerpc", "ice", false)]
         [TestCase("ice", "icerpc", false)]
-        public async Task ProtocolBridging_Forward(
-            string forwarderProtocol,
-            string targetProtocol,
-            bool colocated)
+        public async Task ProtocolBridging_Forward(string forwarderProtocol, string targetProtocol, bool colocated)
         {
             var router = new Router();
 
@@ -58,12 +55,12 @@ namespace IceRpc.Tests.ClientServer
             // TODO: add context testing
 
             Server targetServer = targetServiceProvider.GetRequiredService<Server>();
-            var targetServicePrx = ProtocolBridgingTestPrx.FromPath("/target", targetServer.Protocol);
+            var targetServicePrx = ProtocolBridgingTestPrx.Parse($"{targetServer.Protocol}:/target");
             targetServicePrx.Proxy.Endpoint = targetServer.Endpoint;
             targetServicePrx.Proxy.Invoker = targetServiceProvider.GetRequiredService<IInvoker>();
 
             Server forwarderServer = forwarderServiceProvider.GetRequiredService<Server>();
-            var forwarderServicePrx = ProtocolBridgingTestPrx.FromPath("/forward", forwarderServer.Protocol);
+            var forwarderServicePrx = ProtocolBridgingTestPrx.Parse($"{forwarderServer.Protocol}:/forward");
             forwarderServicePrx.Proxy.Endpoint = forwarderServer.Endpoint;
             forwarderServicePrx.Proxy.Invoker = forwarderServiceProvider.GetRequiredService<IInvoker>();
 
@@ -127,7 +124,7 @@ namespace IceRpc.Tests.ClientServer
 
             public ValueTask<ProtocolBridgingTestPrx> OpNewProxyAsync(Dispatch dispatch, CancellationToken cancel)
             {
-                var proxy = Proxy.FromPath(dispatch.Path, dispatch.Protocol);
+                var proxy = new Proxy(dispatch.Protocol) { Path = dispatch.Path };
                 proxy.Endpoint = dispatch.Connection.NetworkConnectionInformation?.LocalEndpoint;
                 proxy.Encoding = dispatch.Encoding; // use the request's encoding instead of the server's encoding.
                 return new(new ProtocolBridgingTestPrx(proxy));

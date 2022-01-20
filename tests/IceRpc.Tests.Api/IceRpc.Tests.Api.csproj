@@ -15,7 +15,7 @@
     <Compile Include="..\Shared\PipeReaderExtensions.cs" Link="PipeReaderExtensions.cs" />
     <Compile Include="..\Shared\PipeWriterDecorator.cs" Link="PipeWriterDecorator.cs" />
     <Compile Update="generated\SliceDefinitions.cs">
-      <SliceCompileSource>SliceDefinitions.ice</SliceCompileSource>
+      <SliceCompileSource>SliceDefinitions.slice</SliceCompileSource>
     </Compile>
   </ItemGroup>
 
@@ -29,7 +29,7 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.0.0" />
     <PackageReference Include="NUnit.Analyzers" Version="3.3.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.2.0" />
-    <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview2" PrivateAssets="All" />
+    <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview4" PrivateAssets="All" />
     <PackageReference Include="NUnit" Version="3.13.2" />
   </ItemGroup>
 

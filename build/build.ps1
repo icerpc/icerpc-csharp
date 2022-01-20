@@ -55,6 +55,7 @@ function Build($config, $examples, $srcdist) {
            $global_packages = dotnet nuget locals -l global-packages
            $global_packages = $global_packages.replace("global-packages: ", "")
            Remove-Item $global_packages"\icerpc" -Recurse -Force -ErrorAction Ignore
+           Remove-Item $global_packages"\icerpc.coloc" -Recurse -Force -ErrorAction Ignore
            Remove-Item $global_packages"\icerpc.interop" -Recurse -Force -ErrorAction Ignore
            RunCommand "dotnet" @('nuget', 'push', 'lib\*.nupkg', '--source', $global_packages)
         }

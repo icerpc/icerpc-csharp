@@ -12,7 +12,7 @@ namespace IceRpc.Internal
         /// <summary>Installs a payload decompressor on the frame's Payload.</summary>
         internal static void UsePayloadDecompressor(this IncomingFrame frame)
         {
-            if (frame.Protocol.HasFieldSupport)
+            if (frame.Protocol.HasFields)
             {
                 // TODO: switch to class for CompressionField?
                 CompressionField compressionField = frame.Fields.Get(

@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
+
 namespace IceRpc.Transports.Internal
 {
     internal class SlicListener : IListener<IMultiplexedNetworkConnection>

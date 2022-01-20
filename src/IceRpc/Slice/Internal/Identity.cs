@@ -10,42 +10,47 @@ namespace IceRpc.Slice.Internal
         internal static readonly Identity Empty = new("", "");
 
         /// <summary>Creates an Ice identity from a URI path.</summary>
-        /// <param name="path">A URI path.</param>
-        /// <exception cref="ArgumentException">Thrown when <paramref name="path"/> is not a valid path.</exception>
-        /// <exception cref="FormatException">Thrown when <paramref name="path"/> is a valid path but cannot be
-        /// converted into an identity.</exception>
+        /// <param name="uriPath">A URI absolute path. The caller guarantees it's properly escaped.</param>
+        /// <exception cref="FormatException">Thrown when <paramref name="uriPath"/> cannot be converted into a non-null
+        /// identity.</exception>
         /// <returns>A new Ice identity struct.</returns>
-        internal static Identity FromPath(string path)
+        internal static Identity FromPath(string uriPath)
         {
-            Proxy.CheckPath(path, nameof(path));
-            string workingPath = path[1..]; // removes leading /.
+            string workingPath = uriPath[1..]; // removes leading /.
 
             int firstSlash = workingPath.IndexOf('/', StringComparison.Ordinal);
-            if (firstSlash != workingPath.LastIndexOf('/'))
-            {
-                throw new FormatException($"too many slashes in path '{path}'");
-            }
+
+            string name;
+            string category = "";
 
             if (firstSlash == -1)
             {
                 // Name only
-                return new Identity(Uri.UnescapeDataString(workingPath), "");
+                name = Uri.UnescapeDataString(workingPath);
             }
             else
             {
-                return new Identity(
-                    Uri.UnescapeDataString(workingPath[(firstSlash + 1)..]),
-                    Uri.UnescapeDataString(workingPath[0..firstSlash]));
+                if (firstSlash != workingPath.LastIndexOf('/'))
+                {
+                    throw new FormatException($"too many slashes in path '{uriPath}'");
+                }
+
+                name = Uri.UnescapeDataString(workingPath[(firstSlash + 1)..]);
+                category = Uri.UnescapeDataString(workingPath[0..firstSlash]);
             }
+
+            return name.Length > 0 ? new Identity(name, category) :
+                throw new FormatException($"invalid empty identity name in '{uriPath}'");
         }
 
         /// <summary>Converts this identity into a URI path.</summary>
         /// <returns>A URI path.</returns>
         public string ToPath()
         {
-            if (Name == null)
+            // Name is null when this identity is default initialized
+            if (Name == null || Name.Length == 0)
             {
-                return "/"; // This struct was default initialized (null)
+                throw new InvalidOperationException("cannot create a path from an identity with an empty name");
             }
             Debug.Assert(Category != null);
 
@@ -53,11 +58,10 @@ namespace IceRpc.Slice.Internal
                 $"/{Uri.EscapeDataString(Category)}/{Uri.EscapeDataString(Name)}" :
                 $"/{Uri.EscapeDataString(Name)}";
 
-            Debug.Assert(Proxy.IsValidPath(path));
             return path;
         }
 
         /// <inheritdoc/>
-        public override string ToString() => ToPath();
+        public override string ToString() => Name == null || Name.Length == 0 ? "" : ToPath();
     }
 }

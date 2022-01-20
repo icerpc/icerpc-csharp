@@ -46,17 +46,14 @@ namespace IceRpc.Tests.SliceInternal
             }
         }
 
-        [TestCase("2.0")]
-        [TestCase("1.1")]
-        public async Task Proxy_EndpointLess(string encodingStr)
+        [Test]
+        public async Task Proxy_Relative()
         {
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection().BuildServiceProvider();
             Connection connection = serviceProvider.GetRequiredService<Connection>();
 
-            var encoding = IceEncoding.FromString(encodingStr);
-
-            // Create an endpointless proxy
-            var endpointLess = Proxy.FromPath("/foo", connection.Protocol);
+            // Create a relative proxy
+            var endpointLess = Proxy.FromPath("/foo");
 
             var regular = Proxy.FromConnection(connection, "/bar");
 
@@ -72,15 +69,15 @@ namespace IceRpc.Tests.SliceInternal
 
             void EncodeProxy()
             {
-                // Encodes the endpointless proxy
-                var encoder = new IceEncoder(bufferWriter, encoding);
+                // Encodes the relative proxy
+                var encoder = new IceEncoder(bufferWriter, Encoding.Slice20);
                 encoder.EncodeProxy(endpointLess);
             }
 
             Proxy DecodeProxy()
             {
-                // Decodes the endpointless proxy using the client connection. We get back a 1-endpoint proxy
-                var decoder = new IceDecoder(buffer, encoding, connection);
+                // Decodes the relative proxy using the client connection. We get back a 1-endpoint proxy
+                var decoder = new IceDecoder(buffer, Encoding.Slice20, connection);
 
                 Proxy p = decoder.DecodeProxy();
                 decoder.CheckEndOfBuffer(skipTaggedParams: false);

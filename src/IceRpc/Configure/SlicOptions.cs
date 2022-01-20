@@ -2,7 +2,7 @@
 
 using System.Buffers;
 
-namespace IceRpc.Transports
+namespace IceRpc.Configure
 {
     /// <summary>An options class for configuring Slic based transports.</summary>
     public class SlicOptions
@@ -27,7 +27,7 @@ namespace IceRpc.Transports
         public int BidirectionalStreamMaxCount
         {
             get => _bidirectionalStreamMaxCount;
-            set => _bidirectionalStreamMaxCount = value > 0 ? value :
+            init => _bidirectionalStreamMaxCount = value > 0 ? value :
                 throw new ArgumentException(
                     $"{nameof(BidirectionalStreamMaxCount)} can't be less than 1",
                     nameof(value));
@@ -52,7 +52,7 @@ namespace IceRpc.Transports
         public int PacketMaxSize
         {
             get => _packetMaxSize;
-            set => _packetMaxSize = value >= 1024 ? value :
+            init => _packetMaxSize = value >= 1024 ? value :
                 throw new ArgumentException($"{nameof(PacketMaxSize)} cannot be less than 1KB", nameof(value));
         }
 
@@ -61,7 +61,7 @@ namespace IceRpc.Transports
         public int PauseWriterThreeshold
         {
             get => _pauseWriterThreeshold;
-            set => _pauseWriterThreeshold = value >= 1024 ? value :
+            init => _pauseWriterThreeshold = value >= 1024 ? value :
                 throw new ArgumentException($"{nameof(PauseWriterThreeshold)} cannot be less than 1KB", nameof(value));
         }
 
@@ -70,7 +70,7 @@ namespace IceRpc.Transports
         public int ResumeWriterThreeshold
         {
             get => _resumeWriterThreeshold;
-            set => _resumeWriterThreeshold = value >= 1024 ? value :
+            init => _resumeWriterThreeshold = value >= 1024 ? value :
                 throw new ArgumentException($"{nameof(ResumeWriterThreeshold)} cannot be less than 1KB", nameof(value));
         }
 
@@ -84,7 +84,7 @@ namespace IceRpc.Transports
         public int UnidirectionalStreamMaxCount
         {
             get => _unidirectionalStreamMaxCount;
-            set => _unidirectionalStreamMaxCount = value > 0 ? value :
+            init => _unidirectionalStreamMaxCount = value > 0 ? value :
                 throw new ArgumentException(
                     $"{nameof(UnidirectionalStreamMaxCount)} can't be less than 1",
                     nameof(value));

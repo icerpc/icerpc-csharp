@@ -164,7 +164,7 @@ namespace IceRpc.Slice
 
         /// <summary>Verifies that when <paramref name="invocation"/> carries a deadline, <paramref name="cancel"/> is
         /// cancellable.</summary>
-        /// <exception name="ArgumentException">Thrown when the invocation carries a deadline but
+        /// <exception cref="ArgumentException">Thrown when the invocation carries a deadline but
         /// <paramref name="cancel"/> is not cancellable.</exception>
         private static void CheckCancellationToken(Invocation invocation, CancellationToken cancel)
         {

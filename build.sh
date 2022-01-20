@@ -66,7 +66,7 @@ build()
             pack
             global_packages=$(dotnet nuget locals -l global-packages)
             global_packages=${global_packages/global-packages: /""}
-            run_command rm "-rf" "$global_packages/icerpc" "$global_packages/icerpc.interop"
+            run_command rm "-rf" "$global_packages/icerpc" "$global_packages/icerpc.coloc" "$global_packages/icerpc.interop"
             run_command dotnet "nuget" "push" "lib/*.nupkg" "--source" "$global_packages"
         fi
         for solution in examples/*/*.sln
