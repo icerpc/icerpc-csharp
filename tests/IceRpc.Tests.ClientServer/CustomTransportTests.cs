@@ -135,17 +135,6 @@ namespace IceRpc.Tests.ClientServer
             }
         }
 
-        [Test]
-        public async Task CustomTransport_DefaultEndpointAsync()
-        {
-            await using var server = new Server
-            {
-                MultiplexedServerTransport = new CustomServerTransport(),
-                Dispatcher = new MyService()
-            };
-            server.Listen();
-        }
-
         public class MyService : Service, IService
         {
         }
