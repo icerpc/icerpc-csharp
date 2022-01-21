@@ -72,21 +72,15 @@ namespace IceRpc.Transports.Internal
                 {
                     if (exception is null)
                     {
-                        // Unlike SlicePipeWriter.Complete that writes an empty stream frame, we can't gracefully
-                        // complete the stream on the peer without calling AbortRead. We use the error code -1 here to
-                        // not conflict with protocol error codes.
-                        // TODO: optional error code support for the stop sending frame?
-                        _stream.AbortRead(-1);
+                        _stream.AbortRead(SlicStreamError.NoError.ToError());
                     }
                     else if (exception is MultiplexedStreamAbortedException abortedException)
                     {
-                        _stream.AbortRead(abortedException.ErrorCode);
+                        _stream.AbortRead(abortedException.ToError());
                     }
                     else
                     {
-                        // TODO: we use the -2 error code for unexpected exception. Improve the stop sending frame
-                        // instead or stick with this error code to continue matching the Quic stop sending frame?
-                        _stream.AbortRead(-2);
+                        _stream.AbortRead(SlicStreamError.UnexpectedError.ToError());
                     }
                 }
 
@@ -100,6 +94,10 @@ namespace IceRpc.Transports.Internal
         {
             CheckIfCompleted();
             ReadResult result = await _reader.ReadAsync(cancel).ConfigureAwait(false);
+            if (result.IsCanceled && _stream.ResetError is long error)
+            {
+                throw new MultiplexedStreamAbortedException(error);
+            }
             _readCompleted = result.IsCompleted;
             _readSequence = result.Buffer;
             return result;
@@ -110,6 +108,10 @@ namespace IceRpc.Transports.Internal
             CheckIfCompleted();
             if (_reader.TryRead(out result))
             {
+                if (result.IsCanceled && _stream.ResetError is long error)
+                {
+                    throw new MultiplexedStreamAbortedException(error);
+                }
                 _readCompleted = result.IsCompleted;
                 _readSequence = result.Buffer;
                 return true;
@@ -133,7 +135,7 @@ namespace IceRpc.Transports.Internal
             {
                 // If the reader is completed, the caller is bogus, it shouldn't call reader operations after completing
                 // the pipe reader.
-                throw new InvalidOperationException("reading is not allowed once the reader is completed");
+                throw new InvalidOperationException($"reading is not allowed once the reader is completed");
             }
         }
     }

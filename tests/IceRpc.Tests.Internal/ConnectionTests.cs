@@ -44,7 +44,7 @@ namespace IceRpc.Tests.Internal
             {
                 await factory.ServerConnection.CloseAsync();
             }
-            Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
+            Assert.ThrowsAsync<ConnectionLostException>(async () => await pingTask);
             semaphore.Release();
         }
 
@@ -507,13 +507,21 @@ namespace IceRpc.Tests.Internal
             {
                 // Shutdown should trigger the abort of the connection after the close timeout
                 await factory.ClientConnection.ShutdownAsync();
-                Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
+                if (protocol == "ice")
+                {
+                    // Invocations are canceled immediately on shutdown with Ice
+                    Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
+                }
+                else
+                {
+                    Assert.ThrowsAsync<ConnectionLostException>(async () => await pingTask);
+                }
             }
             else
             {
                 // Shutdown should trigger the abort of the connection after the close timeout
                 await factory.ServerConnection.ShutdownAsync();
-                Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
+                Assert.ThrowsAsync<ConnectionLostException>(async () => await pingTask);
             }
 
             semaphore.Release();

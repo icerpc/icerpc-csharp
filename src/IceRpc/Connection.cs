@@ -663,11 +663,13 @@ namespace IceRpc
             {
                 // The two calls are equivalent except the response.PayloadSink version goes through the decorators
                 // installed by the middleware, if any.
+                // TODO: fix this protocol specific code.
                 PipeWriter writer = response?.PayloadSink ?? request.ResponseWriter;
-                await writer.CompleteAsync(MultiplexedStreamError.DispatchCanceled).ConfigureAwait(false);
+                await writer.CompleteAsync(IceRpcStreamError.DispatchCanceled.ToException()).ConfigureAwait(false);
             }
             catch (MultiplexedStreamAbortedException)
             {
+                // Ignore, the peer aborted the stream and at this point, there's not much we can do to report it.
             }
             catch (Exception exception)
             {

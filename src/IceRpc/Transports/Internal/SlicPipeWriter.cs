@@ -54,13 +54,11 @@ namespace IceRpc.Transports.Internal
                     }
                     else if (exception is MultiplexedStreamAbortedException abortedException)
                     {
-                        _stream.AbortWrite(abortedException.ErrorCode);
+                        _stream.AbortWrite(abortedException.ToError());
                     }
                     else
                     {
-                        // TODO: we use the -2 error code for unexpected exception. Improve the reset frame
-                        // instead or stick with this error code to continue matching the Quic reset frame?
-                        _stream.AbortWrite(-2);
+                        _stream.AbortWrite(SlicStreamError.UnexpectedError.ToError());
                     }
                 }
 
@@ -124,9 +122,11 @@ namespace IceRpc.Transports.Internal
                 // return a completed flush result.
                 if (_stream.WritesCompleted)
                 {
-                    if (_stream.ResetErrorCode is long resetErrorCode && resetErrorCode != -1)
+                    if (_stream.ResetError is long error &&
+                        error.ToSlicError() is SlicStreamError slicError &&
+                        slicError != SlicStreamError.NoError)
                     {
-                        throw new MultiplexedStreamAbortedException(resetErrorCode);
+                        throw new MultiplexedStreamAbortedException(error);
                     }
                     else
                     {

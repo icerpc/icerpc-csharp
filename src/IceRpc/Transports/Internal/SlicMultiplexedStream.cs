@@ -8,7 +8,7 @@ namespace IceRpc.Transports.Internal
     /// <summary>The stream implementation for Slic. The stream implementation implements flow control to ensure data
     /// isn't buffered indefinitely if the application doesn't consume it. Buffering and flow control are only enable
     /// when sending multiple Slic packet or if the Slic packet size exceeds the peer packet maximum size.</summary>
-    internal class SlicMultiplexedStream : IMultiplexedStream, IDisposable
+    internal class SlicMultiplexedStream : IMultiplexedStream
     {
         /// <inheritdoc/>
         public long Id
@@ -42,27 +42,16 @@ namespace IceRpc.Transports.Internal
         {
             get
             {
-                bool lockTaken = false;
-                try
+                lock (_mutex)
                 {
-                    _lock.Enter(ref lockTaken);
                     return _shutdownAction;
-                }
-                finally
-                {
-                    if (lockTaken)
-                    {
-                        _lock.Exit();
-                    }
                 }
             }
             set
             {
-                bool lockTaken = false;
                 bool alreadyShutdown = false;
-                try
+                lock (_mutex)
                 {
-                    _lock.Enter(ref lockTaken);
                     if (IsShutdown)
                     {
                         alreadyShutdown = true;
@@ -72,14 +61,6 @@ namespace IceRpc.Transports.Internal
                         _shutdownAction = value;
                     }
                 }
-                finally
-                {
-                    if (lockTaken)
-                    {
-                        _lock.Exit();
-                    }
-                }
-
                 if (alreadyShutdown)
                 {
                     value?.Invoke();
@@ -96,9 +77,25 @@ namespace IceRpc.Transports.Internal
 
         internal bool ReadsCompleted => ((State)Thread.VolatileRead(ref _state)).HasFlag(State.ReadCompleted);
 
-        /// <summary>The stream reset error code is set if the stream is reset by the peer or locally. It's used to set
-        /// the correct error code for <see cref="MultiplexedStreamAbortedException"/> raised by the stream.</summary>
-        internal long? ResetErrorCode { get; private set; }
+        /// <summary>The stream reset error is set if the stream is reset by the peer or locally. It's used to set
+        /// the error for the <see cref="MultiplexedStreamAbortedException"/> raised by the stream.</summary>
+        internal long? ResetError
+        {
+            get
+            {
+                lock (_mutex)
+                {
+                    return _resetErrorCode;
+                }
+            }
+            private set
+            {
+                lock (_mutex)
+                {
+                    _resetErrorCode = value;
+                }
+            }
+        }
 
         internal bool WritesCompleted => ((State)Thread.VolatileRead(ref _state)).HasFlag(State.WriteCompleted);
 
@@ -107,12 +104,31 @@ namespace IceRpc.Transports.Internal
         private readonly PipeWriter _inputPipeWriter;
         private readonly ISlicFrameReader _frameReader;
         private readonly ISlicFrameWriter _frameWriter;
-        private SpinLock _lock;
+        private readonly object _mutex = new();
         private volatile Action? _shutdownAction;
         private TaskCompletionSource? _shutdownCompletedTaskSource;
         private readonly SlicPipeReader _inputPipeReader;
         private readonly SlicPipeWriter _outputPipeWriter;
+        private long? _resetErrorCode;
         private int _state;
+
+        public void Abort()
+        {
+            // Abort the stream without notifying the peer. This is used when the connection
+            if (!IsShutdown)
+            {
+                // Ensure the Slic pipe reader reports ConnectionLostException.
+                _inputPipeWriter.Complete(new ConnectionLostException());
+
+                // Ensure the Slic pipe reader and writer are completed.
+                _inputPipeReader.Complete();
+                _outputPipeWriter.Complete();
+
+                // Shutdown the stream after completing the input pipe writer to ensure the Slic pipe reader will
+                // report ConnectionLostException.
+                TrySetState(State.ReadCompleted | State.WriteCompleted);
+            }
+        }
 
         public void AbortRead(long errorCode)
         {
@@ -121,7 +137,7 @@ namespace IceRpc.Transports.Internal
                 return;
             }
 
-            ResetErrorCode = errorCode;
+            ResetError = errorCode;
 
             if (IsStarted && !IsShutdown)
             {
@@ -152,7 +168,7 @@ namespace IceRpc.Transports.Internal
 
         public void AbortWrite(long errorCode)
         {
-            ResetErrorCode = errorCode;
+            ResetError = errorCode;
 
             if (IsStarted && !IsShutdown)
             {
@@ -181,26 +197,15 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public void Dispose() => TrySetState(State.ReadCompleted | State.WriteCompleted);
-
         public async Task WaitForShutdownAsync(CancellationToken cancel)
         {
-            bool lockTaken = false;
-            try
+            lock (_mutex)
             {
-                _lock.Enter(ref lockTaken);
                 if (IsShutdown)
                 {
                     return;
                 }
                 _shutdownCompletedTaskSource ??= new(TaskCreationOptions.RunContinuationsAsynchronously);
-            }
-            finally
-            {
-                if (lockTaken)
-                {
-                    _lock.Exit();
-                }
             }
             await _shutdownCompletedTaskSource.Task.WaitAsync(cancel).ConfigureAwait(false);
         }
@@ -306,26 +311,29 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal void ReceivedReset(long errorCode)
+        internal void ReceivedReset(long error)
         {
             if (!IsBidirectional && !IsRemote)
             {
                 throw new InvalidDataException("received reset frame on local unidirectional stream");
             }
 
-            ResetErrorCode = errorCode;
+            // Complete the input pipe writer before marking reads as completed. Marking reads as completed might
+            // shutdown the stream and we don't want the input pipe writer to be completed by Shutdown.
+            _inputPipeWriter.Complete(new MultiplexedStreamAbortedException(error));
+
+            ResetError = error;
             TrySetReadCompleted();
-            _inputPipeWriter.Complete(new MultiplexedStreamAbortedException(errorCode));
         }
 
-        internal void ReceivedStopSending(long errorCode)
+        internal void ReceivedStopSending(long error)
         {
             if (!IsBidirectional && !IsRemote)
             {
                 throw new InvalidDataException("received reset frame on local unidirectional stream");
             }
 
-            ResetErrorCode = errorCode;
+            ResetError = error;
             TrySetWriteCompleted();
         }
 
@@ -342,20 +350,11 @@ namespace IceRpc.Transports.Internal
         private void Shutdown()
         {
             Debug.Assert(_state == (int)(State.ReadCompleted | State.WriteCompleted));
-            bool lockTaken = false;
             Action? shutdownAction = null;
-            try
+            lock (_mutex)
             {
-                _lock.Enter(ref lockTaken);
                 shutdownAction = _shutdownAction;
                 _shutdownCompletedTaskSource?.SetResult();
-            }
-            finally
-            {
-                if (lockTaken)
-                {
-                    _lock.Exit();
-                }
             }
 
             try
@@ -391,16 +390,14 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            if (ResetErrorCode is long errorCode)
+            if (ResetError is long error)
             {
-                _inputPipeWriter.Complete(new MultiplexedStreamAbortedException(errorCode));
+                _inputPipeWriter.Complete(new MultiplexedStreamAbortedException(error));
             }
             else
             {
-                _inputPipeWriter.Complete(new OperationCanceledException("connection closed"));
+                _inputPipeWriter.Complete();
             }
-            _inputPipeReader.Complete();
-            _outputPipeWriter.Complete();
         }
 
         private bool TrySetState(State state)

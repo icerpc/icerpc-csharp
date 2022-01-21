@@ -173,7 +173,7 @@ namespace IceRpc.Transports.Internal
 
             foreach (SlicMultiplexedStream stream in _streams.Values)
             {
-                stream.Dispose();
+                stream.Abort();
             }
 
             // Unblock task blocked on AcceptStreamAsync
@@ -406,18 +406,18 @@ namespace IceRpc.Transports.Internal
                             try
                             {
                                 AddStream(streamId.Value, stream);
-
-                                // Let the stream receive the data.
-                                await stream.ReceivedFrameAsync(dataSize, endStream).ConfigureAwait(false);
-
-                                // Queue the new stream.
-                                _acceptedStreamQueue.Enqueue(stream);
-                                stream = null;
                             }
-                            finally
+                            catch
                             {
-                                stream?.Dispose();
+                                stream.Abort();
+                                throw;
                             }
+
+                            // Let the stream receive the data.
+                            await stream.ReceivedFrameAsync(dataSize, endStream).ConfigureAwait(false);
+
+                            // Queue the new stream.
+                            _acceptedStreamQueue.Enqueue(stream);
                         }
                         else
                         {

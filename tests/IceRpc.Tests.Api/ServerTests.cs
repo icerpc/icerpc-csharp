@@ -193,6 +193,7 @@ namespace IceRpc.Tests.Api
                     }
                     return new OutgoingResponse(request);
                 }),
+                LoggerFactory = LogAttributeLoggerFactory.Instance,
                 MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport),
             };
 
@@ -201,6 +202,7 @@ namespace IceRpc.Tests.Api
             await using var connection = new Connection
             {
                 MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
+                LoggerFactory = LogAttributeLoggerFactory.Instance,
                 RemoteEndpoint = server.Endpoint
             };
             var proxy = GreeterPrx.FromConnection(connection);

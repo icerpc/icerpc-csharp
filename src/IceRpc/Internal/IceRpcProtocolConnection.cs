@@ -231,8 +231,11 @@ namespace IceRpc.Internal
                     Encoding.Slice20,
                     cancel).ConfigureAwait(false);
 
-                // At this point, nothing can call CancelPendingRead on the multiplexed stream pipe reader.
-                Debug.Assert(!readResult.IsCanceled);
+                // The shutdown cancels pending reads for invocations that were not dispatched by the peer.
+                if (readResult.IsCanceled)
+                {
+                    throw new ConnectionClosedException("");
+                }
 
                 if (readResult.Buffer.IsEmpty)
                 {
@@ -248,20 +251,21 @@ namespace IceRpc.Internal
                 {
                     features = features.With(retryPolicy);
                 }
-
-                if (readResult.IsCompleted)
-                {
-                    await responseReader.CompleteAsync().ConfigureAwait(false);
-                    responseReader = PipeReader.Create(ReadOnlySequence<byte>.Empty);
-                }
             }
             catch (MultiplexedStreamAbortedException ex)
             {
-                throw ex.ToProtocolException();
+                throw ex.ToIceRpcException();
+            }
+            catch (OperationCanceledException)
+            {
+                // Notify the peer that we give up on receiving the response. The peer will cancel the dispatch upon
+                // receiving this notification.
+                await responseReader.CompleteAsync(
+                    IceRpcStreamError.InvocationCanceled.ToException()).ConfigureAwait(false);
+                throw;
             }
             catch (Exception ex)
             {
-                // TODO: What about the stream output?
                 await responseReader.CompleteAsync(ex).ConfigureAwait(false);
                 throw;
             }
@@ -303,28 +307,38 @@ namespace IceRpc.Internal
                 // Keep track of the invocation for the shutdown logic.
                 if (!request.IsOneway || request.PayloadSourceStream != null)
                 {
+                    bool shutdown = false;
                     lock (_mutex)
                     {
                         if (_shutdown)
                         {
-                            stream.Output.Complete(MultiplexedStreamError.ConnectionShutdown);
-                            throw new ConnectionClosedException("connection shutdown");
+                            shutdown = true;
                         }
-                        _invocations.Add(stream);
-
-                        stream.ShutdownAction = () =>
+                        else
                         {
-                            lock (_mutex)
-                            {
-                                _invocations.Remove(stream);
+                            _invocations.Add(stream);
 
-                                // If no more invocations or dispatches and shutting down, shutdown can complete.
-                                if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
+                            stream.ShutdownAction = () =>
+                            {
+                                lock (_mutex)
                                 {
-                                    _dispatchesAndInvocationsCompleted.SetResult();
+                                    _invocations.Remove(stream);
+
+                                    // If no more invocations or dispatches and shutting down, shutdown can complete.
+                                    if (_shutdown && _invocations.Count == 0 && _dispatches.Count == 0)
+                                    {
+                                        _dispatchesAndInvocationsCompleted.SetResult();
+                                    }
                                 }
-                            }
-                        };
+                            };
+                        }
+                    }
+
+                    if (shutdown)
+                    {
+                        await stream.Output.CompleteAsync(
+                            IceRpcStreamError.ConnectionShutdown.ToException()).ConfigureAwait(false);
+                        throw new ConnectionClosedException("connection shutdown");
                     }
                 }
 
@@ -346,7 +360,6 @@ namespace IceRpc.Internal
                     await request.PayloadSourceStream.CompleteAsync(ex).ConfigureAwait(false);
                 }
                 await request.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
-                // TODO: also complete the stream.Output in case the payload sink doesn't?
                 throw;
             }
 
@@ -420,7 +433,6 @@ namespace IceRpc.Internal
                     await response.PayloadSourceStream.CompleteAsync(ex).ConfigureAwait(false);
                 }
                 await response.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
-                // TODO: also complete the request.ResponseWriter (stream.Output) in case the payload sink doesn't?
                 throw;
             }
 
@@ -752,8 +764,9 @@ namespace IceRpc.Internal
 
             foreach (IMultiplexedStream stream in invocations)
             {
-                stream.Output.Complete(MultiplexedStreamError.ConnectionShutdownByPeer);
-                stream.Input.Complete(MultiplexedStreamError.ConnectionShutdownByPeer);
+                // await stream.Input.CompleteAsync(
+                //         IceRpcStreamError.ConnectionShutdownByPeer.ToException()).ConfigureAwait(false);
+                stream.Input.CancelPendingRead();
             }
 
             if (!alreadyShuttingDown)
@@ -798,8 +811,8 @@ namespace IceRpc.Internal
 
                 foreach (IMultiplexedStream stream in invocations)
                 {
-                    stream.Output.Complete(MultiplexedStreamError.ConnectionShutdown);
-                    stream.Input.Complete(MultiplexedStreamError.ConnectionShutdown);
+                    await stream.Input.CompleteAsync(
+                        IceRpcStreamError.ConnectionShutdown.ToException()).ConfigureAwait(false);
                 }
 
                 // Wait again for dispatches and invocations to complete.

@@ -6,9 +6,10 @@ using System.IO.Pipelines;
 namespace IceRpc.Transports
 {
     /// <summary>This inferface can be implemented by the multiplexed stream output pipe writer to provide a <see
-    /// cref="PipeWriter.WriteAsync"/> method that supports a <see cref="ReadOnlySequence{T}"/> source and ending the
-    /// completing the writer. This interface is used by the IceRPC core to optimize the copy of a <see
-    /// cref="PipeReader"/> to a pipe writer that supports this interface.</summary>
+    /// cref="PipeWriter.WriteAsync"/> method with a <see cref="ReadOnlySequence{T}"/> source. It's also possible to
+    /// complete the pipe writer. The IceRPC core to optimize the copy of a <see cref="PipeReader"/> to a pipe writer
+    /// that supports this interface.</summary>
+    /// TODO: Should this be part of the IceRPC Core API instead of the transport API? Better name?
     internal interface IMultiplexedStreamPipeWriter
     {
         /// <summary>Writes a readonly sequence and eventually completes the pipe writer once the write

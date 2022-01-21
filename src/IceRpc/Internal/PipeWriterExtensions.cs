@@ -80,7 +80,7 @@ namespace IceRpc.Internal
                     flushResult = default;
                     try
                     {
-                        // If readResult.Buffer.Length is small, it might be better to call a single
+                        // TODO: If readResult.Buffer.Length is small, it might be better to call a single
                         // sink.WriteAsync(readResult.Buffer.ToArray()) instead of calling multiple times WriteAsync
                         // that will end up in multiple network calls?
                         foreach (ReadOnlyMemory<byte> memory in readResult.Buffer)
@@ -148,6 +148,9 @@ namespace IceRpc.Internal
             }
             else
             {
+                // TODO: If readResult.Buffer.Length is small, it might be better to call a single
+                // sink.WriteAsync(readResult.Buffer.ToArray()) instead of calling multiple times WriteAsync
+                // that will end up in multiple network calls?
                 FlushResult result = default;
                 foreach (ReadOnlyMemory<byte> buffer in source)
                 {

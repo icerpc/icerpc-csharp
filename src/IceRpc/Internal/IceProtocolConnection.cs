@@ -64,7 +64,7 @@ namespace IceRpc.Internal
 
             // The connection is disposed, if there are sill pending invocations, it indicates a non-graceful shutdown,
             // we cancel the pending invocations and dispatch.
-            var exception = new OperationCanceledException("connection closed");
+            var exception = new ConnectionLostException();
 
             // Unblock invocations which are waiting to be sent.
             _sendSemaphore.Complete(exception);
