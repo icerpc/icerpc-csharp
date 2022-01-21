@@ -155,6 +155,7 @@ namespace IceRpc.Tests.Internal
             else
             {
                 readResult = await clientStreams.Last().Input.ReadAsync(default);
+                Assert.That(readResult.Buffer.Length, Is.EqualTo(10));
                 Assert.That(readResult.IsCompleted);
                 clientStreams.Last().Input.AdvanceTo(readResult.Buffer.End);
             }
