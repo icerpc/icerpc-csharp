@@ -31,7 +31,7 @@ namespace IceRpc.Tests.SliceInternal
             var encoder = new IceEncoder(_bufferWriter, _encoding);
             var decoder = new IceDecoder(_buffer, _encoding);
             bool[] p1 = Enumerable.Range(0, size).Select(i => i % 2 == 0).ToArray();
-            encoder.EncodeArray(p1);
+            encoder.EncodeSpan(new ReadOnlySpan<bool>(p1));
             bool[] r1 = decoder.DecodeSequence<bool>();
 
             CollectionAssert.AreEqual(p1, r1);
@@ -45,7 +45,7 @@ namespace IceRpc.Tests.SliceInternal
             var encoder = new IceEncoder(_bufferWriter, _encoding);
             var decoder = new IceDecoder(_buffer, _encoding);
             byte[] p1 = Enumerable.Range(0, size).Select(i => (byte)i).ToArray();
-            encoder.EncodeArray(p1);
+            encoder.EncodeSpan(new ReadOnlySpan<byte>(p1));
             byte[] r1 = decoder.DecodeSequence<byte>();
 
             CollectionAssert.AreEqual(p1, r1);
@@ -59,7 +59,7 @@ namespace IceRpc.Tests.SliceInternal
             var encoder = new IceEncoder(_bufferWriter, _encoding);
             var decoder = new IceDecoder(_buffer, _encoding);
             short[] p1 = Enumerable.Range(0, size).Select(i => (short)i).ToArray();
-            encoder.EncodeArray(p1);
+            encoder.EncodeSpan(new ReadOnlySpan<short>(p1));
             short[] r1 = decoder.DecodeSequence<short>();
 
             CollectionAssert.AreEqual(p1, r1);
@@ -73,7 +73,7 @@ namespace IceRpc.Tests.SliceInternal
             var encoder = new IceEncoder(_bufferWriter, _encoding);
             var decoder = new IceDecoder(_buffer, _encoding);
             int[] p1 = Enumerable.Range(0, size).ToArray();
-            encoder.EncodeArray(p1);
+            encoder.EncodeSpan(new ReadOnlySpan<int>(p1));
             int[] r1 = decoder.DecodeSequence<int>();
 
             CollectionAssert.AreEqual(p1, r1);
@@ -101,7 +101,7 @@ namespace IceRpc.Tests.SliceInternal
             var encoder = new IceEncoder(_bufferWriter, _encoding);
             var decoder = new IceDecoder(_buffer, _encoding);
             long[] p1 = Enumerable.Range(0, size).Select(i => (long)i).ToArray();
-            encoder.EncodeArray(p1);
+            encoder.EncodeSpan(new ReadOnlySpan<long>(p1));
             long[] r1 = decoder.DecodeSequence<long>();
 
             CollectionAssert.AreEqual(p1, r1);
@@ -115,7 +115,7 @@ namespace IceRpc.Tests.SliceInternal
             var encoder = new IceEncoder(_bufferWriter, _encoding);
             var decoder = new IceDecoder(_buffer, _encoding);
             float[] p1 = Enumerable.Range(0, size).Select(i => (float)i).ToArray();
-            encoder.EncodeArray(p1);
+            encoder.EncodeSpan(new ReadOnlySpan<float>(p1));
             float[] r1 = decoder.DecodeSequence<float>();
 
             CollectionAssert.AreEqual(p1, r1);
@@ -129,7 +129,7 @@ namespace IceRpc.Tests.SliceInternal
             var encoder = new IceEncoder(_bufferWriter, _encoding);
             var decoder = new IceDecoder(_buffer, _encoding);
             double[] p1 = Enumerable.Range(0, size).Select(i => (double)i).ToArray();
-            encoder.EncodeArray(p1);
+            encoder.EncodeSpan(new ReadOnlySpan<double>(p1));
             double[] r1 = decoder.DecodeSequence<double>();
 
             CollectionAssert.AreEqual(p1, r1);

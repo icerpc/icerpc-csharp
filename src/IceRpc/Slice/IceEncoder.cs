@@ -3,7 +3,6 @@
 using IceRpc.Slice.Internal;
 using IceRpc.Transports.Internal;
 using System.Buffers;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -200,10 +199,6 @@ namespace IceRpc.Slice
 
         // Encode methods for constructed types
 
-        /// <summary>Encodes an array of fixed-size numeric values, such as int and long,.</summary>
-        /// <param name="v">The array of numeric values.</param>
-        public void EncodeArray<T>(T[] v) where T : struct => EncodeSequence(new ReadOnlySpan<T>(v));
-
         /// <summary>Encodes a remote exception.</summary>
         /// <param name="v">The remote exception to encode.</param>
         public void EncodeException(RemoteException v)
@@ -303,38 +298,6 @@ namespace IceRpc.Slice
                 proxy.Endpoint is Endpoint endpoint &&
                 endpoint.Params.TryGetValue("transport", out string? transport) &&
                 transport == TransportNames.Udp ? InvocationMode.Oneway : InvocationMode.Twoway;
-        }
-
-        /// <summary>Encodes a sequence of fixed-size numeric values, such as int and long,.</summary>
-        /// <param name="v">The sequence of numeric values represented by a ReadOnlySpan.</param>
-        // This method works because (as long as) there is no padding in the memory representation of the ReadOnlySpan.
-        public void EncodeSequence<T>(ReadOnlySpan<T> v) where T : struct
-        {
-            EncodeSize(v.Length);
-            if (!v.IsEmpty)
-            {
-                WriteByteSpan(MemoryMarshal.AsBytes(v));
-            }
-        }
-
-        /// <summary>Encodes a sequence of fixed-size numeric values, such as int and long,.</summary>
-        /// <param name="v">The sequence of numeric values.</param>
-        public void EncodeSequence<T>(IEnumerable<T> v) where T : struct
-        {
-            if (v is T[] vArray)
-            {
-                EncodeArray(vArray);
-            }
-            else if (v is ImmutableArray<T> vImmutableArray)
-            {
-                EncodeSequence(vImmutableArray.AsSpan());
-            }
-            else
-            {
-                this.EncodeSequence(
-                    v,
-                    (ref IceEncoder encoder, T element) => encoder.EncodeFixedSizeNumeric(element));
-            }
         }
 
         // Other methods
@@ -564,7 +527,25 @@ namespace IceRpc.Slice
         public int GetSizeLength(int size) => Encoding == IceRpc.Encoding.Slice11 ?
             (size < 255 ? 1 : 5) : GetVarULongEncodedSize(checked((ulong)size));
 
+        /// <summary>Copies a span of bytes to the underlying buffer writer.</summary>
+        /// <param name="span">The span to copy.</param>
+        public void WriteByteSpan(ReadOnlySpan<byte> span)
+        {
+            _bufferWriter.Write(span);
+            EncodedByteCount += span.Length;
+        }
+
         internal static void EncodeInt(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
+
+        /// <summary>Encodes a fixed-size numeric value.</summary>
+        /// <param name="v">The numeric value to encode.</param>
+        internal void EncodeFixedSizeNumeric<T>(T v) where T : struct
+        {
+            int elementSize = Unsafe.SizeOf<T>();
+            Span<byte> data = _bufferWriter.GetSpan(elementSize)[0..elementSize];
+            MemoryMarshal.Write(data, ref v);
+            Advance(elementSize);
+        }
 
         /// <summary>Gets a placeholder to be filled-in later.</summary>
         /// <param name="size">The size of the placeholder, typically a small number like 4.</param>
@@ -590,13 +571,6 @@ namespace IceRpc.Slice
             Span<byte> placeholder = _bufferWriter.GetSpan(size)[0..size];
             Advance(size);
             return placeholder;
-        }
-
-        /// <summary>Copies a span of bytes to the buffer writer.</summary>
-        internal void WriteByteSpan(ReadOnlySpan<byte> span)
-        {
-            _bufferWriter.Write(span);
-            EncodedByteCount += span.Length;
         }
 
         /// <summary>Gets the minimum number of bytes needed to encode a long value with the varlong encoding as an
@@ -729,16 +703,6 @@ namespace IceRpc.Slice
 
                 EncodeInt(EncodedByteCount - startPos, sizePlaceholder);
             }
-        }
-
-        /// <summary>Encodes a fixed-size numeric value.</summary>
-        /// <param name="v">The numeric value to encode.</param>
-        private void EncodeFixedSizeNumeric<T>(T v) where T : struct
-        {
-            int elementSize = Unsafe.SizeOf<T>();
-            Span<byte> data = _bufferWriter.GetSpan(elementSize)[0..elementSize];
-            MemoryMarshal.Write(data, ref v);
-            Advance(elementSize);
         }
 
         /// <summary>Encodes the header for a tagged parameter or data member. Slice 1.1 only.</summary>
