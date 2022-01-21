@@ -6,7 +6,7 @@
         <OutputPath>../../lib</OutputPath>
         <TargetFramework>net6.0</TargetFramework>
         <AnalysisMode>AllEnabledByDefault</AnalysisMode>
-        <PackageVersion>0.1.0-preview1</PackageVersion>
+        <PackageVersion>$(IceRpcVersion)</PackageVersion>
         <Authors>ZeroC</Authors>
         <PackageId>icerpc.interop</PackageId>
         <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
