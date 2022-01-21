@@ -1,8 +1,5 @@
 {
     "rust-analyzer.linkedProjects": [
         "tools/slicec-cs/Cargo.toml"
-    ],
-    "cSpell.words": [
-        "icerpc"
     ]
 }
