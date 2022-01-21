@@ -63,19 +63,25 @@ namespace IceRpc.Slice
         /// <param name="v">The sequence of numeric values.</param>
         public static void EncodeSequence<T>(this ref IceEncoder encoder, IEnumerable<T> v) where T : struct
         {
-            if (v is T[] vArray)
+            switch (v)
             {
-                encoder.EncodeSpan(new ReadOnlySpan<T>(vArray));
-            }
-            else if (v is ImmutableArray<T> vImmutableArray)
-            {
-                encoder.EncodeSpan(vImmutableArray.AsSpan());
-            }
-            else
-            {
-                encoder.EncodeSequence(
-                    v,
-                    (ref IceEncoder encoder, T element) => encoder.EncodeFixedSizeNumeric(element));
+                case T[] vArray:
+                    encoder.EncodeSpan(new ReadOnlySpan<T>(vArray));
+                    break;
+
+                case ImmutableArray<T> vImmutableArray:
+                    encoder.EncodeSpan(vImmutableArray.AsSpan());
+                    break;
+
+                case ArraySegment<T> vArraySegment:
+                    encoder.EncodeSpan((ReadOnlySpan<T>)vArraySegment.AsSpan());
+                    break;
+
+                default:
+                    encoder.EncodeSequence(
+                        v,
+                        (ref IceEncoder encoder, T element) => encoder.EncodeFixedSizeNumeric(element));
+                    break;
             }
         }
 
