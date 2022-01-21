@@ -151,10 +151,20 @@ namespace IceRpc.Tests.Api
                 proxy.Endpoint = new Endpoint(proxy.Protocol) { Host = "localhost" };
 
                 proxy.Params = ImmutableDictionary<string, string>.Empty; // always ok
-                Assert.Throws<InvalidOperationException>(() => proxy.Params = proxy.Params.Add("name", "value"));
+                if (proxy.Protocol != Protocol.Ice)
+                {
+                    Assert.Throws<InvalidOperationException>(() => proxy.Params = proxy.Params.Add("name", "value"));
+                }
 
                 proxy.Endpoint = null;
-                proxy.Params = proxy.Params.Add("name", "value");
+
+                proxy.Params = proxy.Params.Add("adapter-id", "value");
+
+                if (proxy.Protocol == Protocol.Ice)
+                {
+                    Assert.Throws<ArgumentException>(() => proxy.Params = proxy.Params.SetItem("adapter-id", ""));
+                }
+
                 Assert.Throws<InvalidOperationException>(
                     () => proxy.Endpoint = new Endpoint(proxy.Protocol) { Host = "localhost" });
             }
@@ -256,6 +266,7 @@ namespace IceRpc.Tests.Api
         [TestCase("ice://host.zeroc.com/identity#%24%23f", "/identity", "%24%23f")]
         [TestCase("ice://host.zeroc.com/identity?tls=false")]
         [TestCase("ice://host.zeroc.com/identity?tls=true")]
+        [TestCase("ice:/path?adapter-id=foo")]
         [TestCase("icerpc://host.zeroc.com:1000/category/name")]
         [TestCase("icerpc://host.zeroc.com:1000/loc0/loc1/category/name")]
         [TestCase("icerpc://host.zeroc.com/category/name%20with%20space", "/category/name%20with%20space")]
@@ -325,13 +336,16 @@ namespace IceRpc.Tests.Api
         [TestCase("icerpc://host/path?alt-endpoint=")] // alt-endpoint authority cannot be empty
         [TestCase("icerpc://host/path?alt-endpoint=/foo")] // alt-endpoint cannot have a path
         [TestCase("icerpc://host/path?alt-endpoint=icerpc://host")] // alt-endpoint cannot have a scheme
-        [TestCase("icerpc:path")] // bad path
-        [TestCase("icerpc:/host/path#fragment")] // bad fragment
-        [TestCase("icerpc:/path#fragment")]      // bad fragment
-        [TestCase("icerpc://user@host/path")]    // bad user info
-        [TestCase("ice://host/s1/s2/s3")]        // too many slashes in path
-        [TestCase("ice://host/cat/")]            // empty identity name
-        [TestCase("ice://host/")]                // empty identity name
+        [TestCase("icerpc:path")]                  // bad path
+        [TestCase("icerpc:/host/path#fragment")]   // bad fragment
+        [TestCase("icerpc:/path#fragment")]        // bad fragment
+        [TestCase("icerpc://user@host/path")]      // bad user info
+        [TestCase("ice://host/s1/s2/s3")]          // too many slashes in path
+        [TestCase("ice://host/cat/")]              // empty identity name
+        [TestCase("ice://host/")]                  // empty identity name
+        [TestCase("ice:/path?alt-endpoint=foo")]   // alt-endpoint proxy parameter
+        [TestCase("ice:/path?adapter-id")]         // empty adapter-id
+        [TestCase("ice:/path?adapter-id=foo&foo")] // extra parameter
         public void Proxy_Parse_InvalidUriInput(string str)
         {
             Assert.Catch<FormatException>(() => Proxy.Parse(str));

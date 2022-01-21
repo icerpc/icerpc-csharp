@@ -161,7 +161,7 @@ namespace IceRpc
                     try
                     {
                         CheckPath(value); // make sure it's properly escaped
-                        Protocol.CheckUriPath(value); // make sure the protocol is happy with this path
+                        Protocol.CheckPath(value); // make sure the protocol is happy with this path
                     }
                     catch (FormatException ex)
                     {
@@ -187,7 +187,8 @@ namespace IceRpc
 
                 try
                 {
-                    CheckParams(value);
+                    CheckParams(value); // general checking (properly escape, no empty name)
+                    Protocol.CheckProxyParams(value); // protocol-specific checking
                 }
                 catch (FormatException ex)
                 {
@@ -288,7 +289,7 @@ namespace IceRpc
 
                 if (Protocol.IsSupported)
                 {
-                    Protocol.CheckUriPath(_path);
+                    Protocol.CheckPath(_path);
                     if (!Protocol.HasFragment && _fragment.Length > 0)
                     {
                         throw new ArgumentException($"cannot create an {Protocol} proxy with a fragment", nameof(uri));
@@ -349,6 +350,7 @@ namespace IceRpc
                             throw new FormatException($"invalid alt-endpoint parameter in URI '{uri.OriginalString}'");
                         }
 
+                        Protocol.CheckProxyParams(queryParams);
                         Params = queryParams;
                     }
                 }
