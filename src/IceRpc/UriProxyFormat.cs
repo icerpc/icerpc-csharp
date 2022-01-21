@@ -64,10 +64,10 @@ namespace IceRpc
             var sb = new StringBuilder();
             bool firstOption = true;
 
-            if (proxy.Endpoint != null)
+            if (proxy.Endpoint is Endpoint endpoint)
             {
-                sb.AppendEndpoint(proxy.Endpoint, proxy.Path);
-                firstOption = proxy.Endpoint.Params.Count == 0;
+                sb.AppendEndpoint(endpoint, proxy.Path);
+                firstOption = endpoint.Params.Count == 0;
             }
             else
             {

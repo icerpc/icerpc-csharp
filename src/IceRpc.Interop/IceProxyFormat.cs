@@ -475,7 +475,7 @@ namespace IceRpc
             else
             {
                sb.Append(':');
-               sb.Append(ToString(proxy.Endpoint));
+               sb.Append(ToString(proxy.Endpoint.Value));
 
                foreach (Endpoint e in proxy.AltEndpoints)
                {
@@ -607,8 +607,9 @@ namespace IceRpc
                 throw new FormatException($"no -h in endpoint '{endpointString}'");
             }
 
-            return new Endpoint(Protocol.Ice, host)
+            return new Endpoint(Protocol.Ice)
             {
+                Host = host,
                 Port = port ?? 0,
                 Params = endpointParams.ToImmutableDictionary()
             };

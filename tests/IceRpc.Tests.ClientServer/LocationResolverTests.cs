@@ -40,13 +40,13 @@ namespace IceRpc.Tests.ClientServer
 
             if (indirect.Proxy.Params.TryGetValue("adapter-id", out string? adapterId))
             {
-                pipeline.Use(LocationResolver(adapterId, category: null, direct.Proxy.Endpoint!))
+                pipeline.Use(LocationResolver(adapterId, category: null, direct.Proxy.Endpoint!.Value))
                         .UseBinder(_pool);
             }
             else
             {
                 var identity = Identity.FromPath(indirect.Proxy.Path);
-                pipeline.Use(LocationResolver(identity.Name, identity.Category, direct.Proxy.Endpoint!))
+                pipeline.Use(LocationResolver(identity.Name, identity.Category, direct.Proxy.Endpoint!.Value))
                         .UseBinder(_pool);
             }
 
@@ -89,7 +89,7 @@ namespace IceRpc.Tests.ClientServer
             var greeter = GreeterPrx.Parse($"{protocol}:/path");
             greeter.Proxy.Endpoint = _server.Endpoint;
             greeter.Proxy.Invoker = invoker;
-            Assert.AreNotEqual(0, greeter.Proxy.Endpoint!.Port);
+            Assert.AreNotEqual(0, greeter.Proxy.Endpoint!.Value.Port);
             return greeter;
         }
 

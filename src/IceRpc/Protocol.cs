@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
+using System.Collections.Immutable;
 using System.Diagnostics;
 
 namespace IceRpc
@@ -98,12 +99,21 @@ namespace IceRpc
             _ => throw new NotSupportedException($"cannot convert '{protocolMajor}.0' into a protocol")
         };
 
-        /// <summary>Checks if a URI absolute path is valid for this protocol.</summary>
+        /// <summary>Checks if a path is valid for this protocol.</summary>
         /// <param name="uriPath">The absolute path to check. The caller guarantees it's a valid URI absolute path.
         /// </param>
         /// <exception cref="FormatException">Thrown if the path is not valid.</exception>
-        internal virtual void CheckUriPath(string uriPath) =>
+        internal virtual void CheckPath(string uriPath) =>
             // by default, any URI absolute path is ok
+            Debug.Assert(IsSupported || this == Relative);
+
+        /// <summary>Checks if these proxy parameters are valid for this protocol.</summary>
+        /// <param name="proxyParams">The proxy parameters to check.</param>
+        /// <exception cref="FormatException">Thrown if the proxy parameters are not valid.</exception>
+        /// <remarks>This method does not and should not check if the parameter names and values are properly escaped;
+        /// it does not check for the invalid empty and alt-endpoint parameter names either.</remarks>
+        internal virtual void CheckProxyParams(ImmutableDictionary<string, string> proxyParams) =>
+            // by default, any dictionary is ok
             Debug.Assert(IsSupported || this == Relative);
 
         internal byte ToByte() => Name switch

@@ -116,7 +116,7 @@ namespace IceRpc.Tests.Api
         {
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .UseTls()
-                .AddTransient<Endpoint>(_ => endpoint1Str)
+                .AddTransient(typeof(Endpoint), _ => Endpoint.FromString(endpoint1Str))
                 .BuildServiceProvider();
 
             await using var server1 = new Server
