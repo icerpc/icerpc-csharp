@@ -2,6 +2,7 @@
 
 using IceRpc.Slice;
 using IceRpc.Transports;
+using System.Collections.Immutable;
 
 namespace IceRpc.Internal
 {
@@ -22,7 +23,7 @@ namespace IceRpc.Internal
             new IceProtocolConnectionFactory();
 
         /// <summary>Checks if this absolute path holds a valid identity.</summary>
-        internal override void CheckUriPath(string uriPath)
+        internal override void CheckPath(string uriPath)
         {
             string workingPath = uriPath[1..]; // removes leading /.
             int firstSlash = workingPath.IndexOf('/', StringComparison.Ordinal);
@@ -45,6 +46,26 @@ namespace IceRpc.Internal
             if (escapedName.Length == 0)
             {
                 throw new FormatException($"invalid empty identity name in path '{uriPath}'");
+            }
+        }
+
+        /// <summary>Checks if the proxy parameters are valid. The only valid parameter is adapter-id with a non-empty
+        /// value.</summary>
+        internal override void CheckProxyParams(ImmutableDictionary<string, string> proxyParams)
+        {
+            foreach ((string name, string value) in proxyParams)
+            {
+                if (name == "adapter-id")
+                {
+                    if (value.Length == 0)
+                    {
+                        throw new FormatException("the value of the adapter-id parameter cannot be empty");
+                    }
+                }
+                else
+                {
+                    throw new FormatException($"'{name}' is not a valid ice proxy parameter");
+                }
             }
         }
 

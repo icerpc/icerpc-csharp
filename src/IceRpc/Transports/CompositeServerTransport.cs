@@ -7,12 +7,7 @@ namespace IceRpc.Transports
     /// <summary>A composite server transport.</summary>
     public class CompositeServerTransport<T> : IServerTransport<T> where T : INetworkConnection
     {
-        /// <inheritdoc/>
-        public Endpoint DefaultEndpoint =>
-            _defaultEndpoint ?? throw new InvalidOperationException("no transport configured");
-
         private readonly Dictionary<string, IServerTransport<T>> _builder = new();
-        private Endpoint? _defaultEndpoint;
         private string? _defaultTransport; // the name of the first transport added to _transports
         private IReadOnlyDictionary<string, IServerTransport<T>>? _transports;
 
@@ -27,9 +22,6 @@ namespace IceRpc.Transports
                 throw new InvalidOperationException(
                     $"cannot call {nameof(Add)} after calling {nameof(IClientTransport<T>.CreateConnection)}");
             }
-
-            // The composite default endpoint is the default endpoint of the first added server transport.
-            _defaultEndpoint ??= transport.DefaultEndpoint;
 
             _builder.Add(name, transport);
             _defaultTransport ??= name;

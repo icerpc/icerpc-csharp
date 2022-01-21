@@ -10,9 +10,6 @@ namespace IceRpc.Transports
     /// server transport.</summary>
     public class SlicServerTransport : IServerTransport<IMultiplexedNetworkConnection>
     {
-        /// <inheritdoc/>
-        public Endpoint DefaultEndpoint => _simpleServerTransport.DefaultEndpoint;
-
         private static readonly Func<ISlicFrameReader, ISlicFrameReader> _defaultSlicFrameReaderDecorator =
             reader => reader;
         private static readonly Func<ISlicFrameWriter, ISlicFrameWriter> _defaultSlicFrameWriterDecorator =

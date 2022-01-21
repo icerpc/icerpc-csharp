@@ -8,30 +8,36 @@ namespace IceRpc.Tests.Api
     [Timeout(30000)]
     public class EndpointTests
     {
-        [TestCase("icerpc://host:10000?transport=foobar")]
-        [TestCase("ice://host")]
-        public void Endpoint_GetInit(string str)
+        [Test]
+        public void Endpoint_GetInit()
         {
-            var endpoint = Endpoint.FromString(str);
+            Endpoint endpoint = default;
+            Assert.That(endpoint.Protocol, Is.Null);
+            Assert.That(endpoint.Host, Is.Null);
+            Assert.That(endpoint.Port, Is.EqualTo(0));
+            Assert.That(endpoint.Params, Is.Null);
+
+            endpoint = new Endpoint();
+            Assert.That(endpoint.Protocol, Is.EqualTo(Protocol.IceRpc));
+            Assert.That(endpoint.Host, Is.EqualTo("::0"));
+            Assert.That(endpoint.Port, Is.EqualTo(Protocol.IceRpc.DefaultUriPort));
+            Assert.That(endpoint.Params.Count, Is.EqualTo(0));
+
+            endpoint = Endpoint.FromString("icerpc://host:10000?transport=foobar");
+            Assert.That(endpoint.OriginalUri, Is.Not.Null);
 
             var endpoint2 = new Endpoint(endpoint.OriginalUri!);
             Assert.That(endpoint, Is.EqualTo(endpoint2));
 
             endpoint2 = endpoint with { Port = (ushort)(endpoint.Port + 1) };
             Assert.That(endpoint, Is.Not.EqualTo(endpoint2));
-
-            endpoint = endpoint.Protocol == Protocol.IceRpc ?
-                endpoint with { Protocol = Protocol.Ice } : endpoint with { Protocol = Protocol.IceRpc };
-            Assert.That(endpoint.OriginalUri, Is.Null);
+            Assert.That(endpoint2.OriginalUri, Is.Null);
 
             endpoint = endpoint with { Host = "localhost", Port = 1000 };
             endpoint = endpoint with { Host = "[::0]" };
             endpoint = endpoint with { Host = "::1" };
 
             endpoint = endpoint with { Params = endpoint.Params.Add("name%23[]", "value%25[]@!") };
-
-            Assert.Catch<ArgumentException>(() => _ = endpoint with { Protocol = Protocol.Relative });
-            Assert.Catch<ArgumentException>(() => _ = endpoint with { Protocol = Protocol.FromString("foo") });
 
             Assert.Catch<ArgumentException>(() => _ = endpoint with { Host = "" });
             Assert.Catch<ArgumentException>(() => _ = endpoint with { Host = "::1.2" });

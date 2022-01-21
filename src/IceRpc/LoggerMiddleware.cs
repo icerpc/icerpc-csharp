@@ -96,8 +96,8 @@ namespace IceRpc
             if (logger.IsEnabled(LogLevel.Information))
             {
                 logger.LogSendingResponse(
-                    connection?.NetworkConnectionInformation?.LocalEndpoint?.ToString() ?? "undefined",
-                    connection?.NetworkConnectionInformation?.RemoteEndpoint?.ToString() ?? "undefined",
+                    connection?.NetworkConnectionInformation?.LocalEndpoint.ToString() ?? "undefined",
+                    connection?.NetworkConnectionInformation?.RemoteEndpoint.ToString() ?? "undefined",
                     path,
                     operation,
                     resultType,

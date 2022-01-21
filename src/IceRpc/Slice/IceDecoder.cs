@@ -729,7 +729,7 @@ namespace IceRpc.Slice
                             }
                             if (compress)
                             {
-                                builder.Add("z", "true");
+                                builder.Add("z", "");
                             }
 
                             endpoint = new Endpoint(Protocol.Ice, host, port, builder.ToImmutable());
@@ -753,7 +753,7 @@ namespace IceRpc.Slice
                             builder.Add("transport", TransportNames.Udp);
                             if (compress)
                             {
-                                builder.Add("z", "true");
+                                builder.Add("z", "");
                             }
 
                             endpoint = new Endpoint(Protocol.Ice, host, port, builder.ToImmutable());
@@ -762,10 +762,10 @@ namespace IceRpc.Slice
 
                         case TransportCode.Uri:
                             endpoint = Endpoint.FromString(DecodeString());
-                            if (endpoint.Protocol != protocol)
+                            if (endpoint.Value.Protocol != protocol)
                             {
                                 throw new InvalidDataException(
-                                    $"expected endpoint for {protocol} but received '{endpoint}'");
+                                    $"expected endpoint for {protocol} but received '{endpoint.Value}'");
                             }
                             break;
 
@@ -810,10 +810,10 @@ namespace IceRpc.Slice
                     // The endpoints of 1.1-encoded icerpc proxies only use TransportCode.Uri.
 
                     endpoint = Endpoint.FromString(DecodeString());
-                    if (endpoint.Protocol != protocol)
+                    if (endpoint.Value.Protocol != protocol)
                     {
                         throw new InvalidDataException(
-                            $"expected {protocol} endpoint but received '{endpoint}'");
+                            $"expected {protocol} endpoint but received '{endpoint.Value}'");
                     }
                 }
 
@@ -836,7 +836,7 @@ namespace IceRpc.Slice
                     }' with endpoint encapsulation encoded with encoding '{encoding}'");
             }
 
-            return endpoint;
+            return endpoint.Value;
         }
 
         /// <summary>Determines if a tagged parameter or data member is available.</summary>

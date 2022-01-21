@@ -12,24 +12,10 @@ namespace IceRpc
     /// <summary>An endpoint describes a server-side network sink for IceRPC requests: a server listens on an endpoint
     /// and a client establishes a connection to a given endpoint.</summary>
     [TypeConverter(typeof(EndpointTypeConverter))]
-    public sealed record class Endpoint
+    public readonly record struct Endpoint
     {
         /// <summary>The protocol of this endpoint.</summary>
-        public Protocol Protocol
-        {
-            get => _protocol;
-            init
-            {
-                if (!value.IsSupported)
-                {
-                    throw new ArgumentException(
-                        $"cannot set {nameof(Protocol)} to a non-supported protocol",
-                        nameof(Protocol));
-                }
-                _protocol = value;
-                OriginalUri = null; // new protocol invalidates OriginalUri
-            }
-        }
+        public Protocol Protocol { get; }
 
         /// <summary>The host name or address.</summary>
         public string Host
@@ -79,10 +65,9 @@ namespace IceRpc
         /// <summary>Returns the URI used to create this endpoint, if this endpoint was created from a URI.</summary>
         public Uri? OriginalUri { get; private init; }
 
-        private string _host;
-        private ImmutableDictionary<string, string> _params = ImmutableDictionary<string, string>.Empty;
-        private ushort _port;
-        private Protocol _protocol;
+        private readonly string _host = "::0";
+        private readonly ImmutableDictionary<string, string> _params = ImmutableDictionary<string, string>.Empty;
+        private readonly ushort _port;
 
         /// <summary>Converts a string into an endpoint implicitly using <see cref="FromString"/>.</summary>
         /// <param name="s">The string representation of the endpoint.</param>
@@ -108,23 +93,24 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Constructs an endpoint from a protocol and host.</summary>
-        /// <param name="protocol">The protocol of this endpoint. Must be a supported protocol.</param>
-        /// <param name="host">The host name. Cannot be empty.</param>
-        public Endpoint(Protocol protocol, string host)
+        /// <summary>Constructs an endpoint with default values.</summary>
+        public Endpoint()
+            : this(Protocol.IceRpc)
+        {
+        }
+
+        /// <summary>Constructs an endpoint from a protocol.</summary>
+        public Endpoint(Protocol protocol)
         {
             if (!protocol.IsSupported)
             {
-                throw new ArgumentException($"cannot create an endpoint with protocol '{protocol}'", nameof(protocol));
+                throw new ArgumentException(
+                    "cannot create an endpoint with a non-supported protocol",
+                    nameof(protocol));
             }
-            if (Uri.CheckHostName(host) == UriHostNameType.Unknown)
-            {
-                throw new ArgumentException($"cannot create an endpoint with host '{host}'", nameof(host));
-            }
-
-            _protocol = protocol;
-            _host = host;
-            _port = (ushort)protocol.DefaultUriPort;
+            Protocol = protocol;
+            _port = (ushort)Protocol.DefaultUriPort;
+            OriginalUri = null;
         }
 
         /// <summary>Constructs an endpoint from a <see cref="Uri"/>.</summary>
@@ -139,10 +125,10 @@ namespace IceRpc
             {
                 throw new ArgumentException("cannot create an endpoint from a relative reference", nameof(uri));
             }
-            _protocol = Protocol.FromString(uri.Scheme);
-            if (!_protocol.IsSupported)
+            Protocol = Protocol.FromString(uri.Scheme);
+            if (!Protocol.IsSupported)
             {
-                throw new ArgumentException($"cannot create an endpoint with protocol '{_protocol}'", nameof(uri));
+                throw new ArgumentException($"cannot create an endpoint with protocol '{Protocol}'", nameof(uri));
             }
             _host = uri.IdnHost;
             if (_host.Length == 0)
@@ -151,7 +137,7 @@ namespace IceRpc
             }
 
             // bug if it throws OverflowException
-            _port = checked((ushort)(uri.Port == -1 ? _protocol.DefaultUriPort : uri.Port));
+            _port = checked((ushort)(uri.Port == -1 ? Protocol.DefaultUriPort : uri.Port));
 
             if (uri.UserInfo.Length > 0)
             {
@@ -183,8 +169,7 @@ namespace IceRpc
         /// <param name="other">The other endpoint.</param>
         /// <returns><c>true</c>when the two endpoints have the same properties, including the same parameters (in the
         /// same order); otherwise, <c>false</c>.</returns>
-        public bool Equals(Endpoint? other) =>
-            other != null &&
+        public bool Equals(Endpoint other) =>
             Protocol == other.Protocol &&
             Host == other.Host &&
             Port == other.Port &&
@@ -213,10 +198,11 @@ namespace IceRpc
             ushort port,
             ImmutableDictionary<string, string> endpointParams)
         {
-            _protocol = protocol;
+            Protocol = protocol;
             _host = host;
             _port = port;
             _params = endpointParams;
+            OriginalUri = null;
         }
     }
 
@@ -228,12 +214,10 @@ namespace IceRpc
 
         private class ParamLessEndpointComparer : EndpointComparer
         {
-            public override bool Equals(Endpoint? lhs, Endpoint? rhs) =>
-                ReferenceEquals(lhs, rhs) ||
-                    (lhs != null && rhs != null &&
+            public override bool Equals(Endpoint lhs, Endpoint rhs) =>
                     lhs.Protocol == rhs.Protocol &&
                     lhs.Host == rhs.Host &&
-                    lhs.Port == rhs.Port);
+                    lhs.Port == rhs.Port;
 
             public override int GetHashCode(Endpoint endpoint) =>
                 HashCode.Combine(endpoint.Protocol, endpoint.Host, endpoint.Port);
@@ -249,16 +233,7 @@ namespace IceRpc
             sourceType == typeof(string) || base.CanConvertFrom(context, sourceType);
 
         /// <inheritdoc/>
-        public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value)
-        {
-            if (value is string valueStr)
-            {
-                return Endpoint.FromString(valueStr);
-            }
-            else
-            {
-                return base.ConvertFrom(context, culture, value);
-            }
-        }
+        public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value) =>
+            value is string valueStr ? Endpoint.FromString(valueStr) : base.ConvertFrom(context, culture, value);
     }
 }

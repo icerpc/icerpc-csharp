@@ -3,6 +3,7 @@
 using IceRpc.Configure;
 using IceRpc.Transports;
 using NUnit.Framework;
+using System.Collections.Immutable;
 
 namespace IceRpc.Tests.Api
 {
@@ -14,7 +15,8 @@ namespace IceRpc.Tests.Api
         {
             {
                 await using var server = new Server();
-                Assert.AreEqual(Endpoint.FromString("icerpc://[::0]"), server.Endpoint);
+                Assert.That(server.Endpoint, Is.EqualTo(Server.DefaultEndpoint));
+                Assert.That(server.Endpoint.ToString(), Is.EqualTo("icerpc://[::0]"));
             }
 
             {
@@ -269,17 +271,20 @@ namespace IceRpc.Tests.Api
         [TestCase(true, "ice")]
         [TestCase(false, "icerpc")]
         [TestCase(true, "icerpc")]
+        // [[Log(LogAttributeLevel.Debug)]
         // Canceling the cancellation token (source) of ShutdownAsync results in a DispatchException when the operation
         // completes with an OperationCanceledException. It also test calling DisposeAsync is called instead of
         // shutdown, which call ShutdownAsync with a canceled token.
-        public async Task Server_ShutdownCancelAsync(bool disposeInsteadOfShutdown, string protocol)
+        public async Task Server_ShutdownCancelAsync(bool disposeInsteadOfShutdown, string protocolStr)
         {
             var colocTransport = new ColocTransport();
+            var protocol = Protocol.FromString(protocolStr);
+            Assert.That(protocol.IsSupported, Is.True);
 
             using var semaphore = new SemaphoreSlim(0);
-            Endpoint serverEndpoint = colocTransport.ServerTransport.DefaultEndpoint with
+            var serverEndpoint = new Endpoint(protocol)
             {
-                Protocol = Protocol.FromString(protocol)
+                Params = ImmutableDictionary<string, string>.Empty.Add("transport", ColocTransport.Name)
             };
 
             await using var server = new Server
@@ -332,7 +337,7 @@ namespace IceRpc.Tests.Api
 
             // Ensures the client gets a DispatchException with the Ice protocol and OperationCanceledException with
             // the IceRPC protocol.
-            if (protocol == "ice")
+            if (protocol == Protocol.Ice)
             {
                 Assert.ThrowsAsync<DispatchException>(async () => await task);
             }

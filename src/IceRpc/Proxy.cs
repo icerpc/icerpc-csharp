@@ -161,7 +161,7 @@ namespace IceRpc
                     try
                     {
                         CheckPath(value); // make sure it's properly escaped
-                        Protocol.CheckUriPath(value); // make sure the protocol is happy with this path
+                        Protocol.CheckPath(value); // make sure the protocol is happy with this path
                     }
                     catch (FormatException ex)
                     {
@@ -187,7 +187,8 @@ namespace IceRpc
 
                 try
                 {
-                    CheckParams(value);
+                    CheckParams(value); // general checking (properly escape, no empty name)
+                    Protocol.CheckProxyParams(value); // protocol-specific checking
                 }
                 catch (FormatException ex)
                 {
@@ -225,7 +226,7 @@ namespace IceRpc
             new(connection.Protocol)
             {
                 Path = path,
-                Endpoint = connection.IsServer ? null : connection.RemoteEndpoint,
+                Endpoint = connection.IsServer ? (Endpoint?)null : connection.RemoteEndpoint,
                 Connection = connection,
                 Invoker = invoker ?? DefaultInvoker
             };
@@ -288,7 +289,7 @@ namespace IceRpc
 
                 if (Protocol.IsSupported)
                 {
-                    Protocol.CheckUriPath(_path);
+                    Protocol.CheckPath(_path);
                     if (!Protocol.HasFragment && _fragment.Length > 0)
                     {
                         throw new ArgumentException($"cannot create an {Protocol} proxy with a fragment", nameof(uri));
@@ -332,7 +333,8 @@ namespace IceRpc
 
                                 // The separator for endpoint parameters in alt-endpoint is $, so we replace these '$'
                                 // by '&' before sending the string to Endpoint.FromString which uses '&' as separator.
-                                _altEndpoints = _altEndpoints.Add(Endpoint.FromString(altUriString.Replace('$', '&')));
+                                _altEndpoints = _altEndpoints.Add(
+                                    IceRpc.Endpoint.FromString(altUriString.Replace('$', '&')));
                             }
                         }
                     }
@@ -348,6 +350,7 @@ namespace IceRpc
                             throw new FormatException($"invalid alt-endpoint parameter in URI '{uri.OriginalString}'");
                         }
 
+                        Protocol.CheckProxyParams(queryParams);
                         Params = queryParams;
                     }
                 }

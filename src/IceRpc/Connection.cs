@@ -217,7 +217,7 @@ namespace IceRpc
                         Debug.Assert(
                             _networkConnection == null &&
                             _protocolConnection == null &&
-                            RemoteEndpoint != null);
+                            RemoteEndpoint != default);
 
                         _stateTask = Protocol == Protocol.Ice ?
                             PerformConnectAsync(SimpleClientTransport,
