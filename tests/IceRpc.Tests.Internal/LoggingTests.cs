@@ -53,8 +53,8 @@ namespace IceRpc.Tests.Internal
                 "retrying request because of retryable exception",
                 request.Path,
                 request.Operation,
-                connection.NetworkConnectionInformation?.LocalEndpoint!,
-                connection.NetworkConnectionInformation?.RemoteEndpoint!,
+                connection.NetworkConnectionInformation!.Value.LocalEndpoint,
+                connection.NetworkConnectionInformation!.Value.RemoteEndpoint,
                 exception: null);
 
             Assert.That(entry.State["RetryPolicy"], Is.EqualTo(policy));
@@ -94,8 +94,8 @@ namespace IceRpc.Tests.Internal
                               "sending request",
                               request.Path,
                               request.Operation,
-                              connection.NetworkConnectionInformation?.LocalEndpoint!,
-                              connection.NetworkConnectionInformation?.RemoteEndpoint!,
+                              connection.NetworkConnectionInformation!.Value.LocalEndpoint,
+                              connection.NetworkConnectionInformation!.Value.RemoteEndpoint,
                               request.PayloadEncoding);
 
             if (twoway)
@@ -106,8 +106,8 @@ namespace IceRpc.Tests.Internal
                                   "received response",
                                   request.Path,
                                   request.Operation,
-                                  connection.NetworkConnectionInformation?.LocalEndpoint!,
-                                  connection.NetworkConnectionInformation?.RemoteEndpoint!,
+                                  connection.NetworkConnectionInformation!.Value.LocalEndpoint,
+                                  connection.NetworkConnectionInformation!.Value.RemoteEndpoint,
                                   response.PayloadEncoding);
 
                 Assert.That(loggerFactory.Logger!.Entries[1].State["ResultType"], Is.EqualTo(response.ResultType));
@@ -141,8 +141,8 @@ namespace IceRpc.Tests.Internal
                               "request invocation exception",
                               request.Path,
                               request.Operation,
-                              connection.NetworkConnectionInformation?.LocalEndpoint!,
-                              connection.NetworkConnectionInformation?.RemoteEndpoint!,
+                              connection.NetworkConnectionInformation!.Value.LocalEndpoint,
+                              connection.NetworkConnectionInformation!.Value.RemoteEndpoint,
                               exception: exception);
         }
 
@@ -175,8 +175,8 @@ namespace IceRpc.Tests.Internal
                               "received request",
                               request.Path,
                               request.Operation,
-                              connection.NetworkConnectionInformation?.RemoteEndpoint!,
-                              connection.NetworkConnectionInformation?.LocalEndpoint!,
+                              connection.NetworkConnectionInformation!.Value.RemoteEndpoint,
+                              connection.NetworkConnectionInformation!.Value.LocalEndpoint,
                               request.PayloadEncoding);
 
             if (twoway)
@@ -187,8 +187,8 @@ namespace IceRpc.Tests.Internal
                                   "sending response",
                                   request.Path,
                                   request.Operation,
-                                  connection.NetworkConnectionInformation?.RemoteEndpoint!,
-                                  connection.NetworkConnectionInformation?.LocalEndpoint!,
+                                  connection.NetworkConnectionInformation!.Value.RemoteEndpoint,
+                                  connection.NetworkConnectionInformation!.Value.LocalEndpoint,
                                   response.PayloadEncoding);
 
                 Assert.That(loggerFactory.Logger!.Entries[1].State["ResultType"], Is.EqualTo(response.ResultType));
@@ -222,8 +222,8 @@ namespace IceRpc.Tests.Internal
                               "request dispatch exception",
                               request.Path,
                               request.Operation,
-                              connection.NetworkConnectionInformation?.RemoteEndpoint!,
-                              connection.NetworkConnectionInformation?.LocalEndpoint!,
+                              connection.NetworkConnectionInformation!.Value.RemoteEndpoint,
+                              connection.NetworkConnectionInformation!.Value.LocalEndpoint,
                               exception: exception);
         }
 
@@ -241,8 +241,6 @@ namespace IceRpc.Tests.Internal
         {
             Assert.That(entry.EventId.Id, Is.EqualTo(eventId));
             Assert.That(entry.LogLevel, Is.EqualTo(level));
-            Assert.That(localEndpoint, Is.Not.Null);
-            Assert.That(remoteEndpoint, Is.Not.Null);
             Assert.That(entry.State["LocalEndpoint"], Is.EqualTo(localEndpoint.ToString()));
             Assert.That(entry.State["RemoteEndpoint"], Is.EqualTo(remoteEndpoint.ToString()));
             Assert.That(entry.State["Path"], Is.EqualTo(path));

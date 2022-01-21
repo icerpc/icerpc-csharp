@@ -259,7 +259,7 @@ namespace IceRpc.Tests.ClientServer
             };
 
             await using ServiceProvider serviceProvider = new TlsIntegrationTestServiceCollection(serverHost)
-                .AddTransient<Endpoint>(_ => $"icerpc://{serverHost}:0")
+                .AddTransient(typeof(Endpoint), _ => Endpoint.FromString($"icerpc://{serverHost}:0"))
                 .AddTransient(_ => new SslServerAuthenticationOptions()
                 {
                     ServerCertificate = new X509Certificate2(GetCertificatePath(serverCertFile), "password")
@@ -375,7 +375,7 @@ namespace IceRpc.Tests.ClientServer
                 };
                 this.UseTransport("tcp");
                 this.UseVoidDispatcher();
-                this.AddTransient<Endpoint>(_ => $"icerpc://{serverHost}:0");
+                this.AddTransient(typeof(Endpoint), _ => Endpoint.FromString($"icerpc://{serverHost}:0"));
             }
         }
 

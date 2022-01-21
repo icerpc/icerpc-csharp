@@ -23,7 +23,7 @@ namespace IceRpc.Tests.ClientServer
             string largeValue = new('C', 4000);
 
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-                .AddTransient<Endpoint>(_ => endpoint)
+                .AddTransient(typeof(Endpoint), _ => Endpoint.FromString(endpoint))
                 .AddTransient<IDispatcher>(_ =>
                 {
                     var router = new Router();
