@@ -729,7 +729,7 @@ namespace IceRpc.Slice
                             }
                             if (compress)
                             {
-                                builder.Add("z", "true");
+                                builder.Add("z", "");
                             }
 
                             endpoint = new Endpoint(Protocol.Ice, host, port, builder.ToImmutable());
@@ -753,7 +753,7 @@ namespace IceRpc.Slice
                             builder.Add("transport", TransportNames.Udp);
                             if (compress)
                             {
-                                builder.Add("z", "true");
+                                builder.Add("z", "");
                             }
 
                             endpoint = new Endpoint(Protocol.Ice, host, port, builder.ToImmutable());

@@ -102,8 +102,11 @@ namespace IceRpc
             {
                 StartQueryOption(sb, ref firstOption);
                 sb.Append(name);
-                sb.Append('=');
-                sb.Append(value);
+                if (value.Length > 0)
+                {
+                    sb.Append('=');
+                    sb.Append(value);
+                }
             }
 
             if (proxy.Fragment.Length > 0)
