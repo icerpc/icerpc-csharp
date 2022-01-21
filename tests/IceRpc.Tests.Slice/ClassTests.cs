@@ -5,11 +5,9 @@ using IceRpc.Slice;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
-using NUnit.Framework.Internal;
-
 namespace IceRpc.Tests.Slice
 {
-    [Timeout(5000)]
+    [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
     [TestFixture("ice")]
     [TestFixture("icerpc")]

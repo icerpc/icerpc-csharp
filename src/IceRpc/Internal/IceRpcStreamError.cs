@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
-using System.IO.Pipelines;
+using System.Diagnostics;
 
 namespace IceRpc.Internal
 {
@@ -29,25 +29,21 @@ namespace IceRpc.Internal
 
         internal static Exception ToIceRpcException(this MultiplexedStreamAbortedException exception)
         {
-            if (exception.ErrorKind == MultiplexedStreamErrorKind.Protocol)
+            Debug.Assert(exception.ErrorKind == MultiplexedStreamErrorKind.Protocol);
+            return (IceRpcStreamError)exception.ErrorCode switch
             {
-                return (IceRpcStreamError)exception.ErrorCode switch
-                {
-                    IceRpcStreamError.InvocationCanceled =>
-                        new ConnectionClosedException("invocation canceled by peer"),
-                    IceRpcStreamError.DispatchCanceled =>
-                        new OperationCanceledException("dispatch canceled by peer"),
-                    IceRpcStreamError.ConnectionShutdownByPeer =>
-                        new ConnectionClosedException("connection shutdown by peer"),
-                    IceRpcStreamError.ConnectionShutdown =>
-                        new OperationCanceledException("connection shutdown"),
-                    _ => new OperationCanceledException("unexpected protocol error code {exception.ErrorCode}"),
-                };
-            }
-            else
-            {
-                return exception;
-            }
+                IceRpcStreamError.InvocationCanceled =>
+                    new ConnectionClosedException("invocation canceled by peer", exception),
+                IceRpcStreamError.DispatchCanceled =>
+                    new OperationCanceledException("dispatch canceled by peer", exception),
+                IceRpcStreamError.ConnectionShutdownByPeer =>
+                    new ConnectionClosedException("connection shutdown by peer", exception),
+                IceRpcStreamError.ConnectionShutdown =>
+                    new OperationCanceledException("connection shutdown", exception),
+                _ => new OperationCanceledException(
+                    "unexpected protocol error {exception.ErrorCode}",
+                    exception),
+            };
         }
     }
 }

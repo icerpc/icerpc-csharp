@@ -663,7 +663,7 @@ namespace IceRpc
             {
                 // The two calls are equivalent except the response.PayloadSink version goes through the decorators
                 // installed by the middleware, if any.
-                // TODO: fix this protocol specific code.
+                // TODO: we shouldn't have this protocol specific handling of OperationCanceledException here.
                 PipeWriter writer = response?.PayloadSink ?? request.ResponseWriter;
                 await writer.CompleteAsync(IceRpcStreamError.DispatchCanceled.ToException()).ConfigureAwait(false);
             }

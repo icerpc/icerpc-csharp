@@ -59,12 +59,12 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public void Dispose()
         {
+            // The connection is disposed, if there are sill pending invocations, it indicates a non-graceful shutdown,
+            // we raise ConnectionLostException.
+            var exception = new ConnectionLostException();
+
             // Unblock ShutdownAsync which might be waiting for the connection to be disposed.
             _pendingClose.TrySetResult();
-
-            // The connection is disposed, if there are sill pending invocations, it indicates a non-graceful shutdown,
-            // we cancel the pending invocations and dispatch.
-            var exception = new ConnectionLostException();
 
             // Unblock invocations which are waiting to be sent.
             _sendSemaphore.Complete(exception);

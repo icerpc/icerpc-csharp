@@ -234,7 +234,7 @@ namespace IceRpc.Internal
                 // The shutdown cancels pending reads for invocations that were not dispatched by the peer.
                 if (readResult.IsCanceled)
                 {
-                    throw new ConnectionClosedException("");
+                    throw new ConnectionClosedException("connection shutdown by peer");
                 }
 
                 if (readResult.Buffer.IsEmpty)
@@ -254,7 +254,14 @@ namespace IceRpc.Internal
             }
             catch (MultiplexedStreamAbortedException ex)
             {
-                throw ex.ToIceRpcException();
+                if (ex.ErrorKind == MultiplexedStreamErrorKind.Protocol)
+                {
+                    throw ex.ToIceRpcException();
+                }
+                else
+                {
+                    throw;
+                }
             }
             catch (OperationCanceledException)
             {
@@ -676,10 +683,10 @@ namespace IceRpc.Internal
 
             if (flushResult.IsCompleted)
             {
-                // The remote reader stopped reading the stream without error.
-                // TODO: which exception should we throw here?
-                // throw new MultiplexedStreamAbortedException((byte)MultiplexedStreamError.StreamingCanceledByReader);
-                throw new OperationCanceledException();
+                // The remote reader gracefully complete the stream input pipe.
+                // TODO: which exception should we throw here? We throw OperationCanceledException... which implies that
+                // if the frame is an outgoing request is won't be retried.
+                throw new OperationCanceledException("peer stopped reading the payload");
             }
 
             // The caller calls CompleteAsync on the payload source/sink if an exception is thrown by CopyFromAsync
@@ -764,8 +771,7 @@ namespace IceRpc.Internal
 
             foreach (IMultiplexedStream stream in invocations)
             {
-                // await stream.Input.CompleteAsync(
-                //         IceRpcStreamError.ConnectionShutdownByPeer.ToException()).ConfigureAwait(false);
+                // Cancel the invocation pending read response.
                 stream.Input.CancelPendingRead();
             }
 

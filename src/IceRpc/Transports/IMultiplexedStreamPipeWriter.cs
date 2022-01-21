@@ -7,8 +7,8 @@ namespace IceRpc.Transports
 {
     /// <summary>This inferface can be implemented by the multiplexed stream output pipe writer to provide a <see
     /// cref="PipeWriter.WriteAsync"/> method with a <see cref="ReadOnlySequence{T}"/> source. It's also possible to
-    /// complete the pipe writer. The IceRPC core to optimize the copy of a <see cref="PipeReader"/> to a pipe writer
-    /// that supports this interface.</summary>
+    /// complete the pipe writer once the write is done. The IceRPC core optimizes the copy of a <see
+    /// cref="PipeReader"/> to a pipe writer that supports this interface.</summary>
     /// TODO: Should this be part of the IceRPC Core API instead of the transport API? Better name?
     internal interface IMultiplexedStreamPipeWriter
     {
