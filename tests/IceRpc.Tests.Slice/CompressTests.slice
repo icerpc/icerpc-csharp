@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc::Tests::ClientServer
+module IceRpc::Tests::Slice
 {
     exception CompressMyException
     {

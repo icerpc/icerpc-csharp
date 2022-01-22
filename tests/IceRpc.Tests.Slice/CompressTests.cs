@@ -7,7 +7,7 @@ using System.Buffers;
 using System.IO.Compression;
 using System.IO.Pipelines;
 
-namespace IceRpc.Tests.ClientServer
+namespace IceRpc.Tests.Slice
 {
     [Parallelizable(ParallelScope.All)]
     class CompressTests
