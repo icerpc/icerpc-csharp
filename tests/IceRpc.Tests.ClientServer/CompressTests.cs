@@ -1,14 +1,22 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+// #define LOG_PIPE_WRITER
+
 using IceRpc.Configure;
 using Microsoft.Extensions.DependencyInjection;
+
+#if LOG_PIPE_WRITER
+using Microsoft.Extensions.Logging;
+#endif
+
 using NUnit.Framework;
 using System.Buffers;
+using System.IO.Compression;
 using System.IO.Pipelines;
 
 namespace IceRpc.Tests.ClientServer
 {
-    // Tests for the Compress interceptor / middleware
+    // Tests for the Compress interceptor and middleware
 
     [Parallelizable(ParallelScope.All)]
     public sealed class CompressTests
@@ -21,8 +29,8 @@ namespace IceRpc.Tests.ClientServer
 
         [Test]
         public async Task Compress_RequestPayload(
-            [Values(true, false)] bool compressPayload,
-            [Values(true, false)] bool withStream)
+            [Values] bool compressPayload,
+            [Values] bool withStream)
         {
             bool called = false;
 
@@ -43,7 +51,7 @@ namespace IceRpc.Tests.ClientServer
                             {
                                 // Verify we received a compressed payload.
                                 Assert.That(readResult.IsCompleted, Is.True);
-                                Assert.That(readResult.Buffer.Length, Is.LessThan(uncompressedLength / 2));
+                                Assert.That(readResult.Buffer.Length, Is.LessThan(uncompressedLength - 10));
                             }
                             else
                             {
@@ -93,17 +101,49 @@ namespace IceRpc.Tests.ClientServer
                 request.PayloadSourceStream = PipeReader.Create(new ReadOnlySequence<byte>(_streamPayload));
             }
 
-            IInvoker invoker = new Pipeline().UseCompressor();
+            var pipeline = new Pipeline();
+
+#if LOG_PIPE_WRITER
+
+            using var loggerFactory = LoggerFactory.Create(
+                builder => _ = builder.AddConsole().SetMinimumLevel(LogLevel.Information));
+
+            // Add timeout interceptor to get a CanBeCanceled cancellation token.
+            pipeline.UseTimeout(TimeSpan.FromSeconds(1));
+
+            pipeline.Use(next => new InlineInvoker(
+                (request, cancel) =>
+                {
+                    request.PayloadSink = new LogPipeWriterDecorator(
+                        request.PayloadSink,
+                        loggerFactory.CreateLogger("InnerPipeWriter"));
+                    return next.InvokeAsync(request, cancel);
+                }));
+#endif
+
+            pipeline.UseCompressor(new CompressOptions { CompressionLevel = CompressionLevel.Fastest });
+
+#if LOG_PIPE_WRITER
+            pipeline.Use(next => new InlineInvoker(
+                (request, cancel) =>
+                {
+                    request.PayloadSink = new LogPipeWriterDecorator(
+                        request.PayloadSink,
+                        loggerFactory.CreateLogger("OuterPipeWriter"));
+                    return next.InvokeAsync(request, cancel);
+                }));
+#endif
+
             Assert.That(called, Is.False);
-            IncomingResponse response = await invoker.InvokeAsync(request);
+            IncomingResponse response = await pipeline.InvokeAsync(request);
             Assert.That(called, Is.True);
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
         }
 
         [Test]
         public async Task Compress_ResponsePayload(
-            [Values(true, false)] bool compressPayload,
-            [Values(true, false)] bool withStream)
+            [Values] bool compressPayload,
+            [Values] bool withStream)
         {
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher>(_ =>
