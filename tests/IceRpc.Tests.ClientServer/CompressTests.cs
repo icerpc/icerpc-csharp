@@ -21,6 +21,9 @@ namespace IceRpc.Tests.ClientServer
     [Parallelizable(ParallelScope.All)]
     public sealed class CompressTests
     {
+        // The minimum compression factor we expect for the payloads
+        private const float CompressionFactor = 0.5f;
+
         private static readonly byte[] _mainPayload =
             Enumerable.Range(0, 4096).Select(i => (byte)(i % 256)).ToArray();
 
@@ -51,11 +54,13 @@ namespace IceRpc.Tests.ClientServer
                             {
                                 // Verify we received a compressed payload.
                                 Assert.That(readResult.IsCompleted, Is.True);
-                                Assert.That(readResult.Buffer.Length, Is.LessThan(uncompressedLength - 10));
+                                Assert.That(
+                                    readResult.Buffer,
+                                    Has.Length.LessThan(uncompressedLength * CompressionFactor));
                             }
                             else
                             {
-                                Assert.That(readResult.Buffer.Length, Is.EqualTo(uncompressedLength));
+                                Assert.That(readResult.Buffer, Has.Length.EqualTo(uncompressedLength));
                             }
                             request.Payload.AdvanceTo(readResult.Buffer.Start); // don't consume/examine anything
                             return await next.DispatchAsync(request, cancel);
@@ -188,11 +193,12 @@ namespace IceRpc.Tests.ClientServer
                     {
                         // Verify we received a compressed payload.
                         Assert.That(readResult.IsCompleted, Is.True);
-                        Assert.That(readResult.Buffer.Length, Is.LessThan(uncompressedLength / 2));
+                        Assert.That(readResult.IsCompleted, Is.True);
+                        Assert.That(readResult.Buffer, Has.Length.LessThan(uncompressedLength * CompressionFactor));
                     }
                     else
                     {
-                        Assert.That(readResult.Buffer.Length, Is.EqualTo(uncompressedLength));
+                        Assert.That(readResult.Buffer, Has.Length.EqualTo(uncompressedLength));
                     }
                     response.Payload.AdvanceTo(readResult.Buffer.Start); // don't consume/examine anything
 
