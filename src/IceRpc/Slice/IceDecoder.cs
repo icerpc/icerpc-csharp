@@ -7,7 +7,6 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -433,29 +432,6 @@ namespace IceRpc.Slice
         /// <returns>The decoded proxy</returns>
         public Proxy DecodeProxy() =>
             DecodeNullableProxy() ?? throw new InvalidDataException("decoded null for a non-nullable proxy");
-
-        /// <summary>Decodes a sequence of fixed-size numeric values and returns an array.</summary>
-        /// <param name="checkElement">A delegate used to check each element of the array (optional).</param>
-        /// <returns>The sequence decoded by this decoder, as an array.</returns>
-        public T[] DecodeSequence<T>(Action<T>? checkElement = null) where T : struct
-        {
-            int elementSize = Unsafe.SizeOf<T>();
-            var value = new T[DecodeAndCheckSeqSize(elementSize)];
-
-            Span<byte> destination = MemoryMarshal.Cast<T, byte>(value);
-            Debug.Assert(destination.Length == elementSize * value.Length);
-            CopyTo(destination);
-
-            if (checkElement != null)
-            {
-                foreach (T e in value)
-                {
-                    checkElement(e);
-                }
-            }
-
-            return value;
-        }
 
         // Other methods
 

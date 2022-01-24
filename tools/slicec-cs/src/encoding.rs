@@ -282,7 +282,7 @@ fn encode_sequence(
     let has_custom_type = sequence_ref.has_attribute("cs:generic", false);
     if sequence_ref.has_fixed_size_numeric_elements() {
         if is_param && is_read_only && !has_custom_type {
-            format!("encoder.EncodeSequence({}.Span)", value)
+            format!("encoder.EncodeSpan({}.Span)", value)
         } else {
             format!("encoder.EncodeSequence({})", value)
         }

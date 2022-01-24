@@ -1,10 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace IceRpc.Slice
 {
-    /// <summary>Provides extension methods for class IceDecoder.</summary>
+    /// <summary>Provides extension methods for <see cref="IceDecoder"/>.</summary>
     public static class IceDecoderExtensions
     {
         /// <summary>Decodes a dictionary.</summary>
@@ -92,6 +95,31 @@ namespace IceRpc.Slice
                 }
                 return builder.ToImmutable();
             }
+        }
+
+        /// <summary>Decodes a sequence of fixed-size numeric values.</summary>
+        /// <param name="decoder">The Slice decoder.</param>
+        /// <param name="checkElement">A delegate used to check each element of the array (optional).</param>
+        /// <returns>An array of T.</returns>
+        public static T[] DecodeSequence<T>(this ref IceDecoder decoder, Action<T>? checkElement = null)
+            where T : struct
+        {
+            int elementSize = Unsafe.SizeOf<T>();
+            var value = new T[decoder.DecodeAndCheckSeqSize(elementSize)];
+
+            Span<byte> destination = MemoryMarshal.Cast<T, byte>(value);
+            Debug.Assert(destination.Length == elementSize * value.Length);
+            decoder.CopyTo(destination);
+
+            if (checkElement != null)
+            {
+                foreach (T e in value)
+                {
+                    checkElement(e);
+                }
+            }
+
+            return value;
         }
 
         /// <summary>Decodes a sequence.</summary>
