@@ -78,8 +78,8 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(100, options.UnidirectionalStreamMaxCount);
             Assert.AreEqual(100, options.BidirectionalStreamMaxCount);
             Assert.AreEqual(32 * 1024, options.PacketMaxSize);
-            Assert.AreEqual(64 * 1024, options.PauseWriterThreeshold);
-            Assert.AreEqual(32 * 1024, options.ResumeWriterThreeshold);
+            Assert.AreEqual(64 * 1024, options.PauseWriterThreshold);
+            Assert.AreEqual(32 * 1024, options.ResumeWriterThreshold);
 
             // Can't be less than 1
             Assert.Throws<ArgumentException>(() => new SlicOptions() { BidirectionalStreamMaxCount = 0 });
@@ -87,8 +87,8 @@ namespace IceRpc.Tests.Api
 
             // Can't be less than 1Kb
             Assert.Throws<ArgumentException>(() => new SlicOptions() { PacketMaxSize = 1 });
-            Assert.Throws<ArgumentException>(() => new SlicOptions() { PauseWriterThreeshold = 1});
-            Assert.Throws<ArgumentException>(() => new SlicOptions() { ResumeWriterThreeshold = 1});
+            Assert.Throws<ArgumentException>(() => new SlicOptions() { PauseWriterThreshold = 1});
+            Assert.Throws<ArgumentException>(() => new SlicOptions() { ResumeWriterThreshold = 1});
         }
     }
 }

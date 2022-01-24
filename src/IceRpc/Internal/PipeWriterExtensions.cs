@@ -23,7 +23,7 @@ namespace IceRpc.Internal
         {
             FlushResult flushResult;
 
-            if (sink is IMultiplexedStreamPipeWriter writer)
+            if (sink is ReadOnlySequencePipeWriter writer)
             {
                 while (true)
                 {
@@ -142,7 +142,7 @@ namespace IceRpc.Internal
             bool completeWhenDone,
             CancellationToken cancel)
         {
-            if (pipeWriter is IMultiplexedStreamPipeWriter writer)
+            if (pipeWriter is ReadOnlySequencePipeWriter writer)
             {
                 return await writer.WriteAsync(source, completeWhenDone, cancel).ConfigureAwait(false);
             }

@@ -66,7 +66,7 @@ namespace IceRpc.Transports.Internal
         }
     }
 
-    internal sealed class LogMultiplexedStreamPipeWriter : PipeWriter, IMultiplexedStreamPipeWriter
+    internal sealed class LogMultiplexedStreamPipeWriter : ReadOnlySequencePipeWriter
     {
         private readonly PipeWriter _decoratee;
         private readonly ILogger _logger;
@@ -106,7 +106,7 @@ namespace IceRpc.Transports.Internal
             return await _decoratee.WriteAsync(source, cancel).ConfigureAwait(false);
         }
 
-        public async ValueTask<FlushResult> WriteAsync(
+        public override async ValueTask<FlushResult> WriteAsync(
             ReadOnlySequence<byte> source,
             bool completeWhenDone,
             CancellationToken cancel)

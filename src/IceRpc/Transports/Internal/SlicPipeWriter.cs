@@ -7,7 +7,7 @@ using System.Diagnostics;
 
 namespace IceRpc.Transports.Internal
 {
-    internal class SlicPipeWriter : PipeWriter, IMultiplexedStreamPipeWriter
+    internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     {
         private bool _isWriterCompleted;
         private readonly SlicNetworkConnection _connection;
@@ -91,7 +91,7 @@ namespace IceRpc.Transports.Internal
             // Writing an empty buffer completes the stream.
             WriteAsync(new ReadOnlySequence<byte>(source), completeWhenDone: source.Length == 0, cancel);
 
-        public async ValueTask<FlushResult> WriteAsync(
+        public override async ValueTask<FlushResult> WriteAsync(
             ReadOnlySequence<byte> source,
             bool completeWhenDone,
             CancellationToken cancel)
