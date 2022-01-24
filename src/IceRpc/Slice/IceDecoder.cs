@@ -310,6 +310,35 @@ namespace IceRpc.Slice
             }
         }
 
+        /// <summary>Decodes a trait.</summary>
+        /// <returns>The decoded trait.</returns>
+        public T DecodeTrait<T>()
+        {
+            // Temporary until we implement slice-driven encoding.
+            if (Encoding != IceRpc.Encoding.Slice20)
+            {
+                throw new InvalidOperationException(
+                    $"{nameof(DecodeTrait)} is not compatible with encoding {Encoding}");
+            }
+
+            string typeId = DecodeString();
+            ITrait? trait = _activator?.CreateInstance(typeId, ref this) as ITrait;
+            if (trait is T result)
+            {
+                return result;
+            }
+            else if (trait != null)
+            {
+                throw new InvalidDataException(
+                    $"Decoded struct of type '{trait.GetType()}' does not implement expected trait '{typeof(T)}'");
+            }
+            else
+            {
+                throw new InvalidDataException(
+                    $"Failed to decode struct of type '{typeof(T)}' from type id '{typeId}'");
+            }
+        }
+
         /// <summary>Decodes a nullable proxy.</summary>
         /// <returns>The decoded proxy, or null.</returns>
         public Proxy? DecodeNullableProxy()
