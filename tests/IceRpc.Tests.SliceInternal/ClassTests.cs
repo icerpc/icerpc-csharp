@@ -70,10 +70,10 @@ namespace IceRpc.Tests.SliceInternal
                     decoder.Skip(4);
 
                     // Read the instance marker
-                    Assert.AreEqual(1, decoder.DecodeSize());
+                    Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
                     var sliceFlags = (SliceFlags)decoder.DecodeByte();
                     // The Slice includes a size for the sliced format
-                    Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
+                    Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.True);
                 }
 
                 static void DecodeAfter(ReadOnlySequence<byte> data)
@@ -84,10 +84,10 @@ namespace IceRpc.Tests.SliceInternal
                     decoder.Skip(4);
 
                     // Read the instance marker
-                    Assert.AreEqual(1, decoder.DecodeSize());
+                    Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
                     var sliceFlags = (SliceFlags)decoder.DecodeByte();
                     // The Slice includes a size for the sliced format
-                    Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
+                    Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.True);
                 }
             }));
             await prx1.OpMyClassAsync(new MyClassCustomFormat("foo"));
@@ -113,7 +113,7 @@ namespace IceRpc.Tests.SliceInternal
                     decoder.Skip(4);
 
                     // Read the instance marker
-                    Assert.AreEqual(1, decoder.DecodeSize());
+                    Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
                     var sliceFlags = (SliceFlags)decoder.DecodeByte();
                     // The Slice does not include a size when using the compact format
                     Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
@@ -127,7 +127,7 @@ namespace IceRpc.Tests.SliceInternal
                     decoder.Skip(4);
 
                     // Read the instance marker
-                    Assert.AreEqual(1, decoder.DecodeSize());
+                    Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
                     var sliceFlags = (SliceFlags)decoder.DecodeByte();
                     // The Slice does not include a size when using the compact format
                     Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
@@ -156,7 +156,7 @@ namespace IceRpc.Tests.SliceInternal
                     decoder.Skip(4);
 
                     // Read the instance marker
-                    Assert.AreEqual(1, decoder.DecodeSize());
+                    Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
                     var sliceFlags = (SliceFlags)decoder.DecodeByte();
                     // The Slice does not include a size when using the compact format
                     Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
@@ -170,7 +170,7 @@ namespace IceRpc.Tests.SliceInternal
                     decoder.Skip(4);
 
                     // Read the instance marker
-                    Assert.AreEqual(1, decoder.DecodeSize());
+                    Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
                     var sliceFlags = (SliceFlags)decoder.DecodeByte();
                     // The Slice does not include a size when using the compact format
                     Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
@@ -200,10 +200,10 @@ namespace IceRpc.Tests.SliceInternal
                     decoder.Skip(4);
 
                     // Read the instance marker
-                    Assert.AreEqual(1, decoder.DecodeSize());
+                    Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
                     var sliceFlags = (SliceFlags)decoder.DecodeByte();
                     // The Slice includes a size for the sliced format
-                    Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
+                    Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.True);
                 }
 
                 static void DecodeAfter(ReadOnlySequence<byte> data)
@@ -214,10 +214,10 @@ namespace IceRpc.Tests.SliceInternal
                     decoder.Skip(4);
 
                     // Read the instance marker
-                    Assert.AreEqual(1, decoder.DecodeSize());
+                    Assert.That(decoder.DecodeSize(), Is.EqualTo(1));
                     var sliceFlags = (SliceFlags)decoder.DecodeByte();
                     // The Slice includes a size for the sliced format
-                    Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
+                    Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.True);
                 }
             }));
             await prx3.OpMyClassSlicedFormatAsync(new MyClassCustomFormat("foo"));

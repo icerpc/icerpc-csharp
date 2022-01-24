@@ -34,9 +34,10 @@ namespace IceRpc.Tests.SliceInternal
             encoder.EncodeBool(p1);
             bool r1 = decoder.DecodeBool();
 
-            Assert.AreEqual(p1, r1);
+            Assert.That(p1, Is.EqualTo(r1));
             Assert.That(_bufferWriter.WrittenBuffer.Length, Is.EqualTo(sizeof(bool)));
-            Assert.AreEqual(sizeof(bool), decoder.Consumed);
+            Assert.That(decoder.Consumed, Is.EqualTo(sizeof(bool)));
+
         }
 
         [TestCase(byte.MinValue)]
@@ -49,9 +50,9 @@ namespace IceRpc.Tests.SliceInternal
             encoder.EncodeByte(p1);
             byte r1 = decoder.DecodeByte();
 
-            Assert.AreEqual(p1, r1);
+            Assert.That(p1, Is.EqualTo(r1));
             Assert.That(_bufferWriter.WrittenBuffer.Length, Is.EqualTo(sizeof(byte)));
-            Assert.AreEqual(sizeof(byte), decoder.Consumed);
+            Assert.That(decoder.Consumed, Is.EqualTo(sizeof(byte)));
         }
 
         [TestCase(short.MinValue)]
@@ -64,9 +65,9 @@ namespace IceRpc.Tests.SliceInternal
             encoder.EncodeShort(p1);
             short r1 = decoder.DecodeShort();
 
-            Assert.AreEqual(p1, r1);
+            Assert.That(p1, Is.EqualTo(r1));
             Assert.That(_bufferWriter.WrittenBuffer.Length, Is.EqualTo(sizeof(short)));
-            Assert.AreEqual(sizeof(short), decoder.Consumed);
+            Assert.That(decoder.Consumed, Is.EqualTo(sizeof(short)));
         }
 
         [TestCase(ushort.MinValue)]
@@ -78,9 +79,9 @@ namespace IceRpc.Tests.SliceInternal
             encoder.EncodeUShort(p1);
             ushort r1 = decoder.DecodeUShort();
 
-            Assert.AreEqual(p1, r1);
+            Assert.That(p1, Is.EqualTo(r1));
             Assert.That(_bufferWriter.WrittenBuffer.Length, Is.EqualTo(sizeof(ushort)));
-            Assert.AreEqual(sizeof(ushort), decoder.Consumed);
+            Assert.That(decoder.Consumed, Is.EqualTo(sizeof(ushort)));
         }
 
         [TestCase(int.MinValue)]
@@ -93,9 +94,9 @@ namespace IceRpc.Tests.SliceInternal
             encoder.EncodeInt(p1);
             int r1 = decoder.DecodeInt();
 
-            Assert.AreEqual(p1, r1);
+            Assert.That(p1, Is.EqualTo(r1));
             Assert.That(_bufferWriter.WrittenBuffer.Length, Is.EqualTo(sizeof(int)));
-            Assert.AreEqual(sizeof(int), decoder.Consumed);
+            Assert.That(decoder.Consumed, Is.EqualTo(sizeof(int)));
         }
 
         [TestCase(uint.MinValue)]
@@ -108,7 +109,7 @@ namespace IceRpc.Tests.SliceInternal
             encoder.EncodeUInt(p1);
             uint r1 = decoder.DecodeUInt();
 
-            Assert.AreEqual(p1, r1);
+            Assert.That(p1, Is.EqualTo(r1));
             Assert.That(_bufferWriter.WrittenBuffer.Length, Is.EqualTo(sizeof(uint)));
         }
 
@@ -122,9 +123,9 @@ namespace IceRpc.Tests.SliceInternal
 
             long r1 = decoder.DecodeLong();
 
-            Assert.AreEqual(p1, r1);
+            Assert.That(p1, Is.EqualTo(r1));
             Assert.That(_bufferWriter.WrittenBuffer.Length, Is.EqualTo(sizeof(long)));
-            Assert.AreEqual(sizeof(long), decoder.Consumed);
+            Assert.That(decoder.Consumed, Is.EqualTo(sizeof(long)));
         }
 
         [TestCase(ulong.MinValue)]
@@ -136,7 +137,7 @@ namespace IceRpc.Tests.SliceInternal
             encoder.EncodeULong(p1);
             ulong r1 = decoder.DecodeULong();
 
-            Assert.AreEqual(p1, r1);
+            Assert.That(p1, Is.EqualTo(r1));
             Assert.That(_bufferWriter.WrittenBuffer.Length, Is.EqualTo(sizeof(ulong)));
         }
 
@@ -149,7 +150,7 @@ namespace IceRpc.Tests.SliceInternal
             encoder.EncodeVarULong(p1);
             ulong r1 = decoder.DecodeVarULong();
 
-            Assert.AreEqual(p1, r1);
+            Assert.That(p1, Is.EqualTo(r1));
         }
 
         [TestCase(IceEncoder.VarLongMinValue)]
@@ -161,7 +162,7 @@ namespace IceRpc.Tests.SliceInternal
             encoder.EncodeVarLong(p1);
             long r1 = decoder.DecodeVarLong();
 
-            Assert.AreEqual(p1, r1);
+            Assert.That(p1, Is.EqualTo(r1));
         }
 
         [TestCase(float.MinValue)]
@@ -174,9 +175,9 @@ namespace IceRpc.Tests.SliceInternal
             encoder.EncodeFloat(p1);
             float r1 = decoder.DecodeFloat();
 
-            Assert.AreEqual(p1, r1);
+            Assert.That(p1, Is.EqualTo(r1));
             Assert.That(_bufferWriter.WrittenBuffer.Length, Is.EqualTo(sizeof(float)));
-            Assert.AreEqual(sizeof(float), decoder.Consumed);
+            Assert.That(decoder.Consumed, Is.EqualTo(sizeof(float)));
         }
 
         [TestCase(double.MinValue)]
@@ -190,9 +191,9 @@ namespace IceRpc.Tests.SliceInternal
 
             double r1 = decoder.DecodeDouble();
 
-            Assert.AreEqual(p1, r1);
+            Assert.That(p1, Is.EqualTo(r1));
             Assert.That(_bufferWriter.WrittenBuffer.Length, Is.EqualTo(sizeof(double)));
-            Assert.AreEqual(sizeof(double), decoder.Consumed);
+            Assert.That(decoder.Consumed, Is.EqualTo(sizeof(double)));
         }
 
         [TestCase("")]
@@ -208,7 +209,7 @@ namespace IceRpc.Tests.SliceInternal
             // simple test
             encoder.EncodeString(p1);
             string r1 = decoder.DecodeString();
-            Assert.AreEqual(p1, r1);
+            Assert.That(p1, Is.EqualTo(r1));
 
             if (p1.Length > 0)
             {
@@ -232,7 +233,7 @@ namespace IceRpc.Tests.SliceInternal
                 for (int i = 0; i < 20; ++i)
                 {
                     r1 = decoder.DecodeString();
-                    Assert.AreEqual(p1, r1);
+                    Assert.That(p1, Is.EqualTo(r1));
                 }
                 pipe.Reader.AdvanceTo(readResult.Buffer.End);
             }
