@@ -34,8 +34,8 @@ namespace IceRpc.Tests.SliceInternal
             encoder.EncodeSpan(new ReadOnlySpan<bool>(p1));
             bool[] r1 = decoder.DecodeSequence<bool>();
 
-            CollectionAssert.AreEqual(p1, r1);
-            Assert.AreEqual(decoder.Consumed, _bufferWriter.WrittenBuffer.Length);
+            Assert.That(p1, Is.EqualTo(r1));
+            Assert.That(decoder.Consumed, Is.EqualTo(_bufferWriter.WrittenBuffer.Length));
         }
 
         [TestCase(0)]
@@ -48,8 +48,8 @@ namespace IceRpc.Tests.SliceInternal
             encoder.EncodeSpan(new ReadOnlySpan<byte>(p1));
             byte[] r1 = decoder.DecodeSequence<byte>();
 
-            CollectionAssert.AreEqual(p1, r1);
-            Assert.AreEqual(decoder.Consumed, _bufferWriter.WrittenBuffer.Length);
+            Assert.That(p1, Is.EqualTo(r1));
+            Assert.That(decoder.Consumed, Is.EqualTo(_bufferWriter.WrittenBuffer.Length));
         }
 
         [TestCase(0)]
@@ -62,8 +62,8 @@ namespace IceRpc.Tests.SliceInternal
             encoder.EncodeSpan(new ReadOnlySpan<short>(p1));
             short[] r1 = decoder.DecodeSequence<short>();
 
-            CollectionAssert.AreEqual(p1, r1);
-            Assert.AreEqual(decoder.Consumed, _bufferWriter.WrittenBuffer.Length);
+            Assert.That(p1, Is.EqualTo(r1));
+            Assert.That(decoder.Consumed, Is.EqualTo(_bufferWriter.WrittenBuffer.Length));
         }
 
         [TestCase(0)]
@@ -76,8 +76,8 @@ namespace IceRpc.Tests.SliceInternal
             encoder.EncodeSpan(new ReadOnlySpan<int>(p1));
             int[] r1 = decoder.DecodeSequence<int>();
 
-            CollectionAssert.AreEqual(p1, r1);
-            Assert.AreEqual(decoder.Consumed, _bufferWriter.WrittenBuffer.Length);
+            Assert.That(p1, Is.EqualTo(r1));
+            Assert.That(decoder.Consumed, Is.EqualTo(_bufferWriter.WrittenBuffer.Length));
         }
 
         [TestCase(0)]
@@ -90,8 +90,8 @@ namespace IceRpc.Tests.SliceInternal
             encoder.EncodeSequenceWithBitSequence(p1, (ref IceEncoder encoder, int v) => encoder.EncodeInt(v));
             int[] r1 = decoder.DecodeSequenceWithBitSequence((ref IceDecoder decoder) => decoder.DecodeInt());
 
-            CollectionAssert.AreEqual(p1, r1);
-            Assert.AreEqual(decoder.Consumed, _bufferWriter.WrittenBuffer.Length);
+            Assert.That(p1, Is.EqualTo(r1));
+            Assert.That(decoder.Consumed, Is.EqualTo(_bufferWriter.WrittenBuffer.Length));
         }
 
         [TestCase(0)]
@@ -104,8 +104,8 @@ namespace IceRpc.Tests.SliceInternal
             encoder.EncodeSpan(new ReadOnlySpan<long>(p1));
             long[] r1 = decoder.DecodeSequence<long>();
 
-            CollectionAssert.AreEqual(p1, r1);
-            Assert.AreEqual(decoder.Consumed, _bufferWriter.WrittenBuffer.Length);
+            Assert.That(p1, Is.EqualTo(r1));
+            Assert.That(decoder.Consumed, Is.EqualTo(_bufferWriter.WrittenBuffer.Length));
         }
 
         [TestCase(0)]
@@ -118,8 +118,8 @@ namespace IceRpc.Tests.SliceInternal
             encoder.EncodeSpan(new ReadOnlySpan<float>(p1));
             float[] r1 = decoder.DecodeSequence<float>();
 
-            CollectionAssert.AreEqual(p1, r1);
-            Assert.AreEqual(decoder.Consumed, _bufferWriter.WrittenBuffer.Length);
+            Assert.That(p1, Is.EqualTo(r1));
+            Assert.That(decoder.Consumed, Is.EqualTo(_bufferWriter.WrittenBuffer.Length));
         }
 
         [TestCase(0)]
@@ -132,8 +132,8 @@ namespace IceRpc.Tests.SliceInternal
             encoder.EncodeSpan(new ReadOnlySpan<double>(p1));
             double[] r1 = decoder.DecodeSequence<double>();
 
-            CollectionAssert.AreEqual(p1, r1);
-            Assert.AreEqual(decoder.Consumed, _bufferWriter.WrittenBuffer.Length);
+            Assert.That(p1, Is.EqualTo(r1));
+            Assert.That(decoder.Consumed, Is.EqualTo(_bufferWriter.WrittenBuffer.Length));
         }
 
         [TestCase(0)]
@@ -148,8 +148,8 @@ namespace IceRpc.Tests.SliceInternal
                 (ref IceEncoder encoder, string value) => encoder.EncodeString(value));
             IEnumerable<string> r1 = decoder.DecodeSequence(1, (ref IceDecoder decoder) => decoder.DecodeString());
 
-            CollectionAssert.AreEqual(p1, r1);
-            Assert.AreEqual(decoder.Consumed, _bufferWriter.WrittenBuffer.Length);
+            Assert.That(p1, Is.EqualTo(r1));
+            Assert.That(decoder.Consumed, Is.EqualTo(_bufferWriter.WrittenBuffer.Length));
         }
     }
 }

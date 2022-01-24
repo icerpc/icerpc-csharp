@@ -29,7 +29,7 @@ namespace IceRpc.Tests.SliceInternal
             await using var connection = new Connection();
 
             Proxy proxy2 = DecodeProxy();
-            Assert.AreEqual(proxy, proxy2);
+            Assert.That(proxy, Is.EqualTo(proxy2));
 
             void EncodeProxy()
             {
@@ -64,8 +64,8 @@ namespace IceRpc.Tests.SliceInternal
 
             Proxy proxy1 = DecodeProxy();
 
-            Assert.AreEqual(regular.Connection, proxy1.Connection);
-            Assert.AreEqual(proxy1.Endpoint, regular.Connection!.RemoteEndpoint);
+            Assert.That(regular.Connection, Is.EqualTo(proxy1.Connection));
+            Assert.That(proxy1.Endpoint, Is.EqualTo(regular.Connection!.RemoteEndpoint));
 
             void EncodeProxy()
             {
