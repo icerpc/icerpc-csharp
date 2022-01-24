@@ -1,0 +1,48 @@
+
+module IceRpc::Tests::Slice
+{
+    trait TraitA;
+    trait TraitB;
+
+    struct TraitStructA
+    {
+        s: string,
+    }
+
+    struct TraitStructB
+    {
+        l: long,
+    }
+
+    struct TraitStructAB
+    {
+        s: string,
+        l: long,
+    }
+
+    struct NestedTraitStruct
+    {
+        t: TraitA,
+    }
+
+    struct OptionalNestedTraitStruct
+    {
+        t1: TraitA?,
+        t2: TraitB?,
+    }
+
+    interface TraitOperations
+    {
+        opTraitA(p1: TraitA) -> string;
+        opTraitB(p1: TraitB) -> long;
+
+        opTraitASeq(p1: sequence<TraitA>) -> sequence<string>;
+        opTraitBDict(p1: dictionary<byte, TraitB>) -> dictionary<byte, long>;
+        opNestedTraitStruct(p1: NestedTraitStruct) -> string;
+        opOptionalNestedTraitStruct(p1: OptionalNestedTraitStruct) -> (s: string?, l: long?);
+
+        opOptionalTrait(p1: TraitA?) -> string?;
+
+        opConvertToA(p1: TraitB) -> TraitA?;
+    }
+}
