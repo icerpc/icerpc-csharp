@@ -100,15 +100,7 @@ namespace IceRpc.Transports.Internal
 
             // Send the internal buffer first if one is set.
             bool sendingInternalBuffer = _buffer != null;
-            ReadOnlySequence<byte> sendSource;
-            if (_buffer == null)
-            {
-                sendSource = source;
-            }
-            else
-            {
-                sendSource = _buffer.WrittenSequence;
-            }
+            ReadOnlySequence<byte> sendSource = _buffer?.WrittenSequence ?? source;
 
             // Adopt the buffer to prevent it from being disposed before the write completes. The stream can complete
             // this writer before the last stream frame send completes (see
@@ -223,7 +215,7 @@ namespace IceRpc.Transports.Internal
             // The first send buffer is always reserved for the Slic frame header.
             _sendHeader = SlicDefinitions.FrameHeader.ToArray();
             _sendBuffers[0] = _sendHeader;
-            _sendCredit = _connection.PeerPauseWriterThreeshold;
+            _sendCredit = _connection.PeerPauseWriterThreshold;
         }
 
         internal void ReceivedConsumed(int size)
@@ -239,7 +231,7 @@ namespace IceRpc.Transports.Internal
                 Debug.Assert(_sendSemaphore.Count == 0);
                 _sendSemaphore.Release();
             }
-            else if (newValue > _connection.PauseWriterThreeshold)
+            else if (newValue > _connection.PauseWriterThreshold)
             {
                 // The peer is trying to increase the credit to a value which is larger than what it is allowed to.
                 throw new InvalidDataException("invalid flow control credit increase");
@@ -252,7 +244,7 @@ namespace IceRpc.Transports.Internal
             {
                 // If the writer is completed, the caller is bogus, it shouldn't call writer operations after completing
                 // the pipe writer.
-                throw new InvalidOperationException("writting is not allowed once the writer is completed");
+                throw new InvalidOperationException("writing is not allowed once the writer is completed");
             }
         }
 

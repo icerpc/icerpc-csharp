@@ -1,4 +1,4 @@
-// Copyright (c) ZeroC, Inc. All rights reserved.
+SliPipW// Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
 using IceRpc.Internal;
@@ -20,9 +20,9 @@ namespace IceRpc.Transports.Internal
         internal TimeSpan IdleTimeout { get; set; }
         internal bool IsServer { get; }
         internal int PeerPacketMaxSize { get; private set; }
-        internal int PeerPauseWriterThreeshold { get; private set; }
-        internal int PauseWriterThreeshold { get; }
-        internal int ResumeWriterThreeshold { get; }
+        internal int PeerPauseWriterThreshold { get; private set; }
+        internal int PauseWriterThreshold { get; }
+        internal int ResumeWriterThreshold { get; }
         public MemoryPool<byte> Pool { get; }
         public int MinimumSegmentSize { get; }
 
@@ -208,13 +208,13 @@ namespace IceRpc.Transports.Internal
 
             _simpleNetworkConnection = simpleNetworkConnection;
             _packetMaxSize = slicOptions.PacketMaxSize;
-            PauseWriterThreeshold = slicOptions.PauseWriterThreeshold;
-            ResumeWriterThreeshold = slicOptions.ResumeWriterThreeshold;
+            PauseWriterThreshold = slicOptions.PauseWriterThreshold;
+            ResumeWriterThreshold = slicOptions.ResumeWriterThreshold;
 
             // Initially set the peer packet max size to the local max size to ensure we can receive the first
             // initialize frame.
             PeerPacketMaxSize = _packetMaxSize;
-            PeerPauseWriterThreeshold = PauseWriterThreeshold;
+            PeerPauseWriterThreshold = PauseWriterThreshold;
 
             // Configure the maximum stream counts to ensure the peer won't open more than one stream.
             _bidirectionalMaxStreams = slicOptions.BidirectionalStreamMaxCount;
@@ -327,7 +327,7 @@ namespace IceRpc.Transports.Internal
                     EncodeParameter(ParameterKey.MaxBidirectionalStreams, (ulong)_bidirectionalMaxStreams),
                     EncodeParameter(ParameterKey.MaxUnidirectionalStreams, (ulong)_unidirectionalMaxStreams),
                     EncodeParameter(ParameterKey.PacketMaxSize, (ulong)_packetMaxSize),
-                    EncodeParameter(ParameterKey.PauseWriterThreeshold, (ulong)PauseWriterThreeshold)
+                    EncodeParameter(ParameterKey.PauseWriterThreshold, (ulong)PauseWriterThreshold)
                 };
             if (IdleTimeout != TimeSpan.MaxValue && IdleTimeout != Timeout.InfiniteTimeSpan)
             {
@@ -529,9 +529,9 @@ namespace IceRpc.Transports.Internal
                 {
                     PeerPacketMaxSize = (int)value;
                 }
-                else if (key == ParameterKey.PauseWriterThreeshold)
+                else if (key == ParameterKey.PauseWriterThreshold)
                 {
-                    PeerPauseWriterThreeshold = (int)value;
+                    PeerPauseWriterThreshold = (int)value;
                 }
                 else
                 {

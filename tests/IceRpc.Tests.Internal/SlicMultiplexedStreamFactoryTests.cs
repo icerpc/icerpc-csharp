@@ -15,14 +15,14 @@ namespace IceRpc.Tests.Internal
         {
             var clientOptions = new SlicOptions
             {
-                PauseWriterThreeshold = 2405,
-                ResumeWriterThreeshold = 2000,
+                PauseWriterThreshold = 2405,
+                ResumeWriterThreshold = 2000,
                 PacketMaxSize = 4567
             };
             var serverOptions = new SlicOptions
             {
-                PauseWriterThreeshold = 6893,
-                ResumeWriterThreeshold = 2000,
+                PauseWriterThreshold = 6893,
+                ResumeWriterThreshold = 2000,
                 PacketMaxSize = 2098
             };
 
@@ -30,8 +30,8 @@ namespace IceRpc.Tests.Internal
                 await CreateSlicClientServerConnectionsAsync(clientOptions, serverOptions);
             try
             {
-                Assert.That(serverConnection.PeerPauseWriterThreeshold, Is.EqualTo(2405));
-                Assert.That(clientConnection.PeerPauseWriterThreeshold, Is.EqualTo(6893));
+                Assert.That(serverConnection.PeerPauseWriterThreshold, Is.EqualTo(2405));
+                Assert.That(clientConnection.PeerPauseWriterThreshold, Is.EqualTo(6893));
                 Assert.That(serverConnection.PeerPacketMaxSize, Is.EqualTo(4567));
                 Assert.That(clientConnection.PeerPacketMaxSize, Is.EqualTo(2098));
             }

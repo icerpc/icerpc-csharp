@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Buffers;
-using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
@@ -14,7 +13,7 @@ namespace IceRpc.Transports.Internal
         private readonly PipeReader _reader;
         private bool _readCompleted;
         private ReadOnlySequence<byte> _readSequence;
-        private readonly int _resumeThreeshold;
+        private readonly int _resumeThreshold;
         private readonly SlicMultiplexedStream _stream;
 
         public override void AdvanceTo(SequencePosition consumed) => AdvanceTo(consumed, consumed);
@@ -38,10 +37,10 @@ namespace IceRpc.Transports.Internal
             long consumedOffset = _readSequence.GetOffset(consumed);
             _lastExaminedOffset = consumedOffset == examinedOffset ? 0 : examinedOffset;
 
-            // Add the examined length to the total examined length. If it's larger than the resume threeshold, send the
+            // Add the examined length to the total examined length. If it's larger than the resume threshold, send the
             // stream consumed frame to the peer to obtain additional data and reset the total examined length.
             _examined += examinedLength;
-            if (_examined >= _resumeThreeshold)
+            if (_examined >= _resumeThreshold)
             {
                 _stream.SendStreamConsumed(_examined);
                 _examined = 0;
@@ -122,11 +121,11 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal SlicPipeReader(SlicMultiplexedStream stream, PipeReader reader, int resumeThreeshold)
+        internal SlicPipeReader(SlicMultiplexedStream stream, PipeReader reader, int resumeThreshold)
         {
             _stream = stream;
             _reader = reader;
-            _resumeThreeshold = resumeThreeshold;
+            _resumeThreshold = resumeThreshold;
         }
 
         private void CheckIfCompleted()

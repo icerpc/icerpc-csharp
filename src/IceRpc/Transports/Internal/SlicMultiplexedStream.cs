@@ -228,13 +228,13 @@ namespace IceRpc.Transports.Internal
             // TODO: cache resetable SlicPipeReader/SlicPipeWriter on the connection for re-use here.
 
             // TODO: using a Pipe for the SlicReader implementation is a bit overkill. We ensure the pipe never
-            // blocks by setting a larger pause writer threeshold than the peer stream pause writer threeshold.
+            // blocks by setting a larger pause writer threshold than the peer stream pause writer threshold.
             var inputPipe = new Pipe(new PipeOptions(
                 pool: _connection.Pool,
                 minimumSegmentSize: _connection.MinimumSegmentSize,
-                pauseWriterThreshold: _connection.PeerPauseWriterThreeshold + 1));
+                pauseWriterThreshold: _connection.PeerPauseWriterThreshold + 1));
             _inputPipeWriter = inputPipe.Writer;
-            _inputPipeReader = new SlicPipeReader(this, inputPipe.Reader, _connection.ResumeWriterThreeshold);
+            _inputPipeReader = new SlicPipeReader(this, inputPipe.Reader, _connection.ResumeWriterThreshold);
 
             _outputPipeWriter = new SlicPipeWriter(this, _connection);
 

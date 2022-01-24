@@ -10,12 +10,9 @@ namespace IceRpc.Configure
         private int _bidirectionalStreamMaxCount = 100;
         private int _minimumSegmentSize = 4 * 1024;
         private int _packetMaxSize = 32 * 1024;
-        private int _pauseWriterThreeshold = 64 * 1024;
-        private int _resumeWriterThreeshold = 32 * 1024;
+        private int _pauseWriterThreshold = 64 * 1024;
+        private int _resumeWriterThreshold = 32 * 1024;
         private int _unidirectionalStreamMaxCount = 100;
-
-        /// <summary>Constructs Slic options</summary>
-        public SlicOptions() => Pool = MemoryPool<byte>.Shared;
 
         /// <summary>Configures the bidirectional stream maximum count to limit the number of concurrent
         /// bidirectional streams opened on a connection. When this limit is reached, trying to open a new
@@ -35,7 +32,7 @@ namespace IceRpc.Configure
 
         /// <summary>Gets the <see cref="MemoryPool{T}" /> object used for buffer management.</summary>
         /// <value>A pool of memory blocks used for buffer management.</value>
-        public MemoryPool<byte> Pool { get; set; }
+        public MemoryPool<byte> Pool { get; set; } = MemoryPool<byte>.Shared;
 
         /// <summary>Gets the minimum size of the segment requested from the <see cref="Pool" />.</summary>
         /// <value>The minimum size of the segment requested from the <see cref="Pool" />.</value>
@@ -57,21 +54,21 @@ namespace IceRpc.Configure
         }
 
         /// <summary>Gets the number of bytes when writes on a Slic stream starts blocking.</summary>
-        /// <value>The pause writer threeshold.</value>
-        public int PauseWriterThreeshold
+        /// <value>The pause writer threshold.</value>
+        public int PauseWriterThreshold
         {
-            get => _pauseWriterThreeshold;
-            init => _pauseWriterThreeshold = value >= 1024 ? value :
-                throw new ArgumentException($"{nameof(PauseWriterThreeshold)} cannot be less than 1KB", nameof(value));
+            get => _pauseWriterThreshold;
+            init => _pauseWriterThreshold = value >= 1024 ? value :
+                throw new ArgumentException($"{nameof(PauseWriterThreshold)} cannot be less than 1KB", nameof(value));
         }
 
         /// <summary>Gets the number of bytes when writes on a Slic stream stops blocking.</summary>
-        /// <value>The resume writer threeshold.</value>
-        public int ResumeWriterThreeshold
+        /// <value>The resume writer threshold.</value>
+        public int ResumeWriterThreshold
         {
-            get => _resumeWriterThreeshold;
-            init => _resumeWriterThreeshold = value >= 1024 ? value :
-                throw new ArgumentException($"{nameof(ResumeWriterThreeshold)} cannot be less than 1KB", nameof(value));
+            get => _resumeWriterThreshold;
+            init => _resumeWriterThreshold = value >= 1024 ? value :
+                throw new ArgumentException($"{nameof(ResumeWriterThreshold)} cannot be less than 1KB", nameof(value));
         }
 
         /// <summary>Configures the unidirectional stream maximum count to limit the number of concurrent
@@ -92,10 +89,10 @@ namespace IceRpc.Configure
 
         internal void Check()
         {
-            if (_resumeWriterThreeshold > _pauseWriterThreeshold)
+            if (_resumeWriterThreshold > _pauseWriterThreshold)
             {
-                throw new ArgumentException(@$"invalid {nameof(SlicOptions)}, {nameof(ResumeWriterThreeshold)
-                    } can't be superior to {nameof(PauseWriterThreeshold)}");
+                throw new ArgumentException(@$"invalid {nameof(SlicOptions)}, {nameof(ResumeWriterThreshold)
+                    } can't be greather than the value of {nameof(PauseWriterThreshold)}");
             }
         }
     }
