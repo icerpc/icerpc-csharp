@@ -16,7 +16,7 @@ namespace IceRpc.Internal
             if (frame.Protocol.HasFields && !frame.Fields.ContainsKey((int)FieldKey.Compression))
             {
                 frame.PayloadSink = PipeWriter.Create(
-                    new DeflateStream(frame.PayloadSink.AsStream(), options.CompressionLevel));
+                    new DeflateStream(frame.PayloadSink.ToPayloadSinkStream(), options.CompressionLevel));
 
                 var header = new CompressionField(CompressionFormat.Deflate);
                 frame.Fields.Add(

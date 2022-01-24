@@ -1,7 +1,14 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+// #define LOG_PIPE_WRITER
+
 using IceRpc.Configure;
 using Microsoft.Extensions.DependencyInjection;
+
+#if LOG_PIPE_WRITER
+using Microsoft.Extensions.Logging;
+#endif
+
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Compression;
@@ -9,250 +16,214 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Tests.ClientServer
 {
+    // Tests for the Compress interceptor and middleware
+
     [Parallelizable(ParallelScope.All)]
-    class CompressTests
+    public sealed class CompressTests
     {
-        [TestCase(true)]
-        [TestCase(false)]
-        public async Task Compress_Override(bool keepDefault)
+        // The minimum compression factor we expect for the payloads
+        private const float CompressionFactor = 0.5f;
+
+        private static readonly byte[] _mainPayload =
+            Enumerable.Range(0, 4096).Select(i => (byte)(i % 256)).ToArray();
+
+        private static readonly byte[] _streamPayload =
+            Enumerable.Range(0, 10_000).Select(i => (byte)(i % 128)).ToArray();
+
+        [Test]
+        public async Task Compress_RequestPayload(
+            [Values] bool compressPayload,
+            [Values] bool withStream)
         {
-            bool executed = false;
+            bool called = false;
 
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-                .AddTransient<IInvoker>(_ =>
-                    new Pipeline().Use(next => new InlineInvoker((request, cancel) =>
+                .AddTransient<IDispatcher>(_ =>
+                {
+                    var router = new Router();
+
+                    int uncompressedLength = withStream ?
+                        _mainPayload.Length + _streamPayload.Length : _mainPayload.Length;
+
+                    router.Use(next => new InlineDispatcher(
+                        async (request, cancel) =>
+                        {
+                            ReadResult readResult = await request.Payload.ReadAtLeastAsync(uncompressedLength, cancel);
+
+                            if (compressPayload)
+                            {
+                                // Verify we received a compressed payload.
+                                Assert.That(readResult.IsCompleted, Is.True);
+                                Assert.That(
+                                    readResult.Buffer,
+                                    Has.Length.LessThan(uncompressedLength * CompressionFactor));
+                            }
+                            else
+                            {
+                                Assert.That(readResult.Buffer, Has.Length.EqualTo(uncompressedLength));
+                            }
+                            request.Payload.AdvanceTo(readResult.Buffer.Start); // don't consume/examine anything
+                            return await next.DispatchAsync(request, cancel);
+                        }));
+
+                    router.UseCompressor();
+
+                    router.Map("/", new InlineDispatcher(
+                        async (request, cancel) =>
+                        {
+                            ReadResult readResult = await request.Payload.ReadAtLeastAsync(uncompressedLength, cancel);
+
+                            byte[] received = readResult.Buffer.ToArray();
+                            await request.Payload.CompleteAsync();
+
+                            if (withStream)
+                            {
+                                Assert.That(received[0.._mainPayload.Length], Is.EqualTo(_mainPayload));
+                                Assert.That(received[_mainPayload.Length..], Is.EqualTo(_streamPayload));
+                            }
+                            else
+                            {
+                                Assert.That(received, Is.EqualTo(_mainPayload));
+                            }
+                            called = true;
+                            return new OutgoingResponse(request);
+                        }));
+                    return router;
+                })
+                .BuildServiceProvider();
+
+            var proxy = Proxy.FromConnection(serviceProvider.GetRequiredService<Connection>(), "/");
+            var request = new OutgoingRequest(proxy, "compressRequestPayload")
+            {
+                PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(_mainPayload))
+            };
+            if (compressPayload)
+            {
+                request.Features = new FeatureCollection().With(Features.CompressPayload.Yes);
+            }
+            if (withStream)
+            {
+                request.PayloadSourceStream = PipeReader.Create(new ReadOnlySequence<byte>(_streamPayload));
+            }
+
+            var pipeline = new Pipeline();
+
+#if LOG_PIPE_WRITER
+
+            using var loggerFactory = LoggerFactory.Create(
+                builder => _ = builder.AddConsole().SetMinimumLevel(LogLevel.Information));
+
+            // Add timeout interceptor to get a CanBeCanceled cancellation token.
+            pipeline.UseTimeout(TimeSpan.FromSeconds(1));
+
+            pipeline.Use(next => new InlineInvoker(
+                (request, cancel) =>
+                {
+                    request.PayloadSink = new LogPipeWriterDecorator(
+                        request.PayloadSink,
+                        loggerFactory.CreateLogger("InnerPipeWriter"));
+                    return next.InvokeAsync(request, cancel);
+                }));
+#endif
+
+            pipeline.UseCompressor(new CompressOptions { CompressionLevel = CompressionLevel.Fastest });
+
+#if LOG_PIPE_WRITER
+            pipeline.Use(next => new InlineInvoker(
+                (request, cancel) =>
+                {
+                    request.PayloadSink = new LogPipeWriterDecorator(
+                        request.PayloadSink,
+                        loggerFactory.CreateLogger("OuterPipeWriter"));
+                    return next.InvokeAsync(request, cancel);
+                }));
+#endif
+
+            Assert.That(called, Is.False);
+            IncomingResponse response = await pipeline.InvokeAsync(request);
+            Assert.That(called, Is.True);
+            Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
+        }
+
+        [Test]
+        public async Task Compress_ResponsePayload(
+            [Values] bool compressPayload,
+            [Values] bool withStream)
+        {
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<IDispatcher>(_ =>
+                {
+                    Router router = new Router().UseCompressor();
+
+                    var features = new FeatureCollection();
+                    if (compressPayload)
                     {
-                        executed = true;
-                        Assert.AreEqual("opCompressArgs", request.Operation);
-                        Assert.AreEqual(keepDefault ? Features.CompressPayload.Yes : Features.CompressPayload.No,
-                                        request.Features.Get<Features.CompressPayload>());
+                        features = features.With(Features.CompressPayload.Yes);
+                    }
 
-                        return next.InvokeAsync(request, cancel);
-                    })))
-                .BuildServiceProvider();
-
-            CompressTestPrx prx = serviceProvider.GetProxy<CompressTestPrx>();
-
-            var invocation = new Invocation { IsOneway = true };
-
-            if (!keepDefault)
-            {
-                // The generated code does not and should not override a value set explicitly.
-                invocation.RequestFeatures = invocation.RequestFeatures.With(Features.CompressPayload.No);
-            }
-
-            await prx.OpCompressArgsAsync(0, default, invocation);
-            Assert.That(executed, Is.True);
-        }
-
-        [TestCase(512, "Optimal")]
-        [TestCase(2048, "Optimal")]
-        [TestCase(512, "Optimal")]
-        [TestCase(2048, "Fastest")]
-        [TestCase(512, "Fastest")]
-        [TestCase(2048, "Fastest")]
-        public async Task Compress_Payload(int size, string compressionLevel)
-        {
-            bool compressedRequest = false;
-            bool compressedResponse = false;
-
-            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-                .AddTransient<IDispatcher>(_ =>
-                {
-                    var router = new Router();
-                    router.Use(next => new InlineDispatcher(
-                        async (request, cancel) =>
-                        {
-                            try
+                    router.Map("/", new InlineDispatcher(
+                        (request, cancel) => new(
+                            new OutgoingResponse(request)
                             {
-                                compressedRequest = request.Fields.ContainsKey((int)FieldKey.Compression);
-                                OutgoingResponse response = await next.DispatchAsync(request, cancel);
-                                compressedResponse = response.Fields.ContainsKey((int)FieldKey.Compression);
-                                return response;
-                            }
-                            catch
-                            {
-                                compressedResponse = false;
-                                throw;
-                            }
-                        }));
-                    router.UseCompressor(
-                        new CompressOptions
-                        {
-                            CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
-                        });
-                    router.Map<ICompressTest>(new CompressTest());
+                                Features = features,
+                                PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(_mainPayload)),
+                                PayloadSourceStream = PipeReader.Create(withStream ?
+                                    new ReadOnlySequence<byte>(_streamPayload) :
+                                    ReadOnlySequence<byte>.Empty)
+                            })));
                     return router;
-                })
-                .AddTransient<IInvoker>(_ =>
-                {
-                    var pipeline = new Pipeline();
-                    pipeline.UseCompressor(
-                        new CompressOptions
-                        {
-                            CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
-                        });
-                    return pipeline;
                 })
                 .BuildServiceProvider();
 
-            CompressTestPrx prx = serviceProvider.GetProxy<CompressTestPrx>();
+            var proxy = Proxy.FromConnection(serviceProvider.GetRequiredService<Connection>(), "/");
+            var request = new OutgoingRequest(proxy, "compressResponsePayload");
 
-            byte[] data = Enumerable.Range(0, size).Select(i => (byte)i).ToArray();
-            await prx.OpCompressArgsAsync(size, data);
+            bool called = false;
 
-            Assert.That(compressedRequest, Is.True);
-            Assert.That(compressedResponse, Is.False);
+            int uncompressedLength = withStream ? _mainPayload.Length + _streamPayload.Length : _mainPayload.Length;
 
-            // Both request and response payload should be compressed
-            byte[] newData = await prx.OpCompressArgsAndReturnAsync(data);
-            Assert.That(compressedRequest, Is.True);
-            Assert.That(compressedResponse, Is.True);
-            CollectionAssert.AreEqual(newData, data);
-
-            // The request is not compressed and the response is compressed
-            newData = await prx.OpCompressReturnAsync(size);
-            Assert.That(compressedRequest, Is.False);
-            Assert.That(compressedResponse, Is.True);
-            CollectionAssert.AreEqual(newData, data);
-
-            // The exceptions are never compressed
-            Assert.ThrowsAsync<CompressMyException>(async () => await prx.OpWithUserExceptionAsync(size));
-            Assert.That(compressedRequest, Is.True);
-            Assert.That(compressedResponse, Is.False);
-        }
-
-        /*
-        TODO: fix & reenable after refactoring outgoing streams
-        [TestCase(512, 100, "Optimal")]
-        [TestCase(2048, 100, "Optimal")]
-        [TestCase(512, 512, "Optimal")]
-        [TestCase(2048, 512, "Fastest")]
-        [TestCase(512, 2048, "Fastest")]
-        [TestCase(2048, 2048, "Fastest")]
-        public async Task Compress_StreamBytes(int size, int compressionMinSize, string compressionLevel)
-        {
-            OutgoingRequest? outgoingRequest = null;
-            IncomingRequest? incomingRequest = null;
-            OutgoingResponse? outgoingResponse = null;
-
-            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-                .AddTransient<IInvoker>(_ =>
+            Pipeline pipeline = new Pipeline().UseCompressor();
+            pipeline.Use(next => new InlineInvoker(
+                async (request, cancel) =>
                 {
-                    var pipeline = new Pipeline();
-                    pipeline.UseCompressor(
-                        new CompressOptions
-                        {
-                            CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
-                            CompressionMinSize = compressionMinSize
-                        });
-                    pipeline.Use(next => new InlineInvoker(
-                        (request, cancel) =>
-                        {
-                            outgoingRequest = request;
-                            return next.InvokeAsync(request, cancel);
-                        }));
-                    return pipeline;
-                })
-                .AddTransient<IDispatcher>(_ =>
-                {
-                    var router = new Router();
-                    router.UseCompressor(
-                        new CompressOptions
-                        {
-                            CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
-                            CompressionMinSize = compressionMinSize
-                        });
-                    router.Use(next => new InlineDispatcher(
-                        async (request, cancel) =>
-                        {
-                            incomingRequest = request;
-                            outgoingResponse = await next.DispatchAsync(request, cancel);
-                            return outgoingResponse;
-                        }));
-                    router.Map<ICompressTest>(new CompressTest());
-                    return router;
-                }).BuildServiceProvider();
+                    IncomingResponse response = await next.InvokeAsync(request, cancel);
 
-            CompressTestPrx prx = serviceProvider.GetProxy<CompressTestPrx>();
+                    ReadResult readResult = await response.Payload.ReadAtLeastAsync(uncompressedLength, cancel);
+                    if (compressPayload)
+                    {
+                        // Verify we received a compressed payload.
+                        Assert.That(readResult.IsCompleted, Is.True);
+                        Assert.That(readResult.IsCompleted, Is.True);
+                        Assert.That(readResult.Buffer, Has.Length.LessThan(uncompressedLength * CompressionFactor));
+                    }
+                    else
+                    {
+                        Assert.That(readResult.Buffer, Has.Length.EqualTo(uncompressedLength));
+                    }
+                    response.Payload.AdvanceTo(readResult.Buffer.Start); // don't consume/examine anything
 
-            using var sendStream = new MemoryStream(new byte[size]);
-            int receivedSize = await prx.OpCompressStreamArgAsync(sendStream);
-            Assert.That(receivedSize, Is.EqualTo(size));
+                    called = true;
+                    return response;
+                }));
 
-            using var receiveStream = await prx.OpCompressReturnStreamAsync(size);
-            Assert.That(await ReadStreamAsync(receiveStream), Is.EqualTo(size));
+            Assert.That(called, Is.False);
+            IncomingResponse response = await pipeline.InvokeAsync(request);
+            Assert.That(called, Is.True);
+            Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
 
-            byte[] data = new byte[size];
-            var random = new Random();
-            random.NextBytes(data);
-            using var sendStream2 = new MemoryStream(data);
-            using var receiveStream2 = await prx.OpCompressStreamArgAndReturnStreamAsync(sendStream2);
-            Assert.That(await ReadStreamAsync(receiveStream2, data), Is.EqualTo(size));
-        }
+            ReadResult readResult = await response.Payload.ReadAtLeastAsync(uncompressedLength);
+            byte[] received = readResult.Buffer.ToArray();
+            await response.Payload.CompleteAsync();
 
-        */
-
-        internal class CompressTest : Service, ICompressTest
-        {
-            public ValueTask<ReadOnlyMemory<byte>> OpCompressArgsAndReturnAsync(
-                byte[] p1,
-                Dispatch dispatch,
-                CancellationToken cancel) =>
-                new(p1);
-
-            public ValueTask OpCompressArgsAsync(
-                int size,
-                byte[] p1,
-                Dispatch dispatch,
-                CancellationToken cancel) =>
-                default;
-
-            public ValueTask<ReadOnlyMemory<byte>> OpCompressReturnAsync(
-                int size,
-                Dispatch dispatch,
-                CancellationToken cancel) =>
-                new(Enumerable.Range(0, size).Select(i => (byte)i).ToArray());
-
-            public ValueTask OpWithUserExceptionAsync(
-                int size,
-                Dispatch dispatch,
-                CancellationToken cancel) =>
-                throw new CompressMyException(Enumerable.Range(0, size).Select(i => (byte)i).ToArray());
-
-            public ValueTask<int> OpCompressStreamArgAsync(
-                PipeReader stream,
-                Dispatch dispatch,
-                CancellationToken cancel) => ReadStreamAsync(stream);
-
-            public ValueTask<PipeReader> OpCompressReturnStreamAsync(
-                int size,
-                Dispatch dispatch,
-                CancellationToken cancel) => new(PipeReader.Create(new ReadOnlySequence<byte>(new byte[size])));
-
-            public ValueTask<PipeReader> OpCompressStreamArgAndReturnStreamAsync(
-                PipeReader stream,
-                Dispatch dispatch,
-                CancellationToken cancel) => new(stream);
-        }
-
-        private static async ValueTask<int> ReadStreamAsync(PipeReader reader)
-        {
-            int totalSize = 0;
-
-            while (true)
+            if (withStream)
             {
-                ReadResult readResult = await reader.ReadAsync();
-
-                totalSize += (int)readResult.Buffer.Length;
-
-                if (readResult.IsCompleted)
-                {
-                    break; // while
-                }
+                Assert.That(received[0.._mainPayload.Length], Is.EqualTo(_mainPayload));
+                Assert.That(received[_mainPayload.Length..], Is.EqualTo(_streamPayload));
             }
-
-            return totalSize;
+            else
+            {
+                Assert.That(received, Is.EqualTo(_mainPayload));
+            }
         }
     }
 }

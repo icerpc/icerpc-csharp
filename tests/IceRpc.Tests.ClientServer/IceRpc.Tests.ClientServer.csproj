@@ -14,6 +14,7 @@
     <Compile Include="..\Shared\LogAttribute.cs" Link="LogAttribute.cs" />
     <Compile Include="..\Shared\PipeReaderExtensions.cs" Link="PipeReaderExtensions.cs" />
     <Compile Include="..\Shared\PipeWriterDecorator.cs" Link="PipeWriterDecorator.cs" />
+    <Compile Include="..\Shared\LogPipeWriterDecorator.cs" Link="LogPipeWriterDecorator.cs" />
     <Compile Update="generated\RetryTests.cs">
       <SliceCompileSource>RetryTests.slice</SliceCompileSource>
     </Compile>

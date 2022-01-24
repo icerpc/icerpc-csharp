@@ -15,21 +15,11 @@ namespace IceRpc.Internal
         private PipeWriter Decoratee => _decoratee ?? throw new InvalidOperationException("pipe writer not set yet");
         private PipeWriter? _decoratee;
 
-        private Stream? _stream;
-
         public override void Advance(int bytes) => Decoratee.Advance(bytes);
 
         /// <inheritdoc/>
-        public override Stream AsStream(bool leaveOpen = false)
-        {
-            // AsStream is usually called before the decoratee is set.
-
-            if (leaveOpen)
-            {
-                throw new ArgumentException($"{nameof(leaveOpen)} must be false", nameof(leaveOpen));
-            }
-            return _stream ??= new PipeWriterStream(this);
-        }
+        public override Stream AsStream(bool leaveOpen = false) =>
+            throw new InvalidOperationException("call ToPayloadSinkStream");
 
         public override void CancelPendingFlush() => Decoratee.CancelPendingFlush();
         public override void Complete(Exception? exception) => _decoratee?.Complete(exception);
