@@ -5,19 +5,18 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests.Slice
 {
-    [TestFixture("icerpc")]
+    [TestFixture]
     public sealed class TraitTests
     {
         private readonly ServiceProvider _serviceProvider;
         private readonly TraitOperationsPrx _prx;
 
-        public TraitTests(string protocolCode)
+        public TraitTests()
         {
             _serviceProvider = new IntegrationTestServiceCollection()
-                .UseProtocol(protocolCode)
                 .AddTransient<IDispatcher, TraitOperations>()
                 .BuildServiceProvider();
-            _prx = TraitOperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
+            _prx = _serviceProvider.GetProxy<TraitOperationsPrx>();
         }
 
         [OneTimeTearDown]
@@ -44,8 +43,7 @@ namespace IceRpc.Tests.Slice
             // Test operation with sequences of traits.
             Assert.That(
                 await _prx.OpTraitASeqAsync(new IMyTraitA[] { tsa, tsab }),
-                Is.EqualTo(new String[] { "Hello", "Foo" })
-            );
+                Is.EqualTo(new string[] { "Hello", "Foo" }));
 
             // Test operation with dictionaries with trait values.
             var traitDict = new Dictionary<byte, IMyTraitB>() { [28] = tsb, [97] = tsab };

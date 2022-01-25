@@ -135,7 +135,7 @@ impl<'a> Visitor for StructVisitor<'a> {
             )
             .add_comment(
                 "summary",
-                "Encodes this struct as a trait, by encoding its TypeId followed by its fields.",
+                "Encodes this struct as a trait, by encoding its Slice type ID followed by its fields.",
             )
             .add_parameter("ref IceEncoder", "encoder", None, Some("The encoder."))
             .set_body(

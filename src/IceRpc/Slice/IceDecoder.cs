@@ -334,7 +334,7 @@ namespace IceRpc.Slice
             else
             {
                 throw new InvalidDataException(
-                    $"failed to decode struct of type '{typeof(T)}' from type id '{typeId}'");
+                    $"failed to decode struct with type id '{typeId}' implementing interface '{typeof(T)}'");
             }
         }
 

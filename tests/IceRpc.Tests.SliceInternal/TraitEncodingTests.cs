@@ -19,7 +19,7 @@ namespace IceRpc.Tests.SliceInternal
             );
 
             Memory<byte> buffer = new byte[1024];
-            var encoding = Slice20Encoding.Instance;
+            var encoding = Encoding.Slice20;
             var activator = ActivatorFactory.Instance.Get(typeof(TraitEncodingTests).Assembly);
 
             // Test encoding traits with the generated code.
@@ -31,14 +31,8 @@ namespace IceRpc.Tests.SliceInternal
                 var tsa = new TraitStructA("Foo");
                 tsa.EncodeTrait(ref encoder);
 
-                Assert.That(
-                    decoder.DecodeString(),
-                    Is.EqualTo("::IceRpc::Tests::SliceInternal::TraitStructA")
-                );
-                Assert.That(
-                    new TraitStructA(ref decoder),
-                    Is.EqualTo(tsa)
-                );
+                Assert.That(decoder.DecodeString(), Is.EqualTo("::IceRpc::Tests::SliceInternal::TraitStructA"));
+                Assert.That(new TraitStructA(ref decoder), Is.EqualTo(tsa));
             }
 
             // Test decoding a trait to a concrete type.
