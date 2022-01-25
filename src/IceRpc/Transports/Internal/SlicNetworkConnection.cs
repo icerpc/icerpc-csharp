@@ -425,15 +425,15 @@ namespace IceRpc.Transports.Internal
                         }
                         break;
                     }
-                    case FrameType.StreamConsumed:
+                    case FrameType.StreamResumeWrite:
                     {
                         if (dataSize > 8)
                         {
                             throw new InvalidDataException("stream consumed frame too large");
                         }
 
-                        StreamConsumedBody streamConsumed =
-                            await _reader.ReadStreamConsumedAsync(dataSize, cancel).ConfigureAwait(false);
+                        StreamResumeWriteBody streamConsumed =
+                            await _reader.ReadStreamResumeWriteAsync(dataSize, cancel).ConfigureAwait(false);
                         if (_streams.TryGetValue(streamId.Value, out SlicMultiplexedStream? stream))
                         {
                             stream.ReceivedConsumed((int)streamConsumed.Size);

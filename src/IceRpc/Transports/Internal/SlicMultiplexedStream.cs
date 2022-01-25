@@ -338,10 +338,10 @@ namespace IceRpc.Transports.Internal
             TrySetWriteCompleted();
         }
 
-        internal void SendStreamConsumed(int consumed) =>
-            _ = _frameWriter.WriteStreamConsumedAsync(
+        internal void SendStreamResumeWrite(int size) =>
+            _ = _frameWriter.WriteStreamResumeWriteAsync(
                 this,
-                new StreamConsumedBody((ulong)consumed),
+                new StreamResumeWriteBody((ulong)size),
                 CancellationToken.None).AsTask();
 
         internal bool TrySetReadCompleted() => TrySetState(State.ReadCompleted);

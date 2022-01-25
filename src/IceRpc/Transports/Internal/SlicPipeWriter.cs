@@ -19,7 +19,7 @@ namespace IceRpc.Transports.Internal
         private ReadOnlyMemory<byte>[] _sendBuffers = new ReadOnlyMemory<byte>[16];
         // The send credit left for sending data when flow control is enabled. When this reaches 0, no more
         // data can be sent to the peer until the _sendSemaphore is released. The _sendSemaphore will be
-        // released when a StreamConsumed frame is received (indicating that the peer has additional space
+        // released when a StreamResumeWrite frame is received (indicating that the peer has additional space
         // for receiving data).
         private volatile int _sendCredit = int.MaxValue;
         // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
@@ -146,7 +146,7 @@ namespace IceRpc.Transports.Internal
 
                     // Gather the next buffers into _sendBuffers to send the stream frame. We get up to _sendCredit
                     // bytes from the internal buffer or given source. If there are more bytes to send they will be sent
-                    // into a separate packet once the peer sends the StreamConsumed frame to provide additional send
+                    // into a separate packet once the peer sends the StreamResumeWrite frame to provide additional send
                     // credit.
                     int sendSize = 0;
                     _sendBuffers[0] = _sendHeader;
@@ -176,7 +176,7 @@ namespace IceRpc.Transports.Internal
                         // If flow control is enabled, decrease the size of remaining data that we are allowed to send.
                         // If all the credit for sending data is consumed, _sendMaxSize will be 0 and we don't release
                         // the semaphore to prevent further sends. The semaphore will be released once the stream
-                        // receives a StreamConsumed frame. It's important to decrease _sendCredit before sending the
+                        // receives a StreamResumeWrite frame. It's important to decrease _sendCredit before sending the
                         // frame to avoid race conditions where the consumed frame could be received before we decreased
                         // it.
                         int sendCredit = Interlocked.Add(ref _sendCredit, -sendSize);

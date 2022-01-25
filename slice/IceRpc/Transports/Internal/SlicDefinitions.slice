@@ -20,9 +20,8 @@ module IceRpc::Transports::Internal
         StreamLast,
         /// The stream reset frame terminates the stream.
         StreamReset,
-        /// The stream consumed frame is sent to notifiy the peer that data has been consumed. The peer can send
-        /// additional data after receiving this frame.
-        StreamConsumed,
+        /// The stream resume write frame is sent to notify the peer that it can resume write to send additional data.
+        StreamResumeWrite,
         /// The stream stop sending frame is sent to notify the peer it should stop sending data.
         StreamStopSending,
         /// The unidirectional stream released frame notifies the stream initiator that the remote side released the
@@ -89,12 +88,12 @@ module IceRpc::Transports::Internal
         applicationProtocolErrorCode: varlong,
     }
 
-    /// The body of the Stream consumed frame. This frame is sent to notify the peer that the receiver consumed some
-    /// data from the stream.
+    /// The body of the Stream resume write frame. This frame is sent to notify the peer that the receiver permits
+    /// the sender to send additional data.
     [cs:readonly]
-    struct StreamConsumedBody
+    struct StreamResumeWriteBody
     {
-        /// The size of the consumed data.
+        /// The size of the data that the sender can write.
         size: varulong,
     }
 

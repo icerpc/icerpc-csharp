@@ -6,7 +6,7 @@ namespace IceRpc.Transports
     public enum SlicEventIds
     {
         /// <summary>Received Slic stream consumed frame.</summary>
-        ReceivedConsumedFrame,
+        ReceivedResumeWrite,
         /// <summary>Receiving Slic initialize frame.</summary>
         ReceivedInitializeFrame,
         /// <summary>Receiving Slic initialize ack frame.</summary>
@@ -28,7 +28,7 @@ namespace IceRpc.Transports
         /// <summary>Sending Slic frame failed.</summary>
         SendFailure,
         /// <summary>Sent Slic stream consumed frame.</summary>
-        SentConsumedFrame,
+        SentResumeWriteFrame,
         /// <summary>Sent Slic unidirectional stream released frame.</summary>
         SentUnidirectionalStreamReleased,
         /// <summary>Sent Slic initialize frame.</summary>

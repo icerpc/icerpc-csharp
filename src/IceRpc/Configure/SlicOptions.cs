@@ -8,10 +8,12 @@ namespace IceRpc.Configure
     public class SlicOptions
     {
         private int _bidirectionalStreamMaxCount = 100;
-        private int _minimumSegmentSize = 4 * 1024;
-        private int _packetMaxSize = 32 * 1024;
-        private int _pauseWriterThreshold = 64 * 1024;
-        private int _resumeWriterThreshold = 32 * 1024;
+        private int _minimumSegmentSize = 4096;
+        // The default packet size matches the SSL record maximum data size to avoid fragramentation of the Slic packet
+        // when using SSL.
+        private int _packetMaxSize = 16384;
+        private int _pauseWriterThreshold = 65536;
+        private int _resumeWriterThreshold = 32768;
         private int _unidirectionalStreamMaxCount = 100;
 
         /// <summary>Configures the bidirectional stream maximum count to limit the number of concurrent

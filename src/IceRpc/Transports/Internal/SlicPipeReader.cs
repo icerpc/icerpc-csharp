@@ -37,11 +37,11 @@ namespace IceRpc.Transports.Internal
             _lastExaminedOffset = consumedOffset == examinedOffset ? 0 : examinedOffset;
 
             // Add the examined length to the total examined length. If it's larger than the resume threshold, send the
-            // stream consumed frame to the peer to obtain additional data and reset the total examined length.
+            // stream resume write frame to the peer to obtain additional data.
             _examined += examinedLength;
             if (_examined >= _resumeThreshold)
             {
-                _stream.SendStreamConsumed(_examined);
+                _stream.SendStreamResumeWrite(_examined);
                 _examined = 0;
             }
 

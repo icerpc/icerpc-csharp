@@ -102,10 +102,10 @@ namespace IceRpc.Transports.Internal
                     _logger.LogSentSlicResetFrame(dataSize, resetBody.ApplicationProtocolErrorCode);
                     break;
                 }
-                case FrameType.StreamConsumed:
+                case FrameType.StreamResumeWrite:
                 {
-                    StreamConsumedBody consumedBody = ReadFrame(() => reader.ReadStreamConsumedAsync(dataSize, default));
-                    _logger.LogSentSlicConsumedFrame(dataSize, (int)consumedBody.Size);
+                    StreamResumeWriteBody consumedBody = ReadFrame(() => reader.ReadStreamResumeWriteAsync(dataSize, default));
+                    _logger.LogSentSlicResumeWriteFrame(dataSize, (int)consumedBody.Size);
                     break;
                 }
                 case FrameType.StreamStopSending:
