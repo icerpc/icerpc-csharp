@@ -2,7 +2,6 @@
 
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
-using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.SliceInternal
@@ -10,7 +9,7 @@ namespace IceRpc.Tests.SliceInternal
     public sealed class TraitEncodingTests
     {
         [Test]
-        public void Trait_EncodingAsync()
+        public void Trait_Encoding()
         {
             // TODO move this into a TypeId Generation unit test.
             // Test the generation of type-ids on structs.
@@ -65,7 +64,7 @@ namespace IceRpc.Tests.SliceInternal
                 encoder.EncodeString("::IceRpc::Tests::SliceInternal::TraitStructA");
                 tsa.Encode(ref encoder);
 
-                ITraitA decodedTrait = decoder.DecodeTrait<ITraitA>();
+                IMyTraitA decodedTrait = decoder.DecodeTrait<IMyTraitA>();
                 Assert.That(decodedTrait.GetString(), Is.EqualTo("Bar"));
             }
 
@@ -80,12 +79,12 @@ namespace IceRpc.Tests.SliceInternal
 
                 try
                 {
-                    decoder.DecodeTrait<ITraitA>();
+                    decoder.DecodeTrait<IMyTraitA>();
                     Assert.Fail();
                 }
                 catch (InvalidDataException e)
                 {
-                    Assert.That(e.Message, Is.EqualTo("Decoded struct of type 'IceRpc.Tests.SliceInternal.TraitStructB' does not implement expected trait 'IceRpc.Tests.SliceInternal.ITraitA'"));
+                    Assert.That(e.Message, Is.EqualTo("decoded struct of type 'IceRpc.Tests.SliceInternal.TraitStructB' does not implement expected interface 'IceRpc.Tests.SliceInternal.IMyTraitA'"));
                 }
             }
 
@@ -101,40 +100,34 @@ namespace IceRpc.Tests.SliceInternal
 
                 try
                 {
-                    decoder.DecodeTrait<ITraitB>();
+                    decoder.DecodeTrait<IMyTraitB>();
                     Assert.Fail();
                 }
                 catch (InvalidDataException e)
                 {
-                    Assert.That(e.Message, Is.EqualTo("Failed to decode struct of type 'IceRpc.Tests.SliceInternal.ITraitB' from type id '::IceRpc::Tests::SliceInternal::FakeTrait'"));
+                    Assert.That(e.Message, Is.EqualTo("failed to decode struct of type 'IceRpc.Tests.SliceInternal.IMyTraitB' from type id '::IceRpc::Tests::SliceInternal::FakeTrait'"));
                 }
             }
         }
     }
 
-    public partial interface ITraitA
+    public partial interface IMyTraitA
     {
         string GetString();
     }
 
-    public partial interface ITraitB
+    public partial interface IMyTraitB
     {
         long GetLong();
     }
 
-    public partial record struct TraitStructA : ITraitA
+    public partial record struct TraitStructA : IMyTraitA
     {
-        public string GetString()
-        {
-            return this.S;
-        }
+        public string GetString() => S;
     }
 
-    public partial record struct TraitStructB : ITraitB
+    public partial record struct TraitStructB : IMyTraitB
     {
-        public long GetLong()
-        {
-            return this.L;
-        }
+        public long GetLong() => L;
     }
 }

@@ -330,12 +330,12 @@ namespace IceRpc.Slice
             else if (trait != null)
             {
                 throw new InvalidDataException(
-                    $"Decoded struct of type '{trait.GetType()}' does not implement expected trait '{typeof(T)}'");
+                    $"decoded struct of type '{trait.GetType()}' does not implement expected interface '{typeof(T)}'");
             }
             else
             {
                 throw new InvalidDataException(
-                    $"Failed to decode struct of type '{typeof(T)}' from type id '{typeId}'");
+                    $"failed to decode struct of type '{typeof(T)}' from type id '{typeId}'");
             }
         }
 

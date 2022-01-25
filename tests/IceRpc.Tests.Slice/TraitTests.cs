@@ -43,12 +43,12 @@ namespace IceRpc.Tests.Slice
 
             // Test operation with sequences of traits.
             Assert.That(
-                await _prx.OpTraitASeqAsync(new ITraitA[] { tsa, tsab }),
+                await _prx.OpTraitASeqAsync(new IMyTraitA[] { tsa, tsab }),
                 Is.EqualTo(new String[] { "Hello", "Foo" })
             );
 
             // Test operation with dictionaries with trait values.
-            var traitDict = new Dictionary<byte, ITraitB>() { [28] = tsb, [97] = tsab };
+            var traitDict = new Dictionary<byte, IMyTraitB>() { [28] = tsb, [97] = tsab };
             var resultDict = new Dictionary<byte, long>() { [28] = 42, [97] = 79 };
             Assert.That(await _prx.OpTraitBDictAsync(traitDict), Is.EqualTo(resultDict));
 
@@ -60,29 +60,29 @@ namespace IceRpc.Tests.Slice
             Assert.That(await _prx.OpOptionalNestedTraitStructAsync(onts), Is.EqualTo(((string?)null, 79)));
 
             Assert.That(await _prx.OpConvertToAAsync(tsb), Is.Null);
-            Assert.That(await _prx.OpConvertToAAsync(tsab), Is.AssignableTo(typeof(ITraitA)));
+            Assert.That(await _prx.OpConvertToAAsync(tsab), Is.AssignableTo(typeof(IMyTraitA)));
         }
     }
 
     public class TraitOperations : Service, ITraitOperations
     {
         public ValueTask<string> OpTraitAAsync(
-            ITraitA p1,
+            IMyTraitA p1,
             Dispatch dispatch,
             CancellationToken cancel) => new(p1.GetString());
 
         public ValueTask<long> OpTraitBAsync(
-            ITraitB p1,
+            IMyTraitB p1,
             Dispatch dispatch,
             CancellationToken cancel) => new(p1.GetLong());
 
         public ValueTask<IEnumerable<string>> OpTraitASeqAsync(
-            ITraitA[] p1,
+            IMyTraitA[] p1,
             Dispatch dispatch,
             CancellationToken cancel) => new(p1.Select(i => i.GetString()));
 
         public ValueTask<IEnumerable<KeyValuePair<byte, long>>> OpTraitBDictAsync(
-            Dictionary<byte, ITraitB> p1,
+            Dictionary<byte, IMyTraitB> p1,
             Dispatch dispatch,
             CancellationToken cancel) => new(p1.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.GetLong()));
 
@@ -97,52 +97,39 @@ namespace IceRpc.Tests.Slice
             CancellationToken cancel) => new((p1.T1?.GetString(), p1.T2?.GetLong()));
 
         public ValueTask<string?> OpOptionalTraitAsync(
-            ITraitA? p1,
+            IMyTraitA? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new(p1?.GetString());
 
-        public ValueTask<ITraitA?> OpConvertToAAsync(
-            ITraitB p1,
+        public ValueTask<IMyTraitA?> OpConvertToAAsync(
+            IMyTraitB p1,
             Dispatch dispatch,
-            CancellationToken cancel) => new((p1 is ITraitA result) ? result : null);
+            CancellationToken cancel) => new((p1 is IMyTraitA result) ? result : null);
     }
 
-    public partial interface ITraitA
+    public partial interface IMyTraitA
     {
         string GetString();
     }
 
-    public partial interface ITraitB
+    public partial interface IMyTraitB
     {
         long GetLong();
     }
 
-    public partial record struct TraitStructA : ITraitA
+    public partial record struct TraitStructA : IMyTraitA
     {
-        public string GetString()
-        {
-            return this.S;
-        }
+        public string GetString() => S;
     }
 
-    public partial record struct TraitStructB : ITraitB
+    public partial record struct TraitStructB : IMyTraitB
     {
-        public long GetLong()
-        {
-            return this.L;
-        }
+        public long GetLong() => L;
     }
 
-    public partial record struct TraitStructAB : ITraitA, ITraitB
+    public partial record struct TraitStructAB : IMyTraitA, IMyTraitB
     {
-        public string GetString()
-        {
-            return this.S;
-        }
-
-        public long GetLong()
-        {
-            return this.L;
-        }
+        public string GetString() => S;
+        public long GetLong() => L;
     }
 }
