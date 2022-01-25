@@ -11,8 +11,7 @@ namespace IceRpc.Transports.Internal
         private bool _isReaderCompleted;
         private long _lastExaminedOffset;
         private readonly PipeReader _reader;
-        private bool _readCompleted;
-        private ReadOnlySequence<byte> _readSequence;
+        private ReadResult _readResult;
         private readonly int _resumeThreshold;
         private readonly SlicMultiplexedStream _stream;
 
@@ -24,17 +23,17 @@ namespace IceRpc.Transports.Internal
 
             if (_lastExaminedOffset == 0)
             {
-                _lastExaminedOffset = _readSequence.GetOffset(_readSequence.Start);
+                _lastExaminedOffset = _readResult.Buffer.GetOffset(_readResult.Buffer.Start);
             }
 
             // Figure out how much data was examined since last AdvanceTo call.
-            long examinedOffset = _readSequence.GetOffset(examined);
+            long examinedOffset = _readResult.Buffer.GetOffset(examined);
             int examinedLength = (int)(examinedOffset - _lastExaminedOffset);
 
             // If all the examined data has been consumed, the next pipe ReadAsync call will start reading from a new
             // buffer. In this case, we reset _lastExaminedOffset to 0. The next AdvanceTo call will compute the
             // examined data length from the start of the buffer.
-            long consumedOffset = _readSequence.GetOffset(consumed);
+            long consumedOffset = _readResult.Buffer.GetOffset(consumed);
             _lastExaminedOffset = consumedOffset == examinedOffset ? 0 : examinedOffset;
 
             // Add the examined length to the total examined length. If it's larger than the resume threshold, send the
@@ -46,14 +45,15 @@ namespace IceRpc.Transports.Internal
                 _examined = 0;
             }
 
-            // Check if we reached the end of the sequence.
-            bool endOfSequence = consumedOffset == _readSequence.GetOffset(_readSequence.End);
+            // If we reached the end of the sequence and the peer won't be sending additional data, we can mark reads
+            // as completed on the stream.
+            bool readsCompleted =
+                _readResult.IsCompleted &&
+                consumedOffset == _readResult.Buffer.GetOffset(_readResult.Buffer.End);
 
             _reader.AdvanceTo(consumed, examined);
 
-            // If we reached the end of the sequence and we peer won't be sending additional data, we can mark reads
-            // as completed on the stream.
-            if (endOfSequence && _readCompleted)
+            if (readsCompleted)
             {
                 _stream.TrySetReadCompleted();
             }
@@ -69,7 +69,7 @@ namespace IceRpc.Transports.Internal
                 // frame to the peer to notify it shouldn't send additional data.
                 if (!_stream.ReadsCompleted)
                 {
-                    if (exception is null)
+                    if (exception == null)
                     {
                         _stream.AbortRead(SlicStreamError.NoError.ToError());
                     }
@@ -97,8 +97,12 @@ namespace IceRpc.Transports.Internal
             {
                 throw new MultiplexedStreamAbortedException(error);
             }
-            _readCompleted = result.IsCompleted;
-            _readSequence = result.Buffer;
+
+            // Cache the read result for the implementation of AdvanceTo. It needs to be able to figure out how much
+            // data got examined and consumed. It also needs to know if the reader is completed to mark reads as
+            // completed on the stream. We can't do this here as it could cause the stream shutdown to complete this
+            // Slice pipe reader if the stream write side is also completed.
+            _readResult = result;
             return result;
         }
 
@@ -111,8 +115,12 @@ namespace IceRpc.Transports.Internal
                 {
                     throw new MultiplexedStreamAbortedException(error);
                 }
-                _readCompleted = result.IsCompleted;
-                _readSequence = result.Buffer;
+
+                // Cache the read result for the implementation of AdvanceTo. It needs to be able to figure out how much
+                // data got examined and consumed. It also needs to know if the reader is completed to mark reads as
+                // completed on the stream. We can't do this here as it could cause the stream shutdown to complete this
+                // Slice pipe reader if the stream write side is also completed.
+                _readResult = result;
                 return true;
             }
             else

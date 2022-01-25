@@ -171,7 +171,7 @@ namespace IceRpc.Tests.ClientServer
 
             if (protocol == "icerpc")
             {
-                // With icerpc cancelling the peer shutdown might cancel invocations which are being dispatch.
+                // With icerpc cancelation, the peer shutdown might cancel invocations which are being dispatched.
                 try
                 {
                     await Task.WhenAll(results);
@@ -181,7 +181,6 @@ namespace IceRpc.Tests.ClientServer
                 }
                 catch (AggregateException ex)
                 {
-                    // Cancelling the shutdown on the server connections cancels the
                     Assert.That(ex.InnerExceptions.All(exception => exception is OperationCanceledException), Is.True);
                 }
             }

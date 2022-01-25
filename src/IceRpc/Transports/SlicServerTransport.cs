@@ -30,7 +30,6 @@ namespace IceRpc.Transports
         {
             _simpleServerTransport = simpleServerTransport;
             _slicOptions = slicOptions;
-            _slicOptions.Check();
         }
 
         IListener<IMultiplexedNetworkConnection> IServerTransport<IMultiplexedNetworkConnection>.Listen(

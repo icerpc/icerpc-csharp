@@ -112,24 +112,6 @@ namespace IceRpc.Transports.Internal
         private long? _resetErrorCode;
         private int _state;
 
-        public void Abort()
-        {
-            // Abort the stream without notifying the peer. This is used when the connection
-            if (!IsShutdown)
-            {
-                // Ensure the Slic pipe reader reports ConnectionLostException.
-                _inputPipeWriter.Complete(new ConnectionLostException());
-
-                // Ensure the Slic pipe reader and writer are completed.
-                _inputPipeReader.Complete();
-                _outputPipeWriter.Complete();
-
-                // Shutdown the stream after completing the input pipe writer to ensure the Slic pipe reader will
-                // report ConnectionLostException.
-                TrySetState(State.ReadCompleted | State.WriteCompleted);
-            }
-        }
-
         public void AbortRead(long errorCode)
         {
             if (ReadsCompleted)
@@ -253,6 +235,25 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
+        }
+
+        internal void Abort()
+        {
+            // Abort the stream without notifying the peer. This is used for Slic streams which are still registered
+            // with the Slic connection when the connection is disposed.
+            if (!IsShutdown)
+            {
+                // Ensure the Slic pipe reader reports ConnectionLostException.
+                _inputPipeWriter.Complete(new ConnectionLostException());
+
+                // Ensure the Slic pipe reader and writer are completed.
+                _inputPipeReader.Complete();
+                _outputPipeWriter.Complete();
+
+                // Shutdown the stream after completing the input pipe writer to ensure the Slic pipe reader will
+                // report ConnectionLostException.
+                TrySetState(State.ReadCompleted | State.WriteCompleted);
+            }
         }
 
         internal void ReceivedConsumed(int size) => _outputPipeWriter.ReceivedConsumed(size);

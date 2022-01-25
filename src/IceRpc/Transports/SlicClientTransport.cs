@@ -30,7 +30,6 @@ namespace IceRpc.Transports
         {
             _simpleClientTransport = simpleClientTransport;
             _slicOptions = slicOptions;
-            _slicOptions.Check();
         }
 
         IMultiplexedNetworkConnection IClientTransport<IMultiplexedNetworkConnection>.CreateConnection(

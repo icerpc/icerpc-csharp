@@ -42,7 +42,7 @@ namespace IceRpc.Transports.Internal
                 // the peer to notify it won't receive additional data.
                 if (!_stream.WritesCompleted)
                 {
-                    if (exception is null)
+                    if (exception == null)
                     {
                         // Send empty stream frame to terminate the stream gracefully.
                         _ = WriteAsync(ReadOnlySequence<byte>.Empty, true, CancellationToken.None).AsTask();
@@ -92,7 +92,7 @@ namespace IceRpc.Transports.Internal
             // If there's internal pipe data, send it first. Otherwise, send the given source.
             ReadOnlySequence<byte> internalBuffer = ReadOnlySequence<byte>.Empty;
             ReadOnlySequence<byte> sendSource = ReadOnlySequence<byte>.Empty;
-            bool sendInternalBuffer = false;
+            bool sendingInternalBuffer = false;
             if (_pipe.Writer.UnflushedBytes > 0)
             {
                 // The FlushAsync call on the pipe should never block since the pipe uses an inline writer scheduler
@@ -108,7 +108,7 @@ namespace IceRpc.Transports.Internal
                 Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled);
                 internalBuffer = readResult.Buffer;
                 sendSource = internalBuffer;
-                sendInternalBuffer = true;
+                sendingInternalBuffer = true;
             }
             else
             {
@@ -117,7 +117,7 @@ namespace IceRpc.Transports.Internal
 
             try
             {
-                while (true)
+                do
                 {
                     // Check if writes completed, the stream might have been reset by the peer. Don't send the data and
                     // return a completed flush result.
@@ -153,11 +153,11 @@ namespace IceRpc.Transports.Internal
                     int sendBufferIndex = 1;
                     while (sendSize < sendMaxSize)
                     {
-                        if (sendInternalBuffer && sendSource.IsEmpty)
+                        if (sendingInternalBuffer && sendSource.IsEmpty)
                         {
                             // Switch to sending the given source since we've consumed all the data from the internal
                             // pipe.
-                            sendInternalBuffer = false;
+                            sendingInternalBuffer = false;
                             sendSource = source;
                         }
 
@@ -186,7 +186,7 @@ namespace IceRpc.Transports.Internal
                             await _connection.SendStreamFrameAsync(
                                 _stream,
                                 _sendBuffers.AsMemory()[0..sendBufferIndex],
-                                endStream: completeWhenDone && !sendInternalBuffer && sendSource.IsEmpty,
+                                endStream: completeWhenDone && !sendingInternalBuffer && sendSource.IsEmpty,
                                 cancel).ConfigureAwait(false);
                         }
 
@@ -201,13 +201,8 @@ namespace IceRpc.Transports.Internal
                         _sendSemaphore.Complete(ex);
                         throw;
                     }
-
-                    if (!sendInternalBuffer && sendSource.IsEmpty)
-                    {
-                        // Debug.Assert(!completeWhenDone || _stream.WritesCompleted);
-                        break;
-                    }
                 }
+                while (sendingInternalBuffer || !sendSource.IsEmpty);
             }
             finally
             {
