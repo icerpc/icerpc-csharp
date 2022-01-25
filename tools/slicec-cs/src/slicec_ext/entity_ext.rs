@@ -20,8 +20,17 @@ pub trait EntityExt: Entity {
     fn escape_scoped_identifier_with_suffix(&self, suffix: &str, current_namespace: &str)
         -> String;
 
+    /// Returns the interface name corresponding to this entity's identifier, without scoping.
+    /// eg. If this entity's identifier is `foo`, the C# interface name is `IFoo`.
+    /// The name is always prefixed with 'I' and the first letter is always
+    /// capitalized. If the identifier is already in this format, it is returned unchanged.
+    fn interface_name(&self) -> String;
+
+    /// Returns the interface name corresponding to this entity's identifier, fully scoped.
+    fn scoped_interface_name(&self, current_namepsace: &str) -> String;
+
     /// The helper name
-    fn helper_name(&self, namespace: &str) -> String;
+    fn helper_name(&self, current_namespace: &str) -> String;
 
     /// The C# namespace
     fn namespace(&self) -> String;
@@ -92,6 +101,30 @@ where
     /// The helper name for this Entity
     fn helper_name(&self, namespace: &str) -> String {
         self.escape_scoped_identifier_with_suffix("Helper", namespace)
+    }
+
+    fn interface_name(&self) -> String {
+        let identifier = fix_case(self.identifier(), CaseStyle::Pascal);
+        let mut chars = identifier.chars();
+
+        // Check if the interface already follows the 'I' prefix convention.
+        if identifier.chars().count() > 2
+            && chars.next().unwrap() == 'I'
+            && chars.next().unwrap().is_uppercase()
+        {
+            identifier.to_owned()
+        } else {
+            format!("I{}", identifier)
+        }
+    }
+
+    fn scoped_interface_name(&self, current_namespace: &str) -> String {
+        let namespace = self.namespace();
+        if current_namespace == namespace {
+            self.interface_name()
+        } else {
+            format!("global::{}.{}", namespace, self.interface_name())
+        }
     }
 
     /// The C# namespace of this Entity

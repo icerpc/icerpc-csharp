@@ -188,6 +188,12 @@ impl Visitor for CsValidator {
         }
     }
 
+    fn visit_trait(&mut self, trait_def: &Trait) {
+        for attribute in &cs_attributes(trait_def.attributes()) {
+            validate_common_attributes(attribute);
+        }
+    }
+
     fn visit_type_alias(&mut self, type_alias: &TypeAlias) {
         validate_data_type_attributes(&type_alias.underlying);
     }
