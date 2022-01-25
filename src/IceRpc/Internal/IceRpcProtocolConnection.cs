@@ -648,13 +648,19 @@ namespace IceRpc.Internal
             EncodeAction? frameEncodeAction,
             CancellationToken cancel)
         {
-            using var bufferWriter = new SequenceBufferWriter();
-            EncodeFrame(bufferWriter);
+            EncodeFrame(_controlStream!.Output);
 
-            await _controlStream!.Output.WriteAsync(
-                bufferWriter.WrittenSequence,
-                completeWhenDone: frameType == IceRpcControlFrameType.GoAwayCompleted,
-                cancel).ConfigureAwait(false);
+            if (frameType == IceRpcControlFrameType.GoAwayCompleted)
+            {
+                await _controlStream!.Output.WriteAsync(
+                    ReadOnlySequence<byte>.Empty,
+                    completeWhenDone: true,
+                    cancel).ConfigureAwait(false);
+            }
+            else
+            {
+                await _controlStream!.Output.FlushAsync(cancel).ConfigureAwait(false);
+            }
 
             void EncodeFrame(IBufferWriter<byte> bufferWriter)
             {
