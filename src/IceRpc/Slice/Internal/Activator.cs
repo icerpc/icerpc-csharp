@@ -110,9 +110,13 @@ namespace IceRpc.Slice.Internal
 
                 ParameterExpression decoderParam = Expression.Parameter(typeof(IceDecoder).MakeByRefType(), "decoder");
 
-                var constructorExpression = Expression.New(constructor, decoderParam);
-                var boxedExpression = Expression.Convert(constructorExpression, typeof(object));
-                return Expression.Lambda<ActivateObject>(boxedExpression, decoderParam).Compile();
+                Expression expression = Expression.New(constructor, decoderParam);
+                if (type.IsValueType)
+                {
+                    // Box the expression.
+                    expression = Expression.Convert(expression, typeof(object));
+                }
+                return Expression.Lambda<ActivateObject>(expression, decoderParam).Compile();
             }
         }
 

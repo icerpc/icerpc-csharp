@@ -18,12 +18,12 @@ impl<'a> Visitor for TraitVisitor<'a> {
         let access = trait_def.access_modifier();
 
         let container_type = format!("{} partial interface", access);
-        let mut trait_interface = ContainerBuilder::new(&container_type, &trait_interface_name);
-        trait_interface
+        let trait_code = ContainerBuilder::new(&container_type, &trait_interface_name)
             .add_comment("summary", &doc_comment_message(trait_def))
             .add_container_attributes(trait_def)
-            .add_base("IceRpc.Slice.ITrait".to_owned());
+            .add_base("IceRpc.Slice.ITrait".to_owned())
+            .build();
 
-        self.generated_code.insert_scoped(trait_def, trait_interface.build().into());
+        self.generated_code.insert_scoped(trait_def, trait_code.into());
     }
 }

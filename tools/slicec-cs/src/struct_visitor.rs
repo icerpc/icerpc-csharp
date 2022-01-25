@@ -140,7 +140,8 @@ impl<'a> Visitor for StructVisitor<'a> {
             .add_parameter("ref IceEncoder", "encoder", None, Some("The encoder."))
             .set_body(
                 format!(
-                    r#"encoder.EncodeString(typeof({}).GetIceTypeId()!);
+                    r#"
+encoder.EncodeString(typeof({}).GetIceTypeId()!);
 this.Encode(ref encoder);"#,
                     &escaped_identifier,
                 )

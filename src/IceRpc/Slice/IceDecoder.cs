@@ -314,8 +314,7 @@ namespace IceRpc.Slice
         /// <returns>The decoded trait.</returns>
         public T DecodeTrait<T>()
         {
-            // Temporary until we implement slice-driven encoding.
-            if (Encoding != IceRpc.Encoding.Slice20)
+            if (Encoding == IceRpc.Encoding.Slice11)
             {
                 throw new InvalidOperationException(
                     $"{nameof(DecodeTrait)} is not compatible with encoding {Encoding}");
