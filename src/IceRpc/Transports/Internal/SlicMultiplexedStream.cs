@@ -207,14 +207,12 @@ namespace IceRpc.Transports.Internal
             _frameReader = reader;
             _frameWriter = writer;
 
-            // TODO: cache resetable SlicPipeReader/SlicPipeWriter on the connection for re-use here.
-
-            // TODO: using a Pipe for the SlicReader implementation is a bit overkill. We ensure the pipe never
-            // blocks by setting a larger pause writer threshold than the peer stream pause writer threshold.
+            // Create a pipe to push the Slice received frame data to the SlicPipeReader.
             var inputPipe = new Pipe(new PipeOptions(
                 pool: _connection.Pool,
                 minimumSegmentSize: _connection.MinimumSegmentSize,
-                pauseWriterThreshold: _connection.PeerPauseWriterThreshold + 1));
+                pauseWriterThreshold: 0,
+                writerScheduler: PipeScheduler.Inline));
             _inputPipeWriter = inputPipe.Writer;
             _inputPipeReader = new SlicPipeReader(this, inputPipe.Reader, _connection.ResumeWriterThreshold);
 

@@ -173,12 +173,11 @@ namespace IceRpc.Transports.Internal
 
                     try
                     {
-                        // If flow control is enabled, decrease the size of remaining data that we are allowed to send.
-                        // If all the credit for sending data is consumed, _sendMaxSize will be 0 and we don't release
-                        // the semaphore to prevent further sends. The semaphore will be released once the stream
-                        // receives a StreamResumeWrite frame. It's important to decrease _sendCredit before sending the
-                        // frame to avoid race conditions where the consumed frame could be received before we decreased
-                        // it.
+                        // Decrease the size of remaining data that we are allowed to send. If all the credit for
+                        // sending data is consumed, _sendMaxSize will be 0 and we don't release the semaphore to
+                        // prevent further sends. The semaphore will be released once the stream receives a
+                        // StreamResumeWrite frame. It's important to decrease _sendCredit before sending the frame to
+                        // avoid race conditions where the consumed frame could be received before we decreased it.
                         int sendCredit = Interlocked.Add(ref _sendCredit, -sendSize);
                         if (sendSize > 0 || completeWhenDone)
                         {
@@ -231,6 +230,8 @@ namespace IceRpc.Transports.Internal
             // the Slic flow control doesn't permit sending more data. We also use an inline pipe scheduler for write to
             // avoid thread context switches when FlushAsync is called on the internal pipe writer.
             _pipe = new(new PipeOptions(
+                pool: _connection.Pool,
+                minimumSegmentSize: _connection.MinimumSegmentSize,
                 pauseWriterThreshold: 0,
                 writerScheduler: PipeScheduler.Inline));
 
@@ -242,11 +243,6 @@ namespace IceRpc.Transports.Internal
 
         internal void ReceivedConsumed(int size)
         {
-            if (_sendSemaphore == null)
-            {
-                throw new InvalidDataException("invalid stream consumed frame, flow control is not enabled");
-            }
-
             int newValue = Interlocked.Add(ref _sendCredit, size);
             if (newValue == size)
             {

@@ -155,6 +155,7 @@ namespace IceRpc.Transports.Internal
         }
 
         public IMultiplexedStream CreateStream(bool bidirectional) =>
+            // TODO: Cache SliceMultiplexedStream
             new SlicMultiplexedStream(this, bidirectional, remote: false, _reader, _writer);
 
         public async ValueTask DisposeAsync()
@@ -402,6 +403,7 @@ namespace IceRpc.Transports.Internal
                             }
 
                             // Accept the new incoming stream.
+                            // TODO: Cache SliceMultiplexedStream
                             stream = new SlicMultiplexedStream(this, isBidirectional, remote: true, _reader, _writer);
                             try
                             {
@@ -429,7 +431,7 @@ namespace IceRpc.Transports.Internal
                     {
                         if (dataSize > 8)
                         {
-                            throw new InvalidDataException("stream consumed frame too large");
+                            throw new InvalidDataException("stream resume write frame too large");
                         }
 
                         StreamResumeWriteBody streamConsumed =
