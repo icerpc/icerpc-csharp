@@ -133,7 +133,7 @@ namespace IceRpc
 
         private UriProxyFormat()
         {
-           // ensures we have a singleton
+            // ensures we have a singleton
         }
     }
 }

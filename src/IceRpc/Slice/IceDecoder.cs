@@ -797,7 +797,7 @@ namespace IceRpc.Slice
                             var builder = ImmutableDictionary.CreateBuilder<string, string>();
                             builder.Add("transport", TransportNames.Opaque);
                             builder.Add("t", ((short)transportCode).ToString(CultureInfo.InvariantCulture));
-                            builder.Add("e", encoding.ToString() );
+                            builder.Add("e", encoding.ToString());
                             builder.Add("v", Convert.ToBase64String(vSpan));
 
                             endpoint = new Endpoint(
