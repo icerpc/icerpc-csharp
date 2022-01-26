@@ -62,6 +62,7 @@ function Build($config, $examples, $srcdist) {
 }
 
 function Install($config) {
+    $dotnetConfiguration = DotnetConfiguration($config)
     BuildCompiler $config
     Pack $config
     $global_packages = dotnet nuget locals -l global-packages
@@ -69,7 +70,7 @@ function Install($config) {
     Remove-Item $global_packages"\icerpc\$version" -Recurse -Force -ErrorAction Ignore
     Remove-Item $global_packages"\icerpc.coloc\$version" -Recurse -Force -ErrorAction Ignore
     Remove-Item $global_packages"\icerpc.interop\$version" -Recurse -Force -ErrorAction Ignore
-    RunCommand "dotnet" @('nuget', 'push', 'lib\*.nupkg', '--source', $global_packages)
+    RunCommand "dotnet" @('nuget', 'push', "src\**\$dotnetConfiguration\*.nupkg", '--source', $global_packages)
 }
 
 function Pack($config) {

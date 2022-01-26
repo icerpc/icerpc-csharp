@@ -3,7 +3,6 @@
     <PropertyGroup>
         <AssemblyName>IceRpc</AssemblyName>
         <Title>IceRpc .NET library</Title>
-        <OutputPath>../../lib</OutputPath>
         <TargetFramework>net6.0</TargetFramework>
         <AnalysisMode>AllEnabledByDefault</AnalysisMode>
         <PackageVersion>$(IceRpcVersion)</PackageVersion>

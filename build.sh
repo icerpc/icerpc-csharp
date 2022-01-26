@@ -60,7 +60,7 @@ install()
     global_packages=$(dotnet nuget locals -l global-packages)
     global_packages=${global_packages/global-packages: /""}
     run_command rm "-rf" "$global_packages/icerpc/$version" "$global_packages/icerpc.coloc/$version" "$global_packages/icerpc.interop/$version"
-    run_command dotnet "nuget" "push" "lib/*.nupkg" "--source" "$global_packages"
+    run_command dotnet "nuget" "push" "src/**/$dotnet_config/*.nupkg" "--source" "$global_packages"
 }
 
 clean_icerpc()

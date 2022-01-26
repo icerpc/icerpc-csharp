@@ -5,12 +5,14 @@
         {
           "src": "../",
           "files": [
-            "src/IceRpc/IceRpc.csproj"
+              "src/IceRpc/bin/**/IceRpc.dll",
+              "src/IceRpc.Coloc/bin/**/IceRpc.Coloc.dll",
+              "src/IceRpc.Interop/bin/**/IceRpc.Interop.dll",
           ],
           "exclude": [
-            "**/bin/**",
-            "**/obj/**",
-            "_site/**"
+              "**/obj/**",
+              "**/ref/**",
+              "_site/**"
           ]
         }
       ],
