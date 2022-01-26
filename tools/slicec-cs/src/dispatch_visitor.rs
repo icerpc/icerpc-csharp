@@ -363,7 +363,11 @@ pub fn response_encode_action(operation: &Operation) -> CodeBlock {
         && returns.first().unwrap().tag.is_none();
 
     if use_default_encode_action {
-        encode_action(returns.first().unwrap().data_type(), namespace, true, true)
+        encode_action(
+            returns.first().unwrap().data_type(),
+            TypeContext::Outgoing,
+            namespace,
+        )
     } else {
         format!(
             "\
@@ -611,7 +615,8 @@ fn payload_source_stream(operation: &Operation, encoding: &str) -> CodeBlock {
                         stream_type.to_type_string(namespace, TypeContext::Outgoing, false),
                     stream_arg = stream_arg,
                     encoding = encoding,
-                    encode_action = encode_action(stream_type, namespace, false, false).indent(),
+                    encode_action =
+                        encode_action(stream_type, TypeContext::Outgoing, namespace).indent(),
                 )
                 .into(),
             }
