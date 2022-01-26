@@ -27,7 +27,6 @@ namespace IceRpc.Tests.SliceInternal
 
         /// <summary>Tests `EncodeSpan` and `DecodeSequence` with a value type.</summary>
         /// <param name="size">An int used to specify how many elements to generate in the sequence.</param>
-        /// <returns>void</returns>
         [TestCase(0)]
         [TestCase(256)]
         public void BuiltInTypesSequences_FixedSizeNumeric(int size)
@@ -49,7 +48,6 @@ namespace IceRpc.Tests.SliceInternal
         /// with a value type. Additionally, covers the case where count is 0 and the case where count > 0 for both
         /// `EncodeSequenceWithBitSequence` and `DecodeSequenceWithBitSequence`.</summary>
         /// <param name="size">An int used to specify how many elements to generate in the sequence.</param>
-        /// <returns>void</returns>
         [TestCase(0)]
         [TestCase(256)]
         public void BuiltInTypesSequences_FixedSizeNumeric_Optional(int size)
@@ -67,7 +65,6 @@ namespace IceRpc.Tests.SliceInternal
 
         /// <summary>Tests `EncodeSequence` and `DecodeSequence` with a reference type. Also tests `DecodeString`.</summary>
         /// <param name="size">An int used to specify how many elements to generate in the sequence.</param>
-        /// <returns>void</returns>
         [TestCase(0)]
         [TestCase(256)]
         public void BuiltInTypesSequences_String(int size)
@@ -87,7 +84,6 @@ namespace IceRpc.Tests.SliceInternal
         /// with a reference type. Additionally, covers the case where count is 0 and the case where count > 0 for both
         /// `EncodeSequenceWithBitSequence` and `DecodeSequenceWithBitSequence`</summary>
         /// <param name="size">An int used to specify how many elements to generate in the sequence.</param>
-        /// <returns>void</returns>
         [TestCase(0)]
         [TestCase(256)]
         public void BuiltInTypesSequences_String_Optional(int size)
@@ -107,10 +103,9 @@ namespace IceRpc.Tests.SliceInternal
         /// and `DecodeVarLong` which consequently tests `GetVarLongEncodedSizeExponent` and `DecodeVarLong`.
         /// Finally tests the `T[]`, `ImmutableArray<T>`, and `ArraySegment<T>` cases for `EncodeSequence`</summary>
         /// <param name="size">An int used to specify how many elements to generate in the sequence.</param>
-        /// <returns>void</returns>
         [TestCase(0)]
         [TestCase(256)]
-        public void BuiltInTypesSequences_Long(int size){
+        public void BuiltInTypesSequences_VarLong(int size){
             var encoder = new IceEncoder(_bufferWriter, _encoding);
             var decoder = new IceDecoder(_buffer, _encoding);
 
