@@ -9,12 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\Shared\IntegrationTestServiceCollection.cs" Link="IntegrationTestServiceCollection.cs" />
-    <Compile Include="..\Shared\TransportServiceCollection.cs" Link="TransportServiceCollection.cs" />
-    <Compile Include="..\Shared\LogAttribute.cs" Link="LogAttribute.cs" />
-    <Compile Include="..\Shared\PipeReaderExtensions.cs" Link="PipeReaderExtensions.cs" />
-    <Compile Include="..\Shared\PipeWriterDecorator.cs" Link="PipeWriterDecorator.cs" />
-    <Compile Include="..\Shared\LogPipeWriterDecorator.cs" Link="LogPipeWriterDecorator.cs" />
     <Compile Update="generated\RetryTests.cs">
       <SliceCompileSource>RetryTests.slice</SliceCompileSource>
     </Compile>
@@ -50,6 +44,7 @@
     <ProjectReference Include="..\..\src\IceRpc\IceRpc.csproj" />
     <ProjectReference Include="..\..\src\IceRpc.Coloc\IceRpc.Coloc.csproj" />
     <ProjectReference Include="..\..\src\IceRpc.Interop\IceRpc.Interop.csproj" />
+    <ProjectReference Include="..\IceRpc.Tests.Common\IceRpc.Tests.Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>
