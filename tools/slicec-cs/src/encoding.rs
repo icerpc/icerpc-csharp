@@ -30,13 +30,23 @@ pub fn encode_data_members(
 
     for member in required_members {
         let param = format!("this.{}", member.field_name(field_type));
-        code.writeln(&encode_type(member.data_type(), true, namespace, &param));
+        code.writeln(&encode_type(
+            member.data_type(),
+            TypeContext::DataMember,
+            namespace,
+            &param,
+        ));
     }
 
     // Encode tagged
     for member in tagged_members {
         let param = format!("this.{}", member.field_name(field_type));
-        code.writeln(&encode_tagged_type(member, namespace, &param, true));
+        code.writeln(&encode_tagged_type(
+            member,
+            namespace,
+            &param,
+            TypeContext::DataMember,
+        ));
     }
 
     code
@@ -44,7 +54,7 @@ pub fn encode_data_members(
 
 fn encode_type(
     type_ref: &TypeRef,
-    for_nested_type: bool,
+    type_context: TypeContext,
     namespace: &str,
     param: &str,
 ) -> CodeBlock {
@@ -77,13 +87,7 @@ fn encode_type(
                 TypeRefs::Trait(_) => format!("{}.EncodeTrait(ref encoder);", param),
                 TypeRefs::Sequence(sequence_ref) => format!(
                     "{};",
-                    encode_sequence(
-                        sequence_ref,
-                        namespace,
-                        param,
-                        !for_nested_type,
-                        !for_nested_type,
-                    ),
+                    encode_sequence(sequence_ref, namespace, param, type_context),
                 ),
                 TypeRefs::Dictionary(dictionary_ref) => {
                     format!("{};", encode_dictionary(dictionary_ref, namespace, param))
@@ -115,7 +119,7 @@ if ({param} != null)
                         TypeRefs::Sequence(sequence_def)
                             if sequence_def.has_fixed_size_numeric_elements()
                                 && !sequence_def.has_attribute("cs:generic", false)
-                                && !for_nested_type =>
+                                && type_context == TypeContext::Outgoing =>
                             format!("{}.Span", param),
                         _ => param.to_owned(),
                     },
@@ -133,7 +137,7 @@ fn encode_tagged_type(
     member: &impl Member,
     namespace: &str,
     param: &str,
-    is_data_member: bool,
+    type_context: TypeContext,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
     let data_type = member.data_type();
@@ -145,7 +149,7 @@ fn encode_tagged_type(
     let read_only_memory = match data_type.concrete_type() {
         Types::Sequence(sequence_def)
             if sequence_def.has_fixed_size_numeric_elements()
-                && !is_data_member
+                && type_context == TypeContext::Outgoing
                 && !data_type.has_attribute("cs:generic", false) =>
         {
             true
@@ -238,13 +242,7 @@ fn encode_tagged_type(
     }
     args.push(value);
     args.push(
-        encode_action(
-            &clone_as_non_optional(data_type),
-            namespace,
-            !is_data_member,
-            !is_data_member,
-        )
-        .to_string(),
+        encode_action(&clone_as_non_optional(data_type), type_context, namespace).to_string(),
     );
 
     writeln!(
@@ -277,12 +275,11 @@ fn encode_sequence(
     sequence_ref: &TypeRef<Sequence>,
     namespace: &str,
     value: &str,
-    is_param: bool,
-    is_read_only: bool,
+    type_context: TypeContext,
 ) -> CodeBlock {
     let has_custom_type = sequence_ref.has_attribute("cs:generic", false);
     if sequence_ref.has_fixed_size_numeric_elements() {
-        if is_param && is_read_only && !has_custom_type {
+        if type_context == TypeContext::Outgoing && !has_custom_type {
             format!("encoder.EncodeSpan({}.Span)", value)
         } else {
             format!("encoder.EncodeSequence({})", value)
@@ -299,13 +296,8 @@ encoder.EncodeSequence{with_bit_sequence}(
                 ""
             },
             param = value,
-            encode_action = encode_action(
-                &sequence_ref.element_type,
-                namespace,
-                is_read_only,
-                is_param,
-            )
-            .indent()
+            encode_action =
+                encode_action(&sequence_ref.element_type, TypeContext::Nested, namespace).indent()
         )
     }
     .into()
@@ -326,18 +318,15 @@ encoder.{method}(
             "EncodeDictionary"
         },
         param = param,
-        encode_key = encode_action(&dictionary_def.key_type, namespace, false, false).indent(),
-        encode_value = encode_action(&dictionary_def.value_type, namespace, false, false).indent()
+        encode_key =
+            encode_action(&dictionary_def.key_type, TypeContext::Nested, namespace).indent(),
+        encode_value =
+            encode_action(&dictionary_def.value_type, TypeContext::Nested, namespace).indent()
     )
     .into()
 }
 
-pub fn encode_action(
-    type_ref: &TypeRef,
-    namespace: &str,
-    is_read_only: bool,
-    is_param: bool,
-) -> CodeBlock {
+pub fn encode_action(type_ref: &TypeRef, type_context: TypeContext, namespace: &str) -> CodeBlock {
     let mut code = CodeBlock::new();
     let is_optional = type_ref.is_optional;
 
@@ -346,18 +335,6 @@ pub fn encode_action(
         (true, true) => "value!.Value",
         _ => "value",
     };
-
-    // TODO: why do we have is_param, is_read_only and a type_context - just to create confusion?
-    let type_context = if is_param {
-        if is_read_only {
-            TypeContext::Outgoing
-        } else {
-            TypeContext::Incoming
-        }
-    } else {
-        TypeContext::Nested
-    };
-
     let value_type = type_ref.to_type_string(namespace, type_context, false);
 
     match &type_ref.concrete_typeref() {
@@ -425,8 +402,7 @@ pub fn encode_action(
                 code,
                 "(ref IceEncoder encoder, {value_type} value) => {encode_sequence}",
                 value_type = value_type,
-                encode_sequence =
-                    encode_sequence(sequence_ref, namespace, "value", is_read_only, is_param)
+                encode_sequence = encode_sequence(sequence_ref, namespace, "value", type_context)
             )
         }
         TypeRefs::Struct(_) => {
@@ -474,7 +450,7 @@ pub fn encode_operation(operation: &Operation, return_type: bool) -> CodeBlock {
     for member in required_members {
         code.writeln(&encode_type(
             member.data_type(),
-            false,
+            TypeContext::Outgoing,
             namespace,
             &match members.as_slice() {
                 [_] => "value".to_owned(),
@@ -491,7 +467,7 @@ pub fn encode_operation(operation: &Operation, return_type: bool) -> CodeBlock {
                 [_] => "value".to_owned(),
                 _ => format!("value.{}", &member.field_name(FieldType::NonMangled)),
             },
-            false,
+            TypeContext::Outgoing,
         ));
     }
 
