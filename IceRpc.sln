@@ -33,7 +33,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Interop", "src\IceRp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Coloc", "src\IceRpc.Coloc\IceRpc.Coloc.csproj", "{D15A88B3-649B-4E2D-86F8-FFA5094E9644}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Tests.Shared", "tests\IceRpc.Tests.Shared\IceRpc.Tests.Shared.csproj", "{2C1B2C4E-5C9C-4C2D-8662-D442132B2F44}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Tests.Common", "tests\IceRpc.Tests.Common\IceRpc.Tests.Common.csproj", "{2C1B2C4E-5C9C-4C2D-8662-D442132B2F44}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
