@@ -4,7 +4,7 @@ namespace IceRpc.Configure
 {
     /// <summary>This class provides extension methods to add interop interceptors to a <see cref="Pipeline"/>.
     /// </summary>
-    public static class PipelineExtensions
+    public static class InteropPipelineExtensions
     {
         /// <summary>Adds a <see cref="LocatorInterceptor"/> to the pipeline. This locator interceptor uses the default
         /// configuration options.</summary>
