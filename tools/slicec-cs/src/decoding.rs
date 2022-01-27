@@ -432,7 +432,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
             decode = decode_member(
                 member,
                 namespace,
-                &member.parameter_name_with_prefix("iceP_"),
+                &member.parameter_name_with_prefix("sliceP_"),
             )
         )
     }
@@ -452,7 +452,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
             decode = decode_tagged_member(
                 member,
                 namespace,
-                &member.parameter_name_with_prefix("iceP_"),
+                &member.parameter_name_with_prefix("sliceP_"),
             )
         )
     }
@@ -460,7 +460,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
     writeln!(
         code,
         "return {};",
-        non_streamed_members.to_argument_tuple("iceP_")
+        non_streamed_members.to_argument_tuple("sliceP_")
     );
 
     code
@@ -514,7 +514,7 @@ response.ToAsyncEnumerable<{param_type}>(
         format!(
             "{stream_param_type} {param_name} = {create_stream_param}",
             stream_param_type = stream_type_str,
-            param_name = stream_member.parameter_name_with_prefix("iceP_"),
+            param_name = stream_member.parameter_name_with_prefix("sliceP_"),
             create_stream_param = create_stream_param
         )
         .into()
