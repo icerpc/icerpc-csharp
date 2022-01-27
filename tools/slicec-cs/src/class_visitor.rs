@@ -239,17 +239,17 @@ public override global::System.Collections.Immutable.ImmutableList<IceRpc.Slice.
 
         writeln!(
             code,
-            "encoder.IceStartSlice({});",
+            "encoder.StartSlice({});",
             start_slice_args.join(", ")
         );
 
         code.writeln(&encode_data_members(&members, namespace, FieldType::Class));
 
         if has_base_class {
-            code.writeln("encoder.IceEndSlice(false);");
+            code.writeln("encoder.EndSlice(false);");
             code.writeln("base.Encode(ref encoder);");
         } else {
-            code.writeln("encoder.IceEndSlice(true);"); // last slice
+            code.writeln("encoder.EndSlice(true);"); // last slice
         }
 
         code
@@ -265,9 +265,9 @@ public override global::System.Collections.Immutable.ImmutableList<IceRpc.Slice.
     .add_parameter("ref SliceDecoder", "decoder", None, None)
     .set_body({
         let mut code = CodeBlock::new();
-        code.writeln("decoder.IceStartSlice();");
+        code.writeln("decoder.StartSlice();");
         code.writeln(&decode_data_members(&members, namespace, FieldType::Class));
-        code.writeln("decoder.IceEndSlice();");
+        code.writeln("decoder.EndSlice();");
         if has_base_class {
             code.writeln("base.Decode(ref decoder);");
         }

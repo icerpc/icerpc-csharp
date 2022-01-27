@@ -92,8 +92,8 @@ namespace IceRpc
         {
             if (encoder.Encoding == Encoding.Slice11)
             {
-                encoder.IceStartSlice(_sliceTypeId);
-                encoder.IceEndSlice(lastSlice: true);
+                encoder.StartSlice(_sliceTypeId);
+                encoder.EndSlice(lastSlice: true);
             }
             else
             {

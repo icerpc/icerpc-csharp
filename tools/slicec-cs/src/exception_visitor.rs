@@ -124,13 +124,13 @@ else
             .add_parameter("ref SliceDecoder", "decoder", None, None)
             .set_body({
                 let mut code = CodeBlock::new();
-                code.writeln("decoder.IceStartSlice();");
+                code.writeln("decoder.StartSlice();");
                 code.writeln(&decode_data_members(
                     &members,
                     namespace,
                     FieldType::Exception,
                 ));
-                code.writeln("decoder.IceEndSlice();");
+                code.writeln("decoder.EndSlice();");
 
                 if has_base {
                     code.writeln("base.Decode(ref decoder);");
@@ -157,9 +157,9 @@ else
                         "\
 if (encoder.Encoding == IceRpc.Encoding.Slice11)
 {{
-    encoder.IceStartSlice(_sliceTypeId);
+    encoder.StartSlice(_sliceTypeId);
     {encode_data_members}
-    encoder.IceEndSlice(lastSlice: false);
+    encoder.EndSlice(lastSlice: false);
     base.Encode(ref encoder);
 }}
 else
@@ -175,9 +175,9 @@ else
                         "\
 if (encoder.Encoding == IceRpc.Encoding.Slice11)
 {{
-    encoder.IceStartSlice(_sliceTypeId);
+    encoder.StartSlice(_sliceTypeId);
     {encode_data_members}
-    encoder.IceEndSlice(lastSlice: true);
+    encoder.EndSlice(lastSlice: true);
 }}
 else
 {{
