@@ -2,7 +2,7 @@
 
 namespace IceRpc.Slice
 {
-    /// <summary>Ice decoders use activators to create instances of Slice constructs from Ice type IDs.
+    /// <summary>Slice decoders use activators to create instances of Slice constructs from Ice type IDs.
     /// </summary>
     public interface IActivator
     {

@@ -33,7 +33,7 @@ namespace IceRpc
         protected abstract void IceDecode(ref SliceDecoder decoder);
 
         /// <summary>Encodes this instance by encoding its data members to the <see cref="SliceEncoder"/>.</summary>
-        /// <param name="encoder">The Ice 1.1 encoder.</param>
+        /// <param name="encoder">The Slice 1.1 encoder.</param>
         protected abstract void IceEncode(ref SliceEncoder encoder);
 
         internal void Decode(ref SliceDecoder decoder) => IceDecode(ref decoder);

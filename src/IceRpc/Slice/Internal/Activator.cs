@@ -105,7 +105,7 @@ namespace IceRpc.Slice.Internal
 
                 if (constructor == null)
                 {
-                    throw new InvalidOperationException($"cannot get Ice decoding constructor for '{type}'");
+                    throw new InvalidOperationException($"cannot get Slice decoding constructor for '{type}'");
                 }
 
                 ParameterExpression decoderParam = Expression.Parameter(typeof(SliceDecoder).MakeByRefType(), "decoder");

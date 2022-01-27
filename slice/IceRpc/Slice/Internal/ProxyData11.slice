@@ -3,7 +3,7 @@
 [cs:internal]
 module IceRpc::Slice::Internal
 {
-    // These definitions help with the encoding of proxies with the Ice 1.1 encoding.
+    // These definitions help with the encoding of proxies with the Slice 1.1 encoding.
 
     /// The identity of a service. This internal definition must match Ice::Identity.
     [cs:readonly]
@@ -45,7 +45,7 @@ module IceRpc::Slice::Internal
         BatchDatagram,
     }
 
-    /// With the Ice 1.1 encoding, a proxy is encoded as a kind of discriminated union with:
+    /// With the Slice 1.1 encoding, a proxy is encoded as a kind of discriminated union with:
     /// - Identity
     /// - if Identity is not the null identity:
     ///     - ProxyData11

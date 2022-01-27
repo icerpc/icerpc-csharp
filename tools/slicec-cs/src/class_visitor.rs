@@ -130,7 +130,7 @@ impl<'a> Visitor for ClassVisitor<'_> {
                 r#"global::System.Diagnostics.CodeAnalysis.SuppressMessage(
     "Microsoft.Performance",
     "CA1801: Review unused parameters",
-    Justification="Special constructor used for Ice decoding")"#,
+    Justification="Special constructor used for Slice decoding")"#,
             );
         }
 
