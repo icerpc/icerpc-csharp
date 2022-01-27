@@ -282,7 +282,7 @@ namespace IceRpc.Slice
 
             if (++_currentDepth > _maxDepth)
             {
-                throw new InvalidDataException("maximum decoding depth reached");
+                throw new InvalidDataException("maximum decoder depth reached while decoding a class");
             }
 
             // Save current in case we're decoding a nested instance.
@@ -485,7 +485,7 @@ namespace IceRpc.Slice
                 {
                     if (++_currentDepth > _maxDepth)
                     {
-                        throw new InvalidDataException("maximum class graph depth reached");
+                        throw new InvalidDataException("maximum decoder depth reached while decoding a class");
                     }
 
                     // Decode/skip this instance

@@ -334,12 +334,13 @@ namespace IceRpc.Slice
                     $"{nameof(DecodeTrait)} is not compatible with encoding {Encoding}");
             }
 
+            string typeId = DecodeString();
+
             if (++_currentDepth > _maxDepth)
             {
-                throw new InvalidDataException("maximum decoding depth reached");
+                throw new InvalidDataException($"maximum decoder depth reached while decoding trait {typeId}");
             }
 
-            string typeId = DecodeString();
             object? trait = _activator?.CreateInstance(typeId, ref this);
             _currentDepth--;
 
