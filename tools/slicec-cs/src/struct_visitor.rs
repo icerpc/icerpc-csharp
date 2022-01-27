@@ -37,6 +37,14 @@ impl<'a> Visitor for StructVisitor<'a> {
             .add_base("IceRpc.Slice.ITrait".to_owned());
 
         builder.add_block(
+            format!(
+                "public static readonly string IceTypeId = typeof({}).GetIceTypeId()!;",
+                &escaped_identifier
+            )
+            .into(),
+        );
+
+        builder.add_block(
             members
                 .iter()
                 .map(|m| data_member_declaration(m, FieldType::NonMangled))
@@ -139,12 +147,9 @@ impl<'a> Visitor for StructVisitor<'a> {
             )
             .add_parameter("ref IceEncoder", "encoder", None, Some("The encoder."))
             .set_body(
-                format!(
                     r#"
-encoder.EncodeString(typeof({}).GetIceTypeId()!);
-this.Encode(ref encoder);"#,
-                    &escaped_identifier,
-                )
+encoder.EncodeString(IceTypeId);
+this.Encode(ref encoder);"#
                 .into(),
             )
             .build(),
