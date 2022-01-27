@@ -33,7 +33,7 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Computes the Slice encoding to use when encoding a Slice-generated response.</summary>
-        public static SliceEncoding GetIceEncoding(this IncomingRequest request) =>
+        public static SliceEncoding GetSliceEncoding(this IncomingRequest request) =>
             request.PayloadEncoding as SliceEncoding ?? request.Protocol.SliceEncoding!;
 
         /// <summary>Decodes the request's payload into a list of arguments.</summary>

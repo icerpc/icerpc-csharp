@@ -16,7 +16,7 @@ namespace IceRpc.Slice
     public static class ProxyExtensions
     {
         /// <summary>Computes the Slice encoding to use when encoding a Slice-generated request.</summary>
-        public static SliceEncoding GetIceEncoding(this Proxy proxy) =>
+        public static SliceEncoding GetSliceEncoding(this Proxy proxy) =>
             proxy.Encoding as SliceEncoding ?? proxy.Protocol?.SliceEncoding ??
                 throw new NotSupportedException($"unknown protocol {proxy.Protocol}");
 

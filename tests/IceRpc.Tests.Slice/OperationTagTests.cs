@@ -649,7 +649,7 @@ namespace IceRpc.Tests.Slice
         {
             // Build a request payload with 2 tagged values
             PipeReader requestPayload =
-                _prx.Proxy.GetIceEncoding().CreatePayloadFromArgs(
+                _prx.Proxy.GetSliceEncoding().CreatePayloadFromArgs(
                     (15, "test"),
                     (ref SliceEncoder encoder, in (int? N, string? S) value) =>
                     {

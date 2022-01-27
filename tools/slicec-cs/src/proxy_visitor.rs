@@ -262,7 +262,7 @@ if ({invocation}?.RequestFeatures.Get<IceRpc.Features.CompressPayload>() == null
     let payload_encoding = if sends_classes {
         "IceRpc.Encoding.Slice11".to_owned()
     } else {
-        body.writeln("var payloadEncoding = Proxy.GetIceEncoding();");
+        body.writeln("var payloadEncoding = Proxy.GetSliceEncoding();");
         "payloadEncoding".to_owned()
     };
 

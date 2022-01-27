@@ -494,7 +494,7 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
         let encoding = if operation.returns_classes() {
             "IceRpc.Encoding.Slice11"
         } else {
-            "request.GetIceEncoding()"
+            "request.GetSliceEncoding()"
         };
 
         writeln!(
@@ -528,7 +528,7 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
         let encoding = if operation.returns_classes() {
             "IceRpc.Encoding.Slice11"
         } else {
-            code.writeln("var payloadEncoding = request.GetIceEncoding();");
+            code.writeln("var payloadEncoding = request.GetSliceEncoding();");
             "payloadEncoding"
         };
 

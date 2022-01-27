@@ -97,7 +97,7 @@ You can do the same with the `--coverage` argument of the build script.
 ## Building Example Programs
 
 You can build each demo by using `dotnet build` command and the corresponding solution or project files, the example
-programs are configured to use IceRCP NuGet packages.
+programs are configured to use IceRPC NuGet packages.
 
 If you want to build all examples at once run:
 

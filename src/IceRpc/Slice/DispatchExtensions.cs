@@ -6,7 +6,7 @@ namespace IceRpc.Slice
     public static class DispatchExtensions
     {
         /// <summary>Computes the Slice encoding to use when encoding a Slice-generated response.</summary>
-        public static SliceEncoding GetIceEncoding(this Dispatch dispatch) =>
-            dispatch.IncomingRequest.GetIceEncoding();
+        public static SliceEncoding GetSliceEncoding(this Dispatch dispatch) =>
+            dispatch.IncomingRequest.GetSliceEncoding();
     }
 }
