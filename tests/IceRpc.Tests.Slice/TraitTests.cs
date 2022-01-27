@@ -1,7 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.IO.Pipelines;
 
 namespace IceRpc.Tests.Slice
 {
@@ -59,6 +61,34 @@ namespace IceRpc.Tests.Slice
 
             Assert.That(await _prx.OpConvertToAAsync(tsb), Is.Null);
             Assert.That(await _prx.OpConvertToAAsync(tsab), Is.AssignableTo(typeof(IMyTraitA)));
+        }
+
+        [TestCase(3000)]
+        public async Task Trait_DecodeStackOverflow(int depth)
+        {
+            var request = new OutgoingRequest(_prx.Proxy, "opNestedTraitStruct")
+            {
+                PayloadSource = CreatePayload(),
+                PayloadEncoding = Encoding.Slice20
+            };
+
+            _ = await Proxy.DefaultInvoker.InvokeAsync(request);
+
+            // Constructs a payload that creates a stack overflow during decoding. We're targetting opNestedTraitStruct.
+            PipeReader CreatePayload()
+            {
+                string typeId = typeof(NestedTraitStruct).GetIceTypeId()!;
+
+                var pipe = new Pipe();
+                var encoder = new IceEncoder(pipe.Writer, Encoding.Slice20);
+                encoder.EncodeSize((typeId.Length + 1) * depth); // the payload size, in bytes
+                for (int i = 0; i < depth; ++i)
+                {
+                    encoder.EncodeString(typeId);
+                }
+                pipe.Writer.Complete();
+                return pipe.Reader;
+            }
         }
     }
 
