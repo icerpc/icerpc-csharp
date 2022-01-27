@@ -7,7 +7,7 @@ using System.IO.Pipelines;
 namespace IceRpc.Slice.Internal
 {
     /// <summary>Extension methods for class <see cref="SliceEncoding"/>.</summary>
-    internal static class IceEncodingExtensions
+    internal static class SliceEncodingExtensions
     {
         /// <summary>Decodes a buffer.</summary>
         /// <typeparam name="T">The decoded type.</typeparam>
