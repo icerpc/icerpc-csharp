@@ -15,9 +15,9 @@ namespace IceRpc.Slice
             $"{nameof(UnknownSlicedRemoteException)} {{ TypeId = {TypeId}, Origin = {Origin} }}";
 
         /// <inheritdoc/>
-        protected override void IceDecode(ref SliceDecoder decoder) => Debug.Assert(false);
+        public override void Decode(ref SliceDecoder decoder) => Debug.Assert(false);
 
-        // IceEncode use base class and does not include TypeId.
+        // Encode uses base class and does not include TypeId.
 
         /// <summary>Constructs an unknown sliced remote exception.</summary>
         /// <param name="typeId">The remote exception type ID.</param>

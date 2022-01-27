@@ -116,9 +116,9 @@ else
         // Remote exceptions are always "preserved".
         exception_class_builder.add_block(
             FunctionBuilder::new(
-                "protected override",
+                "public override",
                 "void",
-                "IceDecode",
+                "Decode",
                 FunctionType::BlockBody,
             )
             .add_parameter("ref SliceDecoder", "decoder", None, None)
@@ -133,7 +133,7 @@ else
                 code.writeln("decoder.IceEndSlice();");
 
                 if has_base {
-                    code.writeln("base.IceDecode(ref decoder);");
+                    code.writeln("base.Decode(ref decoder);");
                 }
                 code
             })
@@ -142,9 +142,9 @@ else
 
         exception_class_builder.add_block(
             FunctionBuilder::new(
-                "protected override",
+                "public override",
                 "void",
-                "IceEncode",
+                "Encode",
                 FunctionType::BlockBody,
             )
             .add_parameter("ref SliceEncoder", "encoder", None, None)
@@ -160,11 +160,11 @@ if (encoder.Encoding == IceRpc.Encoding.Slice11)
     encoder.IceStartSlice(_sliceTypeId);
     {encode_data_members}
     encoder.IceEndSlice(lastSlice: false);
-    base.IceEncode(ref encoder);
+    base.Encode(ref encoder);
 }}
 else
 {{
-    base.IceEncode(ref encoder);
+    base.Encode(ref encoder);
 }}",
                         encode_data_members =
                             &encode_data_members(&members, namespace, FieldType::Exception,)

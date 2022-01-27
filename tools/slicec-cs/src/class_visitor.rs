@@ -222,9 +222,9 @@ protected override global::System.Collections.Immutable.ImmutableList<IceRpc.Sli
     }
 
     let encode_class = FunctionBuilder::new(
-        "protected override",
+        "public override",
         "void",
-        "IceEncode",
+        "Encode",
         FunctionType::BlockBody,
     )
     .add_parameter("ref SliceEncoder", "encoder", None, None)
@@ -247,7 +247,7 @@ protected override global::System.Collections.Immutable.ImmutableList<IceRpc.Sli
 
         if has_base_class {
             code.writeln("encoder.IceEndSlice(false);");
-            code.writeln("base.IceEncode(ref encoder);");
+            code.writeln("base.Encode(ref encoder);");
         } else {
             code.writeln("encoder.IceEndSlice(true);"); // last slice
         }
@@ -257,9 +257,9 @@ protected override global::System.Collections.Immutable.ImmutableList<IceRpc.Sli
     .build();
 
     let decode_class = FunctionBuilder::new(
-        "protected override",
+        "public override",
         "void",
-        "IceDecode",
+        "Decode",
         FunctionType::BlockBody,
     )
     .add_parameter("ref SliceDecoder", "decoder", None, None)
@@ -269,7 +269,7 @@ protected override global::System.Collections.Immutable.ImmutableList<IceRpc.Sli
         code.writeln(&decode_data_members(&members, namespace, FieldType::Class));
         code.writeln("decoder.IceEndSlice();");
         if has_base_class {
-            code.writeln("base.IceDecode(ref decoder);");
+            code.writeln("base.Decode(ref decoder);");
         }
         code
     })
