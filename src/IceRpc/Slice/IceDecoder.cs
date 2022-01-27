@@ -51,8 +51,14 @@ namespace IceRpc.Slice
         // Connection used when decoding proxies.
         private readonly Connection? _connection;
 
+        // The current depth when decoding a type recursively.
+        private int _currentDepth;
+
         // Invoker used when decoding proxies.
         private readonly IInvoker _invoker;
+
+        // The maximum depth when decoding a type recursively.
+        private readonly int _maxDepth;
 
         // The sum of all the minimum sizes (in bytes) of the sequences decoded from this buffer. Must not exceed the
         // buffer size.
@@ -68,23 +74,31 @@ namespace IceRpc.Slice
         /// <param name="invoker">The invoker of proxies decoded by this decoder. Use null to get the default invoker.
         /// </param>
         /// <param name="activator">The activator.</param>
-        /// <param name="classGraphMaxDepth">The class graph max depth.</param>
+        /// <param name="maxDepth">The maximum depth when decoding a type recursively. <c>-1</c> uses the default.
+        /// </param>
         public IceDecoder(
             ReadOnlySequence<byte> buffer,
             IceEncoding encoding,
             Connection? connection = null,
             IInvoker? invoker = null,
             IActivator? activator = null,
-            int classGraphMaxDepth = -1)
+            int maxDepth = -1)
         {
             Encoding = encoding;
 
             _activator = activator;
-            _classContext = new ClassContext(classGraphMaxDepth);
+            _classContext = default;
             _connection = connection;
+            _currentDepth = 0;
             _invoker = invoker ?? Proxy.DefaultInvoker;
+
+            _maxDepth = maxDepth == -1 ? 100 :
+                (maxDepth >= 1 ? maxDepth :
+                    throw new ArgumentException($"{nameof(maxDepth)} must be -1 or greater than 1", nameof(maxDepth)));
+
             _minTotalSeqSize = 0;
             _reader = new SequenceReader<byte>(buffer);
+
         }
 
         /// <summary>Constructs a new Ice decoder over a byte buffer.</summary>
@@ -93,15 +107,16 @@ namespace IceRpc.Slice
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
         /// <param name="activator">The activator.</param>
-        /// <param name="classGraphMaxDepth">The class graph max depth.</param>
+        /// <param name="maxDepth">The maximum depth when decoding a type recursively. <c>-1</c> uses the default.
+        /// </param>
         public IceDecoder(
             ReadOnlyMemory<byte> buffer,
             IceEncoding encoding,
             Connection? connection = null,
             IInvoker? invoker = null,
             IActivator? activator = null,
-            int classGraphMaxDepth = -1)
-            : this(new ReadOnlySequence<byte>(buffer), encoding, connection, invoker, activator, classGraphMaxDepth)
+            int maxDepth = -1)
+            : this(new ReadOnlySequence<byte>(buffer), encoding, connection, invoker, activator, maxDepth)
         {
         }
 
@@ -319,8 +334,15 @@ namespace IceRpc.Slice
                     $"{nameof(DecodeTrait)} is not compatible with encoding {Encoding}");
             }
 
+            if (++_currentDepth > _maxDepth)
+            {
+                throw new InvalidDataException("maximum decoding depth reached");
+            }
+
             string typeId = DecodeString();
-            ITrait? trait = _activator?.CreateInstance(typeId, ref this) as ITrait;
+            object? trait = _activator?.CreateInstance(typeId, ref this);
+            _currentDepth--;
+
             if (trait is T result)
             {
                 return result;
@@ -333,7 +355,7 @@ namespace IceRpc.Slice
             else
             {
                 throw new InvalidDataException(
-                    $"failed to decode struct with type id '{typeId}' implementing interface '{typeof(T)}'");
+                    $"failed to decode struct with type ID '{typeId}' implementing interface '{typeof(T)}'");
             }
         }
 

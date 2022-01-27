@@ -63,6 +63,7 @@ namespace IceRpc.Tests.Slice
             Assert.That(await _prx.OpConvertToAAsync(tsab), Is.AssignableTo(typeof(IMyTraitA)));
         }
 
+        [TestCase(99)]
         [TestCase(3000)]
         public async Task Trait_DecodeStackOverflow(int depth)
         {
@@ -72,7 +73,18 @@ namespace IceRpc.Tests.Slice
                 PayloadEncoding = Encoding.Slice20
             };
 
-            _ = await Proxy.DefaultInvoker.InvokeAsync(request);
+            IncomingResponse response = await Proxy.DefaultInvoker.InvokeAsync(request);
+
+            Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
+
+            // Let's decode the exception. TODO: we should provide a more obvious exception-decoding API.
+            Assert.ThrowsAsync<UnhandledException>(async () =>
+            {
+                await response.CheckVoidReturnValueAsync(
+                    IceDecoder.GetActivator(typeof(TraitTests).Assembly),
+                    hasStream: false,
+                    cancel: default);
+            });
 
             // Constructs a payload that creates a stack overflow during decoding. We're targetting opNestedTraitStruct.
             PipeReader CreatePayload()

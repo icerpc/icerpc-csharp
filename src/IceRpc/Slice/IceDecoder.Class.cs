@@ -280,9 +280,9 @@ namespace IceRpc.Slice
                 throw new InvalidDataException($"could not find index {index} in {nameof(_classContext.InstanceMap)}");
             }
 
-            if (++_classContext.ClassGraphDepth > _classContext.ClassGraphMaxDepth)
+            if (++_currentDepth > _maxDepth)
             {
-                throw new InvalidDataException("maximum class graph depth reached");
+                throw new InvalidDataException("maximum decoding depth reached");
             }
 
             // Save current in case we're decoding a nested instance.
@@ -358,7 +358,7 @@ namespace IceRpc.Slice
             instance.Decode(ref this);
 
             _classContext.Current = previousCurrent;
-            --_classContext.ClassGraphDepth;
+            --_currentDepth;
             return instance;
         }
 
@@ -483,7 +483,7 @@ namespace IceRpc.Slice
                 }
                 if (index == 1)
                 {
-                    if (++_classContext.ClassGraphDepth > _classContext.ClassGraphMaxDepth)
+                    if (++_currentDepth > _maxDepth)
                     {
                         throw new InvalidDataException("maximum class graph depth reached");
                     }
@@ -511,7 +511,7 @@ namespace IceRpc.Slice
                         }
                     }
                     while ((sliceFlags & SliceFlags.IsLastSlice) == 0);
-                    _classContext.ClassGraphDepth--;
+                    _currentDepth--;
                 }
             }
         }
@@ -595,13 +595,8 @@ namespace IceRpc.Slice
         /// <summary>Holds various fields used for class and exception decoding with the Slice 1.1 encoding.</summary>
         private struct ClassContext
         {
-            internal readonly int ClassGraphMaxDepth;
-
             // Data for the class or exception instance that is currently getting decoded.
             internal InstanceData Current;
-
-            // The current depth when decoding nested class instances.
-            internal int ClassGraphDepth;
 
             // Map of class instance ID to class instance.
             // When decoding a buffer:
@@ -619,19 +614,6 @@ namespace IceRpc.Slice
             // Since this map is a list, we lookup a previously assigned type ID (type ID sequence) with
             // _typeIdMap[index - 1].
             internal List<string>? TypeIdMap;
-
-            internal ClassContext(int classGraphMaxDepth)
-                : this()
-            {
-                if (classGraphMaxDepth < 1 && classGraphMaxDepth != -1)
-                {
-                    throw new ArgumentException(
-                        $"{nameof(classGraphMaxDepth)} must be -1 or greater than 1",
-                        nameof(classGraphMaxDepth));
-                }
-
-                ClassGraphMaxDepth = classGraphMaxDepth == -1 ? 100 : classGraphMaxDepth;
-            }
         }
 
         private struct InstanceData
