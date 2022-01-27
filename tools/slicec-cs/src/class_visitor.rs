@@ -217,7 +217,7 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
 
     if is_preserved && !is_base_preserved {
         code.add_block("\
-protected override global::System.Collections.Immutable.ImmutableList<IceRpc.Slice.SliceInfo> IceUnknownSlices { get; set; } =
+public override global::System.Collections.Immutable.ImmutableList<IceRpc.Slice.SliceInfo> UnknownSlices { get; set; } =
     global::System.Collections.Immutable.ImmutableList<IceRpc.Slice.SliceInfo>.Empty;");
     }
 

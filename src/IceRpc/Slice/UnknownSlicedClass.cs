@@ -9,7 +9,7 @@ namespace IceRpc.Slice
     public sealed class UnknownSlicedClass : AnyClass
     {
         /// <inheritdoc/>
-        protected override ImmutableList<SliceInfo> IceUnknownSlices { get; set; } = ImmutableList<SliceInfo>.Empty;
+        public override ImmutableList<SliceInfo> UnknownSlices { get; set; } = ImmutableList<SliceInfo>.Empty;
 
         /// <inheritdoc/>
         public override void Decode(ref SliceDecoder decoder)
