@@ -137,7 +137,7 @@ fn enum_helper(enum_def: &Enum) -> CodeBlock {
     builder.add_block(
         format!(
             r#"
-{access} static {escaped_identifier} Decode{identifier}(this ref IceDecoder decoder) =>
+{access} static {escaped_identifier} Decode{identifier}(this ref SliceDecoder decoder) =>
     As{identifier}({decode_enum});"#,
             access = access,
             identifier = enum_def.identifier(),
@@ -155,7 +155,7 @@ fn enum_helper(enum_def: &Enum) -> CodeBlock {
     builder.add_block(
         format!(
             r#"
-{access} static void Encode{identifier}(this ref IceEncoder encoder, {escaped_identifier} value) =>
+{access} static void Encode{identifier}(this ref SliceEncoder encoder, {escaped_identifier} value) =>
     {encode_enum}(({underlying_type})value);"#,
             access = access,
             identifier = enum_def.identifier(),

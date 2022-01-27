@@ -40,7 +40,7 @@ namespace IceRpc
 
         /// <summary>Returns the Slice encoding that this protocol uses for its headers.</summary>
         /// <returns>The Slice encoding.</returns>
-        internal virtual IceEncoding? SliceEncoding => null;
+        internal virtual SliceEncoding? SliceEncoding => null;
 
         internal const string IceName = "ice";
         internal const string IceRpcName = "icerpc";

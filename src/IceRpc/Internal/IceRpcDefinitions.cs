@@ -12,11 +12,11 @@ namespace IceRpc.Internal
         internal static readonly Encoding Encoding = Encoding.Slice20;
 
         /// <summary>Encodes icerpc fields. Fields are encoded first, followed by the field defaults.</summary>
-        /// <param name="encoder">This Ice encoder.</param>
+        /// <param name="encoder">This Slice encoder.</param>
         /// <param name="fields">The fields.</param>
         /// <param name="fieldsDefaults">The fields defaults.</param>
         internal static void EncodeFields(
-            this ref IceEncoder encoder,
+            this ref SliceEncoder encoder,
             Dictionary<int, EncodeAction>? fields,
             IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fieldsDefaults)
         {

@@ -34,7 +34,7 @@ namespace IceRpc.Tests.ClientServer
                             OutgoingResponse response = await next.DispatchAsync(request, cancel);
                             if (response.Protocol == Protocol.IceRpc && response.Features.Get<string>() is string value)
                             {
-                                response.Fields[1] = (ref IceEncoder encoder) => encoder.EncodeString(value);
+                                response.Fields[1] = (ref SliceEncoder encoder) => encoder.EncodeString(value);
                             }
                             return response;
                         }));
@@ -47,7 +47,7 @@ namespace IceRpc.Tests.ClientServer
                         new InlineInvoker(async (request, cancel) =>
                         {
                             IncomingResponse response = await next.InvokeAsync(request, cancel);
-                            if (response.Fields.Get(1, (ref IceDecoder decoder) => decoder.DecodeString())
+                            if (response.Fields.Get(1, (ref SliceDecoder decoder) => decoder.DecodeString())
                                 is string stringValue)
                             {
                                 response.Features = new FeatureCollection();

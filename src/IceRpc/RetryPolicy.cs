@@ -41,14 +41,14 @@ namespace IceRpc
             _ => "unknown"
         };
 
-        internal RetryPolicy(ref IceDecoder decoder)
+        internal RetryPolicy(ref SliceDecoder decoder)
         {
             Retryable = decoder.DecodeRetryable();
             Delay = Retryable == Retryable.AfterDelay ?
                 TimeSpan.FromMilliseconds(decoder.DecodeVarULong()) : TimeSpan.Zero;
         }
 
-        internal void Encode(ref IceEncoder encoder)
+        internal void Encode(ref SliceEncoder encoder)
         {
             encoder.EncodeRetryable(Retryable);
             if (Retryable == Retryable.AfterDelay)

@@ -49,7 +49,7 @@ impl<'a> Visitor for DispatchVisitor<'_> {
             format!(
                 "\
 private static readonly IActivator _defaultActivator =
-    IceDecoder.GetActivator(typeof({}).Assembly);",
+    SliceDecoder.GetActivator(typeof({}).Assembly);",
                 interface_name
             )
             .into(),
@@ -202,7 +202,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 
         if !returns_classes {
             builder.add_parameter(
-                "IceEncoding",
+                "SliceEncoding",
                 "encoding",
                 None,
                 Some("The encoding of the payload"),
@@ -340,7 +340,7 @@ fn request_decode_func(operation: &Operation) -> CodeBlock {
         decode_func(param.data_type(), namespace)
     } else {
         format!(
-            "(ref IceDecoder decoder) =>
+            "(ref SliceDecoder decoder) =>
 {{
     {}
 }}",
@@ -371,7 +371,7 @@ pub fn response_encode_action(operation: &Operation) -> CodeBlock {
     } else {
         format!(
             "\
-(ref IceEncoder encoder,
+(ref SliceEncoder encoder,
  {_in}{tuple_type} value) =>
 {{
     {encode_action}
@@ -404,7 +404,7 @@ fn operation_dispatch(operation: &Operation) -> CodeBlock {
     format!(
         r#"
 [IceRpc.Slice.Operation("{name}")]
-protected static async global::System.Threading.Tasks.ValueTask<(IceEncoding, global::System.IO.Pipelines.PipeReader, global::System.IO.Pipelines.PipeReader?)> {internal_name}(
+protected static async global::System.Threading.Tasks.ValueTask<(SliceEncoding, global::System.IO.Pipelines.PipeReader, global::System.IO.Pipelines.PipeReader?)> {internal_name}(
     {interface_name} target,
     IceRpc.IncomingRequest request,
     IceRpc.Dispatch dispatch,

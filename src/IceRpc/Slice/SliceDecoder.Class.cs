@@ -11,8 +11,8 @@ using static IceRpc.Slice.Internal.Slice11Definitions;
 
 namespace IceRpc.Slice
 {
-    // Class-related methods for IceDecoder.
-    public ref partial struct IceDecoder
+    // Class-related methods for SliceDecoder.
+    public ref partial struct SliceDecoder
     {
         /// <summary>Decodes a class instance.</summary>
         /// <returns>The decoded class instance.</returns>

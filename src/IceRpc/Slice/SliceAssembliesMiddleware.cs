@@ -15,7 +15,7 @@ namespace IceRpc.Slice
         /// <param name="assemblies">The assemblies that contain Slice types.</param>
         public SliceAssembliesMiddleware(IDispatcher next, params Assembly[] assemblies)
         {
-            _activator = IceDecoder.GetActivator(assemblies);
+            _activator = SliceDecoder.GetActivator(assemblies);
             _next = next;
         }
 

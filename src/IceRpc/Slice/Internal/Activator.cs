@@ -8,7 +8,7 @@ using System.Reflection;
 
 namespace IceRpc.Slice.Internal
 {
-    internal delegate object ActivateObject(ref IceDecoder decoder);
+    internal delegate object ActivateObject(ref SliceDecoder decoder);
 
     /// <summary>The default implementation of <see cref="IActivator"/>, which uses a dictionary.</summary>
     internal class Activator : IActivator
@@ -18,7 +18,7 @@ namespace IceRpc.Slice.Internal
 
         private readonly IReadOnlyDictionary<string, Lazy<ActivateObject>> _dict;
 
-        object? IActivator.CreateInstance(string typeId, ref IceDecoder decoder) =>
+        object? IActivator.CreateInstance(string typeId, ref SliceDecoder decoder) =>
             _dict.TryGetValue(typeId, out Lazy<ActivateObject>? factory) ? factory.Value(ref decoder) : null;
 
         /// <summary>Merge activators into a single activator; duplicate entries are ignored.</summary>
@@ -100,7 +100,7 @@ namespace IceRpc.Slice.Internal
                 ConstructorInfo? constructor = type.GetConstructor(
                     BindingFlags.Instance | BindingFlags.Public,
                     null,
-                    new Type[] { typeof(IceDecoder).MakeByRefType() },
+                    new Type[] { typeof(SliceDecoder).MakeByRefType() },
                     null);
 
                 if (constructor == null)
@@ -108,7 +108,7 @@ namespace IceRpc.Slice.Internal
                     throw new InvalidOperationException($"cannot get Ice decoding constructor for '{type}'");
                 }
 
-                ParameterExpression decoderParam = Expression.Parameter(typeof(IceDecoder).MakeByRefType(), "decoder");
+                ParameterExpression decoderParam = Expression.Parameter(typeof(SliceDecoder).MakeByRefType(), "decoder");
 
                 Expression expression = Expression.New(constructor, decoderParam);
                 if (type.IsValueType)

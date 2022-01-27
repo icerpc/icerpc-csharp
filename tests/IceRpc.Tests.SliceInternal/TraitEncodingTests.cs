@@ -25,8 +25,8 @@ namespace IceRpc.Tests.SliceInternal
             // Test encoding traits with the generated code.
             {
                 var bufferWriter = new SingleBufferWriter(buffer);
-                var encoder = new IceEncoder(bufferWriter, encoding);
-                var decoder = new IceDecoder(buffer, encoding, activator: activator);
+                var encoder = new SliceEncoder(bufferWriter, encoding);
+                var decoder = new SliceDecoder(buffer, encoding, activator: activator);
 
                 var tsa = new TraitStructA("Foo");
                 tsa.EncodeTrait(ref encoder);
@@ -38,8 +38,8 @@ namespace IceRpc.Tests.SliceInternal
             // Test decoding a trait to a concrete type.
             {
                 var bufferWriter = new SingleBufferWriter(buffer);
-                var encoder = new IceEncoder(bufferWriter, encoding);
-                var decoder = new IceDecoder(buffer, encoding, activator: activator);
+                var encoder = new SliceEncoder(bufferWriter, encoding);
+                var decoder = new SliceDecoder(buffer, encoding, activator: activator);
 
                 var tsb = new TraitStructB(79);
                 encoder.EncodeString("::IceRpc::Tests::SliceInternal::TraitStructB");
@@ -51,8 +51,8 @@ namespace IceRpc.Tests.SliceInternal
             // Test decoding a trait to an interface type.
             {
                 var bufferWriter = new SingleBufferWriter(buffer);
-                var encoder = new IceEncoder(bufferWriter, encoding);
-                var decoder = new IceDecoder(buffer, encoding, activator: activator);
+                var encoder = new SliceEncoder(bufferWriter, encoding);
+                var decoder = new SliceDecoder(buffer, encoding, activator: activator);
 
                 var tsa = new TraitStructA("Bar");
                 encoder.EncodeString("::IceRpc::Tests::SliceInternal::TraitStructA");
@@ -65,8 +65,8 @@ namespace IceRpc.Tests.SliceInternal
             // Test that decoding a mismatched type fails.
             {
                 var bufferWriter = new SingleBufferWriter(buffer);
-                var encoder = new IceEncoder(bufferWriter, encoding);
-                var decoder = new IceDecoder(buffer, encoding, activator: activator);
+                var encoder = new SliceEncoder(bufferWriter, encoding);
+                var decoder = new SliceDecoder(buffer, encoding, activator: activator);
 
                 var tsb = new TraitStructB(97);
                 tsb.EncodeTrait(ref encoder);
@@ -85,8 +85,8 @@ namespace IceRpc.Tests.SliceInternal
             // Test that decoding an unknown type-id fails.
             {
                 var bufferWriter = new SingleBufferWriter(buffer);
-                var encoder = new IceEncoder(bufferWriter, encoding);
-                var decoder = new IceDecoder(buffer, encoding, activator: activator);
+                var encoder = new SliceEncoder(bufferWriter, encoding);
+                var decoder = new SliceDecoder(buffer, encoding, activator: activator);
 
                 var tsb = new TraitStructB(42);
                 encoder.EncodeString("::IceRpc::Tests::SliceInternal::FakeTrait");

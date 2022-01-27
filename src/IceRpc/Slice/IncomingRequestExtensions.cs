@@ -5,7 +5,7 @@ using IceRpc.Slice.Internal;
 namespace IceRpc.Slice
 {
     /// <summary>Extension methods to decode the payload of an incoming request when this payload is encoded with the
-    /// Ice encoding.</summary>
+    /// Slice encoding.</summary>
     public static class IncomingRequestExtensions
     {
         /// <summary>Verifies that a request payload carries no argument or only unknown tagged arguments.</summary>
@@ -32,9 +32,9 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Computes the Ice encoding to use when encoding a Slice-generated response.</summary>
-        public static IceEncoding GetIceEncoding(this IncomingRequest request) =>
-            request.PayloadEncoding as IceEncoding ?? request.Protocol.SliceEncoding!;
+        /// <summary>Computes the Slice encoding to use when encoding a Slice-generated response.</summary>
+        public static SliceEncoding GetIceEncoding(this IncomingRequest request) =>
+            request.PayloadEncoding as SliceEncoding ?? request.Protocol.SliceEncoding!;
 
         /// <summary>Decodes the request's payload into a list of arguments.</summary>
         /// <paramtype name="T">The type of the request parameters.</paramtype>

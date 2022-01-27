@@ -86,7 +86,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
 
         exception_class_builder.add_block(
             FunctionBuilder::new(&access, "", &exception_name, FunctionType::BlockBody)
-                .add_parameter("ref IceDecoder", "decoder", None, None)
+                .add_parameter("ref SliceDecoder", "decoder", None, None)
                 .add_base_parameter("ref decoder")
                 .set_body({
                     let mut code = CodeBlock::new();
@@ -121,7 +121,7 @@ else
                 "IceDecode",
                 FunctionType::BlockBody,
             )
-            .add_parameter("ref IceDecoder", "decoder", None, None)
+            .add_parameter("ref SliceDecoder", "decoder", None, None)
             .set_body({
                 let mut code = CodeBlock::new();
                 code.writeln("decoder.IceStartSlice();");
@@ -147,7 +147,7 @@ else
                 "IceEncode",
                 FunctionType::BlockBody,
             )
-            .add_parameter("ref IceEncoder", "encoder", None, None)
+            .add_parameter("ref SliceEncoder", "encoder", None, None)
             .set_body({
                 let mut code = CodeBlock::new();
                 // TODO: don't need if (encoder.Encoding ==) when exception has classes

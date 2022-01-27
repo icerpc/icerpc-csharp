@@ -172,12 +172,12 @@ fn encode_tagged_type(
         Types::Primitive(primitive_def) if !matches!(primitive_def, Primitive::String) => {
             if primitive_def.is_unsigned_numeric() {
                 (
-                    Some(format!("IceEncoder.GetVarULongEncodedSize({})", value)),
+                    Some(format!("SliceEncoder.GetVarULongEncodedSize({})", value)),
                     None,
                 )
             } else {
                 (
-                    Some(format!("IceEncoder.GetVarLongEncodedSize({})", value)),
+                    Some(format!("SliceEncoder.GetVarLongEncodedSize({})", value)),
                     None,
                 )
             }
@@ -342,13 +342,13 @@ pub fn encode_action(type_ref: &TypeRef, type_context: TypeContext, namespace: &
             if is_optional {
                 write!(
                     code,
-                    "(ref IceEncoder encoder, {} value) => encoder.EncodeNullableProxy(value?.Proxy)",
+                    "(ref SliceEncoder encoder, {} value) => encoder.EncodeNullableProxy(value?.Proxy)",
                     value_type
                 );
             } else {
                 write!(
                     code,
-                    "(ref IceEncoder encoder, {} value) => encoder.EncodeProxy(value.Proxy)",
+                    "(ref SliceEncoder encoder, {} value) => encoder.EncodeProxy(value.Proxy)",
                     value_type
                 );
             }
@@ -357,13 +357,13 @@ pub fn encode_action(type_ref: &TypeRef, type_context: TypeContext, namespace: &
             if is_optional {
                 write!(
                     code,
-                    "(ref IceEncoder encoder, {} value) => encoder.EncodeNullableClass(value)",
+                    "(ref SliceEncoder encoder, {} value) => encoder.EncodeNullableClass(value)",
                     value_type
                 );
             } else {
                 write!(
                     code,
-                    "(ref IceEncoder encoder, {} value) => encoder.EncodeClass(value)",
+                    "(ref SliceEncoder encoder, {} value) => encoder.EncodeClass(value)",
                     value_type
                 );
             }
@@ -371,7 +371,7 @@ pub fn encode_action(type_ref: &TypeRef, type_context: TypeContext, namespace: &
         TypeRefs::Primitive(primitive_ref) => {
             write!(
                 code,
-                "(ref IceEncoder encoder, {value_type} value) => encoder.Encode{builtin_type}({value})",
+                "(ref SliceEncoder encoder, {value_type} value) => encoder.Encode{builtin_type}({value})",
                 value_type = value_type,
                 builtin_type = primitive_ref.type_suffix(),
                 value = value
@@ -380,7 +380,7 @@ pub fn encode_action(type_ref: &TypeRef, type_context: TypeContext, namespace: &
         TypeRefs::Enum(enum_ref) => {
             write!(
                 code,
-                "(ref IceEncoder encoder, {value_type} value) => {helper}.Encode{name}(ref encoder, {value})",
+                "(ref SliceEncoder encoder, {value_type} value) => {helper}.Encode{name}(ref encoder, {value})",
                 value_type = value_type,
                 helper = enum_ref.helper_name(namespace),
                 name = enum_ref.identifier(),
@@ -390,7 +390,7 @@ pub fn encode_action(type_ref: &TypeRef, type_context: TypeContext, namespace: &
         TypeRefs::Dictionary(dictionary_ref) => {
             write!(
                 code,
-                "(ref IceEncoder encoder, {value_type} value) => {encode_dictionary}",
+                "(ref SliceEncoder encoder, {value_type} value) => {encode_dictionary}",
                 value_type = value_type,
                 encode_dictionary = encode_dictionary(dictionary_ref, namespace, "value")
             );
@@ -400,7 +400,7 @@ pub fn encode_action(type_ref: &TypeRef, type_context: TypeContext, namespace: &
             // the top-level object is not cached.
             write!(
                 code,
-                "(ref IceEncoder encoder, {value_type} value) => {encode_sequence}",
+                "(ref SliceEncoder encoder, {value_type} value) => {encode_sequence}",
                 value_type = value_type,
                 encode_sequence = encode_sequence(sequence_ref, namespace, "value", type_context)
             )
@@ -408,7 +408,7 @@ pub fn encode_action(type_ref: &TypeRef, type_context: TypeContext, namespace: &
         TypeRefs::Struct(_) => {
             write!(
                 code,
-                "(ref IceEncoder encoder, {value_type} value) => {value}.Encode(ref encoder)",
+                "(ref SliceEncoder encoder, {value_type} value) => {value}.Encode(ref encoder)",
                 value_type = value_type,
                 value = value
             )
@@ -416,7 +416,7 @@ pub fn encode_action(type_ref: &TypeRef, type_context: TypeContext, namespace: &
         TypeRefs::Trait(_) => {
             write!(
                 code,
-                "(ref IceEncoder encoder, {value_type} value) => value.EncodeTrait(ref encoder)",
+                "(ref SliceEncoder encoder, {value_type} value) => value.EncodeTrait(ref encoder)",
                 value_type = value_type,
             )
         }

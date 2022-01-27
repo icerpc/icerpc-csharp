@@ -106,7 +106,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                     &escaped_identifier
                 ),
             )
-            .add_parameter("ref IceDecoder", "decoder", None, Some("The decoder."))
+            .add_parameter("ref SliceDecoder", "decoder", None, Some("The decoder."))
             .set_body(decode_data_members(
                 &members,
                 &namespace,
@@ -124,7 +124,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                 FunctionType::BlockBody,
             )
             .add_comment("summary", "Encodes the fields of this struct.")
-            .add_parameter("ref IceEncoder", "encoder", None, Some("The encoder."))
+            .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
             .set_body(encode_data_members(
                 &members,
                 &namespace,
@@ -145,7 +145,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                 "summary",
                 "Encodes this struct as a trait, by encoding its Slice type ID followed by its fields.",
             )
-            .add_parameter("ref IceEncoder", "encoder", None, Some("The encoder."))
+            .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
             .set_body(
                     r#"
 encoder.EncodeString(IceTypeId);

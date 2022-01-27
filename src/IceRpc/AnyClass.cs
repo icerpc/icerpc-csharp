@@ -27,16 +27,16 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Decodes this instance by decoding its data members using the <see cref="IceDecoder"/>.
+        /// <summary>Decodes this instance by decoding its data members using the <see cref="SliceDecoder"/>.
         /// </summary>
-        /// <param name="decoder">The Ice decoder.</param>
-        protected abstract void IceDecode(ref IceDecoder decoder);
+        /// <param name="decoder">The Slice decoder.</param>
+        protected abstract void IceDecode(ref SliceDecoder decoder);
 
-        /// <summary>Encodes this instance by encoding its data members to the <see cref="IceEncoder"/>.</summary>
+        /// <summary>Encodes this instance by encoding its data members to the <see cref="SliceEncoder"/>.</summary>
         /// <param name="encoder">The Ice 1.1 encoder.</param>
-        protected abstract void IceEncode(ref IceEncoder encoder);
+        protected abstract void IceEncode(ref SliceEncoder encoder);
 
-        internal void Decode(ref IceDecoder decoder) => IceDecode(ref decoder);
-        internal void Encode(ref IceEncoder encoder) => IceEncode(ref encoder);
+        internal void Decode(ref SliceDecoder decoder) => IceDecode(ref decoder);
+        internal void Encode(ref SliceEncoder encoder) => IceEncode(ref encoder);
     }
 }

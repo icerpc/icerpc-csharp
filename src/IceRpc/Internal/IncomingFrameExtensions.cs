@@ -17,7 +17,7 @@ namespace IceRpc.Internal
                 // TODO: switch to class for CompressionField?
                 CompressionField compressionField = frame.Fields.Get(
                     (int)FieldKey.Compression,
-                    (ref IceDecoder decoder) => new CompressionField(ref decoder));
+                    (ref SliceDecoder decoder) => new CompressionField(ref decoder));
 
                 if (compressionField != default) // default means not set
                 {

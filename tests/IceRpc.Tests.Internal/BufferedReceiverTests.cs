@@ -89,7 +89,7 @@ namespace IceRpc.Tests.Internal
 
             static void Encode(IBufferWriter<byte> bufferWriter, List<int> values)
             {
-                var encoder = new IceEncoder(bufferWriter, Encoding.Slice20);
+                var encoder = new SliceEncoder(bufferWriter, Encoding.Slice20);
 
                 encoder.EncodeSize(0);
                 values.Add(0);
@@ -126,7 +126,7 @@ namespace IceRpc.Tests.Internal
 
             static void Encode(IBufferWriter<byte> bufferWriter, List<ulong> values)
             {
-                var encoder = new IceEncoder(bufferWriter, Encoding.Slice20);
+                var encoder = new SliceEncoder(bufferWriter, Encoding.Slice20);
 
                 encoder.EncodeSize(0);
                 values.Add(0);

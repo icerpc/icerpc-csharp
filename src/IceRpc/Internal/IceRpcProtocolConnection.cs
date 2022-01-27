@@ -127,12 +127,12 @@ namespace IceRpc.Internal
                     // Decode Context from Fields and set corresponding feature.
                     if (fields.Get(
                         (int)FieldKey.Context,
-                        (ref IceDecoder decoder) => decoder.DecodeDictionary(
+                        (ref SliceDecoder decoder) => decoder.DecodeDictionary(
                             minKeySize: 1,
                             minValueSize: 1,
                             size => new Dictionary<string, string>(size),
-                            keyDecodeFunc: (ref IceDecoder decoder) => decoder.DecodeString(),
-                            valueDecodeFunc: (ref IceDecoder decoder) => decoder.DecodeString()))
+                            keyDecodeFunc: (ref SliceDecoder decoder) => decoder.DecodeString(),
+                            valueDecodeFunc: (ref SliceDecoder decoder) => decoder.DecodeString()))
                                 is Dictionary<string, string> context)
                     {
                         features = features.WithContext(context);
@@ -210,7 +210,7 @@ namespace IceRpc.Internal
                 static (IceRpcRequestHeader, IReadOnlyDictionary<int, ReadOnlyMemory<byte>>) DecodeHeader(
                     ReadOnlySequence<byte> buffer)
                 {
-                    var decoder = new IceDecoder(buffer, Encoding.Slice20);
+                    var decoder = new SliceDecoder(buffer, Encoding.Slice20);
                     return (new IceRpcRequestHeader(ref decoder), decoder.DecodeFieldDictionary());
                 }
             }
@@ -247,7 +247,7 @@ namespace IceRpc.Internal
                 responseReader.AdvanceTo(readResult.Buffer.End);
 
                 RetryPolicy? retryPolicy = fields.Get(
-                    (int)FieldKey.RetryPolicy, (ref IceDecoder decoder) => new RetryPolicy(ref decoder));
+                    (int)FieldKey.RetryPolicy, (ref SliceDecoder decoder) => new RetryPolicy(ref decoder));
                 if (retryPolicy != null)
                 {
                     features = features.With(retryPolicy);
@@ -282,7 +282,7 @@ namespace IceRpc.Internal
             static (IceRpcResponseHeader, IReadOnlyDictionary<int, ReadOnlyMemory<byte>>) DecodeHeader(
                 ReadOnlySequence<byte> buffer)
             {
-                var decoder = new IceDecoder(buffer, Encoding.Slice20);
+                var decoder = new SliceDecoder(buffer, Encoding.Slice20);
                 return (new IceRpcResponseHeader(ref decoder), decoder.DecodeFieldDictionary());
             }
         }
@@ -353,7 +353,7 @@ namespace IceRpc.Internal
 
             void EncodeHeader()
             {
-                var encoder = new IceEncoder(requestWriter, Encoding.Slice20);
+                var encoder = new SliceEncoder(requestWriter, Encoding.Slice20);
 
                 // Write the IceRpc request header.
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
@@ -381,10 +381,10 @@ namespace IceRpc.Internal
                 {
                     // Encodes context
                     request.Fields[(int)FieldKey.Context] =
-                        (ref IceEncoder encoder) => encoder.EncodeDictionary(
+                        (ref SliceEncoder encoder) => encoder.EncodeDictionary(
                             context,
-                            (ref IceEncoder encoder, string value) => encoder.EncodeString(value),
-                            (ref IceEncoder encoder, string value) => encoder.EncodeString(value));
+                            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
+                            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
                 }
                 // else context remains empty (not set)
 
@@ -424,7 +424,7 @@ namespace IceRpc.Internal
 
             void EncodeHeader()
             {
-                var encoder = new IceEncoder(responseWriter, Encoding.Slice20);
+                var encoder = new SliceEncoder(responseWriter, Encoding.Slice20);
 
                 // Write the IceRpc response header.
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
@@ -480,7 +480,7 @@ namespace IceRpc.Internal
                 // Send GoAway frame
                 await SendControlFrameAsync(
                     IceRpcControlFrameType.GoAway,
-                    (ref IceEncoder encoder) => new IceRpcGoAwayBody(
+                    (ref SliceEncoder encoder) => new IceRpcGoAwayBody(
                         _lastRemoteBidirectionalStreamId,
                         _lastRemoteUnidirectionalStreamId,
                         message).Encode(ref encoder),
@@ -507,7 +507,7 @@ namespace IceRpc.Internal
 
             await SendControlFrameAsync(
                 IceRpcControlFrameType.Initialize,
-                (ref IceEncoder encoder) =>
+                (ref SliceEncoder encoder) =>
                 {
                     // Encode the transport parameters as Fields
                     encoder.EncodeSize(1);
@@ -550,7 +550,7 @@ namespace IceRpc.Internal
 
             static int DecodePeerIncomingFrameMaxSize(ReadOnlyMemory<byte> buffer)
             {
-                var decoder = new IceDecoder(buffer, Encoding.Slice20);
+                var decoder = new SliceDecoder(buffer, Encoding.Slice20);
                 int dictionarySize = decoder.DecodeSize();
 
                 for (int i = 0; i < dictionarySize; ++i)
@@ -655,7 +655,7 @@ namespace IceRpc.Internal
 
             void Encode(IBufferWriter<byte> bufferWriter)
             {
-                var encoder = new IceEncoder(bufferWriter, Encoding.Slice20);
+                var encoder = new SliceEncoder(bufferWriter, Encoding.Slice20);
                 encoder.EncodeByte((byte)frameType);
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4); // TODO: reduce bytes
                 int startPos = encoder.EncodedByteCount; // does not include the size
@@ -783,7 +783,7 @@ namespace IceRpc.Internal
                 // Send GoAway frame if not already shutting down.
                 await SendControlFrameAsync(
                     IceRpcControlFrameType.GoAway,
-                    (ref IceEncoder encoder) => new IceRpcGoAwayBody(
+                    (ref SliceEncoder encoder) => new IceRpcGoAwayBody(
                         _lastRemoteBidirectionalStreamId,
                         _lastRemoteUnidirectionalStreamId,
                         goAwayFrame.Message).Encode(ref encoder),
@@ -844,7 +844,7 @@ namespace IceRpc.Internal
 
             IceRpcGoAwayBody DecodeIceRpcGoAwayBody(ReadOnlyMemory<byte> buffer)
             {
-                var decoder = new IceDecoder(buffer, Encoding.Slice20);
+                var decoder = new SliceDecoder(buffer, Encoding.Slice20);
                 return new IceRpcGoAwayBody(ref decoder);
             }
 

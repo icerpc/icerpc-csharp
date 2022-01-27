@@ -68,7 +68,7 @@ namespace IceRpc.Transports.Internal
             int frameSize = dataSize;
             if (streamId != null)
             {
-                frameSize += IceEncoder.GetVarULongEncodedSize((ulong)streamId);
+                frameSize += SliceEncoder.GetVarULongEncodedSize((ulong)streamId);
             }
 
             // Log the received frame.

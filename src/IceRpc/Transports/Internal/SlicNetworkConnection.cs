@@ -329,9 +329,9 @@ namespace IceRpc.Transports.Internal
 
             static KeyValuePair<int, IList<byte>> EncodeParameter(ParameterKey key, ulong value)
             {
-                int sizeLength = IceEncoder.GetVarULongEncodedSize(value);
+                int sizeLength = SliceEncoder.GetVarULongEncodedSize(value);
                 byte[] buffer = new byte[sizeLength];
-                IceEncoder.EncodeVarULong(value, buffer);
+                SliceEncoder.EncodeVarULong(value, buffer);
                 return new((int)key, buffer);
             }
         }

@@ -12,11 +12,11 @@ using static IceRpc.Slice.Internal.Slice11Definitions;
 
 namespace IceRpc.Slice
 {
-    /// <summary>Encodes data into one or more byte buffers using the Ice encoding.</summary>
-    public ref partial struct IceEncoder
+    /// <summary>Encodes data into one or more byte buffers using the Slice encoding.</summary>
+    public ref partial struct SliceEncoder
     {
         /// <summary>The Slice encoding associated with this encoder.</summary>
-        public IceEncoding Encoding { get; }
+        public SliceEncoding Encoding { get; }
 
         internal const long VarLongMinValue = -2_305_843_009_213_693_952; // -2^61
         internal const long VarLongMaxValue = 2_305_843_009_213_693_951; // 2^61 - 1
@@ -35,11 +35,11 @@ namespace IceRpc.Slice
 
         private Encoder? _utf8Encoder; // initialized lazily
 
-        /// <summary>Constructs an Ice encoder.</summary>
+        /// <summary>Constructs an Slice encoder.</summary>
         /// <param name="bufferWriter">The buffer writer that provides the buffers to write into.</param>
         /// <param name="encoding">The Slice encoding.</param>
         /// <param name="classFormat">The class format (1.1 only).</param>
-        public IceEncoder(IBufferWriter<byte> bufferWriter, IceEncoding encoding, FormatType classFormat = default)
+        public SliceEncoder(IBufferWriter<byte> bufferWriter, SliceEncoding encoding, FormatType classFormat = default)
             : this()
         {
             Encoding = encoding;
@@ -302,14 +302,14 @@ namespace IceRpc.Slice
 
         // Other methods
 
-        /// <summary>Computes the minimum number of bytes required to encode a long value using the Ice encoding
+        /// <summary>Computes the minimum number of bytes required to encode a long value using the Slice encoding
         /// variable-size encoded representation.</summary>
         /// <param name="value">The long value.</param>
         /// <returns>The minimum number of bytes required to encode <paramref name="value"/>. Can be 1, 2, 4 or 8.
         /// </returns>
         public static int GetVarLongEncodedSize(long value) => 1 << GetVarLongEncodedSizeExponent(value);
 
-        /// <summary>Computes the minimum number of bytes required to encode a ulong value using the Ice encoding
+        /// <summary>Computes the minimum number of bytes required to encode a ulong value using the Slice encoding
         /// variable-size encoded representation.</summary>
         /// <param name="value">The ulong value.</param>
         /// <returns>The minimum number of bytes required to encode <paramref name="value"/>. Can be 1, 2, 4 or 8.

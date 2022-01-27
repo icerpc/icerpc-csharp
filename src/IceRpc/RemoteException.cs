@@ -68,7 +68,7 @@ namespace IceRpc
 
         /// <summary>Constructs a remote exception using a decoder.</summary>
         /// <param name="decoder">The decoder.</param>
-        public RemoteException(ref IceDecoder decoder)
+        public RemoteException(ref SliceDecoder decoder)
             : base(decoder.Encoding == Encoding.Slice11 ? null : decoder.DecodeString())
         {
             if (decoder.Encoding != Encoding.Slice11)
@@ -79,16 +79,16 @@ namespace IceRpc
             ConvertToUnhandled = true;
         }
 
-        /// <summary>Decodes a remote exception from an <see cref="IceDecoder"/>.</summary>
+        /// <summary>Decodes a remote exception from an <see cref="SliceDecoder"/>.</summary>
         /// <param name="decoder">The decoder.</param>
         // This implementation is only called on a plain RemoteException.
-        protected virtual void IceDecode(ref IceDecoder decoder)
+        protected virtual void IceDecode(ref SliceDecoder decoder)
         {
         }
 
-        /// <summary>Encodes a remote exception to an <see cref="IceEncoder"/>.</summary>
-        /// <param name="encoder">The Ice encoder.</param>
-        protected virtual void IceEncode(ref IceEncoder encoder)
+        /// <summary>Encodes a remote exception to an <see cref="SliceEncoder"/>.</summary>
+        /// <param name="encoder">The Slice encoder.</param>
+        protected virtual void IceEncode(ref SliceEncoder encoder)
         {
             if (encoder.Encoding == Encoding.Slice11)
             {
@@ -103,8 +103,8 @@ namespace IceRpc
             }
         }
 
-        internal void Decode(ref IceDecoder decoder) => IceDecode(ref decoder);
-        internal void Encode(ref IceEncoder encoder) => IceEncode(ref encoder);
+        internal void Decode(ref SliceDecoder decoder) => IceDecode(ref decoder);
+        internal void Encode(ref SliceEncoder encoder) => IceEncode(ref encoder);
     }
 
     public readonly partial record struct RemoteExceptionOrigin

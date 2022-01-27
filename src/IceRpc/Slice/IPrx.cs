@@ -10,13 +10,13 @@ namespace IceRpc.Slice
         Proxy Proxy { get; init; }
     }
 
-    /// <summary>Provides extension methods for IceDecoder.</summary>
+    /// <summary>Provides extension methods for SliceDecoder.</summary>
     public static class IceDecoderPrxExtensions
     {
         /// <summary>Decodes a nullable typed proxy.</summary>
         /// <param name="decoder">The decoder.</param>
         /// <returns>The decoded proxy, or null.</returns>
-        public static T? DecodeNullablePrx<T>(ref this IceDecoder decoder) where T : struct, IPrx =>
+        public static T? DecodeNullablePrx<T>(ref this SliceDecoder decoder) where T : struct, IPrx =>
             decoder.DecodeNullableProxy() is Proxy proxy ? new T { Proxy = proxy } : null;
     }
 }

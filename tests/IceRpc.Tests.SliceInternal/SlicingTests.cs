@@ -24,7 +24,7 @@ namespace IceRpc.Tests.SliceInternal
                 _slicedTypeIds = slicedTypeIds ?? ImmutableList<string>.Empty;
             }
 
-            object? IActivator.CreateInstance(string typeId, ref IceDecoder decoder) =>
+            object? IActivator.CreateInstance(string typeId, ref SliceDecoder decoder) =>
                 _slicedTypeIds.Contains(typeId) ? null : _decoratee.CreateInstance(typeId, ref decoder);
         }
 
@@ -33,14 +33,14 @@ namespace IceRpc.Tests.SliceInternal
         {
             Memory<byte> buffer = new byte[1024 * 1024];
             var bufferWriter = new SingleBufferWriter(buffer);
-            var encoder = new IceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
+            var encoder = new SliceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
 
             var p1 = new MyMostDerivedClass("most-derived", "derived", "base");
             encoder.EncodeClass(p1);
             buffer = bufferWriter.WrittenBuffer;
 
             // Create an activator that knows about all the types using in this test
-            var activator = IceDecoder.GetActivator(new Assembly[]
+            var activator = SliceDecoder.GetActivator(new Assembly[]
             {
                 typeof(MyMostDerivedClass).Assembly,
                 typeof(MyDerivedClass).Assembly,
@@ -48,7 +48,7 @@ namespace IceRpc.Tests.SliceInternal
             });
 
             // First we unmarshal the class using the factory that know all the types, no Slicing should occur in this case.
-            var decoder = new IceDecoder(buffer, Encoding.Slice11, activator: activator);
+            var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: activator);
             MyMostDerivedClass r = decoder.DecodeClass<MyMostDerivedClass>();
             Assert.That(p1.M1, Is.EqualTo(r.M1));
             Assert.That(p1.M2, Is.EqualTo(r.M2));
@@ -62,11 +62,11 @@ namespace IceRpc.Tests.SliceInternal
 
             Assert.Throws<InvalidDataException>(() =>
             {
-                var decoder = new IceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
+                var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
                 decoder.DecodeClass<MyMostDerivedClass>();
             });
 
-            decoder = new IceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
+            decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
             MyDerivedClass r1 = decoder.DecodeClass<MyDerivedClass>();
             Assert.That(r1.UnknownSlices, Is.Empty);
             Assert.That(p1.M1, Is.EqualTo(r1.M1));
@@ -79,11 +79,11 @@ namespace IceRpc.Tests.SliceInternal
 
             Assert.Throws<InvalidDataException>(() =>
             {
-                var decoder = new IceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
+                var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
                 decoder.DecodeClass<MyDerivedClass>();
             });
 
-            decoder = new IceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
+            decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
             MyBaseClass r2 = decoder.DecodeClass<MyBaseClass>();
             Assert.That(r2.UnknownSlices, Is.Empty);
             Assert.That(p1.M1, Is.EqualTo(r2.M1));
@@ -98,13 +98,13 @@ namespace IceRpc.Tests.SliceInternal
 
             Assert.Throws<InvalidDataException>(() =>
             {
-                var decoder = new IceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
+                var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
                 decoder.DecodeClass<MyBaseClass>();
             });
 
             Assert.DoesNotThrow(() =>
             {
-                var decoder = new IceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
+                var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
                 decoder.DecodeClass<AnyClass>();
             });
         }
@@ -114,14 +114,14 @@ namespace IceRpc.Tests.SliceInternal
         {
             Memory<byte> buffer = new byte[1024 * 1024];
             var bufferWriter = new SingleBufferWriter(buffer);
-            var encoder = new IceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
+            var encoder = new SliceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
 
             var p1 = new MyCompactMostDerivedClass("most-derived", "derived", "base");
             encoder.EncodeClass(p1);
             buffer = bufferWriter.WrittenBuffer;
 
             // Create an activator that knows about all the types using in this test
-            var activator = IceDecoder.GetActivator(new Assembly[]
+            var activator = SliceDecoder.GetActivator(new Assembly[]
             {
                 typeof(MyCompactMostDerivedClass).Assembly,
                 typeof(MyCompactDerivedClass).Assembly,
@@ -129,7 +129,7 @@ namespace IceRpc.Tests.SliceInternal
             });
 
             // First we unmarshal the class using the default factories, no Slicing should occur in this case.
-            var decoder = new IceDecoder(buffer, Encoding.Slice11, activator: activator);
+            var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: activator);
             MyCompactMostDerivedClass r = decoder.DecodeClass<MyCompactMostDerivedClass>();
             Assert.That(p1.M1, Is.EqualTo(r.M1));
             Assert.That(p1.M2, Is.EqualTo(r.M2));
@@ -143,11 +143,11 @@ namespace IceRpc.Tests.SliceInternal
 
             Assert.Throws<InvalidDataException>(() =>
             {
-                var decoder = new IceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
+                var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
                 decoder.DecodeClass<MyCompactMostDerivedClass>();
             });
 
-            decoder = new IceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
+            decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
             MyCompactDerivedClass r1 = decoder.DecodeClass<MyCompactDerivedClass>();
             Assert.That(r1.UnknownSlices, Is.Empty);
             Assert.That(p1.M1, Is.EqualTo(r1.M1));
@@ -160,11 +160,11 @@ namespace IceRpc.Tests.SliceInternal
 
             Assert.Throws<InvalidDataException>(() =>
             {
-                var decoder = new IceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
+                var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
                 decoder.DecodeClass<MyCompactDerivedClass>();
             });
 
-            decoder = new IceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
+            decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
             MyCompactBaseClass r2 = decoder.DecodeClass<MyCompactBaseClass>();
             Assert.That(r2.UnknownSlices, Is.Empty);
             Assert.That(p1.M1, Is.EqualTo(r2.M1));
@@ -176,13 +176,13 @@ namespace IceRpc.Tests.SliceInternal
 
             Assert.Throws<InvalidDataException>(() =>
             {
-                var decoder = new IceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
+                var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
                 decoder.DecodeClass<MyCompactBaseClass>();
             });
 
             Assert.DoesNotThrow(() =>
             {
-                var decoder = new IceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
+                var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
                 decoder.DecodeClass<AnyClass>();
             });
         }
@@ -192,14 +192,14 @@ namespace IceRpc.Tests.SliceInternal
         {
             Memory<byte> buffer = new byte[1024 * 1024];
             var bufferWriter = new SingleBufferWriter(buffer);
-            var encoder = new IceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
+            var encoder = new SliceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
 
             var p1 = new MyMostDerivedException("most-derived", "derived", "base");
             encoder.EncodeException(p1);
             buffer = bufferWriter.WrittenBuffer;
 
             // Create an activator that knows about all the types using in this test
-            var activator = IceDecoder.GetActivator(new Assembly[]
+            var activator = SliceDecoder.GetActivator(new Assembly[]
             {
                 typeof(MyMostDerivedException).Assembly,
                 typeof(MyMostDerivedException).Assembly,
@@ -207,7 +207,7 @@ namespace IceRpc.Tests.SliceInternal
             });
 
             // First we unmarshal the exception using the factory that knows all the types, no Slicing should occur in this case.
-            var decoder = new IceDecoder(buffer, Encoding.Slice11, activator: activator);
+            var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: activator);
             RemoteException r = decoder.DecodeException();
             Assert.That(r, Is.InstanceOf<MyMostDerivedException>());
             var r1 = (MyMostDerivedException)r;
@@ -221,7 +221,7 @@ namespace IceRpc.Tests.SliceInternal
                 activator,
                 slicedTypeIds: ImmutableList.Create("::IceRpc::Tests::SliceInternal::MyMostDerivedException"));
 
-            decoder = new IceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
+            decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
 
             r = decoder.DecodeException();
             Assert.That(r, Is.InstanceOf<MyDerivedException>());
@@ -237,7 +237,7 @@ namespace IceRpc.Tests.SliceInternal
                     "::IceRpc::Tests::SliceInternal::MyMostDerivedException",
                     "::IceRpc::Tests::SliceInternal::MyDerivedException"));
 
-            decoder = new IceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
+            decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
             r = decoder.DecodeException();
             Assert.That(r, Is.Not.InstanceOf<MyDerivedException>());
             Assert.That(r, Is.InstanceOf<MyBaseException>());
@@ -252,7 +252,7 @@ namespace IceRpc.Tests.SliceInternal
                     "::IceRpc::Tests::SliceInternal::MyDerivedException",
                     "::IceRpc::Tests::SliceInternal::MyBaseException"));
 
-            decoder = new IceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
+            decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
             r = decoder.DecodeException();
             Assert.That(r, Is.Not.InstanceOf<MyBaseException>());
             Assert.That(r, Is.InstanceOf<UnknownSlicedRemoteException>());
@@ -261,11 +261,11 @@ namespace IceRpc.Tests.SliceInternal
             // Marshal the exception again -- there is no Slice preservation for exceptions
             buffer = new byte[1024 * 1024];
             bufferWriter = new SingleBufferWriter(buffer);
-            encoder = new IceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
+            encoder = new SliceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
             encoder.EncodeException(r);
             buffer = bufferWriter.WrittenBuffer;
 
-            decoder = new IceDecoder(buffer, Encoding.Slice11, activator: activator);
+            decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: activator);
             r = decoder.DecodeException();
             Assert.That(r, Is.Not.InstanceOf<UnknownSlicedRemoteException>());
             Assert.That(r, Is.InstanceOf<RemoteException>()); // a plain RemoteException
@@ -276,7 +276,7 @@ namespace IceRpc.Tests.SliceInternal
         {
             Memory<byte> buffer = new byte[1024 * 1024];
             var bufferWriter = new SingleBufferWriter(buffer);
-            var encoder = new IceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
+            var encoder = new SliceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
 
             var p2 = new MyPreservedDerivedClass1("p2-m1", "p2-m2", new MyBaseClass("base"));
             var p1 = new MyPreservedDerivedClass1("p1-m1", "p1-m2", p2);
@@ -284,7 +284,7 @@ namespace IceRpc.Tests.SliceInternal
             buffer = bufferWriter.WrittenBuffer;
 
             // Create an activator that knows about all the types using in this test
-            var activator = IceDecoder.GetActivator(typeof(MyPreservedDerivedClass1).Assembly);
+            var activator = SliceDecoder.GetActivator(typeof(MyPreservedDerivedClass1).Assembly);
 
             // Create an activator that exclude 'MyPreservedDerivedClass1' type ID and ensure that the class is sliced and
             // the Slices are preserved.
@@ -294,23 +294,23 @@ namespace IceRpc.Tests.SliceInternal
 
             Assert.Throws<InvalidDataException>(() =>
             {
-                var decoder = new IceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
+                var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
                 decoder.DecodeClass<MyPreservedDerivedClass1>();
             });
 
-            var decoder = new IceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
+            var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
             MyBaseClass r1 = decoder.DecodeClass<MyBaseClass>();
             Assert.That(r1.UnknownSlices, Is.Not.Empty);
 
             // Marshal the sliced class
             buffer = new byte[1024 * 1024];
             bufferWriter = new SingleBufferWriter(buffer);
-            encoder = new IceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
+            encoder = new SliceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
             encoder.EncodeClass(r1);
             buffer = bufferWriter.WrittenBuffer;
 
             // unmarshal again using the default factory, the unmarshaled class should contain the preserved Slices.
-            decoder = new IceDecoder(buffer, Encoding.Slice11, activator: activator);
+            decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: activator);
             MyPreservedDerivedClass1 r2 = decoder.DecodeClass<MyPreservedDerivedClass1>();
             Assert.That(r2.UnknownSlices, Is.Empty);
             Assert.That(r2.M1, Is.EqualTo("p1-m1"));
@@ -327,7 +327,7 @@ namespace IceRpc.Tests.SliceInternal
         {
             Memory<byte> buffer = new byte[1024 * 1024];
             var bufferWriter = new SingleBufferWriter(buffer);
-            var encoder = new IceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
+            var encoder = new SliceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
 
             var p2 = new MyPreservedDerivedClass2("p2-m1", "p2-m2", new MyBaseClass("base"));
             var p1 = new MyPreservedDerivedClass2("p1-m1", "p1-m2", p2);
@@ -335,7 +335,7 @@ namespace IceRpc.Tests.SliceInternal
             buffer = bufferWriter.WrittenBuffer;
 
             // Create an activator that knows about all the types using in this test
-            var activator = IceDecoder.GetActivator(typeof(MyPreservedDerivedClass2).Assembly);
+            var activator = SliceDecoder.GetActivator(typeof(MyPreservedDerivedClass2).Assembly);
 
             // Create an activator that exclude 'MyPreservedDerivedClass2' compact type ID (56) and ensure that the class
             // is sliced and the Slices are preserved.
@@ -345,22 +345,22 @@ namespace IceRpc.Tests.SliceInternal
 
             Assert.Throws<InvalidDataException>(() =>
             {
-                var decoder = new IceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
+                var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
                 decoder.DecodeClass<MyPreservedDerivedClass2>();
             });
 
-            var decoder = new IceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
+            var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
             MyBaseClass r1 = decoder.DecodeClass<MyBaseClass>();
 
             // Marshal the sliced class
             buffer = new byte[1024 * 1024];
             bufferWriter = new SingleBufferWriter(buffer);
-            encoder = new IceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
+            encoder = new SliceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
             encoder.EncodeClass(r1);
             buffer = bufferWriter.WrittenBuffer;
 
             // unmarshal again using the default factory, the unmarshaled class should contain the preserved Slices.
-            decoder = new IceDecoder(buffer, Encoding.Slice11, activator: activator);
+            decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: activator);
             MyPreservedDerivedClass2 r2 = decoder.DecodeClass<MyPreservedDerivedClass2>();
             Assert.That(r2.M1, Is.EqualTo("p1-m1"));
             Assert.That(r2.M2, Is.EqualTo("p1-m2"));

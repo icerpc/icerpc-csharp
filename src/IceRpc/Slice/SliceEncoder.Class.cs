@@ -11,7 +11,7 @@ using static IceRpc.Slice.Internal.Slice11Definitions;
 
 namespace IceRpc.Slice
 {
-    public ref partial struct IceEncoder
+    public ref partial struct SliceEncoder
     {
         /// <summary>Encodes a class instance.</summary>
         /// <param name="v">The class instance to encode.</param>

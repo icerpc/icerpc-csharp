@@ -85,7 +85,7 @@ impl<'a> Visitor for ProxyVisitor<'_> {
 {access} static readonly string DefaultPath = typeof({prx_impl}).GetDefaultPath();
 
 private static readonly IActivator _defaultActivator =
-    IceDecoder.GetActivator(typeof({prx_impl}).Assembly);
+    SliceDecoder.GetActivator(typeof({prx_impl}).Assembly);
 
 /// <summary>The proxy to the remote service.</summary>
 {access} IceRpc.Proxy Proxy {{ get; init; }}"#,
@@ -457,7 +457,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
         if !sends_classes {
             builder.add_parameter(
-                "IceEncoding",
+                "SliceEncoding",
                 "encoding",
                 None,
                 Some("The encoding of the payload."),
@@ -609,7 +609,7 @@ fn request_encode_action(operation: &Operation) -> CodeBlock {
     } else {
         format!(
             "\
-(ref IceEncoder encoder,
+(ref SliceEncoder encoder,
  {_in}{param_type} value) =>
 {{
     {encode}
@@ -693,7 +693,7 @@ fn response_decode_func(operation: &Operation) -> CodeBlock {
     } else {
         format!(
             "\
-(ref IceDecoder decoder) =>
+(ref SliceDecoder decoder) =>
 {{
     {decode}
 }}",

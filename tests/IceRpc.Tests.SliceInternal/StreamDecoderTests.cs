@@ -14,7 +14,7 @@ namespace IceRpc.Tests.SliceInternal
         private static IEnumerable<int> DecodeBufferIntoInts(ReadOnlySequence<byte> buffer)
         {
             Assert.That(buffer.Length % 4, Is.EqualTo(0));
-            var decoder = new IceDecoder(buffer, Encoding.Slice20);
+            var decoder = new SliceDecoder(buffer, Encoding.Slice20);
             var items = new int[buffer.Length / 4];
             for (int i = 0; i < items.Length; ++i)
             {
@@ -26,7 +26,7 @@ namespace IceRpc.Tests.SliceInternal
         private static ReadOnlySequence<byte> CreateBuffer(int value, int count)
         {
             var bufferWriter = new SingleBufferWriter(new byte[count * 4]);
-            var encoder = new IceEncoder(bufferWriter, Encoding.Slice20);
+            var encoder = new SliceEncoder(bufferWriter, Encoding.Slice20);
             for (int i = 0; i < count; ++i)
             {
                 encoder.EncodeInt(value);

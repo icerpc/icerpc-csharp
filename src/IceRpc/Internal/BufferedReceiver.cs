@@ -127,14 +127,14 @@ namespace IceRpc.Internal
                 remaining = _bufferLimitOffset - _bufferOffset;
             }
 
-            int valueLength = IceDecoder.DecodeVarLongLength(_buffer.Span[_bufferOffset]);
+            int valueLength = SliceDecoder.DecodeVarLongLength(_buffer.Span[_bufferOffset]);
             if (remaining < valueLength)
             {
                 // Read more data if there's not enough data in the buffer to decode the varulong.
                 await ReceiveMoreAsync(valueLength, cancel).ConfigureAwait(false);
             }
 
-            ulong value = IceDecoder.DecodeVarULong(_buffer.Span[_bufferOffset..]).Value;
+            ulong value = SliceDecoder.DecodeVarULong(_buffer.Span[_bufferOffset..]).Value;
             _bufferOffset += valueLength;
             return (value, valueLength);
         }

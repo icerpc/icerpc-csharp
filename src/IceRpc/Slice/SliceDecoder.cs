@@ -14,11 +14,11 @@ using static IceRpc.Slice.Internal.Slice11Definitions;
 
 namespace IceRpc.Slice
 {
-    /// <summary>Decodes a byte buffer encoded using the Ice encoding.</summary>
-    public ref partial struct IceDecoder
+    /// <summary>Decodes a byte buffer encoded using the Slice encoding.</summary>
+    public ref partial struct SliceDecoder
     {
         /// <summary>The Slice encoding decoded by this decoder.</summary>
-        public IceEncoding Encoding { get; }
+        public SliceEncoding Encoding { get; }
 
         /// <summary>The number of bytes decoded in the underlying buffer.</summary>
         internal long Consumed => _reader.Consumed;
@@ -61,7 +61,7 @@ namespace IceRpc.Slice
         // The sequence reader.
         private SequenceReader<byte> _reader;
 
-        /// <summary>Constructs a new Ice decoder over a byte buffer.</summary>
+        /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="encoding">The Slice encoding version.</param>
         /// <param name="connection">The connection.</param>
@@ -69,9 +69,9 @@ namespace IceRpc.Slice
         /// </param>
         /// <param name="activator">The activator.</param>
         /// <param name="classGraphMaxDepth">The class graph max depth.</param>
-        public IceDecoder(
+        public SliceDecoder(
             ReadOnlySequence<byte> buffer,
-            IceEncoding encoding,
+            SliceEncoding encoding,
             Connection? connection = null,
             IInvoker? invoker = null,
             IActivator? activator = null,
@@ -87,16 +87,16 @@ namespace IceRpc.Slice
             _reader = new SequenceReader<byte>(buffer);
         }
 
-        /// <summary>Constructs a new Ice decoder over a byte buffer.</summary>
+        /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="encoding">The Slice encoding version.</param>
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
         /// <param name="activator">The activator.</param>
         /// <param name="classGraphMaxDepth">The class graph max depth.</param>
-        public IceDecoder(
+        public SliceDecoder(
             ReadOnlyMemory<byte> buffer,
-            IceEncoding encoding,
+            SliceEncoding encoding,
             Connection? connection = null,
             IInvoker? invoker = null,
             IActivator? activator = null,
@@ -576,7 +576,7 @@ namespace IceRpc.Slice
             return (value, DecodeVarLongLength(from[0]));
         }
 
-        /// <summary>Verifies the Ice decoder has reached the end of its underlying buffer.</summary>
+        /// <summary>Verifies the Slice decoder has reached the end of its underlying buffer.</summary>
         /// <param name="skipTaggedParams">When true, first skips all remaining tagged parameters in the current
         /// buffer.</param>
         internal void CheckEndOfBuffer(bool skipTaggedParams)
@@ -676,7 +676,7 @@ namespace IceRpc.Slice
             Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
 
             // The Slice 1.1 encoding of ice endpoints is transport-specific, and hard-coded here and in the
-            // IceEncoder. The preferred and fallback encoding for new transports is TransportCode.Uri.
+            // SliceEncoder. The preferred and fallback encoding for new transports is TransportCode.Uri.
 
             Debug.Assert(_connection != null);
 

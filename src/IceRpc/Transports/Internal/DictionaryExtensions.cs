@@ -14,6 +14,6 @@ namespace IceRpc.Transports.Internal
                 ((ParameterKey)pair.Key,
                  Encoding.Slice20.DecodeBuffer(
                      pair.Value.ToArray(),
-                     (ref IceDecoder decoder) => decoder.DecodeVarULong())));
+                     (ref SliceDecoder decoder) => decoder.DecodeVarULong())));
     }
 }
