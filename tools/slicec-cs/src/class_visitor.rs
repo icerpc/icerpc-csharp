@@ -73,7 +73,7 @@ impl<'a> Visitor for ClassVisitor<'_> {
         // Class static TypeId string
         class_builder.add_block(
             format!(
-                "{} static{} readonly string IceTypeId = typeof({}).GetIceTypeId()!;",
+                "{} static{} readonly string SliceTypeId = typeof({}).GetSliceTypeId()!;",
                 &access,
                 if has_base_class { " new" } else { "" },
                 class_name,
@@ -84,7 +84,7 @@ impl<'a> Visitor for ClassVisitor<'_> {
         if class_def.compact_id.is_some() {
             class_builder.add_block(
                 format!(
-                "private static readonly int _compactTypeId = typeof({}).GetIceCompactTypeId()!.Value;",
+                "private static readonly int _compactSliceTypeId = typeof({}).GetCompactSliceTypeId()!.Value;",
                 class_name
             ).into());
         }
@@ -231,10 +231,10 @@ protected override global::System.Collections.Immutable.ImmutableList<IceRpc.Sli
     .set_body({
         let mut code = CodeBlock::new();
 
-        let mut start_slice_args = vec!["IceTypeId"];
+        let mut start_slice_args = vec!["SliceTypeId"];
 
         if class_def.compact_id.is_some() {
-            start_slice_args.push("_compactTypeId");
+            start_slice_args.push("_compactSliceTypeId");
         }
 
         writeln!(

@@ -69,13 +69,13 @@ namespace IceRpc.Slice.Internal
 
                         foreach (Type type in assembly.GetExportedTypes())
                         {
-                            if (type.GetIceTypeId() is string typeId && !type.IsInterface)
+                            if (type.GetSliceTypeId() is string typeId && !type.IsInterface)
                             {
                                 var lazy = new Lazy<ActivateObject>(() => CreateFactory(type));
 
                                 dict.Add(typeId, lazy);
 
-                                if (type.GetIceCompactTypeId() is int compactTypeId)
+                                if (type.GetCompactSliceTypeId() is int compactTypeId)
                                 {
                                     dict.Add(compactTypeId.ToString(CultureInfo.InvariantCulture), lazy);
                                 }

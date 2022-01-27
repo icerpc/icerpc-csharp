@@ -38,7 +38,7 @@ impl<'a> Visitor for StructVisitor<'a> {
 
         builder.add_block(
             format!(
-                "public static readonly string IceTypeId = typeof({}).GetIceTypeId()!;",
+                "public static readonly string SliceTypeId = typeof({}).GetSliceTypeId()!;",
                 &escaped_identifier
             )
             .into(),
@@ -148,7 +148,7 @@ impl<'a> Visitor for StructVisitor<'a> {
             .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
             .set_body(
                     r#"
-encoder.EncodeString(IceTypeId);
+encoder.EncodeString(SliceTypeId);
 this.Encode(ref encoder);"#
                 .into(),
             )

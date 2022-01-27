@@ -73,7 +73,7 @@ namespace IceRpc
 
                     foreach (Type interfaceType in type.GetInterfaces())
                     {
-                        typeIds.UnionWith(interfaceType.GetAllIceTypeIds());
+                        typeIds.UnionWith(interfaceType.GetAllSliceTypeIds());
                     }
 
                     return (methods, typeIds);

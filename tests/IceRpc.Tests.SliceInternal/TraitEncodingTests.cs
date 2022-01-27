@@ -14,7 +14,7 @@ namespace IceRpc.Tests.SliceInternal
             // TODO move this into a TypeId Generation unit test.
             // Test the generation of type-ids on structs.
             Assert.That(
-                typeof(TraitStructA).GetIceTypeId()!,
+                typeof(TraitStructA).GetSliceTypeId()!,
                 Is.EqualTo("::IceRpc::Tests::SliceInternal::TraitStructA")
             );
 

@@ -21,10 +21,10 @@ namespace IceRpc.Tests.Slice
             Assert.That(activator.CreateInstance("::IceRpc::ServiceNotFoundException", ref decoder), Is.Not.Null);
 
             // The default activator doesn't know about types defined in separated assemblies
-            Assert.That(activator.CreateInstance(ClassA.IceTypeId, ref decoder), Is.Null);
-            Assert.That(activator.CreateInstance(ClassB.IceTypeId, ref decoder), Is.Null);
-            Assert.That(activator.CreateInstance(ClassC.IceTypeId, ref decoder), Is.Null);
-            Assert.That(activator.CreateInstance(ClassD.IceTypeId, ref decoder), Is.Null);
+            Assert.That(activator.CreateInstance(ClassA.SliceTypeId, ref decoder), Is.Null);
+            Assert.That(activator.CreateInstance(ClassB.SliceTypeId, ref decoder), Is.Null);
+            Assert.That(activator.CreateInstance(ClassC.SliceTypeId, ref decoder), Is.Null);
+            Assert.That(activator.CreateInstance(ClassD.SliceTypeId, ref decoder), Is.Null);
 
             Assert.That(activator.CreateInstance("1", ref decoder), Is.Null);
             Assert.That(activator.CreateInstance("2", ref decoder), Is.Null);
@@ -37,11 +37,11 @@ namespace IceRpc.Tests.Slice
             Assert.That(activator.CreateInstance("::IceRpc::Tests::ReferencedAssemblies::ExceptionD", ref decoder), Is.Null);
 
             activator = SliceDecoder.GetActivator(typeof(ClassA).Assembly);
-            Assert.That(activator.CreateInstance(ClassA.IceTypeId, ref decoder), Is.Not.Null);
+            Assert.That(activator.CreateInstance(ClassA.SliceTypeId, ref decoder), Is.Not.Null);
 
-            Assert.That(activator.CreateInstance(ClassB.IceTypeId, ref decoder), Is.Null);
-            Assert.That(activator.CreateInstance(ClassC.IceTypeId, ref decoder), Is.Null);
-            Assert.That(activator.CreateInstance(ClassD.IceTypeId, ref decoder), Is.Null);
+            Assert.That(activator.CreateInstance(ClassB.SliceTypeId, ref decoder), Is.Null);
+            Assert.That(activator.CreateInstance(ClassC.SliceTypeId, ref decoder), Is.Null);
+            Assert.That(activator.CreateInstance(ClassD.SliceTypeId, ref decoder), Is.Null);
 
             Assert.That(activator.CreateInstance("1", ref decoder), Is.Not.Null);
 
@@ -61,11 +61,11 @@ namespace IceRpc.Tests.Slice
                 typeof(ClassA).Assembly,
                 typeof(ClassB).Assembly
             });
-            Assert.That(activator.CreateInstance(ClassA.IceTypeId, ref decoder), Is.Not.Null);
-            Assert.That(activator.CreateInstance(ClassB.IceTypeId, ref decoder), Is.Not.Null);
+            Assert.That(activator.CreateInstance(ClassA.SliceTypeId, ref decoder), Is.Not.Null);
+            Assert.That(activator.CreateInstance(ClassB.SliceTypeId, ref decoder), Is.Not.Null);
 
-            Assert.That(activator.CreateInstance(ClassC.IceTypeId, ref decoder), Is.Null);
-            Assert.That(activator.CreateInstance(ClassD.IceTypeId, ref decoder), Is.Null);
+            Assert.That(activator.CreateInstance(ClassC.SliceTypeId, ref decoder), Is.Null);
+            Assert.That(activator.CreateInstance(ClassD.SliceTypeId, ref decoder), Is.Null);
 
             Assert.That(activator.CreateInstance("1", ref decoder), Is.Not.Null);
             Assert.That(activator.CreateInstance("2", ref decoder), Is.Not.Null);
@@ -86,11 +86,11 @@ namespace IceRpc.Tests.Slice
                 typeof(ClassB).Assembly,
                 typeof(ClassC).Assembly
             });
-            Assert.That(activator.CreateInstance(ClassA.IceTypeId, ref decoder), Is.Not.Null);
-            Assert.That(activator.CreateInstance(ClassB.IceTypeId, ref decoder), Is.Not.Null);
-            Assert.That(activator.CreateInstance(ClassC.IceTypeId, ref decoder), Is.Not.Null);
+            Assert.That(activator.CreateInstance(ClassA.SliceTypeId, ref decoder), Is.Not.Null);
+            Assert.That(activator.CreateInstance(ClassB.SliceTypeId, ref decoder), Is.Not.Null);
+            Assert.That(activator.CreateInstance(ClassC.SliceTypeId, ref decoder), Is.Not.Null);
 
-            Assert.That(activator.CreateInstance(ClassD.IceTypeId, ref decoder), Is.Null);
+            Assert.That(activator.CreateInstance(ClassD.SliceTypeId, ref decoder), Is.Null);
 
             Assert.That(activator.CreateInstance("1", ref decoder), Is.Not.Null);
             Assert.That(activator.CreateInstance("2", ref decoder), Is.Not.Null);
@@ -112,10 +112,10 @@ namespace IceRpc.Tests.Slice
                 typeof(ClassC).Assembly,
                 typeof(ClassD).Assembly
             });
-            Assert.That(activator.CreateInstance(ClassA.IceTypeId, ref decoder), Is.Not.Null);
-            Assert.That(activator.CreateInstance(ClassB.IceTypeId, ref decoder), Is.Not.Null);
-            Assert.That(activator.CreateInstance(ClassC.IceTypeId, ref decoder), Is.Not.Null);
-            Assert.That(activator.CreateInstance(ClassD.IceTypeId, ref decoder), Is.Not.Null);
+            Assert.That(activator.CreateInstance(ClassA.SliceTypeId, ref decoder), Is.Not.Null);
+            Assert.That(activator.CreateInstance(ClassB.SliceTypeId, ref decoder), Is.Not.Null);
+            Assert.That(activator.CreateInstance(ClassC.SliceTypeId, ref decoder), Is.Not.Null);
+            Assert.That(activator.CreateInstance(ClassD.SliceTypeId, ref decoder), Is.Not.Null);
 
             Assert.That(activator.CreateInstance("1", ref decoder), Is.Not.Null);
             Assert.That(activator.CreateInstance("2", ref decoder), Is.Not.Null);

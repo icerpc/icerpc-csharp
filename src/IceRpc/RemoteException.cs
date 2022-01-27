@@ -13,7 +13,7 @@ namespace IceRpc
         /// <inheritdoc/>
         public override string Message => _hasCustomMessage || DefaultMessage == null ? base.Message : DefaultMessage;
 
-        private static readonly string _iceTypeId = TypeExtensions.GetIceTypeId(typeof(RemoteException))!;
+        private static readonly string _iceTypeId = TypeExtensions.GetSliceTypeId(typeof(RemoteException))!;
 
         /// <summary>When true, if this exception is thrown from the implementation of an operation, Ice will convert
         /// it into an Ice.UnhandledException. When false, Ice marshals this remote exception as-is. true is the

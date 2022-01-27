@@ -58,7 +58,7 @@ namespace IceRpc.Tests.SliceInternal
             // 'MyDerivedClass' which is the base type.
             var slicingActivator = new SlicingActivator(
                 activator,
-                slicedTypeIds: ImmutableList.Create(MyMostDerivedClass.IceTypeId));
+                slicedTypeIds: ImmutableList.Create(MyMostDerivedClass.SliceTypeId));
 
             Assert.Throws<InvalidDataException>(() =>
             {
@@ -75,7 +75,7 @@ namespace IceRpc.Tests.SliceInternal
             // Repeat with an activator that also excludes 'MyDerivedClass' type ID
             slicingActivator = new SlicingActivator(
                 activator,
-                slicedTypeIds: ImmutableList.Create(MyMostDerivedClass.IceTypeId, MyDerivedClass.IceTypeId));
+                slicedTypeIds: ImmutableList.Create(MyMostDerivedClass.SliceTypeId, MyDerivedClass.SliceTypeId));
 
             Assert.Throws<InvalidDataException>(() =>
             {
@@ -92,9 +92,9 @@ namespace IceRpc.Tests.SliceInternal
             slicingActivator = new SlicingActivator(
                     activator,
                     slicedTypeIds: ImmutableList.Create(
-                        MyMostDerivedClass.IceTypeId,
-                        MyDerivedClass.IceTypeId,
-                        MyBaseClass.IceTypeId));
+                        MyMostDerivedClass.SliceTypeId,
+                        MyDerivedClass.SliceTypeId,
+                        MyBaseClass.SliceTypeId));
 
             Assert.Throws<InvalidDataException>(() =>
             {
@@ -290,7 +290,7 @@ namespace IceRpc.Tests.SliceInternal
             // the Slices are preserved.
             var slicingActivator = new SlicingActivator(
                 activator,
-                slicedTypeIds: ImmutableList.Create(MyPreservedDerivedClass1.IceTypeId));
+                slicedTypeIds: ImmutableList.Create(MyPreservedDerivedClass1.SliceTypeId));
 
             Assert.Throws<InvalidDataException>(() =>
             {
