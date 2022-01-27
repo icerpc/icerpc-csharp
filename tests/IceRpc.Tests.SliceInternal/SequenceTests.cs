@@ -35,7 +35,7 @@ namespace IceRpc.Tests.SliceInternal
             var encoder = new IceEncoder(_bufferWriter, _encoding);
             var decoder = new IceDecoder(_buffer, _encoding);
             int[] p1 = Enumerable.Range(0, size).ToArray();
-            
+
             encoder.EncodeSpan(new ReadOnlySpan<int>(p1));
             int[] r1 = decoder.DecodeSequence<int>();
 
@@ -80,7 +80,7 @@ namespace IceRpc.Tests.SliceInternal
             
             encoder.EncodeSequence(p1, (ref IceEncoder encoder, string value) => encoder.EncodeString(value));
             IEnumerable<string> r1 = decoder.DecodeSequence(
-                minElementSize:1,
+                minElementSize: 1,
                 (ref IceDecoder decoder) => decoder.DecodeString());
 
             Assert.That(p1, Is.EqualTo(r1));
@@ -132,8 +132,9 @@ namespace IceRpc.Tests.SliceInternal
             encoder.EncodeSequenceWithBitSequence(
                 p1,
                 (ref IceEncoder encoder, string? value) => encoder.EncodeString(value!));
+            
             List<string> r1 = decoder.DecodeSequenceWithBitSequence(
-                (int i) => new List<string>(i),
+                i => new List<string>(i),
                 (ref IceDecoder decoder) => decoder.DecodeString());
 
             Assert.That(p1, Is.EqualTo(r1));
@@ -165,11 +166,11 @@ namespace IceRpc.Tests.SliceInternal
             encoder.EncodeSequence(p3);
             encoder.EncodeSequence(p4);
 
-            long[] r1 = decoder.DecodeSequence(1, (ref IceDecoder decoder) => decoder.DecodeLong());
-            long[] r2 = decoder.DecodeSequence(1, (ref IceDecoder decoder) => decoder.DecodeLong());
-            long[] r3 = decoder.DecodeSequence(1, (ref IceDecoder decoder) => decoder.DecodeLong());
+            long[] r1 = decoder.DecodeSequence(minElementSize: 1, (ref IceDecoder decoder) => decoder.DecodeLong());
+            long[] r2 = decoder.DecodeSequence(minElementSize: 1, (ref IceDecoder decoder) => decoder.DecodeLong());
+            long[] r3 = decoder.DecodeSequence(minElementSize: 1, (ref IceDecoder decoder) => decoder.DecodeLong());
             List<long> r4 = decoder.DecodeSequence(
-                1,
+                minElementSize: 1,
                 (int i) => new List<long>(i),
                 (ref IceDecoder decoder) => decoder.DecodeLong());
 
