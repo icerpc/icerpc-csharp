@@ -14,7 +14,7 @@ namespace IceRpc.Slice.Internal
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <param name="activator">The Slice activator.</param>
-        /// <param name="classGraphMaxDepth">The class graph max depth for the decoder created by this method.</param>
+        /// <param name="maxDepth">The max depth when decoding a type recursively.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The remote exception.</returns>
         /// <remarks>The reader is always completed when this method returns.</remarks>
@@ -24,7 +24,7 @@ namespace IceRpc.Slice.Internal
             Connection connection,
             IInvoker invoker,
             IActivator activator,
-            int classGraphMaxDepth,
+            int maxDepth,
             CancellationToken cancel)
         {
             RemoteException result;
@@ -67,7 +67,7 @@ namespace IceRpc.Slice.Internal
                     connection,
                     invoker,
                     activator,
-                    classGraphMaxDepth);
+                    maxDepth);
                 remoteException = decoder.DecodeException();
 
                 if (remoteException is not UnknownSlicedRemoteException)
@@ -129,7 +129,7 @@ namespace IceRpc.Slice.Internal
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
         /// <param name="activator">The Slice activator.</param>
-        /// <param name="classGraphMaxDepth">The class graph max depth for the decoder created by this method.</param>
+        /// <param name="maxDepth">The max depth when decoding a type recursively.</param>
         /// <param name="decodeFunc">The decode function.</param>
         /// <param name="hasStream"><c>true</c> if the value is followed by a stream parameter;
         /// otherwise, <c>false</c>.</param>
@@ -144,7 +144,7 @@ namespace IceRpc.Slice.Internal
             Connection connection,
             IInvoker invoker,
             IActivator activator,
-            int classGraphMaxDepth,
+            int maxDepth,
             DecodeFunc<T> decodeFunc,
             bool hasStream,
             CancellationToken cancel)
@@ -194,7 +194,7 @@ namespace IceRpc.Slice.Internal
                     connection,
                     invoker,
                     activator,
-                    classGraphMaxDepth);
+                    maxDepth);
                 T value = decodeFunc(ref decoder);
                 decoder.CheckEndOfBuffer(skipTaggedParams: true);
                 return value;
@@ -255,7 +255,7 @@ namespace IceRpc.Slice.Internal
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
         /// <param name="activator">The Slice activator.</param>
-        /// <param name="classGraphMaxDepth">The class graph max depth for the decoder created by this method.</param>
+        /// <param name="maxDepth">The max depth when decoding a type recursively.</param>
         /// <param name="decodeFunc">The function used to decode the streamed param.</param>
         /// <param name="streamDecoderOptions">The stream decoder options.</param>
         /// <remarks>The implementation currently always uses segments.</remarks>
@@ -265,7 +265,7 @@ namespace IceRpc.Slice.Internal
             Connection connection,
             IInvoker invoker,
             IActivator activator,
-            int classGraphMaxDepth,
+            int maxDepth,
             DecodeFunc<T> decodeFunc,
             StreamDecoderOptions streamDecoderOptions)
         {
@@ -277,7 +277,7 @@ namespace IceRpc.Slice.Internal
                     connection,
                     invoker,
                     activator,
-                    classGraphMaxDepth);
+                    maxDepth);
 
                 var items = new List<T>();
                 do
