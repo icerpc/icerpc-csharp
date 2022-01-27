@@ -86,7 +86,7 @@ namespace IceRpc.Tests.Slice
                     cancel: default);
             });
 
-            // Constructs a payload that creates a stack overflow during decoding. We're targetting opNestedTraitStruct.
+            // Constructs a payload that creates a stack overflow during decoding. We're targeting opNestedTraitStruct.
             PipeReader CreatePayload()
             {
                 string typeId = typeof(NestedTraitStruct).GetIceTypeId()!;
