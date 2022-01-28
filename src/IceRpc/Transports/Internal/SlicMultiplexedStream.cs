@@ -258,15 +258,6 @@ namespace IceRpc.Transports.Internal
 
         internal async ValueTask ReceivedFrameAsync(int size, bool endStream)
         {
-            if (!IsBidirectional && !IsRemote)
-            {
-                throw new InvalidDataException($"received stream frame on local unidirectional stream");
-            }
-            else if (size == 0 && !endStream)
-            {
-                throw new InvalidDataException("invalid stream frame, received 0 bytes without end of stream");
-            }
-
             // Read and append the received data to the input pipe writer.
             if (size > 0)
             {
@@ -278,7 +269,9 @@ namespace IceRpc.Transports.Internal
                     {
                         chunk = chunk[0..size];
                     }
+
                     await _frameReader.ReadFrameDataAsync(chunk, CancellationToken.None).ConfigureAwait(false);
+
                     _inputPipeWriter.Advance(chunk.Length);
                     size -= chunk.Length;
 
@@ -319,7 +312,14 @@ namespace IceRpc.Transports.Internal
 
             // Complete the input pipe writer before marking reads as completed. Marking reads as completed might
             // shutdown the stream and we don't want the input pipe writer to be completed by Shutdown.
-            _inputPipeWriter.Complete(new MultiplexedStreamAbortedException(error));
+            if (error.ToSlicError() == SlicStreamError.NoError)
+            {
+                _inputPipeWriter.Complete();
+            }
+            else
+            {
+                _inputPipeWriter.Complete(new MultiplexedStreamAbortedException(error));
+            }
 
             ResetError = error;
             TrySetReadCompleted();

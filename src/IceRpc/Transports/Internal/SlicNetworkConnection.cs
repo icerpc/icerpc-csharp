@@ -368,6 +368,16 @@ namespace IceRpc.Transports.Internal
                         bool isRemote = streamId % 2 == (IsServer ? 0 : 1);
                         bool isBidirectional = streamId % 4 < 2;
 
+                        if (!isBidirectional && !isRemote)
+                        {
+                            throw new InvalidDataException("received stream frame on local unidirectional stream");
+                        }
+                        else if (dataSize == 0 && !endStream)
+                        {
+                            throw new InvalidDataException(
+                                "invalid stream frame, received 0 bytes without end of stream");
+                        }
+
                         if (_streams.TryGetValue(streamId.Value, out SlicMultiplexedStream? stream))
                         {
                             // Let the stream receive the data.
@@ -375,8 +385,7 @@ namespace IceRpc.Transports.Internal
                         }
                         else if (isRemote && !IsKnownRemoteStream(streamId.Value, isBidirectional))
                         {
-                            // Create a new stream if the incoming stream is unknown (the client could be
-                            // sending frames for old canceled incoming streams, these are ignored).
+                            // Create a new stream if the remote stream is unknown.
 
                             if (dataSize == 0)
                             {
@@ -423,7 +432,19 @@ namespace IceRpc.Transports.Internal
                         }
                         else
                         {
-                            throw new InvalidDataException($"received stream frame for unknown stream ID={streamId}");
+                            // The stream has been shutdown. Read and ignore the data.
+                            using IMemoryOwner<byte> owner = Pool.Rent(MinimumSegmentSize);
+                            int size = dataSize;
+                            while (size > 0)
+                            {
+                                Memory<byte> chunk = owner.Memory;
+                                if (chunk.Length > size)
+                                {
+                                    chunk = chunk[0..size];
+                                }
+                                await _reader.ReadFrameDataAsync(chunk, CancellationToken.None).ConfigureAwait(false);
+                                size -= chunk.Length;
+                            }
                         }
                         break;
                     }

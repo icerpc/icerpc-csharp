@@ -18,5 +18,8 @@ namespace IceRpc.Transports.Internal
 
         internal static SlicStreamError? ToSlicError(this long error) =>
             (error >> 32) == (long)MultiplexedStreamErrorKind.Transport ? (SlicStreamError)error : null;
+
+        internal static SlicStreamError? ToSlicError(this MultiplexedStreamAbortedException exception) =>
+            exception.ErrorKind == MultiplexedStreamErrorKind.Transport ? (SlicStreamError)exception.ErrorCode : null;
     }
 }

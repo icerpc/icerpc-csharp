@@ -44,8 +44,7 @@ namespace IceRpc.Transports.Internal
                 {
                     if (exception == null)
                     {
-                        // Send empty stream frame to terminate the stream gracefully.
-                        _ = WriteAsync(ReadOnlySequence<byte>.Empty, true, CancellationToken.None).AsTask();
+                        _stream.AbortWrite(SlicStreamError.NoError.ToError());
                     }
                     else if (exception is MultiplexedStreamAbortedException abortedException)
                     {
@@ -193,6 +192,17 @@ namespace IceRpc.Transports.Internal
                         if (sendCredit > 0)
                         {
                             _sendSemaphore.Release();
+                        }
+                    }
+                    catch (MultiplexedStreamAbortedException ex)
+                    {
+                        if (ex.ToSlicError() == SlicStreamError.NoError)
+                        {
+                            return new FlushResult(isCanceled: false, isCompleted: true);
+                        }
+                        else
+                        {
+                            throw;
                         }
                     }
                     catch (Exception ex)

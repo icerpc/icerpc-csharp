@@ -77,7 +77,7 @@ namespace IceRpc.Tests.Api
             var options = new SlicOptions();
             Assert.AreEqual(100, options.UnidirectionalStreamMaxCount);
             Assert.AreEqual(100, options.BidirectionalStreamMaxCount);
-            Assert.AreEqual(32 * 1024, options.PacketMaxSize);
+            Assert.AreEqual(16 * 1024, options.PacketMaxSize);
             Assert.AreEqual(64 * 1024, options.PauseWriterThreshold);
             Assert.AreEqual(32 * 1024, options.ResumeWriterThreshold);
 

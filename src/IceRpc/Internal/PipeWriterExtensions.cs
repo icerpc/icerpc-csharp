@@ -46,6 +46,11 @@ namespace IceRpc.Internal
                         break;
                     }
                 }
+
+                if (!completeWhenDone && !flushResult.IsCompleted && !flushResult.IsCanceled)
+                {
+                    flushResult = await sink.FlushAsync(cancel).ConfigureAwait(false);
+                }
             }
             else if (sink is AsyncCompletePipeWriter asyncWriter)
             {
@@ -67,8 +72,14 @@ namespace IceRpc.Internal
                     if (readResult.IsCompleted || flushResult.IsCompleted ||
                         readResult.IsCanceled || flushResult.IsCanceled)
                     {
+                        // The source is consumed or the sink is completed.
                         break;
                     }
+                }
+
+                if (!completeWhenDone && !flushResult.IsCompleted && !flushResult.IsCanceled)
+                {
+                    flushResult = await sink.FlushAsync(cancel).ConfigureAwait(false);
                 }
             }
             else
@@ -102,6 +113,11 @@ namespace IceRpc.Internal
                     {
                         break;
                     }
+                }
+
+                if (!flushResult.IsCompleted && !flushResult.IsCanceled)
+                {
+                    flushResult = await sink.FlushAsync(cancel).ConfigureAwait(false);
                 }
 
                 if (completeWhenDone &&
