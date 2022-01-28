@@ -310,8 +310,7 @@ namespace IceRpc.Transports.Internal
                 throw new InvalidDataException("received reset frame on local unidirectional stream");
             }
 
-            // Complete the input pipe writer before marking reads as completed. Marking reads as completed might
-            // shutdown the stream and we don't want the input pipe writer to be completed by Shutdown.
+            // Complete the input pipe writer.
             if (error.ToSlicError() == SlicStreamError.NoError)
             {
                 _inputPipeWriter.Complete();
@@ -319,9 +318,9 @@ namespace IceRpc.Transports.Internal
             else
             {
                 _inputPipeWriter.Complete(new MultiplexedStreamAbortedException(error));
+                ResetError = error;
             }
 
-            ResetError = error;
             TrySetReadCompleted();
         }
 
