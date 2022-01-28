@@ -229,7 +229,7 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(50, 10, 200)]
         public async Task Class_MaxDepth(int graphSize, int clientMaxDepth, int serverMaxDepth)
         {
-            // We overwrite the default value for class graph max depth through a middleware (server side) and
+            // We overwrite the default value for class graph maximum depth through a middleware (server side) and
             // an interceptor (client side).
 
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()

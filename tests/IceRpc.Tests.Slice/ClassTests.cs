@@ -218,7 +218,7 @@ namespace IceRpc.Tests.Slice
             }
             catch (UnhandledException)
             {
-                // Expected decode exception from the server (max depth reached)
+                // Expected decode exception from the server (maximum depth reached)
             }
         }
 
