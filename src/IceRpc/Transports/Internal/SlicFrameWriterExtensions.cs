@@ -43,12 +43,12 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel) =>
             WriteFrameAsync(writer, FrameType.StreamReset, stream, frame.Encode, cancel);
 
-        internal static ValueTask WriteStreamConsumedAsync(
+        internal static ValueTask WriteStreamResumeWriteAsync(
             this ISlicFrameWriter writer,
             SlicMultiplexedStream stream,
-            StreamConsumedBody frame,
+            StreamResumeWriteBody frame,
             CancellationToken cancel) =>
-            WriteFrameAsync(writer, FrameType.StreamConsumed, stream, frame.Encode, cancel);
+            WriteFrameAsync(writer, FrameType.StreamResumeWrite, stream, frame.Encode, cancel);
 
         internal static ValueTask WriteStreamStopSendingAsync(
             this ISlicFrameWriter writer,

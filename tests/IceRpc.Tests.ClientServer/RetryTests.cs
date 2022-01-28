@@ -169,7 +169,25 @@ namespace IceRpc.Tests.ClientServer
                 results.Add(retry.OpWithDataAsync(-1, 0, seq));
             }
 
-            await Task.WhenAll(results);
+            if (protocol == "icerpc")
+            {
+                // With icerpc cancelation, the peer shutdown might cancel invocations which are being dispatched.
+                try
+                {
+                    await Task.WhenAll(results);
+                }
+                catch (OperationCanceledException)
+                {
+                }
+                catch (AggregateException ex)
+                {
+                    Assert.That(ex.InnerExceptions.All(exception => exception is OperationCanceledException), Is.True);
+                }
+            }
+            else
+            {
+                await Task.WhenAll(results);
+            }
         }
 
         [TestCase("icerpc", 1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
@@ -179,7 +197,6 @@ namespace IceRpc.Tests.ClientServer
         [TestCase("icerpc", 5, 5, false)] // 5 failures, 5 max attempts, don't kill the connection
         [TestCase("icerpc", 5, 5, true)]  // 5 failures, 5 max attempts, kill the connection
         [TestCase("icerpc", 4, 5, false)] // 4 failures, 5 max attempts, don't kill the connection
-        [TestCase("icerpc", 1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
 
         [TestCase("ice", 1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
         [TestCase("ice", 1, 1, true)]  // 1 failure, 1 max attempts, kill the connection
@@ -188,7 +205,6 @@ namespace IceRpc.Tests.ClientServer
         [TestCase("ice", 5, 5, false)] // 5 failures, 5 max attempts, don't kill the connection
         [TestCase("ice", 5, 5, true)]  // 5 failures, 5 max attempts, kill the connection
         [TestCase("ice", 4, 5, false)] // 4 failures, 5 max attempts, don't kill the connection
-        [TestCase("ice", 1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
         public async Task Retry_Idempotent(
             string protocol,
             int failedAttempts,

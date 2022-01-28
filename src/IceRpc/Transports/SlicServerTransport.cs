@@ -46,8 +46,10 @@ namespace IceRpc.Transports
 
             if (logger.IsEnabled(LogLevel.Error))
             {
-                // TODO: should we add a log decorator over simple listener too?
-
+                simpleListener = new LogListenerDecorator<ISimpleNetworkConnection>(
+                    simpleListener,
+                    logger,
+                    LogSimpleNetworkConnectionDecorator.Decorate);
                 slicFrameReaderDecorator = reader => new LogSlicFrameReaderDecorator(reader, logger);
                 slicFrameWriterDecorator = writer => new LogSlicFrameWriterDecorator(writer, logger);
             }

@@ -64,11 +64,11 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel) =>
             ReadFrameDataAsync(reader, dataSize, (ref IceDecoder decoder) => new StreamResetBody(ref decoder), cancel);
 
-        internal static ValueTask<StreamConsumedBody> ReadStreamConsumedAsync(
+        internal static ValueTask<StreamResumeWriteBody> ReadStreamResumeWriteAsync(
             this ISlicFrameReader reader,
             int dataSize,
             CancellationToken cancel) =>
-            ReadFrameDataAsync(reader, dataSize, (ref IceDecoder decoder) => new StreamConsumedBody(ref decoder), cancel);
+            ReadFrameDataAsync(reader, dataSize, (ref IceDecoder decoder) => new StreamResumeWriteBody(ref decoder), cancel);
 
         internal static ValueTask<StreamStopSendingBody> ReadStreamStopSendingAsync(
             this ISlicFrameReader reader,
