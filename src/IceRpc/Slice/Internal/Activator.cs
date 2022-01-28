@@ -71,7 +71,7 @@ namespace IceRpc.Slice.Internal
                         {
                             if (type.GetSliceTypeId() is string typeId && !type.IsInterface)
                             {
-                                var lazy = new Lazy<ActivateObject>(() => CreateFactory(type));
+                                var lazy = new Lazy<ActivateObject>(() => CreateActivateObject(type));
 
                                 dict.Add(typeId, lazy);
 
@@ -95,7 +95,7 @@ namespace IceRpc.Slice.Internal
                 return Activator.Empty;
             }
 
-            static ActivateObject CreateFactory(Type type)
+            static ActivateObject CreateActivateObject(Type type)
             {
                 ConstructorInfo? constructor = type.GetConstructor(
                     BindingFlags.Instance | BindingFlags.Public,
@@ -108,7 +108,8 @@ namespace IceRpc.Slice.Internal
                     throw new InvalidOperationException($"cannot get Slice decoding constructor for '{type}'");
                 }
 
-                ParameterExpression decoderParam = Expression.Parameter(typeof(SliceDecoder).MakeByRefType(), "decoder");
+                ParameterExpression decoderParam =
+                    Expression.Parameter(typeof(SliceDecoder).MakeByRefType(), "decoder");
 
                 Expression expression = Expression.New(constructor, decoderParam);
                 if (type.IsValueType)
