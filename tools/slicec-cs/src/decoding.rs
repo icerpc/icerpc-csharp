@@ -77,12 +77,8 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str) -> CodeBloc
         TypeRefs::Primitive(primitive_ref) => {
             write!(code, "decoder.Decode{}()", primitive_ref.type_suffix());
         }
-        TypeRefs::Struct(struct_ref) => {
-            write!(
-                code,
-                "new {}(ref decoder)",
-                struct_ref.escape_scoped_identifier(namespace),
-            );
+        TypeRefs::Struct(_) => {
+            write!(code, "new {}(ref decoder)", type_string);
         }
         TypeRefs::Dictionary(dictionary_ref) => {
             code.write(&decode_dictionary(dictionary_ref, namespace))
@@ -95,6 +91,9 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str) -> CodeBloc
                 enum_ref.helper_name(namespace),
                 enum_ref.identifier(),
             );
+        }
+        TypeRefs::Trait(_) => {
+            write!(code, "decoder.DecodeTrait<{}>()", type_string);
         }
     }
 
@@ -374,6 +373,12 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
         }
         TypeRefs::Struct(_) => {
             format!("(ref IceDecoder decoder) => new {}(ref decoder)", type_name)
+        }
+        TypeRefs::Trait(_) => {
+            format!(
+                "(ref IceDecoder decoder) => decoder.DecodeTrait<{}>()",
+                type_name
+            )
         }
         TypeRefs::Class(_) => panic!("unexpected, see is_class_type above"),
     }

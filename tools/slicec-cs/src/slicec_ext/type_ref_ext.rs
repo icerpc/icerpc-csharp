@@ -44,6 +44,7 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
             TypeRefs::Interface(interface_ref) => {
                 interface_ref.scoped_proxy_implementation_name(namespace)
             }
+            TypeRefs::Trait(trait_ref) => trait_ref.scoped_interface_name(namespace),
             TypeRefs::Sequence(sequence_ref) => {
                 // For readonly sequences of fixed size numeric elements the mapping is the
                 // same for optional an non optional types.

@@ -312,7 +312,8 @@ if ({invocation}?.RequestFeatures.Get<IceRpc.Features.CompressPayload>() == null
                 stream_type = stream_type.to_type_string(namespace, TypeContext::Outgoing, false),
                 stream_parameter = stream_parameter_name,
                 payload_encoding = payload_encoding,
-                encode_action = encode_action(stream_type, namespace, true, true).indent()
+                encode_action =
+                    encode_action(stream_type, TypeContext::Outgoing, namespace).indent()
             )),
         }
     } else {
@@ -600,7 +601,11 @@ fn request_encode_action(operation: &Operation) -> CodeBlock {
         && get_bit_sequence_size(&params) == 0
         && params.first().unwrap().tag.is_none()
     {
-        encode_action(params.first().unwrap().data_type(), &namespace, true, true)
+        encode_action(
+            params.first().unwrap().data_type(),
+            TypeContext::Outgoing,
+            &namespace,
+        )
     } else {
         format!(
             "\

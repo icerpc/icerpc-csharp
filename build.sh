@@ -2,12 +2,15 @@
 
 set -ue
 
+version="0.1.0-preview1"
+
 usage()
 {
     echo "Usage: build [command] [arguments]"
     echo "Commands (defaults to build):"
     echo "  build                     Build IceRpc sources & slice-cs compiler."
     echo "  pack                      Build the IceRpc NuGet packages."
+    echo "  install                   Install the IceRpc NuGet packages into the global-packages source."
     echo "  clean                     Clean IceRpc sources & slice-cs compiler."
     echo "  rebuild                   Rebuild IceRpc sources & slice-cs compiler."
     echo "  test                      Runs tests."
@@ -50,6 +53,16 @@ pack()
     run_command dotnet "pack" "-c" "$dotnet_config"
 }
 
+install()
+{
+    build_compiler
+    pack
+    global_packages=$(dotnet nuget locals -l global-packages)
+    global_packages=${global_packages/global-packages: /""}
+    run_command rm "-rf" "$global_packages/icerpc/$version" "$global_packages/icerpc.coloc/$version" "$global_packages/icerpc.interop/$version"
+    run_command dotnet "nuget" "push" "src/**/$dotnet_config/*.nupkg" "--source" "$global_packages"
+}
+
 clean_icerpc()
 {
     run_command dotnet clean
@@ -62,12 +75,7 @@ build()
         build_icerpc
     else
         if [ "$srcdist" == "yes" ]; then
-            build_compiler
-            pack
-            global_packages=$(dotnet nuget locals -l global-packages)
-            global_packages=${global_packages/global-packages: /""}
-            run_command rm "-rf" "$global_packages/icerpc" "$global_packages/icerpc.coloc" "$global_packages/icerpc.interop"
-            run_command dotnet "nuget" "push" "lib/*.nupkg" "--source" "$global_packages"
+            install
         fi
         for solution in examples/*/*.sln
         do
@@ -173,7 +181,7 @@ then
     config="debug"
 fi
 
-actions=("build" "clean" "pack" "rebuild" "test" "doc")
+actions=("build" "clean" "pack" "install" "rebuild" "test" "doc")
 if [[ ! " ${actions[*]} " == *" ${action} "* ]]; then
     echo "invalid action: " $action
     usage
@@ -202,6 +210,9 @@ case $action in
         ;;
     "pack")
         pack
+        ;;
+    "install")
+        install
         ;;
     "clean")
         clean

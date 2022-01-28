@@ -11,7 +11,7 @@
   <ItemGroup>
     <SliceCompile Include="../Hello.slice" />
     <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview4" PrivateAssets="All" />
-    <PackageReference Include="icerpc" Version="0.1.0-preview1" />
+    <PackageReference Include="icerpc" Version="$(IceRpcVersion)" />
     <Compile Update="generated\Hello.cs">
       <SliceCompileSource>../Hello.slice</SliceCompileSource>
     </Compile>

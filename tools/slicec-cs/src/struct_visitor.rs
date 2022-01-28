@@ -32,7 +32,17 @@ impl<'a> Visitor for StructVisitor<'a> {
 
         builder
             .add_comment("summary", &doc_comment_message(struct_def))
-            .add_container_attributes(struct_def);
+            .add_type_id_attribute(struct_def)
+            .add_container_attributes(struct_def)
+            .add_base("IceRpc.Slice.ITrait".to_owned());
+
+        builder.add_block(
+            format!(
+                "public static readonly string IceTypeId = typeof({}).GetIceTypeId()!;",
+                &escaped_identifier
+            )
+            .into(),
+        );
 
         builder.add_block(
             members
@@ -108,7 +118,7 @@ impl<'a> Visitor for StructVisitor<'a> {
         // Encode method
         builder.add_block(
             FunctionBuilder::new(
-                &struct_def.modifiers(),
+                &(struct_def.access_modifier() + " readonly"),
                 "void",
                 "Encode",
                 FunctionType::BlockBody,
@@ -120,6 +130,28 @@ impl<'a> Visitor for StructVisitor<'a> {
                 &namespace,
                 FieldType::NonMangled,
             ))
+            .build(),
+        );
+
+        // EncodeTrait method
+        builder.add_block(
+            FunctionBuilder::new(
+                "public readonly",
+                "void",
+                "EncodeTrait",
+                FunctionType::BlockBody,
+            )
+            .add_comment(
+                "summary",
+                "Encodes this struct as a trait, by encoding its Slice type ID followed by its fields.",
+            )
+            .add_parameter("ref IceEncoder", "encoder", None, Some("The encoder."))
+            .set_body(
+                    r#"
+encoder.EncodeString(IceTypeId);
+this.Encode(ref encoder);"#
+                .into(),
+            )
             .build(),
         );
 

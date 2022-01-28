@@ -54,7 +54,7 @@ namespace IceRpc.Tests.ClientServer
             Server server2 = serviceProvider2.GetRequiredService<Server>();
             Server server3 = serviceProvider3.GetRequiredService<Server>();
 
-            var proxy = Proxy.Parse($"{server1.Endpoint}",serviceProvider1.GetRequiredService<IInvoker>());
+            var proxy = Proxy.Parse($"{server1.Endpoint}", serviceProvider1.GetRequiredService<IInvoker>());
             proxy = proxy with { Path = "/retry" };
 
             var prx = new RetryReplicatedTestPrx(proxy);

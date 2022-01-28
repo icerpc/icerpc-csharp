@@ -1,0 +1,16 @@
+
+module IceRpc::Tests::SliceInternal
+{
+    trait MyTraitA;
+    trait MyTraitB;
+
+    struct TraitStructA
+    {
+        s: string,
+    }
+
+    struct TraitStructB
+    {
+        l: long,
+    }
+}

@@ -9,6 +9,8 @@ param (
     [switch]$help
 )
 
+$version = "0.1.0-preview1"
+
 function BuildCompiler($config) {
     Push-Location "tools\slicec-cs"
     $arguments = @('build')
@@ -50,20 +52,25 @@ function CleanIceRpcExamples($config) {
 function Build($config, $examples, $srcdist) {
     if ($examples) {
         if ($srcdist) {
-           BuildCompiler $config
-           Pack $config
-           $global_packages = dotnet nuget locals -l global-packages
-           $global_packages = $global_packages.replace("global-packages: ", "")
-           Remove-Item $global_packages"\icerpc" -Recurse -Force -ErrorAction Ignore
-           Remove-Item $global_packages"\icerpc.coloc" -Recurse -Force -ErrorAction Ignore
-           Remove-Item $global_packages"\icerpc.interop" -Recurse -Force -ErrorAction Ignore
-           RunCommand "dotnet" @('nuget', 'push', 'lib\*.nupkg', '--source', $global_packages)
+           Install $config
         }
         BuildIceRpcExamples $config
     } else {
         BuildCompiler $config
         BuildIceRpc $config
     }
+}
+
+function Install($config) {
+    $dotnetConfiguration = DotnetConfiguration($config)
+    BuildCompiler $config
+    Pack $config
+    $global_packages = dotnet nuget locals -l global-packages
+    $global_packages = $global_packages.replace("global-packages: ", "")
+    Remove-Item $global_packages"\icerpc\$version" -Recurse -Force -ErrorAction Ignore
+    Remove-Item $global_packages"\icerpc.coloc\$version" -Recurse -Force -ErrorAction Ignore
+    Remove-Item $global_packages"\icerpc.interop\$version" -Recurse -Force -ErrorAction Ignore
+    RunCommand "dotnet" @('nuget', 'push', "src\**\$dotnetConfiguration\*.nupkg", '--source', $global_packages)
 }
 
 function Pack($config) {
@@ -126,6 +133,7 @@ function Get-Help() {
     Write-Host "Commands (defaults to build):"
     Write-Host "  build                     Build IceRpc sources & slice-cs compiler."
     Write-Host "  pack                      Build the IceRpc NuGet packages."
+    Write-Host "  install                   Install IceRpc NuGet packages into the global-packages source."
     Write-Host "  clean                     Clean IceRpc sources & slice-cs compiler."
     Write-Host "  rebuild                   Rebuild IceRpc sources & slice-cs compiler."
     Write-Host "  test                      Runs tests."
@@ -157,6 +165,9 @@ switch ( $action ) {
     }
     "pack" {
         Pack $config
+    }
+    "install" {
+        Install $config
     }
     "rebuild" {
         Rebuild $config $examples $srcdist

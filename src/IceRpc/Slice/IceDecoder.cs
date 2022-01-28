@@ -7,7 +7,6 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -310,6 +309,34 @@ namespace IceRpc.Slice
             }
         }
 
+        /// <summary>Decodes a trait.</summary>
+        /// <returns>The decoded trait.</returns>
+        public T DecodeTrait<T>()
+        {
+            if (Encoding == IceRpc.Encoding.Slice11)
+            {
+                throw new InvalidOperationException(
+                    $"{nameof(DecodeTrait)} is not compatible with encoding {Encoding}");
+            }
+
+            string typeId = DecodeString();
+            ITrait? trait = _activator?.CreateInstance(typeId, ref this) as ITrait;
+            if (trait is T result)
+            {
+                return result;
+            }
+            else if (trait != null)
+            {
+                throw new InvalidDataException(
+                    $"decoded struct of type '{trait.GetType()}' does not implement expected interface '{typeof(T)}'");
+            }
+            else
+            {
+                throw new InvalidDataException(
+                    $"failed to decode struct with type id '{typeId}' implementing interface '{typeof(T)}'");
+            }
+        }
+
         /// <summary>Decodes a nullable proxy.</summary>
         /// <returns>The decoded proxy, or null.</returns>
         public Proxy? DecodeNullableProxy()
@@ -433,29 +460,6 @@ namespace IceRpc.Slice
         /// <returns>The decoded proxy</returns>
         public Proxy DecodeProxy() =>
             DecodeNullableProxy() ?? throw new InvalidDataException("decoded null for a non-nullable proxy");
-
-        /// <summary>Decodes a sequence of fixed-size numeric values and returns an array.</summary>
-        /// <param name="checkElement">A delegate used to check each element of the array (optional).</param>
-        /// <returns>The sequence decoded by this decoder, as an array.</returns>
-        public T[] DecodeSequence<T>(Action<T>? checkElement = null) where T : struct
-        {
-            int elementSize = Unsafe.SizeOf<T>();
-            var value = new T[DecodeAndCheckSeqSize(elementSize)];
-
-            Span<byte> destination = MemoryMarshal.Cast<T, byte>(value);
-            Debug.Assert(destination.Length == elementSize * value.Length);
-            CopyTo(destination);
-
-            if (checkElement != null)
-            {
-                foreach (T e in value)
-                {
-                    checkElement(e);
-                }
-            }
-
-            return value;
-        }
 
         // Other methods
 
@@ -793,7 +797,7 @@ namespace IceRpc.Slice
                             var builder = ImmutableDictionary.CreateBuilder<string, string>();
                             builder.Add("transport", TransportNames.Opaque);
                             builder.Add("t", ((short)transportCode).ToString(CultureInfo.InvariantCulture));
-                            builder.Add("e", encoding.ToString() );
+                            builder.Add("e", encoding.ToString());
                             builder.Add("v", Convert.ToBase64String(vSpan));
 
                             endpoint = new Endpoint(

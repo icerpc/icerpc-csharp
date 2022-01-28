@@ -16,17 +16,9 @@ namespace IceRpc.Transports
         /// </summary>
         public CancellationToken CompleteCancellationToken { get; set; }
 
-        private Stream? _stream;
-
         /// <inheritdoc/>
-        public override Stream AsStream(bool leaveOpen = false)
-        {
-            if (leaveOpen)
-            {
-                throw new ArgumentException($"{nameof(leaveOpen)} must be false", nameof(leaveOpen));
-            }
-            return _stream ??= new PipeWriterStream(this);
-        }
+        public override Stream AsStream(bool leaveOpen = false) =>
+            throw new InvalidOperationException("call ToPayloadSinkStream");
 
         /// <summary>Writes a read only sequence of bytes to this writer and optionally completes this writer.</summary>
         /// <param name="source">The source sequence.</param>

@@ -474,14 +474,14 @@ namespace IceRpc
             }
             else
             {
-               sb.Append(':');
-               sb.Append(ToString(proxy.Endpoint.Value));
+                sb.Append(':');
+                sb.Append(ToString(proxy.Endpoint.Value));
 
-               foreach (Endpoint e in proxy.AltEndpoints)
-               {
+                foreach (Endpoint e in proxy.AltEndpoints)
+                {
                     sb.Append(':');
                     sb.Append(ToString(e));
-               }
+                }
             }
             return sb.ToString();
         }

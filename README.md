@@ -42,7 +42,7 @@ You must replace:
 
 ## Building
 
-IceRpc can be build from a regular command prompt, using the following command
+IceRpc can be built from a regular command prompt, using the following command
 
 For Linux and macOS
 
@@ -56,17 +56,17 @@ For Windows
 build.cmd
 ```
 
-This builds the [slicec-cs](./tools/slicec-cs) compiler, the IceRpc runtime assemblies and the IceRpc tests in the
+This builds the [slicec-cs](./tools/slicec-cs) compiler, the IceRpc runtime assemblies, and the IceRpc tests in the
 default debug configuration.
 
 ## Testing
 
 The test suite can be run from the command line by running `dotnet test` command in the repository top-level
-directory, this command builds `IceRpc.sln` solution an execute all tests from the solution.
+directory, this command builds `IceRpc.sln` solution an executes all tests from the solution.
 
 For additional options see <https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-test>.
 
-You can also run the tests from Visual Studio and Visual Studio for Mac using the builtin test explorer, in this
+You can also run the tests from Visual Studio and Visual Studio for Mac using the built-in test explorer, in this
 case you need to use `IceRpc.sln` solution file.
 
 Visual Studio Code users can install [.NET Core Test Explorer](https://marketplace.visualstudio.com/items?itemName=formulahendry.dotnet-test-explorer)
@@ -89,7 +89,7 @@ dotnet test --collect:"XPlat Code Coverage"
 Generate the test report
 
 ```
-reportgenerator "-reports:tests/*/TestResults/*/coverage.cobertura.xml" "-targetdir:tests/TestRerport"
+reportgenerator "-reports:tests/*/TestResults/*/coverage.cobertura.xml" "-targetdir:tests/TestReport"
 ```
 
 You can do the same with the `--coverage` argument of the build script.

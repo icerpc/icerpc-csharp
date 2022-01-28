@@ -50,9 +50,9 @@ namespace IceRpc.Tests.SliceInternal
             // First we unmarshal the class using the factory that know all the types, no Slicing should occur in this case.
             var decoder = new IceDecoder(buffer, Encoding.Slice11, activator: activator);
             MyMostDerivedClass r = decoder.DecodeClass<MyMostDerivedClass>();
-            Assert.AreEqual(p1.M1, r.M1);
-            Assert.AreEqual(p1.M2, r.M2);
-            Assert.AreEqual(p1.M3, r.M3);
+            Assert.That(p1.M1, Is.EqualTo(r.M1));
+            Assert.That(p1.M2, Is.EqualTo(r.M2));
+            Assert.That(p1.M3, Is.EqualTo(r.M3));
 
             // Create an activator that exclude 'MyMostDerivedClass' type ID and ensure that the class is unmarshaled as
             // 'MyDerivedClass' which is the base type.
@@ -69,8 +69,8 @@ namespace IceRpc.Tests.SliceInternal
             decoder = new IceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
             MyDerivedClass r1 = decoder.DecodeClass<MyDerivedClass>();
             Assert.That(r1.UnknownSlices, Is.Empty);
-            Assert.AreEqual(p1.M1, r1.M1);
-            Assert.AreEqual(p1.M2, r1.M2);
+            Assert.That(p1.M1, Is.EqualTo(r1.M1));
+            Assert.That(p1.M2, Is.EqualTo(r1.M2));
 
             // Repeat with an activator that also excludes 'MyDerivedClass' type ID
             slicingActivator = new SlicingActivator(
@@ -86,7 +86,7 @@ namespace IceRpc.Tests.SliceInternal
             decoder = new IceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
             MyBaseClass r2 = decoder.DecodeClass<MyBaseClass>();
             Assert.That(r2.UnknownSlices, Is.Empty);
-            Assert.AreEqual(p1.M1, r2.M1);
+            Assert.That(p1.M1, Is.EqualTo(r2.M1));
 
             // Repeat with an activator that also excludes 'MyBaseClass' type ID
             slicingActivator = new SlicingActivator(
@@ -131,9 +131,9 @@ namespace IceRpc.Tests.SliceInternal
             // First we unmarshal the class using the default factories, no Slicing should occur in this case.
             var decoder = new IceDecoder(buffer, Encoding.Slice11, activator: activator);
             MyCompactMostDerivedClass r = decoder.DecodeClass<MyCompactMostDerivedClass>();
-            Assert.AreEqual(p1.M1, r.M1);
-            Assert.AreEqual(p1.M2, r.M2);
-            Assert.AreEqual(p1.M3, r.M3);
+            Assert.That(p1.M1, Is.EqualTo(r.M1));
+            Assert.That(p1.M2, Is.EqualTo(r.M2));
+            Assert.That(p1.M3, Is.EqualTo(r.M3));
 
             // Create an activator that exclude 'MyCompactMostDerivedClass' compact type ID (3) and ensure that
             // the class is unmarshaled as 'MyCompactDerivedClass' which is the base type.
@@ -150,8 +150,8 @@ namespace IceRpc.Tests.SliceInternal
             decoder = new IceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
             MyCompactDerivedClass r1 = decoder.DecodeClass<MyCompactDerivedClass>();
             Assert.That(r1.UnknownSlices, Is.Empty);
-            Assert.AreEqual(p1.M1, r1.M1);
-            Assert.AreEqual(p1.M2, r1.M2);
+            Assert.That(p1.M1, Is.EqualTo(r1.M1));
+            Assert.That(p1.M2, Is.EqualTo(r1.M2));
 
             // Repeat with an activator that also excludes 'MyCompactDerivedClass' compact type ID (2)
             slicingActivator = slicingActivator = new SlicingActivator(
@@ -167,7 +167,7 @@ namespace IceRpc.Tests.SliceInternal
             decoder = new IceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
             MyCompactBaseClass r2 = decoder.DecodeClass<MyCompactBaseClass>();
             Assert.That(r2.UnknownSlices, Is.Empty);
-            Assert.AreEqual(p1.M1, r2.M1);
+            Assert.That(p1.M1, Is.EqualTo(r2.M1));
 
             // Repeat with an activator that also excludes 'MyCompactBaseClass' compact type ID (1)
             slicingActivator = slicingActivator = new SlicingActivator(
@@ -211,9 +211,9 @@ namespace IceRpc.Tests.SliceInternal
             RemoteException r = decoder.DecodeException();
             Assert.That(r, Is.InstanceOf<MyMostDerivedException>());
             var r1 = (MyMostDerivedException)r;
-            Assert.AreEqual(p1.M1, r1.M1);
-            Assert.AreEqual(p1.M2, r1.M2);
-            Assert.AreEqual(p1.M3, r1.M3);
+            Assert.That(p1.M1, Is.EqualTo(r1.M1));
+            Assert.That(p1.M2, Is.EqualTo(r1.M2));
+            Assert.That(p1.M3, Is.EqualTo(r1.M3));
 
             // Create an activator that exclude 'MyMostDerivedException' type ID and ensure that the class is unmarshaled
             // as 'MyDerivedException' which is the base type.
@@ -227,8 +227,8 @@ namespace IceRpc.Tests.SliceInternal
             Assert.That(r, Is.InstanceOf<MyDerivedException>());
             Assert.That(r, Is.Not.InstanceOf<MyMostDerivedException>());
             var r2 = (MyDerivedException)r;
-            Assert.AreEqual(p1.M1, r2.M1);
-            Assert.AreEqual(p1.M2, r2.M2);
+            Assert.That(p1.M1, Is.EqualTo(r2.M1));
+            Assert.That(p1.M2, Is.EqualTo(r2.M2));
 
             // Repeat with an activator that also excludes 'MyDerivedException' type ID
             slicingActivator = new SlicingActivator(
@@ -242,7 +242,7 @@ namespace IceRpc.Tests.SliceInternal
             Assert.That(r, Is.Not.InstanceOf<MyDerivedException>());
             Assert.That(r, Is.InstanceOf<MyBaseException>());
             var r3 = (MyBaseException)r;
-            Assert.AreEqual(p1.M1, r3.M1);
+            Assert.That(p1.M1, Is.EqualTo(r3.M1));
 
             // Repeat with an activator that also excludes 'MyBaseException' type ID
             slicingActivator = new SlicingActivator(
@@ -256,8 +256,7 @@ namespace IceRpc.Tests.SliceInternal
             r = decoder.DecodeException();
             Assert.That(r, Is.Not.InstanceOf<MyBaseException>());
             Assert.That(r, Is.InstanceOf<UnknownSlicedRemoteException>());
-            Assert.AreEqual("::IceRpc::Tests::SliceInternal::MyMostDerivedException",
-                            ((UnknownSlicedRemoteException)r).TypeId);
+            Assert.That(((UnknownSlicedRemoteException)r).TypeId, Is.EqualTo("::IceRpc::Tests::SliceInternal::MyMostDerivedException"));
 
             // Marshal the exception again -- there is no Slice preservation for exceptions
             buffer = new byte[1024 * 1024];
@@ -314,13 +313,13 @@ namespace IceRpc.Tests.SliceInternal
             decoder = new IceDecoder(buffer, Encoding.Slice11, activator: activator);
             MyPreservedDerivedClass1 r2 = decoder.DecodeClass<MyPreservedDerivedClass1>();
             Assert.That(r2.UnknownSlices, Is.Empty);
-            Assert.AreEqual("p1-m1", r2.M1);
-            Assert.AreEqual("p1-m2", r2.M2);
+            Assert.That(r2.M1, Is.EqualTo("p1-m1"));
+            Assert.That(r2.M2, Is.EqualTo("p1-m2"));
             Assert.That(r2.M3, Is.InstanceOf<MyPreservedDerivedClass1>());
             var r3 = (MyPreservedDerivedClass1)r2.M3;
-            Assert.AreEqual("p2-m1", r3.M1);
-            Assert.AreEqual("p2-m2", r3.M2);
-            Assert.AreEqual("base", r3.M3.M1);
+            Assert.That(r3.M1, Is.EqualTo("p2-m1"));
+            Assert.That(r3.M2, Is.EqualTo("p2-m2"));
+            Assert.That(r3.M3.M1, Is.EqualTo("base"));
         }
 
         [Test]
@@ -363,13 +362,13 @@ namespace IceRpc.Tests.SliceInternal
             // unmarshal again using the default factory, the unmarshaled class should contain the preserved Slices.
             decoder = new IceDecoder(buffer, Encoding.Slice11, activator: activator);
             MyPreservedDerivedClass2 r2 = decoder.DecodeClass<MyPreservedDerivedClass2>();
-            Assert.AreEqual("p1-m1", r2.M1);
-            Assert.AreEqual("p1-m2", r2.M2);
+            Assert.That(r2.M1, Is.EqualTo("p1-m1"));
+            Assert.That(r2.M2, Is.EqualTo("p1-m2"));
             Assert.That(r2.M3, Is.InstanceOf<MyPreservedDerivedClass2>());
             var r3 = (MyPreservedDerivedClass2)r2.M3;
-            Assert.AreEqual("p2-m1", r3.M1);
-            Assert.AreEqual("p2-m2", r3.M2);
-            Assert.AreEqual("base", r3.M3.M1);
+            Assert.That(r3.M1, Is.EqualTo("p2-m1"));
+            Assert.That(r3.M2, Is.EqualTo("p2-m2"));
+            Assert.That(r3.M3.M1, Is.EqualTo("base"));
         }
     }
 }

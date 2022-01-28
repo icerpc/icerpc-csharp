@@ -1,8 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Collections.Immutable;
+using System.Runtime.InteropServices;
+
 namespace IceRpc.Slice
 {
-    /// <summary>Provides extension methods for class IceEncoder.</summary>
+    /// <summary>Provides extension methods for <see cref="IceEncoder"/>.</summary>
     public static class IceEncoderExtensions
     {
         /// <summary>Encodes a dictionary.</summary>
@@ -55,6 +58,33 @@ namespace IceRpc.Slice
             }
         }
 
+        /// <summary>Encodes a sequence of fixed-size numeric values, such as int and long.</summary>
+        /// <param name="encoder">The Slice encoder.</param>
+        /// <param name="v">The sequence of numeric values.</param>
+        public static void EncodeSequence<T>(this ref IceEncoder encoder, IEnumerable<T> v) where T : struct
+        {
+            switch (v)
+            {
+                case T[] vArray:
+                    encoder.EncodeSpan(new ReadOnlySpan<T>(vArray));
+                    break;
+
+                case ImmutableArray<T> vImmutableArray:
+                    encoder.EncodeSpan(vImmutableArray.AsSpan());
+                    break;
+
+                case ArraySegment<T> vArraySegment:
+                    encoder.EncodeSpan((ReadOnlySpan<T>)vArraySegment.AsSpan());
+                    break;
+
+                default:
+                    encoder.EncodeSequence(
+                        v,
+                        (ref IceEncoder encoder, T element) => encoder.EncodeFixedSizeNumeric(element));
+                    break;
+            }
+        }
+
         /// <summary>Encodes a sequence.</summary>
         /// <paramtype name="T">The type of the sequence elements. It is non-nullable except for nullable class and
         /// proxy types.</paramtype>
@@ -97,6 +127,19 @@ namespace IceRpc.Slice
                         encodeAction(ref encoder, item);
                     }
                 }
+            }
+        }
+
+        /// <summary>Encodes a span of fixed-size numeric values, such as int and long.</summary>
+        /// <param name="encoder">The Slice encoder.</param>
+        /// <param name="v">The span of numeric values represented by a <see cref="ReadOnlySpan{T}"/>.</param>
+        // This method works because (as long as) there is no padding in the memory representation of the ReadOnlySpan.
+        public static void EncodeSpan<T>(this ref IceEncoder encoder, ReadOnlySpan<T> v) where T : struct
+        {
+            encoder.EncodeSize(v.Length);
+            if (!v.IsEmpty)
+            {
+                encoder.WriteByteSpan(MemoryMarshal.AsBytes(v));
             }
         }
     }
