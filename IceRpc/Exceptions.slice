@@ -2,8 +2,8 @@
 
 module IceRpc
 {
-    /// Represents the origin of a remote exception. With the Ice 2.0 encoding, all remote exceptions have an implicit
-    /// origin data member set during marshaling. With the Ice 1.1 encoding, this origin data member is set for
+    /// Represents the origin of a remote exception. With the Slice 2.0 encoding, all remote exceptions have an implicit
+    /// origin data member set during marshaling. With the Slice 1.1 encoding, this origin data member is set for
     /// {@link ServiceNotFoundException} and {@link OperationNotFoundException}, and is otherwise set to an unknown
     /// (all empty) value.
     [cs:readonly] struct RemoteExceptionOrigin
