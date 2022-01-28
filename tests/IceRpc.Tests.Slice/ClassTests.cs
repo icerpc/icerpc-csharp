@@ -218,7 +218,7 @@ namespace IceRpc.Tests.Slice
             }
             catch (UnhandledException)
             {
-                // Expected marshal exception from the server (max class graph depth reached)
+                // Expected decode exception from the server (maximum depth reached)
             }
         }
 

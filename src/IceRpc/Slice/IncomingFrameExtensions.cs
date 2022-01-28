@@ -21,7 +21,7 @@ namespace IceRpc.Slice
                 incoming.Connection,
                 incoming.ProxyInvoker,
                 incoming.Features.Get<IActivator>() ?? defaultActivator,
-                incoming.Features.GetClassGraphMaxDepth(),
+                incoming.Features.GetSliceDecoderMaxDepth(),
                 decodeFunc,
                 incoming.Features.Get<StreamDecoderOptions>() ?? StreamDecoderOptions.Default);
     }
