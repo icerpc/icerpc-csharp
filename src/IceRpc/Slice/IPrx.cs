@@ -11,7 +11,7 @@ namespace IceRpc.Slice
     }
 
     /// <summary>Provides extension methods for SliceDecoder.</summary>
-    public static class IceDecoderPrxExtensions
+    public static class SliceDecoderPrxExtensions
     {
         /// <summary>Decodes a nullable typed proxy.</summary>
         /// <param name="decoder">The decoder.</param>
