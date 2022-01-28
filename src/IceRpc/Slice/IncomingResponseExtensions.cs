@@ -31,7 +31,7 @@ namespace IceRpc.Slice
                     response.Connection,
                     response.ProxyInvoker,
                     response.Features.Get<IActivator>() ?? defaultActivator,
-                    response.Features.GetClassGraphMaxDepth(),
+                    response.Features.GetSliceDecoderMaxDepth(),
                     cancel).ConfigureAwait(false);
             }
         }
@@ -57,7 +57,7 @@ namespace IceRpc.Slice
                     response.Connection,
                     response.ProxyInvoker,
                     response.Features.Get<IActivator>() ?? defaultActivator,
-                    response.Features.GetClassGraphMaxDepth(),
+                    response.Features.GetSliceDecoderMaxDepth(),
                     decodeFunc,
                     hasStream,
                     cancel).ConfigureAwait(false) :
@@ -66,7 +66,7 @@ namespace IceRpc.Slice
                     response.Connection,
                     response.ProxyInvoker,
                     response.Features.Get<IActivator>() ?? defaultActivator,
-                    response.Features.GetClassGraphMaxDepth(),
+                    response.Features.GetSliceDecoderMaxDepth(),
                     cancel).ConfigureAwait(false);
     }
 }

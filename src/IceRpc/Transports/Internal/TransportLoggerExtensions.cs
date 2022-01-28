@@ -90,13 +90,20 @@ namespace IceRpc.Transports.Internal
             Message = "connection closed")]
         internal static partial void LogConnectionDispose(this ILogger logger);
 
-        internal static IDisposable StartMultiplexedStreamScope(this ILogger logger, long id) =>
-            (id % 4) switch
-            {
-                0 => _multiplexedStreamScope(logger, id, "Client", "Bidirectional"),
-                1 => _multiplexedStreamScope(logger, id, "Server", "Bidirectional"),
-                2 => _multiplexedStreamScope(logger, id, "Client", "Unidirectional"),
-                _ => _multiplexedStreamScope(logger, id, "Server", "Unidirectional")
-            };
+        internal static IDisposable StartMultiplexedStreamScope(this ILogger logger, IMultiplexedStream stream) =>
+            stream.IsStarted ?
+                (stream.Id % 4) switch
+                {
+                    0 => _multiplexedStreamScope(logger, stream.Id, "Client", "Bidirectional"),
+                    1 => _multiplexedStreamScope(logger, stream.Id, "Server", "Bidirectional"),
+                    2 => _multiplexedStreamScope(logger, stream.Id, "Client", "Unidirectional"),
+                    _ => _multiplexedStreamScope(logger, stream.Id, "Server", "Unidirectional")
+                } :
+                // Client stream is not started yet
+                stream.IsBidirectional switch
+                {
+                    false => _multiplexedStreamScope(logger, -1, "Client", "Unidirectional"),
+                    true => _multiplexedStreamScope(logger, -1, "Client", "Bidirectional")
+                };
     }
 }

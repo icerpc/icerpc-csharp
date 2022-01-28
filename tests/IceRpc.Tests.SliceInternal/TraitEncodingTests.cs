@@ -99,7 +99,9 @@ namespace IceRpc.Tests.SliceInternal
                 }
                 catch (InvalidDataException e)
                 {
-                    Assert.That(e.Message, Is.EqualTo("failed to decode struct with type id '::IceRpc::Tests::SliceInternal::FakeTrait' implementing interface 'IceRpc.Tests.SliceInternal.IMyTraitB'"));
+                    Assert.That(
+                        e.Message,
+                        Is.EqualTo("failed to decode struct with type ID '::IceRpc::Tests::SliceInternal::FakeTrait' implementing interface 'IceRpc.Tests.SliceInternal.IMyTraitB'"));
                 }
             }
         }

@@ -49,7 +49,6 @@ namespace IceRpc.Tests.ClientServer
                         async (request, cancel) =>
                         {
                             ReadResult readResult = await request.Payload.ReadAtLeastAsync(uncompressedLength, cancel);
-
                             if (compressPayload)
                             {
                                 // Verify we received a compressed payload.
@@ -62,7 +61,8 @@ namespace IceRpc.Tests.ClientServer
                             {
                                 Assert.That(readResult.Buffer, Has.Length.EqualTo(uncompressedLength));
                             }
-                            request.Payload.AdvanceTo(readResult.Buffer.Start); // don't consume/examine anything
+                            // Don't consume anything.
+                            request.Payload.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
                             return await next.DispatchAsync(request, cancel);
                         }));
 
@@ -85,6 +85,7 @@ namespace IceRpc.Tests.ClientServer
                             {
                                 Assert.That(received, Is.EqualTo(_mainPayload));
                             }
+
                             called = true;
                             return new OutgoingResponse(request);
                         }));
@@ -141,8 +142,8 @@ namespace IceRpc.Tests.ClientServer
 
             Assert.That(called, Is.False);
             IncomingResponse response = await pipeline.InvokeAsync(request);
-            Assert.That(called, Is.True);
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
+            Assert.That(called, Is.True);
         }
 
         [Test]
@@ -200,16 +201,16 @@ namespace IceRpc.Tests.ClientServer
                     {
                         Assert.That(readResult.Buffer, Has.Length.EqualTo(uncompressedLength));
                     }
-                    response.Payload.AdvanceTo(readResult.Buffer.Start); // don't consume/examine anything
-
+                    // Don't consume anything.
+                    response.Payload.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
                     called = true;
                     return response;
                 }));
 
             Assert.That(called, Is.False);
             IncomingResponse response = await pipeline.InvokeAsync(request);
-            Assert.That(called, Is.True);
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
+            Assert.That(called, Is.True);
 
             ReadResult readResult = await response.Payload.ReadAtLeastAsync(uncompressedLength);
             byte[] received = readResult.Buffer.ToArray();

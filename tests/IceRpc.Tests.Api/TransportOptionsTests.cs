@@ -5,7 +5,6 @@ using NUnit.Framework;
 
 namespace IceRpc.Tests.Api
 {
-    [Timeout(30000)]
     [Parallelizable(scope: ParallelScope.All)]
     public sealed class TransportOptionsTests
     {
@@ -76,20 +75,20 @@ namespace IceRpc.Tests.Api
         public void TransportOptions_SlicOptions()
         {
             var options = new SlicOptions();
-            Assert.AreEqual(100, options.BidirectionalStreamMaxCount);
-            Assert.AreEqual(32 * 1024, options.PacketMaxSize);
-            // The StreamBufferMaxSize default is twice the PacketSize
-            Assert.AreEqual(2 * options.PacketMaxSize, options.StreamBufferMaxSize);
             Assert.AreEqual(100, options.UnidirectionalStreamMaxCount);
+            Assert.AreEqual(100, options.BidirectionalStreamMaxCount);
+            Assert.AreEqual(16 * 1024, options.PacketMaxSize);
+            Assert.AreEqual(64 * 1024, options.PauseWriterThreshold);
+            Assert.AreEqual(32 * 1024, options.ResumeWriterThreshold);
 
             // Can't be less than 1
             Assert.Throws<ArgumentException>(() => new SlicOptions() { BidirectionalStreamMaxCount = 0 });
+            Assert.Throws<ArgumentException>(() => new SlicOptions() { UnidirectionalStreamMaxCount = 0 });
+
             // Can't be less than 1Kb
             Assert.Throws<ArgumentException>(() => new SlicOptions() { PacketMaxSize = 1 });
-            // Can't be less than 1KB
-            Assert.Throws<ArgumentException>(() => new SlicOptions() { StreamBufferMaxSize = 1 });
-            // Can't be less than 1
-            Assert.Throws<ArgumentException>(() => new SlicOptions() { UnidirectionalStreamMaxCount = 0 });
+            Assert.Throws<ArgumentException>(() => new SlicOptions() { PauseWriterThreshold = 1});
+            Assert.Throws<ArgumentException>(() => new SlicOptions() { ResumeWriterThreshold = 1});
         }
     }
 }

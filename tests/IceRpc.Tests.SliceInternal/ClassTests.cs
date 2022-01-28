@@ -227,12 +227,9 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(100, 10, 10)]
         [TestCase(50, 200, 10)]
         [TestCase(50, 10, 200)]
-        public async Task Class_ClassGraphMaxDepth(
-            int graphSize,
-            int clientClassGraphMaxDepth,
-            int serverClassGraphMaxDepth)
+        public async Task Class_MaxDepth(int graphSize, int clientMaxDepth, int serverMaxDepth)
         {
-            // We overwrite the default value for class graph max depth through a middleware (server side) and
+            // We overwrite the default value for class graph maximum depth through a middleware (server side) and
             // an interceptor (client side).
 
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
@@ -244,7 +241,7 @@ namespace IceRpc.Tests.SliceInternal
                     router.Use(next => new InlineDispatcher(
                         (request, cancel) =>
                         {
-                            request.Features = request.Features.WithClassGraphMaxDepth(serverClassGraphMaxDepth);
+                            request.Features = request.Features.WithSliceDecoderMaxDepth(serverMaxDepth);
                             return next.DispatchAsync(request, cancel);
                         }));
                     return router;
@@ -258,14 +255,14 @@ namespace IceRpc.Tests.SliceInternal
                 async (request, cancel) =>
                 {
                     IncomingResponse response = await next.InvokeAsync(request, cancel);
-                    response.Features = response.Features.WithClassGraphMaxDepth(clientClassGraphMaxDepth);
+                    response.Features = response.Features.WithSliceDecoderMaxDepth(clientMaxDepth);
 
                     return response;
                 }));
             prx.Proxy.Invoker = pipeline;
 
             await prx.IcePingAsync();
-            if (graphSize > clientClassGraphMaxDepth)
+            if (graphSize > clientMaxDepth)
             {
                 Assert.ThrowsAsync<InvalidDataException>(async () => await prx.ReceiveClassGraphAsync(graphSize));
             }
@@ -274,7 +271,7 @@ namespace IceRpc.Tests.SliceInternal
                 Assert.DoesNotThrowAsync(async () => await prx.ReceiveClassGraphAsync(graphSize));
             }
 
-            if (graphSize > serverClassGraphMaxDepth)
+            if (graphSize > serverMaxDepth)
             {
                 Assert.ThrowsAsync<UnhandledException>(
                     async () => await prx.SendClassGraphAsync(CreateClassGraph(graphSize)));

@@ -1,12 +1,14 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
+using System.Buffers;
 using System.IO.Pipelines;
 
 namespace IceRpc.Internal
 {
     /// <summary>A PipeWriter decorator where the decoratee is provided later through SetDecoratee.</summary>
 #pragma warning disable CA1001 // _stream's DisposeAsync calls CompleteAsync on this class, not the other way around
-    internal class DelayedPipeWriterDecorator : PipeWriter
+    internal class DelayedPipeWriterDecorator : ReadOnlySequencePipeWriter
 #pragma warning restore CA1001
     {
         public override bool CanGetUnflushedBytes => Decoratee.CanGetUnflushedBytes;
@@ -34,6 +36,12 @@ namespace IceRpc.Internal
         public override ValueTask<FlushResult> WriteAsync(
             ReadOnlyMemory<byte> source,
             CancellationToken cancellationToken) => Decoratee.WriteAsync(source, cancellationToken);
+
+        public override ValueTask<FlushResult> WriteAsync(
+            ReadOnlySequence<byte> source,
+            bool completeWhenDone,
+            CancellationToken cancel) =>
+            Decoratee.WriteAsync(source, completeWhenDone, cancel);
 
         // We use the default implementation for CopyFromAsync: it's protected as a result we can't forward
         // it to Decoratee.

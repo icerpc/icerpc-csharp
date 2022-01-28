@@ -99,20 +99,20 @@ namespace IceRpc.Transports.Internal
                 case FrameType.StreamReset:
                 {
                     StreamResetBody resetBody = ReadFrame(() => reader.ReadStreamResetAsync(dataSize, default));
-                    _logger.LogSentSlicResetFrame(dataSize, (byte)resetBody.ApplicationProtocolErrorCode);
+                    _logger.LogSentSlicResetFrame(dataSize, resetBody.ApplicationProtocolErrorCode);
                     break;
                 }
-                case FrameType.StreamConsumed:
+                case FrameType.StreamResumeWrite:
                 {
-                    StreamConsumedBody consumedBody = ReadFrame(() => reader.ReadStreamConsumedAsync(dataSize, default));
-                    _logger.LogSentSlicConsumedFrame(dataSize, (int)consumedBody.Size);
+                    StreamResumeWriteBody consumedBody = ReadFrame(() => reader.ReadStreamResumeWriteAsync(dataSize, default));
+                    _logger.LogSentSlicResumeWriteFrame(dataSize, (int)consumedBody.Size);
                     break;
                 }
                 case FrameType.StreamStopSending:
                 {
                     StreamStopSendingBody stopSendingBody =
                         ReadFrame(() => reader.ReadStreamStopSendingAsync(dataSize, default));
-                    _logger.LogSentSlicStopSendingFrame(dataSize, (byte)stopSendingBody.ApplicationProtocolErrorCode);
+                    _logger.LogSentSlicStopSendingFrame(dataSize, stopSendingBody.ApplicationProtocolErrorCode);
                     break;
                 }
                 case FrameType.UnidirectionalStreamReleased:

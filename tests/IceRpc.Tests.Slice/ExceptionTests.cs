@@ -9,12 +9,12 @@ namespace IceRpc.Tests.Slice
     [Parallelizable(ParallelScope.All)]
     [TestFixture("ice")]
     [TestFixture("icerpc")]
-    public sealed class Exception
+    public sealed class ExceptionTests
     {
         private readonly ServiceProvider _serviceProvider;
         private readonly ExceptionOperationsPrx _prx;
 
-        public Exception(string protocol)
+        public ExceptionTests(string protocol)
         {
             _serviceProvider = new IntegrationTestServiceCollection()
                 .UseProtocol(protocol)

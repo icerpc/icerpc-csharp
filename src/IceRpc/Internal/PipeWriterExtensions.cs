@@ -14,7 +14,7 @@ namespace IceRpc.Internal
         /// <param name="source">The source pipe reader.</param>
         /// <param name="completeWhenDone">When true, this method completes the writer after a successful copy.</param>
         /// <param name="cancel">The cancellation token.</param>
-        /// <returns>The flush result from the last WriteAsync or the FlushAsync if there was no WriteAsync.</returns>
+        /// <returns>The flush result.</returns>
         internal static async Task<FlushResult> CopyFromAsync(
             this PipeWriter sink,
             PipeReader source,
@@ -22,58 +22,162 @@ namespace IceRpc.Internal
             CancellationToken cancel)
         {
             FlushResult flushResult;
-            ReadResult readResult;
 
-            var asyncCompleteSink = sink as AsyncCompletePipeWriter; // used by local functions below
-
-            while (true)
+            if (sink is ReadOnlySequencePipeWriter writer)
             {
-                try
+                while (true)
                 {
-                    readResult = await source.ReadAsync(cancel).ConfigureAwait(false);
-                }
-                catch (TaskCanceledException)
-                {
-                    // TODO: is this exception translation correct?
-                    throw new OperationCanceledException();
+                    ReadResult readResult = await source.ReadAsync(cancel).ConfigureAwait(false);
+                    try
+                    {
+                        flushResult = await writer.WriteAsync(
+                            readResult.Buffer,
+                            completeWhenDone && readResult.IsCompleted,
+                            cancel).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        source.AdvanceTo(readResult.Buffer.End); // always fully consumed
+                    }
+
+                    if (readResult.IsCompleted || flushResult.IsCompleted ||
+                        readResult.IsCanceled || flushResult.IsCanceled)
+                    {
+                        break;
+                    }
                 }
 
-                try
+                if (!completeWhenDone && !flushResult.IsCompleted && !flushResult.IsCanceled)
                 {
-                    flushResult = await WriteAsync(
-                        readResult.Buffer,
-                        complete: completeWhenDone && readResult.IsCompleted,
-                        cancel).ConfigureAwait(false);
-                }
-                finally
-                {
-                    source.AdvanceTo(readResult.Buffer.End); // always fully consumed
-                }
-
-                if (readResult.IsCompleted || readResult.IsCanceled ||
-                    flushResult.IsCompleted || flushResult.IsCanceled)
-                {
-                    break;
+                    flushResult = await sink.FlushAsync(cancel).ConfigureAwait(false);
                 }
             }
-
-            if (completeWhenDone &&
-                readResult.IsCompleted &&
-                !flushResult.IsCompleted && !flushResult.IsCanceled &&
-                asyncCompleteSink == null)
+            else if (sink is AsyncCompletePipeWriter asyncWriter)
             {
-                // Need to complete it now
-                await sink.CompleteAsync().ConfigureAwait(false);
+                while (true)
+                {
+                    ReadResult readResult = await source.ReadAsync(cancel).ConfigureAwait(false);
+                    try
+                    {
+                        flushResult = await asyncWriter.WriteAsync(
+                            readResult.Buffer,
+                            completeWhenDone && readResult.IsCompleted,
+                            cancel).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        source.AdvanceTo(readResult.Buffer.End); // always fully consumed
+                    }
+
+                    if (readResult.IsCompleted || flushResult.IsCompleted ||
+                        readResult.IsCanceled || flushResult.IsCanceled)
+                    {
+                        // The source is consumed or the sink is completed.
+                        break;
+                    }
+                }
+
+                if (!completeWhenDone && !flushResult.IsCompleted && !flushResult.IsCanceled)
+                {
+                    flushResult = await sink.FlushAsync(cancel).ConfigureAwait(false);
+                }
+            }
+            else
+            {
+                ReadResult readResult;
+                while (true)
+                {
+                    readResult = await source.ReadAsync(cancel).ConfigureAwait(false);
+                    flushResult = default;
+                    try
+                    {
+                        // TODO: If readResult.Buffer.Length is small, it might be better to call a single
+                        // sink.WriteAsync(readResult.Buffer.ToArray()) instead of calling multiple times WriteAsync
+                        // that will end up in multiple network calls?
+                        foreach (ReadOnlyMemory<byte> memory in readResult.Buffer)
+                        {
+                            flushResult = await sink.WriteAsync(memory, cancel).ConfigureAwait(false);
+                            if (flushResult.IsCompleted || flushResult.IsCanceled)
+                            {
+                                break;
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        source.AdvanceTo(readResult.Buffer.End);
+                    }
+
+                    if (readResult.IsCompleted || readResult.IsCanceled ||
+                        flushResult.IsCompleted || flushResult.IsCanceled)
+                    {
+                        break;
+                    }
+                }
+
+                if (!flushResult.IsCompleted && !flushResult.IsCanceled)
+                {
+                    flushResult = await sink.FlushAsync(cancel).ConfigureAwait(false);
+                }
+
+                if (completeWhenDone &&
+                    readResult.IsCompleted &&
+                    !flushResult.IsCompleted &&
+                    !flushResult.IsCanceled)
+                {
+                    // Complete the sink.
+                    await sink.CompleteAsync().ConfigureAwait(false);
+                }
             }
 
             return flushResult;
+        }
 
-            // Helper local function that takes the "optimized path" when asyncCompleteSink is not null.
-            ValueTask<FlushResult> WriteAsync(
-                ReadOnlySequence<byte> source,
-                bool complete,
-                CancellationToken cancel) =>
-                asyncCompleteSink?.WriteAsync(source, complete, cancel) ?? sink.WriteAsync(source, cancel);
+        /// <summary>Writes a read only sequence of bytes to this writer.</summary>
+        /// <param name="pipeWriter">The pipe writer.</param>
+        /// <param name="source">The source sequence.</param>
+        /// <param name="completeWhenDone">When true, this method completes the writer after a successful write.</param>
+        /// <param name="cancel">The cancellation token.</param>
+        /// <returns>The flush result.</returns>
+        internal static ValueTask<FlushResult> WriteAsync(
+            this PipeWriter pipeWriter,
+            ReadOnlyMemory<byte> source,
+            bool completeWhenDone,
+            CancellationToken cancel) =>
+            WriteAsync(pipeWriter, new ReadOnlySequence<byte>(source), completeWhenDone, cancel);
+
+        /// <summary>Writes a read only sequence of bytes to this writer.</summary>
+        /// <param name="pipeWriter">The pipe writer.</param>
+        /// <param name="source">The source sequence.</param>
+        /// <param name="completeWhenDone">When true, this method completes the writer after a successful write.</param>
+        /// <param name="cancel">The cancellation token.</param>
+        /// <returns>The flush result.</returns>
+        internal static async ValueTask<FlushResult> WriteAsync(
+            this PipeWriter pipeWriter,
+            ReadOnlySequence<byte> source,
+            bool completeWhenDone,
+            CancellationToken cancel)
+        {
+            if (pipeWriter is ReadOnlySequencePipeWriter writer)
+            {
+                return await writer.WriteAsync(source, completeWhenDone, cancel).ConfigureAwait(false);
+            }
+            else
+            {
+                // TODO: If readResult.Buffer.Length is small, it might be better to call a single
+                // sink.WriteAsync(readResult.Buffer.ToArray()) instead of calling multiple times WriteAsync
+                // that will end up in multiple network calls?
+                FlushResult result = default;
+                foreach (ReadOnlyMemory<byte> buffer in source)
+                {
+                    result = await pipeWriter.WriteAsync(buffer, cancel).ConfigureAwait(false);
+                }
+                if (completeWhenDone)
+                {
+                    await pipeWriter.CompleteAsync().ConfigureAwait(false);
+                }
+                return result;
+            }
         }
 
         /// <summary>Writes a read only sequence of bytes to this writer.</summary>
