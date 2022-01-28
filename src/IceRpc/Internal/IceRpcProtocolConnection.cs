@@ -617,7 +617,7 @@ namespace IceRpc.Internal
                         throw new InvalidDataException("invalid empty control frame");
                     }
 
-                    var frameType = (IceRpcControlFrameType)readResult.Buffer.FirstSpan[0];
+                    IceRpcControlFrameType frameType = readResult.Buffer.FirstSpan[0].AsIceRpcControlFrameType();
                     if (frameType == IceRpcControlFrameType.Ping)
                     {
                         // expected, nothing to do
