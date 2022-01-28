@@ -134,7 +134,6 @@ namespace IceRpc.Tests.Internal
         [TestCase(1, 1024 * 1024, true)]
         [TestCase(4, 1024 * 1024, false)]
         [TestCase(4, 1024 * 1024, true)]
-        // [Log(LogAttributeLevel.Debug)]
         public async Task MultiplexedStream_StreamSendReceiveAsync(int segmentCount, int segmentSize, bool consume)
         {
             byte[] sendBuffer = new byte[segmentSize * segmentCount];
@@ -177,6 +176,43 @@ namespace IceRpc.Tests.Internal
                 if (readResult.IsCompleted)
                 {
                     Assert.That(sendOffset, Is.EqualTo(sendBuffer.Length));
+                }
+            }
+        }
+
+        [Test]
+        public async Task MultiplexedStream_StreamCompleteOnFrameRead()
+        {
+            await ClientStream.Input.CompleteAsync();
+            await ServerStream.Output.CompleteAsync();
+
+            // Continuously push data to the client stream.
+            _ = FillOutputPipeAsync();
+
+            // Read first chunk to make sure we start receiving data.
+            ReadResult result = await ServerStream.Input.ReadAsync();
+            ServerStream.Input.AdvanceTo(result.Buffer.End);
+
+            // Complete the server input pipe to ensure that it doesn't cause any issues while concurrently receiving
+            // frames from the client. Because the server output pipe is already completed, the stream will shutdown.
+            await ServerStream.Input.CompleteAsync();
+
+            // Both stream should be shutdown at this point.
+            await ServerStream.WaitForShutdownAsync(default);
+            await ClientStream.WaitForShutdownAsync(default);
+
+            // Ensure the connection can still accept streams.
+            ValueTask<IMultiplexedStream> serverTask = _serverConnection!.AcceptStreamAsync(default);
+            IMultiplexedStream stream = _clientConnection!.CreateStream(false);
+            await stream.Output.WriteAsync(new byte[10], default);
+            await serverTask;
+
+            async Task FillOutputPipeAsync()
+            {
+                FlushResult result = default;
+                while (!result.IsCompleted)
+                {
+                    result = await ClientStream.Output.WriteAsync(new byte[1024 * 1024]);
                 }
             }
         }

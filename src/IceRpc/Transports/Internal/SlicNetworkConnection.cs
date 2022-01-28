@@ -23,8 +23,8 @@ namespace IceRpc.Transports.Internal
         internal int PeerPauseWriterThreshold { get; private set; }
         internal int PauseWriterThreshold { get; }
         internal int ResumeWriterThreshold { get; }
-        public MemoryPool<byte> Pool { get; }
-        public int MinimumSegmentSize { get; }
+        internal MemoryPool<byte> Pool { get; }
+        internal int MinimumSegmentSize { get; }
 
         private readonly AsyncQueue<IMultiplexedStream> _acceptedStreamQueue = new();
         private int _bidirectionalStreamCount;
