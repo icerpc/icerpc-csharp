@@ -29,6 +29,10 @@ namespace IceRpc.Transports.Internal
             long? streamId;
             (_frameType, _frameDataSize, streamId) =
                 await _decoratee.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
+            if (_frameType == FrameType.Stream || _frameType == FrameType.StreamLast)
+            {
+                _logger.LogReceivingSlicDataFrame(_frameType, _frameDataSize);
+            }
             return (_frameType, _frameDataSize, streamId);
         }
 
@@ -83,19 +87,19 @@ namespace IceRpc.Transports.Internal
                 case FrameType.StreamReset:
                 {
                     StreamResetBody body = ReadFrame(() => reader.ReadStreamResetAsync(dataSize, default));
-                    _logger.LogReceivedSlicResetFrame(dataSize, (byte)body.ApplicationProtocolErrorCode);
+                    _logger.LogReceivedSlicResetFrame(dataSize, body.ApplicationProtocolErrorCode);
                     break;
                 }
-                case FrameType.StreamConsumed:
+                case FrameType.StreamResumeWrite:
                 {
-                    StreamConsumedBody body = ReadFrame(() => reader.ReadStreamConsumedAsync(dataSize, default));
-                    _logger.LogReceivedSlicConsumedFrame(dataSize, (int)body.Size);
+                    StreamResumeWriteBody body = ReadFrame(() => reader.ReadStreamResumeWriteAsync(dataSize, default));
+                    _logger.LogReceivedSlicResumeWriteFrame(dataSize, (int)body.Size);
                     break;
                 }
                 case FrameType.StreamStopSending:
                 {
                     StreamStopSendingBody body = ReadFrame(() => reader.ReadStreamStopSendingAsync(dataSize, default));
-                    _logger.LogReceivedSlicStopSendingFrame(dataSize, (byte)body.ApplicationProtocolErrorCode);
+                    _logger.LogReceivedSlicStopSendingFrame(dataSize, body.ApplicationProtocolErrorCode);
                     break;
                 }
                 case FrameType.UnidirectionalStreamReleased:

@@ -78,11 +78,11 @@ namespace IceRpc.Transports.Internal
         internal static string ToHexString(Memory<byte> buffer)
         {
             var sb = new StringBuilder();
-            for (int i = 0; i < Math.Min(buffer.Length, 32); ++i)
+            for (int i = 0; i < Math.Min(buffer.Length, 64); ++i)
             {
                 _ = sb.Append("0x").Append(Convert.ToHexString(buffer.Span[i..(i + 1)])).Append(' ');
             }
-            if (buffer.Length > 32)
+            if (buffer.Length > 64)
             {
                 _ = sb.Append("...");
             }
@@ -96,15 +96,15 @@ namespace IceRpc.Transports.Internal
             for (int i = 0; i < buffers.Length; ++i)
             {
                 ReadOnlyMemory<byte> buffer = buffers.Span[i];
-                if (size < 32)
+                if (size < 64)
                 {
-                    for (int j = 0; j < Math.Min(buffer.Length, 32 - size); ++j)
+                    for (int j = 0; j < Math.Min(buffer.Length, 64 - size); ++j)
                     {
                         _ = sb.Append("0x").Append(Convert.ToHexString(buffer.Span[j..(j + 1)])).Append(' ');
                     }
                 }
                 size += buffer.Length;
-                if (size > 32)
+                if (size > 64)
                 {
                     _ = sb.Append("...");
                     break;
