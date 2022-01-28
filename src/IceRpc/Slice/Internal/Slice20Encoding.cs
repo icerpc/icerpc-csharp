@@ -3,10 +3,10 @@
 namespace IceRpc.Slice.Internal
 {
     /// <summary>The Slice 2.0 encoding class.</summary>
-    internal sealed class Slice20Encoding : IceEncoding
+    internal sealed class Slice20Encoding : SliceEncoding
     {
         /// <summary>The Slice 2.0 encoding singleton.</summary>
-        internal static IceEncoding Instance { get; } = new Slice20Encoding();
+        internal static SliceEncoding Instance { get; } = new Slice20Encoding();
 
         internal static (int Size, int SizeLength) DecodeSize(ReadOnlySpan<byte> from)
         {
@@ -28,7 +28,7 @@ namespace IceRpc.Slice.Internal
             }
         }
 
-        internal static int DecodeSizeLength(byte b) => IceDecoder.DecodeVarLongLength(b);
+        internal static int DecodeSizeLength(byte b) => SliceDecoder.DecodeVarLongLength(b);
 
         /// <summary>Encodes a size into a span of bytes using a fixed number of bytes.</summary>
         /// <param name="size">The size to encode.</param>
@@ -39,12 +39,12 @@ namespace IceRpc.Slice.Internal
             {
                 throw new ArgumentOutOfRangeException(nameof(size), "size must be positive");
             }
-            IceEncoder.EncodeVarULong((ulong)size, into);
+            SliceEncoder.EncodeVarULong((ulong)size, into);
         }
 
         /// <summary>Computes the minimum number of bytes needed to encode a variable-length size with the 2.0 encoding.
         /// </summary>
-        internal static int GetSizeLength(int size) => IceEncoder.GetVarULongEncodedSize(checked((ulong)size));
+        internal static int GetSizeLength(int size) => SliceEncoder.GetVarULongEncodedSize(checked((ulong)size));
 
         private Slice20Encoding()
             : base(Slice20Name)

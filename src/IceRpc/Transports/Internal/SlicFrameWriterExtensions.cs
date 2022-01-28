@@ -19,7 +19,7 @@ namespace IceRpc.Transports.Internal
                 writer,
                 FrameType.Initialize,
                 stream: null,
-                (ref IceEncoder encoder) =>
+                (ref SliceEncoder encoder) =>
                 {
                     encoder.EncodeVarUInt(version);
                     frame.Encode(ref encoder);
@@ -87,7 +87,7 @@ namespace IceRpc.Transports.Internal
 
             void Encode(PipeWriter writer)
             {
-                var encoder = new IceEncoder(writer, Encoding.Slice20);
+                var encoder = new SliceEncoder(writer, Encoding.Slice20);
                 encoder.EncodeByte((byte)type);
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
                 int startPos = encoder.EncodedByteCount;

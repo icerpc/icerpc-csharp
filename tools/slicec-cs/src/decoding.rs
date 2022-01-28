@@ -317,12 +317,12 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
         TypeRefs::Interface(_) => {
             if type_ref.is_optional {
                 format!(
-                    "(ref IceDecoder decoder) => decoder.DecodeNullablePrx<{}>()",
+                    "(ref SliceDecoder decoder) => decoder.DecodeNullablePrx<{}>()",
                     type_name
                 )
             } else {
                 format!(
-                    "(ref IceDecoder decoder) => new {}(decoder.DecodeProxy())",
+                    "(ref SliceDecoder decoder) => new {}(decoder.DecodeProxy())",
                     type_name
                 )
             }
@@ -331,12 +331,12 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
             // is_class_type is either Typeref::Class or Primitive::AnyClass
             if type_ref.is_optional {
                 format!(
-                    "(ref IceDecoder decoder) => decoder.DecodeNullableClass<{}>()",
+                    "(ref SliceDecoder decoder) => decoder.DecodeNullableClass<{}>()",
                     type_ref.to_type_string(namespace, TypeContext::Incoming, true)
                 )
             } else {
                 format!(
-                    "(ref IceDecoder decoder) => decoder.DecodeClass<{}>()",
+                    "(ref SliceDecoder decoder) => decoder.DecodeClass<{}>()",
                     type_name
                 )
             }
@@ -344,14 +344,14 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
         TypeRefs::Primitive(primitive_ref) => {
             // Primitive::AnyClass is handled above by is_clas_type branch
             format!(
-                "(ref IceDecoder decoder) => decoder.Decode{}()",
+                "(ref SliceDecoder decoder) => decoder.Decode{}()",
                 primitive_ref.type_suffix()
             )
         }
         TypeRefs::Sequence(sequence_ref) => {
             format!(
                 "\
-(ref IceDecoder decoder) =>
+(ref SliceDecoder decoder) =>
     {}",
                 decode_sequence(sequence_ref, namespace).indent()
             )
@@ -359,24 +359,24 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
         TypeRefs::Dictionary(dictionary_ref) => {
             format!(
                 "\
-(ref IceDecoder decoder) =>
+(ref SliceDecoder decoder) =>
     {}",
                 decode_dictionary(dictionary_ref, namespace).indent()
             )
         }
         TypeRefs::Enum(enum_ref) => {
             format!(
-                "(ref IceDecoder decoder) => {}.Decode{}(ref decoder)",
+                "(ref SliceDecoder decoder) => {}.Decode{}(ref decoder)",
                 enum_ref.helper_name(namespace),
                 enum_ref.identifier()
             )
         }
         TypeRefs::Struct(_) => {
-            format!("(ref IceDecoder decoder) => new {}(ref decoder)", type_name)
+            format!("(ref SliceDecoder decoder) => new {}(ref decoder)", type_name)
         }
         TypeRefs::Trait(_) => {
             format!(
-                "(ref IceDecoder decoder) => decoder.DecodeTrait<{}>()",
+                "(ref SliceDecoder decoder) => decoder.DecodeTrait<{}>()",
                 type_name
             )
         }
@@ -432,7 +432,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
             decode = decode_member(
                 member,
                 namespace,
-                &member.parameter_name_with_prefix("iceP_"),
+                &member.parameter_name_with_prefix("sliceP_"),
             )
         )
     }
@@ -452,7 +452,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
             decode = decode_tagged_member(
                 member,
                 namespace,
-                &member.parameter_name_with_prefix("iceP_"),
+                &member.parameter_name_with_prefix("sliceP_"),
             )
         )
     }
@@ -460,7 +460,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
     writeln!(
         code,
         "return {};",
-        non_streamed_members.to_argument_tuple("iceP_")
+        non_streamed_members.to_argument_tuple("sliceP_")
     );
 
     code
@@ -514,7 +514,7 @@ response.ToAsyncEnumerable<{param_type}>(
         format!(
             "{stream_param_type} {param_name} = {create_stream_param}",
             stream_param_type = stream_type_str,
-            param_name = stream_member.parameter_name_with_prefix("iceP_"),
+            param_name = stream_member.parameter_name_with_prefix("sliceP_"),
             create_stream_param = create_stream_param
         )
         .into()

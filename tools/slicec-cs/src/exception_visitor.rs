@@ -59,7 +59,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
 
         exception_class_builder.add_block(
             format!(
-                "private static readonly string _iceTypeId = typeof({}).GetIceTypeId()!;",
+                "private static readonly string _sliceTypeId = typeof({}).GetSliceTypeId()!;",
                 exception_name
             )
             .into(),
@@ -86,7 +86,7 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
 
         exception_class_builder.add_block(
             FunctionBuilder::new(&access, "", &exception_name, FunctionType::BlockBody)
-                .add_parameter("ref IceDecoder", "decoder", None, None)
+                .add_parameter("ref SliceDecoder", "decoder", None, None)
                 .add_base_parameter("ref decoder")
                 .set_body({
                     let mut code = CodeBlock::new();
@@ -118,22 +118,22 @@ else
             FunctionBuilder::new(
                 "protected override",
                 "void",
-                "IceDecode",
+                "DecodeCore",
                 FunctionType::BlockBody,
             )
-            .add_parameter("ref IceDecoder", "decoder", None, None)
+            .add_parameter("ref SliceDecoder", "decoder", None, None)
             .set_body({
                 let mut code = CodeBlock::new();
-                code.writeln("decoder.IceStartSlice();");
+                code.writeln("decoder.StartSlice();");
                 code.writeln(&decode_data_members(
                     &members,
                     namespace,
                     FieldType::Exception,
                 ));
-                code.writeln("decoder.IceEndSlice();");
+                code.writeln("decoder.EndSlice();");
 
                 if has_base {
-                    code.writeln("base.IceDecode(ref decoder);");
+                    code.writeln("base.DecodeCore(ref decoder);");
                 }
                 code
             })
@@ -144,10 +144,10 @@ else
             FunctionBuilder::new(
                 "protected override",
                 "void",
-                "IceEncode",
+                "EncodeCore",
                 FunctionType::BlockBody,
             )
-            .add_parameter("ref IceEncoder", "encoder", None, None)
+            .add_parameter("ref SliceEncoder", "encoder", None, None)
             .set_body({
                 let mut code = CodeBlock::new();
                 // TODO: don't need if (encoder.Encoding ==) when exception has classes
@@ -157,14 +157,14 @@ else
                         "\
 if (encoder.Encoding == IceRpc.Encoding.Slice11)
 {{
-    encoder.IceStartSlice(_iceTypeId);
+    encoder.StartSlice(_sliceTypeId);
     {encode_data_members}
-    encoder.IceEndSlice(lastSlice: false);
-    base.IceEncode(ref encoder);
+    encoder.EndSlice(lastSlice: false);
+    base.EncodeCore(ref encoder);
 }}
 else
 {{
-    base.IceEncode(ref encoder);
+    base.EncodeCore(ref encoder);
 }}",
                         encode_data_members =
                             &encode_data_members(&members, namespace, FieldType::Exception,)
@@ -175,13 +175,13 @@ else
                         "\
 if (encoder.Encoding == IceRpc.Encoding.Slice11)
 {{
-    encoder.IceStartSlice(_iceTypeId);
+    encoder.StartSlice(_sliceTypeId);
     {encode_data_members}
-    encoder.IceEndSlice(lastSlice: true);
+    encoder.EndSlice(lastSlice: true);
 }}
 else
 {{
-    encoder.EncodeString(_iceTypeId);
+    encoder.EncodeString(_sliceTypeId);
     encoder.EncodeString(Message);
     Origin.Encode(ref encoder);
     {encode_data_members}

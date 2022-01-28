@@ -7,8 +7,8 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Slice
 {
-    /// <summary>Extension methods for class <see cref="IceEncoding"/>.</summary>
-    public static class IceEncodingExtensions
+    /// <summary>Extension methods for class <see cref="SliceEncoding"/>.</summary>
+    public static class SliceEncodingExtensions
     {
         private static readonly ReadOnlySequence<byte> _payloadWithZeroSize = new(new byte[] { 0 });
 
@@ -17,7 +17,7 @@ namespace IceRpc.Slice
         /// <param name="hasStream">When true, the Slice operation includes a stream in addition to the empty parameters
         /// or void return.</param>
         /// <returns>A new empty payload.</returns>
-        public static PipeReader CreateEmptyPayload(this IceEncoding encoding, bool hasStream = false)
+        public static PipeReader CreateEmptyPayload(this SliceEncoding encoding, bool hasStream = false)
         {
             if (hasStream && encoding == Encoding.Slice11)
             {
@@ -38,14 +38,14 @@ namespace IceRpc.Slice
         /// <param name="classFormat">The class format (1.1 only).</param>
         /// <returns>A new payload.</returns>
         public static PipeReader CreatePayloadFromArgs<T>(
-            this IceEncoding encoding,
+            this SliceEncoding encoding,
             in T args,
             TupleEncodeAction<T> encodeAction,
             FormatType classFormat = default) where T : struct
         {
             var pipe = new Pipe(); // TODO: pipe options
 
-            var encoder = new IceEncoder(pipe.Writer, encoding, classFormat);
+            var encoder = new SliceEncoder(pipe.Writer, encoding, classFormat);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(ref encoder, in args);
@@ -65,14 +65,14 @@ namespace IceRpc.Slice
         /// <param name="classFormat">The class format (1.1 only).</param>
         /// <returns>A new payload.</returns>
         public static PipeReader CreatePayloadFromSingleArg<T>(
-            this IceEncoding encoding,
+            this SliceEncoding encoding,
             T arg,
             EncodeAction<T> encodeAction,
             FormatType classFormat = default)
         {
             var pipe = new Pipe(); // TODO: pipe options
 
-            var encoder = new IceEncoder(pipe.Writer, encoding, classFormat);
+            var encoder = new SliceEncoder(pipe.Writer, encoding, classFormat);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(ref encoder, arg);
@@ -84,7 +84,7 @@ namespace IceRpc.Slice
 
         /// <summary>Creates a payload source stream from an async enumerable.</summary>
         public static PipeReader CreatePayloadSourceStream<T>(
-            this IceEncoding encoding,
+            this SliceEncoding encoding,
             IAsyncEnumerable<T> asyncEnumerable,
             EncodeAction<T> encodeAction)
         {
@@ -189,7 +189,7 @@ namespace IceRpc.Slice
                 {
                     // TODO: An encoder is very lightweight, however, creating an encoder per element seems extreme
                     // for tiny elements.
-                    var encoder = new IceEncoder(writer, encoding);
+                    var encoder = new SliceEncoder(writer, encoding);
                     encodeAction(ref encoder, element);
                     return encoder.EncodedByteCount;
                 }
@@ -224,11 +224,11 @@ namespace IceRpc.Slice
         /// <param name="encoding">The Slice encoding.</param>
         /// <param name="exception">The remote exception.</param>
         /// <returns>A new payload.</returns>
-        public static PipeReader CreatePayloadFromRemoteException(this IceEncoding encoding, RemoteException exception)
+        public static PipeReader CreatePayloadFromRemoteException(this SliceEncoding encoding, RemoteException exception)
         {
             var pipe = new Pipe(); // TODO: pipe options
 
-            var encoder = new IceEncoder(pipe.Writer, encoding);
+            var encoder = new SliceEncoder(pipe.Writer, encoding);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encoder.EncodeException(exception);
@@ -248,14 +248,14 @@ namespace IceRpc.Slice
         /// <param name="classFormat">The class format (1.1 only).</param>
         /// <returns>A new payload.</returns>
         public static PipeReader CreatePayloadFromReturnValueTuple<T>(
-            this IceEncoding encoding,
+            this SliceEncoding encoding,
             in T returnValueTuple,
             TupleEncodeAction<T> encodeAction,
             FormatType classFormat = default) where T : struct
         {
             var pipe = new Pipe(); // TODO: pipe options
 
-            var encoder = new IceEncoder(pipe.Writer, encoding, classFormat);
+            var encoder = new SliceEncoder(pipe.Writer, encoding, classFormat);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(ref encoder, in returnValueTuple);
@@ -275,14 +275,14 @@ namespace IceRpc.Slice
         /// <param name="classFormat">The class format (1.1 only).</param>
         /// <returns>A new payload.</returns>
         public static PipeReader CreatePayloadFromSingleReturnValue<T>(
-            this IceEncoding encoding,
+            this SliceEncoding encoding,
             T returnValue,
             EncodeAction<T> encodeAction,
             FormatType classFormat = default)
         {
             var pipe = new Pipe(); // TODO: pipe options
 
-            var encoder = new IceEncoder(pipe.Writer, encoding, classFormat);
+            var encoder = new SliceEncoder(pipe.Writer, encoding, classFormat);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encodeAction(ref encoder, returnValue);
@@ -296,7 +296,7 @@ namespace IceRpc.Slice
         /// <param name="encoding">The Slice encoding.</param>
         /// <param name="size">The size to encode.</param>
         /// <param name="into">The destination span. This method uses all its bytes.</param>
-        private static void EncodeFixedLengthSize(this IceEncoding encoding, int size, Span<byte> into)
+        private static void EncodeFixedLengthSize(this SliceEncoding encoding, int size, Span<byte> into)
         {
             if (size < 0)
             {
@@ -305,11 +305,11 @@ namespace IceRpc.Slice
 
             if (encoding == Encoding.Slice11)
             {
-                IceEncoder.EncodeInt(size, into);
+                SliceEncoder.EncodeInt(size, into);
             }
             else
             {
-                IceEncoder.EncodeVarULong((ulong)size, into);
+                SliceEncoder.EncodeVarULong((ulong)size, into);
             }
         }
     }

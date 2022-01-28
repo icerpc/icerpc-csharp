@@ -60,7 +60,7 @@ namespace IceRpc.Tests.Api
                     router.Use(next => new InlineDispatcher(
                         async (request, cancel) =>
                         {
-                            int multiplier = request.Fields.Get(1, (ref IceDecoder decoder) => decoder.DecodeInt());
+                            int multiplier = request.Fields.Get(1, (ref SliceDecoder decoder) => decoder.DecodeInt());
                             if (multiplier != 0) // 0 == default(int)
                             {
                                 if (request.Features.IsReadOnly)
@@ -95,7 +95,7 @@ namespace IceRpc.Tests.Api
             // This interceptor stores the multiplier into a header field (key = 1) to be read by the middleware.
             pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                request.Fields.Add(1, (ref IceEncoder encoder) => encoder.EncodeInt(multiplier));
+                request.Fields.Add(1, (ref SliceEncoder encoder) => encoder.EncodeInt(multiplier));
                 return await next.InvokeAsync(request, cancel);
             }));
 

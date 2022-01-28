@@ -649,9 +649,9 @@ namespace IceRpc.Tests.Slice
         {
             // Build a request payload with 2 tagged values
             PipeReader requestPayload =
-                _prx.Proxy.GetIceEncoding().CreatePayloadFromArgs(
+                _prx.Proxy.GetSliceEncoding().CreatePayloadFromArgs(
                     (15, "test"),
-                    (ref IceEncoder encoder, in (int? N, string? S) value) =>
+                    (ref SliceEncoder encoder, in (int? N, string? S) value) =>
                     {
                         if (value.N != null)
                         {
@@ -659,14 +659,14 @@ namespace IceRpc.Tests.Slice
                                                  TagFormat.F4,
                                                  size: 4,
                                                  value.N.Value,
-                                                 (ref IceEncoder encoder, int v) => encoder.EncodeInt(v));
+                                                 (ref SliceEncoder encoder, int v) => encoder.EncodeInt(v));
                         }
                         if (value.S != null)
                         {
                             encoder.EncodeTagged(1, // duplicate tag ignored by the server
                                                  TagFormat.OVSize,
                                                  value.S,
-                                                 (ref IceEncoder encoder, string v) => encoder.EncodeString(v));
+                                                 (ref SliceEncoder encoder, string v) => encoder.EncodeString(v));
                         }
                     });
 
@@ -679,7 +679,7 @@ namespace IceRpc.Tests.Slice
             IncomingResponse response = await _prx.Proxy.Invoker.InvokeAsync(request);
 
             Assert.DoesNotThrowAsync(async () => await response.CheckVoidReturnValueAsync(
-                IceDecoder.GetActivator(typeof(OperationTagTests).Assembly),
+                SliceDecoder.GetActivator(typeof(OperationTagTests).Assembly),
                 hasStream: false,
                 default));
         }

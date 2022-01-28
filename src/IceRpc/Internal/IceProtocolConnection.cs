@@ -196,7 +196,7 @@ namespace IceRpc.Internal
 
             static IceRequestHeader DecodeHeader(ref Memory<byte> buffer)
             {
-                var decoder = new IceDecoder(buffer, Encoding.Slice11);
+                var decoder = new SliceDecoder(buffer, Encoding.Slice11);
                 var requestHeader = new IceRequestHeader(ref decoder);
 
                 // The payload plus 4 bytes from the encapsulation header used to store the payload size encoded
@@ -282,7 +282,7 @@ namespace IceRpc.Internal
                 ref Memory<byte> buffer)
             {
                 // Decode the response.
-                var decoder = new IceDecoder(buffer, Encoding.Slice11);
+                var decoder = new SliceDecoder(buffer, Encoding.Slice11);
 
                 // we keep 4 extra bytes in the response buffer to be able to write the payload size before an ice
                 // system exception
@@ -335,7 +335,7 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            if (request.PayloadEncoding is not IceEncoding payloadEncoding)
+            if (request.PayloadEncoding is not SliceEncoding payloadEncoding)
             {
                 throw new NotSupportedException(
                     "the payload of a request must be encoded with a supported Slice encoding");
@@ -429,7 +429,7 @@ namespace IceRpc.Internal
 
             void EncodeHeader(AsyncCompletePipeWriter output, int payloadSize)
             {
-                var encoder = new IceEncoder(output, Encoding.Slice11);
+                var encoder = new SliceEncoder(output, Encoding.Slice11);
 
                 // Write the request header.
                 encoder.WriteByteSpan(IceDefinitions.FramePrologue);
@@ -450,7 +450,7 @@ namespace IceRpc.Internal
                     new EncapsulationHeader(encapsulationSize: payloadSize + 6, encodingMajor, encodingMinor));
                 requestHeader.Encode(ref encoder);
 
-                IceEncoder.EncodeInt(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
+                SliceEncoder.EncodeInt(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
             }
         }
 
@@ -482,7 +482,7 @@ namespace IceRpc.Internal
                     await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
                     try
                     {
-                        if (request.PayloadEncoding is not IceEncoding payloadEncoding)
+                        if (request.PayloadEncoding is not SliceEncoding payloadEncoding)
                         {
                             throw new NotSupportedException(
                                 "the payload of a request must be encoded with a supported Slice encoding");
@@ -571,9 +571,9 @@ namespace IceRpc.Internal
                 }
             }
 
-            void EncodeHeader(IceEncoding payloadEncoding, int payloadSize, ReplyStatus replyStatus)
+            void EncodeHeader(SliceEncoding payloadEncoding, int payloadSize, ReplyStatus replyStatus)
             {
-                var encoder = new IceEncoder(request.ResponseWriter, Encoding.Slice11);
+                var encoder = new SliceEncoder(request.ResponseWriter, Encoding.Slice11);
 
                 // Write the response header.
 
@@ -595,7 +595,7 @@ namespace IceRpc.Internal
                     encapsulationHeader.Encode(ref encoder);
                 }
 
-                IceEncoder.EncodeInt(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
+                SliceEncoder.EncodeInt(encoder.EncodedByteCount + payloadSize, sizePlaceholder.Span);
             }
         }
 
@@ -759,7 +759,7 @@ namespace IceRpc.Internal
 
             if (payloadEncoding == Encoding.Slice11)
             {
-                IceEncoder.EncodeInt(payloadSize, buffer);
+                SliceEncoder.EncodeInt(payloadSize, buffer);
             }
             else if (payloadEncoding == Encoding.Slice20)
             {

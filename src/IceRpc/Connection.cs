@@ -636,7 +636,7 @@ namespace IceRpc
                     }
 
                     // not necessarily the request payload encoding
-                    IceEncoding sliceEncoding = request.GetIceEncoding();
+                    SliceEncoding sliceEncoding = request.GetSliceEncoding();
 
                     response = new OutgoingResponse(request)
                     {
@@ -650,7 +650,7 @@ namespace IceRpc
                         RetryPolicy retryPolicy = remoteException.RetryPolicy;
                         response.Fields.Add(
                             (int)FieldKey.RetryPolicy,
-                            (ref IceEncoder encoder) => retryPolicy.Encode(ref encoder));
+                            (ref SliceEncoder encoder) => retryPolicy.Encode(ref encoder));
                     }
                 }
 

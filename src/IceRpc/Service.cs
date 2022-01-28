@@ -15,7 +15,7 @@ namespace IceRpc
     {
         /// <summary>A delegate that matches the signature of the generated IceDXxx methods, the only difference is that
         /// for the generated methods <para>target</para> type is the type of the generated service interface.</summary>
-        private delegate ValueTask<(IceEncoding, PipeReader, PipeReader?)> IceDMethod(
+        private delegate ValueTask<(SliceEncoding, PipeReader, PipeReader?)> IceDMethod(
             object target,
             IncomingRequest request,
             Dispatch dispatch,
@@ -73,7 +73,7 @@ namespace IceRpc
 
                     foreach (Type interfaceType in type.GetInterfaces())
                     {
-                        typeIds.UnionWith(interfaceType.GetAllIceTypeIds());
+                        typeIds.UnionWith(interfaceType.GetAllSliceTypeIds());
                     }
 
                     return (methods, typeIds);
@@ -100,7 +100,7 @@ namespace IceRpc
             {
                 if (_dispatchMethods.TryGetValue(dispatch.Operation, out IceDMethod? dispatchMethod))
                 {
-                    (IceEncoding payloadEncoding, PipeReader responsePayloadSource, PipeReader? responsePayloadSourceStream) =
+                    (SliceEncoding payloadEncoding, PipeReader responsePayloadSource, PipeReader? responsePayloadSourceStream) =
                         await dispatchMethod(this, request, dispatch, cancel).ConfigureAwait(false);
 
                     return new OutgoingResponse(request)

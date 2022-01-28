@@ -49,7 +49,7 @@ impl<'a> Visitor for DispatchVisitor<'_> {
             format!(
                 "\
 private static readonly IActivator _defaultActivator =
-    IceDecoder.GetActivator(typeof({}).Assembly);",
+    SliceDecoder.GetActivator(typeof({}).Assembly);",
                 interface_name
             )
             .into(),
@@ -202,7 +202,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
 
         if !returns_classes {
             builder.add_parameter(
-                "IceEncoding",
+                "SliceEncoding",
                 "encoding",
                 None,
                 Some("The encoding of the payload"),
@@ -299,11 +299,11 @@ var {args} = await request.ToArgsAsync(
 {decode_request_stream}
 
 return {args_and_stream};",
-                args = non_streamed_parameters.to_argument_tuple("iceP_"),
+                args = non_streamed_parameters.to_argument_tuple("sliceP_"),
                 decode_func = request_decode_func(operation).indent(),
                 decode_request_stream =
                     decode_operation_stream(stream_member, namespace, true, true,),
-                args_and_stream = operation.parameters().to_argument_tuple("iceP_")
+                args_and_stream = operation.parameters().to_argument_tuple("sliceP_")
             );
         }
     } else {
@@ -340,7 +340,7 @@ fn request_decode_func(operation: &Operation) -> CodeBlock {
         decode_func(param.data_type(), namespace)
     } else {
         format!(
-            "(ref IceDecoder decoder) =>
+            "(ref SliceDecoder decoder) =>
 {{
     {}
 }}",
@@ -371,7 +371,7 @@ pub fn response_encode_action(operation: &Operation) -> CodeBlock {
     } else {
         format!(
             "\
-(ref IceEncoder encoder,
+(ref SliceEncoder encoder,
  {_in}{tuple_type} value) =>
 {{
     {encode_action}
@@ -399,12 +399,12 @@ fn operation_declaration(operation: &Operation) -> CodeBlock {
 
 fn operation_dispatch(operation: &Operation) -> CodeBlock {
     let operation_name = &operation.escape_identifier();
-    let internal_name = format!("IceD{}Async", &operation_name);
+    let internal_name = format!("SliceD{}Async", &operation_name);
 
     format!(
         r#"
 [IceRpc.Slice.Operation("{name}")]
-protected static async global::System.Threading.Tasks.ValueTask<(IceEncoding, global::System.IO.Pipelines.PipeReader, global::System.IO.Pipelines.PipeReader?)> {internal_name}(
+protected static async global::System.Threading.Tasks.ValueTask<(SliceEncoding, global::System.IO.Pipelines.PipeReader, global::System.IO.Pipelines.PipeReader?)> {internal_name}(
     {interface_name} target,
     IceRpc.IncomingRequest request,
     IceRpc.Dispatch dispatch,
@@ -452,7 +452,7 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
             writeln!(
                 code,
                 "var {var_name} = await Request.{async_operation_name}(request, cancel).ConfigureAwait(false);",
-                var_name = parameter.parameter_name_with_prefix("iceP_"),
+                var_name = parameter.parameter_name_with_prefix("sliceP_"),
                 async_operation_name = async_operation_name,
             )
         }
@@ -472,7 +472,7 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
 
         match parameters.as_slice() {
             [p] => {
-                args.push(p.parameter_name_with_prefix("iceP_"));
+                args.push(p.parameter_name_with_prefix("sliceP_"));
             }
             _ => {
                 for p in parameters {
@@ -494,7 +494,7 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
         let encoding = if operation.returns_classes() {
             "IceRpc.Encoding.Slice11"
         } else {
-            "request.GetIceEncoding()"
+            "request.GetSliceEncoding()"
         };
 
         writeln!(
@@ -504,7 +504,7 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
         );
     } else {
         let mut args = match parameters.as_slice() {
-            [parameter] => vec![parameter.parameter_name_with_prefix("iceP_")],
+            [parameter] => vec![parameter.parameter_name_with_prefix("sliceP_")],
             _ => parameters
                 .iter()
                 .map(|parameter| format!("args.{}", &parameter.field_name(FieldType::NonMangled)))
@@ -528,7 +528,7 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
         let encoding = if operation.returns_classes() {
             "IceRpc.Encoding.Slice11"
         } else {
-            code.writeln("var payloadEncoding = request.GetIceEncoding();");
+            code.writeln("var payloadEncoding = request.GetSliceEncoding();");
             "payloadEncoding"
         };
 

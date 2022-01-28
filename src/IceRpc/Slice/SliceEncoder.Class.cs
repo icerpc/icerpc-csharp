@@ -11,7 +11,7 @@ using static IceRpc.Slice.Internal.Slice11Definitions;
 
 namespace IceRpc.Slice
 {
-    public ref partial struct IceEncoder
+    public ref partial struct SliceEncoder
     {
         /// <summary>Encodes a class instance.</summary>
         /// <param name="v">The class instance to encode.</param>
@@ -112,7 +112,7 @@ namespace IceRpc.Slice
 
         /// <summary>Marks the end of the encoding of a class or exception slice.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public void IceEndSlice(bool lastSlice)
+        public void EndSlice(bool lastSlice)
         {
             Debug.Assert(_classContext.Current.InstanceType != InstanceType.None);
 
@@ -157,7 +157,7 @@ namespace IceRpc.Slice
         /// <param name="typeId">The type ID of this slice.</param>
         /// <param name="compactId ">The compact ID of this slice, if any.</param>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public void IceStartSlice(string typeId, int? compactId = null)
+        public void StartSlice(string typeId, int? compactId = null)
         {
             Debug.Assert(_classContext.Current.InstanceType != InstanceType.None);
 
@@ -215,7 +215,7 @@ namespace IceRpc.Slice
                     }
                 }
 
-                IceStartSlice(sliceInfo.TypeId, compactId);
+                StartSlice(sliceInfo.TypeId, compactId);
 
                 // Writes the bytes associated with this slice.
                 WriteByteSpan(sliceInfo.Bytes.Span);
@@ -226,14 +226,14 @@ namespace IceRpc.Slice
                 }
 
                 // Make sure to also encode the instance indirection table.
-                // These instances will be encoded (and assigned instance IDs) in IceEndSlice.
+                // These instances will be encoded (and assigned instance IDs) in EndSlice.
                 if (sliceInfo.Instances.Count > 0)
                 {
                     _classContext.Current.IndirectionTable ??= new List<AnyClass>();
                     Debug.Assert(_classContext.Current.IndirectionTable.Count == 0);
                     _classContext.Current.IndirectionTable.AddRange(sliceInfo.Instances);
                 }
-                IceEndSlice(lastSlice: fullySliced && (i == unknownSlices.Count - 1));
+                EndSlice(lastSlice: fullySliced && (i == unknownSlices.Count - 1));
             }
         }
 

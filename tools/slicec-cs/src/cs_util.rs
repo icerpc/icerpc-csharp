@@ -104,7 +104,7 @@ pub enum FieldType {
 }
 
 /// Checks if the provided identifier would shadow a base method in an object or exception, and
-/// escapes it if necessary by appending an 'Ice' prefix to the identifier.
+/// escapes it if necessary by appending a Slice prefix to the identifier.
 pub fn mangle_name(identifier: &str, field_type: FieldType) -> String {
     // The names of all the methods defined on the Object base class.
     const OBJECT_BASE_NAMES: [&str; 7] = [
@@ -138,9 +138,9 @@ pub fn mangle_name(identifier: &str, field_type: FieldType) -> String {
         FieldType::NonMangled => false,
     };
 
-    // If the name conflicts with a base method, add an "Ice" prefix to it.
+    // If the name conflicts with a base method, add a Slice prefix to it.
     if needs_mangling {
-        format!("Ice{}", identifier)
+        format!("Slice{}", identifier)
     } else {
         identifier.to_owned()
     }

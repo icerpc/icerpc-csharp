@@ -21,7 +21,7 @@ namespace IceRpc
             this IPrx prx,
             Invocation? invocation = null,
             CancellationToken cancel = default) where T : struct, IPrx =>
-            await new ServicePrx(prx.Proxy).IceIsAAsync(typeof(T).GetIceTypeId()!, invocation, cancel).
+            await new ServicePrx(prx.Proxy).IceIsAAsync(typeof(T).GetSliceTypeId()!, invocation, cancel).
                 ConfigureAwait(false) ?
                 new T { Proxy = prx.Proxy } : null;
 

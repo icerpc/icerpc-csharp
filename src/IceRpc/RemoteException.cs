@@ -13,7 +13,7 @@ namespace IceRpc
         /// <inheritdoc/>
         public override string Message => _hasCustomMessage || DefaultMessage == null ? base.Message : DefaultMessage;
 
-        private static readonly string _iceTypeId = TypeExtensions.GetIceTypeId(typeof(RemoteException))!;
+        private static readonly string _sliceTypeId = TypeExtensions.GetSliceTypeId(typeof(RemoteException))!;
 
         /// <summary>When true, if this exception is thrown from the implementation of an operation, Ice will convert
         /// it into an Ice.UnhandledException. When false, Ice marshals this remote exception as-is. true is the
@@ -68,7 +68,7 @@ namespace IceRpc
 
         /// <summary>Constructs a remote exception using a decoder.</summary>
         /// <param name="decoder">The decoder.</param>
-        public RemoteException(ref IceDecoder decoder)
+        public RemoteException(ref SliceDecoder decoder)
             : base(decoder.Encoding == Encoding.Slice11 ? null : decoder.DecodeString())
         {
             if (decoder.Encoding != Encoding.Slice11)
@@ -79,37 +79,37 @@ namespace IceRpc
             ConvertToUnhandled = true;
         }
 
-        /// <summary>Decodes a remote exception from an <see cref="IceDecoder"/>.</summary>
-        /// <param name="decoder">The decoder.</param>
+        /// <summary>Decodes a remote exception.</summary>
+        /// <param name="decoder">The Slice decoder.</param>
         // This implementation is only called on a plain RemoteException.
-        protected virtual void IceDecode(ref IceDecoder decoder)
+        protected virtual void DecodeCore(ref SliceDecoder decoder)
         {
         }
 
-        /// <summary>Encodes a remote exception to an <see cref="IceEncoder"/>.</summary>
-        /// <param name="encoder">The Ice encoder.</param>
-        protected virtual void IceEncode(ref IceEncoder encoder)
+        /// <summary>Encodes a remote exception.</summary>
+        /// <param name="encoder">The Slice encoder.</param>
+        protected virtual void EncodeCore(ref SliceEncoder encoder)
         {
             if (encoder.Encoding == Encoding.Slice11)
             {
-                encoder.IceStartSlice(_iceTypeId);
-                encoder.IceEndSlice(lastSlice: true);
+                encoder.StartSlice(_sliceTypeId);
+                encoder.EndSlice(lastSlice: true);
             }
             else
             {
-                encoder.EncodeString(_iceTypeId);
+                encoder.EncodeString(_sliceTypeId);
                 encoder.EncodeString(Message);
                 Origin.Encode(ref encoder);
             }
         }
 
-        internal void Decode(ref IceDecoder decoder) => IceDecode(ref decoder);
-        internal void Encode(ref IceEncoder encoder) => IceEncode(ref encoder);
+        internal void Decode(ref SliceDecoder decoder) => DecodeCore(ref decoder);
+        internal void Encode(ref SliceEncoder encoder) => EncodeCore(ref encoder);
     }
 
     public readonly partial record struct RemoteExceptionOrigin
     {
-        /// <summary>With the Ice 1.1 encoding, <c>Unknown</c> is used as the remote exception origin for exceptions
+        /// <summary>With the Slice 1.1 encoding, <c>Unknown</c> is used as the remote exception origin for exceptions
         /// other than <see cref="ServiceNotFoundException"/> and <see cref="OperationNotFoundException"/>.</summary>
         public static readonly RemoteExceptionOrigin Unknown = new("", "", "");
     }

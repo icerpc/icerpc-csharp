@@ -7,7 +7,7 @@ using System.Buffers;
 namespace IceRpc.Internal
 {
     /// <summary>The buffered receiver class receives data from a byte source function into a buffer. The
-    /// buffered data can be decoded into different Ice 2.0 types (byte, size and varulong) or be consumed as
+    /// buffered data can be decoded into different Slice 2.0 types (byte, size and varulong) or be consumed as
     /// bytes. This class is useful to efficiently read Slic and IceRPC headers that require decoding data
     /// without necessarily knowing in advance how many bytes to read from the source.</summary>
     internal class BufferedReceiver : IDisposable
@@ -93,7 +93,7 @@ namespace IceRpc.Internal
             return value;
         }
 
-        /// <summary>Receives an Ice 2.0 encoded size from the source.</summary>
+        /// <summary>Receives a Slice 2.0 encoded size from the source.</summary>
         internal async ValueTask<int> ReceiveSizeAsync(CancellationToken cancel)
         {
             int remaining = _bufferLimitOffset - _bufferOffset;
@@ -116,7 +116,7 @@ namespace IceRpc.Internal
             return size;
         }
 
-        /// <summary>Receives an Ice 2.0 encoded varulong from the source.</summary>
+        /// <summary>Receives a Slice 2.0 encoded varulong from the source.</summary>
         internal async ValueTask<(ulong Value, int ValueLength)> ReceiveVarULongAsync(CancellationToken cancel)
         {
             int remaining = _bufferLimitOffset - _bufferOffset;
@@ -127,14 +127,14 @@ namespace IceRpc.Internal
                 remaining = _bufferLimitOffset - _bufferOffset;
             }
 
-            int valueLength = IceDecoder.DecodeVarLongLength(_buffer.Span[_bufferOffset]);
+            int valueLength = SliceDecoder.DecodeVarLongLength(_buffer.Span[_bufferOffset]);
             if (remaining < valueLength)
             {
                 // Read more data if there's not enough data in the buffer to decode the varulong.
                 await ReceiveMoreAsync(valueLength, cancel).ConfigureAwait(false);
             }
 
-            ulong value = IceDecoder.DecodeVarULong(_buffer.Span[_bufferOffset..]).Value;
+            ulong value = SliceDecoder.DecodeVarULong(_buffer.Span[_bufferOffset..]).Value;
             _bufferOffset += valueLength;
             return (value, valueLength);
         }

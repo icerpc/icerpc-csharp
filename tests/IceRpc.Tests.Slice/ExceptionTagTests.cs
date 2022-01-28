@@ -137,18 +137,18 @@ namespace IceRpc.Tests.Slice
 
         private class ActivatorMinus : IActivator
         {
-            public object? CreateInstance(string typeId, ref IceDecoder decoder)
+            public object? CreateInstance(string typeId, ref SliceDecoder decoder)
             {
-                Assert.AreEqual(typeof(TaggedException).GetIceTypeId(), typeId);
+                Assert.AreEqual(typeof(TaggedException).GetSliceTypeId(), typeId);
                 return new TaggedExceptionMinus(ref decoder);
             }
         }
 
         private class ActivatorPlus : IActivator
         {
-            public object? CreateInstance(string typeId, ref IceDecoder decoder)
+            public object? CreateInstance(string typeId, ref SliceDecoder decoder)
             {
-                Assert.AreEqual(typeof(TaggedException).GetIceTypeId(), typeId);
+                Assert.AreEqual(typeof(TaggedException).GetSliceTypeId(), typeId);
                 return new TaggedExceptionPlus(ref decoder);
             }
         }

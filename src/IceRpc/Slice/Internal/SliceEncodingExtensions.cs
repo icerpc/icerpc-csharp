@@ -6,8 +6,8 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Slice.Internal
 {
-    /// <summary>Extension methods for class <see cref="IceEncoding"/>.</summary>
-    internal static class IceEncodingExtensions
+    /// <summary>Extension methods for class <see cref="SliceEncoding"/>.</summary>
+    internal static class SliceEncodingExtensions
     {
         /// <summary>Decodes a buffer.</summary>
         /// <typeparam name="T">The decoded type.</typeparam>
@@ -18,11 +18,11 @@ namespace IceRpc.Slice.Internal
         /// <exception cref="InvalidDataException">Thrown when <paramref name="decodeFunc"/> finds invalid data.
         /// </exception>
         internal static T DecodeBuffer<T>(
-            this IceEncoding encoding,
+            this SliceEncoding encoding,
             ReadOnlyMemory<byte> buffer,
             DecodeFunc<T> decodeFunc)
         {
-            var decoder = new IceDecoder(buffer, encoding);
+            var decoder = new SliceDecoder(buffer, encoding);
             T result = decodeFunc(ref decoder);
             decoder.CheckEndOfBuffer(skipTaggedParams: false);
             return result;
@@ -30,7 +30,7 @@ namespace IceRpc.Slice.Internal
 
         /// <summary>Decodes the size of a segment read from a PipeReader.</summary>
         internal static async ValueTask<(int Size, bool IsCanceled, bool IsCompleted)> DecodeSegmentSizeAsync(
-            this IceEncoding encoding,
+            this SliceEncoding encoding,
             PipeReader reader,
             CancellationToken cancel)
         {
@@ -87,7 +87,7 @@ namespace IceRpc.Slice.Internal
 
             int DecodeSizeFromSequence(ReadOnlySequence<byte> buffer)
             {
-                var decoder = new IceDecoder(buffer, encoding);
+                var decoder = new SliceDecoder(buffer, encoding);
                 return decoder.DecodeFixedLengthSize();
             }
         }
@@ -96,7 +96,7 @@ namespace IceRpc.Slice.Internal
         /// <param name="encoding">The Slice encoding.</param>
         /// <param name="size">The size to encode.</param>
         /// <param name="into">The destination span. This method uses all its bytes.</param>
-        internal static void EncodeSize(this IceEncoding encoding, int size, Span<byte> into)
+        internal static void EncodeSize(this SliceEncoding encoding, int size, Span<byte> into)
         {
             if (encoding == Encoding.Slice11)
             {
@@ -117,7 +117,7 @@ namespace IceRpc.Slice.Internal
                 else if (into.Length == 5)
                 {
                     into[0] = 255;
-                    IceEncoder.EncodeInt(size, into[1..]);
+                    SliceEncoder.EncodeInt(size, into[1..]);
                 }
                 else
                 {

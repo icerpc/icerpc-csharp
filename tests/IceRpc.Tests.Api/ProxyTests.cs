@@ -423,7 +423,7 @@ namespace IceRpc.Tests.Api
 
             Assert.DoesNotThrowAsync(async () => await response.CheckVoidReturnValueAsync(
                 proxy.Invoker,
-                IceDecoder.GetActivator(typeof(ProxyTests).Assembly),
+                SliceDecoder.GetActivator(typeof(ProxyTests).Assembly),
                 default));
         }
         */

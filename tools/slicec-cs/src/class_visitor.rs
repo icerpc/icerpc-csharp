@@ -73,7 +73,7 @@ impl<'a> Visitor for ClassVisitor<'_> {
         // Class static TypeId string
         class_builder.add_block(
             format!(
-                "{} static{} readonly string IceTypeId = typeof({}).GetIceTypeId()!;",
+                "{} static{} readonly string SliceTypeId = typeof({}).GetSliceTypeId()!;",
                 &access,
                 if has_base_class { " new" } else { "" },
                 class_name,
@@ -84,7 +84,7 @@ impl<'a> Visitor for ClassVisitor<'_> {
         if class_def.compact_id.is_some() {
             class_builder.add_block(
                 format!(
-                "private static readonly int _compactTypeId = typeof({}).GetIceCompactTypeId()!.Value;",
+                "private static readonly int _compactSliceTypeId = typeof({}).GetCompactSliceTypeId()!.Value;",
                 class_name
             ).into());
         }
@@ -130,11 +130,11 @@ impl<'a> Visitor for ClassVisitor<'_> {
                 r#"global::System.Diagnostics.CodeAnalysis.SuppressMessage(
     "Microsoft.Performance",
     "CA1801: Review unused parameters",
-    Justification="Special constructor used for Ice decoding")"#,
+    Justification="Special constructor used for Slice decoding")"#,
             );
         }
 
-        decode_constructor.add_parameter("ref IceDecoder", "decoder", None, None);
+        decode_constructor.add_parameter("ref SliceDecoder", "decoder", None, None);
         if has_base_class {
             decode_constructor.add_base_parameter("ref decoder");
         }
@@ -217,39 +217,39 @@ fn encode_and_decode(class_def: &Class) -> CodeBlock {
 
     if is_preserved && !is_base_preserved {
         code.add_block("\
-protected override global::System.Collections.Immutable.ImmutableList<IceRpc.Slice.SliceInfo> IceUnknownSlices { get; set; } =
+public override global::System.Collections.Immutable.ImmutableList<IceRpc.Slice.SliceInfo> UnknownSlices { get; set; } =
     global::System.Collections.Immutable.ImmutableList<IceRpc.Slice.SliceInfo>.Empty;");
     }
 
     let encode_class = FunctionBuilder::new(
         "protected override",
         "void",
-        "IceEncode",
+        "EncodeCore",
         FunctionType::BlockBody,
     )
-    .add_parameter("ref IceEncoder", "encoder", None, None)
+    .add_parameter("ref SliceEncoder", "encoder", None, None)
     .set_body({
         let mut code = CodeBlock::new();
 
-        let mut start_slice_args = vec!["IceTypeId"];
+        let mut start_slice_args = vec!["SliceTypeId"];
 
         if class_def.compact_id.is_some() {
-            start_slice_args.push("_compactTypeId");
+            start_slice_args.push("_compactSliceTypeId");
         }
 
         writeln!(
             code,
-            "encoder.IceStartSlice({});",
+            "encoder.StartSlice({});",
             start_slice_args.join(", ")
         );
 
         code.writeln(&encode_data_members(&members, namespace, FieldType::Class));
 
         if has_base_class {
-            code.writeln("encoder.IceEndSlice(false);");
-            code.writeln("base.IceEncode(ref encoder);");
+            code.writeln("encoder.EndSlice(false);");
+            code.writeln("base.EncodeCore(ref encoder);");
         } else {
-            code.writeln("encoder.IceEndSlice(true);"); // last slice
+            code.writeln("encoder.EndSlice(true);"); // last slice
         }
 
         code
@@ -259,17 +259,17 @@ protected override global::System.Collections.Immutable.ImmutableList<IceRpc.Sli
     let decode_class = FunctionBuilder::new(
         "protected override",
         "void",
-        "IceDecode",
+        "DecodeCore",
         FunctionType::BlockBody,
     )
-    .add_parameter("ref IceDecoder", "decoder", None, None)
+    .add_parameter("ref SliceDecoder", "decoder", None, None)
     .set_body({
         let mut code = CodeBlock::new();
-        code.writeln("decoder.IceStartSlice();");
+        code.writeln("decoder.StartSlice();");
         code.writeln(&decode_data_members(&members, namespace, FieldType::Class));
-        code.writeln("decoder.IceEndSlice();");
+        code.writeln("decoder.EndSlice();");
         if has_base_class {
-            code.writeln("base.IceDecode(ref decoder);");
+            code.writeln("base.DecodeCore(ref decoder);");
         }
         code
     })

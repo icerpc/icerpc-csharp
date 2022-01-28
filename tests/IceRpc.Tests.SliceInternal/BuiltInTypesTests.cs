@@ -14,12 +14,12 @@ namespace IceRpc.Tests.SliceInternal
     public class BuiltInTypesTests
     {
         private readonly Memory<byte> _buffer;
-        private readonly IceEncoding _encoding;
+        private readonly SliceEncoding _encoding;
         private readonly SingleBufferWriter _bufferWriter;
 
         public BuiltInTypesTests(string encoding)
         {
-            _encoding = IceEncoding.FromString(encoding);
+            _encoding = SliceEncoding.FromString(encoding);
             _buffer = new byte[256];
             _bufferWriter = new SingleBufferWriter(_buffer);
         }
@@ -28,8 +28,8 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(false)]
         public void Encoding_Bool(bool p1)
         {
-            var encoder = new IceEncoder(_bufferWriter, _encoding);
-            var decoder = new IceDecoder(_buffer, _encoding);
+            var encoder = new SliceEncoder(_bufferWriter, _encoding);
+            var decoder = new SliceDecoder(_buffer, _encoding);
 
             encoder.EncodeBool(p1);
             bool r1 = decoder.DecodeBool();
@@ -45,8 +45,8 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(byte.MaxValue)]
         public void Encoding_Byte(byte p1)
         {
-            var encoder = new IceEncoder(_bufferWriter, _encoding);
-            var decoder = new IceDecoder(_buffer, _encoding);
+            var encoder = new SliceEncoder(_bufferWriter, _encoding);
+            var decoder = new SliceDecoder(_buffer, _encoding);
             encoder.EncodeByte(p1);
             byte r1 = decoder.DecodeByte();
 
@@ -60,8 +60,8 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(short.MaxValue)]
         public void Encoding_Short(short p1)
         {
-            var encoder = new IceEncoder(_bufferWriter, _encoding);
-            var decoder = new IceDecoder(_buffer, _encoding);
+            var encoder = new SliceEncoder(_bufferWriter, _encoding);
+            var decoder = new SliceDecoder(_buffer, _encoding);
             encoder.EncodeShort(p1);
             short r1 = decoder.DecodeShort();
 
@@ -74,8 +74,8 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(ushort.MaxValue)]
         public void Encoding_UShort(ushort p1)
         {
-            var encoder = new IceEncoder(_bufferWriter, _encoding);
-            var decoder = new IceDecoder(_buffer, _encoding);
+            var encoder = new SliceEncoder(_bufferWriter, _encoding);
+            var decoder = new SliceDecoder(_buffer, _encoding);
             encoder.EncodeUShort(p1);
             ushort r1 = decoder.DecodeUShort();
 
@@ -89,8 +89,8 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(int.MaxValue)]
         public void Encoding_Int(int p1)
         {
-            var encoder = new IceEncoder(_bufferWriter, _encoding);
-            var decoder = new IceDecoder(_buffer, _encoding);
+            var encoder = new SliceEncoder(_bufferWriter, _encoding);
+            var decoder = new SliceDecoder(_buffer, _encoding);
             encoder.EncodeInt(p1);
             int r1 = decoder.DecodeInt();
 
@@ -104,8 +104,8 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(uint.MaxValue)]
         public void Encoding_UInt(uint p1)
         {
-            var encoder = new IceEncoder(_bufferWriter, _encoding);
-            var decoder = new IceDecoder(_buffer, _encoding);
+            var encoder = new SliceEncoder(_bufferWriter, _encoding);
+            var decoder = new SliceDecoder(_buffer, _encoding);
             encoder.EncodeUInt(p1);
             uint r1 = decoder.DecodeUInt();
 
@@ -117,8 +117,8 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(long.MaxValue)]
         public void Encoding_Long(long p1)
         {
-            var encoder = new IceEncoder(_bufferWriter, _encoding);
-            var decoder = new IceDecoder(_buffer, _encoding);
+            var encoder = new SliceEncoder(_bufferWriter, _encoding);
+            var decoder = new SliceDecoder(_buffer, _encoding);
             encoder.EncodeLong(p1);
 
             long r1 = decoder.DecodeLong();
@@ -132,8 +132,8 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(ulong.MinValue)]
         public void Encoding_ULong(ulong p1)
         {
-            var encoder = new IceEncoder(_bufferWriter, _encoding);
-            var decoder = new IceDecoder(_buffer, _encoding);
+            var encoder = new SliceEncoder(_bufferWriter, _encoding);
+            var decoder = new SliceDecoder(_buffer, _encoding);
             encoder.EncodeULong(p1);
             ulong r1 = decoder.DecodeULong();
 
@@ -141,24 +141,24 @@ namespace IceRpc.Tests.SliceInternal
             Assert.That(_bufferWriter.WrittenBuffer.Length, Is.EqualTo(sizeof(ulong)));
         }
 
-        [TestCase(IceEncoder.VarULongMinValue)]
-        [TestCase(IceEncoder.VarULongMinValue)]
+        [TestCase(SliceEncoder.VarULongMinValue)]
+        [TestCase(SliceEncoder.VarULongMinValue)]
         public void Encoding_VarULong(ulong p1)
         {
-            var encoder = new IceEncoder(_bufferWriter, _encoding);
-            var decoder = new IceDecoder(_buffer, _encoding);
+            var encoder = new SliceEncoder(_bufferWriter, _encoding);
+            var decoder = new SliceDecoder(_buffer, _encoding);
             encoder.EncodeVarULong(p1);
             ulong r1 = decoder.DecodeVarULong();
 
             Assert.That(p1, Is.EqualTo(r1));
         }
 
-        [TestCase(IceEncoder.VarLongMinValue)]
-        [TestCase(IceEncoder.VarLongMinValue)]
+        [TestCase(SliceEncoder.VarLongMinValue)]
+        [TestCase(SliceEncoder.VarLongMinValue)]
         public void Encoding_VarLong(long p1)
         {
-            var encoder = new IceEncoder(_bufferWriter, _encoding);
-            var decoder = new IceDecoder(_buffer, _encoding);
+            var encoder = new SliceEncoder(_bufferWriter, _encoding);
+            var decoder = new SliceDecoder(_buffer, _encoding);
             encoder.EncodeVarLong(p1);
             long r1 = decoder.DecodeVarLong();
 
@@ -170,8 +170,8 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(float.MaxValue)]
         public void Encoding_Float(float p1)
         {
-            var encoder = new IceEncoder(_bufferWriter, _encoding);
-            var decoder = new IceDecoder(_buffer, _encoding);
+            var encoder = new SliceEncoder(_bufferWriter, _encoding);
+            var decoder = new SliceDecoder(_buffer, _encoding);
             encoder.EncodeFloat(p1);
             float r1 = decoder.DecodeFloat();
 
@@ -185,8 +185,8 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase(double.MaxValue)]
         public void Encoding_Double(double p1)
         {
-            var encoder = new IceEncoder(_bufferWriter, _encoding);
-            var decoder = new IceDecoder(_buffer, _encoding);
+            var encoder = new SliceEncoder(_bufferWriter, _encoding);
+            var decoder = new SliceDecoder(_buffer, _encoding);
             encoder.EncodeDouble(p1);
 
             double r1 = decoder.DecodeDouble();
@@ -203,8 +203,8 @@ namespace IceRpc.Tests.SliceInternal
         [TestCase("😁😂😃😄😅😆😉😊😋😌😍😏😒😓😔😖")] // each character encoded with surrogates
         public void Encoding_String(string p1)
         {
-            var encoder = new IceEncoder(_bufferWriter, _encoding);
-            var decoder = new IceDecoder(_buffer, _encoding);
+            var encoder = new SliceEncoder(_bufferWriter, _encoding);
+            var decoder = new SliceDecoder(_buffer, _encoding);
 
             // simple test
             encoder.EncodeString(p1);
@@ -220,7 +220,7 @@ namespace IceRpc.Tests.SliceInternal
                 // minBufferSize given to Rent
                 var pipe = new Pipe(new PipeOptions(pool: customPool, minimumSegmentSize: 5));
 
-                encoder = new IceEncoder(pipe.Writer, _encoding);
+                encoder = new SliceEncoder(pipe.Writer, _encoding);
                 for (int i = 0; i < 20; ++i)
                 {
                     encoder.EncodeString(p1);
@@ -228,7 +228,7 @@ namespace IceRpc.Tests.SliceInternal
                 pipe.Writer.Complete();
 
                 pipe.Reader.TryRead(out ReadResult readResult);
-                decoder = new IceDecoder(readResult.Buffer, _encoding);
+                decoder = new SliceDecoder(readResult.Buffer, _encoding);
 
                 for (int i = 0; i < 20; ++i)
                 {

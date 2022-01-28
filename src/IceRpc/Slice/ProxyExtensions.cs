@@ -15,9 +15,9 @@ namespace IceRpc.Slice
     /// <summary>Provides extension methods for class Proxy.</summary>
     public static class ProxyExtensions
     {
-        /// <summary>Computes the Ice encoding to use when encoding a Slice-generated request.</summary>
-        public static IceEncoding GetIceEncoding(this Proxy proxy) =>
-            proxy.Encoding as IceEncoding ?? proxy.Protocol?.SliceEncoding ??
+        /// <summary>Computes the Slice encoding to use when encoding a Slice-generated request.</summary>
+        public static SliceEncoding GetSliceEncoding(this Proxy proxy) =>
+            proxy.Encoding as SliceEncoding ?? proxy.Protocol?.SliceEncoding ??
                 throw new NotSupportedException($"unknown protocol {proxy.Protocol}");
 
         /// <summary>Sends a request to a service and decodes the response.</summary>
@@ -38,7 +38,7 @@ namespace IceRpc.Slice
         public static Task<T> InvokeAsync<T>(
             this Proxy proxy,
             string operation,
-            IceEncoding payloadEncoding,
+            SliceEncoding payloadEncoding,
             PipeReader payloadSource,
             PipeReader? payloadSourceStream,
             ResponseDecodeFunc<T> responseDecodeFunc,
@@ -105,7 +105,7 @@ namespace IceRpc.Slice
         public static Task InvokeAsync(
             this Proxy proxy,
             string operation,
-            IceEncoding payloadEncoding,
+            SliceEncoding payloadEncoding,
             PipeReader payloadSource,
             PipeReader? payloadSourceStream,
             IActivator defaultActivator,

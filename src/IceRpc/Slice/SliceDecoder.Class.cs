@@ -11,8 +11,8 @@ using static IceRpc.Slice.Internal.Slice11Definitions;
 
 namespace IceRpc.Slice
 {
-    // Class-related methods for IceDecoder.
-    public ref partial struct IceDecoder
+    // Class-related methods for SliceDecoder.
+    public ref partial struct SliceDecoder
     {
         /// <summary>Decodes a class instance.</summary>
         /// <returns>The decoded class instance.</returns>
@@ -48,15 +48,15 @@ namespace IceRpc.Slice
 
         /// <summary>Tells the decoder the end of a class or remote exception slice was reached.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public void IceEndSlice()
+        public void EndSlice()
         {
             if (Encoding != IceRpc.Encoding.Slice11)
             {
                 throw new InvalidOperationException(
-                    $"{nameof(IceEndSlice)} is not compatible with encoding {Encoding}");
+                    $"{nameof(EndSlice)} is not compatible with encoding {Encoding}");
             }
 
-            // Note that IceEndSlice is not called when we call SkipSlice.
+            // Note that EndSlice is not called when we call SkipSlice.
             Debug.Assert(_classContext.Current.InstanceType != InstanceType.None);
 
             if ((_classContext.Current.SliceFlags & SliceFlags.HasTaggedMembers) != 0)
@@ -76,12 +76,12 @@ namespace IceRpc.Slice
 
         /// <summary>Marks the start of the decoding of a class or remote exception slice.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public void IceStartSlice()
+        public void StartSlice()
         {
             if (Encoding != IceRpc.Encoding.Slice11)
             {
                 throw new InvalidOperationException(
-                    $"{nameof(IceStartSlice)} is not compatible with encoding {Encoding}");
+                    $"{nameof(StartSlice)} is not compatible with encoding {Encoding}");
             }
 
             Debug.Assert(_classContext.Current.InstanceType != InstanceType.None);
@@ -538,7 +538,7 @@ namespace IceRpc.Slice
             byte[] bytes;
             if (hasTaggedMembers)
             {
-                // Don't include the tag end marker. It will be re-written by IceEndSlice when the sliced data is
+                // Don't include the tag end marker. It will be re-written by EndSlice when the sliced data is
                 // re-written.
                 bytes = new byte[_classContext.Current.SliceSize - 1];
                 CopyTo(bytes.AsSpan());

@@ -20,7 +20,7 @@ namespace IceRpc.Slice.Internal
         /// <remarks>The reader is always completed when this method returns.</remarks>
         internal static async ValueTask<RemoteException> ReadRemoteExceptionAsync(
             this PipeReader reader,
-            IceEncoding encoding,
+            SliceEncoding encoding,
             Connection connection,
             IInvoker invoker,
             IActivator activator,
@@ -61,7 +61,7 @@ namespace IceRpc.Slice.Internal
             {
                 RemoteException remoteException;
 
-                var decoder = new IceDecoder(
+                var decoder = new SliceDecoder(
                     buffer,
                     encoding,
                     connection,
@@ -90,7 +90,7 @@ namespace IceRpc.Slice.Internal
         /// never marks the reader as completed.</remarks>
         internal static async ValueTask<ReadResult> ReadSegmentAsync(
             this PipeReader reader,
-            IceEncoding encoding,
+            SliceEncoding encoding,
             CancellationToken cancel)
         {
             (int segmentSize, bool isCanceled, bool isCompleted) =
@@ -140,7 +140,7 @@ namespace IceRpc.Slice.Internal
         /// complete the pipe reader.</remarks>
         internal static async ValueTask<T> ReadValueAsync<T>(
             this PipeReader reader,
-            IceEncoding encoding,
+            SliceEncoding encoding,
             Connection connection,
             IInvoker invoker,
             IActivator activator,
@@ -188,7 +188,7 @@ namespace IceRpc.Slice.Internal
 
             T Decode(ReadOnlySequence<byte> buffer)
             {
-                var decoder = new IceDecoder(
+                var decoder = new SliceDecoder(
                     buffer,
                     encoding,
                     connection,
@@ -210,7 +210,7 @@ namespace IceRpc.Slice.Internal
         /// <remarks>The reader is always completed when this method returns.</remarks>
         internal static async ValueTask ReadVoidAsync(
             this PipeReader reader,
-            IceEncoding encoding,
+            SliceEncoding encoding,
             bool hasStream,
             CancellationToken cancel)
         {
@@ -244,7 +244,7 @@ namespace IceRpc.Slice.Internal
 
             void Decode(ReadOnlySequence<byte> buffer)
             {
-                var decoder = new IceDecoder(buffer, encoding);
+                var decoder = new SliceDecoder(buffer, encoding);
                 decoder.CheckEndOfBuffer(skipTaggedParams: true);
             }
         }
@@ -261,7 +261,7 @@ namespace IceRpc.Slice.Internal
         /// <remarks>The implementation currently always uses segments.</remarks>
         internal static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this PipeReader reader,
-            IceEncoding encoding,
+            SliceEncoding encoding,
             Connection connection,
             IInvoker invoker,
             IActivator activator,
@@ -271,7 +271,7 @@ namespace IceRpc.Slice.Internal
         {
             Func<ReadOnlySequence<byte>, IEnumerable<T>> decodeBufferFunc = buffer =>
             {
-                var decoder = new IceDecoder(
+                var decoder = new SliceDecoder(
                     buffer,
                     encoding,
                     connection,

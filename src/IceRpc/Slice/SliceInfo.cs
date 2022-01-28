@@ -2,8 +2,8 @@
 
 namespace IceRpc.Slice
 {
-    /// <summary>SliceInfo encapsulates the details of a slice for an unknown class or remote exception encoded with
-    /// the Ice 1.1 encoding.</summary>
+    /// <summary>SliceInfo encapsulates the details of a slice for an unknown class encoded with the Slice 1.1
+    /// encoding.</summary>
     public sealed class SliceInfo
     {
         /// <summary>The Slice type ID or compact ID for this slice.</summary>

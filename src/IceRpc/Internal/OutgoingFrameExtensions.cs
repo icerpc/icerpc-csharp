@@ -21,7 +21,7 @@ namespace IceRpc.Internal
                 var header = new CompressionField(CompressionFormat.Deflate);
                 frame.Fields.Add(
                     (int)FieldKey.Compression,
-                    (ref IceEncoder encoder) => header.Encode(ref encoder));
+                    (ref SliceEncoder encoder) => header.Encode(ref encoder));
             }
         }
     }

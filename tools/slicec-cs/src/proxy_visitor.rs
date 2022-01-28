@@ -85,7 +85,7 @@ impl<'a> Visitor for ProxyVisitor<'_> {
 {access} static readonly string DefaultPath = typeof({prx_impl}).GetDefaultPath();
 
 private static readonly IActivator _defaultActivator =
-    IceDecoder.GetActivator(typeof({prx_impl}).Assembly);
+    SliceDecoder.GetActivator(typeof({prx_impl}).Assembly);
 
 /// <summary>The proxy to the remote service.</summary>
 {access} IceRpc.Proxy Proxy {{ get; init; }}"#,
@@ -262,7 +262,7 @@ if ({invocation}?.RequestFeatures.Get<IceRpc.Features.CompressPayload>() == null
     let payload_encoding = if sends_classes {
         "IceRpc.Encoding.Slice11".to_owned()
     } else {
-        body.writeln("var payloadEncoding = Proxy.GetIceEncoding();");
+        body.writeln("var payloadEncoding = Proxy.GetSliceEncoding();");
         "payloadEncoding".to_owned()
     };
 
@@ -457,7 +457,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
         if !sends_classes {
             builder.add_parameter(
-                "IceEncoding",
+                "SliceEncoding",
                 "encoding",
                 None,
                 Some("The encoding of the payload."),
@@ -609,7 +609,7 @@ fn request_encode_action(operation: &Operation) -> CodeBlock {
     } else {
         format!(
             "\
-(ref IceEncoder encoder,
+(ref SliceEncoder encoder,
  {_in}{param_type} value) =>
 {{
     {encode}
@@ -656,11 +656,11 @@ var {return_value} = await response.ToReturnValueAsync(
 
 return {return_value_and_stream};
 ",
-                return_value = non_streamed_members.to_argument_tuple("iceP_"),
+                return_value = non_streamed_members.to_argument_tuple("sliceP_"),
                 response_decode_func = response_decode_func(operation).indent(),
                 decode_response_stream =
                     decode_operation_stream(stream_member, namespace, false, true),
-                return_value_and_stream = operation.return_members().to_argument_tuple("iceP_")
+                return_value_and_stream = operation.return_members().to_argument_tuple("sliceP_")
             );
         }
     } else {
@@ -693,7 +693,7 @@ fn response_decode_func(operation: &Operation) -> CodeBlock {
     } else {
         format!(
             "\
-(ref IceDecoder decoder) =>
+(ref SliceDecoder decoder) =>
 {{
     {decode}
 }}",

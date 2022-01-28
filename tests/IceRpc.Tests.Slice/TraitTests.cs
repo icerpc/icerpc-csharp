@@ -80,17 +80,17 @@ namespace IceRpc.Tests.Slice
             // Let's decode the exception. TODO: we should provide a more obvious exception-decoding API.
             Assert.ThrowsAsync<UnhandledException>(async () =>
                 await response.CheckVoidReturnValueAsync(
-                    IceDecoder.GetActivator(typeof(TraitTests).Assembly),
+                    SliceDecoder.GetActivator(typeof(TraitTests).Assembly),
                     hasStream: false,
                     cancel: default));
 
             // Constructs a payload that creates a stack overflow during decoding. We're targeting opNestedTraitStruct.
             PipeReader CreatePayload()
             {
-                string typeId = typeof(NestedTraitStruct).GetIceTypeId()!;
+                string typeId = typeof(NestedTraitStruct).GetSliceTypeId()!;
 
                 var pipe = new Pipe();
-                var encoder = new IceEncoder(pipe.Writer, Encoding.Slice20);
+                var encoder = new SliceEncoder(pipe.Writer, Encoding.Slice20);
                 encoder.EncodeSize((typeId.Length + 1) * depth); // the payload size, in bytes
                 for (int i = 0; i < depth; ++i)
                 {

@@ -41,7 +41,7 @@ namespace IceRpc.Tests.Slice
             // Set the response activator so that ClassB is not available
             static void SetupResponseActivator(Pipeline pipeline)
             {
-                IActivator activator = IceDecoder.GetActivator(typeof(ClassA).Assembly);
+                IActivator activator = SliceDecoder.GetActivator(typeof(ClassA).Assembly);
                 pipeline.Use(next => new InlineInvoker(
                 async (request, cancel) =>
                 {
@@ -93,7 +93,7 @@ namespace IceRpc.Tests.Slice
             // Set the request decode factories so that ClassB is not available
             static void SetupRequestActivator(Router router)
             {
-                IActivator activator = IceDecoder.GetActivator(typeof(ClassA).Assembly);
+                IActivator activator = SliceDecoder.GetActivator(typeof(ClassA).Assembly);
                 router.Use(next => new InlineDispatcher(
                 (request, cancel) =>
                 {
