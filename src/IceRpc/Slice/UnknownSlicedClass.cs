@@ -12,12 +12,12 @@ namespace IceRpc.Slice
         public override ImmutableList<SliceInfo> UnknownSlices { get; set; } = ImmutableList<SliceInfo>.Empty;
 
         /// <inheritdoc/>
-        public override void Decode(ref SliceDecoder decoder)
+        protected override void DecodeCore(ref SliceDecoder decoder)
         {
         }
 
         /// <inheritdoc/>
-        public override void Encode(ref SliceEncoder encoder) =>
+        protected override void EncodeCore(ref SliceEncoder encoder) =>
             encoder.EncodeUnknownSlices(UnknownSlices, fullySliced: true);
 
         internal UnknownSlicedClass()

@@ -82,13 +82,13 @@ namespace IceRpc
         /// <summary>Decodes a remote exception.</summary>
         /// <param name="decoder">The Slice decoder.</param>
         // This implementation is only called on a plain RemoteException.
-        public virtual void Decode(ref SliceDecoder decoder)
+        protected virtual void DecodeCore(ref SliceDecoder decoder)
         {
         }
 
         /// <summary>Encodes a remote exception.</summary>
         /// <param name="encoder">The Slice encoder.</param>
-        public virtual void Encode(ref SliceEncoder encoder)
+        protected virtual void EncodeCore(ref SliceEncoder encoder)
         {
             if (encoder.Encoding == Encoding.Slice11)
             {
@@ -102,6 +102,9 @@ namespace IceRpc
                 Origin.Encode(ref encoder);
             }
         }
+
+        internal void Decode(ref SliceDecoder decoder) => DecodeCore(ref decoder);
+        internal void Encode(ref SliceEncoder encoder) => EncodeCore(ref encoder);
     }
 
     public readonly partial record struct RemoteExceptionOrigin

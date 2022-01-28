@@ -22,10 +22,13 @@ namespace IceRpc
 
         /// <summary>Decodes the properties of this instance.</summary>
         /// <param name="decoder">The Slice decoder.</param>
-        public abstract void Decode(ref SliceDecoder decoder);
+        protected abstract void DecodeCore(ref SliceDecoder decoder);
 
         /// <summary>Encodes the properties of this instance.</summary>
         /// <param name="encoder">The Slice encoder.</param>
-        public abstract void Encode(ref SliceEncoder encoder);
+        protected abstract void EncodeCore(ref SliceEncoder encoder);
+
+        internal void Decode(ref SliceDecoder decoder) => DecodeCore(ref decoder);
+        internal void Encode(ref SliceEncoder encoder) => EncodeCore(ref encoder);
     }
 }
