@@ -278,7 +278,7 @@ namespace IceRpc.Internal
             }
 
             return new IncomingResponse(
-                Protocol.IceRpc,
+                request,
                 header.ResultType,
                 payload: responseReader,
                 payloadEncoding: header.PayloadEncoding.Length > 0 ?

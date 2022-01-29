@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Slice;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Collections.Immutable;
@@ -484,7 +485,7 @@ namespace IceRpc.Tests.Api
                 {
                     var router = new Router();
                     router.Map<IProxyTest>(service);
-                    router.UseProxyInvoker(pipeline);
+                    router.UseRequestFeature(new DecodePayloadOptions { ProxyInvoker = pipeline });
                     return router;
                 })
                 .BuildServiceProvider();

@@ -238,12 +238,7 @@ namespace IceRpc.Tests.SliceInternal
                 {
                     var router = new Router();
                     router.Map<IClassGraphOperations>(new ClassGraphOperations());
-                    router.Use(next => new InlineDispatcher(
-                        (request, cancel) =>
-                        {
-                            request.Features = request.Features.WithSliceDecoderMaxDepth(serverMaxDepth);
-                            return next.DispatchAsync(request, cancel);
-                        }));
+                    router.UseRequestFeature(new DecodePayloadOptions { MaxDepth = serverMaxDepth });
                     return router;
                 })
                 .BuildServiceProvider();
@@ -251,14 +246,7 @@ namespace IceRpc.Tests.SliceInternal
             var prx = ClassGraphOperationsPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
 
             var pipeline = new Pipeline();
-            pipeline.Use(next => new InlineInvoker(
-                async (request, cancel) =>
-                {
-                    IncomingResponse response = await next.InvokeAsync(request, cancel);
-                    response.Features = response.Features.WithSliceDecoderMaxDepth(clientMaxDepth);
-
-                    return response;
-                }));
+            pipeline.UseResponseFeature(new DecodePayloadOptions { MaxDepth = clientMaxDepth });
             prx.Proxy.Invoker = pipeline;
 
             await prx.IcePingAsync();

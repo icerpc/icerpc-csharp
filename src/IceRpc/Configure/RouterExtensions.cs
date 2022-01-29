@@ -38,21 +38,16 @@ namespace IceRpc.Configure
         public static Router UseMetrics(this Router router, DispatchEventSource eventSource) =>
             router.Use(next => new MetricsMiddleware(next, eventSource));
 
-        /// <summary>Adds a <see cref="ProxyInvokerMiddleware"/> to the router.</summary>
+        /// <summary>Adds a middleware that sets a feature in the request's features.</summary>
+        /// <paramtype name="T">The type of the feature.</paramtype>
         /// <param name="router">The router being configured.</param>
-        /// <param name="invoker">The invoker of the proxies read from the requests payload.</param>
-        /// <returns>The router being configured.</returns>
-        public static Router UseProxyInvoker(this Router router, IInvoker invoker) =>
-            router.Use(next => new ProxyInvokerMiddleware(next, invoker));
-
-        /// <summary>Adds a <see cref="SliceAssembliesMiddleware"/> to the router. This middleware overwrites the
-        /// assemblies that IceRPC uses to decode types received "over the wire".</summary>
-        /// <param name="router">The router being configured.</param>
-        /// <param name="assemblies">One or more assemblies that contain Slice generated code.</param>
-        /// <returns>The router being configured.</returns>
-        /// <seealso cref="IActivator"/>
-        public static Router UseSliceAssemblies(this Router router, params Assembly[] assemblies) =>
-            router.Use(next => new SliceAssembliesMiddleware(next, assemblies));
+        /// <param name="feature">The value of the feature to set in all requests.</param>
+        public static Router UseRequestFeature<T>(this Router router, T feature) =>
+            router.Use(next => new InlineDispatcher((request, cancel) =>
+            {
+                request.Features = request.Features.With(feature);
+                return next.DispatchAsync(request, cancel);
+            }));
 
         /// <summary>Adds a <see cref="TelemetryMiddleware"/> that uses the default <see cref="TelemetryOptions"/> to
         /// the router.</summary>

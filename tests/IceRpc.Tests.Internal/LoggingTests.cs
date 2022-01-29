@@ -76,7 +76,7 @@ namespace IceRpc.Tests.Internal
             await connection.ConnectAsync();
 
             OutgoingRequest request = CreateOutgoingRequest(connection, twoway);
-            IncomingResponse response = CreateIncomingResponse();
+            IncomingResponse response = CreateIncomingResponse(request);
 
             var pipeline = new Pipeline();
             using var loggerFactory = new TestLoggerFactory();
@@ -268,8 +268,8 @@ namespace IceRpc.Tests.Internal
                 IsOneway = !twoway
             };
 
-        private static IncomingResponse CreateIncomingResponse() => new(
-            Protocol.IceRpc,
+        private static IncomingResponse CreateIncomingResponse(OutgoingRequest request) => new(
+            request,
             ResultType.Success,
             PipeReader.Create(new ReadOnlySequence<byte>(new byte[10])),
             Encoding.Slice20);

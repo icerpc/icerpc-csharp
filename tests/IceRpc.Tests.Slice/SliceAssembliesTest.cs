@@ -25,31 +25,16 @@ namespace IceRpc.Tests.Slice
             var pipeline = new Pipeline();
             prx.Proxy.Invoker = pipeline;
             // Setup response activator excluding ClassB assembly
-            SetupResponseActivator(pipeline);
+            pipeline.UseResponseFeature(
+                new DecodePayloadOptions { Activator = SliceDecoder.GetActivator(typeof(ClassA).Assembly) });
             Assert.ThrowsAsync<InvalidDataException>(async () => await prx.OpAAsync(new ClassB("A", "B")));
 
-            // Repeat but this time use SliceAssemblies interceptor to include ClassB factory
+            // Repeat but this time include ClassB assembly
             pipeline = new Pipeline();
             prx.Proxy.Invoker = pipeline;
-            // Setup the Assemblies interceptors to ensure it correctly setup the factories
-            pipeline.UseSliceAssemblies(typeof(ClassB).Assembly);
-            // Clear the default factories, so that ClassB cannot be found, we install this interceptor after the
-            // SliceAssemblies interceptor: this way, it intercepts responses before the SliceAssemblies interceptor.
-            SetupResponseActivator(pipeline);
+            pipeline.UseResponseFeature(
+                new DecodePayloadOptions { Activator = SliceDecoder.GetActivator(typeof(ClassB).Assembly) });
             await prx.OpAAsync(new ClassB("A", "B"));
-
-            // Set the response activator so that ClassB is not available
-            static void SetupResponseActivator(Pipeline pipeline)
-            {
-                IActivator activator = SliceDecoder.GetActivator(typeof(ClassA).Assembly);
-                pipeline.Use(next => new InlineInvoker(
-                async (request, cancel) =>
-                {
-                    IncomingResponse response = await next.InvokeAsync(request, cancel);
-                    response.Features = response.Features.With(activator);
-                    return response;
-                }));
-            }
         }
 
         [Test]
@@ -61,7 +46,11 @@ namespace IceRpc.Tests.Slice
                     .AddTransient<IDispatcher>(_ =>
                     {
                         var router = new Router();
-                        SetupRequestActivator(router);
+                        router.UseRequestFeature(
+                            new DecodePayloadOptions
+                            {
+                                Activator = SliceDecoder.GetActivator(typeof(ClassA).Assembly)
+                            });
                         router.Map<IAssembliesOperations>(new AssembliesOperations());
                         return router;
                     })
@@ -72,15 +61,18 @@ namespace IceRpc.Tests.Slice
                 Assert.ThrowsAsync<UnhandledException>(async () => await prx.OpAAsync(new ClassB("A", "B")));
             }
 
-            // Repeat but this time use SliceAssemblies middleware to include ClassB factory
+            // Repeat but this time include ClassB assembly
             {
                 await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                     .UseProtocol("ice")
                     .AddTransient<IDispatcher>(_ =>
                     {
                         var router = new Router();
-                        SetupRequestActivator(router);
-                        router.UseSliceAssemblies(typeof(ClassB).Assembly);
+                        router.UseRequestFeature(
+                            new DecodePayloadOptions
+                            {
+                                Activator = SliceDecoder.GetActivator(typeof(ClassB).Assembly)
+                            });
                         router.Map<IAssembliesOperations>(new AssembliesOperations());
                         return router;
                     })
@@ -88,18 +80,6 @@ namespace IceRpc.Tests.Slice
 
                 var prx = AssembliesOperationsPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
                 await prx.OpAAsync(new ClassB("A", "B"));
-            }
-
-            // Set the request decode factories so that ClassB is not available
-            static void SetupRequestActivator(Router router)
-            {
-                IActivator activator = SliceDecoder.GetActivator(typeof(ClassA).Assembly);
-                router.Use(next => new InlineDispatcher(
-                (request, cancel) =>
-                {
-                    request.Features = request.Features.With(activator);
-                    return next.DispatchAsync(request, cancel);
-                }));
             }
         }
     }
