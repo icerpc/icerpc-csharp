@@ -286,7 +286,6 @@ namespace IceRpc.Internal
             {
                 Features = features,
                 Fields = fields,
-                ProxyInvoker = request.Proxy.Invoker,
             };
 
             static (IceRpcResponseHeader, IReadOnlyDictionary<int, ReadOnlyMemory<byte>>) DecodeHeader(
