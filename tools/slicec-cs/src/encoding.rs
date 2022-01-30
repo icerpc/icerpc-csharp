@@ -425,7 +425,7 @@ pub fn encode_action(type_ref: &TypeRef, type_context: TypeContext, namespace: &
     code
 }
 
-pub fn encode_operation(operation: &Operation, return_type: bool) -> CodeBlock {
+pub fn encode_operation(operation: &Operation, return_type: bool, param_prefix: &str) -> CodeBlock {
     let mut code = CodeBlock::new();
     let namespace = &operation.namespace();
 
@@ -447,26 +447,33 @@ pub fn encode_operation(operation: &Operation, return_type: bool) -> CodeBlock {
         );
     }
 
+    let return_value_name = return_type && members.len() == 1;
+
     for member in required_members {
+        let name = if return_value_name {
+            "returnValue".to_owned()
+        } else {
+            member.parameter_name_with_prefix(param_prefix)
+        };
+
         code.writeln(&encode_type(
             member.data_type(),
             TypeContext::Outgoing,
             namespace,
-            &match members.as_slice() {
-                [_] => "value".to_owned(),
-                _ => format!("value.{}", &member.field_name(FieldType::NonMangled)),
-            },
+            name.as_str(),
         ));
     }
 
     for member in tagged_members {
+        let name = if return_value_name {
+            "returnValue".to_owned()
+        } else {
+            member.parameter_name_with_prefix(param_prefix)
+        };
         code.writeln(&encode_tagged_type(
             member,
             namespace,
-            &match members.as_slice() {
-                [_] => "value".to_owned(),
-                _ => format!("value.{}", &member.field_name(FieldType::NonMangled)),
-            },
+            name.as_str(),
             TypeContext::Outgoing,
         ));
     }

@@ -24,7 +24,7 @@ namespace IceRpc.Slice
         internal const ulong VarULongMaxValue = 4_611_686_018_427_387_903; // 2^62 - 1
 
         /// <summary>The number of bytes encoded by this encoder into the underlying buffer writer.</summary>
-        internal int EncodedByteCount { get; private set; }
+        public int EncodedByteCount { get; private set; }
 
         private static readonly UTF8Encoding _utf8 =
             new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true); // no BOM
@@ -565,7 +565,7 @@ namespace IceRpc.Slice
         /// <returns>A buffer of length <paramref name="size"/>.</returns>
         /// <remarks>We make the assumption the underlying buffer writer allows rewriting memory it provided even after
         /// successive calls to GetMemory/GetSpan and Advance.</remarks>
-        internal Span<byte> GetPlaceholderSpan(int size)
+        public Span<byte> GetPlaceholderSpan(int size)
         {
             Debug.Assert(size > 0);
             Span<byte> placeholder = _bufferWriter.GetSpan(size)[0..size];
