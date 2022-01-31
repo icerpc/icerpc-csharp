@@ -1,4 +1,4 @@
- // Copyright (c) ZeroC, Inc. All rights reserved.
+// Copyright (c) ZeroC, Inc. All rights reserved.
 
 [cs:internal]
 module IceRpc::Slice::Internal
