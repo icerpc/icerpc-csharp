@@ -17,7 +17,8 @@ namespace IceRpc.Slice
         public static ValueTask CheckEmptyArgsAsync(
             this IncomingRequest request,
             bool hasStream,
-            CancellationToken cancel) => request.Payload.ReadVoidAsync(request.GetSlicePayloadEncoding(), hasStream, cancel);
+            CancellationToken cancel) =>
+            request.Payload.ReadVoidAsync(request.GetSlicePayloadEncoding(), hasStream, cancel);
 
         /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared
         /// idempotent, the request is not marked idempotent. If the request is marked idempotent, it means the caller
@@ -49,15 +50,42 @@ namespace IceRpc.Slice
             IActivator defaultActivator,
             DecodeFunc<T> decodeFunc,
             bool hasStream,
-            CancellationToken cancel) =>
-            request.Payload.ReadValueAsync(
+            CancellationToken cancel)
+        {
+            DecodePayloadOptions decodePayloadOptions =
+                    request.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default;
+
+            return request.Payload.ReadValueAsync(
                 request.GetSlicePayloadEncoding(),
                 request.Connection,
-                request.ProxyInvoker,
-                request.Features.Get<IActivator>() ?? defaultActivator,
-                request.Features.GetSliceDecoderMaxDepth(),
+                decodePayloadOptions.ProxyInvoker ?? Proxy.DefaultInvoker,
+                decodePayloadOptions.Activator ?? defaultActivator,
+                decodePayloadOptions.MaxDepth,
                 decodeFunc,
                 hasStream,
                 cancel);
+        }
+
+        /// <summary>Creates an async enumerable over the payload reader of an incoming request.</summary>
+        /// <param name="request">The incoming request.</param>
+        /// <param name="defaultActivator">The default activator.</param>
+        /// <param name="decodeFunc">The function used to decode the streamed member.</param>
+        public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
+            this IncomingRequest request,
+            IActivator defaultActivator,
+            DecodeFunc<T> decodeFunc)
+        {
+            DecodePayloadOptions decodePayloadOptions =
+                request.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default;
+
+            return request.Payload.ToAsyncEnumerable(
+                request.GetSlicePayloadEncoding(),
+                request.Connection,
+                decodePayloadOptions.ProxyInvoker ?? Proxy.DefaultInvoker,
+                decodePayloadOptions.Activator ?? defaultActivator,
+                decodePayloadOptions.MaxDepth,
+                decodeFunc,
+                decodePayloadOptions.StreamDecoderOptions);
+        }
     }
 }

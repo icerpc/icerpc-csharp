@@ -263,13 +263,12 @@ namespace IceRpc.Internal
                 }
 
                 return new IncomingResponse(
-                    Protocol.Ice,
+                    request,
                     resultType,
                     new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
                     payloadEncoding)
                 {
-                    Features = features,
-                    ProxyInvoker = request.Proxy.Invoker,
+                    Features = features
                 };
             }
             catch

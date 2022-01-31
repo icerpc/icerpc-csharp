@@ -278,7 +278,7 @@ namespace IceRpc.Internal
             }
 
             return new IncomingResponse(
-                Protocol.IceRpc,
+                request,
                 header.ResultType,
                 payload: responseReader,
                 payloadEncoding: header.PayloadEncoding.Length > 0 ?
@@ -286,7 +286,6 @@ namespace IceRpc.Internal
             {
                 Features = features,
                 Fields = fields,
-                ProxyInvoker = request.Proxy.Invoker,
             };
 
             static (IceRpcResponseHeader, IReadOnlyDictionary<int, ReadOnlyMemory<byte>>) DecodeHeader(

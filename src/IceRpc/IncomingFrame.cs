@@ -32,9 +32,6 @@ namespace IceRpc
         /// <summary>The Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }
 
-        /// <summary>The invoker of proxies decoded from <see cref="Payload"/>.</summary>
-        public IInvoker ProxyInvoker { get; set; } = Proxy.DefaultInvoker;
-
         private Connection? _connection;
 
         /// <summary>Constructs an incoming frame.</summary>
