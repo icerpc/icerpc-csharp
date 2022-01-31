@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
@@ -258,48 +259,73 @@ namespace IceRpc.Transports.Internal
 
         internal async ValueTask ReceivedFrameAsync(int size, bool endStream)
         {
-            // Read and append the received data to the input pipe writer.
-            if (size > 0)
+            // Set the reading state to ensure the stream isn't shutdown until the frame read is completed. Shutdown
+            // completes in the _inputPipeWriter so it's not safe to call shutdown while a frame is read.
+            SetState(State.Reading);
+
+            try
             {
-                while (size > 0)
+                if (IsShutdown)
                 {
-                    // Receive the data and push it to the SlicReader pipe.
-                    Memory<byte> chunk = _inputPipeWriter.GetMemory();
-                    if (chunk.Length > size)
+                    // The stream is being shutdown. Read and ignore the data.
+                    using IMemoryOwner<byte> owner = _connection.Pool.Rent(_connection.MinimumSegmentSize);
+                    while (size > 0)
                     {
-                        chunk = chunk[0..size];
+                        Memory<byte> chunk = owner.Memory;
+                        if (chunk.Length > size)
+                        {
+                            chunk = chunk[0..size];
+                        }
+                        await _frameReader.ReadFrameDataAsync(chunk, CancellationToken.None).ConfigureAwait(false);
+                        size -= chunk.Length;
                     }
-
-                    await _frameReader.ReadFrameDataAsync(chunk, CancellationToken.None).ConfigureAwait(false);
-
-                    _inputPipeWriter.Advance(chunk.Length);
-                    size -= chunk.Length;
-
-                    // This should always complete synchronously since the sender isn't supposed to send more data than
-                    // it is allowed.
-                    ValueTask<FlushResult> flushTask = _inputPipeWriter.FlushAsync(CancellationToken.None);
-                    if (!flushTask.IsCompletedSuccessfully)
-                    {
-                        _ = flushTask.AsTask();
-                        throw new InvalidDataException("received more data than flow control permits");
-                    }
-                    await flushTask.ConfigureAwait(false);
                 }
-
-                if (endStream)
+                else
                 {
-                    // We complete the input pipe writer but we don't mark reads as completed. Reads will be marked as
-                    // completed by the Slic pipe reader once the application calls TryRead/ReadAsync. It's important
-                    // for unidirectional stream which would otherwise be shutdown before the data has been consumed by
-                    // the application. This would allow a malicious client to open many unidirectional streams before
-                    // the application gets a chance to consume the data, defeating the purpose of the
-                    // UnidirectionalStreamMaxCount option.
-                    await _inputPipeWriter.CompleteAsync().ConfigureAwait(false);
+                    // Read and append the received data to the input pipe writer.
+                    while (size > 0)
+                    {
+                        // Receive the data and push it to the SlicReader pipe.
+                        Memory<byte> chunk = _inputPipeWriter.GetMemory();
+                        if (chunk.Length > size)
+                        {
+                            chunk = chunk[0..size];
+                        }
+
+                        await _frameReader.ReadFrameDataAsync(chunk, CancellationToken.None).ConfigureAwait(false);
+
+                        _inputPipeWriter.Advance(chunk.Length);
+                        size -= chunk.Length;
+
+                        // This should always complete synchronously since the sender isn't supposed to send more data
+                        // than it is allowed.
+                        ValueTask<FlushResult> flushTask = _inputPipeWriter.FlushAsync(CancellationToken.None);
+                        if (!flushTask.IsCompletedSuccessfully)
+                        {
+                            _ = flushTask.AsTask();
+                            throw new InvalidDataException("received more data than flow control permits");
+                        }
+
+                        // We don't check if the input pipe reader completed because we need to consume the whole frame
+                        // from the network connection.
+                        await flushTask.ConfigureAwait(false);
+                    }
+
+                    if (endStream)
+                    {
+                        // We complete the input pipe writer but we don't mark reads as completed. Reads will be marked
+                        // as completed by the Slic pipe reader once the application calls TryRead/ReadAsync. It's
+                        // important for unidirectional stream which would otherwise be shutdown before the data has
+                        // been consumed by the application. This would allow a malicious client to open many
+                        // unidirectional streams before the application gets a chance to consume the data, defeating
+                        // the purpose of the UnidirectionalStreamMaxCount option.
+                        await _inputPipeWriter.CompleteAsync().ConfigureAwait(false);
+                    }
                 }
             }
-            else
+            finally
             {
-                await _inputPipeWriter.CompleteAsync().ConfigureAwait(false);
+                ClearState(State.Reading);
             }
         }
 
@@ -345,6 +371,30 @@ namespace IceRpc.Transports.Internal
 
         internal bool TrySetWriteCompleted() => TrySetState(State.WriteCompleted);
 
+        private void CheckShutdown(State state)
+        {
+            if (state == (State.ReadCompleted | State.WriteCompleted))
+            {
+                // The stream reads and writes are completed and we're not reading frames, shutdown the stream.
+                try
+                {
+                    Shutdown();
+                }
+                catch (Exception exception)
+                {
+                    Debug.Assert(false, $"unexpected exception {exception}");
+                }
+            }
+        }
+
+        private void ClearState(State state)
+        {
+            var previousState = (State)Interlocked.And(ref _state, ~(int)state);
+            State newState = previousState & ~state;
+            Debug.Assert(previousState != newState);
+            CheckShutdown(newState);
+        }
+
         private void Shutdown()
         {
             Debug.Assert(_state == (int)(State.ReadCompleted | State.WriteCompleted));
@@ -367,7 +417,7 @@ namespace IceRpc.Transports.Internal
 
             if (IsStarted)
             {
-                // Release connection stream count or semaphore for this stream and remove it from the factory.
+                // Release connection stream count or semaphore for this stream and remove it from the connection.
                 _connection.ReleaseStream(this);
 
                 // Local streams are released from the connection when the StreamLast or StreamReset frame is received.
@@ -398,6 +448,14 @@ namespace IceRpc.Transports.Internal
             }
         }
 
+        private void SetState(State state)
+        {
+            if (!TrySetState(state))
+            {
+                throw new InvalidOperationException($"state {state} already set");
+            }
+        }
+
         private bool TrySetState(State state)
         {
             var previousState = (State)Interlocked.Or(ref _state, (int)state);
@@ -407,19 +465,11 @@ namespace IceRpc.Transports.Internal
                 // The given state was already set.
                 return false;
             }
-            else if (newState == (State.ReadCompleted | State.WriteCompleted))
+            else
             {
-                // The stream reads and writes are completed, shutdown the stream.
-                try
-                {
-                    Shutdown();
-                }
-                catch (Exception exception)
-                {
-                    Debug.Assert(false, $"unexpected exception {exception}");
-                }
+                CheckShutdown(newState);
+                return true;
             }
-            return true;
         }
 
         [Flags]
@@ -427,6 +477,7 @@ namespace IceRpc.Transports.Internal
         {
             ReadCompleted = 1,
             WriteCompleted = 2,
+            Reading = 4,
         }
     }
 }
