@@ -3,9 +3,10 @@
 using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Slice;
-using System.Collections.Concurrent;
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {
@@ -41,6 +42,8 @@ namespace IceRpc.Transports.Internal
         private readonly object _mutex = new();
         private readonly int _packetMaxSize;
         private readonly ISlicFrameReader _reader;
+        private readonly ReadOnlyMemory<byte> _sendHeader;
+        private readonly List<ReadOnlyMemory<byte>> _sendBuffers = new(16);
         private readonly ISimpleNetworkConnection _simpleNetworkConnection;
         private readonly ConcurrentDictionary<long, SlicMultiplexedStream> _streams = new();
         private readonly int _unidirectionalMaxStreams;
@@ -208,6 +211,7 @@ namespace IceRpc.Transports.Internal
             _writer = writer;
 
             _simpleNetworkConnection = simpleNetworkConnection;
+            _sendHeader = SlicDefinitions.FrameHeader.ToArray();
             _packetMaxSize = slicOptions.PacketMaxSize;
             PauseWriterThreshold = slicOptions.PauseWriterThreshold;
             ResumeWriterThreshold = slicOptions.ResumeWriterThreshold;
@@ -284,40 +288,169 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal async ValueTask SendStreamFrameAsync(
+        // internal async ValueTask<FlushResult> SendFrameAsync<T>(
+        //     SlicMultiplexedStream? stream,
+        //     FrameType frameType,
+        //     T? frame,
+        //     CancellationToken cancel) where T : struct
+        // {
+        // }
+
+        internal async ValueTask<FlushResult> SendStreamFrameAsync(
             SlicMultiplexedStream stream,
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            ReadOnlySequence<byte> source1,
+            ReadOnlySequence<byte> source2,
             bool endStream,
             CancellationToken cancel)
         {
-            AsyncSemaphore streamSemaphore = stream.IsBidirectional ?
-                _bidirectionalStreamSemaphore! :
-                _unidirectionalStreamSemaphore!;
-
-            if (!stream.IsStarted)
+            bool sendingSource1 = true;
+            ReadOnlySequence<byte> sendSource = source1;
+            do
             {
-                // If the outgoing stream isn't started, we need to acquire the stream semaphore to ensure we
-                // don't open more streams than the peer allows.
-                await streamSemaphore.EnterAsync(cancel).ConfigureAwait(false);
-            }
-
-            try
-            {
-                // The writer WriteStreamFrameAsync method requires the header to always be included as the first
-                // buffers of the send buffers. This avoids allocating a new ReadOnlyMemory<byte> array to append the
-                // header.
-                Debug.Assert(buffers.Length > 0);
-                Debug.Assert(buffers.Span[0].Length == SlicDefinitions.FrameHeader.Length);
-                await _writer.WriteStreamFrameAsync(stream, buffers, endStream, cancel).ConfigureAwait(false);
-            }
-            catch
-            {
-                if (!stream.IsStarted)
+                // Check if writes completed, the stream might have been reset by the peer. Don't send the data and
+                // return a completed flush result.
+                if (stream.WritesCompleted)
                 {
-                    // If the stream is still not started, release the semaphore.
-                    streamSemaphore.Release();
+                    if (stream.ResetError is long error &&
+                        error.ToSlicError() is SlicStreamError slicError &&
+                        slicError != SlicStreamError.NoError)
+                    {
+                        throw new MultiplexedStreamAbortedException(error);
+                    }
+                    else
+                    {
+                        return new FlushResult(isCanceled: false, isCompleted: true);
+                    }
                 }
-                throw;
+
+                // Acquire send credit. If no send credit is available, this will block until the receiver allows
+                // sending additional data.
+                int sendCredit = await stream.SendCreditAcquireAsync(cancel).ConfigureAwait(false);
+
+                // Gather the next buffers into _sendBuffers to send the stream frame. We get up to sendCredit bytes
+                // from the internal buffer or given source. If there are more bytes to send they will be sent into a
+                // separate packet once the peer sends the StreamResumeWrite frame to provide additional send credit.
+                int sendSize = 0;
+                int sendMaxSize = Math.Min(sendCredit, PeerPacketMaxSize);
+                _sendBuffers.Clear();
+                _sendBuffers.Add(_sendHeader);
+                while (sendSize < sendMaxSize)
+                {
+                    if (sendingSource1 && sendSource.IsEmpty)
+                    {
+                        // Switch to sending the given source since we've consumed all the data from the internal
+                        // pipe.
+                        sendingSource1 = false;
+                        sendSource = source2;
+                    }
+
+                    if (sendSource.IsEmpty)
+                    {
+                        // No more data to send!
+                        break;
+                    }
+
+                    // Add the send source data to the send buffers.
+                    sendSize += FillSendBuffers(ref sendSource, sendMaxSize - sendSize);
+                }
+
+                try
+                {
+                    // Notify the stream that we're consuming sendSize credit. It's important to call this before
+                    // sending the stream frame to avoid race conditions where the StreamResumeWrite frame could be
+                    // received before the send credit was updated.
+                    stream.SendCreditConsumed(sendSize);
+
+                    // Send the stream frame.
+                    if (sendSize > 0 || endStream)
+                    {
+                        AsyncSemaphore streamSemaphore = stream.IsBidirectional ?
+                            _bidirectionalStreamSemaphore! :
+                            _unidirectionalStreamSemaphore!;
+
+                        if (!stream.IsStarted)
+                        {
+                            // If the outgoing stream isn't started, we need to acquire the stream semaphore to ensure
+                            // we don't open more streams than the peer allows.
+                            await streamSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+                        }
+
+                        try
+                        {
+                            // The writer WriteStreamFrameAsync method requires the header to always be included as the
+                            // first buffers of the send buffers. This avoids allocating a new ReadOnlyMemory<byte>
+                            // array to append the header.
+                            Debug.Assert(_sendBuffers.Count > 0);
+                            Debug.Assert(_sendBuffers[0].Length == _sendHeader.Length);
+                            await _writer.WriteStreamFrameAsync(
+                                stream,
+                                _sendBuffers,
+                                endStream && !sendingSource1 && sendSource.IsEmpty,
+                                cancel).ConfigureAwait(false);
+                        }
+                        catch
+                        {
+                            if (!stream.IsStarted)
+                            {
+                                // If the stream is still not started, release the semaphore.
+                                streamSemaphore.Release();
+                            }
+                            throw;
+                        }
+                    }
+                }
+                catch (MultiplexedStreamAbortedException ex)
+                {
+                    if (ex.ToSlicError() == SlicStreamError.NoError)
+                    {
+                        return new FlushResult(isCanceled: false, isCompleted: true);
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+                // TODO: XXX
+                // catch (Exception ex)
+                // {
+                //     _sendSemaphore.Complete(ex);
+                //     throw;
+                // }
+            }
+            while (sendingSource1 || !sendSource.IsEmpty);
+
+            return new FlushResult(isCanceled: false, isCompleted: false);
+
+            int FillSendBuffers(ref ReadOnlySequence<byte> source, int maxSize)
+            {
+                Debug.Assert(maxSize > 0);
+                int size = 0;
+                SequencePosition position = source.Start;
+                while (true)
+                {
+                    if (!source.TryGet(ref position, out ReadOnlyMemory<byte> memory))
+                    {
+                        // No more data available.
+                        source = ReadOnlySequence<byte>.Empty;
+                        return size;
+                    }
+
+                    if (size + memory.Length < maxSize)
+                    {
+                        // Copy the segment to the send buffers.
+                        _sendBuffers.Add(memory);
+                        size += memory.Length;
+                    }
+                    else
+                    {
+                        // We've reached the maximum send size. Slice the buffer to send and slice the source buffer
+                        // to the remaining data to consume.
+                        _sendBuffers.Add(memory[0..(maxSize - size)]);
+                        size += maxSize - size;
+                        source = source.Slice(source.GetPosition(size));
+                        return size;
+                    }
+                }
             }
         }
 

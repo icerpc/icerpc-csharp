@@ -35,23 +35,14 @@ namespace IceRpc.Transports.Internal
 
         public async ValueTask WriteStreamFrameAsync(
             SlicMultiplexedStream stream,
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            List<ReadOnlyMemory<byte>> buffers,
             bool endStream,
             CancellationToken cancel)
         {
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
             try
             {
-                // If the stream is aborted, don't send additional stream frames. We make an exception for
-                // unidirectional remote streams which need to send the StreamLast frame to ensure the local
-                // stream releases the unidirectional semaphore.
-                if (stream.WritesCompleted && (!stream.IsRemote || stream.IsBidirectional))
-                {
-                    throw new MultiplexedStreamAbortedException(stream.ResetError!.Value);
-                }
-
-                // Allocate stream ID if the stream isn't started. Thread-safety is provided by the send
-                // semaphore.
+                // Allocate stream ID if the stream isn't started. Thread-safety is provided by the send semaphore.
                 if (!stream.IsStarted)
                 {
                     if (stream.IsBidirectional)
@@ -68,9 +59,9 @@ namespace IceRpc.Transports.Internal
 
                 if (endStream)
                 {
-                    // At this point writes are considered completed on the stream. It's important to call
-                    // this before sending the last packet to avoid a race condition where the peer could
-                    // start a new stream before the Slic connection stream count is decreased.
+                    // At this point writes are considered completed on the stream. It's important to call this before
+                    // sending the last packet to avoid a race condition where the peer could start a new stream before
+                    // the Slic connection stream count is decreased.
                     stream.TrySetWriteCompleted();
                 }
 

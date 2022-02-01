@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
@@ -106,6 +107,9 @@ namespace IceRpc.Transports.Internal
         private readonly ISlicFrameReader _frameReader;
         private readonly ISlicFrameWriter _frameWriter;
         private readonly object _mutex = new();
+        private volatile int _sendCredit = int.MaxValue;
+        // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
+        private readonly AsyncSemaphore _sendSemaphore = new(1);
         private volatile Action? _shutdownAction;
         private TaskCompletionSource? _shutdownCompletedTaskSource;
         private readonly SlicPipeReader _inputPipeReader;
@@ -204,6 +208,7 @@ namespace IceRpc.Transports.Internal
             ISlicFrameWriter writer)
         {
             _connection = connection;
+            _sendCredit = _connection.PeerPauseWriterThreshold;
 
             _frameReader = reader;
             _frameWriter = writer;
@@ -217,7 +222,7 @@ namespace IceRpc.Transports.Internal
             _inputPipeWriter = inputPipe.Writer;
             _inputPipeReader = new SlicPipeReader(this, inputPipe.Reader, _connection.ResumeWriterThreshold);
 
-            _outputPipeWriter = new SlicPipeWriter(this, _connection);
+            _outputPipeWriter = new SlicPipeWriter(this, _connection.Pool, _connection.MinimumSegmentSize);
 
             IsBidirectional = bidirectional;
             if (!IsBidirectional)
@@ -233,7 +238,6 @@ namespace IceRpc.Transports.Internal
                     TrySetReadCompleted();
                 }
             }
-
         }
 
         internal void Abort()
@@ -255,7 +259,20 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal void ReceivedConsumed(int size) => _outputPipeWriter.ReceivedConsumed(size);
+        internal void ReceivedConsumed(int size)
+        {
+            int newValue = Interlocked.Add(ref _sendCredit, size);
+            if (newValue == size)
+            {
+                Debug.Assert(_sendSemaphore.Count == 0);
+                _sendSemaphore.Release();
+            }
+            else if (newValue > _connection.PauseWriterThreshold)
+            {
+                // The peer is trying to increase the credit to a value which is larger than what it is allowed to.
+                throw new InvalidDataException("invalid flow control credit increase");
+            }
+        }
 
         internal async ValueTask ReceivedFrameAsync(int size, bool endStream)
         {
@@ -361,11 +378,40 @@ namespace IceRpc.Transports.Internal
             TrySetWriteCompleted();
         }
 
+        internal ValueTask<FlushResult> SendFrameAsync(
+            ReadOnlySequence<byte> source1,
+            ReadOnlySequence<byte> source2,
+            bool completeWhenDone,
+            CancellationToken cancel) =>
+            _connection.SendStreamFrameAsync(this, source1, source2, completeWhenDone, cancel);
+
         internal void SendStreamResumeWrite(int size) =>
             _ = _frameWriter.WriteStreamResumeWriteAsync(
                 this,
                 new StreamResumeWriteBody((ulong)size),
                 CancellationToken.None).AsTask();
+
+        internal async ValueTask<int> SendCreditAcquireAsync(CancellationToken cancel)
+        {
+            // Acquire the semaphore to ensure flow control allows sending additional data. It's important to acquire
+            // the semaphore before checking _sendCredit. The semaphore acquisition will block if we can't send
+            // additional data (_sendCredit == 0). Acquiring the semaphore ensures that we are allowed to send
+            // additional data and _sendCredit can be used to figure out the size of the next packet to send.
+            await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+            return _sendCredit;
+        }
+
+        internal void SendCreditConsumed(int consumed)
+        {
+            // Decrease the size of remaining data that we are allowed to send. If all the credit is consumed,
+            // _sendCredit will be 0 and we don't release the semaphore to prevent further sends. The semaphore will be
+            // released once the stream receives a StreamResumeWrite frame.
+            int sendCredit = Interlocked.Add(ref _sendCredit, -consumed);
+            if (sendCredit > 0)
+            {
+                _sendSemaphore.Release();
+            }
+        }
 
         internal bool TrySetReadCompleted() => TrySetState(State.ReadCompleted);
 

@@ -6,6 +6,7 @@ namespace IceRpc.Transports.Internal
     internal interface ISlicFrameWriter
     {
         /// <summary>Writes a Slic frame.</summary>
+        /// TODO: fix to use IReadOnlyList
         ValueTask WriteFrameAsync(
             SlicMultiplexedStream? stream,
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
@@ -14,7 +15,7 @@ namespace IceRpc.Transports.Internal
         /// <summary>Writes a Slic Stream or StreamLast frame.</summary>
         ValueTask WriteStreamFrameAsync(
             SlicMultiplexedStream stream,
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            List<ReadOnlyMemory<byte>> buffers,
             bool endStream,
             CancellationToken cancel);
     }

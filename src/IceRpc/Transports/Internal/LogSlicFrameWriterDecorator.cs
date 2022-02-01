@@ -33,7 +33,7 @@ namespace IceRpc.Transports.Internal
 
         public async ValueTask WriteStreamFrameAsync(
             SlicMultiplexedStream stream,
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            List<ReadOnlyMemory<byte>> buffers,
             bool endStream,
             CancellationToken cancel)
         {

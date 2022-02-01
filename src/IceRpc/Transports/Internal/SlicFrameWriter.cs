@@ -31,7 +31,7 @@ namespace IceRpc.Transports.Internal
 
         public async ValueTask WriteStreamFrameAsync(
             SlicMultiplexedStream stream,
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            List<ReadOnlyMemory<byte>> buffers,
             bool endStream,
             CancellationToken cancel)
         {
@@ -48,7 +48,7 @@ namespace IceRpc.Transports.Internal
             // buffer to ensure the first element points at the start of the Slic header. We'll restore the
             // send buffer once the send is complete (it's important for the tracing code which might rely on
             // the encoded data).
-            Memory<byte> headerData = MemoryMarshal.AsMemory(buffers.Span[0]);
+            Memory<byte> headerData = MemoryMarshal.AsMemory(buffers[0]);
             headerData = headerData[(SlicDefinitions.FrameHeader.Length - sizeLength - streamIdLength - 1)..];
             headerData.Span[0] = (byte)(endStream ? FrameType.StreamLast : FrameType.Stream);
             Slice20Encoding.EncodeSize(bufferSize, headerData.Span.Slice(1, sizeLength));
@@ -56,9 +56,9 @@ namespace IceRpc.Transports.Internal
             SliceEncoder.EncodeVarULong(
                 checked((ulong)stream.Id),
                 headerData.Span.Slice(1 + sizeLength, streamIdLength));
-            MemoryMarshal.AsMemory(buffers).Span[0] = headerData;
+            buffers[0] = headerData;
 
-            await WriteFrameAsync(stream, buffers, cancel).ConfigureAwait(false);
+            await WriteFrameAsync(stream, buffers.ToArray(), cancel).ConfigureAwait(false);
         }
 
         internal SlicFrameWriter(Func<ReadOnlyMemory<ReadOnlyMemory<byte>>, CancellationToken, ValueTask> writeFunc) =>
