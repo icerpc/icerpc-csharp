@@ -123,6 +123,42 @@ namespace IceRpc.Tests.Internal
             await ClientStream.WaitForShutdownAsync(default);
         }
 
+        [Test]
+        public void MultiplexedStream_AbortWithUnflushedBytes()
+        {
+            Memory<byte> buffer = ClientStream.Output.GetMemory();
+            ClientStream.Output.Advance(10);
+            Assert.Throws<InvalidOperationException>(() => ClientStream.Output.Complete());
+
+        }
+
+        [Test]
+        public void MultiplexedStream_AbortStreamWithConnectionLostException()
+        {
+            ClientStream.Output.Complete(new ConnectionLostException());
+
+            // The server doesn't receive a notification in case of a connection lost exception.
+            Assert.That(ServerStream.Input.TryRead(out ReadResult _), Is.False);
+        }
+
+        [Test]
+        public async Task MultiplexedStream_ConnectionDisposeAsync()
+        {
+            // Connection dispose aborts the streams which completes the reader/writer.
+            await _clientConnection!.DisposeAsync();
+
+            // Can't read/write once the writer/reader is completed.
+            Assert.ThrowsAsync<InvalidOperationException>(() => ClientStream.Input.ReadAsync().AsTask());
+            Assert.ThrowsAsync<InvalidOperationException>(
+                () => ClientStream.Output.WriteAsync(ReadOnlyMemory<byte>.Empty).AsTask());
+
+            await _serverConnection!.DisposeAsync();
+
+            Assert.ThrowsAsync<InvalidOperationException>(() => ServerStream.Input.ReadAsync().AsTask());
+            Assert.ThrowsAsync<InvalidOperationException>(
+                () => ServerStream.Output.WriteAsync(ReadOnlyMemory<byte>.Empty).AsTask());
+        }
+
         [TestCase(1, 256, false)]
         [TestCase(1, 256, true)]
         [TestCase(32, 256, false)]

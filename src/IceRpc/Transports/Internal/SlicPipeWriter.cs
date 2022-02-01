@@ -39,18 +39,23 @@ namespace IceRpc.Transports.Internal
             if (!_isWriterCompleted)
             {
                 // If writes aren't marked as completed yet, abort stream writes. This will send a stream reset frame to
-                // the peer to notify it won't receive additional data.
+                // the peer to notify it won't receive additional data (unless the connection has been lost).
                 if (!_stream.WritesCompleted)
                 {
                     if (exception == null)
                     {
+                        if (_pipe.Writer.UnflushedBytes > 0)
+                        {
+                            throw new InvalidOperationException(
+                                "cannot call Complete on a SlicPipeWriter with unflushed bytes");
+                        }
                         _stream.AbortWrite(SlicStreamError.NoError.ToError());
                     }
                     else if (exception is MultiplexedStreamAbortedException abortedException)
                     {
                         _stream.AbortWrite(abortedException.ToError());
                     }
-                    else
+                    else if (exception is not ConnectionLostException)
                     {
                         _stream.AbortWrite(SlicStreamError.UnexpectedError.ToError());
                     }

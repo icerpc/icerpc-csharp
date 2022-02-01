@@ -242,12 +242,19 @@ namespace IceRpc.Transports.Internal
             // with the Slic connection when the connection is disposed.
             if (!IsShutdown)
             {
+                // TODO: consider adding ConnectionAbortedException(long errorCode) and support error codes when
+                // aborting connections. This allows to transmit an error code when the connection is aborted by the
+                // application. Of course, if the connection is lost, we won't receive anything and we would report a
+                // specific ConnectionLost error code locally. Quic and the .NET Quic API support application error
+                // codes for aborted connections..
+                var exception = new ConnectionLostException();
+
                 // Ensure the Slic pipe reader reports ConnectionLostException.
-                _inputPipeWriter.Complete(new ConnectionLostException());
+                _inputPipeWriter.Complete(exception);
 
                 // Ensure the Slic pipe reader and writer are completed.
-                _inputPipeReader.Complete();
-                _outputPipeWriter.Complete();
+                _inputPipeReader.Complete(exception);
+                _outputPipeWriter.Complete(exception);
 
                 // Shutdown the stream after completing the input pipe writer to ensure the Slic pipe reader will
                 // report ConnectionLostException.
