@@ -59,8 +59,11 @@ namespace IceRpc.Tests.Internal
         [TestCase(false, 145, true)]
         public async Task MultiplexedStream_Abort(bool abortWrite, byte? errorCode, bool endStream)
         {
-            MultiplexedStreamAbortedException? exception =
-                errorCode == null ? null : new MultiplexedStreamAbortedException(errorCode.Value);
+            Exception? exception =
+                errorCode == null ? null :
+                errorCode == 200 ? new InvalidOperationException() :
+                new MultiplexedStreamAbortedException(errorCode.Value);
+
             if (abortWrite)
             {
                 await ClientStream.Output.CompleteAsync(exception);
@@ -85,7 +88,6 @@ namespace IceRpc.Tests.Internal
                     FlushResult flushResult = await ClientStream.Output.WriteAsync(new byte[1], endStream, default);
                     Assert.That(flushResult.IsCompleted);
                 }
-
             }
             else
             {
@@ -103,7 +105,7 @@ namespace IceRpc.Tests.Internal
                 }
 
                 // Check the code
-                Assert.That(ex!.ErrorCode, Is.EqualTo(errorCode));
+                Assert.That(ex!.ErrorCode, Is.EqualTo(errorCode == 200 ? 1 : errorCode));
             }
 
             // Complete the pipe readers/writers to shutdown the stream.
@@ -130,15 +132,6 @@ namespace IceRpc.Tests.Internal
             ClientStream.Output.Advance(10);
             Assert.Throws<InvalidOperationException>(() => ClientStream.Output.Complete());
 
-        }
-
-        [Test]
-        public void MultiplexedStream_AbortStreamWithConnectionLostException()
-        {
-            ClientStream.Output.Complete(new ConnectionLostException());
-
-            // The server doesn't receive a notification in case of a connection lost exception.
-            Assert.That(ServerStream.Input.TryRead(out ReadResult _), Is.False);
         }
 
         [Test]

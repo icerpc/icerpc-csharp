@@ -66,7 +66,7 @@ namespace IceRpc.Transports.Internal
             if (!_isReaderCompleted)
             {
                 // If reads aren't marked as completed yet, abort stream reads. This will send a stream stop sending
-                // frame to the peer to notify it shouldn't send additional data (unless the connection has been lost).
+                // frame to the peer to notify it shouldn't send additional data.
                 if (!_stream.ReadsCompleted)
                 {
                     if (exception == null)
@@ -77,7 +77,7 @@ namespace IceRpc.Transports.Internal
                     {
                         _stream.AbortRead(abortedException.ToError());
                     }
-                    else if (exception is not ConnectionLostException)
+                    else
                     {
                         _stream.AbortRead(SlicStreamError.UnexpectedError.ToError());
                     }

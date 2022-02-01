@@ -39,7 +39,7 @@ namespace IceRpc.Transports.Internal
             if (!_isWriterCompleted)
             {
                 // If writes aren't marked as completed yet, abort stream writes. This will send a stream reset frame to
-                // the peer to notify it won't receive additional data (unless the connection has been lost).
+                // the peer to notify it won't receive additional data.
                 if (!_stream.WritesCompleted)
                 {
                     if (exception == null)
@@ -55,7 +55,7 @@ namespace IceRpc.Transports.Internal
                     {
                         _stream.AbortWrite(abortedException.ToError());
                     }
-                    else if (exception is not ConnectionLostException)
+                    else
                     {
                         _stream.AbortWrite(SlicStreamError.UnexpectedError.ToError());
                     }
