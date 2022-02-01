@@ -80,7 +80,7 @@ fn encode_type(
         _ if type_ref.is_class_type() => {
             if type_ref.is_optional {
                 format!(
-                    "{encoder_param}.EncodeNullableClass({});",
+                    "{encoder_param}.EncodeNullableClass({param});",
                     encoder_param = encoder_param,
                     param = param
                 )
