@@ -86,9 +86,9 @@ fn sequence_type_to_string(
             format!("global::System.Collections.Generic.IList<{}>", element_type)
         }
         TypeContext::Decode => match sequence_ref.get_attribute("cs:generic", false) {
-            Some(args) => match args.first().unwrap().as_str() {
-                value => format!("{}<{}>", value, element_type),
-            },
+            Some(args) => {
+                format!("{}<{}>", args.first().unwrap(), element_type)
+            }
             None => format!("{}[]", element_type),
         },
         TypeContext::Encode => {

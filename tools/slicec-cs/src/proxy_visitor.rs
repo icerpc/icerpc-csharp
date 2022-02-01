@@ -232,7 +232,7 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
     let cancel_parameter = escape_parameter_name(&operation.parameters(), "cancel");
 
     let sends_classes = operation.sends_classes();
-    let void_return = operation.return_type.len() == 0;
+    let void_return = operation.return_type.is_empty();
     let access = operation.parent().unwrap().access_modifier();
 
     let mut builder = FunctionBuilder::new(
@@ -471,8 +471,8 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
         for param in &params {
             builder.add_parameter(
-                &param.to_type_string(&namespace.as_str(), TypeContext::Encode, false),
-                &param.parameter_name().as_str(),
+                &param.to_type_string(namespace, TypeContext::Encode, false),
+                &param.parameter_name(),
                 None,
                 operation_parameter_doc_comment(operation, param.identifier()),
             );
