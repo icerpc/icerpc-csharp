@@ -459,10 +459,12 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             ),
         );
 
+        let encoding = escape_parameter_name(&operation.parameters(), "encoding");
+
         if !sends_classes {
             builder.add_parameter(
                 "SliceEncoding",
-                "encoding",
+                &encoding,
                 None,
                 Some("The encoding of the payload."),
             );
@@ -471,7 +473,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
         for param in &params {
             builder.add_parameter(
                 &param.to_type_string(&namespace.as_str(), TypeContext::Outgoing, false),
-                &param.parameter_name_with_prefix("sliceP_").as_str(),
+                &param.parameter_name().as_str(),
                 None,
                 operation_parameter_doc_comment(operation, param.identifier()),
             );
@@ -488,22 +490,22 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
         let body = format!(
             "\
-var pipe = new global::System.IO.Pipelines.Pipe();
-var encoder = new SliceEncoder(pipe.Writer, {encoding}, {class_format});
-Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
-int startPos = encoder.EncodedByteCount;
+var pipe_ = new global::System.IO.Pipelines.Pipe();
+var encoder_ = new SliceEncoder(pipe_.Writer, {encoding}, {class_format});
+Span<byte> sizePlaceholder_ = encoder_.GetPlaceholderSpan(4);
+int startPos_ = encoder_.EncodedByteCount;
 {encode_args}
-{encoding}.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+{encoding}.EncodeFixedLengthSize(encoder_.EncodedByteCount - startPos_, sizePlaceholder_);
 
-pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
-return pipe.Reader;",
+pipe_.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
+return pipe_.Reader;",
             encoding = if sends_classes {
                 "IceRpc.Encoding.Slice11"
             } else {
-                "encoding"
+                &encoding
             },
             class_format = operation.format_type(),
-            encode_args = encode_operation(operation, false, "sliceP_")
+            encode_args = encode_operation(operation, false, "encoder_")
         );
 
         builder.set_body(body.into());

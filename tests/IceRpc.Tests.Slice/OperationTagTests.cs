@@ -670,16 +670,18 @@ namespace IceRpc.Tests.Slice
                 Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
                 int startPos = encoder.EncodedByteCount;
 
-                encoder.EncodeTagged(1,
-                                        TagFormat.F4,
-                                        size: 4,
-                                        15,
-                                        (ref SliceEncoder encoder, int v) => encoder.EncodeInt(v));
+                encoder.EncodeTagged(
+                    1,
+                    TagFormat.F4,
+                    size: 4,
+                    15,
+                    (ref SliceEncoder encoder, int v) => encoder.EncodeInt(v));
 
-                encoder.EncodeTagged(1, // duplicate tag ignored by the server
-                                        TagFormat.OVSize,
-                                        "test",
-                                        (ref SliceEncoder encoder, string v) => encoder.EncodeString(v));
+                encoder.EncodeTagged(
+                    1, // duplicate tag ignored by the server
+                    TagFormat.OVSize,
+                    "test",
+                    (ref SliceEncoder encoder, string v) => encoder.EncodeString(v));
 
                 encoding.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 

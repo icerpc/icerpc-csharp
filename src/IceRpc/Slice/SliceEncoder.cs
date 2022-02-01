@@ -15,6 +15,9 @@ namespace IceRpc.Slice
     /// <summary>Encodes data into one or more byte buffers using the Slice encoding.</summary>
     public ref partial struct SliceEncoder
     {
+        /// <summary>The number of bytes encoded by this encoder into the underlying buffer writer.</summary>
+        public int EncodedByteCount { get; private set; }
+
         /// <summary>The Slice encoding associated with this encoder.</summary>
         public SliceEncoding Encoding { get; }
 
@@ -22,9 +25,6 @@ namespace IceRpc.Slice
         internal const long VarLongMaxValue = 2_305_843_009_213_693_951; // 2^61 - 1
         internal const ulong VarULongMinValue = 0;
         internal const ulong VarULongMaxValue = 4_611_686_018_427_387_903; // 2^62 - 1
-
-        /// <summary>The number of bytes encoded by this encoder into the underlying buffer writer.</summary>
-        public int EncodedByteCount { get; private set; }
 
         private static readonly UTF8Encoding _utf8 =
             new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true); // no BOM

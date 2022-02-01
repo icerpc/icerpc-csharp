@@ -1,7 +1,3 @@
-use slice::code_gen_util::*;
-use slice::grammar::*;
-use slice::visitor::Visitor;
-
 use crate::builders::{
     AttributeBuilder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType,
 };
@@ -13,7 +9,11 @@ use crate::decoding::*;
 use crate::encoded_result::encoded_result_struct;
 use crate::encoding::*;
 use crate::generated_code::GeneratedCode;
+use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
+use slice::code_gen_util::*;
+use slice::grammar::*;
+use slice::visitor::Visitor;
 
 pub struct DispatchVisitor<'a> {
     pub generated_code: &'a mut GeneratedCode,
@@ -198,10 +198,11 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             )
             .add_comment("returns", "A new response payload.");
 
+        let encoding = escape_parameter_name(&non_streamed_returns, "encoding");
         if !returns_classes {
             builder.add_parameter(
                 "SliceEncoding",
-                "encoding",
+                &encoding,
                 None,
                 Some("The encoding of the payload"),
             );
@@ -221,7 +222,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
                 for param in &non_streamed_returns {
                     builder.add_parameter(
                         &param.to_type_string(&namespace.as_str(), TypeContext::Outgoing, false),
-                        &param.parameter_name_with_prefix("sliceP_").as_str(),
+                        &param.parameter_name().as_str(),
                         None,
                         operation_parameter_doc_comment(operation, param.identifier()),
                     );
@@ -232,23 +233,23 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         builder.set_body(
             format!(
                 "\
-var pipe = new global::System.IO.Pipelines.Pipe(); // TODO: pipe options
+var pipe_ = new global::System.IO.Pipelines.Pipe(); // TODO: pipe options
 
-var encoder = new SliceEncoder(pipe.Writer, {encoding}, {class_format});
-Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
-int startPos = encoder.EncodedByteCount;
+var encoder_ = new SliceEncoder(pipe_.Writer, {encoding}, {class_format});
+Span<byte> sizePlaceholder_ = encoder_.GetPlaceholderSpan(4);
+int startPos_ = encoder_.EncodedByteCount;
 {encode_returns}
-{encoding}.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+{encoding}.EncodeFixedLengthSize(encoder_.EncodedByteCount - startPos_, sizePlaceholder_);
 
-pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
-return pipe.Reader;",
+pipe_.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
+return pipe_.Reader;",
                 encoding = if returns_classes {
                     "IceRpc.Encoding.Slice11"
                 } else {
-                    "encoding"
+                    &encoding
                 },
                 class_format = operation.format_type(),
-                encode_returns = encode_operation(operation, true, "sliceP_")
+                encode_returns = encode_operation(operation, true, "encoder_")
             )
             .into(),
         );
@@ -368,7 +369,7 @@ pub fn response_encode_action(operation: &Operation) -> CodeBlock {
 }}",
             _in = if returns.len() == 1 { "" } else { "in " },
             tuple_type = returns.to_tuple_type(namespace, TypeContext::Outgoing, false),
-            encode_action = encode_operation(operation, true, "").indent(),
+            encode_action = encode_operation(operation, true, "encoder").indent(),
         )
         .into()
     }
@@ -442,7 +443,7 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
             writeln!(
                 code,
                 "var {var_name} = await Request.{async_operation_name}(request, cancel).ConfigureAwait(false);",
-                var_name = parameter.parameter_name_with_prefix("sliceP_"),
+                var_name = parameter.parameter_name(),
                 async_operation_name = async_operation_name,
             )
         }
@@ -462,7 +463,7 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
 
         match parameters.as_slice() {
             [p] => {
-                args.push(p.parameter_name_with_prefix("sliceP_"));
+                args.push(p.parameter_name());
             }
             _ => {
                 for p in parameters {
@@ -494,7 +495,7 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
         );
     } else {
         let mut args = match parameters.as_slice() {
-            [parameter] => vec![parameter.parameter_name_with_prefix("sliceP_")],
+            [parameter] => vec![parameter.parameter_name()],
             _ => parameters
                 .iter()
                 .map(|parameter| format!("args.{}", &parameter.field_name(FieldType::NonMangled)))
