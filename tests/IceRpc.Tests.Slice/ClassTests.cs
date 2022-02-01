@@ -28,13 +28,25 @@ namespace IceRpc.Tests.Slice
                         router.Map<IClassOperationsUnexpectedClass>(new InlineDispatcher(
                             (request, cancel) =>
                             {
-                                var response = new OutgoingResponse(request)
+                                return new(new OutgoingResponse(request)
                                 {
-                                    PayloadSource = Encoding.Slice11.CreatePayloadFromSingleReturnValue(
-                                        new MyClassAlsoEmpty(),
-                                        (ref SliceEncoder encoder, MyClassAlsoEmpty ae) => encoder.EncodeClass(ae))
-                                };
-                                return new(response);
+
+                                    PayloadSource = Encode()
+                                });
+
+                                static System.IO.Pipelines.PipeReader Encode()
+                                {
+                                    var pipe = new System.IO.Pipelines.Pipe(); // TODO: pipe options
+
+                                    var encoder = new SliceEncoder(pipe.Writer, Encoding.Slice11, default);
+                                    Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+                                    int startPos = encoder.EncodedByteCount;
+                                    encoder.EncodeClass(new MyClassAlsoEmpty());
+                                    Encoding.Slice11.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+
+                                    pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
+                                    return pipe.Reader;
+                                }
                             }));
                         return router;
                     })

@@ -229,12 +229,6 @@ impl FunctionBuilder {
         self
     }
 
-    /// Set the base constructor (used when there are base parameters). The default is base
-    pub fn set_base_constructor(&mut self, base_constructor: &str) -> &mut Self {
-        self.base_constructor = base_constructor.to_owned();
-        self
-    }
-
     pub fn add_base_parameter(&mut self, argument: &str) -> &mut Self {
         self.base_arguments.push(argument.to_owned());
         self
