@@ -341,40 +341,6 @@ fn request_decode_func(operation: &Operation) -> CodeBlock {
     }
 }
 
-pub fn response_encode_action(operation: &Operation) -> CodeBlock {
-    let namespace = &operation.namespace();
-
-    // We only want the non-streamed returns
-    let returns = operation.nonstreamed_return_members();
-
-    // When the operation returns a T? where T is an interface or a class, there is a built-in
-    // encoder, so defaultEncodeAction is true.
-    let use_default_encode_action = returns.len() == 1
-        && get_bit_sequence_size(&returns) == 0
-        && returns.first().unwrap().tag.is_none();
-
-    if use_default_encode_action {
-        encode_action(
-            returns.first().unwrap().data_type(),
-            TypeContext::Outgoing,
-            namespace,
-        )
-    } else {
-        format!(
-            "\
-(ref SliceEncoder encoder,
- {_in}{tuple_type} value) =>
-{{
-    {encode_action}
-}}",
-            _in = if returns.len() == 1 { "" } else { "in " },
-            tuple_type = returns.to_tuple_type(namespace, TypeContext::Outgoing, false),
-            encode_action = encode_operation(operation, true, "encoder").indent(),
-        )
-        .into()
-    }
-}
-
 fn operation_declaration(operation: &Operation) -> CodeBlock {
     FunctionBuilder::new(
         &operation.parent().unwrap().access_modifier(),
