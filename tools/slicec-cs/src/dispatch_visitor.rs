@@ -116,7 +116,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             &format!("{} static async", access),
             &format!(
                 "global::System.Threading.Tasks.ValueTask<{}>",
-                &parameters.to_tuple_type(namespace, TypeContext::Incoming, false)
+                &parameters.to_tuple_type(namespace, TypeContext::Decode, false)
             ),
             &operation.escape_identifier_with_suffix("Async"),
             function_type,
@@ -211,7 +211,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         match non_streamed_returns.as_slice() {
             [param] => {
                 builder.add_parameter(
-                    &param.to_type_string(&namespace.as_str(), TypeContext::Outgoing, false),
+                    &param.to_type_string(&namespace.as_str(), TypeContext::Encode, false),
                     "returnValue",
                     None,
                     Some("The operation return value"),
@@ -221,7 +221,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             _ => {
                 for param in &non_streamed_returns {
                     builder.add_parameter(
-                        &param.to_type_string(&namespace.as_str(), TypeContext::Outgoing, false),
+                        &param.to_type_string(&namespace.as_str(), TypeContext::Encode, false),
                         &param.parameter_name().as_str(),
                         None,
                         operation_parameter_doc_comment(operation, param.identifier()),
@@ -349,7 +349,7 @@ fn operation_declaration(operation: &Operation) -> CodeBlock {
         FunctionType::Declaration,
     )
     .add_comment("summary", &doc_comment_message(operation))
-    .add_operation_parameters(operation, TypeContext::Incoming)
+    .add_operation_parameters(operation, TypeContext::Decode)
     .add_container_attributes(operation)
     .build()
 }
@@ -565,12 +565,11 @@ fn payload_source_stream(operation: &Operation, encoding: &str) -> CodeBlock {
 {encoding}.CreatePayloadSourceStream<{stream_type}>(
     {stream_arg},
     {encode_action})",
-                    stream_type =
-                        stream_type.to_type_string(namespace, TypeContext::Outgoing, false),
+                    stream_type = stream_type.to_type_string(namespace, TypeContext::Encode, false),
                     stream_arg = stream_arg,
                     encoding = encoding,
                     encode_action =
-                        encode_action(stream_type, TypeContext::Outgoing, namespace).indent(),
+                        encode_action(stream_type, TypeContext::Encode, namespace).indent(),
                 )
                 .into(),
             }

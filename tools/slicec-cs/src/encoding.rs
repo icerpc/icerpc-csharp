@@ -155,7 +155,7 @@ if ({param} != null)
                         TypeRefs::Sequence(sequence_def)
                             if sequence_def.has_fixed_size_numeric_elements()
                                 && !sequence_def.has_attribute("cs:generic", false)
-                                && type_context == TypeContext::Outgoing =>
+                                && type_context == TypeContext::Encode =>
                             format!("{}.Span", param),
                         _ => param.to_owned(),
                     },
@@ -186,7 +186,7 @@ fn encode_tagged_type(
     let read_only_memory = match data_type.concrete_type() {
         Types::Sequence(sequence_def)
             if sequence_def.has_fixed_size_numeric_elements()
-                && type_context == TypeContext::Outgoing
+                && type_context == TypeContext::Encode
                 && !data_type.has_attribute("cs:generic", false) =>
         {
             true
@@ -332,7 +332,7 @@ fn encode_sequence(
 ) -> CodeBlock {
     let has_custom_type = sequence_ref.has_attribute("cs:generic", false);
     if sequence_ref.has_fixed_size_numeric_elements() {
-        if type_context == TypeContext::Outgoing && !has_custom_type {
+        if type_context == TypeContext::Encode && !has_custom_type {
             format!(
                 "{encoder_param}.EncodeSpan({value}.Span)",
                 encoder_param = encoder_param,
@@ -533,7 +533,7 @@ pub fn encode_operation(
 
         code.writeln(&encode_type(
             member.data_type(),
-            TypeContext::Outgoing,
+            TypeContext::Encode,
             namespace,
             name.as_str(),
             encoder_param,
@@ -551,7 +551,7 @@ pub fn encode_operation(
             namespace,
             name.as_str(),
             encoder_param,
-            TypeContext::Outgoing,
+            TypeContext::Encode,
         ));
     }
 

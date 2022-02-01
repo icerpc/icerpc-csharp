@@ -294,7 +294,7 @@ impl FunctionBuilder {
         }
 
         match context {
-            TypeContext::Incoming => {
+            TypeContext::Decode => {
                 self.add_parameter(
                     "IceRpc.Dispatch",
                     &escape_parameter_name(&parameters, "dispatch"),
@@ -302,7 +302,7 @@ impl FunctionBuilder {
                     Some("The dispatch properties"),
                 );
             }
-            TypeContext::Outgoing => {
+            TypeContext::Encode => {
                 self.add_parameter(
                     "IceRpc.Invocation?",
                     &escape_parameter_name(&parameters, "invocation"),

@@ -242,7 +242,7 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
         FunctionType::BlockBody,
     );
     builder.set_inherit_doc(true);
-    builder.add_operation_parameters(operation, TypeContext::Outgoing);
+    builder.add_operation_parameters(operation, TypeContext::Encode);
 
     let mut body = CodeBlock::new();
 
@@ -313,11 +313,10 @@ if ({invocation}?.RequestFeatures.Get<IceRpc.Features.CompressPayload>() == null
 {payload_encoding}.CreatePayloadSourceStream<{stream_type}>(
     {stream_parameter},
     {encode_action})",
-                stream_type = stream_type.to_type_string(namespace, TypeContext::Outgoing, false),
+                stream_type = stream_type.to_type_string(namespace, TypeContext::Encode, false),
                 stream_parameter = stream_parameter_name,
                 payload_encoding = payload_encoding,
-                encode_action =
-                    encode_action(stream_type, TypeContext::Outgoing, namespace).indent()
+                encode_action = encode_action(stream_type, TypeContext::Encode, namespace).indent()
             )),
         }
     } else {
@@ -378,7 +377,7 @@ fn proxy_base_operation_impl(operation: &Operation) -> CodeBlock {
         FunctionType::ExpressionBody,
     );
     builder.set_inherit_doc(true);
-    builder.add_operation_parameters(operation, TypeContext::Outgoing);
+    builder.add_operation_parameters(operation, TypeContext::Encode);
 
     builder.set_body(
         format!(
@@ -408,7 +407,7 @@ fn proxy_interface_operations(interface_def: &Interface) -> CodeBlock {
             )
             .add_container_attributes(operation)
             .add_comment("summary", &doc_comment_message(operation))
-            .add_operation_parameters(operation, TypeContext::Outgoing)
+            .add_operation_parameters(operation, TypeContext::Encode)
             .build(),
         );
     }
@@ -472,7 +471,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
 
         for param in &params {
             builder.add_parameter(
-                &param.to_type_string(&namespace.as_str(), TypeContext::Outgoing, false),
+                &param.to_type_string(&namespace.as_str(), TypeContext::Encode, false),
                 &param.parameter_name().as_str(),
                 None,
                 operation_parameter_doc_comment(operation, param.identifier()),
@@ -553,7 +552,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             &format!("{} static async", access),
             &format!(
                 "global::System.Threading.Tasks.ValueTask<{}>",
-                members.to_tuple_type(namespace, TypeContext::Incoming, false)
+                members.to_tuple_type(namespace, TypeContext::Decode, false)
             ),
             &operation.escape_identifier_with_suffix("Async"),
             function_type,

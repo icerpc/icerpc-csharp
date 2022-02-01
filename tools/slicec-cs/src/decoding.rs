@@ -42,7 +42,7 @@ pub fn decode_data_members(
 fn decode_member(member: &impl Member, namespace: &str, param: &str) -> CodeBlock {
     let mut code = CodeBlock::new();
     let data_type = member.data_type();
-    let type_string = data_type.to_type_string(namespace, TypeContext::Incoming, true);
+    let type_string = data_type.to_type_string(namespace, TypeContext::Decode, true);
 
     write!(code, "{} = ", param);
 
@@ -149,7 +149,7 @@ decoder.DecodeDictionaryWithBitSequence(
     size => new {dictionary_type}(size),
     {decode_key},
     {decode_value})",
-            dictionary_type = dictionary_ref.to_type_string(namespace, TypeContext::Incoming, true),
+            dictionary_type = dictionary_ref.to_type_string(namespace, TypeContext::Decode, true),
             min_key_size = key_type.min_wire_size(),
             decode_key = decode_key.indent(),
             decode_value = decode_value.indent()
@@ -165,7 +165,7 @@ decoder.DecodeDictionary(
     {decode_value})",
             min_key_size = key_type.min_wire_size(),
             min_value_size = value_type.min_wire_size(),
-            dictionary_type = dictionary_ref.to_type_string(namespace, TypeContext::Incoming, true),
+            dictionary_type = dictionary_ref.to_type_string(namespace, TypeContext::Decode, true),
             decode_key = decode_key.indent(),
             decode_value = decode_value.indent()
         )
@@ -186,7 +186,7 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str) -> Cod
                 // faster than unmarshaling the collection elements one by one.
                 Some(format!(
                     "decoder.DecodeSequence<{}>()",
-                    element_type.to_type_string(namespace, TypeContext::Incoming, true)
+                    element_type.to_type_string(namespace, TypeContext::Decode, true)
                 ))
             }
             Types::Enum(enum_def) if enum_def.underlying.is_some() => {
@@ -195,7 +195,7 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str) -> Cod
                 if enum_def.is_unchecked {
                     Some(format!(
                         "decoder.DecodeSequence<{}>()",
-                        element_type.to_type_string(namespace, TypeContext::Incoming, true)
+                        element_type.to_type_string(namespace, TypeContext::Decode, true)
                     ))
                 } else {
                     Some(format!(
@@ -203,7 +203,7 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str) -> Cod
 decoder.DecodeSequence(
     ({enum_type_name} e) => _ = {helper}.As{name}(({underlying_type})e))",
                         enum_type_name =
-                            element_type.to_type_string(namespace, TypeContext::Incoming, false),
+                            element_type.to_type_string(namespace, TypeContext::Decode, false),
                         helper = enum_def.helper_name(namespace),
                         name = enum_def.identifier(),
                         underlying_type = enum_def.underlying_type().cs_keyword()
@@ -219,7 +219,7 @@ decoder.DecodeSequenceWithBitSequence(
     sequenceFactory: (size) => new {sequence_type}(size),
     {decode_func})",
                         sequence_type =
-                            sequence_ref.to_type_string(namespace, TypeContext::Incoming, true),
+                            sequence_ref.to_type_string(namespace, TypeContext::Decode, true),
                         decode_func = decode_func(element_type, namespace).indent()
                     );
                 } else {
@@ -232,7 +232,7 @@ decoder.DecodeSequence(
     {decode_func})",
                         min_element_size = element_type.min_wire_size(),
                         sequence_type =
-                            sequence_ref.to_type_string(namespace, TypeContext::Incoming, true),
+                            sequence_ref.to_type_string(namespace, TypeContext::Decode, true),
                         decode_func = decode_func(element_type, namespace).indent()
                     );
                 }
@@ -246,7 +246,7 @@ decoder.DecodeSequence(
                 "\
 new {}(
     {})",
-                sequence_ref.to_type_string(namespace, TypeContext::Incoming, true),
+                sequence_ref.to_type_string(namespace, TypeContext::Decode, true),
                 CodeBlock::from(arg).indent(),
             );
         }
@@ -264,7 +264,7 @@ decoder.DecodeSequenceWithBitSequence(
                 write!(
                     code,
                     "decoder.DecodeSequence<{}>()",
-                    element_type.to_type_string(namespace, TypeContext::Incoming, true)
+                    element_type.to_type_string(namespace, TypeContext::Decode, true)
                 )
             }
             Types::Enum(enum_def) if enum_def.underlying.is_some() => {
@@ -272,7 +272,7 @@ decoder.DecodeSequenceWithBitSequence(
                     write!(
                         code,
                         "decoder.DecodeSequence<{}>()",
-                        element_type.to_type_string(namespace, TypeContext::Incoming, true)
+                        element_type.to_type_string(namespace, TypeContext::Decode, true)
                     )
                 } else {
                     write!(
@@ -281,7 +281,7 @@ decoder.DecodeSequenceWithBitSequence(
 decoder.DecodeSequence(
     ({enum_type} e) => _ = {helper}.As{name}(({underlying_type})e))",
                         enum_type =
-                            element_type.to_type_string(namespace, TypeContext::Incoming, false),
+                            element_type.to_type_string(namespace, TypeContext::Decode, false),
                         helper = enum_def.helper_name(namespace),
                         name = enum_def.identifier(),
                         underlying_type = enum_def.underlying_type().cs_keyword()
@@ -308,9 +308,9 @@ decoder.DecodeSequence(
 pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
     // For value types the type declaration includes ? at the end, but the type name does not.
     let type_name = if type_ref.is_optional && type_ref.is_value_type() {
-        type_ref.to_type_string(namespace, TypeContext::Incoming, true)
+        type_ref.to_type_string(namespace, TypeContext::Decode, true)
     } else {
-        type_ref.to_type_string(namespace, TypeContext::Incoming, false)
+        type_ref.to_type_string(namespace, TypeContext::Decode, false)
     };
 
     let mut code: CodeBlock = match &type_ref.concrete_typeref() {
@@ -332,7 +332,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
             if type_ref.is_optional {
                 format!(
                     "(ref SliceDecoder decoder) => decoder.DecodeNullableClass<{}>()",
-                    type_ref.to_type_string(namespace, TypeContext::Incoming, true)
+                    type_ref.to_type_string(namespace, TypeContext::Decode, true)
                 )
             } else {
                 format!(
@@ -372,7 +372,10 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
             )
         }
         TypeRefs::Struct(_) => {
-            format!("(ref SliceDecoder decoder) => new {}(ref decoder)", type_name)
+            format!(
+                "(ref SliceDecoder decoder) => new {}(ref decoder)",
+                type_name
+            )
         }
         TypeRefs::Trait(_) => {
             format!(
@@ -426,7 +429,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
             {
                 true => member
                     .data_type()
-                    .to_type_string(namespace, TypeContext::Incoming, false),
+                    .to_type_string(namespace, TypeContext::Decode, false),
                 false => String::from("var"),
             },
             decode = decode_member(
@@ -446,7 +449,7 @@ pub fn decode_operation(operation: &Operation, dispatch: bool) -> CodeBlock {
             param_type = match member.data_type().is_value_type() {
                 true => member
                     .data_type()
-                    .to_type_string(namespace, TypeContext::Incoming, false),
+                    .to_type_string(namespace, TypeContext::Decode, false),
                 false => String::from("var"),
             },
             decode = decode_tagged_member(
@@ -473,9 +476,9 @@ pub fn decode_operation_stream(
     assign_to_variable: bool,
 ) -> CodeBlock {
     let param_type = stream_member.data_type();
-    let param_type_str = param_type.to_type_string(namespace, TypeContext::Incoming, false);
+    let param_type_str = param_type.to_type_string(namespace, TypeContext::Decode, false);
     // Call to_type_string on the parameter itself to get its stream qualifier.
-    let stream_type_str = stream_member.to_type_string(namespace, TypeContext::Incoming, false);
+    let stream_type_str = stream_member.to_type_string(namespace, TypeContext::Decode, false);
 
     let create_stream_param: CodeBlock = match param_type.concrete_type() {
         Types::Primitive(primitive) if matches!(primitive, Primitive::Byte) => {

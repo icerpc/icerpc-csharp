@@ -58,7 +58,7 @@ immediately encodes the return value of operation {operation_name}."#,
     match operation.return_members().as_slice() {
         [p] => {
             constructor_builder.add_parameter(
-                &p.to_type_string(&namespace, TypeContext::Outgoing, false),
+                &p.to_type_string(&namespace, TypeContext::Encode, false),
                 "returnValue",
                 None,
                 None,
@@ -67,7 +67,7 @@ immediately encodes the return value of operation {operation_name}."#,
         _ => {
             for parameter in operation.return_members() {
                 let parameter_type =
-                    parameter.to_type_string(&namespace, TypeContext::Outgoing, false);
+                    parameter.to_type_string(&namespace, TypeContext::Encode, false);
                 let parameter_name = parameter.parameter_name();
 
                 constructor_builder.add_parameter(&parameter_type, &parameter_name, None, None);
