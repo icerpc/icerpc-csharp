@@ -35,6 +35,7 @@ pub fn encode_data_members(
             TypeContext::DataMember,
             namespace,
             &param,
+            "encoder",
         ));
     }
 
@@ -45,6 +46,7 @@ pub fn encode_data_members(
             member,
             namespace,
             &param,
+            "encoder",
             TypeContext::DataMember,
         ));
     }
@@ -57,20 +59,37 @@ fn encode_type(
     type_context: TypeContext,
     namespace: &str,
     param: &str,
+    encoder_param: &str,
 ) -> CodeBlock {
     match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) => {
             if type_ref.is_optional {
-                format!("encoder.EncodeNullableProxy({}?.Proxy);", param)
+                format!(
+                    "{encoder_param}.EncodeNullableProxy({param}?.Proxy);",
+                    encoder_param = encoder_param,
+                    param = param
+                )
             } else {
-                format!("encoder.EncodeProxy({}.Proxy);", param)
+                format!(
+                    "{encoder_param}.EncodeProxy({param}.Proxy);",
+                    encoder_param = encoder_param,
+                    param = param
+                )
             }
         }
         _ if type_ref.is_class_type() => {
             if type_ref.is_optional {
-                format!("encoder.EncodeNullableClass({});", param)
+                format!(
+                    "{encoder_param}.EncodeNullableClass({param});",
+                    encoder_param = encoder_param,
+                    param = param
+                )
             } else {
-                format!("encoder.EncodeClass({});", param)
+                format!(
+                    "{encoder_param}.EncodeClass({param});",
+                    encoder_param = encoder_param,
+                    param = param
+                )
             }
         }
         concrete_typeref => {
@@ -81,22 +100,39 @@ fn encode_type(
             };
             let encode_type = match concrete_typeref {
                 TypeRefs::Primitive(primitive_ref) => {
-                    format!("encoder.Encode{}({});", primitive_ref.type_suffix(), value)
+                    format!(
+                        "{encoder_param}.Encode{type_suffix}({value});",
+                        encoder_param = encoder_param,
+                        type_suffix = primitive_ref.type_suffix(),
+                        value = value
+                    )
                 }
-                TypeRefs::Struct(_) => format!("{}.Encode(ref encoder);", value),
-                TypeRefs::Trait(_) => format!("{}.EncodeTrait(ref encoder);", param),
+                TypeRefs::Struct(_) => format!(
+                    "{value}.Encode(ref {encoder_param});",
+                    value = value,
+                    encoder_param = encoder_param
+                ),
+                TypeRefs::Trait(_) => format!(
+                    "{param}.EncodeTrait(ref {encoder_param});",
+                    param = param,
+                    encoder_param = encoder_param
+                ),
                 TypeRefs::Sequence(sequence_ref) => format!(
                     "{};",
-                    encode_sequence(sequence_ref, namespace, param, type_context),
+                    encode_sequence(sequence_ref, namespace, param, type_context, encoder_param),
                 ),
                 TypeRefs::Dictionary(dictionary_ref) => {
-                    format!("{};", encode_dictionary(dictionary_ref, namespace, param))
+                    format!(
+                        "{};",
+                        encode_dictionary(dictionary_ref, namespace, param, encoder_param)
+                    )
                 }
                 TypeRefs::Enum(enum_ref) => format!(
-                    "{helper}.Encode{name}(ref encoder, {param});",
+                    "{helper}.Encode{name}(ref {encoder_param}, {param});",
                     helper = enum_ref.helper_name(namespace),
                     name = enum_ref.identifier(),
                     param = value,
+                    encoder_param = encoder_param
                 ),
                 _ => panic!("class and proxy types are handled in the outer match"),
             };
@@ -137,6 +173,7 @@ fn encode_tagged_type(
     member: &impl Member,
     namespace: &str,
     param: &str,
+    encoder_param: &str,
     type_context: TypeContext,
 ) -> CodeBlock {
     let mut code = CodeBlock::new();
@@ -189,7 +226,14 @@ fn encode_tagged_type(
             if let Some(underlying) = &enum_def.underlying {
                 (Some(underlying.min_wire_size().to_string()), None)
             } else {
-                (Some(format!("encoder.GetSizeLength((int){})", value)), None)
+                (
+                    Some(format!(
+                        "{encoder_param}.GetSizeLength((int){value})",
+                        encoder_param = encoder_param,
+                        value = value
+                    )),
+                    None,
+                )
             }
         }
         Types::Sequence(sequence_def)
@@ -199,17 +243,19 @@ fn encode_tagged_type(
             if read_only_memory {
                 (
                     Some(format!(
-                        "encoder.GetSizeLength({value}.Length) + {element_min_wire_size} * {value}.Length",
+                        "{encoder_param}.GetSizeLength({value}.Length) + {min_wire_size} * {value}.Length",
+                        encoder_param = encoder_param,
+                        min_wire_size = sequence_def.element_type.min_wire_size(),
                         value = value,
-                        element_min_wire_size = sequence_def.element_type.min_wire_size()
                     )),
                     None,
                 )
             } else {
                 (
                     Some(format!(
-                        "encoder.GetSizeLength(count) + {} * count",
-                        sequence_def.element_type.min_wire_size()
+                        "{encoder_param}.GetSizeLength(count) + {min_wire_size} * count",
+                        encoder_param = encoder_param,
+                        min_wire_size = sequence_def.element_type.min_wire_size()
                     )),
                     Some(value.clone()),
                 )
@@ -223,7 +269,8 @@ fn encode_tagged_type(
         {
             (
                 Some(format!(
-                    "encoder.GetSizeLength(count) + {min_wire_size} * count",
+                    "{encoder_param}.GetSizeLength(count) + {min_wire_size} * count",
+                    encoder_param = encoder_param,
                     min_wire_size = dictionary_def.key_type.min_wire_size()
                         + dictionary_def.value_type.min_wire_size()
                 )),
@@ -262,7 +309,12 @@ if ({param} != null)
             if let Some(value) = count_value {
                 writeln!(code, "int count = {}.Count();", value);
             }
-            writeln!(code, "encoder.EncodeTagged({});", args.join(", "));
+            writeln!(
+                code,
+                "{encoder_param}.EncodeTagged({args});",
+                encoder_param = encoder_param,
+                args = args.join(", ")
+            );
             code
         }
         .indent()
@@ -276,18 +328,27 @@ fn encode_sequence(
     namespace: &str,
     value: &str,
     type_context: TypeContext,
+    encoder_param: &str,
 ) -> CodeBlock {
     let has_custom_type = sequence_ref.has_attribute("cs:generic", false);
     if sequence_ref.has_fixed_size_numeric_elements() {
         if type_context == TypeContext::Outgoing && !has_custom_type {
-            format!("encoder.EncodeSpan({}.Span)", value)
+            format!(
+                "{encoder_param}.EncodeSpan({value}.Span)",
+                encoder_param = encoder_param,
+                value = value
+            )
         } else {
-            format!("encoder.EncodeSequence({})", value)
+            format!(
+                "{encoder_param}.EncodeSequence({value})",
+                encoder_param = encoder_param,
+                value = value
+            )
         }
     } else {
         format!(
             "\
-encoder.EncodeSequence{with_bit_sequence}(
+{encoder_param}.EncodeSequence{with_bit_sequence}(
     {param},
     {encode_action})",
             with_bit_sequence = if sequence_ref.element_type.is_bit_sequence_encodable() {
@@ -295,6 +356,7 @@ encoder.EncodeSequence{with_bit_sequence}(
             } else {
                 ""
             },
+            encoder_param = encoder_param,
             param = value,
             encode_action =
                 encode_action(&sequence_ref.element_type, TypeContext::Nested, namespace).indent()
@@ -303,10 +365,15 @@ encoder.EncodeSequence{with_bit_sequence}(
     .into()
 }
 
-fn encode_dictionary(dictionary_def: &Dictionary, namespace: &str, param: &str) -> CodeBlock {
+fn encode_dictionary(
+    dictionary_def: &Dictionary,
+    namespace: &str,
+    param: &str,
+    encoder_param: &str,
+) -> CodeBlock {
     format!(
         "\
-encoder.{method}(
+{encoder_param}.{method}(
     {param},
     {encode_key},
     {encode_value})",
@@ -317,6 +384,7 @@ encoder.{method}(
         } else {
             "EncodeDictionary"
         },
+        encoder_param = encoder_param,
         param = param,
         encode_key =
             encode_action(&dictionary_def.key_type, TypeContext::Nested, namespace).indent(),
@@ -392,7 +460,8 @@ pub fn encode_action(type_ref: &TypeRef, type_context: TypeContext, namespace: &
                 code,
                 "(ref SliceEncoder encoder, {value_type} value) => {encode_dictionary}",
                 value_type = value_type,
-                encode_dictionary = encode_dictionary(dictionary_ref, namespace, "value")
+                encode_dictionary =
+                    encode_dictionary(dictionary_ref, namespace, "value", "encoder")
             );
         }
         TypeRefs::Sequence(sequence_ref) => {
@@ -402,7 +471,8 @@ pub fn encode_action(type_ref: &TypeRef, type_context: TypeContext, namespace: &
                 code,
                 "(ref SliceEncoder encoder, {value_type} value) => {encode_sequence}",
                 value_type = value_type,
-                encode_sequence = encode_sequence(sequence_ref, namespace, "value", type_context)
+                encode_sequence =
+                    encode_sequence(sequence_ref, namespace, "value", type_context, "encoder")
             )
         }
         TypeRefs::Struct(_) => {
@@ -425,7 +495,11 @@ pub fn encode_action(type_ref: &TypeRef, type_context: TypeContext, namespace: &
     code
 }
 
-pub fn encode_operation(operation: &Operation, return_type: bool) -> CodeBlock {
+pub fn encode_operation(
+    operation: &Operation,
+    return_type: bool,
+    encoder_param: &str,
+) -> CodeBlock {
     let mut code = CodeBlock::new();
     let namespace = &operation.namespace();
 
@@ -442,31 +516,41 @@ pub fn encode_operation(operation: &Operation, return_type: bool) -> CodeBlock {
     if bit_sequence_size > 0 {
         writeln!(
             code,
-            "var bitSequenceWriter = encoder.GetBitSequenceWriter({});",
-            bit_sequence_size
+            "var bitSequenceWriter = {encoder_param}.GetBitSequenceWriter({bit_sequence_size});",
+            encoder_param = encoder_param,
+            bit_sequence_size = bit_sequence_size
         );
     }
 
+    let return_value_name = return_type && members.len() == 1;
+
     for member in required_members {
+        let name = if return_value_name {
+            "returnValue".to_owned()
+        } else {
+            member.parameter_name()
+        };
+
         code.writeln(&encode_type(
             member.data_type(),
             TypeContext::Outgoing,
             namespace,
-            &match members.as_slice() {
-                [_] => "value".to_owned(),
-                _ => format!("value.{}", &member.field_name(FieldType::NonMangled)),
-            },
+            name.as_str(),
+            encoder_param,
         ));
     }
 
     for member in tagged_members {
+        let name = if return_value_name {
+            "returnValue".to_owned()
+        } else {
+            member.parameter_name()
+        };
         code.writeln(&encode_tagged_type(
             member,
             namespace,
-            &match members.as_slice() {
-                [_] => "value".to_owned(),
-                _ => format!("value.{}", &member.field_name(FieldType::NonMangled)),
-            },
+            name.as_str(),
+            encoder_param,
             TypeContext::Outgoing,
         ));
     }

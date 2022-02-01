@@ -647,29 +647,7 @@ namespace IceRpc.Tests.Slice
         [Test]
         public async Task OperationTag_DuplicateTag()
         {
-            // Build a request payload with 2 tagged values
-            PipeReader requestPayload =
-                _prx.Proxy.GetSliceEncoding().CreatePayloadFromArgs(
-                    (15, "test"),
-                    (ref SliceEncoder encoder, in (int? N, string? S) value) =>
-                    {
-                        if (value.N != null)
-                        {
-                            encoder.EncodeTagged(1,
-                                                 TagFormat.F4,
-                                                 size: 4,
-                                                 value.N.Value,
-                                                 (ref SliceEncoder encoder, int v) => encoder.EncodeInt(v));
-                        }
-                        if (value.S != null)
-                        {
-                            encoder.EncodeTagged(1, // duplicate tag ignored by the server
-                                                 TagFormat.OVSize,
-                                                 value.S,
-                                                 (ref SliceEncoder encoder, string v) => encoder.EncodeString(v));
-                        }
-                    });
-
+            PipeReader requestPayload = CreatePayload();
             var request = new OutgoingRequest(_prx.Proxy, "opVoid")
             {
                 PayloadEncoding = _prx.Proxy.Encoding,
@@ -682,6 +660,34 @@ namespace IceRpc.Tests.Slice
                 SliceDecoder.GetActivator(typeof(OperationTagTests).Assembly),
                 hasStream: false,
                 default));
+
+            PipeReader CreatePayload()
+            {
+                // Build a request payload with 2 tagged values
+                var pipe = new Pipe(); // TODO: pipe options
+                SliceEncoding encoding = _prx.Proxy.GetSliceEncoding();
+                var encoder = new SliceEncoder(pipe.Writer, encoding, default);
+                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+                int startPos = encoder.EncodedByteCount;
+
+                encoder.EncodeTagged(
+                    1,
+                    TagFormat.F4,
+                    size: 4,
+                    15,
+                    (ref SliceEncoder encoder, int v) => encoder.EncodeInt(v));
+
+                encoder.EncodeTagged(
+                    1, // duplicate tag ignored by the server
+                    TagFormat.OVSize,
+                    "test",
+                    (ref SliceEncoder encoder, string v) => encoder.EncodeString(v));
+
+                encoding.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+
+                pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
+                return pipe.Reader;
+            }
         }
 
         [Test]

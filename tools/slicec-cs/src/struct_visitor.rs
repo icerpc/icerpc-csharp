@@ -72,7 +72,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                 &member
                     .data_type()
                     .to_type_string(&namespace, TypeContext::DataMember, false),
-                member.identifier(),
+                member.parameter_name().as_str(),
                 None,
                 Some(&doc_comment_message(*member)),
             );

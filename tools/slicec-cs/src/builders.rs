@@ -1,11 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use slice::code_gen_util::{fix_case, CaseStyle, TypeContext};
+use slice::code_gen_util::TypeContext;
 use slice::grammar::{Attributable, Class, Entity, NamedSymbol, Operation};
 
 use crate::code_block::CodeBlock;
 use crate::comments::{operation_parameter_doc_comment, CommentTag};
-use crate::cs_util::*;
 use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
 
@@ -209,7 +208,7 @@ impl FunctionBuilder {
         self.parameters.push(format!(
             "{param_type} {param_name}{default_value}",
             param_type = param_type,
-            param_name = escape_keyword(&fix_case(param_name, CaseStyle::Camel)),
+            param_name = param_name,
             default_value = match default_value {
                 Some(value) => format!(" = {}", value),
                 None => "".to_string(),
