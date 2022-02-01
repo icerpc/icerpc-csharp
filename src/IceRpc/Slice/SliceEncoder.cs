@@ -521,6 +521,19 @@ namespace IceRpc.Slice
             return new BitSequenceWriter(new SpanEnumerator(firstSpan, secondSpan, additionalMemory));
         }
 
+        /// <summary>Gets a placeholder to be filled-in later.</summary>
+        /// <param name="size">The size of the placeholder, typically a small number like 4.</param>
+        /// <returns>A buffer of length <paramref name="size"/>.</returns>
+        /// <remarks>We make the assumption the underlying buffer writer allows rewriting memory it provided even after
+        /// successive calls to GetMemory/GetSpan and Advance.</remarks>
+        public Span<byte> GetPlaceholderSpan(int size)
+        {
+            Debug.Assert(size > 0);
+            Span<byte> placeholder = _bufferWriter.GetSpan(size)[0..size];
+            Advance(size);
+            return placeholder;
+        }
+
         /// <summary>Computes the minimum number of bytes needed to encode a variable-length size.</summary>
         /// <param name="size">The size.</param>
         /// <returns>The minimum number of bytes.</returns>
@@ -556,19 +569,6 @@ namespace IceRpc.Slice
         {
             Debug.Assert(size > 0);
             Memory<byte> placeholder = _bufferWriter.GetMemory(size)[0..size];
-            Advance(size);
-            return placeholder;
-        }
-
-        /// <summary>Gets a placeholder to be filled-in later.</summary>
-        /// <param name="size">The size of the placeholder, typically a small number like 4.</param>
-        /// <returns>A buffer of length <paramref name="size"/>.</returns>
-        /// <remarks>We make the assumption the underlying buffer writer allows rewriting memory it provided even after
-        /// successive calls to GetMemory/GetSpan and Advance.</remarks>
-        public Span<byte> GetPlaceholderSpan(int size)
-        {
-            Debug.Assert(size > 0);
-            Span<byte> placeholder = _bufferWriter.GetSpan(size)[0..size];
             Advance(size);
             return placeholder;
         }

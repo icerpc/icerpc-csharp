@@ -64,16 +64,32 @@ fn encode_type(
     match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) => {
             if type_ref.is_optional {
-                format!("{}.EncodeNullableProxy({}?.Proxy);", encoder_param, param)
+                format!(
+                    "{encoder_param}.EncodeNullableProxy({param}?.Proxy);",
+                    encoder_param = encoder_param,
+                    param = param
+                )
             } else {
-                format!("{}.EncodeProxy({}.Proxy);", encoder_param, param)
+                format!(
+                    "{encoder_param}.EncodeProxy({param}.Proxy);",
+                    encoder_param = encoder_param,
+                    param = param
+                )
             }
         }
         _ if type_ref.is_class_type() => {
             if type_ref.is_optional {
-                format!("{}.EncodeNullableClass({});", encoder_param, param)
+                format!(
+                    "{encoder_param}.EncodeNullableClass({});",
+                    encoder_param = encoder_param,
+                    param = param
+                )
             } else {
-                format!("{}.EncodeClass({});", encoder_param, param)
+                format!(
+                    "{encoder_param}.EncodeClass({param});",
+                    encoder_param = encoder_param,
+                    param = param
+                )
             }
         }
         concrete_typeref => {
@@ -500,8 +516,9 @@ pub fn encode_operation(
     if bit_sequence_size > 0 {
         writeln!(
             code,
-            "var bitSequenceWriter = {}.GetBitSequenceWriter({});",
-            encoder_param, bit_sequence_size
+            "var bitSequenceWriter = {encoder_param}.GetBitSequenceWriter({bit_sequence_size});",
+            encoder_param = encoder_param,
+            bit_sequence_size = bit_sequence_size
         );
     }
 

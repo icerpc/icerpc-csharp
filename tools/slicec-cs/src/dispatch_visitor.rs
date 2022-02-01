@@ -443,7 +443,7 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
             writeln!(
                 code,
                 "var {var_name} = await Request.{async_operation_name}(request, cancel).ConfigureAwait(false);",
-                var_name = parameter.parameter_name(),
+                var_name = parameter.parameter_name_with_prefix("sliceP_"),
                 async_operation_name = async_operation_name,
             )
         }
@@ -463,7 +463,7 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
 
         match parameters.as_slice() {
             [p] => {
-                args.push(p.parameter_name());
+                args.push(p.parameter_name_with_prefix("sliceP_"));
             }
             _ => {
                 for p in parameters {
@@ -495,7 +495,7 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
         );
     } else {
         let mut args = match parameters.as_slice() {
-            [parameter] => vec![parameter.parameter_name()],
+            [parameter] => vec![parameter.parameter_name_with_prefix("sliceP_")],
             _ => parameters
                 .iter()
                 .map(|parameter| format!("args.{}", &parameter.field_name(FieldType::NonMangled)))
