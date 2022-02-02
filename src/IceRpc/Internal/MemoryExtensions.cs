@@ -31,16 +31,6 @@ namespace IceRpc.Internal
             return count;
         }
 
-        internal static int GetByteCount(this IReadOnlyList<ReadOnlyMemory<byte>> buffers)
-        {
-            int count = 0;
-            foreach (ReadOnlyMemory<byte> memory in buffers)
-            {
-                count += memory.Length;
-            }
-            return count;
-        }
-
         internal static IList<ArraySegment<byte>> ToSegmentList(this ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
         {
             var segments = new ArraySegment<byte>[buffers.Length];

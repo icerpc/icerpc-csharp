@@ -140,9 +140,10 @@ namespace IceRpc.Transports.Internal
             {
                 try
                 {
-                    await _frameWriter.WriteStreamStopSendingAsync(
-                        this,
-                        new StreamStopSendingBody(errorCode),
+                    await _connection.SendFrameAsync(
+                        stream: this,
+                        FrameType.StreamStopSending,
+                        new StreamStopSendingBody(errorCode).Encode,
                         default).ConfigureAwait(false);
                 }
                 catch
@@ -171,9 +172,10 @@ namespace IceRpc.Transports.Internal
             {
                 try
                 {
-                    await _frameWriter.WriteStreamResetAsync(
-                        this,
-                        new StreamResetBody(errorCode),
+                    await _connection.SendFrameAsync(
+                        stream: this,
+                        FrameType.StreamReset,
+                        new StreamResetBody(errorCode).Encode,
                         default).ConfigureAwait(false);
                 }
                 catch
@@ -378,7 +380,7 @@ namespace IceRpc.Transports.Internal
             TrySetWriteCompleted();
         }
 
-        internal ValueTask<FlushResult> SendFrameAsync(
+        internal ValueTask<FlushResult> SendStreamFrameAsync(
             ReadOnlySequence<byte> source1,
             ReadOnlySequence<byte> source2,
             bool completeWhenDone,
@@ -386,9 +388,10 @@ namespace IceRpc.Transports.Internal
             _connection.SendStreamFrameAsync(this, source1, source2, completeWhenDone, cancel);
 
         internal void SendStreamResumeWrite(int size) =>
-            _ = _frameWriter.WriteStreamResumeWriteAsync(
-                this,
-                new StreamResumeWriteBody((ulong)size),
+            _ = _connection.SendFrameAsync(
+                stream: this,
+                FrameType.StreamResumeWrite,
+                new StreamResumeWriteBody((ulong)size).Encode,
                 CancellationToken.None).AsTask();
 
         internal async ValueTask<int> SendCreditAcquireAsync(CancellationToken cancel)
@@ -475,7 +478,11 @@ namespace IceRpc.Transports.Internal
                 {
                     try
                     {
-                        _ = _frameWriter.WriteUnidirectionalStreamReleasedAsync(this, default).AsTask();
+                        _ = _connection.SendFrameAsync(
+                            stream: this,
+                            FrameType.UnidirectionalStreamReleased,
+                            encode: null,
+                            default).AsTask();
                     }
                     catch
                     {

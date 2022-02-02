@@ -90,11 +90,12 @@ namespace IceRpc.Transports.Internal
 
                 Debug.Assert(!readResult.IsCompleted && !readResult.IsCanceled);
                 ReadOnlySequence<byte> internalBuffer = readResult.Buffer;
+                Debug.Assert(internalBuffer.Length > 0);
 
                 try
                 {
                     // Send the unflushed bytes and the source.
-                    return await _stream.SendFrameAsync(
+                    return await _stream.SendStreamFrameAsync(
                         internalBuffer,
                         source,
                         completeWhenDone,
@@ -108,14 +109,18 @@ namespace IceRpc.Transports.Internal
                     Debug.Assert(!_pipe.Reader.TryRead(out ReadResult _));
                 }
             }
-            else
+            else if (source.Length > 0)
             {
                 // If there's no unflushed bytes, we just send the source.
-                return await _stream.SendFrameAsync(
+                return await _stream.SendStreamFrameAsync(
                     source,
                     ReadOnlySequence<byte>.Empty,
                     completeWhenDone,
                     cancel).ConfigureAwait(false);
+            }
+            else
+            {
+                return new FlushResult(isCanceled: false, isCompleted: false);
             }
         }
 
