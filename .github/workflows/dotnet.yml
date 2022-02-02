@@ -40,6 +40,11 @@ jobs:
       run: dotnet build --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage"
+    - name: NUnit Reporter
+      uses: MirageNet/nunit-reporter@v1.0.5
+      with:
+        path: tests/*/*.xml
+        access-token: ${{ secrets.GITHUB_TOKEN }}
     - name: Build Examples
       run: ./build.sh --examples --srcdist
     - name: ReportGenerator
