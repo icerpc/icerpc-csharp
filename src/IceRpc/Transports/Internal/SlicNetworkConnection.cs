@@ -462,20 +462,9 @@ namespace IceRpc.Transports.Internal
                     }
                     else
                     {
-                        // _sendSemaphore.Complete(ex);
                         throw;
                     }
                 }
-                // catch (Exception ex)
-                // {
-                //     _sendSemaphore.Complete(ex);
-                //     if (!stream.IsStarted)
-                //     {
-                //         // If the stream is still not started, release the semaphore.
-                //         streamCountSemaphore.Release();
-                //     }
-                //     throw;
-                // }
                 finally
                 {
                     _sendSemaphore.Release();

@@ -109,7 +109,7 @@ namespace IceRpc.Transports.Internal
         private readonly object _mutex = new();
         private volatile int _sendCredit = int.MaxValue;
         // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
-        private readonly AsyncSemaphore _sendSemaphore = new(1);
+        private readonly AsyncSemaphore _sendCreditSemaphore = new(1);
         private volatile Action? _shutdownAction;
         private TaskCompletionSource? _shutdownCompletedTaskSource;
         private readonly SlicPipeReader _inputPipeReader;
@@ -266,8 +266,8 @@ namespace IceRpc.Transports.Internal
             int newValue = Interlocked.Add(ref _sendCredit, size);
             if (newValue == size)
             {
-                Debug.Assert(_sendSemaphore.Count == 0);
-                _sendSemaphore.Release();
+                Debug.Assert(_sendCreditSemaphore.Count == 0);
+                _sendCreditSemaphore.Release();
             }
             else if (newValue > _connection.PauseWriterThreshold)
             {
@@ -400,7 +400,7 @@ namespace IceRpc.Transports.Internal
             // the semaphore before checking _sendCredit. The semaphore acquisition will block if we can't send
             // additional data (_sendCredit == 0). Acquiring the semaphore ensures that we are allowed to send
             // additional data and _sendCredit can be used to figure out the size of the next packet to send.
-            await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+            await _sendCreditSemaphore.EnterAsync(cancel).ConfigureAwait(false);
             return _sendCredit;
         }
 
@@ -412,7 +412,7 @@ namespace IceRpc.Transports.Internal
             int sendCredit = Interlocked.Add(ref _sendCredit, -consumed);
             if (sendCredit > 0)
             {
-                _sendSemaphore.Release();
+                _sendCreditSemaphore.Release();
             }
         }
 
