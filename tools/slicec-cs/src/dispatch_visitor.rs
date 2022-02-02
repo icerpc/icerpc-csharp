@@ -77,7 +77,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
     let operations = interface_def
         .operations()
         .iter()
-        .filter(|o| o.parameters.len() > 0)
+        .filter(|o| !o.parameters.is_empty())
         .cloned()
         .collect::<Vec<_>>();
 
@@ -211,18 +211,17 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         match non_streamed_returns.as_slice() {
             [param] => {
                 builder.add_parameter(
-                    &param.to_type_string(&namespace.as_str(), TypeContext::Encode, false),
+                    &param.to_type_string(namespace, TypeContext::Encode, false),
                     "returnValue",
                     None,
                     Some("The operation return value"),
                 );
-                ()
             }
             _ => {
                 for param in &non_streamed_returns {
                     builder.add_parameter(
-                        &param.to_type_string(&namespace.as_str(), TypeContext::Encode, false),
-                        &param.parameter_name().as_str(),
+                        &param.to_type_string(namespace, TypeContext::Encode, false),
+                        &param.parameter_name(),
                         None,
                         operation_parameter_doc_comment(operation, param.identifier()),
                     );

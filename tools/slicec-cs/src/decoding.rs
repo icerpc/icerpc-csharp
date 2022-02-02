@@ -177,7 +177,7 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str) -> Cod
     let mut code = CodeBlock::new();
     let element_type = &sequence_ref.element_type;
 
-    if let Some(_) = sequence_ref.get_attribute("cs:generic", false) {
+    if sequence_ref.get_attribute("cs:generic", false).is_some() {
         let arg: Option<String> = match element_type.concrete_type() {
             Types::Primitive(primitive)
                 if primitive.is_numeric_or_bool() && primitive.is_fixed_size() =>
