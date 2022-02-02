@@ -26,6 +26,7 @@
     <PackageReference Include="NUnit3TestAdapter" Version="4.2.0" />
     <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview4" PrivateAssets="All" />
     <PackageReference Include="NUnit" Version="3.13.2" />
+    <PackageReference Include="NunitXml.TestLogger" Version="3.0.117" />
   </ItemGroup>
 
   <ItemGroup>
