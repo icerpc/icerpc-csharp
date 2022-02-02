@@ -39,12 +39,12 @@ jobs:
     - name: Build
       run: dotnet build --no-restore
     - name: Test
-      run: dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage" --logger:"nunit;LogFilePath=TestResults.xml"
+      run: dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage" --logger:"nunit;LogFilePath=TestResults/TestResults.xml"
     - name: NUnit Reporter
       uses: MirageNet/nunit-reporter@v1.0.5
       if: always()
       with:
-        path: tests/*/TestResults.xml
+        path: tests/*/TestResults/TestResults.xml
         access-token: ${{ secrets.GITHUB_TOKEN }}
     - name: Build Examples
       run: ./build.sh --examples --srcdist
