@@ -55,9 +55,9 @@ impl OperationExt for Operation {
                 self,
                 is_dispatch,
                 if is_dispatch {
-                    TypeContext::Outgoing
+                    TypeContext::Encode
                 } else {
-                    TypeContext::Incoming
+                    TypeContext::Decode
                 },
             );
             if is_dispatch {

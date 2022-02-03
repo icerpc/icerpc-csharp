@@ -232,7 +232,7 @@ namespace IceRpc.Transports.Internal
             Pool = slicOptions.Pool;
             MinimumSegmentSize = slicOptions.MinimumSegmentSize;
 
-            // Configure the maximum stream counts to ensure the peer won't open more than one stream.
+            // Configure the maximum stream count to ensure the peer won't open more streams than this maximum.
             _bidirectionalMaxStreams = slicOptions.BidirectionalStreamMaxCount;
             _unidirectionalMaxStreams = slicOptions.UnidirectionalStreamMaxCount;
 
@@ -342,10 +342,8 @@ namespace IceRpc.Transports.Internal
                 {
                     encoder.EncodeVarULong((ulong)stream.Id);
                 }
-                if (encode != null)
-                {
-                    encode?.Invoke(ref encoder);
-                }
+                encode?.Invoke(ref encoder);
+
                 Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
             }
         }

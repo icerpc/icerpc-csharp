@@ -1,11 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-use slice::code_gen_util::{fix_case, CaseStyle, TypeContext};
+use slice::code_gen_util::TypeContext;
 use slice::grammar::{Attributable, Class, Entity, NamedSymbol, Operation};
 
 use crate::code_block::CodeBlock;
 use crate::comments::{operation_parameter_doc_comment, CommentTag};
-use crate::cs_util::*;
 use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
 
@@ -209,7 +208,7 @@ impl FunctionBuilder {
         self.parameters.push(format!(
             "{param_type} {param_name}{default_value}",
             param_type = param_type,
-            param_name = escape_keyword(&fix_case(param_name, CaseStyle::Camel)),
+            param_name = param_name,
             default_value = match default_value {
                 Some(value) => format!(" = {}", value),
                 None => "".to_string(),
@@ -227,12 +226,6 @@ impl FunctionBuilder {
         for p in parameters {
             self.parameters.push(p.clone());
         }
-        self
-    }
-
-    /// Set the base constructor (used when there are base parameters). The default is base
-    pub fn set_base_constructor(&mut self, base_constructor: &str) -> &mut Self {
-        self.base_constructor = base_constructor.to_owned();
         self
     }
 
@@ -301,7 +294,7 @@ impl FunctionBuilder {
         }
 
         match context {
-            TypeContext::Incoming => {
+            TypeContext::Decode => {
                 self.add_parameter(
                     "IceRpc.Dispatch",
                     &escape_parameter_name(&parameters, "dispatch"),
@@ -309,7 +302,7 @@ impl FunctionBuilder {
                     Some("The dispatch properties"),
                 );
             }
-            TypeContext::Outgoing => {
+            TypeContext::Encode => {
                 self.add_parameter(
                     "IceRpc.Invocation?",
                     &escape_parameter_name(&parameters, "invocation"),

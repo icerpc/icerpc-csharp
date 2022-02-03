@@ -48,7 +48,7 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
             TypeRefs::Sequence(sequence_ref) => {
                 // For readonly sequences of fixed size numeric elements the mapping is the
                 // same for optional an non optional types.
-                if context == TypeContext::Outgoing
+                if context == TypeContext::Encode
                     && sequence_ref.has_fixed_size_numeric_elements()
                     && !self.has_attribute("cs:generic", false)
                 {
@@ -85,13 +85,13 @@ fn sequence_type_to_string(
         TypeContext::DataMember | TypeContext::Nested => {
             format!("global::System.Collections.Generic.IList<{}>", element_type)
         }
-        TypeContext::Incoming => match sequence_ref.get_attribute("cs:generic", false) {
-            Some(args) => match args.first().unwrap().as_str() {
-                value => format!("{}<{}>", value, element_type),
-            },
+        TypeContext::Decode => match sequence_ref.get_attribute("cs:generic", false) {
+            Some(args) => {
+                format!("{}<{}>", args.first().unwrap(), element_type)
+            }
             None => format!("{}[]", element_type),
         },
-        TypeContext::Outgoing => {
+        TypeContext::Encode => {
             // If the underlying type is of fixed size, we map to `ReadOnlyMemory` instead.
             if sequence_ref.has_fixed_size_numeric_elements()
                 && !sequence_ref.has_attribute("cs:generic", false)
@@ -128,7 +128,7 @@ fn dictionary_type_to_string(
                 key_type, value_type,
             )
         }
-        TypeContext::Incoming => match dictionary_ref.get_attribute("cs:generic", false) {
+        TypeContext::Decode => match dictionary_ref.get_attribute("cs:generic", false) {
             Some(args) => {
                 format!("{}<{}, {}>", args.first().unwrap(), key_type, value_type)
             }
@@ -137,7 +137,7 @@ fn dictionary_type_to_string(
                 key_type, value_type,
             ),
         },
-        TypeContext::Outgoing => {
+        TypeContext::Encode => {
             format!(
                 "global::System.Collections.Generic.IEnumerable<global::System.Collections.Generic.KeyValuePair<{}, {}>>",
                 key_type, value_type,

@@ -59,8 +59,11 @@ namespace IceRpc.Tests.Internal
         [TestCase(false, 145, true)]
         public async Task MultiplexedStream_Abort(bool abortWrite, byte? errorCode, bool endStream)
         {
-            MultiplexedStreamAbortedException? exception =
-                errorCode == null ? null : new MultiplexedStreamAbortedException(errorCode.Value);
+            Exception? exception =
+                errorCode == null ? null :
+                errorCode == 200 ? new InvalidOperationException() :
+                new MultiplexedStreamAbortedException(errorCode.Value);
+
             if (abortWrite)
             {
                 await ClientStream.Output.CompleteAsync(exception);
@@ -85,7 +88,6 @@ namespace IceRpc.Tests.Internal
                     FlushResult flushResult = await ClientStream.Output.WriteAsync(new byte[1], endStream, default);
                     Assert.That(flushResult.IsCompleted);
                 }
-
             }
             else
             {
@@ -103,7 +105,7 @@ namespace IceRpc.Tests.Internal
                 }
 
                 // Check the code
-                Assert.That(ex!.ErrorCode, Is.EqualTo(errorCode));
+                Assert.That(ex!.ErrorCode, Is.EqualTo(errorCode == 200 ? 1 : errorCode));
             }
 
             // Complete the pipe readers/writers to shutdown the stream.
@@ -121,6 +123,33 @@ namespace IceRpc.Tests.Internal
             // Ensure streams are shutdown.
             await ServerStream.WaitForShutdownAsync(default);
             await ClientStream.WaitForShutdownAsync(default);
+        }
+
+        [Test]
+        public void MultiplexedStream_AbortWithUnflushedBytes()
+        {
+            Memory<byte> buffer = ClientStream.Output.GetMemory();
+            ClientStream.Output.Advance(10);
+            Assert.Throws<InvalidOperationException>(() => ClientStream.Output.Complete());
+
+        }
+
+        [Test]
+        public async Task MultiplexedStream_ConnectionDisposeAsync()
+        {
+            // Connection dispose aborts the streams which completes the reader/writer.
+            await _clientConnection!.DisposeAsync();
+
+            // Can't read/write once the writer/reader is completed.
+            Assert.ThrowsAsync<InvalidOperationException>(() => ClientStream.Input.ReadAsync().AsTask());
+            Assert.ThrowsAsync<InvalidOperationException>(
+                () => ClientStream.Output.WriteAsync(ReadOnlyMemory<byte>.Empty).AsTask());
+
+            await _serverConnection!.DisposeAsync();
+
+            Assert.ThrowsAsync<InvalidOperationException>(() => ServerStream.Input.ReadAsync().AsTask());
+            Assert.ThrowsAsync<InvalidOperationException>(
+                () => ServerStream.Output.WriteAsync(ReadOnlyMemory<byte>.Empty).AsTask());
         }
 
         [TestCase(1, 256, false)]

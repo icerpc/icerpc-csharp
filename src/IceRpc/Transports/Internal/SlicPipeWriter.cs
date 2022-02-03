@@ -31,6 +31,11 @@ namespace IceRpc.Transports.Internal
                 {
                     if (exception == null)
                     {
+                        if (_pipe.Writer.UnflushedBytes > 0)
+                        {
+                            throw new InvalidOperationException(
+                                "cannot call Complete on a SlicPipeWriter with unflushed bytes");
+                        }
                         _stream.AbortWrite(SlicStreamError.NoError.ToError());
                     }
                     else if (exception is MultiplexedStreamAbortedException abortedException)

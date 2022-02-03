@@ -1,18 +1,19 @@
-use slice::code_gen_util::*;
-use slice::grammar::*;
-use slice::visitor::Visitor;
-
 use crate::builders::{
     AttributeBuilder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType,
 };
 use crate::code_block::CodeBlock;
 use crate::comments::doc_comment_message;
+use crate::comments::operation_parameter_doc_comment;
 use crate::cs_util::*;
 use crate::decoding::*;
 use crate::encoded_result::encoded_result_struct;
 use crate::encoding::*;
 use crate::generated_code::GeneratedCode;
+use crate::member_util::escape_parameter_name;
 use crate::slicec_ext::*;
+use slice::code_gen_util::*;
+use slice::grammar::*;
+use slice::visitor::Visitor;
 
 pub struct DispatchVisitor<'a> {
     pub generated_code: &'a mut GeneratedCode,
@@ -76,7 +77,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
     let operations = interface_def
         .operations()
         .iter()
-        .filter(|o| o.parameters.len() > 0)
+        .filter(|o| !o.parameters.is_empty())
         .cloned()
         .collect::<Vec<_>>();
 
@@ -115,7 +116,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             &format!("{} static async", access),
             &format!(
                 "global::System.Threading.Tasks.ValueTask<{}>",
-                &parameters.to_tuple_type(namespace, TypeContext::Incoming, false)
+                &parameters.to_tuple_type(namespace, TypeContext::Decode, false)
             ),
             &operation.escape_identifier_with_suffix("Async"),
             function_type,
@@ -180,14 +181,11 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         let namespace = &operation.namespace();
         let operation_name = &operation.escape_identifier();
         let returns_classes = operation.returns_classes();
-        let return_type =
-            &non_streamed_returns.to_tuple_type(namespace, TypeContext::Outgoing, false);
-
         let mut builder = FunctionBuilder::new(
             &format!("{} static", access),
             "global::System.IO.Pipelines.PipeReader",
             operation_name,
-            FunctionType::ExpressionBody,
+            FunctionType::BlockBody,
         );
 
         builder
@@ -200,68 +198,60 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             )
             .add_comment("returns", "A new response payload.");
 
+        let encoding = escape_parameter_name(&non_streamed_returns, "encoding");
         if !returns_classes {
             builder.add_parameter(
                 "SliceEncoding",
-                "encoding",
+                &encoding,
                 None,
                 Some("The encoding of the payload"),
             );
         }
 
-        if non_streamed_returns.len() == 1 {
-            builder.add_parameter(
-                return_type,
-                "returnValue",
-                None,
-                Some("The return value to write into the new response payload."),
-            );
-        } else {
-            builder.add_parameter(
-                return_type,
-                "returnValueTuple",
-                None,
-                Some("The return values to write into the new response payload."),
-            );
-        };
+        match non_streamed_returns.as_slice() {
+            [param] => {
+                builder.add_parameter(
+                    &param.to_type_string(namespace, TypeContext::Encode, false),
+                    "returnValue",
+                    None,
+                    Some("The operation return value"),
+                );
+            }
+            _ => {
+                for param in &non_streamed_returns {
+                    builder.add_parameter(
+                        &param.to_type_string(namespace, TypeContext::Encode, false),
+                        &param.parameter_name(),
+                        None,
+                        operation_parameter_doc_comment(operation, param.identifier()),
+                    );
+                }
+            }
+        }
 
-        let body = if operation.returns_classes() {
+        builder.set_body(
             format!(
                 "\
-IceRpc.Encoding.Slice11.{encoding_operation}(
-    {return_arg},
-    {encode_action},
-    {format})",
-                encoding_operation = match non_streamed_returns.len() {
-                    1 => "CreatePayloadFromSingleReturnValue",
-                    _ => "CreatePayloadFromReturnValueTuple",
-                },
-                return_arg = match non_streamed_returns.len() {
-                    1 => "returnValue",
-                    _ => "returnValueTuple",
-                },
-                encode_action = response_encode_action(operation).indent(),
-                format = operation.format_type()
-            )
-        } else {
-            format!(
-                "\
-encoding.{encoding_operation}(
-    {return_arg},
-    {encode_action})",
-                encoding_operation = match non_streamed_returns.len() {
-                    1 => "CreatePayloadFromSingleReturnValue",
-                    _ => "CreatePayloadFromReturnValueTuple",
-                },
-                return_arg = match non_streamed_returns.len() {
-                    1 => "returnValue",
-                    _ => "returnValueTuple",
-                },
-                encode_action = response_encode_action(operation).indent(),
-            )
-        };
+var pipe_ = new global::System.IO.Pipelines.Pipe(); // TODO: pipe options
 
-        builder.set_body(body.into());
+var encoder_ = new SliceEncoder(pipe_.Writer, {encoding}, {class_format});
+Span<byte> sizePlaceholder_ = encoder_.GetPlaceholderSpan(4);
+int startPos_ = encoder_.EncodedByteCount;
+{encode_returns}
+{encoding}.EncodeFixedLengthSize(encoder_.EncodedByteCount - startPos_, sizePlaceholder_);
+
+pipe_.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
+return pipe_.Reader;",
+                encoding = if returns_classes {
+                    "IceRpc.Encoding.Slice11"
+                } else {
+                    &encoding
+                },
+                class_format = operation.format_type(),
+                encode_returns = encode_operation(operation, true, "encoder_")
+            )
+            .into(),
+        );
 
         class_builder.add_block(builder.build());
     }
@@ -350,40 +340,6 @@ fn request_decode_func(operation: &Operation) -> CodeBlock {
     }
 }
 
-pub fn response_encode_action(operation: &Operation) -> CodeBlock {
-    let namespace = &operation.namespace();
-
-    // We only want the non-streamed returns
-    let returns = operation.nonstreamed_return_members();
-
-    // When the operation returns a T? where T is an interface or a class, there is a built-in
-    // encoder, so defaultEncodeAction is true.
-    let use_default_encode_action = returns.len() == 1
-        && get_bit_sequence_size(&returns) == 0
-        && returns.first().unwrap().tag.is_none();
-
-    if use_default_encode_action {
-        encode_action(
-            returns.first().unwrap().data_type(),
-            TypeContext::Outgoing,
-            namespace,
-        )
-    } else {
-        format!(
-            "\
-(ref SliceEncoder encoder,
- {_in}{tuple_type} value) =>
-{{
-    {encode_action}
-}}",
-            _in = if returns.len() == 1 { "" } else { "in " },
-            tuple_type = returns.to_tuple_type(namespace, TypeContext::Outgoing, false),
-            encode_action = encode_operation(operation, true).indent(),
-        )
-        .into()
-    }
-}
-
 fn operation_declaration(operation: &Operation) -> CodeBlock {
     FunctionBuilder::new(
         &operation.parent().unwrap().access_modifier(),
@@ -392,7 +348,7 @@ fn operation_declaration(operation: &Operation) -> CodeBlock {
         FunctionType::Declaration,
     )
     .add_comment("summary", &doc_comment_message(operation))
-    .add_operation_parameters(operation, TypeContext::Incoming)
+    .add_operation_parameters(operation, TypeContext::Decode)
     .add_container_attributes(operation)
     .build()
 }
@@ -555,14 +511,11 @@ fn dispatch_return_payload(operation: &Operation, encoding: &str) -> CodeBlock {
 
     returns.push(match operation.return_members().len() {
         1 => "returnValue".to_owned(),
-        _ => format!(
-            "({})",
-            non_streamed_return_values
-                .iter()
-                .map(|r| format!("returnValue.{}", &r.field_name(FieldType::NonMangled)))
-                .collect::<Vec<_>>()
-                .join(", ")
-        ),
+        _ => non_streamed_return_values
+            .iter()
+            .map(|r| format!("returnValue.{}", &r.field_name(FieldType::NonMangled)))
+            .collect::<Vec<_>>()
+            .join(", "),
     });
 
     match non_streamed_return_values.len() {
@@ -611,12 +564,11 @@ fn payload_source_stream(operation: &Operation, encoding: &str) -> CodeBlock {
 {encoding}.CreatePayloadSourceStream<{stream_type}>(
     {stream_arg},
     {encode_action})",
-                    stream_type =
-                        stream_type.to_type_string(namespace, TypeContext::Outgoing, false),
+                    stream_type = stream_type.to_type_string(namespace, TypeContext::Encode, false),
                     stream_arg = stream_arg,
                     encoding = encoding,
                     encode_action =
-                        encode_action(stream_type, TypeContext::Outgoing, namespace).indent(),
+                        encode_action(stream_type, TypeContext::Encode, namespace).indent(),
                 )
                 .into(),
             }

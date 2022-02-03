@@ -4,6 +4,7 @@ use crate::builders::{
     AttributeBuilder, CommentBuilder, ContainerBuilder, FunctionBuilder, FunctionType,
 };
 use crate::code_block::CodeBlock;
+use crate::comments::operation_parameter_doc_comment;
 use crate::comments::*;
 use crate::decoding::*;
 use crate::encoding::*;
@@ -231,7 +232,7 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
     let cancel_parameter = escape_parameter_name(&operation.parameters(), "cancel");
 
     let sends_classes = operation.sends_classes();
-    let void_return = operation.return_type.len() == 0;
+    let void_return = operation.return_type.is_empty();
     let access = operation.parent().unwrap().access_modifier();
 
     let mut builder = FunctionBuilder::new(
@@ -241,7 +242,7 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
         FunctionType::BlockBody,
     );
     builder.set_inherit_doc(true);
-    builder.add_operation_parameters(operation, TypeContext::Outgoing);
+    builder.add_operation_parameters(operation, TypeContext::Encode);
 
     let mut body = CodeBlock::new();
 
@@ -283,7 +284,10 @@ if ({invocation}?.RequestFeatures.Get<IceRpc.Features.CompressPayload>() == null
             }
         ));
     } else {
-        let mut request_helper_args = vec![parameters.to_argument_tuple("")];
+        let mut request_helper_args = parameters
+            .iter()
+            .map(|p| p.parameter_name())
+            .collect::<Vec<_>>();
 
         if !sends_classes {
             request_helper_args.insert(0, payload_encoding.clone());
@@ -309,11 +313,10 @@ if ({invocation}?.RequestFeatures.Get<IceRpc.Features.CompressPayload>() == null
 {payload_encoding}.CreatePayloadSourceStream<{stream_type}>(
     {stream_parameter},
     {encode_action})",
-                stream_type = stream_type.to_type_string(namespace, TypeContext::Outgoing, false),
+                stream_type = stream_type.to_type_string(namespace, TypeContext::Encode, false),
                 stream_parameter = stream_parameter_name,
                 payload_encoding = payload_encoding,
-                encode_action =
-                    encode_action(stream_type, TypeContext::Outgoing, namespace).indent()
+                encode_action = encode_action(stream_type, TypeContext::Encode, namespace).indent()
             )),
         }
     } else {
@@ -374,7 +377,7 @@ fn proxy_base_operation_impl(operation: &Operation) -> CodeBlock {
         FunctionType::ExpressionBody,
     );
     builder.set_inherit_doc(true);
-    builder.add_operation_parameters(operation, TypeContext::Outgoing);
+    builder.add_operation_parameters(operation, TypeContext::Encode);
 
     builder.set_body(
         format!(
@@ -404,7 +407,7 @@ fn proxy_interface_operations(interface_def: &Interface) -> CodeBlock {
             )
             .add_container_attributes(operation)
             .add_comment("summary", &doc_comment_message(operation))
-            .add_operation_parameters(operation, TypeContext::Outgoing)
+            .add_operation_parameters(operation, TypeContext::Encode)
             .build(),
         );
     }
@@ -444,7 +447,7 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             &format!("{} static", access),
             "global::System.IO.Pipelines.PipeReader",
             &operation.escape_identifier(),
-            FunctionType::ExpressionBody,
+            FunctionType::BlockBody,
         );
 
         builder.add_comment(
@@ -455,31 +458,23 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             ),
         );
 
+        let encoding = escape_parameter_name(&operation.parameters(), "encoding");
+
         if !sends_classes {
             builder.add_parameter(
                 "SliceEncoding",
-                "encoding",
+                &encoding,
                 None,
                 Some("The encoding of the payload."),
             );
         }
 
-        if params.len() == 1 {
+        for param in &params {
             builder.add_parameter(
-                &params.to_tuple_type(namespace, TypeContext::Outgoing, false),
-                "arg",
+                &param.to_type_string(namespace, TypeContext::Encode, false),
+                &param.parameter_name(),
                 None,
-                Some("The request argument."),
-            );
-        } else {
-            builder.add_parameter(
-                &format!(
-                    "in {}",
-                    params.to_tuple_type(namespace, TypeContext::Outgoing, false)
-                ),
-                "args",
-                None,
-                Some("The request arguments."),
+                operation_parameter_doc_comment(operation, param.identifier()),
             );
         }
 
@@ -492,35 +487,25 @@ fn request_class(interface_def: &Interface) -> CodeBlock {
             );
         }
 
-        let body = if sends_classes {
-            format!(
-                "\
-IceRpc.Encoding.Slice11.{name}(
-    {args},
-    {encode_action},
-    {format})",
-                name = match params.len() {
-                    1 => "CreatePayloadFromSingleArg",
-                    _ => "CreatePayloadFromArgs",
-                },
-                args = if params.len() == 1 { "arg" } else { "in args" },
-                encode_action = request_encode_action(operation).indent(),
-                format = operation.format_type()
-            )
-        } else {
-            format!(
-                "\
-encoding.{name}(
-    {args},
-    {encode_action})",
-                name = match params.len() {
-                    1 => "CreatePayloadFromSingleArg",
-                    _ => "CreatePayloadFromArgs",
-                },
-                args = if params.len() == 1 { "arg" } else { "in args" },
-                encode_action = request_encode_action(operation).indent(),
-            )
-        };
+        let body = format!(
+            "\
+var pipe_ = new global::System.IO.Pipelines.Pipe();
+var encoder_ = new SliceEncoder(pipe_.Writer, {encoding}, {class_format});
+Span<byte> sizePlaceholder_ = encoder_.GetPlaceholderSpan(4);
+int startPos_ = encoder_.EncodedByteCount;
+{encode_args}
+{encoding}.EncodeFixedLengthSize(encoder_.EncodedByteCount - startPos_, sizePlaceholder_);
+
+pipe_.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
+return pipe_.Reader;",
+            encoding = if sends_classes {
+                "IceRpc.Encoding.Slice11"
+            } else {
+                &encoding
+            },
+            class_format = operation.format_type(),
+            encode_args = encode_operation(operation, false, "encoder_")
+        );
 
         builder.set_body(body.into());
 
@@ -567,7 +552,7 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
             &format!("{} static async", access),
             &format!(
                 "global::System.Threading.Tasks.ValueTask<{}>",
-                members.to_tuple_type(namespace, TypeContext::Incoming, false)
+                members.to_tuple_type(namespace, TypeContext::Decode, false)
             ),
             &operation.escape_identifier_with_suffix("Async"),
             function_type,
@@ -587,39 +572,6 @@ fn response_class(interface_def: &Interface) -> CodeBlock {
         class_builder.add_block(builder.build());
     }
     class_builder.build().into()
-}
-
-fn request_encode_action(operation: &Operation) -> CodeBlock {
-    let namespace = operation.namespace();
-
-    // We only want the non-streamed params
-    let params: Vec<&Parameter> = operation.nonstreamed_parameters();
-
-    // When the operation's parameter is a T? where T is an interface or a class, there is a
-    // built-in encoder, so defaultEncodeAction is true.
-    if params.len() == 1
-        && get_bit_sequence_size(&params) == 0
-        && params.first().unwrap().tag.is_none()
-    {
-        encode_action(
-            params.first().unwrap().data_type(),
-            TypeContext::Outgoing,
-            &namespace,
-        )
-    } else {
-        format!(
-            "\
-(ref SliceEncoder encoder,
- {_in}{param_type} value) =>
-{{
-    {encode}
-}}",
-            _in = if params.len() == 1 { "" } else { "in " },
-            param_type = params.to_tuple_type(&namespace, TypeContext::Outgoing, false),
-            encode = encode_operation(operation, false).indent()
-        )
-        .into()
-    }
 }
 
 fn response_operation_body(operation: &Operation) -> CodeBlock {
