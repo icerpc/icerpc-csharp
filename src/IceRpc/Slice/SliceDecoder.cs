@@ -399,7 +399,7 @@ namespace IceRpc.Slice
                             throw new InvalidOperationException(
                                 "cannot decode a proxy from an decoder with a null Connection");
                         }
-                        return Proxy.FromConnection(_connection!, proxyString, _invoker);
+                        return Proxy.FromConnection(_connection, proxyString, _invoker);
                     }
                     else
                     {
