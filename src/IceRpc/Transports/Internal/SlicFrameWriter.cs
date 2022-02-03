@@ -1,5 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
-using IceRpc.Internal;
+
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The Slic frame writer class writes Slic frames.</summary>
