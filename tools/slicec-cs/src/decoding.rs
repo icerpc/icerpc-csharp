@@ -77,8 +77,16 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str) -> CodeBloc
         TypeRefs::Primitive(primitive_ref) => {
             write!(code, "decoder.Decode{}()", primitive_ref.type_suffix());
         }
-        TypeRefs::Struct(_) => {
-            write!(code, "new {}(ref decoder)", type_string);
+        TypeRefs::Struct(struct_ref) => {
+            if struct_ref.definition().has_attribute("cs:type", false) {
+                write!(
+                    code,
+                    "{scoped_identifier}Extensions.Decode(ref decoder)",
+                    scoped_identifier = struct_ref.escape_scoped_identifier(namespace),
+                );
+            } else {
+                write!(code, "new {}(ref decoder)", type_string);
+            }
         }
         TypeRefs::Dictionary(dictionary_ref) => {
             code.write(&decode_dictionary(dictionary_ref, namespace))
@@ -371,11 +379,18 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
                 enum_ref.identifier()
             )
         }
-        TypeRefs::Struct(_) => {
-            format!(
-                "(ref SliceDecoder decoder) => new {}(ref decoder)",
-                type_name
-            )
+        TypeRefs::Struct(struct_ref) => {
+            if struct_ref.definition().has_attribute("cs:type", false) {
+                format!(
+                    "(ref SliceDecoder decoder) => {scoped_identifier}Extensions.Decode(ref decoder)",
+                    scoped_identifier = struct_ref.escape_scoped_identifier(namespace),
+                )
+            } else {
+                format!(
+                    "(ref SliceDecoder decoder) => new {}(ref decoder)",
+                    type_name
+                )
+            }
         }
         TypeRefs::Trait(_) => {
             format!(

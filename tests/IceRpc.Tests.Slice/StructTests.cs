@@ -50,6 +50,23 @@ namespace IceRpc.Tests.Slice
             }
         }
 
+        [Test]
+        public async Task Struct_CustomTypeAsync()
+        {
+            TimeSpan t1 = await _prx.OpMyTimeSpan1Async(TimeSpan.FromMilliseconds(100));
+            Assert.AreEqual(t1, TimeSpan.FromMilliseconds(100));
+
+            (TimeSpan t2, TimeSpan t3) = await _prx.OpMyTimeSpan2Async(
+                TimeSpan.FromMilliseconds(100),
+                TimeSpan.FromMilliseconds(200));
+            Assert.AreEqual(t2, TimeSpan.FromMilliseconds(100));
+            Assert.AreEqual(t3, TimeSpan.FromMilliseconds(200));
+
+            MyStructWithCustomType s1 = await _prx.OpMyStructWithCustomTypeAsync(new MyStructWithCustomType(t1));
+            Assert.AreEqual(s1.Timespan, TimeSpan.FromMilliseconds(100));
+
+        }
+
         public class StructOperations : Service, IStructOperations
         {
             public ValueTask<(MyStruct R1, MyStruct R2)> OpMyStructAsync(
@@ -63,6 +80,22 @@ namespace IceRpc.Tests.Slice
                 AnotherStruct p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<TimeSpan> OpMyTimeSpan1Async(
+                TimeSpan p1,
+                Dispatch dispatch,
+                CancellationToken cancel = default) => new(p1);
+
+            public ValueTask<(TimeSpan R1, TimeSpan R2)> OpMyTimeSpan2Async(
+                TimeSpan p1,
+                TimeSpan p2,
+                Dispatch dispatch,
+                CancellationToken cancel = default) => new((p1, p2));
+
+            public ValueTask<MyStructWithCustomType> OpMyStructWithCustomTypeAsync(
+                MyStructWithCustomType p1,
+                Dispatch dispatch,
+                CancellationToken cancel = default) => new(p1);
         }
     }
 
@@ -75,5 +108,14 @@ namespace IceRpc.Tests.Slice
         public override readonly int GetHashCode() => I.GetHashCode();
 
         public override readonly string ToString() => $"{I + J}";
+    }
+
+    public static class MyTimeSpanExtensions
+    {
+        public static void Encode(ref IceRpc.Slice.SliceEncoder encoder, TimeSpan value) =>
+            encoder.EncodeVarLong(checked((long)value.TotalMilliseconds));
+
+        public static TimeSpan Decode(ref IceRpc.Slice.SliceDecoder decoder) =>
+            TimeSpan.FromMilliseconds(decoder.DecodeVarLong());
     }
 }

@@ -107,11 +107,22 @@ fn encode_type(
                         value = value
                     )
                 }
-                TypeRefs::Struct(_) => format!(
-                    "{value}.Encode(ref {encoder_param});",
-                    value = value,
-                    encoder_param = encoder_param
-                ),
+                TypeRefs::Struct(struct_def) => {
+                    if struct_def.definition().has_attribute("cs:type", false) {
+                        format!(
+                            "{scoped_identifier}Extensions.Encode(ref {encoder_param}, {value});",
+                            scoped_identifier = struct_def.escape_scoped_identifier(namespace),
+                            encoder_param = encoder_param,
+                            value = value
+                        )
+                    } else {
+                        format!(
+                            "{value}.Encode(ref {encoder_param});",
+                            value = value,
+                            encoder_param = encoder_param
+                        )
+                    }
+                }
                 TypeRefs::Trait(_) => format!(
                     "{param}.EncodeTrait(ref {encoder_param});",
                     param = param,

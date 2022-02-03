@@ -108,7 +108,7 @@ impl Visitor for CsValidator {
             match attribute.directive.as_ref() {
                 "namespace" => {
                     match attribute.arguments.len() {
-                        1 => (), // Expected 1 argumnet
+                        1 => (), // Expected 1 argument
                         0 => slice::report_error(
                             r#"missing required argument, expected 'cs:namespace("<namespace>")'"#
                                 .to_owned(),
@@ -142,6 +142,19 @@ impl Visitor for CsValidator {
                             "too many arguments expected 'cs:readonly'".to_owned(),
                             Some(&attribute.location),
                         );
+                    }
+                }
+                "type" => {
+                    match attribute.arguments.len() {
+                        1 => (), // Expected 1 argument
+                        0 => slice::report_error(
+                            r#"missing required argument, expected 'cs:type("<type>")'"#.to_owned(),
+                            Some(&attribute.location),
+                        ),
+                        _ => slice::report_error(
+                            r#"too many arguments expected 'cs:type("<type>")'"#.to_owned(),
+                            Some(&attribute.location),
+                        ),
                     }
                 }
                 _ => validate_common_attributes(attribute),
