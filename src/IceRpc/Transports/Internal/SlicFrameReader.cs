@@ -1,45 +1,66 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Slice;
+using System.Buffers;
+using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The buffered receiver Slic frame reader class reads Slic frames from a buffered
-    /// receiver.</summary>
-    internal class BufferedReceiverSlicFrameReader : ISlicFrameReader, IDisposable
+    /// <summary>The Slic frame reader class reads Slic frames.</summary>
+    internal sealed class SlicFrameReader : ISlicFrameReader
     {
-        private readonly BufferedReceiver _receiver;
+        private readonly PipeReader _reader;
 
-        public void Dispose() => _receiver.Dispose();
+        public async ValueTask ReadFrameDataAsync(Memory<byte> buffer, CancellationToken cancel)
+        {
+            if (buffer.IsEmpty)
+            {
+                return;
+            }
 
-        public ValueTask ReadFrameDataAsync(Memory<byte> buffer, CancellationToken cancel) =>
-            buffer.IsEmpty ? default : _receiver.ReceiveAsync(buffer, cancel);
+            ReadResult result = await _reader.ReadAtLeastAsync(buffer.Length, cancel).ConfigureAwait(false);
+            result.Buffer.Slice(0, buffer.Length).CopyTo(buffer.Span);
+            _reader.AdvanceTo(result.Buffer.GetPosition(buffer.Length));
+        }
 
         public async ValueTask<(FrameType, int, long?)> ReadFrameHeaderAsync(CancellationToken cancel)
         {
-            var frameType = (FrameType)await _receiver.ReceiveByteAsync(cancel).ConfigureAwait(false);
-            int frameSize = await _receiver.ReceiveSizeAsync(cancel).ConfigureAwait(false);
-
-            if (frameType >= FrameType.Stream)
+            while (true)
             {
-                (ulong id, int idLength) = await _receiver.ReceiveVarULongAsync(cancel).ConfigureAwait(false);
-                return (frameType, frameSize - idLength, (long)id);
+                ReadResult readResult = await _reader.ReadAtLeastAsync(2, cancel).ConfigureAwait(false);
+                try
+                {
+                    return DecodeSlicHeader(readResult.Buffer);
+                }
+                catch (InvalidOperationException) // TODO: make EndOfBuffer public?
+                {
+                    // Ignore, we need additional data to decode the header.
+                    _reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                }
             }
-            else
+
+            (FrameType, int, long ?) DecodeSlicHeader(ReadOnlySequence<byte> buffer)
             {
-                return (frameType, frameSize, null);
+                var decoder = new SliceDecoder(buffer, Encoding.Slice20);
+                var frameType = (FrameType)decoder.DecodeByte();
+                int frameSize = decoder.DecodeSize();
+
+                (FrameType frameType, int, long?) result;
+                if (frameType >= FrameType.Stream)
+                {
+                    ulong streamId = decoder.DecodeVarULong();
+                    result = (frameType, frameSize - SliceEncoder.GetVarULongEncodedSize(streamId), (long)streamId);
+                }
+                else
+                {
+                    result = (frameType, frameSize, null);
+                }
+                _reader.AdvanceTo(buffer.GetPosition(decoder.Consumed));
+                return result;
             }
         }
 
-        internal BufferedReceiverSlicFrameReader(BufferedReceiver receiver) => _receiver = receiver;
-    }
-
-    /// <summary>The Slic frame reader class reads Slic frames.</summary>
-    internal sealed class SlicFrameReader : BufferedReceiverSlicFrameReader
-    {
-        internal SlicFrameReader(Func<Memory<byte>, CancellationToken, ValueTask<int>> readFunc) :
-            base(new BufferedReceiver(readFunc, 256))
-        {
-        }
+        internal SlicFrameReader(PipeReader reader) => _reader = reader;
     }
 }

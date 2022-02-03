@@ -1,9 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using IceRpc.Slice;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Buffers;
+using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {
@@ -36,79 +37,84 @@ namespace IceRpc.Transports.Internal
 
         private void LogSentFrame(ReadOnlyMemory<byte> buffer)
         {
-            FrameType type;
-            int dataSize;
-            long? streamId = null;
-
-            using var reader = new BufferedReceiverSlicFrameReader(new BufferedReceiver(buffer));
-            (type, dataSize, streamId) = ReadFrame(() => reader.ReadFrameHeaderAsync(default));
-
-            int frameSize = dataSize;
-            if (streamId != null)
+            var pipeReader = PipeReader.Create(new ReadOnlySequence<byte>(buffer));
+            var reader = new SlicFrameReader(pipeReader);
+            try
             {
-                frameSize += SliceEncoder.GetVarULongEncodedSize((ulong)streamId);
+                (FrameType type, int dataSize, long? streamId) = ReadFrame(() => reader.ReadFrameHeaderAsync(default));
+
+                int frameSize = dataSize;
+                if (streamId != null)
+                {
+                    frameSize += SliceEncoder.GetVarULongEncodedSize((ulong)streamId);
+                }
+
+                // Log the received frame.
+                switch (type)
+                {
+                    case FrameType.Initialize:
+                    {
+                        (uint version, InitializeBody? initializeBody) =
+                            ReadFrame(() => reader.ReadInitializeAsync(type, dataSize, default));
+                        _logger.LogSentSlicInitializeFrame(dataSize, version, initializeBody!.Value);
+                        break;
+                    }
+                    case FrameType.InitializeAck:
+                    case FrameType.Version:
+                    {
+                        (InitializeAckBody? initializeAckBody, VersionBody? versionBody) =
+                            ReadFrame(() => reader.ReadInitializeAckOrVersionAsync(type, dataSize, default));
+                        if (initializeAckBody != null)
+                        {
+                            _logger.LogSentSlicInitializeAckFrame(dataSize, initializeAckBody.Value);
+                        }
+                        else
+                        {
+                            _logger.LogSentSlicVersionFrame(dataSize, versionBody!.Value);
+                        }
+                        break;
+                    }
+                    case FrameType.Stream:
+                    case FrameType.StreamLast:
+                    {
+                        _logger.LogSentSlicFrame(type, dataSize);
+                        break;
+                    }
+                    case FrameType.StreamReset:
+                    {
+                        StreamResetBody resetBody = ReadFrame(() => reader.ReadStreamResetAsync(dataSize, default));
+                        _logger.LogSentSlicResetFrame(dataSize, resetBody.ApplicationProtocolErrorCode);
+                        break;
+                    }
+                    case FrameType.StreamResumeWrite:
+                    {
+                        StreamResumeWriteBody consumedBody =
+                            ReadFrame(() => reader.ReadStreamResumeWriteAsync(dataSize, default));
+                        _logger.LogSentSlicResumeWriteFrame(dataSize, (int)consumedBody.Size);
+                        break;
+                    }
+                    case FrameType.StreamStopSending:
+                    {
+                        StreamStopSendingBody stopSendingBody =
+                            ReadFrame(() => reader.ReadStreamStopSendingAsync(dataSize, default));
+                        _logger.LogSentSlicStopSendingFrame(dataSize, stopSendingBody.ApplicationProtocolErrorCode);
+                        break;
+                    }
+                    case FrameType.UnidirectionalStreamReleased:
+                    {
+                        _logger.LogSentSlicUnidirectionalStreamReleasedFrame();
+                        break;
+                    }
+                    default:
+                    {
+                        Debug.Assert(false, $"unexpected Slic frame {type}");
+                        break;
+                    }
+                }
             }
-
-            // Log the received frame.
-            switch (type)
+            finally
             {
-                case FrameType.Initialize:
-                {
-                    (uint version, InitializeBody? initializeBody) =
-                        ReadFrame(() => reader.ReadInitializeAsync(type, dataSize, default));
-                    _logger.LogSentSlicInitializeFrame(dataSize, version, initializeBody!.Value);
-                    break;
-                }
-                case FrameType.InitializeAck:
-                case FrameType.Version:
-                {
-                    (InitializeAckBody? initializeAckBody, VersionBody? versionBody) =
-                        ReadFrame(() => reader.ReadInitializeAckOrVersionAsync(type, dataSize, default));
-                    if (initializeAckBody != null)
-                    {
-                        _logger.LogSentSlicInitializeAckFrame(dataSize, initializeAckBody.Value);
-                    }
-                    else
-                    {
-                        _logger.LogSentSlicVersionFrame(dataSize, versionBody!.Value);
-                    }
-                    break;
-                }
-                case FrameType.Stream:
-                case FrameType.StreamLast:
-                {
-                    _logger.LogSentSlicFrame(type, dataSize);
-                    break;
-                }
-                case FrameType.StreamReset:
-                {
-                    StreamResetBody resetBody = ReadFrame(() => reader.ReadStreamResetAsync(dataSize, default));
-                    _logger.LogSentSlicResetFrame(dataSize, resetBody.ApplicationProtocolErrorCode);
-                    break;
-                }
-                case FrameType.StreamResumeWrite:
-                {
-                    StreamResumeWriteBody consumedBody = ReadFrame(() => reader.ReadStreamResumeWriteAsync(dataSize, default));
-                    _logger.LogSentSlicResumeWriteFrame(dataSize, (int)consumedBody.Size);
-                    break;
-                }
-                case FrameType.StreamStopSending:
-                {
-                    StreamStopSendingBody stopSendingBody =
-                        ReadFrame(() => reader.ReadStreamStopSendingAsync(dataSize, default));
-                    _logger.LogSentSlicStopSendingFrame(dataSize, stopSendingBody.ApplicationProtocolErrorCode);
-                    break;
-                }
-                case FrameType.UnidirectionalStreamReleased:
-                {
-                    _logger.LogSentSlicUnidirectionalStreamReleasedFrame();
-                    break;
-                }
-                default:
-                {
-                    Debug.Assert(false, $"unexpected Slic frame {type}");
-                    break;
-                }
+                pipeReader.Complete();
             }
 
             static T ReadFrame<T>(Func<ValueTask<T>> readFunc)

@@ -32,7 +32,6 @@ namespace IceRpc.Transports.Internal
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly int _bidirectionalMaxStreams;
         private bool _isDisposed;
-        private readonly IDisposable _disposableReader;
         private long _lastRemoteBidirectionalStreamId = -1;
         private long _lastRemoteUnidirectionalStreamId = -1;
         // _mutex ensure the assignment of _lastRemoteXxx members and the addition of the stream to _streams is
@@ -46,6 +45,7 @@ namespace IceRpc.Transports.Internal
         private readonly ArrayBufferWriter<byte> _sendFrameWriter = new(256);
         private readonly AsyncSemaphore _sendSemaphore = new(1);
         private readonly ISimpleNetworkConnection _simpleNetworkConnection;
+        private readonly SimpleNetworkConnectionPipeReader _simpleNetworkConnectionPipeReader;
         private readonly ConcurrentDictionary<long, SlicMultiplexedStream> _streams = new();
         private readonly int _unidirectionalMaxStreams;
         private int _unidirectionalStreamCount;
@@ -165,6 +165,7 @@ namespace IceRpc.Transports.Internal
                     catch (Exception exception)
                     {
                         _acceptedStreamQueue.TryComplete(exception);
+                        await _simpleNetworkConnectionPipeReader.CompleteAsync(exception).ConfigureAwait(false);
                     }
                 },
                 CancellationToken.None);
@@ -199,7 +200,8 @@ namespace IceRpc.Transports.Internal
             // Unblock task blocked on AcceptStreamAsync
             _acceptedStreamQueue.TryComplete(exception);
 
-            _disposableReader.Dispose();
+            // Cancel pending read. ReadFramesAsync
+            _simpleNetworkConnectionPipeReader.CancelPendingRead();
         }
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
@@ -214,12 +216,15 @@ namespace IceRpc.Transports.Internal
         {
             IsServer = isServer;
 
-            var reader = new SlicFrameReader(simpleNetworkConnection.ReadAsync);
-            _disposableReader = reader;
+            _simpleNetworkConnection = simpleNetworkConnection;
+            _simpleNetworkConnectionPipeReader = new SimpleNetworkConnectionPipeReader(
+                _simpleNetworkConnection,
+                slicOptions.Pool,
+                slicOptions.MinimumSegmentSize);
+
+            var reader = new SlicFrameReader(_simpleNetworkConnectionPipeReader);
             _reader = slicFrameReaderDecorator(reader);
             _writer = slicFrameWriterDecorator(new SlicFrameWriter(simpleNetworkConnection.WriteAsync));
-
-            _simpleNetworkConnection = simpleNetworkConnection;
 
             _packetMaxSize = slicOptions.PacketMaxSize;
             PauseWriterThreshold = slicOptions.PauseWriterThreshold;
