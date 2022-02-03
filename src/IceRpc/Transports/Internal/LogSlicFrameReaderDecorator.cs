@@ -13,10 +13,14 @@ namespace IceRpc.Transports.Internal
         private readonly ISlicFrameReader _decoratee;
         private FrameType _frameType;
         private int _frameDataSize;
+        private long? _frameStreamId;
         private readonly ILogger _logger;
 
         public async ValueTask ReadFrameDataAsync(Memory<byte> buffer, CancellationToken cancel)
         {
+            using IDisposable? _ = _frameStreamId == null ?
+                null :
+                _logger.StartMultiplexedStreamScope(_frameStreamId.Value);
             await _decoratee.ReadFrameDataAsync(buffer, cancel).ConfigureAwait(false);
             if (_frameType != FrameType.Stream && _frameType != FrameType.StreamLast)
             {
@@ -26,14 +30,14 @@ namespace IceRpc.Transports.Internal
 
         public async ValueTask<(FrameType, int, long?)> ReadFrameHeaderAsync(CancellationToken cancel)
         {
-            long? streamId;
-            (_frameType, _frameDataSize, streamId) =
+            (_frameType, _frameDataSize, _frameStreamId) =
                 await _decoratee.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
             if (_frameType == FrameType.Stream || _frameType == FrameType.StreamLast)
             {
+                using IDisposable? _ = _logger.StartMultiplexedStreamScope(_frameStreamId!.Value);
                 _logger.LogReceivingSlicDataFrame(_frameType, _frameDataSize);
             }
-            return (_frameType, _frameDataSize, streamId);
+            return (_frameType, _frameDataSize, _frameStreamId);
         }
 
         internal LogSlicFrameReaderDecorator(ISlicFrameReader decoratee, ILogger logger)

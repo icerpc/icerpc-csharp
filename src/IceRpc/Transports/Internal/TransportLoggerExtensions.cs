@@ -92,18 +92,21 @@ namespace IceRpc.Transports.Internal
 
         internal static IDisposable StartMultiplexedStreamScope(this ILogger logger, IMultiplexedStream stream) =>
             stream.IsStarted ?
-                (stream.Id % 4) switch
-                {
-                    0 => _multiplexedStreamScope(logger, stream.Id, "Client", "Bidirectional"),
-                    1 => _multiplexedStreamScope(logger, stream.Id, "Server", "Bidirectional"),
-                    2 => _multiplexedStreamScope(logger, stream.Id, "Client", "Unidirectional"),
-                    _ => _multiplexedStreamScope(logger, stream.Id, "Server", "Unidirectional")
-                } :
+                StartMultiplexedStreamScope(logger, stream.Id) :
                 // Client stream is not started yet
                 stream.IsBidirectional switch
                 {
                     false => _multiplexedStreamScope(logger, -1, "Client", "Unidirectional"),
                     true => _multiplexedStreamScope(logger, -1, "Client", "Bidirectional")
                 };
+
+        internal static IDisposable StartMultiplexedStreamScope(this ILogger logger, long streamId) =>
+            (streamId % 4) switch
+            {
+                0 => _multiplexedStreamScope(logger, streamId, "Client", "Bidirectional"),
+                1 => _multiplexedStreamScope(logger, streamId, "Server", "Bidirectional"),
+                2 => _multiplexedStreamScope(logger, streamId, "Client", "Unidirectional"),
+                _ => _multiplexedStreamScope(logger, streamId, "Server", "Unidirectional")
+            };
     }
 }

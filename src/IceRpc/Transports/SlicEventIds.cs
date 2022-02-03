@@ -23,8 +23,6 @@ namespace IceRpc.Transports
         ReceivedVersionFrame,
         /// <summary>Receiving Slic stream data frame.</summary>
         ReceivingStreamFrame,
-        /// <summary>Sending Slic frame.</summary>
-        SendingStreamFrame,
         /// <summary>Sending Slic frame failed.</summary>
         SendFailure,
         /// <summary>Sent Slic stream resume write frame.</summary>
@@ -37,6 +35,8 @@ namespace IceRpc.Transports
         SentInitializeAckFrame,
         /// <summary>Sent Slic reset frame.</summary>
         SentResetFrame,
+        /// <summary>Sent Slic stream frame.</summary>
+        SentStreamFrame,
         /// <summary>Sent Slic stop sending frame.</summary>
         SentStopSendingFrame,
         /// <summary>Sent Slic version frame.</summary>

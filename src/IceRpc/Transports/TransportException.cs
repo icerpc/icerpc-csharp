@@ -111,7 +111,7 @@ namespace IceRpc.Transports
         }
 
         internal MultiplexedStreamAbortedException(long error) :
-            this((MultiplexedStreamErrorKind)(error >> 32), (int)error)
+            this((MultiplexedStreamErrorKind)(error >> 32), (int)(error & (long)int.MaxValue))
         {
         }
 

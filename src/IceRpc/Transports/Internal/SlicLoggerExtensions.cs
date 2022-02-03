@@ -103,13 +103,6 @@ namespace IceRpc.Transports.Internal
         }
 
         [LoggerMessage(
-            EventId = (int)SlicEventIds.SendingStreamFrame,
-            EventName = nameof(SlicEventIds.SendingStreamFrame),
-            Level = LogLevel.Debug,
-            Message = "sending Slic {FrameType} frame (FrameSize={FrameSize})")]
-        internal static partial void LogSendingSlicFrame(this ILogger logger, FrameType frameType, int frameSize);
-
-        [LoggerMessage(
             EventId = (int)SlicEventIds.SendFailure,
             EventName = nameof(SlicEventIds.SendFailure),
             Level = LogLevel.Debug,
@@ -128,6 +121,13 @@ namespace IceRpc.Transports.Internal
             this ILogger logger,
             int frameSize,
             int size);
+
+        [LoggerMessage(
+            EventId = (int)SlicEventIds.SentStreamFrame,
+            EventName = nameof(SlicEventIds.SentStreamFrame),
+            Level = LogLevel.Debug,
+            Message = "sent Slic {FrameType} frame (FrameSize={FrameSize})")]
+        internal static partial void LogSentSlicFrame(this ILogger logger, FrameType frameType, int frameSize);
 
         [LoggerMessage(
             EventId = (int)SlicEventIds.SentUnidirectionalStreamReleased,
