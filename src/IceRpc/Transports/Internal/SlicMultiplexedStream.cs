@@ -308,6 +308,9 @@ namespace IceRpc.Transports.Internal
                 }
                 else
                 {
+                    // TODO: directly copy the data from the single network connection input pipe to the stream
+                    // _inputPipeWriter.
+
                     // Read and append the received data to the input pipe writer.
                     while (size > 0)
                     {
