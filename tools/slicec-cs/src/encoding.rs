@@ -107,8 +107,8 @@ fn encode_type(
                         value = value
                     )
                 }
-                TypeRefs::Struct(struct_def) => {
-                    if struct_def.definition().has_attribute("cs:type", false) {
+                TypeRefs::Struct(struct_ref) => {
+                    if struct_ref.definition().has_attribute("cs:type", false) {
                         format!(
                             "{scoped_identifier}Extensions.Encode(ref {encoder_param}, {value});",
                             scoped_identifier = struct_def.escape_scoped_identifier(namespace),
