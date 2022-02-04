@@ -1,6 +1,7 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using System.Buffers;
 using System.Net;
 using System.Net.Security;
 
@@ -25,6 +26,19 @@ namespace IceRpc.Configure
         /// <value>The boolean value to enable or disable IPv6-only support.</value>
         public bool IsIPv6Only { get; init; }
 
+        /// <summary>Gets the <see cref="MemoryPool{T}" /> object used for buffer management.</summary>
+        /// <value>A pool of memory blocks used for buffer management.</value>
+        public MemoryPool<byte> Pool { get; init; } = MemoryPool<byte>.Shared;
+
+        /// <summary>Gets the minimum size of the segment requested from the <see cref="Pool" />.</summary>
+        /// <value>The minimum size of the segment requested from the <see cref="Pool" />.</value>
+        public int MinimumSegmentSize
+        {
+            get => _minimumSegmentSize;
+            init => _minimumSegmentSize = value >= 1024 ? value :
+                throw new ArgumentException($"{nameof(MinimumSegmentSize)} can't be less than 1KB", nameof(value));
+        }
+
         /// <summary>The socket receive buffer size in bytes. It can't be less than 1KB. If not set, the OS default
         /// receive buffer size is used.</summary>
         /// <value>The receive buffer size in bytes.</value>
@@ -46,6 +60,7 @@ namespace IceRpc.Configure
         }
 
         private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
+        private int _minimumSegmentSize = 4096;
         private int? _receiveBufferSize;
         private int? _sendBufferSize;
     }

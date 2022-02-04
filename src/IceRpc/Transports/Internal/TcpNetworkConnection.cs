@@ -15,22 +15,19 @@ namespace IceRpc.Transports.Internal
 {
     internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
     {
-        // TODO: this is temporary, we should instead create SslPipeReader or SocketPipeWriter. Memory pool and minimum
-        // segment size should be properties of TcpOptions.
         public PipeReader Input =>
-            InputPipeReader ?? throw new InvalidOperationException("connection not connected");
+            _inputPipeReader ?? throw new InvalidOperationException("connection not connected");
 
         public bool IsSecure => SslStream != null;
 
         public TimeSpan LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
-
-        // TODO: this is temporary, we should instead create SslPipeReader or SocketPipeWriter. Memory pool and minimum
-        // segment size should be properties of TcpOptions.
         public PipeWriter Output =>
-            OutputPipeWriter ?? throw new InvalidOperationException("connection not connected");
+            _outputPipeWriter ?? throw new InvalidOperationException("connection not connected");
 
-        protected PipeReader? InputPipeReader;
-        protected PipeWriter? OutputPipeWriter;
+        private PipeReader? _inputPipeReader;
+        private readonly MemoryPool<byte> _pool;
+        private readonly int _minimumSegmentSize;
+        private PipeWriter? _outputPipeWriter;
 
         internal abstract Socket Socket { get; }
         internal abstract SslStream? SslStream { get; }
@@ -66,13 +63,13 @@ namespace IceRpc.Transports.Internal
             }
 
             var exception = new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
-            if (InputPipeReader != null)
+            if (_inputPipeReader != null)
             {
-                await InputPipeReader.CompleteAsync(exception).ConfigureAwait(false);
+                await _inputPipeReader.CompleteAsync(exception).ConfigureAwait(false);
             }
-            if (OutputPipeWriter != null)
+            if (_outputPipeWriter != null)
             {
-                await OutputPipeWriter.CompleteAsync(exception).ConfigureAwait(false);
+                await _outputPipeWriter.CompleteAsync(exception).ConfigureAwait(false);
             }
         }
 
@@ -216,6 +213,43 @@ namespace IceRpc.Transports.Internal
             }
         }
 
+        protected TcpNetworkConnection(MemoryPool<byte> pool, int minimumSegmentSize)
+        {
+            _pool = pool;
+            _minimumSegmentSize = minimumSegmentSize;
+        }
+
+        protected void InitializeDuplexPipe()
+        {
+            Action updateLastActivity =
+                () => Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
+
+            if (SslStream is Stream stream)
+            {
+                _inputPipeReader = new LastActivityPipeReaderDecorator(
+                    PipeReader.Create(
+                        stream,
+                        new StreamPipeReaderOptions(_pool, bufferSize: _minimumSegmentSize, leaveOpen: true)),
+                    updateLastActivity);
+
+                _outputPipeWriter = new LastActivityPipeWriterDecorator(
+                    PipeWriter.Create(
+                        stream,
+                        new StreamPipeWriterOptions(_pool, minimumBufferSize: _minimumSegmentSize, leaveOpen: true)),
+                    updateLastActivity);
+            }
+            else
+            {
+                _inputPipeReader = new LastActivityPipeReaderDecorator(
+                    new SocketPipeReader(Socket, _pool, _minimumSegmentSize),
+                    updateLastActivity);
+
+                _outputPipeWriter = new LastActivityReadOnlySequencePipeWriterDecorator(
+                    new SocketPipeWriter(Socket, _pool, _minimumSegmentSize),
+                    updateLastActivity);
+            }
+        }
+
         /// <summary>Prints the fields/properties of this class using the Records format.</summary>
         /// <param name="builder">The string builder.</param>
         /// <returns><c>true</c>when members are appended to the builder; otherwise, <c>false</c>.</returns>
@@ -283,28 +317,15 @@ namespace IceRpc.Transports.Internal
                 // Connect to the peer.
                 await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
 
-                // TODO: add pool and minimum segment size to TcpOptions.
-
                 if (tls == true)
                 {
                     // This can only be created with a connected socket.
                     _sslStream = new SslStream(new System.Net.Sockets.NetworkStream(Socket, false), false);
                     await _sslStream.AuthenticateAsClientAsync(authenticationOptions!, cancel).ConfigureAwait(false);
-
-                    InputPipeReader = PipeReader.Create(
-                        _sslStream,
-                        new StreamPipeReaderOptions(MemoryPool<byte>.Shared, bufferSize: 4096, leaveOpen: true));
-
-                    // TODO: Fix to use a custom pipe writer that extends ReadOnlySequencePipeWriter.
-                    OutputPipeWriter = PipeWriter.Create(
-                        _sslStream,
-                        new StreamPipeWriterOptions(MemoryPool<byte>.Shared, minimumBufferSize: 4096, leaveOpen: true));
                 }
-                else
-                {
-                    InputPipeReader = new SocketPipeReader(Socket, MemoryPool<byte>.Shared, 4096);
-                    OutputPipeWriter = new SocketPipeWriter(Socket, MemoryPool<byte>.Shared, 4096);
-                }
+
+                // We can initialize the duplex pipe now.
+                InitializeDuplexPipe();
 
                 var ipEndPoint = (IPEndPoint)Socket.LocalEndPoint!;
 
@@ -342,7 +363,8 @@ namespace IceRpc.Transports.Internal
             return tls == null || tls == (_sslStream != null);
         }
 
-        internal TcpClientNetworkConnection(Endpoint remoteEndpoint, TcpClientOptions options)
+        internal TcpClientNetworkConnection(Endpoint remoteEndpoint, TcpClientOptions options) :
+            base(options.Pool, options.MinimumSegmentSize)
         {
             _remoteEndpoint = remoteEndpoint.WithTransport(TransportNames.Tcp);
 
@@ -455,21 +477,10 @@ namespace IceRpc.Transports.Internal
                     // This can only be created with a connected socket.
                     _sslStream = new SslStream(new System.Net.Sockets.NetworkStream(Socket, false), false);
                     await _sslStream.AuthenticateAsServerAsync(_authenticationOptions, cancel).ConfigureAwait(false);
-
-                    InputPipeReader = PipeReader.Create(
-                        _sslStream,
-                        new StreamPipeReaderOptions(MemoryPool<byte>.Shared, bufferSize: 4096, leaveOpen: true));
-
-                    // TODO: Fix to use a custom pipe writer that extends ReadOnlySequencePipeWriter.
-                    OutputPipeWriter = PipeWriter.Create(
-                        _sslStream,
-                        new StreamPipeWriterOptions(MemoryPool<byte>.Shared, minimumBufferSize: 4096, leaveOpen: true));
                 }
-                else
-                {
-                    InputPipeReader = new SocketPipeReader(Socket, MemoryPool<byte>.Shared, 4096);
-                    OutputPipeWriter = new SocketPipeWriter(Socket, MemoryPool<byte>.Shared, 4096);
-                }
+
+                // We can initialize the duplex pipe now.
+                InitializeDuplexPipe();
 
                 ImmutableDictionary<string, string> endpointParams = _localEndpoint.Params;
                 if (_tls == null)
@@ -509,7 +520,10 @@ namespace IceRpc.Transports.Internal
             Endpoint localEndpoint,
             bool? tls,
             TimeSpan idleTimeout,
-            SslServerAuthenticationOptions? authenticationOptions)
+            SslServerAuthenticationOptions? authenticationOptions,
+            MemoryPool<byte> pool,
+            int minimumSegmentSize) :
+            base(pool, minimumSegmentSize)
         {
             Socket = socket;
             _authenticationOptions = authenticationOptions;

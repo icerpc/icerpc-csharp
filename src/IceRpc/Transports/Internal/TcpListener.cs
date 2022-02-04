@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using System.Buffers;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -14,6 +15,8 @@ namespace IceRpc.Transports.Internal
 
         private readonly SslServerAuthenticationOptions? _authenticationOptions;
         private readonly TimeSpan _idleTimeout;
+        private readonly int _minimumSegmentSize;
+        private readonly MemoryPool<byte> _pool;
         private readonly Func<TcpServerNetworkConnection, ISimpleNetworkConnection> _serverConnectionDecorator;
         private readonly Socket _socket;
 
@@ -43,7 +46,9 @@ namespace IceRpc.Transports.Internal
                                                Endpoint,
                                                _tls,
                                                _idleTimeout,
-                                               _authenticationOptions));
+                                               _authenticationOptions,
+                                               _pool,
+                                               _minimumSegmentSize));
 #pragma warning restore CA2000
         }
 
@@ -71,6 +76,10 @@ namespace IceRpc.Transports.Internal
             _tls = endpoint.ParseTcpParams().Tls;
 
             _idleTimeout = options.IdleTimeout;
+
+            _pool = options.Pool;
+
+            _minimumSegmentSize = options.MinimumSegmentSize;
 
             _serverConnectionDecorator = serverConnectionDecorator;
 
