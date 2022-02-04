@@ -9,33 +9,19 @@ namespace IceRpc.Transports.Internal
     /// copies the send buffer into the receive buffer.</summary>
     internal class ColocNetworkConnection : ISimpleNetworkConnection
     {
-        // TODO: this is temporary. Memory pool and minimum segment size should be properties of ColocOptions.
-        public PipeReader Input => _inputPipeReader ??= new SimpleNetworkConnectionPipeReader(
-            this,
-            MemoryPool<byte>.Shared,
-            4096);
+        public PipeReader Input { get; }
+        public PipeWriter Output { get; }
 
         bool INetworkConnection.IsSecure => true;
-
         TimeSpan INetworkConnection.LastActivity => TimeSpan.Zero;
-
-        // TODO: this is temporary. Memory pool and minimum segment size should be properties of ColocOptions.
-        public PipeWriter Output => _outputPipeWriter ??= new SimpleNetworkConnectionPipeWriter(
-            this,
-            MemoryPool<byte>.Shared,
-            4096);
 
         private readonly Endpoint _endpoint;
         private readonly bool _isServer;
-        private PipeReader? _inputPipeReader;
-        private PipeWriter? _outputPipeWriter;
-        private readonly PipeReader _reader;
-        private readonly PipeWriter _writer;
 
         public Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel) =>
             Task.FromResult(new NetworkConnectionInformation(_endpoint, _endpoint, TimeSpan.MaxValue, null));
 
-        public ValueTask DisposeAsync() => _writer.CompleteAsync();
+        public ValueTask DisposeAsync() => Output.CompleteAsync(new ConnectionLostException());
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
@@ -48,10 +34,10 @@ namespace IceRpc.Transports.Internal
 
         public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
-            ReadResult readResult = await _reader.ReadAsync(cancel).ConfigureAwait(false);
+            ReadResult readResult = await Input.ReadAsync(cancel).ConfigureAwait(false);
             if (readResult.IsCompleted)
             {
-                await _reader.CompleteAsync().ConfigureAwait(false);
+                await Input.CompleteAsync().ConfigureAwait(false);
                 throw new ObjectDisposedException(nameof(ColocNetworkConnection));
             }
 
@@ -75,7 +61,7 @@ namespace IceRpc.Transports.Internal
                     }
                 }
             }
-            _reader.AdvanceTo(readResult.Buffer.GetPosition(read));
+            Input.AdvanceTo(readResult.Buffer.GetPosition(read));
             return read;
 
             static int CopySegmentToMemory(ReadOnlyMemory<byte> source, Memory<byte> destination)
@@ -99,7 +85,7 @@ namespace IceRpc.Transports.Internal
             {
                 try
                 {
-                    FlushResult result = await _writer.WriteAsync(buffers.Span[i], cancel).ConfigureAwait(false);
+                    FlushResult result = await Output.WriteAsync(buffers.Span[i], cancel).ConfigureAwait(false);
                     if (result.IsCompleted)
                     {
                         throw new ObjectDisposedException(nameof(ColocNetworkConnection));
@@ -121,8 +107,8 @@ namespace IceRpc.Transports.Internal
         {
             _endpoint = endpoint;
             _isServer = isServer;
-            _reader = reader;
-            _writer = writer;
+            Input = reader;
+            Output = writer;
         }
     }
 }

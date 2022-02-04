@@ -5,11 +5,8 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {
-    // TODO: temporary, this should be replaced with SslStreamPipeReader, SocketPipeReader, or it should be a base
-    // class to implement these.
-    internal class SimpleNetworkConnectionPipeReader : PipeReader
+    internal abstract class BufferedPipeReader : PipeReader
     {
-        private readonly ISimpleNetworkConnection _connection;
         private readonly Pipe _pipe;
 
         public override void AdvanceTo(SequencePosition consumed) =>
@@ -33,7 +30,7 @@ namespace IceRpc.Transports.Internal
             if (!_pipe.Reader.TryRead(out ReadResult readResult))
             {
                 Memory<byte> buffer = _pipe.Writer.GetMemory();
-                int count = await _connection.ReadAsync(buffer, cancel).ConfigureAwait(false);
+                int count = await ReadAsync(buffer, cancel).ConfigureAwait(false);
                 _pipe.Writer.Advance(count);
                 if (count == 0)
                 {
@@ -55,17 +52,13 @@ namespace IceRpc.Transports.Internal
 
         public override bool TryRead(out ReadResult result) => _pipe.Reader.TryRead(out result);
 
-        internal SimpleNetworkConnectionPipeReader(
-            ISimpleNetworkConnection connection,
-            MemoryPool<byte> pool,
-            int minimumSegmentSize)
-        {
-            _connection = connection;
+        internal BufferedPipeReader(MemoryPool<byte> pool, int minimumSegmentSize) =>
             _pipe = new Pipe(new PipeOptions(
                 pool: pool,
                 minimumSegmentSize: minimumSegmentSize,
                 pauseWriterThreshold: 0,
                 writerScheduler: PipeScheduler.Inline));
-        }
+
+        protected internal abstract ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel);
     }
 }

@@ -16,7 +16,6 @@ namespace IceRpc.Transports.Internal
             ReadOnlySequence<byte> payload,
             CancellationToken cancel)
         {
-            // Copy the Slic header
             slicHeader.CopyTo(_writer.GetMemory(slicHeader.Length));
             _writer.Advance(slicHeader.Length);
 
@@ -39,12 +38,12 @@ namespace IceRpc.Transports.Internal
             }
             else
             {
-                // If the simple network connection output pipe writer doesn't support a ReadOnlySequence write method.
-                // Take the slow path by copying the data to the output pipe writer and flushing it.
+                // If the simple network connection output pipe writer doesn't support a ReadOnlySequence write method,
+                // we copy the data to the output pipe writer and we flush it.
                 foreach (ReadOnlyMemory<byte> memory in payload)
                 {
                     memory.CopyTo(_writer.GetMemory(memory.Length));
-                    _writer.Advance(slicHeader.Length);
+                    _writer.Advance(memory.Length);
                 }
                 await WaitTask(_writer.FlushAsync(CancellationToken.None)).ConfigureAwait(false);
             }

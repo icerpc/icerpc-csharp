@@ -17,10 +17,8 @@ namespace IceRpc.Transports.Internal
     {
         // TODO: this is temporary, we should instead create SslPipeReader or SocketPipeWriter. Memory pool and minimum
         // segment size should be properties of TcpOptions.
-        public PipeReader Input => _inputPipeReader ??= new SimpleNetworkConnectionPipeReader(
-            this,
-            MemoryPool<byte>.Shared,
-            4096);
+        public PipeReader Input =>
+            InputPipeReader ?? throw new InvalidOperationException("connection not connected");
 
         public bool IsSecure => SslStream != null;
 
@@ -28,10 +26,11 @@ namespace IceRpc.Transports.Internal
 
         // TODO: this is temporary, we should instead create SslPipeReader or SocketPipeWriter. Memory pool and minimum
         // segment size should be properties of TcpOptions.
-        public PipeWriter Output => _outputPipeWriter ??= new SimpleNetworkConnectionPipeWriter(
-            this,
-            MemoryPool<byte>.Shared,
-            4096);
+        public PipeWriter Output =>
+            OutputPipeWriter ?? throw new InvalidOperationException("connection not connected");
+
+        protected PipeReader? InputPipeReader;
+        protected PipeWriter? OutputPipeWriter;
 
         internal abstract Socket Socket { get; }
         internal abstract SslStream? SslStream { get; }
@@ -39,9 +38,7 @@ namespace IceRpc.Transports.Internal
         // The MaxDataSize of the SSL implementation.
         private const int MaxSslDataSize = 16 * 1024;
 
-        private PipeReader? _inputPipeReader;
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
-        private PipeWriter? _outputPipeWriter;
 
         public abstract Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel);
 
@@ -276,11 +273,27 @@ namespace IceRpc.Transports.Internal
                 // Connect to the peer.
                 await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
 
+                // TODO: add pool and minimum segment size to TcpOptions.
+
                 if (tls == true)
                 {
                     // This can only be created with a connected socket.
                     _sslStream = new SslStream(new System.Net.Sockets.NetworkStream(Socket, false), false);
                     await _sslStream.AuthenticateAsClientAsync(authenticationOptions!, cancel).ConfigureAwait(false);
+
+                    InputPipeReader = PipeReader.Create(
+                        _sslStream,
+                        new StreamPipeReaderOptions(MemoryPool<byte>.Shared, bufferSize: 4096, leaveOpen: true));
+
+                    // TODO: Fix to use a custom pipe writer that extends ReadOnlySequencePipeWriter.
+                    OutputPipeWriter = PipeWriter.Create(
+                        _sslStream,
+                        new StreamPipeWriterOptions(MemoryPool<byte>.Shared, minimumBufferSize: 4096, leaveOpen: true));
+                }
+                else
+                {
+                    InputPipeReader = new SocketPipeReader(Socket, MemoryPool<byte>.Shared, 4096);
+                    OutputPipeWriter = new SocketPipeWriter(Socket, MemoryPool<byte>.Shared, 4096);
                 }
 
                 var ipEndPoint = (IPEndPoint)Socket.LocalEndPoint!;

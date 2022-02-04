@@ -20,6 +20,10 @@ namespace IceRpc.Transports.Internal
             }
 
             ReadResult result = await _reader.ReadAtLeastAsync(buffer.Length, cancel).ConfigureAwait(false);
+            if (result.IsCompleted|| result.IsCanceled)
+            {
+                throw new ConnectionLostException();
+            }
             result.Buffer.Slice(0, buffer.Length).CopyTo(buffer.Span);
             _reader.AdvanceTo(result.Buffer.GetPosition(buffer.Length));
         }
@@ -29,6 +33,10 @@ namespace IceRpc.Transports.Internal
             while (true)
             {
                 ReadResult readResult = await _reader.ReadAtLeastAsync(2, cancel).ConfigureAwait(false);
+                if (readResult.IsCompleted || readResult.IsCanceled)
+                {
+                    throw new ConnectionLostException();
+                }
                 try
                 {
                     return DecodeSlicHeader(readResult.Buffer);

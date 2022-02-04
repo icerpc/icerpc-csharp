@@ -107,8 +107,7 @@ namespace IceRpc.Transports.Internal
 
         public override Span<byte> GetSpan(int sizeHint) => _pipe.Writer.GetSpan(sizeHint);
 
-        internal BufferedPipeWriter(MemoryPool<byte> pool, int minimumSegmentSize)
-        {
+        internal BufferedPipeWriter(MemoryPool<byte> pool, int minimumSegmentSize) =>
             // Create a pipe that never pauses on flush or write. We also use an inline pipe scheduler for write to
             // avoid thread context switches when FlushAsync is called on the internal pipe writer.
             _pipe = new(new PipeOptions(
@@ -116,7 +115,6 @@ namespace IceRpc.Transports.Internal
                 minimumSegmentSize: minimumSegmentSize,
                 pauseWriterThreshold: 0,
                 writerScheduler: PipeScheduler.Inline));
-        }
 
         protected internal abstract ValueTask<FlushResult> WriteAsync(
             ReadOnlySequence<byte> source1,
