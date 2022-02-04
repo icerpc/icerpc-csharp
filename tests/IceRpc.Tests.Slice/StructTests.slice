@@ -24,7 +24,7 @@ module IceRpc::Tests::Slice
 
     struct MyStructWithCustomType
     {
-        timespan: MyTimeSpan
+        timespan: MyTimeSpan,
     }
 
     interface StructOperations
