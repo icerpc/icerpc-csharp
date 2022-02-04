@@ -49,11 +49,8 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str) -> CodeBloc
     if data_type.is_optional {
         match data_type.concrete_type() {
             Types::Interface(_) => {
-                writeln!(
-                    code,
-                    "decoder.DecodeNullablePrx<{}>(ref bitSequenceReader);",
-                    type_string
-                );
+                // does not use bit sequence
+                writeln!(code, "decoder.DecodeNullablePrx<{}>();", type_string);
                 return code;
             }
             _ if data_type.is_class_type() => {
@@ -327,10 +324,17 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
 
     let mut code: CodeBlock = match &type_ref.concrete_typeref() {
         TypeRefs::Interface(_) => {
-            format!(
-                "(ref SliceDecoder decoder) => new {}(decoder.DecodeProxy())",
-                type_name
-            )
+            if type_ref.is_optional {
+                format!(
+                    "(ref SliceDecoder decoder) => decoder.DecodeNullablePrx<{}>()",
+                    type_name
+                )
+            } else {
+                format!(
+                    "(ref SliceDecoder decoder) => new {}(decoder.DecodeProxy())",
+                    type_name
+                )
+            }
         }
         _ if type_ref.is_class_type() => {
             // is_class_type is either Typeref::Class or Primitive::AnyClass
