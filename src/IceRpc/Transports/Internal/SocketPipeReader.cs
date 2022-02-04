@@ -12,7 +12,7 @@ namespace IceRpc.Transports.Internal
         internal SocketPipeReader(Socket socket, MemoryPool<byte> pool, int minimumSegmentSize) :
             base(pool, minimumSegmentSize) => _socket = socket;
 
-        protected internal override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel) =>
+        private protected override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel) =>
             _socket.ReceiveAsync(buffer, SocketFlags.None, cancel);
     }
 }

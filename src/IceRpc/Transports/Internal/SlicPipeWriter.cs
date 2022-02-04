@@ -37,7 +37,7 @@ namespace IceRpc.Transports.Internal
         internal SlicPipeWriter(SlicMultiplexedStream stream, MemoryPool<byte> pool, int minimumSegmentSize)
             : base(pool, minimumSegmentSize) => _stream = stream;
 
-        protected internal override ValueTask<FlushResult> WriteAsync(
+        private protected override ValueTask<FlushResult> WriteAsync(
             ReadOnlySequence<byte> protocolHeader,
             ReadOnlySequence<byte> payload,
             bool completeWhenDone,

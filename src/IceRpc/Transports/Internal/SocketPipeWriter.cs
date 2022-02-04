@@ -15,7 +15,7 @@ namespace IceRpc.Transports.Internal
         internal SocketPipeWriter(Socket socket, MemoryPool<byte> pool, int minimumSegmentSize) :
             base(pool, minimumSegmentSize) => _socket = socket;
 
-        protected internal override async ValueTask<FlushResult> WriteAsync(
+        private protected override async ValueTask<FlushResult> WriteAsync(
             ReadOnlySequence<byte> source1,
             ReadOnlySequence<byte> source2,
             bool _,

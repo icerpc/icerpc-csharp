@@ -116,7 +116,7 @@ namespace IceRpc.Transports.Internal
                 pauseWriterThreshold: 0,
                 writerScheduler: PipeScheduler.Inline));
 
-        protected internal abstract ValueTask<FlushResult> WriteAsync(
+        private protected abstract ValueTask<FlushResult> WriteAsync(
             ReadOnlySequence<byte> source1,
             ReadOnlySequence<byte> source2,
             bool completeWhenDone,

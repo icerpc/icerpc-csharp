@@ -59,6 +59,6 @@ namespace IceRpc.Transports.Internal
                 pauseWriterThreshold: 0,
                 writerScheduler: PipeScheduler.Inline));
 
-        protected internal abstract ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel);
+        private protected abstract ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel);
     }
 }
