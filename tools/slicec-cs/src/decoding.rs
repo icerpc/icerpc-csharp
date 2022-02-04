@@ -81,8 +81,9 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str) -> CodeBloc
             if struct_ref.definition().has_attribute("cs:type", false) {
                 write!(
                     code,
-                    "{scoped_identifier}Extensions.Decode(ref decoder)",
+                    "{scoped_identifier}Extensions.Decode{identifier}(ref decoder)",
                     scoped_identifier = struct_ref.escape_scoped_identifier(namespace),
+                    identifier = struct_ref.identifier(),
                 );
             } else {
                 write!(code, "new {}(ref decoder)", type_string);
@@ -382,8 +383,9 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
         TypeRefs::Struct(struct_ref) => {
             if struct_ref.definition().has_attribute("cs:type", false) {
                 format!(
-                    "(ref SliceDecoder decoder) => {scoped_identifier}Extensions.Decode(ref decoder)",
+                    "(ref SliceDecoder decoder) => {scoped_identifier}Extensions.Decode{identifier}(ref decoder)",
                     scoped_identifier = struct_ref.escape_scoped_identifier(namespace),
+                    identifier = struct_ref.identifier()
                 )
             } else {
                 format!(

@@ -150,8 +150,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                         .set_body(
                             r#"
 encoder.EncodeString(SliceTypeId);
-this.Encode(ref encoder);"#
-                                .into(),
+this.Encode(ref encoder);"#.into(),
                         )
                         .build(),
                 );

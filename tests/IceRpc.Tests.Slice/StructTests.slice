@@ -16,10 +16,16 @@ module IceRpc::Tests::Slice
         st: MyStruct,
     }
 
-    [cs:type("System.TimeSpan")]
-    struct MyTimeSpan
+    [cs:type("global::System.TimeSpan")]
+    compact struct MyTimeSpan
     {
         milliSeconds: long,
+    }
+
+    [cs:type("global::System.Collections.Generic.LinkedList<int>")]
+    compact struct MyList
+    {
+        value: sequence<int>
     }
 
     struct MyStructWithCustomType
@@ -34,5 +40,7 @@ module IceRpc::Tests::Slice
         opMyTimeSpan1(p1: MyTimeSpan) -> MyTimeSpan;
         opMyTimeSpan2(p1: MyTimeSpan, p2: MyTimeSpan) -> (r1: MyTimeSpan, r2: MyTimeSpan);
         opMyStructWithCustomType(p1: MyStructWithCustomType) -> MyStructWithCustomType;
+        opMyList1(p1: MyList) -> MyList;
+        opMyList2(p1: MyList, p2: MyList) -> (r1: MyList, r2: MyList);
     }
 }

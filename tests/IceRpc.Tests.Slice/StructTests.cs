@@ -2,6 +2,7 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using IceRpc.Slice;
 
 namespace IceRpc.Tests.Slice
 {
@@ -65,6 +66,9 @@ namespace IceRpc.Tests.Slice
             MyStructWithCustomType s1 = await _prx.OpMyStructWithCustomTypeAsync(new MyStructWithCustomType(t1));
             Assert.AreEqual(s1.Timespan, TimeSpan.FromMilliseconds(100));
 
+            LinkedList<int> l1 = await _prx.OpMyList1Async(new LinkedList<int>(new int[] { 1, 2, 3 }));
+            Assert.AreEqual(l1, new LinkedList<int>(new int[] { 1, 2, 3 }));
+
         }
 
         public class StructOperations : Service, IStructOperations
@@ -96,6 +100,17 @@ namespace IceRpc.Tests.Slice
                 MyStructWithCustomType p1,
                 Dispatch dispatch,
                 CancellationToken cancel = default) => new(p1);
+
+            public ValueTask<LinkedList<int>> OpMyList1Async(
+                LinkedList<int> p1,
+                Dispatch dispatch,
+                CancellationToken cancel = default) => new(p1);
+
+            public ValueTask<(LinkedList<int> R1, LinkedList<int> R2)> OpMyList2Async(
+                LinkedList<int> p1, 
+                LinkedList<int> p2, 
+                Dispatch dispatch, 
+                CancellationToken cancel = default) => new((p1, p2));
         }
     }
 
@@ -112,10 +127,19 @@ namespace IceRpc.Tests.Slice
 
     public static class MyTimeSpanExtensions
     {
-        public static void Encode(ref IceRpc.Slice.SliceEncoder encoder, TimeSpan value) =>
+        public static void EncodeMyTimeSpan(ref SliceEncoder encoder, TimeSpan value) =>
             encoder.EncodeVarLong(checked((long)value.TotalMilliseconds));
 
-        public static TimeSpan Decode(ref IceRpc.Slice.SliceDecoder decoder) =>
+        public static TimeSpan DecodeMyTimeSpan(ref SliceDecoder decoder) =>
             TimeSpan.FromMilliseconds(decoder.DecodeVarLong());
+    }
+
+    public static class MyListExtensions
+    {
+        public static void EncodeMyList(ref SliceEncoder encoder, LinkedList<int> value) =>
+            encoder.EncodeSequence(value.ToArray());
+
+        public static LinkedList<int> DecodeMyList(ref SliceDecoder decoder) =>
+            new(decoder.DecodeSequence<int>(null).Reverse());
     }
 }

@@ -145,6 +145,11 @@ impl Visitor for CsValidator {
                     }
                 }
                 "type" => {
+                    if !struct_def.is_compact {
+                        slice::report_error(
+                            r#"The 'cs:type("<type>")' attribute is only valid for compact structs"#.to_owned(),
+                            Some(&attribute.location))
+                    }
                     match attribute.arguments.len() {
                         1 => (), // Expected 1 argument
                         0 => slice::report_error(

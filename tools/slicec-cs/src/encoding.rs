@@ -110,8 +110,9 @@ fn encode_type(
                 TypeRefs::Struct(struct_ref) => {
                     if struct_ref.definition().has_attribute("cs:type", false) {
                         format!(
-                            "{scoped_identifier}Extensions.Encode(ref {encoder_param}, {value});",
-                            scoped_identifier = struct_def.escape_scoped_identifier(namespace),
+                            "{scoped_identifier}Extensions.Encode{identifier}(ref {encoder_param}, {value});",
+                            scoped_identifier = struct_ref.escape_scoped_identifier(namespace),
+                            identifier = struct_ref.identifier(),
                             encoder_param = encoder_param,
                             value = value
                         )
