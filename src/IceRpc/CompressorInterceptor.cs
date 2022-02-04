@@ -32,7 +32,7 @@ namespace IceRpc
 
             if (_options.DecompressPayload &&
                 response.ResultType == ResultType.Success &&
-                response.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
+                response.Request.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
             {
                 response.UsePayloadDecompressor();
             }

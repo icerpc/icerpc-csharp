@@ -20,9 +20,6 @@ namespace IceRpc
         public IReadOnlyDictionary<int, ReadOnlyMemory<byte>> FieldsDefaults { get; init; } =
               ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
-        /// <summary>The features of this frame.</summary>
-        public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
-
         /// <summary>Returns the encoding of the payload of this frame.</summary>
         /// <remarks>The header of the frame is always encoded using the frame protocol's encoding.</remarks>
         public Encoding PayloadEncoding { get; init; } = Encoding.Unknown;

@@ -27,7 +27,7 @@ namespace IceRpc.Slice
             else
             {
                 DecodePayloadOptions decodePayloadOptions =
-                    response.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default;
+                    response.Request.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default;
 
                 throw await response.Payload.ReadRemoteExceptionAsync(
                     response.GetSlicePayloadEncoding(),
@@ -49,7 +49,7 @@ namespace IceRpc.Slice
             DecodeFunc<T> decodeFunc)
         {
             DecodePayloadOptions decodePayloadOptions =
-                response.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default;
+                response.Request.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default;
 
             return response.Payload.ToAsyncEnumerable(
                 response.GetSlicePayloadEncoding(),
@@ -78,7 +78,7 @@ namespace IceRpc.Slice
             CancellationToken cancel)
         {
             DecodePayloadOptions decodePayloadOptions =
-                response.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default;
+                response.Request.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default;
 
             return response.ResultType == ResultType.Success ?
                 await response.Payload.ReadValueAsync(

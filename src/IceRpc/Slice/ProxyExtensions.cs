@@ -56,7 +56,7 @@ namespace IceRpc.Slice
             var request = new OutgoingRequest(proxy, operation)
             {
                 Deadline = invocation?.Deadline ?? DateTime.MaxValue,
-                Features = invocation?.RequestFeatures ?? FeatureCollection.Empty,
+                Features = invocation?.Features ?? FeatureCollection.Empty,
                 IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false),
                 PayloadEncoding = payloadEncoding,
                 PayloadSource = payloadSource,
@@ -79,7 +79,7 @@ namespace IceRpc.Slice
 
                 if (invocation != null)
                 {
-                    invocation.ResponseFeatures = response.Features;
+                    invocation.Features = request.Features;
                 }
 
                 return await responseDecodeFunc(response, cancel).ConfigureAwait(false);
@@ -117,7 +117,7 @@ namespace IceRpc.Slice
             var request = new OutgoingRequest(proxy, operation)
             {
                 Deadline = invocation?.Deadline ?? DateTime.MaxValue,
-                Features = invocation?.RequestFeatures ?? FeatureCollection.Empty,
+                Features = invocation?.Features ?? FeatureCollection.Empty,
                 IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false),
                 IsOneway = oneway || (invocation?.IsOneway ?? false),
                 PayloadEncoding = payloadEncoding,
@@ -141,7 +141,7 @@ namespace IceRpc.Slice
 
                 if (invocation != null)
                 {
-                    invocation.ResponseFeatures = response.Features;
+                    invocation.Features = request.Features;
                 }
 
                 await response.CheckVoidReturnValueAsync(

@@ -389,10 +389,8 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
     }
 
     if operation.compress_return() {
-        // At this point, Dispatch is just created and the application had no opportunity to set any
-        // response feature.
         code.writeln(
-            "dispatch.ResponseFeatures = IceRpc.FeatureCollectionExtensions.CompressPayload(dispatch.ResponseFeatures);"
+            "request.Features = request.Features.With(IceRpc.Features.CompressPayload.Yes);"
         );
     }
 

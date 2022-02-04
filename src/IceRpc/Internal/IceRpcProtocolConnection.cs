@@ -221,7 +221,6 @@ namespace IceRpc.Internal
 
             IceRpcResponseHeader header;
             IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields;
-            FeatureCollection features = FeatureCollection.Empty;
 
             PipeReader responseReader = request.ResponseReader;
 
@@ -249,7 +248,7 @@ namespace IceRpc.Internal
                     (int)FieldKey.RetryPolicy, (ref SliceDecoder decoder) => new RetryPolicy(ref decoder));
                 if (retryPolicy != null)
                 {
-                    features = features.With(retryPolicy);
+                    request.Features = request.Features.With(retryPolicy);
                 }
             }
             catch (MultiplexedStreamAbortedException ex)
@@ -284,7 +283,6 @@ namespace IceRpc.Internal
                 payloadEncoding: header.PayloadEncoding.Length > 0 ?
                     Encoding.FromString(header.PayloadEncoding) : IceRpcDefinitions.Encoding)
             {
-                Features = features,
                 Fields = fields,
             };
 

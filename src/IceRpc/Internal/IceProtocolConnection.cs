@@ -254,22 +254,17 @@ namespace IceRpc.Internal
                 // We write the payload size in the first 4 bytes of the buffer.
                 EncodePayloadSize(payloadSize, payloadEncoding, buffer.Span[0..4]);
 
-                FeatureCollection features = FeatureCollection.Empty;
-
                 // For compatibility with ZeroC Ice "indirect" proxies
                 if (replyStatus == ReplyStatus.ObjectNotExistException && request.Proxy.Endpoint == null)
                 {
-                    features = features.With(RetryPolicy.OtherReplica);
+                    request.Features = request.Features.With(RetryPolicy.OtherReplica);
                 }
 
                 return new IncomingResponse(
                     request,
                     resultType,
                     new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
-                    payloadEncoding)
-                {
-                    Features = features
-                };
+                    payloadEncoding);
             }
             catch
             {

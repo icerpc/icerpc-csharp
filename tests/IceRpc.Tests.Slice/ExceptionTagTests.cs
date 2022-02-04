@@ -37,7 +37,7 @@ namespace IceRpc.Tests.Slice
 
             // We decode TaggedException as a TaggedExceptionMinus using a custom activator
 
-            pipeline.UseResponseFeature(new DecodePayloadOptions { Activator = new ActivatorMinus() });
+            pipeline.UseFeature(new DecodePayloadOptions { Activator = new ActivatorMinus() });
 
             var ts = new TaggedExceptionStruct("bar", null);
 
@@ -58,7 +58,7 @@ namespace IceRpc.Tests.Slice
 
             // We decode TaggedException as a TaggedExceptionPlus using a custom activator and get a null MFloat
 
-            pipeline.UseResponseFeature(new DecodePayloadOptions { Activator = new ActivatorPlus() });
+            pipeline.UseFeature(new DecodePayloadOptions { Activator = new ActivatorPlus() });
 
             var ts = new TaggedExceptionStruct("bar", null);
 

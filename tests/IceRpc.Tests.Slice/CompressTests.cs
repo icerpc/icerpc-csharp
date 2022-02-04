@@ -38,7 +38,7 @@ namespace IceRpc.Tests.Slice
             if (!keepDefault)
             {
                 // The generated code does not and should not override a value set explicitly.
-                invocation.RequestFeatures = invocation.RequestFeatures.With(Features.CompressPayload.No);
+                invocation.Features = invocation.Features.With(Features.CompressPayload.No);
             }
 
             await prx.OpCompressArgsAsync(0, default, invocation);

@@ -29,6 +29,9 @@ namespace IceRpc
         /// expected to enforce this deadline.</remarks>
         public DateTime Deadline { get; set; } = DateTime.MaxValue;
 
+        /// <summary>The features of this request.</summary>
+        public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
+
         /// <summary>The fragment of the target service.</summary>
         public string Fragment { get; }
 

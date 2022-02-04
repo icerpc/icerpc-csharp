@@ -8,11 +8,11 @@ namespace IceRpc
     /// Slice compiler.</remarks>
     public sealed class Invocation
     {
-        /// <summary>Gets or sets the value of the Context feature in <see cref="RequestFeatures"/>.</summary>
+        /// <summary>Gets or sets the value of the Context feature in <see cref="Features"/>.</summary>
         public IDictionary<string, string> Context
         {
-            get => RequestFeatures.GetContext();
-            set => RequestFeatures = RequestFeatures.WithContext(value);
+            get => Features.GetContext();
+            set => Features = Features.WithContext(value);
         }
 
         /// <summary>Gets or sets the deadline of this invocation.</summary>
@@ -31,10 +31,7 @@ namespace IceRpc
         public bool IsOneway { get; set; }
 
         /// <summary>Gets or sets the features carried by the request.</summary>
-        public FeatureCollection RequestFeatures { get; set; } = FeatureCollection.Empty;
-
-        /// <summary>Gets or sets the features carried by the response.</summary>
-        public FeatureCollection ResponseFeatures { get; set; } = FeatureCollection.Empty;
+        public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
         /// <summary>Gets or sets the timeout of this invocation.</summary>
         /// <value>The timeout of this invocation. The default value is

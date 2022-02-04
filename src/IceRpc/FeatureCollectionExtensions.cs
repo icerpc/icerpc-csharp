@@ -9,14 +9,6 @@ namespace IceRpc
     /// <summary>Provides an extension method for class FeatureCollection, to get and set specific features.</summary>
     public static class FeatureCollectionExtensions
     {
-        /// <summary>Sets the <see cref="CompressPayload"/> feature with the value <see cref="CompressPayload.Yes"/> on
-        /// this feature collection.</summary>
-        /// <param name="features">The feature collection to update.</param>
-        /// <returns>The updated feature collection.</returns>
-        public static FeatureCollection CompressPayload(this FeatureCollection features) =>
-            features[typeof(CompressPayload)] != Features.CompressPayload.Yes ?
-                features.With(Features.CompressPayload.Yes) : features;
-
         /// <summary>Returns the value of <see cref="Context"/> in this feature collection.</summary>
         /// <param name="features">This feature collection.</param>
         /// <returns>The value of Context if found; otherwise, an empty dictionary.</returns>

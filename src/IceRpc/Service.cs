@@ -94,32 +94,23 @@ namespace IceRpc
         /// <inheritdoc/>
         public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
         {
-            // We need dispatch here to extract its features and set them on remote exception below.
+            // TODO: move dispatch creation to dispatchMethod
             var dispatch = new Dispatch(request);
-            try
+            if (_dispatchMethods.TryGetValue(dispatch.Operation, out IceDMethod? dispatchMethod))
             {
-                if (_dispatchMethods.TryGetValue(dispatch.Operation, out IceDMethod? dispatchMethod))
-                {
-                    (SliceEncoding payloadEncoding, PipeReader responsePayloadSource, PipeReader? responsePayloadSourceStream) =
-                        await dispatchMethod(this, request, dispatch, cancel).ConfigureAwait(false);
+                (SliceEncoding payloadEncoding, PipeReader responsePayloadSource, PipeReader? responsePayloadSourceStream) =
+                    await dispatchMethod(this, request, dispatch, cancel).ConfigureAwait(false);
 
-                    return new OutgoingResponse(request)
-                    {
-                        Features = dispatch.ResponseFeatures,
-                        PayloadSource = responsePayloadSource,
-                        PayloadSourceStream = responsePayloadSourceStream,
-                        PayloadEncoding = payloadEncoding,
-                    };
-                }
-                else
+                return new OutgoingResponse(request)
                 {
-                    throw new OperationNotFoundException();
-                }
+                    PayloadSource = responsePayloadSource,
+                    PayloadSourceStream = responsePayloadSourceStream,
+                    PayloadEncoding = payloadEncoding,
+                };
             }
-            catch (RemoteException exception)
+            else
             {
-                exception.Features = dispatch.ResponseFeatures;
-                throw;
+                throw new OperationNotFoundException();
             }
         }
     }

@@ -50,7 +50,7 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task Dispatch_Features()
         {
-            bool? responseFeature = null;
+            bool? boolFeature = null;
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher>(_ =>
                 {
@@ -70,17 +70,9 @@ namespace IceRpc.Tests.Api
                                 request.Features.Set(multiplier);
                             }
 
-                            try
-                            {
-                                OutgoingResponse response = await next.DispatchAsync(request, cancel);
-                                responseFeature = response.Features.Get<bool>();
-                                return response;
-                            }
-                            catch (RemoteException remoteException)
-                            {
-                                responseFeature = remoteException.Features.Get<bool>();
-                                throw;
-                            }
+                            OutgoingResponse response = await next.DispatchAsync(request, cancel);
+                            boolFeature = request.Features.Get<bool>();
+                            return response;
                         }));
                     router.Map<IFeatureTest>(new FeatureTest());
                     return router;
@@ -103,18 +95,18 @@ namespace IceRpc.Tests.Api
 
             int ret = await prx.ComputeAsync(2);
             Assert.AreEqual(2 * multiplier, ret);
-            Assert.That(responseFeature, Is.Not.Null);
-            Assert.That(responseFeature!, Is.True);
+            Assert.That(boolFeature, Is.Not.Null);
+            Assert.That(boolFeature!, Is.True);
 
-            responseFeature = null;
+            boolFeature = null;
             Assert.ThrowsAsync<DispatchException>(async () => await prx.FailWithRemoteAsync());
-            Assert.That(responseFeature, Is.Not.Null);
-            Assert.That(responseFeature!, Is.True);
+            Assert.That(boolFeature, Is.Not.Null);
+            Assert.That(boolFeature!, Is.True);
 
             // Features are not provided if the service raises an unhandled exception.
-            responseFeature = null;
+            boolFeature = null;
             Assert.ThrowsAsync<UnhandledException>(async () => await prx.FailWithUnhandledAsync());
-            Assert.That(responseFeature, Is.Null);
+            Assert.That(boolFeature, Is.Null);
         }
     }
 
@@ -122,13 +114,9 @@ namespace IceRpc.Tests.Api
     {
         public ValueTask<int> ComputeAsync(int value, Dispatch dispatch, CancellationToken cancel)
         {
-            if (dispatch.RequestFeatures.Get<Multiplier>() is Multiplier multiplier)
+            if (dispatch.Features.Get<Multiplier>() is Multiplier multiplier)
             {
-                if (dispatch.ResponseFeatures.IsReadOnly)
-                {
-                    dispatch.ResponseFeatures = new FeatureCollection(dispatch.ResponseFeatures);
-                }
-                dispatch.ResponseFeatures.Set(true);
+                dispatch.Features = dispatch.Features.With(true);
                 return new(value * multiplier);
             }
             return new(value);
@@ -136,17 +124,13 @@ namespace IceRpc.Tests.Api
 
         public ValueTask FailWithRemoteAsync(Dispatch dispatch, CancellationToken cancel)
         {
-            if (dispatch.ResponseFeatures.IsReadOnly)
-            {
-                dispatch.ResponseFeatures = new FeatureCollection(dispatch.ResponseFeatures);
-            }
-            dispatch.ResponseFeatures.Set(true);
+            dispatch.Features = dispatch.Features.With(true);
             throw new DispatchException();
         }
 
         public ValueTask FailWithUnhandledAsync(Dispatch dispatch, CancellationToken cancel)
         {
-            dispatch.ResponseFeatures.Set(true);
+            dispatch.Features = dispatch.Features.With(true);
             throw new NotImplementedException();
         }
 
