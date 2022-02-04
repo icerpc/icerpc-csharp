@@ -64,6 +64,16 @@ namespace IceRpc.Transports.Internal
             {
                 Socket.Close();
             }
+
+            var exception = new ObjectDisposedException($"{typeof(TcpNetworkConnection)}");
+            if (InputPipeReader != null)
+            {
+                await InputPipeReader.CompleteAsync(exception).ConfigureAwait(false);
+            }
+            if (OutputPipeWriter != null)
+            {
+                await OutputPipeWriter.CompleteAsync(exception).ConfigureAwait(false);
+            }
         }
 
         public abstract bool HasCompatibleParams(Endpoint remoteEndpoint);
@@ -445,6 +455,20 @@ namespace IceRpc.Transports.Internal
                     // This can only be created with a connected socket.
                     _sslStream = new SslStream(new System.Net.Sockets.NetworkStream(Socket, false), false);
                     await _sslStream.AuthenticateAsServerAsync(_authenticationOptions, cancel).ConfigureAwait(false);
+
+                    InputPipeReader = PipeReader.Create(
+                        _sslStream,
+                        new StreamPipeReaderOptions(MemoryPool<byte>.Shared, bufferSize: 4096, leaveOpen: true));
+
+                    // TODO: Fix to use a custom pipe writer that extends ReadOnlySequencePipeWriter.
+                    OutputPipeWriter = PipeWriter.Create(
+                        _sslStream,
+                        new StreamPipeWriterOptions(MemoryPool<byte>.Shared, minimumBufferSize: 4096, leaveOpen: true));
+                }
+                else
+                {
+                    InputPipeReader = new SocketPipeReader(Socket, MemoryPool<byte>.Shared, 4096);
+                    OutputPipeWriter = new SocketPipeWriter(Socket, MemoryPool<byte>.Shared, 4096);
                 }
 
                 ImmutableDictionary<string, string> endpointParams = _localEndpoint.Params;

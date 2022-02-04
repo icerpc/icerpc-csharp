@@ -19,13 +19,18 @@ namespace IceRpc.Transports.Internal
                 return;
             }
 
-            ReadResult result = await _reader.ReadAtLeastAsync(buffer.Length, cancel).ConfigureAwait(false);
-            if (result.IsCompleted|| result.IsCanceled)
+            ReadResult readResult = await _reader.ReadAtLeastAsync(buffer.Length, cancel).ConfigureAwait(false);
+            if (readResult.IsCanceled)
+            {
+                throw new OperationCanceledException();
+            }
+            else if (readResult.IsCompleted)
             {
                 throw new ConnectionLostException();
             }
-            result.Buffer.Slice(0, buffer.Length).CopyTo(buffer.Span);
-            _reader.AdvanceTo(result.Buffer.GetPosition(buffer.Length));
+
+            readResult.Buffer.Slice(0, buffer.Length).CopyTo(buffer.Span);
+            _reader.AdvanceTo(readResult.Buffer.GetPosition(buffer.Length));
         }
 
         public async ValueTask<(FrameType, int, long?)> ReadFrameHeaderAsync(CancellationToken cancel)
@@ -33,10 +38,15 @@ namespace IceRpc.Transports.Internal
             while (true)
             {
                 ReadResult readResult = await _reader.ReadAtLeastAsync(2, cancel).ConfigureAwait(false);
-                if (readResult.IsCompleted || readResult.IsCanceled)
+                if (readResult.IsCanceled)
+                {
+                    throw new OperationCanceledException();
+                }
+                else if(readResult.IsCompleted)
                 {
                     throw new ConnectionLostException();
                 }
+
                 try
                 {
                     return DecodeSlicHeader(readResult.Buffer);

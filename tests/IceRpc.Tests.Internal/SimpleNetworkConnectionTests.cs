@@ -115,7 +115,7 @@ namespace IceRpc.Tests.Internal
             Memory<byte> buffer = new byte[1];
             var buffers = new ReadOnlyMemory<byte>[] { buffer };
 
-            Assert.CatchAsync<ObjectDisposedException>(async () => await _clientConnection.WriteAsync(buffers, default));
+            Assert.CatchAsync<InvalidOperationException>(async () => await _clientConnection.WriteAsync(buffers, default));
             Assert.CatchAsync<ObjectDisposedException>(async () => await _clientConnection.ReadAsync(buffer, default));
 
             Assert.CatchAsync<ObjectDisposedException>(async () => await _serverConnection.WriteAsync(buffers, default));

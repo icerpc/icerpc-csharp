@@ -21,7 +21,12 @@ namespace IceRpc.Transports.Internal
         public Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel) =>
             Task.FromResult(new NetworkConnectionInformation(_endpoint, _endpoint, TimeSpan.MaxValue, null));
 
-        public ValueTask DisposeAsync() => Output.CompleteAsync(new ConnectionLostException());
+        public async ValueTask DisposeAsync()
+        {
+            var exception = new ObjectDisposedException($"{typeof(ColocNetworkConnection)}");
+            await Input.CompleteAsync(exception).ConfigureAwait(false);
+            await Output.CompleteAsync(exception).ConfigureAwait(false);
+        }
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
