@@ -65,7 +65,7 @@ fn encode_type(
         TypeRefs::Interface(_) => {
             if type_ref.is_optional {
                 format!(
-                    "{encoder_param}.EncodeNullableProxy({param}?.Proxy);",
+                    "{encoder_param}.EncodeNullableProxy(ref bitSequenceWriter, {param}?.Proxy);",
                     encoder_param = encoder_param,
                     param = param
                 )
@@ -389,9 +389,7 @@ fn encode_dictionary(
     {param},
     {encode_key},
     {encode_value})",
-        method = if dictionary_def.value_type.is_bit_sequence_encodable()
-            && dictionary_def.value_type.is_optional
-        {
+        method = if dictionary_def.value_type.is_bit_sequence_encodable() {
             "EncodeDictionaryWithBitSequence"
         } else {
             "EncodeDictionary"
@@ -422,7 +420,7 @@ pub fn encode_action(type_ref: &TypeRef, type_context: TypeContext, namespace: &
             if is_optional {
                 write!(
                     code,
-                    "(ref SliceEncoder encoder, {} value) => encoder.EncodeNullableProxy(value?.Proxy)",
+                    "(ref SliceEncoder encoder, {} value) => encoder.EncodeProxy(value!.Value.Proxy)",
                     value_type
                 );
             } else {
