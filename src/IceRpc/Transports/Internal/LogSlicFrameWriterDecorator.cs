@@ -15,18 +15,22 @@ namespace IceRpc.Transports.Internal
         private readonly ISlicFrameWriter _decoratee;
         private readonly ILogger _logger;
 
-        public async ValueTask WriteFrameAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
+        public async ValueTask WriteFrameAsync(
+            ReadOnlyMemory<byte> slicHeader,
+            ReadOnlySequence<byte> protocolHeader,
+            ReadOnlySequence<byte> payload,
+            CancellationToken cancel)
         {
             try
             {
-                await _decoratee.WriteFrameAsync(buffers, cancel).ConfigureAwait(false);
+                await _decoratee.WriteFrameAsync(slicHeader, protocolHeader, payload, cancel).ConfigureAwait(false);
             }
             catch (Exception exception)
             {
-                _logger.LogSendSlicFrameFailure((FrameType)buffers[0].Span[0], exception);
+                _logger.LogSendSlicFrameFailure((FrameType)slicHeader.Span[0], exception);
                 throw;
             }
-            LogSentFrame(buffers[0]);
+            LogSentFrame(slicHeader);
         }
 
         internal LogSlicFrameWriterDecorator(ISlicFrameWriter decoratee, ILogger logger)

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Buffers;
 using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
@@ -8,12 +9,26 @@ namespace IceRpc.Transports.Internal
     /// copies the send buffer into the receive buffer.</summary>
     internal class ColocNetworkConnection : ISimpleNetworkConnection
     {
+        // TODO: this is temporary. Memory pool and minimum segment size should be properties of ColocOptions.
+        public PipeReader Input => _inputPipeReader ??= new SimpleNetworkConnectionPipeReader(
+            this,
+            MemoryPool<byte>.Shared,
+            4096);
+
         bool INetworkConnection.IsSecure => true;
 
         TimeSpan INetworkConnection.LastActivity => TimeSpan.Zero;
 
+        // TODO: this is temporary. Memory pool and minimum segment size should be properties of ColocOptions.
+        public PipeWriter Output => _outputPipeWriter ??= new SimpleNetworkConnectionPipeWriter(
+            this,
+            MemoryPool<byte>.Shared,
+            4096);
+
         private readonly Endpoint _endpoint;
         private readonly bool _isServer;
+        private PipeReader? _inputPipeReader;
+        private PipeWriter? _outputPipeWriter;
         private readonly PipeReader _reader;
         private readonly PipeWriter _writer;
 

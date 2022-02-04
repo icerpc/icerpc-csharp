@@ -8,15 +8,30 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.IO.Pipelines;
 using System.Text;
 
 namespace IceRpc.Transports.Internal
 {
     internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
     {
+        // TODO: this is temporary, we should instead create SslPipeReader or SocketPipeWriter. Memory pool and minimum
+        // segment size should be properties of TcpOptions.
+        public PipeReader Input => _inputPipeReader ??= new SimpleNetworkConnectionPipeReader(
+            this,
+            MemoryPool<byte>.Shared,
+            4096);
+
         public bool IsSecure => SslStream != null;
 
         public TimeSpan LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
+
+        // TODO: this is temporary, we should instead create SslPipeReader or SocketPipeWriter. Memory pool and minimum
+        // segment size should be properties of TcpOptions.
+        public PipeWriter Output => _outputPipeWriter ??= new SimpleNetworkConnectionPipeWriter(
+            this,
+            MemoryPool<byte>.Shared,
+            4096);
 
         internal abstract Socket Socket { get; }
         internal abstract SslStream? SslStream { get; }
@@ -24,7 +39,9 @@ namespace IceRpc.Transports.Internal
         // The MaxDataSize of the SSL implementation.
         private const int MaxSslDataSize = 16 * 1024;
 
+        private PipeReader? _inputPipeReader;
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
+        private PipeWriter? _outputPipeWriter;
 
         public abstract Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel);
 

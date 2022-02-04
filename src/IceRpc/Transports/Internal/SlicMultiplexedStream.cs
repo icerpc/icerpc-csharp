@@ -387,13 +387,6 @@ namespace IceRpc.Transports.Internal
             TrySetWriteCompleted();
         }
 
-        internal ValueTask<FlushResult> SendStreamFrameAsync(
-            ReadOnlySequence<byte> source1,
-            ReadOnlySequence<byte> source2,
-            bool completeWhenDone,
-            CancellationToken cancel) =>
-            _connection.SendStreamFrameAsync(this, source1, source2, completeWhenDone, cancel);
-
         internal void SendStreamResumeWrite(int size) =>
             _ = _connection.SendFrameAsync(
                 stream: this,
@@ -426,6 +419,13 @@ namespace IceRpc.Transports.Internal
         internal bool TrySetReadCompleted() => TrySetState(State.ReadCompleted);
 
         internal bool TrySetWriteCompleted() => TrySetState(State.WriteCompleted);
+
+        internal ValueTask<FlushResult> WriteAsync(
+            ReadOnlySequence<byte> protocolHeader,
+            ReadOnlySequence<byte> payload,
+            bool completeWhenDone,
+            CancellationToken cancel) =>
+            _connection.SendStreamFrameAsync(this, protocolHeader, payload, completeWhenDone, cancel);
 
         private void CheckShutdown(State state)
         {

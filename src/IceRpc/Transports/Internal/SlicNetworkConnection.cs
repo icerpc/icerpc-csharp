@@ -41,11 +41,9 @@ namespace IceRpc.Transports.Internal
         private long _nextUnidirectionalId;
         private readonly int _packetMaxSize;
         private readonly ISlicFrameReader _reader;
-        private readonly List<ReadOnlyMemory<byte>> _sendBuffers = new(16);
         private readonly ArrayBufferWriter<byte> _sendFrameWriter = new(256);
         private readonly AsyncSemaphore _sendSemaphore = new(1);
         private readonly ISimpleNetworkConnection _simpleNetworkConnection;
-        private readonly SimpleNetworkConnectionPipeReader _simpleNetworkConnectionPipeReader;
         private readonly ConcurrentDictionary<long, SlicMultiplexedStream> _streams = new();
         private readonly int _unidirectionalMaxStreams;
         private int _unidirectionalStreamCount;
@@ -165,7 +163,9 @@ namespace IceRpc.Transports.Internal
                     catch (Exception exception)
                     {
                         _acceptedStreamQueue.TryComplete(exception);
-                        await _simpleNetworkConnectionPipeReader.CompleteAsync(exception).ConfigureAwait(false);
+
+                        await _simpleNetworkConnection.Input.CompleteAsync(exception).ConfigureAwait(false);
+                        await _simpleNetworkConnection.Output.CompleteAsync(exception).ConfigureAwait(false);
                     }
                 },
                 CancellationToken.None);
@@ -200,8 +200,8 @@ namespace IceRpc.Transports.Internal
             // Unblock task blocked on AcceptStreamAsync
             _acceptedStreamQueue.TryComplete(exception);
 
-            // Cancel pending read. ReadFramesAsync
-            _simpleNetworkConnectionPipeReader.CancelPendingRead();
+            // Cancel pending reads. This will stop the ReadFramesAsync task.
+            _simpleNetworkConnection.Input.CancelPendingRead();
         }
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
@@ -217,14 +217,9 @@ namespace IceRpc.Transports.Internal
             IsServer = isServer;
 
             _simpleNetworkConnection = simpleNetworkConnection;
-            _simpleNetworkConnectionPipeReader = new SimpleNetworkConnectionPipeReader(
-                _simpleNetworkConnection,
-                slicOptions.Pool,
-                slicOptions.MinimumSegmentSize);
 
-            var reader = new SlicFrameReader(_simpleNetworkConnectionPipeReader);
-            _reader = slicFrameReaderDecorator(reader);
-            _writer = slicFrameWriterDecorator(new SlicFrameWriter(simpleNetworkConnection.WriteAsync));
+            _reader = slicFrameReaderDecorator(new SlicFrameReader(_simpleNetworkConnection.Input));
+            _writer = slicFrameWriterDecorator(new SlicFrameWriter(_simpleNetworkConnection.Output));
 
             _packetMaxSize = slicOptions.PacketMaxSize;
             PauseWriterThreshold = slicOptions.PauseWriterThreshold;
@@ -322,9 +317,11 @@ namespace IceRpc.Transports.Internal
                 Encode(_sendFrameWriter);
 
                 // Send the frame.
-                _sendBuffers.Clear();
-                _sendBuffers.Add(_sendFrameWriter.WrittenMemory);
-                await _writer.WriteFrameAsync(_sendBuffers, cancel).ConfigureAwait(false);
+                await _writer.WriteFrameAsync(
+                    _sendFrameWriter.WrittenMemory,
+                    ReadOnlySequence<byte>.Empty,
+                    ReadOnlySequence<byte>.Empty,
+                    cancel).ConfigureAwait(false);
             }
             finally
             {
@@ -350,15 +347,12 @@ namespace IceRpc.Transports.Internal
 
         internal async ValueTask<FlushResult> SendStreamFrameAsync(
             SlicMultiplexedStream stream,
-            ReadOnlySequence<byte> source1,
-            ReadOnlySequence<byte> source2,
+            ReadOnlySequence<byte> protocolHeader,
+            ReadOnlySequence<byte> payload,
             bool completeWhenDone,
             CancellationToken cancel)
         {
-            bool sendingSource1 = !source2.IsEmpty;
-            ReadOnlySequence<byte> sendSource = source1;
-            Debug.Assert(!sendSource.IsEmpty || completeWhenDone);
-            do
+            while (protocolHeader.Length > 0 || payload.Length > 0)
             {
                 // Check if writes completed, the stream might have been reset by the peer. Don't send the data and
                 // return a completed flush result.
@@ -415,34 +409,30 @@ namespace IceRpc.Transports.Internal
                     // bytes or the Slic packet maximum size.
                     int sendSize = 0;
                     int sendMaxSize = Math.Min(sendCredit, PeerPacketMaxSize);
-                    _sendBuffers.Clear();
-                    _sendBuffers.Add(SlicDefinitions.FrameHeader); // The header will be replaced once encoded.
-                    while (sendSize < sendMaxSize)
+
+                    ReadOnlySequence<byte> protocolHeaderSequence = ReadOnlySequence<byte>.Empty;
+                    ReadOnlySequence<byte> payloadSequence = ReadOnlySequence<byte>.Empty;
+
+                    if (protocolHeader.Length > 0)
                     {
-                        if (sendingSource1 && sendSource.IsEmpty)
-                        {
-                            // Switch to source2 if we're done with source1.
-                            sendingSource1 = false;
-                            sendSource = source2;
-                        }
-
-                        if (sendSource.IsEmpty)
-                        {
-                            // No more data to gather!
-                            break;
-                        }
-
-                        // Add the send source data to the send buffers, no more data than the send credit left.
-                        sendSize += FillSendBuffers(ref sendSource, sendMaxSize - sendSize);
+                        protocolHeaderSequence = protocolHeader.Slice(0, Math.Min(protocolHeader.Length, sendMaxSize));
+                        sendSize += (int)protocolHeaderSequence.Length;
+                        protocolHeader = protocolHeader.Slice(protocolHeaderSequence.Length);
                     }
 
-                    bool endStream = completeWhenDone && !sendingSource1 && sendSource.IsEmpty;
+                    if (payload.Length > 0 && sendSize < sendMaxSize)
+                    {
+                        payloadSequence = payload.Slice(0, Math.Min(payload.Length, sendMaxSize - sendSize));
+                        sendSize += (int)payloadSequence.Length;
+                        payload = payload.Slice(payloadSequence.Length);
+                    }
 
                     // Notify the stream that we're consuming sendSize credit. It's important to call this before
                     // sending the stream frame to avoid race conditions where the StreamResumeWrite frame could be
                     // received before the send credit was updated.
                     stream.SendCreditConsumed(sendSize);
 
+                    bool endStream = completeWhenDone && protocolHeader.IsEmpty && payload.IsEmpty;
                     if (endStream)
                     {
                         // At this point writes are considered completed on the stream. It's important to call
@@ -451,11 +441,12 @@ namespace IceRpc.Transports.Internal
                         stream.TrySetWriteCompleted();
                     }
 
-                    // We can encode the Slic header now that we known the data size and the stream ID.
-                    _sendBuffers[0] = EncodeSlicHeader(sendSize, endStream);
-
                     // Write the frame.
-                    await _writer.WriteFrameAsync(_sendBuffers, cancel).ConfigureAwait(false);
+                    await _writer.WriteFrameAsync(
+                        EncodeSlicHeader(sendSize, endStream),
+                        protocolHeaderSequence,
+                        payloadSequence,
+                        cancel).ConfigureAwait(false);
                 }
                 catch (MultiplexedStreamAbortedException ex)
                 {
@@ -473,7 +464,6 @@ namespace IceRpc.Transports.Internal
                     _sendSemaphore.Release();
                 }
             }
-            while (sendingSource1 || !sendSource.IsEmpty);
 
             return new FlushResult(isCanceled: false, isCompleted: false);
 
@@ -490,38 +480,6 @@ namespace IceRpc.Transports.Internal
                 encoder.EncodeSize(sendSize);
                 encoder.EncodeVarULong(streamId);
                 return _sendFrameWriter.WrittenMemory;
-            }
-
-            int FillSendBuffers(ref ReadOnlySequence<byte> source, int maxSize)
-            {
-                Debug.Assert(maxSize > 0);
-                int size = 0;
-                SequencePosition position = source.Start;
-                while (true)
-                {
-                    if (!source.TryGet(ref position, out ReadOnlyMemory<byte> memory))
-                    {
-                        // No more data available.
-                        source = ReadOnlySequence<byte>.Empty;
-                        return size;
-                    }
-
-                    if (size + memory.Length < maxSize)
-                    {
-                        // Add the segment to the send buffers.
-                        _sendBuffers.Add(memory);
-                        size += memory.Length;
-                    }
-                    else
-                    {
-                        // We've reached the maximum send size. Slice the buffer to send and slice the source buffer
-                        // to the remaining data to consume.
-                        _sendBuffers.Add(memory[0..(maxSize - size)]);
-                        size += maxSize - size;
-                        source = source.Slice(source.GetPosition(size));
-                        return size;
-                    }
-                }
             }
         }
 

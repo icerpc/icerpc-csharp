@@ -2,11 +2,16 @@
 
 using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
+using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {
     internal class LogSimpleNetworkConnectionDecorator : LogNetworkConnectionDecorator, ISimpleNetworkConnection
     {
+        public PipeReader Input => _decoratee.Input;
+
+        public PipeWriter Output => _decoratee.Output;
+
         private readonly ISimpleNetworkConnection _decoratee;
 
         public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)

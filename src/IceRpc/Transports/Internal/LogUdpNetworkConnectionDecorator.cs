@@ -1,12 +1,15 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
+using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The log decorator installed by the UDP transports.</summary>
     internal class LogUdpNetworkConnectionDecorator : ISimpleNetworkConnection
     {
+        PipeReader IDuplexPipe.Input => _decoratee.Input;
+        PipeWriter IDuplexPipe.Output => _decoratee.Output;
         bool INetworkConnection.IsSecure => _decoratee.IsSecure;
         TimeSpan INetworkConnection.LastActivity => _decoratee.LastActivity;
 

@@ -5,6 +5,8 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {
+    // TODO: temporary, this should be replaced with SslStreamPipeReader, SocketPipeReader, or it should be a base
+    // class to implement these.
     internal class SimpleNetworkConnectionPipeReader : PipeReader
     {
         private readonly ISimpleNetworkConnection _connection;

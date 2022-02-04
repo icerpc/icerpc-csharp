@@ -2,6 +2,7 @@
 
 using Microsoft.Extensions.Logging;
 using System.Net.Security;
+using System.IO.Pipelines;
 using System.Security.Authentication;
 
 namespace IceRpc.Transports.Internal
@@ -9,6 +10,9 @@ namespace IceRpc.Transports.Internal
     /// <summary>The log decorator installed by the TCP transports.</summary>
     internal class LogTcpNetworkConnectionDecorator : ISimpleNetworkConnection
     {
+        PipeReader IDuplexPipe.Input => _decoratee.Input;
+        PipeWriter IDuplexPipe.Output => _decoratee.Output;
+
         bool INetworkConnection.IsSecure => _decoratee.IsSecure;
         TimeSpan INetworkConnection.LastActivity => _decoratee.LastActivity;
 

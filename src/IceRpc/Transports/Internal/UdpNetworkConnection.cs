@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.IO.Pipelines;
 using System.Text;
 
 using static IceRpc.Transports.Internal.UdpUtils;
@@ -14,7 +15,11 @@ namespace IceRpc.Transports.Internal
 {
     internal abstract class UdpNetworkConnection : ISimpleNetworkConnection
     {
+        // TODO: Fix
+        public PipeReader Input => null!;
         public bool IsSecure => false;
+        // TODO: Fix
+        public PipeWriter Output => null!;
 
         public abstract TimeSpan LastActivity { get; }
         internal abstract Socket Socket { get; }
