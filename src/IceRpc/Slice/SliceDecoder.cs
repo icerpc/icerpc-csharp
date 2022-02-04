@@ -508,11 +508,18 @@ namespace IceRpc.Slice
                     "bitSequenceSize must be greater than 0");
             }
 
-            int size = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0);
-            ReadOnlySequence<byte> bitSequence = _reader.UnreadSequence.Slice(0, size);
-            _reader.Advance(size);
-            Debug.Assert(bitSequence.Length == size);
-            return new BitSequenceReader(bitSequence);
+            if (Encoding == IceRpc.Encoding.Slice11)
+            {
+                return default;
+            }
+            else
+            {
+                int size = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0);
+                ReadOnlySequence<byte> bitSequence = _reader.UnreadSequence.Slice(0, size);
+                _reader.Advance(size);
+                Debug.Assert(bitSequence.Length == size);
+                return new BitSequenceReader(bitSequence);
+            }
         }
 
         internal static int DecodeInt(ReadOnlySpan<byte> from) => BitConverter.ToInt32(from);
@@ -634,8 +641,6 @@ namespace IceRpc.Slice
 
             // The Slice 1.1 encoding of ice endpoints is transport-specific, and hard-coded here and in the
             // SliceEncoder. The preferred and fallback encoding for new transports is TransportCode.Uri.
-
-            Debug.Assert(_connection != null);
 
             Endpoint? endpoint = null;
             TransportCode transportCode = this.DecodeTransportCode();

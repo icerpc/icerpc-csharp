@@ -476,56 +476,63 @@ namespace IceRpc.Slice
                     $"{nameof(bitSequenceSize)} must be greater than 0");
             }
 
-            int remaining = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0); // size in bytes
-
-            Span<byte> firstSpan = _bufferWriter.GetSpan();
-            Span<byte> secondSpan = default;
-
-            // We only create this additionalMemory list in the rare situation where 2 spans are not sufficient.
-            List<Memory<byte>>? additionalMemory = null;
-
-            if (firstSpan.Length >= remaining)
+            if (Encoding == SliceEncoding.Slice11)
             {
-                firstSpan = firstSpan[0..remaining];
-                Advance(remaining);
+                return default;
             }
             else
             {
-                Advance(firstSpan.Length);
-                remaining -= firstSpan.Length;
+                int remaining = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0); // size in bytes
 
-                secondSpan = _bufferWriter.GetSpan();
-                if (secondSpan.Length >= remaining)
+                Span<byte> firstSpan = _bufferWriter.GetSpan();
+                Span<byte> secondSpan = default;
+
+                // We only create this additionalMemory list in the rare situation where 2 spans are not sufficient.
+                List<Memory<byte>>? additionalMemory = null;
+
+                if (firstSpan.Length >= remaining)
                 {
-                    secondSpan = secondSpan[0..remaining];
+                    firstSpan = firstSpan[0..remaining];
                     Advance(remaining);
                 }
                 else
                 {
-                    Advance(secondSpan.Length);
-                    remaining -= secondSpan.Length;
-                    additionalMemory = new List<Memory<byte>>();
+                    Advance(firstSpan.Length);
+                    remaining -= firstSpan.Length;
 
-                    do
+                    secondSpan = _bufferWriter.GetSpan();
+                    if (secondSpan.Length >= remaining)
                     {
-                        Memory<byte> memory = _bufferWriter.GetMemory();
-                        if (memory.Length >= remaining)
-                        {
-                            additionalMemory.Add(memory[0..remaining]);
-                            Advance(remaining);
-                            remaining = 0;
-                        }
-                        else
-                        {
-                            additionalMemory.Add(memory);
-                            Advance(memory.Length);
-                            remaining -= memory.Length;
-                        }
-                    } while (remaining > 0);
-                }
-            }
+                        secondSpan = secondSpan[0..remaining];
+                        Advance(remaining);
+                    }
+                    else
+                    {
+                        Advance(secondSpan.Length);
+                        remaining -= secondSpan.Length;
+                        additionalMemory = new List<Memory<byte>>();
 
-            return new BitSequenceWriter(new SpanEnumerator(firstSpan, secondSpan, additionalMemory));
+                        do
+                        {
+                            Memory<byte> memory = _bufferWriter.GetMemory();
+                            if (memory.Length >= remaining)
+                            {
+                                additionalMemory.Add(memory[0..remaining]);
+                                Advance(remaining);
+                                remaining = 0;
+                            }
+                            else
+                            {
+                                additionalMemory.Add(memory);
+                                Advance(memory.Length);
+                                remaining -= memory.Length;
+                            }
+                        } while (remaining > 0);
+                    }
+                }
+
+                return new BitSequenceWriter(new SpanEnumerator(firstSpan, secondSpan, additionalMemory));
+            }
         }
 
         /// <summary>Gets a placeholder to be filled-in later.</summary>
