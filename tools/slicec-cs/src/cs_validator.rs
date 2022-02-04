@@ -152,7 +152,7 @@ impl Visitor for CsValidator {
                             Some(&attribute.location),
                         ),
                         _ => slice::report_error(
-                            r#"too many arguments expected 'cs:type("<type>")'"#.to_owned(),
+                            r#"too many arguments, expected 'cs:type("<type>")'"#.to_owned(),
                             Some(&attribute.location),
                         ),
                     }
