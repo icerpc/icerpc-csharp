@@ -13,9 +13,9 @@ namespace IceRpc
     /// <remarks>This class is part of the Slice engine code.</remarks>
     public class Service : IService, IDispatcher
     {
-        /// <summary>A delegate that matches the signature of the generated SliceDXxx methods, the only difference is
-        /// that for the generated methods <para>target</para> type is the type of the generated service interface.
-        /// </summary>
+        /// <summary>A delegate that matches the signature of the generated SliceDXxx methods. For the generated
+        /// methods, the type of <para>target</para> is the type of the generated service interface, whereas for this
+        /// delegate it's <see cref="object"/>.</summary>
         private delegate ValueTask<(SliceEncoding, PipeReader, PipeReader?)> DispatchMethod(
             object target,
             IncomingRequest request,
@@ -27,6 +27,7 @@ namespace IceRpc
 
         // A dictionary of operation name to DispatchMethod used by DispatchAsync implementation.
         private readonly IReadOnlyDictionary<string, DispatchMethod> _dispatchMethods;
+
         // The service type IDs.
         private readonly IReadOnlySet<string> _typeIds;
 
