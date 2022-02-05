@@ -170,7 +170,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     Deadline = incomingRequest.Deadline,
                     Features = features,
-                    FieldsDefaults = fields,
+                    Fields = fields,
                     IsOneway = incomingRequest.IsOneway,
                     IsIdempotent = incomingRequest.IsIdempotent,
                     PayloadEncoding = incomingRequest.PayloadEncoding,
@@ -186,7 +186,7 @@ namespace IceRpc.Tests.ClientServer
                 return new OutgoingResponse(incomingRequest)
                 {
                     // Don't forward RetryPolicy
-                    FieldsDefaults = incomingResponse.Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
+                    Fields = incomingResponse.Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
                     PayloadEncoding = incomingResponse.PayloadEncoding,
                     PayloadSource = incomingResponse.Payload,
                     ResultType = incomingResponse.ResultType
