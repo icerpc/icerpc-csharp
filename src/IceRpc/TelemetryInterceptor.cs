@@ -106,7 +106,7 @@ namespace IceRpc
                 //    Baggage baggage;
                 // }
 
-                request.FieldsOverride = request.FieldsOverride.With(
+                request.FieldsOverrides = request.FieldsOverrides.With(
                     (int)FieldKey.TraceContext,
                     (ref SliceEncoder encoder) =>
                     {

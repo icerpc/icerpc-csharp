@@ -61,23 +61,23 @@ namespace IceRpc.Slice
 
         /// <summary>Encodes a fields dictionary.</summary>
         /// <param name="encoder">This Slice encoder.</param>
-        /// <param name="fieldsOverride">The fields override.</param>
+        /// <param name="fieldsOverrides">The fields overrides.</param>
         /// <param name="fields">The fields.</param>
         public static void EncodeFieldDictionary(
             this ref SliceEncoder encoder,
-            IDictionary<int, EncodeAction> fieldsOverride,
+            IDictionary<int, EncodeAction> fieldsOverrides,
             IDictionary<int, ReadOnlyMemory<byte>> fields)
         {
             // can be larger than necessary, which is fine
-            int sizeLength = encoder.GetSizeLength(fields.Count + fieldsOverride.Count);
+            int sizeLength = encoder.GetSizeLength(fields.Count + fieldsOverrides.Count);
 
             Span<byte> countPlaceholder = encoder.GetPlaceholderSpan(sizeLength);
 
             int count = 0; // the number of fields
 
-            // First encode the field override then the remaining fields.
+            // Encode the fields overrides then the actual fields.
 
-            foreach ((int key, EncodeAction action) in fieldsOverride)
+            foreach ((int key, EncodeAction action) in fieldsOverrides)
             {
                 encoder.EncodeVarInt(key);
                 Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
@@ -89,7 +89,7 @@ namespace IceRpc.Slice
 
             foreach ((int key, ReadOnlyMemory<byte> value) in fields)
             {
-                if (!fieldsOverride.ContainsKey(key))
+                if (!fieldsOverrides.ContainsKey(key))
                 {
                     encoder.EncodeVarInt(key);
                     encoder.EncodeSize(value.Length);

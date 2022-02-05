@@ -339,7 +339,7 @@ namespace IceRpc.Internal
                 throw new NotSupportedException(
                     "the payload of a request must be encoded with a supported Slice encoding");
             }
-            else if (request.FieldsOverride.Count > 0 || request.Fields.Count > 0)
+            else if (request.FieldsOverrides.Count > 0 || request.Fields.Count > 0)
             {
                 throw new NotSupportedException($"the Ice protocol does not support fields");
             }

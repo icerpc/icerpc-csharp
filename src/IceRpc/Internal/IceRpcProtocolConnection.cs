@@ -398,7 +398,7 @@ namespace IceRpc.Internal
                     (context.Count > 0 || request.Fields.ContainsKey((int)FieldKey.Context)))
                 {
                     // Encodes context
-                    request.FieldsOverride = request.FieldsOverride.With(
+                    request.FieldsOverrides = request.FieldsOverrides.With(
                         (int)FieldKey.Context,
                         (ref SliceEncoder encoder) => encoder.EncodeDictionary(
                             context,
@@ -407,7 +407,7 @@ namespace IceRpc.Internal
                 }
                 // else context remains empty (not set)
 
-                encoder.EncodeFieldDictionary(request.FieldsOverride, request.Fields);
+                encoder.EncodeFieldDictionary(request.FieldsOverrides, request.Fields);
 
                 // We're done with the header encoding, write the header size.
                 Slice20Encoding.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
@@ -456,7 +456,7 @@ namespace IceRpc.Internal
                     response.PayloadEncoding == IceRpcDefinitions.Encoding ? "" :
                         response.PayloadEncoding.ToString()).Encode(ref encoder);
 
-                encoder.EncodeFieldDictionary(response.FieldsOverride, response.Fields);
+                encoder.EncodeFieldDictionary(response.FieldsOverrides, response.Fields);
 
                 // We're done with the header encoding, write the header size.
                 Slice20Encoding.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
