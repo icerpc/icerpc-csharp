@@ -34,7 +34,15 @@ namespace IceRpc.Tests.Internal
             using var loggerFactory = new TestLoggerFactory();
             var pipeline = new Pipeline();
             pipeline.UseRetry(new RetryOptions { MaxAttempts = 3, LoggerFactory = loggerFactory });
-            pipeline.UseFeature(policy);
+
+            // We don't use a simple UseFeature here because we want to set the retry policy after receiving the
+            // response.
+            pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
+            {
+                IncomingResponse response = await next.InvokeAsync(request, cancel);
+                request.Features = request.Features.With(policy);
+                return response;
+            }));
             await pipeline.InvokeAsync(request);
 
             Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc"));

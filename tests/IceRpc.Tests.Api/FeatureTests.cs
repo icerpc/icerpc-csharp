@@ -63,16 +63,17 @@ namespace IceRpc.Tests.Api
                             int multiplier = request.Fields.Get(1, (ref SliceDecoder decoder) => decoder.DecodeInt());
                             if (multiplier != 0) // 0 == default(int)
                             {
-                                if (request.Features.IsReadOnly)
-                                {
-                                    request.Features = new FeatureCollection(request.Features);
-                                }
-                                request.Features.Set(multiplier);
+                                request.Features = request.Features.With(multiplier);
                             }
 
-                            OutgoingResponse response = await next.DispatchAsync(request, cancel);
-                            boolFeature = request.Features.Get<bool>();
-                            return response;
+                            try
+                            {
+                                return await next.DispatchAsync(request, cancel);
+                            }
+                            finally
+                            {
+                                boolFeature = request.Features.Get<bool>();
+                            }
                         }));
                     router.Map<IFeatureTest>(new FeatureTest());
                     return router;
@@ -102,11 +103,6 @@ namespace IceRpc.Tests.Api
             Assert.ThrowsAsync<DispatchException>(async () => await prx.FailWithRemoteAsync());
             Assert.That(boolFeature, Is.Not.Null);
             Assert.That(boolFeature!, Is.True);
-
-            // Features are not provided if the service raises an unhandled exception.
-            boolFeature = null;
-            Assert.ThrowsAsync<UnhandledException>(async () => await prx.FailWithUnhandledAsync());
-            Assert.That(boolFeature, Is.Null);
         }
     }
 
@@ -127,12 +123,5 @@ namespace IceRpc.Tests.Api
             dispatch.Features = dispatch.Features.With(true);
             throw new DispatchException();
         }
-
-        public ValueTask FailWithUnhandledAsync(Dispatch dispatch, CancellationToken cancel)
-        {
-            dispatch.Features = dispatch.Features.With(true);
-            throw new NotImplementedException();
-        }
-
     }
 }
