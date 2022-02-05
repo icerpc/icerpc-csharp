@@ -15,7 +15,7 @@ namespace IceRpc
         /// <returns>The decoded field value, or default(T?) if the key was not found in <paramref name="fields"/>.
         /// </returns>
         public static T? Get<T>(
-            this IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields,
+            this IDictionary<int, ReadOnlyMemory<byte>> fields,
             int key,
             DecodeFunc<T> decodeFunc) =>
             fields.TryGetValue(key, out ReadOnlyMemory<byte> value) ?

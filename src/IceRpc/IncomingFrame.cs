@@ -19,7 +19,7 @@ namespace IceRpc
         public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
         /// <summary>Returns the fields of this frame.</summary>
-        public IReadOnlyDictionary<int, ReadOnlyMemory<byte>> Fields { get; init; } =
+        public IDictionary<int, ReadOnlyMemory<byte>> Fields { get; init; } =
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <summary>The payload of this frame.</summary>

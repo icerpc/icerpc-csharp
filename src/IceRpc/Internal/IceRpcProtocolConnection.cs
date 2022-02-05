@@ -89,7 +89,7 @@ namespace IceRpc.Internal
                 }
 
                 IceRpcRequestHeader header;
-                IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields;
+                IDictionary<int, ReadOnlyMemory<byte>> fields;
                 FeatureCollection features = FeatureCollection.Empty;
                 PipeReader reader = stream.Input;
                 try
@@ -203,7 +203,7 @@ namespace IceRpc.Internal
                     }
                 }
 
-                static (IceRpcRequestHeader, IReadOnlyDictionary<int, ReadOnlyMemory<byte>>) DecodeHeader(
+                static (IceRpcRequestHeader, IDictionary<int, ReadOnlyMemory<byte>>) DecodeHeader(
                     ReadOnlySequence<byte> buffer)
                 {
                     var decoder = new SliceDecoder(buffer, Encoding.Slice20);
@@ -220,7 +220,7 @@ namespace IceRpc.Internal
             Debug.Assert(!request.IsOneway);
 
             IceRpcResponseHeader header;
-            IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields;
+            IDictionary<int, ReadOnlyMemory<byte>> fields;
             FeatureCollection features = FeatureCollection.Empty;
 
             PipeReader responseReader = request.ResponseReader;
@@ -288,7 +288,7 @@ namespace IceRpc.Internal
                 Fields = fields,
             };
 
-            static (IceRpcResponseHeader, IReadOnlyDictionary<int, ReadOnlyMemory<byte>>) DecodeHeader(
+            static (IceRpcResponseHeader, IDictionary<int, ReadOnlyMemory<byte>>) DecodeHeader(
                 ReadOnlySequence<byte> buffer)
             {
                 var decoder = new SliceDecoder(buffer, Encoding.Slice20);

@@ -17,7 +17,7 @@ namespace IceRpc
 
         /// <summary>Returns the defaults fields set during construction of this frame. The fields are used only when
         /// there is no corresponding entry in <see cref="Fields"/>.</summary>
-        public IReadOnlyDictionary<int, ReadOnlyMemory<byte>> FieldsDefaults { get; init; } =
+        public IDictionary<int, ReadOnlyMemory<byte>> FieldsDefaults { get; init; } =
               ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <summary>The features of this frame.</summary>

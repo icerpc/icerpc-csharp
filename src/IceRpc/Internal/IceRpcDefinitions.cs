@@ -18,7 +18,7 @@ namespace IceRpc.Internal
         internal static void EncodeFields(
             this ref SliceEncoder encoder,
             Dictionary<int, EncodeAction>? fields,
-            IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fieldsDefaults)
+            IDictionary<int, ReadOnlyMemory<byte>> fieldsDefaults)
         {
             // can be larger than necessary, which is fine
             int sizeLength = Slice20Encoding.GetSizeLength(fieldsDefaults.Count + (fields?.Count ?? 0));

@@ -151,8 +151,7 @@ namespace IceRpc.Tests.ClientServer
                 Protocol targetProtocol = _target.Protocol;
 
                 // Fields and context forwarding
-                IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields =
-                    ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
+                IDictionary<int, ReadOnlyMemory<byte>> fields = ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
                 FeatureCollection features = FeatureCollection.Empty;
 
                 if (incomingRequest.Protocol == Protocol.IceRpc && targetProtocol == Protocol.IceRpc)
