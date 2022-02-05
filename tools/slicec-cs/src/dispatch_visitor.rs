@@ -363,7 +363,6 @@ fn operation_dispatch(operation: &Operation) -> CodeBlock {
 protected static async global::System.Threading.Tasks.ValueTask<(SliceEncoding, global::System.IO.Pipelines.PipeReader, global::System.IO.Pipelines.PipeReader?)> {internal_name}(
     {interface_name} target,
     IceRpc.IncomingRequest request,
-    IceRpc.Dispatch dispatch,
     global::System.Threading.CancellationToken cancel)
 {{
     {dispatch_body}
@@ -435,7 +434,7 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
             }
         }
 
-        args.push("dispatch".to_owned());
+        args.push("new IceRpc.Dispatch(request)".to_owned());
         args.push("cancel".to_owned());
 
         writeln!(
@@ -464,7 +463,7 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
                 .map(|parameter| format!("args.{}", &parameter.field_name(FieldType::NonMangled)))
                 .collect(),
         };
-        args.push("dispatch".to_owned());
+        args.push("new IceRpc.Dispatch(request)".to_owned());
         args.push("cancel".to_owned());
 
         writeln!(

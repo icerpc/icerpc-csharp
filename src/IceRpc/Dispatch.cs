@@ -47,9 +47,10 @@ namespace IceRpc
         /// <summary>The protocol used by the request.</summary>
         public Protocol Protocol => IncomingRequest.Protocol;
 
+        /// <summary>Constructs a Dispatch from an incoming request.</summary>
+        public Dispatch(IncomingRequest request) => IncomingRequest = request;
+
         /// <summary>The incoming request frame.</summary>
         internal IncomingRequest IncomingRequest { get; }
-
-        internal Dispatch(IncomingRequest request) => IncomingRequest = request;
     }
 }

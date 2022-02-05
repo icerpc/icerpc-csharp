@@ -13,20 +13,20 @@ namespace IceRpc
     /// <remarks>This class is part of the Slice engine code.</remarks>
     public class Service : IService, IDispatcher
     {
-        /// <summary>A delegate that matches the signature of the generated IceDXxx methods, the only difference is that
-        /// for the generated methods <para>target</para> type is the type of the generated service interface.</summary>
-        private delegate ValueTask<(SliceEncoding, PipeReader, PipeReader?)> IceDMethod(
+        /// <summary>A delegate that matches the signature of the generated SliceDXxx methods, the only difference is
+        /// that for the generated methods <para>target</para> type is the type of the generated service interface.
+        /// </summary>
+        private delegate ValueTask<(SliceEncoding, PipeReader, PipeReader?)> DispatchMethod(
             object target,
             IncomingRequest request,
-            Dispatch dispatch,
             CancellationToken cancel);
 
         // A per type cache of dispatch methods and type IDs.
-        private static readonly ConcurrentDictionary<Type, (IReadOnlyDictionary<string, IceDMethod> Methods, IReadOnlySet<string> TypeIds)> _cache =
+        private static readonly ConcurrentDictionary<Type, (IReadOnlyDictionary<string, DispatchMethod> Methods, IReadOnlySet<string> TypeIds)> _cache =
            new();
 
-        // A dictionary of operation name to IceDMethod used by DispatchAsync implementation.
-        private readonly IReadOnlyDictionary<string, IceDMethod> _dispatchMethods;
+        // A dictionary of operation name to DispatchMethod used by DispatchAsync implementation.
+        private readonly IReadOnlyDictionary<string, DispatchMethod> _dispatchMethods;
         // The service type IDs.
         private readonly IReadOnlySet<string> _typeIds;
 
@@ -37,10 +37,9 @@ namespace IceRpc
                 {
                     ParameterExpression targetParam = Expression.Parameter(typeof(object));
                     ParameterExpression requestParam = Expression.Parameter(typeof(IncomingRequest));
-                    ParameterExpression dispatchParam = Expression.Parameter(typeof(Dispatch));
                     ParameterExpression cancelParam = Expression.Parameter(typeof(CancellationToken));
 
-                    var methods = new Dictionary<string, IceDMethod>();
+                    var methods = new Dictionary<string, DispatchMethod>();
                     var typeIds = new SortedSet<string>();
 
                     foreach (Type interfaceType in type.GetInterfaces())
@@ -53,16 +52,14 @@ namespace IceRpc
                             {
                                 methods.Add(
                                     attribute.Value,
-                                    Expression.Lambda<IceDMethod>(
+                                    Expression.Lambda<DispatchMethod>(
                                         Expression.Call(
                                             method,
                                             Expression.Convert(targetParam, type),
                                             requestParam,
-                                            dispatchParam,
                                             cancelParam),
                                         targetParam,
                                         requestParam,
-                                        dispatchParam,
                                         cancelParam).Compile());
                             }
                         }
@@ -94,12 +91,10 @@ namespace IceRpc
         /// <inheritdoc/>
         public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
         {
-            // TODO: move dispatch creation to dispatchMethod
-            var dispatch = new Dispatch(request);
-            if (_dispatchMethods.TryGetValue(dispatch.Operation, out IceDMethod? dispatchMethod))
+            if (_dispatchMethods.TryGetValue(request.Operation, out DispatchMethod? dispatchMethod))
             {
                 (SliceEncoding payloadEncoding, PipeReader responsePayloadSource, PipeReader? responsePayloadSourceStream) =
-                    await dispatchMethod(this, request, dispatch, cancel).ConfigureAwait(false);
+                    await dispatchMethod(this, request, cancel).ConfigureAwait(false);
 
                 return new OutgoingResponse(request)
                 {
