@@ -10,12 +10,12 @@ namespace IceRpc
     /// <summary>Base class for outgoing frames.</summary>
     public abstract class OutgoingFrame
     {
-        /// <summary>Gets or sets the fields of this outgoing frame. The full fields are a combination of this
-        /// these fields plus <see cref="FieldsOverride"/>.</summary>
+        /// <summary>Gets or sets the fields of this outgoing frame. The full fields are a combination of these fields
+        /// plus <see cref="FieldsOverride"/>.</summary>
         public IDictionary<int, ReadOnlyMemory<byte>> Fields { get; set; } =
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
-        /// <summary>Gets or sets the fields override of this outgoing frame. The full fields are a combination of this
+        /// <summary>Gets or sets the fields override of this outgoing frame. The full fields are a combination of
         /// <see cref="Fields"/> plus these overrides.</summary>
         /// <remarks>The actions set in this dictionary are executed when the frame is sent.</remarks>
         public IDictionary<int, EncodeAction> FieldsOverride { get; set; } =
