@@ -391,18 +391,19 @@ namespace IceRpc.Internal
                 header.Encode(ref encoder);
 
                 // If the context feature is set to a non empty context, or if the fields defaults contains a context
-                // entry and the context feature is set, marshal the context feature in the request fields. The context
-                // feature must prevail over field defaults. Cannot use request.Features.GetContext it doesn't
-                // distinguish between empty an non set context.
+                // entry and the context feature is set, encodes the context feature in the request fields. The context
+                // feature must prevail over existing fields. Cannot use request.Features.GetContext because it doesn't
+                // distinguish between empty and not set context.
                 if (request.Features.Get<Context>()?.Value is IDictionary<string, string> context &&
                     (context.Count > 0 || request.Fields.ContainsKey((int)FieldKey.Context)))
                 {
                     // Encodes context
-                    request.FieldsOverride[(int)FieldKey.Context] =
+                    request.FieldsOverride = request.FieldsOverride.With(
+                        (int)FieldKey.Context,
                         (ref SliceEncoder encoder) => encoder.EncodeDictionary(
                             context,
                             (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
-                            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
+                            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value)));
                 }
                 // else context remains empty (not set)
 
