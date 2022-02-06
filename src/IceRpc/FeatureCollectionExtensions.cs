@@ -1,12 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Features;
 using IceRpc.Features.Internal;
 using System.Collections.Immutable;
 
 namespace IceRpc
 {
-    /// <summary>Provides an extension method for class FeatureCollection, to get and set specific features.</summary>
+    /// <summary>Provides extension methods for <see cref="FeatureCollection"/>.</summary>
     public static class FeatureCollectionExtensions
     {
         /// <summary>Returns the value of <see cref="Context"/> in this feature collection.</summary>

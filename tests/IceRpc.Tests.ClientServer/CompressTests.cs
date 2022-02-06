@@ -100,7 +100,7 @@ namespace IceRpc.Tests.ClientServer
             };
             if (compressPayload)
             {
-                request.Features = new FeatureCollection().With(Features.CompressPayload.Yes);
+                request.Features = request.Features.With(Features.CompressPayload.Yes);
             }
             if (withStream)
             {
