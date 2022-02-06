@@ -168,7 +168,6 @@ namespace IceRpc.Tests.ClientServer
 
                 var outgoingRequest = new OutgoingRequest(_target, incomingRequest.Operation)
                 {
-                    Deadline = incomingRequest.Deadline,
                     Features = features,
                     Fields = fields,
                     IsOneway = incomingRequest.IsOneway,

@@ -161,7 +161,6 @@ namespace IceRpc.Internal
                     {
                         IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
                         IsOneway = requestId == 0,
-                        Deadline = DateTime.MaxValue
                     };
 
                     request.Features = request.Features.With(new IceRequest(requestId, outgoing: false));

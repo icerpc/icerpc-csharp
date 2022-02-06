@@ -1,5 +1,8 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
+using System.Diagnostics;
+
 namespace IceRpc
 {
     /// <summary>The timeout interceptor adds and enforces a timeout for requests with no deadline set.</summary>
@@ -30,7 +33,9 @@ namespace IceRpc
 
         async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            if (request.Deadline != DateTime.MaxValue)
+            // If the deadline field is already set, we don't do anything
+            if (request.Fields.ContainsKey((int)FieldKey.Deadline) ||
+                request.FieldsOverrides.ContainsKey((int)FieldKey.Deadline))
             {
                 return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
             }
@@ -40,7 +45,15 @@ namespace IceRpc
                 using CancellationTokenSource linkedTokenSource = cancel.CanBeCanceled ?
                     CancellationTokenSource.CreateLinkedTokenSource(cancel, timeoutTokenSource.Token) :
                     timeoutTokenSource;
-                request.Deadline = DateTime.UtcNow + _timeout;
+
+                // We compute the deadline immediately
+                long deadline = (long)(DateTime.UtcNow + _timeout - DateTime.UnixEpoch).TotalMilliseconds;
+                Debug.Assert(deadline > 0);
+
+                request.FieldsOverrides = request.FieldsOverrides.With(
+                    (int)FieldKey.Deadline,
+                    (ref SliceEncoder encoder) => encoder.EncodeVarLong(deadline));
+
                 return await _next.InvokeAsync(request, linkedTokenSource.Token).ConfigureAwait(false);
             }
         }
