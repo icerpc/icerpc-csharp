@@ -78,8 +78,8 @@ namespace IceRpc.Slice
 
         /// <summary>Decodes fields.</summary>
         /// <param name="decoder">The Slice decoder.</param>
-        /// <returns>The fields as an immutable dictionary.</returns>
-        public static ImmutableDictionary<int, ReadOnlyMemory<byte>> DecodeFieldDictionary(this ref SliceDecoder decoder)
+        /// <returns>The fields.</returns>
+        public static IDictionary<int, ReadOnlyMemory<byte>> DecodeFieldDictionary(this ref SliceDecoder decoder)
         {
             int size = decoder.DecodeSize();
             if (size == 0)
@@ -88,12 +88,12 @@ namespace IceRpc.Slice
             }
             else
             {
-                var builder = ImmutableDictionary.CreateBuilder<int, ReadOnlyMemory<byte>>();
+                var dict = new Dictionary<int, ReadOnlyMemory<byte>>(size);
                 for (int i = 0; i < size; ++i)
                 {
-                    builder.Add(decoder.DecodeVarInt(), decoder.DecodeSequence<byte>());
+                    dict.Add(decoder.DecodeVarInt(), decoder.DecodeSequence<byte>());
                 }
-                return builder.ToImmutable();
+                return dict;
             }
         }
 
