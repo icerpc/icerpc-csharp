@@ -20,10 +20,6 @@ namespace IceRpc
         /// deadline.</value>
         public DateTime Deadline { get; set; } = DateTime.MaxValue;
 
-        /// <summary>Gets or sets whether the caller considers the implementation of the target operation idempotent.
-        /// </summary>
-        public bool IsIdempotent { get; set; }
-
         /// <summary>Gets or sets whether a void-returning request is oneway. This property has no effect for operations
         /// defined in Slice that return a value.</summary>
         /// <value>When <c>true</c>, the request is sent as a oneway request. When <c>false</c>, the request is sent as

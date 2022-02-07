@@ -49,9 +49,6 @@ namespace IceRpc
             set => IncomingRequest.Features = value;
         }
 
-        /// <summary><c>True</c> if the operation was marked as idempotent, <c>False</c> otherwise.</summary>
-        public bool IsIdempotent => IncomingRequest.IsIdempotent;
-
         /// <summary><c>True</c> for oneway requests, <c>False</c> otherwise.</summary>
         public bool IsOneway => IncomingRequest.IsOneway;
 

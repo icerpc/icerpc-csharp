@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice;
 using System.IO.Compression;
 using System.IO.Pipelines;
 
@@ -18,7 +17,9 @@ namespace IceRpc.Internal
         internal static void UsePayloadCompressor(this OutgoingFrame frame, Configure.CompressOptions options)
         {
             // We don't compress if the payload is already compressed.
-            if (frame.Protocol.HasFields && !frame.FieldsOverrides.ContainsKey((int)FieldKey.Compression))
+            if (frame.Protocol.HasFields &&
+                !frame.Fields.ContainsKey((int)FieldKey.Compression) &&
+                !frame.FieldsOverrides.ContainsKey((int)FieldKey.Compression))
             {
                 frame.PayloadSink = PipeWriter.Create(
                     new DeflateStream(frame.PayloadSink.ToPayloadSinkStream(), options.CompressionLevel));

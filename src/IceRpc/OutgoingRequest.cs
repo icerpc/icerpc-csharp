@@ -28,9 +28,6 @@ namespace IceRpc
         /// <summary>The fragment of the target service.</summary>
         public string Fragment { get; }
 
-        /// <summary>When true, the operation is idempotent.</summary>
-        public bool IsIdempotent { get; init; }
-
         /// <summary>When true and the operation returns void, the request is sent as a oneway request. Otherwise, the
         /// request is sent as a twoway request.</summary>
         public bool IsOneway { get; init; }
