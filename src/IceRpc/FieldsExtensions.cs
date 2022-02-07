@@ -15,10 +15,26 @@ namespace IceRpc
         /// <returns>The decoded field value, or default(T?) if the key was not found in <paramref name="fields"/>.
         /// </returns>
         public static T? Get<T>(
-            this IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields,
+            this IDictionary<int, ReadOnlyMemory<byte>> fields,
             int key,
             DecodeFunc<T> decodeFunc) =>
             fields.TryGetValue(key, out ReadOnlyMemory<byte> value) ?
                 Encoding.Slice20.DecodeBuffer(value, decodeFunc) : default(T?);
+
+        /// <summary>Sets an entry in the fields dictionary and returns the fields dictionary. If
+        /// <paramref name="fields"/> is read-only, a copy is created, modified then returned.</summary>
+        /// <param name="fields">A fields dictionary or similar dictionary such as fields override.</param>
+        /// <param name="key">The key of the entry to set.</param>
+        /// <param name="value">The value of the entry to set.</param>
+        /// <returns>The fields dictionary.</returns>
+        public static IDictionary<int, T> With<T>(this IDictionary<int, T> fields, int key, T value)
+        {
+            if (fields.IsReadOnly)
+            {
+                fields = new Dictionary<int, T>(fields);
+            }
+            fields[key] = value;
+            return fields;
+        }
     }
 }

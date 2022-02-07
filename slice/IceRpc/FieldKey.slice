@@ -2,8 +2,6 @@
 
 module IceRpc
 {
-    typealias Fields = dictionary<varint, sequence<byte>>;
-
     /// Keys of fields reserved for IceRPC request and response headers.
     unchecked enum FieldKey : int
     {
