@@ -42,7 +42,6 @@ module IceRpc::Internal
         path: string,
         operation: string,
         \idempotent: bool,
-        deadline: varlong,
         payloadEncoding: string, // empty equivalent to "2.0"
         // fields: Fields, (encoded/decoded manually)
     }
