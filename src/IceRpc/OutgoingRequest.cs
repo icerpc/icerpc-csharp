@@ -22,13 +22,6 @@ namespace IceRpc
         /// <summary>The connection that will be used (or was used ) to send this request.</summary>
         public Connection? Connection { get; set; }
 
-        /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
-        /// caller is no longer interested in the response and discards the request. This deadline is sent with icerpc
-        /// requests but not with ice requests.</summary>
-        /// <remarks>The source of the cancellation token given to an invoker alongside this outgoing request is
-        /// expected to enforce this deadline.</remarks>
-        public DateTime Deadline { get; set; } = DateTime.MaxValue;
-
         /// <summary>The fragment of the target service.</summary>
         public string Fragment { get; }
 
