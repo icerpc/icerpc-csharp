@@ -128,6 +128,7 @@ namespace IceRpc.Tests.Api
             bool invocationHasDeadline = false;
 
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .UseProtocol(protocol)
                 .AddTransient<IDispatcher>(_ =>
                 {
                     var router = new Router();
