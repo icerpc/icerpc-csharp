@@ -15,12 +15,15 @@ namespace IceRpc.Tests.Api
         /// </summary>
         /// <param name="delay">The time in milliseconds to hold the dispatch to simulate an slow server.</param>
         /// <param name="timeout">The time in milliseconds used as the invocation timeout.</param>
-        [TestCase(10000, 1000)]
-        public async Task InvocationTimeout_WithInvocation(int delay, int timeout)
+        /// <param name="protocol">The protocol to use.</param>
+        [TestCase(10000, 1000, "icerpc")]
+        [TestCase(10000, 1000, "ice")]
+        public async Task InvocationTimeout_WithInvocation(int delay, int timeout, string protocol)
         {
             DateTime? dispatchDeadline = null;
             bool invocationHasDeadline = false;
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .UseProtocol(protocol)
                 .AddTransient<IDispatcher>(_ =>
                 {
                     var router = new Router();
@@ -51,22 +54,29 @@ namespace IceRpc.Tests.Api
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync(invocation));
             Assert.That(dispatchDeadline, Is.Not.Null);
             Assert.That(invocationHasDeadline, Is.True);
-            // Compare the deadlines as milliseconds because the deadline is transferred as a millisecond
-            // value and the conversion of the DateTime to the "long" type can result in a dispatch
-            // deadline which is different from the invocation deadline.
-            Assert.That(ToMilliSeconds(dispatchDeadline), Is.GreaterThanOrEqualTo(ToMilliSeconds(expectedDeadline)));
+
+            double difference = (dispatchDeadline!.Value - expectedDeadline).TotalMilliseconds;
+            Assert.That(difference, Is.GreaterThanOrEqualTo(0.0));
+
+            if (prx.Proxy.Protocol == Protocol.IceRpc)
+            {
+                Assert.That(difference, Is.LessThan(50.0));
+            }
         }
 
         /// <summary>Ensures that a request fails with OperationCanceledException after the invocation timeout expires.
         /// </summary>
         /// <param name="delay">The time in milliseconds to hold the dispatch to simulate an slow server.</param>
         /// <param name="timeout">The time in milliseconds used as the invocation timeout.</param>
-        [TestCase(10000, 1000)]
-        public async Task InvocationTimeout_WithTimeoutInterceptor(int delay, int timeout)
+        /// <param name="protocol">The protocol to use.</param>
+        [TestCase(10000, 1000, "icerpc")]
+        [TestCase(10000, 1000, "ice")]
+        public async Task InvocationTimeout_WithTimeoutInterceptor(int delay, int timeout, string protocol)
         {
             DateTime? dispatchDeadline = null;
             bool invocationHasDeadline = false;
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .UseProtocol(protocol)
                 .AddTransient<IDispatcher>(_ =>
                 {
                     var router = new Router();
@@ -96,18 +106,23 @@ namespace IceRpc.Tests.Api
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync());
             Assert.That(dispatchDeadline, Is.Not.Null);
             Assert.That(invocationHasDeadline, Is.True);
-            // Compare the deadlines as milliseconds because the deadline is transferred as a millisecond
-            // value and the conversion of the DateTime to the "long" type can result in a dispatch
-            // deadline which is different from the invocation deadline.
-            Assert.That(ToMilliSeconds(dispatchDeadline), Is.GreaterThanOrEqualTo(ToMilliSeconds(expectedDeadline)));
+
+            double difference = (dispatchDeadline!.Value - expectedDeadline).TotalMilliseconds;
+            Assert.That(difference, Is.GreaterThanOrEqualTo(0.0));
+
+            if (prx.Proxy.Protocol == Protocol.IceRpc)
+            {
+                Assert.That(difference, Is.LessThan(50.0));
+            }
         }
 
         /// <summary>Ensure that a request fails with OperationCanceledException after the invocation timeout expires.
         /// </summary>
         /// <param name="delay">The time in milliseconds to hold the dispatch to simulate a slow server.</param>
         /// <param name="timeout">The time in milliseconds used as the invocation timeout.</param>
-        [TestCase(10000, 1000)]
-        public async Task InvocationTimeout_InvocationPrevails(int delay, int timeout)
+        [TestCase(10000, 1000, "icerpc")]
+        [TestCase(10000, 1000, "ice")]
+        public async Task InvocationTimeout_InvocationPrevails(int delay, int timeout, string protocol)
         {
             DateTime? dispatchDeadline = null;
             bool invocationHasDeadline = false;
@@ -148,14 +163,15 @@ namespace IceRpc.Tests.Api
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync(invocation));
             Assert.That(dispatchDeadline, Is.Not.Null);
             Assert.That(invocationHasDeadline, Is.True);
-            // Compare the deadlines as milliseconds because the deadline is transferred as a millisecond
-            // value and the conversion of the DateTime to the "long" type can result in a dispatch
-            // deadline which is different from the invocation deadline.
-            Assert.That(ToMilliSeconds(dispatchDeadline), Is.GreaterThanOrEqualTo(ToMilliSeconds(expectedDeadline)));
-        }
 
-        private static long ToMilliSeconds(DateTime? deadline) =>
-            (long)(deadline!.Value - DateTime.UnixEpoch).TotalMilliseconds;
+            double difference = (dispatchDeadline!.Value - expectedDeadline).TotalMilliseconds;
+            Assert.That(difference, Is.GreaterThanOrEqualTo(0.0));
+
+            if (prx.Proxy.Protocol == Protocol.IceRpc)
+            {
+                Assert.That(difference, Is.LessThan(50.0));
+            }
+        }
 
         private static bool HasDeadline(OutgoingRequest request) =>
             request.Fields.ContainsKey((int)FieldKey.Deadline) ||

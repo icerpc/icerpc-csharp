@@ -333,10 +333,6 @@ namespace IceRpc.Internal
                 throw new NotSupportedException(
                     "the payload of a request must be encoded with a supported Slice encoding");
             }
-            else if (request.FieldsOverrides.Count > 0 || request.Fields.Count > 0)
-            {
-                throw new NotSupportedException($"the Ice protocol does not support fields");
-            }
             else if (_isUdp && !request.IsOneway)
             {
                 throw new InvalidOperationException("cannot send twoway request over UDP");
