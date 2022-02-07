@@ -32,7 +32,7 @@ namespace IceRpc
 
             if (_options.CompressPayload &&
                 response.ResultType == ResultType.Success &&
-                response.Features.Get<Features.CompressPayload>() == Features.CompressPayload.Yes)
+                response.Request.Features.Get<Features.CompressPayload>() == Features.CompressPayload.Yes)
             {
                 response.UsePayloadCompressor(_options);
             }

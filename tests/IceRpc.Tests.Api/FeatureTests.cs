@@ -50,7 +50,7 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task Dispatch_Features()
         {
-            bool? responseFeature = null;
+            bool? boolFeature = null;
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
                 .AddTransient<IDispatcher>(_ =>
                 {
@@ -63,23 +63,16 @@ namespace IceRpc.Tests.Api
                             int multiplier = request.Fields.Get(1, (ref SliceDecoder decoder) => decoder.DecodeInt());
                             if (multiplier != 0) // 0 == default(int)
                             {
-                                if (request.Features.IsReadOnly)
-                                {
-                                    request.Features = new FeatureCollection(request.Features);
-                                }
-                                request.Features.Set(multiplier);
+                                request.Features = request.Features.With(multiplier);
                             }
 
                             try
                             {
-                                OutgoingResponse response = await next.DispatchAsync(request, cancel);
-                                responseFeature = response.Features.Get<bool>();
-                                return response;
+                                return await next.DispatchAsync(request, cancel);
                             }
-                            catch (RemoteException remoteException)
+                            finally
                             {
-                                responseFeature = remoteException.Features.Get<bool>();
-                                throw;
+                                boolFeature = request.Features.Get<bool>();
                             }
                         }));
                     router.Map<IFeatureTest>(new FeatureTest());
@@ -105,18 +98,13 @@ namespace IceRpc.Tests.Api
 
             int ret = await prx.ComputeAsync(2);
             Assert.AreEqual(2 * multiplier, ret);
-            Assert.That(responseFeature, Is.Not.Null);
-            Assert.That(responseFeature!, Is.True);
+            Assert.That(boolFeature, Is.Not.Null);
+            Assert.That(boolFeature!, Is.True);
 
-            responseFeature = null;
+            boolFeature = null;
             Assert.ThrowsAsync<DispatchException>(async () => await prx.FailWithRemoteAsync());
-            Assert.That(responseFeature, Is.Not.Null);
-            Assert.That(responseFeature!, Is.True);
-
-            // Features are not provided if the service raises an unhandled exception.
-            responseFeature = null;
-            Assert.ThrowsAsync<UnhandledException>(async () => await prx.FailWithUnhandledAsync());
-            Assert.That(responseFeature, Is.Null);
+            Assert.That(boolFeature, Is.Not.Null);
+            Assert.That(boolFeature!, Is.True);
         }
     }
 
@@ -124,13 +112,9 @@ namespace IceRpc.Tests.Api
     {
         public ValueTask<int> ComputeAsync(int value, Dispatch dispatch, CancellationToken cancel)
         {
-            if (dispatch.RequestFeatures.Get<Multiplier>() is Multiplier multiplier)
+            if (dispatch.Features.Get<Multiplier>() is Multiplier multiplier)
             {
-                if (dispatch.ResponseFeatures.IsReadOnly)
-                {
-                    dispatch.ResponseFeatures = new FeatureCollection(dispatch.ResponseFeatures);
-                }
-                dispatch.ResponseFeatures.Set(true);
+                dispatch.Features = dispatch.Features.With(true);
                 return new(value * multiplier);
             }
             return new(value);
@@ -138,19 +122,8 @@ namespace IceRpc.Tests.Api
 
         public ValueTask FailWithRemoteAsync(Dispatch dispatch, CancellationToken cancel)
         {
-            if (dispatch.ResponseFeatures.IsReadOnly)
-            {
-                dispatch.ResponseFeatures = new FeatureCollection(dispatch.ResponseFeatures);
-            }
-            dispatch.ResponseFeatures.Set(true);
+            dispatch.Features = dispatch.Features.With(true);
             throw new DispatchException();
         }
-
-        public ValueTask FailWithUnhandledAsync(Dispatch dispatch, CancellationToken cancel)
-        {
-            dispatch.ResponseFeatures.Set(true);
-            throw new NotImplementedException();
-        }
-
     }
 }

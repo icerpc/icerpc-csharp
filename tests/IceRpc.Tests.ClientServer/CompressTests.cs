@@ -100,7 +100,7 @@ namespace IceRpc.Tests.ClientServer
             };
             if (compressPayload)
             {
-                request.Features = new FeatureCollection().With(Features.CompressPayload.Yes);
+                request.Features = request.Features.With(Features.CompressPayload.Yes);
             }
             if (withStream)
             {
@@ -156,17 +156,15 @@ namespace IceRpc.Tests.ClientServer
                 {
                     Router router = new Router().UseCompressor();
 
-                    var features = new FeatureCollection();
                     if (compressPayload)
                     {
-                        features = features.With(Features.CompressPayload.Yes);
+                        router.UseFeature(Features.CompressPayload.Yes);
                     }
 
                     router.Map("/", new InlineDispatcher(
                         (request, cancel) => new(
                             new OutgoingResponse(request)
                             {
-                                Features = features,
                                 PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(_mainPayload)),
                                 PayloadSourceStream = PipeReader.Create(withStream ?
                                     new ReadOnlySequence<byte>(_streamPayload) :

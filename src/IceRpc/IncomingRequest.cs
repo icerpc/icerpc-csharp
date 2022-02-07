@@ -15,6 +15,9 @@ namespace IceRpc
         /// on the server-side even though the invocation timeout is usually not infinite.</summary>
         public DateTime Deadline { get; init; }
 
+        /// <summary>The features of this request.</summary>
+        public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
+
         /// <summary>The fragment of the target service. It's always empty with the icerpc protocol.</summary>
         public string Fragment { get; init; }
 

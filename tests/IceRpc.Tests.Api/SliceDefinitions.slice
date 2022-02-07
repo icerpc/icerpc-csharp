@@ -23,7 +23,6 @@ module IceRpc::Tests::Api
     {
         compute(value: int) -> int;
         failWithRemote();
-        failWithUnhandled();
     }
 
     interface BaseA {}
