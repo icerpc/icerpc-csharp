@@ -93,6 +93,10 @@ impl<'a> Visitor for StructVisitor<'a> {
             builder.add_block(main_constructor.build());
 
             // Decode constructor
+            let mut decode_body = decode_data_members(&members, &namespace, FieldType::NonMangled);
+            if !struct_def.is_compact {
+                writeln!(decode_body, "decoder.SkipTaggedParams();");
+            }
             builder.add_block(
                 FunctionBuilder::new(
                     &struct_def.access_modifier(),
@@ -108,15 +112,15 @@ impl<'a> Visitor for StructVisitor<'a> {
                     ),
                 )
                 .add_parameter("ref SliceDecoder", "decoder", None, Some("The decoder."))
-                .set_body(decode_data_members(
-                    &members,
-                    &namespace,
-                    FieldType::NonMangled,
-                ))
+                .set_body(decode_body)
                 .build(),
             );
 
             // Encode method
+            let mut encode_body = encode_data_members(&members, &namespace, FieldType::NonMangled);
+            if !struct_def.is_compact {
+                writeln!(encode_body, "encoder.EncodeVarInt(Slice20Definitions.TagEndMarker);");
+            }
             builder.add_block(
                 FunctionBuilder::new(
                     &(struct_def.access_modifier() + " readonly"),
@@ -126,11 +130,7 @@ impl<'a> Visitor for StructVisitor<'a> {
                 )
                 .add_comment("summary", "Encodes the fields of this struct.")
                 .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
-                .set_body(encode_data_members(
-                    &members,
-                    &namespace,
-                    FieldType::NonMangled,
-                ))
+                .set_body(encode_body)
                 .build(),
             );
 
