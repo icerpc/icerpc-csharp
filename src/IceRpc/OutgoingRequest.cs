@@ -22,6 +22,9 @@ namespace IceRpc
         /// <summary>The connection that will be used (or was used ) to send this request.</summary>
         public Connection? Connection { get; set; }
 
+        /// <summary>The features of this request.</summary>
+        public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
+
         /// <summary>The fragment of the target service.</summary>
         public string Fragment { get; }
 

@@ -363,7 +363,6 @@ fn operation_dispatch(operation: &Operation) -> CodeBlock {
 protected static async global::System.Threading.Tasks.ValueTask<(SliceEncoding, global::System.IO.Pipelines.PipeReader, global::System.IO.Pipelines.PipeReader?)> {internal_name}(
     {interface_name} target,
     IceRpc.IncomingRequest request,
-    IceRpc.Dispatch dispatch,
     global::System.Threading.CancellationToken cancel)
 {{
     {dispatch_body}
@@ -389,10 +388,8 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
     }
 
     if operation.compress_return() {
-        // At this point, Dispatch is just created and the application had no opportunity to set any
-        // response feature.
         code.writeln(
-            "dispatch.ResponseFeatures = IceRpc.FeatureCollectionExtensions.CompressPayload(dispatch.ResponseFeatures);"
+            "request.Features = request.Features.With(IceRpc.Features.CompressPayload.Yes);"
         );
     }
 
@@ -437,7 +434,7 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
             }
         }
 
-        args.push("dispatch".to_owned());
+        args.push("new IceRpc.Dispatch(request)".to_owned());
         args.push("cancel".to_owned());
 
         writeln!(
@@ -466,7 +463,7 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
                 .map(|parameter| format!("args.{}", &parameter.field_name(FieldType::NonMangled)))
                 .collect(),
         };
-        args.push("dispatch".to_owned());
+        args.push("new IceRpc.Dispatch(request)".to_owned());
         args.push("cancel".to_owned());
 
         writeln!(

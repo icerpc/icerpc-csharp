@@ -7,6 +7,9 @@ namespace IceRpc
     /// <summary>Represents a request frame received by the application.</summary>
     public sealed class IncomingRequest : IncomingFrame
     {
+        /// <summary>The features of this request.</summary>
+        public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
+
         /// <summary>The fragment of the target service. It's always empty with the icerpc protocol.</summary>
         public string Fragment { get; init; }
 

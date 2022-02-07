@@ -15,9 +15,6 @@ namespace IceRpc
             set => _connection = value;
         }
 
-        /// <summary>The features of this request.</summary>
-        public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
-
         /// <summary>Returns the fields of this frame.</summary>
         public IDictionary<int, ReadOnlyMemory<byte>> Fields { get; init; } =
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
