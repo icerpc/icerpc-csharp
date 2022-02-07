@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
+
 namespace IceRpc
 {
     /// <summary>Holds properties that describe the request being dispatched. You can also set entries in
@@ -20,7 +22,22 @@ namespace IceRpc
         /// this deadline automatically using the proxy's invocation timeout and sends it with icerpc requests but not
         /// with ice requests. As a result, the deadline for an ice request is always <see cref="DateTime.MaxValue"/>
         /// on the server-side even though the invocation timeout is usually not infinite.</summary>
-        public DateTime Deadline => IncomingRequest.Deadline;
+        public DateTime Deadline
+        {
+            get
+            {
+                if (_deadline == null)
+                {
+                    long value = IncomingRequest.Fields.Get(
+                        (int)FieldKey.Deadline,
+                        (ref SliceDecoder decoder) => decoder.DecodeVarLong());
+
+                    // unset or <= 0 results in DateTime.MaxValue
+                    _deadline = value > 0 ? DateTime.UnixEpoch + TimeSpan.FromMilliseconds(value) : DateTime.MaxValue;
+                }
+                return _deadline.Value;
+            }
+        }
 
         /// <summary>The encoding used by the request.</summary>
         public Encoding Encoding => IncomingRequest.PayloadEncoding;
@@ -47,10 +64,12 @@ namespace IceRpc
         /// <summary>The protocol used by the request.</summary>
         public Protocol Protocol => IncomingRequest.Protocol;
 
-        /// <summary>Constructs a Dispatch from an incoming request.</summary>
-        public Dispatch(IncomingRequest request) => IncomingRequest = request;
-
         /// <summary>The incoming request frame.</summary>
         internal IncomingRequest IncomingRequest { get; }
+
+        private DateTime? _deadline;
+
+        /// <summary>Constructs a dispatch from an incoming request.</summary>
+        public Dispatch(IncomingRequest request) => IncomingRequest = request;
     }
 }

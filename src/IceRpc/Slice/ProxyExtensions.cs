@@ -55,7 +55,6 @@ namespace IceRpc.Slice
 
             var request = new OutgoingRequest(proxy, operation)
             {
-                Deadline = invocation?.Deadline ?? DateTime.MaxValue,
                 Features = invocation?.Features ?? FeatureCollection.Empty,
                 IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false),
                 PayloadEncoding = payloadEncoding,
@@ -116,7 +115,6 @@ namespace IceRpc.Slice
         {
             var request = new OutgoingRequest(proxy, operation)
             {
-                Deadline = invocation?.Deadline ?? DateTime.MaxValue,
                 Features = invocation?.Features ?? FeatureCollection.Empty,
                 IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false),
                 IsOneway = oneway || (invocation?.IsOneway ?? false),

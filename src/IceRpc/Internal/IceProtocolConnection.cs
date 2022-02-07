@@ -161,7 +161,6 @@ namespace IceRpc.Internal
                     {
                         IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
                         IsOneway = requestId == 0,
-                        Deadline = DateTime.MaxValue
                     };
 
                     request.Features = request.Features.With(new IceRequest(requestId, outgoing: false));
@@ -333,10 +332,6 @@ namespace IceRpc.Internal
             {
                 throw new NotSupportedException(
                     "the payload of a request must be encoded with a supported Slice encoding");
-            }
-            else if (request.FieldsOverrides.Count > 0 || request.Fields.Count > 0)
-            {
-                throw new NotSupportedException($"the Ice protocol does not support fields");
             }
             else if (_isUdp && !request.IsOneway)
             {

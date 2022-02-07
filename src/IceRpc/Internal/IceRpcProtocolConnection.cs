@@ -115,11 +115,6 @@ namespace IceRpc.Internal
                         reader = PipeReader.Create(ReadOnlySequence<byte>.Empty);
                     }
 
-                    if (header.Deadline < -1 || header.Deadline == 0)
-                    {
-                        throw new InvalidDataException($"received invalid deadline value {header.Deadline}");
-                    }
-
                     // Decode Context from Fields and set corresponding feature.
                     if (fields.Get(
                         (int)FieldKey.Context,
@@ -159,9 +154,6 @@ namespace IceRpc.Internal
                     IsIdempotent = header.Idempotent,
                     IsOneway = !stream.IsBidirectional,
                     Features = features,
-                    // The infinite deadline is encoded as -1 and converted to DateTime.MaxValue
-                    Deadline = header.Deadline == -1 ?
-                        DateTime.MaxValue : DateTime.UnixEpoch + TimeSpan.FromMilliseconds(header.Deadline),
                     Fields = fields
                 };
 
@@ -375,15 +367,10 @@ namespace IceRpc.Internal
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
                 int headerStartPos = encoder.EncodedByteCount; // does not include the size
 
-                // DateTime.MaxValue represents an infinite deadline and it is encoded as -1
-                long deadline = request.Deadline == DateTime.MaxValue ? -1 :
-                        (long)(request.Deadline - DateTime.UnixEpoch).TotalMilliseconds;
-
                 var header = new IceRpcRequestHeader(
                     request.Path,
                     request.Operation,
                     request.IsIdempotent,
-                    deadline,
                     request.PayloadEncoding == IceRpcDefinitions.Encoding ? "" : request.PayloadEncoding.ToString());
 
                 header.Encode(ref encoder);

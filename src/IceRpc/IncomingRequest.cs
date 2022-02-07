@@ -7,14 +7,6 @@ namespace IceRpc
     /// <summary>Represents a request frame received by the application.</summary>
     public sealed class IncomingRequest : IncomingFrame
     {
-        /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
-        /// caller is no longer interested in the response and discards the request. The server-side runtime does not
-        /// enforce this deadline - it's provided "for information" to the application. The Ice client runtime sets
-        /// this deadline automatically using the proxy's invocation timeout and sends it with icerpc requests but not
-        /// with ice requests. As a result, the deadline for an ice request is always <see cref="DateTime.MaxValue"/>
-        /// on the server-side even though the invocation timeout is usually not infinite.</summary>
-        public DateTime Deadline { get; init; }
-
         /// <summary>The features of this request.</summary>
         public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
