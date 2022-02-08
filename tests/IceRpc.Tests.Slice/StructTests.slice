@@ -49,7 +49,7 @@ module IceRpc::Tests::Slice
 
     interface StructOperations
     {
-        idempotent opMyStruct(p1: MyStruct, p2: MyStruct) -> (r1: MyStruct, r2: MyStruct);
+        opMyStruct(p1: MyStruct, p2: MyStruct) -> (r1: MyStruct, r2: MyStruct);
         opAnotherStruct(p1: AnotherStruct, p2: AnotherStruct) -> (
             r1: AnotherStruct,
             r2: AnotherStruct,
