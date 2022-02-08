@@ -17,7 +17,10 @@ module IceRpc
         /// The payload compression field (for the compression interceptor and middleware).
         Compression = -3,
 
-        /// The deadline field, provided "for info" to the service.
+        /// The deadline field, provided "for info" to the service (for request headers).
         Deadline = -4,
+
+        /// The idempotent field (for request headers).
+        Idempotent = -5,
     }
 }

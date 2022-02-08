@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Collections.Immutable;
 using System.IO.Pipelines;
 
 namespace IceRpc.Slice
@@ -15,6 +16,9 @@ namespace IceRpc.Slice
     /// <summary>Provides extension methods for class Proxy.</summary>
     public static class ProxyExtensions
     {
+        private static readonly IDictionary<int, ReadOnlyMemory<byte>> _idempotentFields =
+            new Dictionary<int, ReadOnlyMemory<byte>> { [(int)FieldKey.Idempotent] = default }.ToImmutableDictionary();
+
         /// <summary>Computes the Slice encoding to use when encoding a Slice-generated request.</summary>
         public static SliceEncoding GetSliceEncoding(this Proxy proxy) =>
             proxy.Encoding as SliceEncoding ?? proxy.Protocol?.SliceEncoding ??
@@ -56,7 +60,7 @@ namespace IceRpc.Slice
             var request = new OutgoingRequest(proxy, operation)
             {
                 Features = invocation?.Features ?? FeatureCollection.Empty,
-                IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false),
+                Fields = idempotent ? _idempotentFields : ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty,
                 PayloadEncoding = payloadEncoding,
                 PayloadSource = payloadSource,
                 PayloadSourceStream = payloadSourceStream
@@ -116,7 +120,7 @@ namespace IceRpc.Slice
             var request = new OutgoingRequest(proxy, operation)
             {
                 Features = invocation?.Features ?? FeatureCollection.Empty,
-                IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false),
+                Fields = idempotent ? _idempotentFields : ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty,
                 IsOneway = oneway || (invocation?.IsOneway ?? false),
                 PayloadEncoding = payloadEncoding,
                 PayloadSource = payloadSource,
