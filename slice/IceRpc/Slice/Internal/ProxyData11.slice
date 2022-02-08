@@ -16,11 +16,12 @@ module IceRpc::Slice::Internal
         category: string,
     }
 
-    // TODO: temporary, replace by typealias Facet = [cs::type("global::IceRpc.Slice.Internal.Facet")] sequence<string>;
-    [cs:readonly]
-    struct Facet
+    /// The facet encoded as a sequence of 0 or 1 element (non percent-escaped). A sequence with 0 element is equivalent
+    /// an empty string. In C#, we map it to a percent-encoded string - a fragment.
+    [cs:type("string")]
+    compact struct Facet
     {
-        value: sequence<string>,  // has 0 or 1 element
+        value: sequence<string>, // has 0 or 1 element
     }
 
     /// The InvocationMode is carried by proxies that use the ice protocol, and it specifies the behavior when sending

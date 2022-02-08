@@ -421,8 +421,7 @@ namespace IceRpc.Slice
 
                 try
                 {
-                    proxyData.Facet.CheckValue();
-                    string fragment = proxyData.Facet.ToFragment();
+                    string fragment = proxyData.Facet;
 
                     if (!protocol.HasFragment && fragment.Length > 0)
                     {

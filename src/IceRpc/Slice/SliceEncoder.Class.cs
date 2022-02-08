@@ -51,7 +51,7 @@ namespace IceRpc.Slice
 
                         var requestFailed = new RequestFailedExceptionData(
                             identity,
-                            Facet.FromFragment(v.Origin.Fragment),
+                            v.Origin.Fragment,
                             v.Origin.Operation);
                         requestFailed.Encode(ref this);
                         break;
