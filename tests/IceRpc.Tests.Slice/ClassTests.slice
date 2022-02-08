@@ -87,7 +87,7 @@ module IceRpc::Tests::Slice
 
     class MyClassM
     {
-        v: dictionary<MyStruct, MyClassL>,
+        v: dictionary<MyCompactStruct, MyClassL>,
     }
 
     class MyBaseClass1

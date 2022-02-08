@@ -530,11 +530,10 @@ namespace IceRpc.Slice
             }
             else
             {
-                // TODO: the current version is for paramaters, return values and exception data members. It relies on
-                // the end of buffer to detect the end of the tag "dictionary", and does not use TagEndMarker.
-
                 int requestedTag = tag;
 
+                // For decoding parameters, return values, and exception data members we rely on the end of the buffer
+                // to detect the end of the tag 'dictionary'. Struct data members use TagEndMarker.
                 while (!_reader.End)
                 {
                     long startPos = _reader.Consumed;
@@ -546,7 +545,7 @@ namespace IceRpc.Slice
                         SkipSize();
                         return decodeFunc(ref this);
                     }
-                    else if (tag > requestedTag)
+                    else if (tag == Slice20Definitions.TagEndMarker || tag > requestedTag)
                     {
                         _reader.Rewind(_reader.Consumed - startPos); // rewind
                         break; // while
@@ -944,7 +943,7 @@ namespace IceRpc.Slice
         private byte PeekByte() => _reader.TryPeek(out byte value) ? value : throw new EndOfBufferException();
 
         /// <summary>Skips the remaining tagged parameters, return value _or_ data members.</summary>
-        private void SkipTaggedParams()
+        public void SkipTaggedParams()
         {
             if (Encoding == IceRpc.Encoding.Slice11)
             {
@@ -977,12 +976,15 @@ namespace IceRpc.Slice
             }
             else
             {
-                // TODO: the current version is for paramaters, return values and exception data members. It relies on
-                // the end of buffer to detect the end of the tag "dictionary", and does not use TagEndMarker.
+                // For decoding parameters, return values, and exception data members we rely on the end of the buffer
+                // to detect the end of the tag 'dictionary'. Struct data members use TagEndMarker.
                 while (!_reader.End)
                 {
-                    // Skip tag
-                    _ = DecodeVarInt();
+                    // Read the next tag and skip it. If we read the tag end marker, exit the loop.
+                    if (DecodeVarInt() == Slice20Definitions.TagEndMarker)
+                    {
+                        break; // while
+                    }
 
                     // Skip tagged value
                     Skip(DecodeSize());
