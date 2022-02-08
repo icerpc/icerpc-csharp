@@ -151,7 +151,6 @@ namespace IceRpc.Internal
                         Encoding.FromString(header.PayloadEncoding) : IceRpcDefinitions.Encoding,
                     responseWriter: stream.IsBidirectional ? stream.Output : InvalidPipeWriter.Instance)
                 {
-                    IsIdempotent = header.Idempotent,
                     IsOneway = !stream.IsBidirectional,
                     Features = features,
                     Fields = fields
@@ -370,7 +369,6 @@ namespace IceRpc.Internal
                 var header = new IceRpcRequestHeader(
                     request.Path,
                     request.Operation,
-                    request.IsIdempotent,
                     request.PayloadEncoding == IceRpcDefinitions.Encoding ? "" : request.PayloadEncoding.ToString());
 
                 header.Encode(ref encoder);

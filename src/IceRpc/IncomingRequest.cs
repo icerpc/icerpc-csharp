@@ -13,9 +13,6 @@ namespace IceRpc
         /// <summary>The fragment of the target service. It's always empty with the icerpc protocol.</summary>
         public string Fragment { get; init; }
 
-        /// <summary>When <c>true</c>, the operation is idempotent.</summary>
-        public bool IsIdempotent { get; init; }
-
         /// <summary><c>True</c> for oneway requests, <c>false</c> otherwise.</summary>
         public bool IsOneway { get; init; }
 

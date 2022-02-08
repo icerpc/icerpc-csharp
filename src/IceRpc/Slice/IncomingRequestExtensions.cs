@@ -25,7 +25,7 @@ namespace IceRpc.Slice
         /// incorrectly believes this operation is idempotent.</summary>
         public static void CheckNonIdempotent(this IncomingRequest request)
         {
-            if (request.IsIdempotent)
+            if (request.Fields.ContainsKey((int)FieldKey.Idempotent))
             {
                 throw new InvalidDataException(
                     $@"idempotent mismatch for operation '{request.Operation

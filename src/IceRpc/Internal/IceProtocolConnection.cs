@@ -5,6 +5,7 @@ using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using System.Buffers;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
@@ -38,6 +39,9 @@ namespace IceRpc.Internal
 
         /// <inheritdoc/>
         public event Action<string>? PeerShutdownInitiated;
+
+        private static readonly IDictionary<int, ReadOnlyMemory<byte>> _idempotentFields =
+            new Dictionary<int, ReadOnlyMemory<byte>> { [(int)FieldKey.Idempotent] = default }.ToImmutableDictionary();
 
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -159,7 +163,8 @@ namespace IceRpc.Internal
                         responseWriter: requestId == 0 ?
                             InvalidPipeWriter.Instance : new SimpleNetworkConnectionPipeWriter(_networkConnection))
                     {
-                        IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
+                        Fields = requestHeader.OperationMode == OperationMode.Normal ?
+                            ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty : _idempotentFields,
                         IsOneway = requestId == 0,
                     };
 
@@ -434,7 +439,10 @@ namespace IceRpc.Internal
                     Identity.FromPath(request.Path),
                     Facet.FromFragment(request.Fragment),
                     request.Operation,
-                    request.IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
+                    // We're not checking FieldsOverrides because it makes no sense to use FieldsOverrides for
+                    // idempotent.
+                    request.Fields.ContainsKey((int)FieldKey.Idempotent) ? OperationMode.Idempotent :
+                        OperationMode.Normal,
                     request.Features.GetContext(),
                     new EncapsulationHeader(encapsulationSize: payloadSize + 6, encodingMajor, encodingMinor));
                 requestHeader.Encode(ref encoder);
