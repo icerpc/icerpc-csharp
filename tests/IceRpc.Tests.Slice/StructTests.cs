@@ -8,16 +8,14 @@ namespace IceRpc.Tests.Slice
 {
     [Timeout(5000)]
     [Parallelizable(ParallelScope.All)]
-    [TestFixture("icerpc")]
     public sealed class StructTests
     {
         private readonly StructOperationsPrx _prx;
         private readonly ServiceProvider _serviceProvider;
 
-        public StructTests(string protocolCode)
+        public StructTests()
         {
             _serviceProvider = new IntegrationTestServiceCollection()
-                .UseProtocol(protocolCode)
                 .AddTransient<IDispatcher, StructOperations>()
                 .BuildServiceProvider();
 
