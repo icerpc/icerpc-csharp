@@ -8,7 +8,6 @@ namespace IceRpc.Tests.Slice
 {
     [Timeout(5000)]
     [Parallelizable(ParallelScope.All)]
-    [TestFixture("ice")]
     [TestFixture("icerpc")]
     public sealed class StructTests
     {
@@ -32,27 +31,38 @@ namespace IceRpc.Tests.Slice
         public async Task Struct_OperationsAsync()
         {
             // TODO Parse below should not use a connection with a different endpoint
-            await TestAsync((p1, p2) => _prx.OpMyStructAsync(p1, p2), new MyStruct(1, 2), new MyStruct(3, 4));
+            await TestAsync((p1, p2) => _prx.OpMyStructAsync(p1, p2), new MyStruct(1, 2), new MyStruct(3, null));
             await TestAsync((p1, p2) => _prx.OpAnotherStructAsync(p1, p2),
                             new AnotherStruct("hello",
-                                              OperationsPrx.Parse("icerpc://foo/bar"),
+                                              null,
                                               MyEnum.enum1,
                                               new MyStruct(1, 2)),
                             new AnotherStruct("world",
                                               OperationsPrx.Parse("icerpc://foo/bar"),
-                                              MyEnum.enum2,
+                                              null,
                                               new MyStruct(3, 4)));
-
-            static async Task TestAsync<T>(Func<T, T, Task<(T, T)>> invoker, T p1, T p2)
-            {
-                (T r1, T r2) = await invoker(p1, p2);
-                Assert.AreEqual(p1, r1);
-                Assert.AreEqual(p2, r2);
-            }
         }
 
         [Test]
-        public async Task Struct_CustomTypeAsync()
+        public async Task CompactStruct_OperationsAsync()
+        {
+            // TODO Parse below should not use a connection with a different endpoint
+            await TestAsync((p1, p2) => _prx.OpMyCompactStructAsync(p1, p2),
+                            new MyCompactStruct(1, 2),
+                            new MyCompactStruct(3, 4));
+            await TestAsync((p1, p2) => _prx.OpAnotherCompactStructAsync(p1, p2),
+                            new AnotherCompactStruct("hello",
+                                              OperationsPrx.Parse("icerpc://foo/bar"),
+                                              MyEnum.enum1,
+                                              new MyCompactStruct(1, 2)),
+                            new AnotherCompactStruct("world",
+                                              OperationsPrx.Parse("icerpc://foo/bar"),
+                                              MyEnum.enum2,
+                                              new MyCompactStruct(3, 4)));
+        }
+
+        [Test]
+        public async Task CompactStruct_CustomTypeAsync()
         {
             TimeSpan t1 = await _prx.OpMyTimeSpan1Async(TimeSpan.FromMilliseconds(100));
             Assert.AreEqual(t1, TimeSpan.FromMilliseconds(100));
@@ -71,6 +81,13 @@ namespace IceRpc.Tests.Slice
 
         }
 
+        static async Task TestAsync<T>(Func<T, T, Task<(T, T)>> invoker, T p1, T p2)
+        {
+            (T r1, T r2) = await invoker(p1, p2);
+            Assert.AreEqual(p1, r1);
+            Assert.AreEqual(p2, r2);
+        }
+
         public class StructOperations : Service, IStructOperations
         {
             public ValueTask<(MyStruct R1, MyStruct R2)> OpMyStructAsync(
@@ -82,6 +99,18 @@ namespace IceRpc.Tests.Slice
             public ValueTask<(AnotherStruct R1, AnotherStruct R2)> OpAnotherStructAsync(
                 AnotherStruct p1,
                 AnotherStruct p2,
+                Dispatch dispatch,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(MyCompactStruct R1, MyCompactStruct R2)> OpMyCompactStructAsync(
+                MyCompactStruct p1,
+                MyCompactStruct p2,
+                Dispatch dispatch,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(AnotherCompactStruct R1, AnotherCompactStruct R2)> OpAnotherCompactStructAsync(
+                AnotherCompactStruct p1,
+                AnotherCompactStruct p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -107,9 +136,9 @@ namespace IceRpc.Tests.Slice
                 CancellationToken cancel = default) => new(p1);
 
             public ValueTask<(LinkedList<int> R1, LinkedList<int> R2)> OpMyList2Async(
-                LinkedList<int> p1, 
-                LinkedList<int> p2, 
-                Dispatch dispatch, 
+                LinkedList<int> p1,
+                LinkedList<int> p2,
+                Dispatch dispatch,
                 CancellationToken cancel = default) => new((p1, p2));
         }
     }
@@ -119,6 +148,17 @@ namespace IceRpc.Tests.Slice
         // Test overrides
 
         public readonly bool Equals(MyStruct other) => I == other.I;
+
+        public override readonly int GetHashCode() => I.GetHashCode();
+
+        public override readonly string ToString() => $"{I + J}";
+    }
+
+    public partial record struct MyCompactStruct
+    {
+        // Test overrides
+
+        public readonly bool Equals(MyCompactStruct other) => I == other.I;
 
         public override readonly int GetHashCode() => I.GetHashCode();
 

@@ -11,9 +11,9 @@ module IceRpc::Tests::Slice
     struct AnotherStruct
     {
         str: string,
-        prx: tag(1) Operations?,
+        prx: tag(0) Operations?,
         en: MyEnum?,
-        st: MyStruct,
+        st: tag(2) MyStruct?,
     }
 
     compact struct MyCompactStruct
