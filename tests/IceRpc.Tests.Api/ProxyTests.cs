@@ -49,14 +49,14 @@ namespace IceRpc.Tests.Api
             // Test that Service operations correctly forward the context
             var invocation = new Invocation
             {
-                Context = new Dictionary<string, string> { ["foo"] = "bar" }
+                Features = new FeatureCollection().WithContext(new Dictionary<string, string> { ["foo"] = "bar" })
             };
 
             var pipeline = new Pipeline();
             prx.Proxy.Invoker = pipeline;
             pipeline.Use(next => new InlineInvoker((request, cancel) =>
             {
-                Assert.AreEqual(request.Features.GetContext(), invocation.Context);
+                Assert.AreEqual(request.Features.GetContext(), invocation.Features.GetContext());
                 return next.InvokeAsync(request, cancel);
             }));
 

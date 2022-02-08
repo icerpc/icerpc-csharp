@@ -124,7 +124,7 @@ namespace IceRpc.Internal
                             size => new Dictionary<string, string>(size),
                             keyDecodeFunc: (ref SliceDecoder decoder) => decoder.DecodeString(),
                             valueDecodeFunc: (ref SliceDecoder decoder) => decoder.DecodeString()))
-                                is Dictionary<string, string> context)
+                                is Dictionary<string, string> context && context.Count > 0)
                     {
                         features = features.WithContext(context);
                     }
@@ -373,22 +373,28 @@ namespace IceRpc.Internal
 
                 header.Encode(ref encoder);
 
-                // If the context feature is set to a non empty context, or if the fields defaults contains a context
-                // entry and the context feature is set, encodes the context feature in the request fields. The context
-                // feature must prevail over existing fields. Cannot use request.Features.GetContext because it doesn't
-                // distinguish between empty and not set context.
-                if (request.Features.Get<Context>()?.Value is IDictionary<string, string> context &&
-                    (context.Count > 0 || request.Fields.ContainsKey((int)FieldKey.Context)))
+                // If the context feature is set, convert it into a FieldsOverrides entry. This will overwrite any
+                // existing entry.
+                // We cannot use request.Features.GetContext here because it doesn't distinguish between empty and not
+                // set context.
+                if (request.Features.Get<Context>()?.Value is IDictionary<string, string> context)
                 {
-                    // Encodes context
-                    request.FieldsOverrides = request.FieldsOverrides.With(
-                        (int)FieldKey.Context,
-                        (ref SliceEncoder encoder) => encoder.EncodeDictionary(
-                            context,
-                            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
-                            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value)));
+                    if (context.Count == 0)
+                    {
+                        // make sure it's not set anywhere
+                        request.Fields = request.Fields.Without((int)FieldKey.Context);
+                        request.FieldsOverrides = request.FieldsOverrides.Without((int)FieldKey.Context);
+                    }
+                    else
+                    {
+                        request.FieldsOverrides = request.FieldsOverrides.With(
+                            (int)FieldKey.Context,
+                            (ref SliceEncoder encoder) => encoder.EncodeDictionary(
+                                context,
+                                (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
+                                (ref SliceEncoder encoder, string value) => encoder.EncodeString(value)));
+                    }
                 }
-                // else context remains empty (not set)
 
                 encoder.EncodeFieldDictionary(request.FieldsOverrides, request.Fields);
 

@@ -83,10 +83,11 @@ namespace IceRpc.Tests.ClientServer
 
                 var invocation = new Invocation
                 {
-                    Context = new Dictionary<string, string> { ["MyCtx"] = "hello" }
+                    Features = new FeatureCollection().WithContext(
+                        new Dictionary<string, string> { ["MyCtx"] = "hello" })
                 };
                 await prx.OpContextAsync(invocation);
-                CollectionAssert.AreEqual(invocation.Context, targetService.Context);
+                CollectionAssert.AreEqual(invocation.Features.GetContext(), targetService.Context);
                 targetService.Context = ImmutableDictionary<string, string>.Empty;
 
                 await prx.OpVoidAsync();
@@ -116,7 +117,7 @@ namespace IceRpc.Tests.ClientServer
 
             public ValueTask OpContextAsync(Dispatch dispatch, CancellationToken cancel)
             {
-                Context = dispatch.Context.ToImmutableDictionary();
+                Context = dispatch.Features.GetContext().ToImmutableDictionary();
                 return default;
             }
             public ValueTask OpExceptionAsync(Dispatch dispatch, CancellationToken cancel) =>
