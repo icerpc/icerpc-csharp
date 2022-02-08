@@ -37,7 +37,7 @@ module IceRpc::Internal
     /// The payload of most request and response frames starts with an encapsulation header that specifies the size of
     /// the encapsulation and its encoding.
     [cs:readonly]
-    struct EncapsulationHeader
+    compact struct EncapsulationHeader
     {
         encapsulationSize: int,
         payloadEncodingMajor: byte,
@@ -49,7 +49,7 @@ module IceRpc::Internal
     /// - a request header (below)
     /// - a request payload, with encapsulationSize - 6 bytes
     [cs:readonly]
-    struct IceRequestHeader
+    compact struct IceRequestHeader
     {
         identity: Slice::Internal::Identity,
         facet: Slice::Internal::Facet,

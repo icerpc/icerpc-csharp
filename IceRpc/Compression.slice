@@ -14,7 +14,7 @@ module IceRpc
 
     /// The compression field of the payload carried by a frame.
     [cs:readonly]
-    struct CompressionField
+    compact struct CompressionField
     {
         /// The compression format.
         format: CompressionFormat,
