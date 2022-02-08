@@ -144,10 +144,8 @@ namespace IceRpc.Tests.ClientServer
                 "hello",
                 new Invocation
                 {
-                    Context = new SortedDictionary<string, string>
-                    {
-                        ["retry"] = "yes"
-                    }
+                    Features = new FeatureCollection().WithContext(
+                        new Dictionary<string, string> { ["retry"] = "yes" })
                 }));
             Assert.ThrowsAsync<NoEndpointException>(async () => await indirectGreeter.SayHelloAsync("hello"));
 
@@ -172,10 +170,8 @@ namespace IceRpc.Tests.ClientServer
                     "hello",
                     new Invocation
                     {
-                        Context = new SortedDictionary<string, string>
-                        {
-                            ["retry"] = "yes"
-                        }
+                        Features = new FeatureCollection().WithContext(
+                            new Dictionary<string, string> { ["retry"] = "yes" })
                     }));
             }
 
@@ -299,7 +295,7 @@ namespace IceRpc.Tests.ClientServer
         {
             public ValueTask SayHelloAsync(string message, Dispatch dispatch, CancellationToken cancel)
             {
-                if (dispatch.Context.ContainsKey("retry"))
+                if (dispatch.Features.GetContext().ContainsKey("retry"))
                 {
                     // Other replica so that the retry interceptor clears the connection
                     // We have to use ServiceNotFoundException because we use ice.

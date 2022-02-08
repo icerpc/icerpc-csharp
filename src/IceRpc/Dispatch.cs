@@ -13,9 +13,6 @@ namespace IceRpc
         /// <summary>The <see cref="Connection"/> over which the request was dispatched.</summary>
         public Connection Connection => IncomingRequest.Connection;
 
-        /// <summary>Gets the value of the Context features in <see cref="Features"/>.</summary>
-        public IDictionary<string, string> Context => Features.GetContext();
-
         /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
         /// caller is no longer interested in the response and discards the request. The server-side runtime does not
         /// enforce this deadline - it's provided "for information" to the application. The IceRPC client runtime sets
