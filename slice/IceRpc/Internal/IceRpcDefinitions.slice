@@ -42,9 +42,8 @@ module IceRpc::Internal
         path: string,
         operation: string,
         \idempotent: bool,
-        deadline: varlong,
         payloadEncoding: string, // empty equivalent to "2.0"
-        // fields: Fields, (encoded/decoded manually for now)
+        // fields: Fields, (encoded/decoded manually)
     }
 
     /// Each icerpc response frame consists of:
@@ -56,7 +55,7 @@ module IceRpc::Internal
     {
         resultType: ResultType,
         payloadEncoding: string, // empty equivalent to "2.0"
-        // fields: Fields, (encoded/decoded manually for now)
+        // fields: Fields, (encoded/decoded manually)
     }
 
     /// The go away frame is sent on connection shutdown to notify the peer that it shouldn't perform new invocations

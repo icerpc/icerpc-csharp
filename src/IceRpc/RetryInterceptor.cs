@@ -67,7 +67,7 @@ namespace IceRpc
                             return response;
                         }
 
-                        retryPolicy = response.Features.Get<RetryPolicy>() ?? RetryPolicy.NoRetry;
+                        retryPolicy = request.Features.Get<RetryPolicy>() ?? RetryPolicy.NoRetry;
                     }
                     catch (NoEndpointException ex)
                     {

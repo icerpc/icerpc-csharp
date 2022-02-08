@@ -84,12 +84,7 @@ namespace IceRpc
                         else if (fromCache)
                         {
                             // Make sure the next attempt re-resolves location and sets refreshCache to true.
-
-                            if (request.Features.IsReadOnly)
-                            {
-                                request.Features = new FeatureCollection(request.Features);
-                            }
-                            request.Features.Set(new CachedResolutionFeature(location));
+                            request.Features = request.Features.With(new CachedResolutionFeature(location));
                         }
 
                         if (proxy != null)

@@ -151,8 +151,7 @@ namespace IceRpc.Tests.ClientServer
                 Protocol targetProtocol = _target.Protocol;
 
                 // Fields and context forwarding
-                IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields =
-                    ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
+                IDictionary<int, ReadOnlyMemory<byte>> fields = ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
                 FeatureCollection features = FeatureCollection.Empty;
 
                 if (incomingRequest.Protocol == Protocol.IceRpc && targetProtocol == Protocol.IceRpc)
@@ -169,9 +168,8 @@ namespace IceRpc.Tests.ClientServer
 
                 var outgoingRequest = new OutgoingRequest(_target, incomingRequest.Operation)
                 {
-                    Deadline = incomingRequest.Deadline,
                     Features = features,
-                    FieldsDefaults = fields,
+                    Fields = fields,
                     IsOneway = incomingRequest.IsOneway,
                     IsIdempotent = incomingRequest.IsIdempotent,
                     PayloadEncoding = incomingRequest.PayloadEncoding,
@@ -187,7 +185,7 @@ namespace IceRpc.Tests.ClientServer
                 return new OutgoingResponse(incomingRequest)
                 {
                     // Don't forward RetryPolicy
-                    FieldsDefaults = incomingResponse.Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
+                    Fields = incomingResponse.Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
                     PayloadEncoding = incomingResponse.PayloadEncoding,
                     PayloadSource = incomingResponse.Payload,
                     ResultType = incomingResponse.ResultType

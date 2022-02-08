@@ -648,7 +648,7 @@ namespace IceRpc
                     if (Protocol.HasFields && remoteException.RetryPolicy != RetryPolicy.NoRetry)
                     {
                         RetryPolicy retryPolicy = remoteException.RetryPolicy;
-                        response.Fields.Add(
+                        response.FieldsOverrides = response.FieldsOverrides.With(
                             (int)FieldKey.RetryPolicy,
                             (ref SliceEncoder encoder) => retryPolicy.Encode(ref encoder));
                     }

@@ -2,8 +2,6 @@
 
 module IceRpc
 {
-    typealias Fields = dictionary<varint, sequence<byte>>;
-
     /// Keys of fields reserved for IceRPC request and response headers.
     unchecked enum FieldKey : int
     {
@@ -18,5 +16,8 @@ module IceRpc
 
         /// The payload compression field (for the compression interceptor and middleware).
         Compression = -3,
+
+        /// The deadline field, provided "for info" to the service.
+        Deadline = -4,
     }
 }

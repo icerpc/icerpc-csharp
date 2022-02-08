@@ -89,7 +89,7 @@ namespace IceRpc.Internal
                 }
 
                 IceRpcRequestHeader header;
-                IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields;
+                IDictionary<int, ReadOnlyMemory<byte>> fields;
                 FeatureCollection features = FeatureCollection.Empty;
                 PipeReader reader = stream.Input;
                 try
@@ -113,11 +113,6 @@ namespace IceRpc.Internal
                     {
                         await reader.CompleteAsync().ConfigureAwait(false);
                         reader = PipeReader.Create(ReadOnlySequence<byte>.Empty);
-                    }
-
-                    if (header.Deadline < -1 || header.Deadline == 0)
-                    {
-                        throw new InvalidDataException($"received invalid deadline value {header.Deadline}");
                     }
 
                     // Decode Context from Fields and set corresponding feature.
@@ -159,9 +154,6 @@ namespace IceRpc.Internal
                     IsIdempotent = header.Idempotent,
                     IsOneway = !stream.IsBidirectional,
                     Features = features,
-                    // The infinite deadline is encoded as -1 and converted to DateTime.MaxValue
-                    Deadline = header.Deadline == -1 ?
-                        DateTime.MaxValue : DateTime.UnixEpoch + TimeSpan.FromMilliseconds(header.Deadline),
                     Fields = fields
                 };
 
@@ -203,7 +195,7 @@ namespace IceRpc.Internal
                     }
                 }
 
-                static (IceRpcRequestHeader, IReadOnlyDictionary<int, ReadOnlyMemory<byte>>) DecodeHeader(
+                static (IceRpcRequestHeader, IDictionary<int, ReadOnlyMemory<byte>>) DecodeHeader(
                     ReadOnlySequence<byte> buffer)
                 {
                     var decoder = new SliceDecoder(buffer, Encoding.Slice20);
@@ -220,8 +212,7 @@ namespace IceRpc.Internal
             Debug.Assert(!request.IsOneway);
 
             IceRpcResponseHeader header;
-            IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields;
-            FeatureCollection features = FeatureCollection.Empty;
+            IDictionary<int, ReadOnlyMemory<byte>> fields;
 
             PipeReader responseReader = request.ResponseReader;
 
@@ -249,7 +240,7 @@ namespace IceRpc.Internal
                     (int)FieldKey.RetryPolicy, (ref SliceDecoder decoder) => new RetryPolicy(ref decoder));
                 if (retryPolicy != null)
                 {
-                    features = features.With(retryPolicy);
+                    request.Features = request.Features.With(retryPolicy);
                 }
             }
             catch (MultiplexedStreamAbortedException ex)
@@ -284,11 +275,10 @@ namespace IceRpc.Internal
                 payloadEncoding: header.PayloadEncoding.Length > 0 ?
                     Encoding.FromString(header.PayloadEncoding) : IceRpcDefinitions.Encoding)
             {
-                Features = features,
                 Fields = fields,
             };
 
-            static (IceRpcResponseHeader, IReadOnlyDictionary<int, ReadOnlyMemory<byte>>) DecodeHeader(
+            static (IceRpcResponseHeader, IDictionary<int, ReadOnlyMemory<byte>>) DecodeHeader(
                 ReadOnlySequence<byte> buffer)
             {
                 var decoder = new SliceDecoder(buffer, Encoding.Slice20);
@@ -377,36 +367,32 @@ namespace IceRpc.Internal
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
                 int headerStartPos = encoder.EncodedByteCount; // does not include the size
 
-                // DateTime.MaxValue represents an infinite deadline and it is encoded as -1
-                long deadline = request.Deadline == DateTime.MaxValue ? -1 :
-                        (long)(request.Deadline - DateTime.UnixEpoch).TotalMilliseconds;
-
                 var header = new IceRpcRequestHeader(
                     request.Path,
                     request.Operation,
                     request.IsIdempotent,
-                    deadline,
                     request.PayloadEncoding == IceRpcDefinitions.Encoding ? "" : request.PayloadEncoding.ToString());
 
                 header.Encode(ref encoder);
 
                 // If the context feature is set to a non empty context, or if the fields defaults contains a context
-                // entry and the context feature is set, marshal the context feature in the request fields. The context
-                // feature must prevail over field defaults. Cannot use request.Features.GetContext it doesn't
-                // distinguish between empty an non set context.
+                // entry and the context feature is set, encodes the context feature in the request fields. The context
+                // feature must prevail over existing fields. Cannot use request.Features.GetContext because it doesn't
+                // distinguish between empty and not set context.
                 if (request.Features.Get<Context>()?.Value is IDictionary<string, string> context &&
-                    (context.Count > 0 || request.FieldsDefaults.ContainsKey((int)FieldKey.Context)))
+                    (context.Count > 0 || request.Fields.ContainsKey((int)FieldKey.Context)))
                 {
                     // Encodes context
-                    request.Fields[(int)FieldKey.Context] =
+                    request.FieldsOverrides = request.FieldsOverrides.With(
+                        (int)FieldKey.Context,
                         (ref SliceEncoder encoder) => encoder.EncodeDictionary(
                             context,
                             (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
-                            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value));
+                            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value)));
                 }
                 // else context remains empty (not set)
 
-                encoder.EncodeFields(request.Fields, request.FieldsDefaults);
+                encoder.EncodeFieldDictionary(request.FieldsOverrides, request.Fields);
 
                 // We're done with the header encoding, write the header size.
                 Slice20Encoding.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);
@@ -455,7 +441,7 @@ namespace IceRpc.Internal
                     response.PayloadEncoding == IceRpcDefinitions.Encoding ? "" :
                         response.PayloadEncoding.ToString()).Encode(ref encoder);
 
-                encoder.EncodeFields(response.Fields, response.FieldsDefaults);
+                encoder.EncodeFieldDictionary(response.FieldsOverrides, response.Fields);
 
                 // We're done with the header encoding, write the header size.
                 Slice20Encoding.EncodeSize(encoder.EncodedByteCount - headerStartPos, sizePlaceholder.Span);

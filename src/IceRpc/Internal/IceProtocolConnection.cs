@@ -161,7 +161,6 @@ namespace IceRpc.Internal
                     {
                         IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
                         IsOneway = requestId == 0,
-                        Deadline = DateTime.MaxValue
                     };
 
                     request.Features = request.Features.With(new IceRequest(requestId, outgoing: false));
@@ -254,22 +253,17 @@ namespace IceRpc.Internal
                 // We write the payload size in the first 4 bytes of the buffer.
                 EncodePayloadSize(payloadSize, payloadEncoding, buffer.Span[0..4]);
 
-                FeatureCollection features = FeatureCollection.Empty;
-
                 // For compatibility with ZeroC Ice "indirect" proxies
                 if (replyStatus == ReplyStatus.ObjectNotExistException && request.Proxy.Endpoint == null)
                 {
-                    features = features.With(RetryPolicy.OtherReplica);
+                    request.Features = request.Features.With(RetryPolicy.OtherReplica);
                 }
 
                 return new IncomingResponse(
                     request,
                     resultType,
                     new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
-                    payloadEncoding)
-                {
-                    Features = features
-                };
+                    payloadEncoding);
             }
             catch
             {
@@ -338,10 +332,6 @@ namespace IceRpc.Internal
             {
                 throw new NotSupportedException(
                     "the payload of a request must be encoded with a supported Slice encoding");
-            }
-            else if (request.Fields.Count > 0 || request.FieldsDefaults.Count > 0)
-            {
-                throw new NotSupportedException($"the Ice protocol does not support fields");
             }
             else if (_isUdp && !request.IsOneway)
             {

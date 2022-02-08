@@ -2,6 +2,7 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using IceRpc.Slice;
 
 namespace IceRpc.Tests.Slice
 {
@@ -50,6 +51,26 @@ namespace IceRpc.Tests.Slice
             }
         }
 
+        [Test]
+        public async Task Struct_CustomTypeAsync()
+        {
+            TimeSpan t1 = await _prx.OpMyTimeSpan1Async(TimeSpan.FromMilliseconds(100));
+            Assert.AreEqual(t1, TimeSpan.FromMilliseconds(100));
+
+            (TimeSpan t2, TimeSpan t3) = await _prx.OpMyTimeSpan2Async(
+                TimeSpan.FromMilliseconds(100),
+                TimeSpan.FromMilliseconds(200));
+            Assert.AreEqual(t2, TimeSpan.FromMilliseconds(100));
+            Assert.AreEqual(t3, TimeSpan.FromMilliseconds(200));
+
+            MyStructWithCustomType s1 = await _prx.OpMyStructWithCustomTypeAsync(new MyStructWithCustomType(t1));
+            Assert.AreEqual(s1.Timespan, TimeSpan.FromMilliseconds(100));
+
+            LinkedList<int> l1 = await _prx.OpMyList1Async(new LinkedList<int>(new int[] { 1, 2, 3 }));
+            Assert.AreEqual(l1, new LinkedList<int>(new int[] { 1, 2, 3 }));
+
+        }
+
         public class StructOperations : Service, IStructOperations
         {
             public ValueTask<(MyStruct R1, MyStruct R2)> OpMyStructAsync(
@@ -63,6 +84,33 @@ namespace IceRpc.Tests.Slice
                 AnotherStruct p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<TimeSpan> OpMyTimeSpan1Async(
+                TimeSpan p1,
+                Dispatch dispatch,
+                CancellationToken cancel = default) => new(p1);
+
+            public ValueTask<(TimeSpan R1, TimeSpan R2)> OpMyTimeSpan2Async(
+                TimeSpan p1,
+                TimeSpan p2,
+                Dispatch dispatch,
+                CancellationToken cancel = default) => new((p1, p2));
+
+            public ValueTask<MyStructWithCustomType> OpMyStructWithCustomTypeAsync(
+                MyStructWithCustomType p1,
+                Dispatch dispatch,
+                CancellationToken cancel = default) => new(p1);
+
+            public ValueTask<LinkedList<int>> OpMyList1Async(
+                LinkedList<int> p1,
+                Dispatch dispatch,
+                CancellationToken cancel = default) => new(p1);
+
+            public ValueTask<(LinkedList<int> R1, LinkedList<int> R2)> OpMyList2Async(
+                LinkedList<int> p1, 
+                LinkedList<int> p2, 
+                Dispatch dispatch, 
+                CancellationToken cancel = default) => new((p1, p2));
         }
     }
 
@@ -75,5 +123,23 @@ namespace IceRpc.Tests.Slice
         public override readonly int GetHashCode() => I.GetHashCode();
 
         public override readonly string ToString() => $"{I + J}";
+    }
+
+    public static class MyTimeSpanExtensions
+    {
+        public static void EncodeMyTimeSpan(ref SliceEncoder encoder, TimeSpan value) =>
+            encoder.EncodeVarLong(checked((long)value.TotalMilliseconds));
+
+        public static TimeSpan DecodeMyTimeSpan(ref SliceDecoder decoder) =>
+            TimeSpan.FromMilliseconds(decoder.DecodeVarLong());
+    }
+
+    public static class MyListExtensions
+    {
+        public static void EncodeMyList(ref SliceEncoder encoder, LinkedList<int> value) =>
+            encoder.EncodeSequence(value.ToArray());
+
+        public static LinkedList<int> DecodeMyList(ref SliceDecoder decoder) =>
+            new(decoder.DecodeSequence<int>(null).Reverse());
     }
 }

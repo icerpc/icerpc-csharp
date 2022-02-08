@@ -32,9 +32,11 @@ namespace IceRpc.Tests.ClientServer
                         new InlineDispatcher(async (request, cancel) =>
                         {
                             OutgoingResponse response = await next.DispatchAsync(request, cancel);
-                            if (response.Protocol == Protocol.IceRpc && response.Features.Get<string>() is string value)
+                            if (response.Protocol == Protocol.IceRpc && request.Features.Get<string>() is string value)
                             {
-                                response.Fields[1] = (ref SliceEncoder encoder) => encoder.EncodeString(value);
+                                response.FieldsOverrides = response.FieldsOverrides.With(
+                                    1,
+                                    (ref SliceEncoder encoder) => encoder.EncodeString(value));
                             }
                             return response;
                         }));
@@ -50,8 +52,7 @@ namespace IceRpc.Tests.ClientServer
                             if (response.Fields.Get(1, (ref SliceDecoder decoder) => decoder.DecodeString())
                                 is string stringValue)
                             {
-                                response.Features = new FeatureCollection();
-                                response.Features.Set<string>(stringValue);
+                                request.Features = request.Features.With(stringValue);
                             }
                             return response;
                         }));
@@ -73,7 +74,7 @@ namespace IceRpc.Tests.ClientServer
 
             if (greeter.Proxy.Protocol == Protocol.IceRpc)
             {
-                Assert.AreEqual(largeValue, invocation.ResponseFeatures.Get<string>());
+                Assert.AreEqual(largeValue, invocation.Features.Get<string>());
             }
         }
 
@@ -84,8 +85,7 @@ namespace IceRpc.Tests.ClientServer
             public ValueTask SayHelloAsync(string message, Dispatch dispatch, CancellationToken cancel)
             {
                 Assert.AreEqual(_expectedValue, dispatch.Context["foo"]);
-                dispatch.ResponseFeatures = new FeatureCollection();
-                dispatch.ResponseFeatures.Set<string>(_expectedValue);
+                dispatch.Features = dispatch.Features.With(_expectedValue);
                 return default;
             }
 

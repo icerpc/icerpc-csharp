@@ -5,7 +5,8 @@ using System.Collections.Immutable;
 
 namespace IceRpc
 {
-    /// <summary>A collection of IceRpc features used during invocations and dispatches</summary>
+    /// <summary>A collection of features carried by <see cref="IncomingRequest"/> and <see cref="OutgoingRequest"/>.
+    /// Features, unlike fields, are not encoded or decoded with the requests and responses.</summary>
     public class FeatureCollection : IEnumerable<KeyValuePair<Type, object>>
     {
         /// <summary>Returns an empty read-only feature collection.</summary>
@@ -69,8 +70,7 @@ namespace IceRpc
         /// </summary>
         /// <typeparam name="TFeature">The feature key.</typeparam>
         /// <returns>The requested feature.</returns>
-        public TFeature? Get<TFeature>() =>
-            this[typeof(TFeature)] is object value ? (TFeature)value : default(TFeature?);
+        public TFeature? Get<TFeature>() => this[typeof(TFeature)] is object value ? (TFeature)value : default;
 
         /// <summary>Sets a new feature. Setting null removes the feature.</summary>
         /// <typeparam name="TFeature">The feature key.</typeparam>
