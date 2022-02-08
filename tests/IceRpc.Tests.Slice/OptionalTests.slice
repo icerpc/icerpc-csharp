@@ -2,12 +2,12 @@
 
 module IceRpc::Tests::Slice
 {
-    struct OneOptional
+    compact struct OneOptional
     {
         a: int?,
     }
 
-    struct MultiOptional
+    compact struct MultiOptional
     {
         mByte: byte?,
         mBool: bool?,
@@ -26,15 +26,15 @@ module IceRpc::Tests::Slice
         mString: string?,
 
         mMyEnum: MyEnum?,
-        mMyStruct: MyStruct?,
-        mAnotherStruct: AnotherStruct?,
+        mMyCompactStruct: MyCompactStruct?,
+        mAnotherCompactStruct: AnotherCompactStruct?,
 
         mByteSeq: ByteSeq?,
         mStringSeq: StringSeq?,
         mShortSeq: ShortSeq?,
         mMyEnumSeq: MyEnumSeq?,
-        mMyStructSeq: MyStructSeq?,
-        mAnotherStructSeq: AnotherStructSeq?,
+        mMyCompactStructSeq: MyCompactStructSeq?,
+        mAnotherCompactStructSeq: AnotherCompactStructSeq?,
 
         mIntDict: IntDict?,
         mStringDict: StringDict?,
@@ -43,8 +43,8 @@ module IceRpc::Tests::Slice
         mVarIntSeq: VarIntSeq?,
 
         mByteDict: ByteDict?,
-        mMyStructDict: MyStructDict?,
-        mAnotherStructDict: AnotherStructDict?,
+        mMyCompactStructDict: MyCompactStructDict?,
+        mAnotherCompactStructDict: AnotherCompactStructDict?,
     }
 
     interface OptionalOperations
@@ -70,9 +70,9 @@ module IceRpc::Tests::Slice
 
         opMyEnum(p1: MyEnum?) -> (r1: MyEnum?, r2: MyEnum?);
 
-        opMyStruct(p1: MyStruct?) -> (r1: MyStruct?, r2: MyStruct?);
+        opMyCompactStruct(p1: MyCompactStruct?) -> (r1: MyCompactStruct?, r2: MyCompactStruct?);
 
-        opAnotherStruct(p1: AnotherStruct?) -> (r1: AnotherStruct?, r2: AnotherStruct?);
+        opAnotherCompactStruct(p1: AnotherCompactStruct?) -> (r1: AnotherCompactStruct?, r2: AnotherCompactStruct?);
 
         opByteSeq(p1: ByteSeq?) -> (r1: ByteSeq?, r2: ByteSeq?);
         opByteList(p1: ByteList?) -> (r1: ByteList?, r2: ByteList?);
@@ -98,16 +98,22 @@ module IceRpc::Tests::Slice
         opStringSeq(p1: StringSeq?) -> (r1: StringSeq?, r2: StringSeq?);
         opStringList(p1: StringList?) -> (r1: StringList?, r2: StringList?);
 
-        opMyStructSeq(p1: MyStructSeq?) -> (r1: MyStructSeq?, r2: MyStructSeq?);
-        opMyStructList(p1: MyStructList?) -> (r1: MyStructList?, r2: MyStructList?);
+        opMyCompactStructSeq(p1: MyCompactStructSeq?) -> (r1: MyCompactStructSeq?, r2: MyCompactStructSeq?);
+        opMyCompactStructList(p1: MyCompactStructList?) -> (r1: MyCompactStructList?, r2: MyCompactStructList?);
 
-        opAnotherStructSeq(p1: AnotherStructSeq?) -> (r1: AnotherStructSeq?, r2: AnotherStructSeq?);
-        opAnotherStructList(p1: AnotherStructList?) -> (r1: AnotherStructList?, r2: AnotherStructList?);
+        opAnotherCompactStructSeq(p1: AnotherCompactStructSeq?) -> (
+            r1: AnotherCompactStructSeq?,
+            r2: AnotherCompactStructSeq?,
+        );
+        opAnotherCompactStructList(p1: AnotherCompactStructList?) -> (
+            r1: AnotherCompactStructList?,
+            r2: AnotherCompactStructList?,
+        );
 
         opIntDict(p1: IntDict?) -> (r1: IntDict?, r2: IntDict?);
         opStringDict(p1: StringDict?) -> (r1: StringDict?, r2: StringDict?);
 
-        [cs:encoded-result] opMyStructMarshaledResult(p1: MyStruct?) -> MyStruct?;
+        [cs:encoded-result] opMyCompactStructMarshaledResult(p1: MyCompactStruct?) -> MyCompactStruct?;
         [cs:encoded-result] opStringSeqMarshaledResult(p1: StringSeq?) -> StringSeq?;
         [cs:encoded-result] opIntDictMarshaledResult(p1: IntDict?) -> IntDict?;
     }
