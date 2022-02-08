@@ -16,37 +16,6 @@ module IceRpc::Tests::Slice
         st: tag(2) MyStruct?,
     }
 
-    compact struct MyCompactStruct
-    {
-        i: int,
-        j: int,
-    }
-
-    compact struct AnotherCompactStruct
-    {
-        str: string,
-        prx: Operations,
-        en: MyEnum,
-        st: MyCompactStruct,
-    }
-
-    [cs:type("global::System.TimeSpan")]
-    compact struct MyTimeSpan
-    {
-        milliSeconds: long,
-    }
-
-    [cs:type("global::System.Collections.Generic.LinkedList<int>")]
-    compact struct MyList
-    {
-        value: sequence<int>
-    }
-
-    struct MyStructWithCustomType
-    {
-        timespan: MyTimeSpan,
-    }
-
     interface StructOperations
     {
         opMyStruct(p1: MyStruct, p2: MyStruct) -> (r1: MyStruct, r2: MyStruct);
@@ -54,15 +23,5 @@ module IceRpc::Tests::Slice
             r1: AnotherStruct,
             r2: AnotherStruct,
         );
-        opMyCompactStruct(p1: MyCompactStruct, p2: MyCompactStruct) -> (r1: MyCompactStruct, r2: MyCompactStruct);
-        opAnotherCompactStruct(p1: AnotherCompactStruct, p2: AnotherCompactStruct) -> (
-            r1: AnotherCompactStruct,
-            r2: AnotherCompactStruct,
-        );
-        opMyTimeSpan1(p1: MyTimeSpan) -> MyTimeSpan;
-        opMyTimeSpan2(p1: MyTimeSpan, p2: MyTimeSpan) -> (r1: MyTimeSpan, r2: MyTimeSpan);
-        opMyStructWithCustomType(p1: MyStructWithCustomType) -> MyStructWithCustomType;
-        opMyList1(p1: MyList) -> MyList;
-        opMyList2(p1: MyList, p2: MyList) -> (r1: MyList, r2: MyList);
     }
 }
