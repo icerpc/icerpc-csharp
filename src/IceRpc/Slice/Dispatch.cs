@@ -21,7 +21,7 @@ namespace IceRpc.Slice
             {
                 if (_deadline == null)
                 {
-                    long value = IncomingRequest.Fields.Get(
+                    long value = IncomingRequest.Fields.DecodeValue(
                         (int)FieldKey.Deadline,
                         (ref SliceDecoder decoder) => decoder.DecodeVarLong());
 

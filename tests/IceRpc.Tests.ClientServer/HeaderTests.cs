@@ -49,7 +49,7 @@ namespace IceRpc.Tests.ClientServer
                         new InlineInvoker(async (request, cancel) =>
                         {
                             IncomingResponse response = await next.InvokeAsync(request, cancel);
-                            if (response.Fields.Get(1, (ref SliceDecoder decoder) => decoder.DecodeString())
+                            if (response.Fields.DecodeValue(1, (ref SliceDecoder decoder) => decoder.DecodeString())
                                 is string stringValue)
                             {
                                 request.Features = request.Features.With(stringValue);
