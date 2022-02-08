@@ -539,18 +539,13 @@ namespace IceRpc.Slice
                     long startPos = _reader.Consumed;
                     tag = DecodeVarInt();
 
-                    if (tag == Slice20Definitions.TagEndMarker)
-                    {
-                        // We've reached the end of the tag 'dictionary'.
-                        break; // while
-                    }
-                    else if (tag == requestedTag)
+                    if (tag == requestedTag)
                     {
                         // Found requested tag, so skip size:
                         SkipSize();
                         return decodeFunc(ref this);
                     }
-                    else if (tag > requestedTag)
+                    else if (tag == Slice20Definitions.TagEndMarker || tag > requestedTag)
                     {
                         _reader.Rewind(_reader.Consumed - startPos); // rewind
                         break; // while
