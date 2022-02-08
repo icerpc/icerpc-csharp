@@ -124,7 +124,7 @@ namespace IceRpc.Internal
                             size => new Dictionary<string, string>(size),
                             keyDecodeFunc: (ref SliceDecoder decoder) => decoder.DecodeString(),
                             valueDecodeFunc: (ref SliceDecoder decoder) => decoder.DecodeString()))
-                                is Dictionary<string, string> context)
+                                is Dictionary<string, string> context && context.Count > 0)
                     {
                         features = features.WithContext(context);
                     }
@@ -381,12 +381,21 @@ namespace IceRpc.Internal
                 // set context.
                 if (request.Features.Get<Context>()?.Value is IDictionary<string, string> context)
                 {
-                    request.FieldsOverrides = request.FieldsOverrides.With(
-                        (int)FieldKey.Context,
-                        (ref SliceEncoder encoder) => encoder.EncodeDictionary(
-                            context,
-                            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
-                            (ref SliceEncoder encoder, string value) => encoder.EncodeString(value)));
+                    if (context.Count == 0)
+                    {
+                        // make sure it's not set anywhere
+                        request.Fields = request.Fields.Without((int)FieldKey.Context);
+                        request.FieldsOverrides = request.FieldsOverrides.Without((int)FieldKey.Context);
+                    }
+                    else
+                    {
+                        request.FieldsOverrides = request.FieldsOverrides.With(
+                            (int)FieldKey.Context,
+                            (ref SliceEncoder encoder) => encoder.EncodeDictionary(
+                                context,
+                                (ref SliceEncoder encoder, string value) => encoder.EncodeString(value),
+                                (ref SliceEncoder encoder, string value) => encoder.EncodeString(value)));
+                    }
                 }
 
                 encoder.EncodeFieldDictionary(request.FieldsOverrides, request.Fields);
