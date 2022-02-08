@@ -49,7 +49,7 @@ impl PrimitiveExt for Primitive {
             Primitive::Float => "float",
             Primitive::Double => "double",
             Primitive::String => "string",
-            Primitive::AnyClass => "IceRpc.AnyClass",
+            Primitive::AnyClass => "IceRpc.Slice.AnyClass",
         }
     }
 }

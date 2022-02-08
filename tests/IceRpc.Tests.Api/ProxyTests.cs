@@ -27,7 +27,7 @@ namespace IceRpc.Tests.Api
 
             string[] ids = new string[]
             {
-                "::IceRpc::Service",
+                "::IceRpc::Slice::Service",
                 "::IceRpc::Tests::Api::Greeter",
             };
             CollectionAssert.AreEqual(ids, await prx.IceIdsAsync());
@@ -530,7 +530,7 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task Proxy_FactoryMethodsAsync()
         {
-            Assert.AreEqual("/IceRpc.Service", ServicePrx.DefaultPath);
+            Assert.AreEqual("/IceRpc.Slice.Service", ServicePrx.DefaultPath);
 
             var proxy = Proxy.FromPath("/test");
             Assert.AreEqual("/test", proxy.Path);

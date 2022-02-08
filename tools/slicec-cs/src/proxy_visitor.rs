@@ -37,12 +37,12 @@ impl<'a> Visitor for ProxyVisitor<'_> {
 
         let add_service_prx = !(all_bases
             .iter()
-            .any(|b| b.module_scoped_identifier() == "IceRpc::Service")
-            || interface_def.module_scoped_identifier() == "IceRpc::Service");
+            .any(|b| b.module_scoped_identifier() == "IceRpc::Slice::Service")
+            || interface_def.module_scoped_identifier() == "IceRpc::Slice::Service");
 
         if add_service_prx {
-            prx_impl_bases.push("IceRpc.IServicePrx".to_owned());
-            all_base_impl.push("IceRpc.ServicePrx".to_owned());
+            prx_impl_bases.push("IceRpc.Slice.IServicePrx".to_owned());
+            all_base_impl.push("IceRpc.Slice.ServicePrx".to_owned());
         }
 
         // prx bases
@@ -117,22 +117,22 @@ private static readonly IActivator _defaultActivator =
                     "\
 /// <inheritdoc/>
 {access} global::System.Threading.Tasks.Task<string[]> IceIdsAsync(
-    IceRpc.Invocation? invocation = null,
+    IceRpc.Slice.Invocation? invocation = null,
     global::System.Threading.CancellationToken cancel = default) =>
-    new IceRpc.ServicePrx(Proxy).IceIdsAsync(invocation, cancel);
+    new IceRpc.Slice.ServicePrx(Proxy).IceIdsAsync(invocation, cancel);
 
 /// <inheritdoc/>
 {access} global::System.Threading.Tasks.Task<bool> IceIsAAsync(
     string id,
-    IceRpc.Invocation? invocation = null,
+    IceRpc.Slice.Invocation? invocation = null,
     global::System.Threading.CancellationToken cancel = default) =>
-    new IceRpc.ServicePrx(Proxy).IceIsAAsync(id, invocation, cancel);
+    new IceRpc.Slice.ServicePrx(Proxy).IceIsAAsync(id, invocation, cancel);
 
 /// <inheritdoc/>
 {access} global::System.Threading.Tasks.Task IcePingAsync(
-    IceRpc.Invocation? invocation = null,
+    IceRpc.Slice.Invocation? invocation = null,
     global::System.Threading.CancellationToken cancel = default) =>
-    new IceRpc.ServicePrx(Proxy).IcePingAsync(invocation, cancel);",
+    new IceRpc.Slice.ServicePrx(Proxy).IcePingAsync(invocation, cancel);",
                     access = access
                 )
                 .into(),
@@ -251,7 +251,7 @@ fn proxy_operation_impl(operation: &Operation) -> CodeBlock {
             "\
 if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
 {{
-    {invocation} ??= new IceRpc.Invocation();
+    {invocation} ??= new IceRpc.Slice.Invocation();
     {invocation}.Features = {invocation}.Features.With(IceRpc.Features.CompressPayload.Yes);
 }}
 ",
