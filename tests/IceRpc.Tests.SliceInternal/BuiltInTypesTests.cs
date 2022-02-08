@@ -129,7 +129,7 @@ namespace IceRpc.Tests.SliceInternal
         }
 
         [TestCase(ulong.MinValue)]
-        [TestCase(ulong.MinValue)]
+        [TestCase(ulong.MaxValue)]
         public void Encoding_ULong(ulong p1)
         {
             var encoder = new SliceEncoder(_bufferWriter, _encoding);
@@ -142,7 +142,7 @@ namespace IceRpc.Tests.SliceInternal
         }
 
         [TestCase(SliceEncoder.VarULongMinValue)]
-        [TestCase(SliceEncoder.VarULongMinValue)]
+        [TestCase(SliceEncoder.VarULongMaxValue)]
         public void Encoding_VarULong(ulong p1)
         {
             var encoder = new SliceEncoder(_bufferWriter, _encoding);
@@ -154,7 +154,7 @@ namespace IceRpc.Tests.SliceInternal
         }
 
         [TestCase(SliceEncoder.VarLongMinValue)]
-        [TestCase(SliceEncoder.VarLongMinValue)]
+        [TestCase(SliceEncoder.VarLongMaxValue)]
         public void Encoding_VarLong(long p1)
         {
             var encoder = new SliceEncoder(_bufferWriter, _encoding);

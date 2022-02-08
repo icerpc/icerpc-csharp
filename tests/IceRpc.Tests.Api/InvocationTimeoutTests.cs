@@ -56,7 +56,11 @@ namespace IceRpc.Tests.Api
             Assert.That(invocationHasDeadline, Is.True);
 
             double difference = (dispatchDeadline!.Value - expectedDeadline).TotalMilliseconds;
-            Assert.That(difference, Is.GreaterThanOrEqualTo(0.0));
+
+            // expectedDeadline is computed BEFORE the actual deadline is computed by the TimeoutInterceptor setup by
+            // the call and should always be smaller than the actual dealine. However, the actual deadline
+            // (dispatchDeadline) is converted to and from milliseconds, which can result in a tiny loss.
+            Assert.That(difference, Is.GreaterThan(-1.0));
 
             if (prx.Proxy.Protocol == Protocol.IceRpc)
             {
@@ -108,7 +112,7 @@ namespace IceRpc.Tests.Api
             Assert.That(invocationHasDeadline, Is.True);
 
             double difference = (dispatchDeadline!.Value - expectedDeadline).TotalMilliseconds;
-            Assert.That(difference, Is.GreaterThanOrEqualTo(0.0));
+            Assert.That(difference, Is.GreaterThan(-1.0));
 
             if (prx.Proxy.Protocol == Protocol.IceRpc)
             {
@@ -166,7 +170,7 @@ namespace IceRpc.Tests.Api
             Assert.That(invocationHasDeadline, Is.True);
 
             double difference = (dispatchDeadline!.Value - expectedDeadline).TotalMilliseconds;
-            Assert.That(difference, Is.GreaterThanOrEqualTo(0.0));
+            Assert.That(difference, Is.GreaterThan(-1.0));
 
             if (prx.Proxy.Protocol == Protocol.IceRpc)
             {
