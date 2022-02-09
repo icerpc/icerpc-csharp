@@ -26,8 +26,7 @@ module IceRpc::Slice::Internal
     }
 
     /// The InvocationMode is carried by proxies that use the ice protocol, and it specifies the behavior when sending
-    /// a request using such a proxy.
-    /// When marshaling an ice proxy, IceRPC only uses 2 values: Twoway and Datagram.
+    /// a request using such a proxy. When encoding an ice proxy, IceRPC only uses 2 values: Twoway and Datagram.
     enum InvocationMode : byte
     {
         /// This is the default invocation mode; a request using this mode always expects a response.
