@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 using NUnit.Framework;
 using System.Collections.Immutable;
 
@@ -26,7 +26,7 @@ namespace IceRpc.Tests.Internal
         [TestCase("foo/// ///#@", "/bar/", "/%2Fbar%2F/foo%2F%2F%2F%20%2F%2F%2F%23%40")]
         public void Identity_ToPath(string name, string category, string referencePath)
         {
-            var path = IdentityPathExtensions.ToPath(name, category);
+            var path = IdentityPath.ToPath(name, category);
             Assert.That(path, Is.EqualTo(referencePath));
         }
 
@@ -54,13 +54,13 @@ namespace IceRpc.Tests.Internal
             string ascii = "",
             string compat = "")
         {
-            var path = IdentityPathExtensions.ToPath(name, category);
+            var path = IdentityPath.ToPath(name, category);
             var proxy = new Proxy(Protocol.Ice) { Path = path };
 
             foreach (IceProxyFormat format in
                 ImmutableList.Create(IceProxyFormat.Unicode, IceProxyFormat.ASCII, IceProxyFormat.Compat))
             {
-                var iceProxyString = proxy.ToString(format);
+                string iceProxyString = proxy.ToString(format);
                 var iceProxy = Proxy.Parse(iceProxyString, format: IceProxyFormat.Default);
                 Assert.That(iceProxy.Path, Is.EqualTo(path));
             }

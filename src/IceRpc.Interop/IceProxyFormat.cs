@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Slice.Internal;
 using IceRpc.Transports.Internal;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -681,7 +682,7 @@ namespace IceRpc
                 }
             }
 
-            return name?.Length > 0 ? Slice.IdentityPathExtensions.ToPath(name, category) :
+            return name?.Length > 0 ? IdentityPath.ToPath(name, category) :
                 throw new FormatException($"invalid empty name in identity '{identityString}'");
 
         }
@@ -689,7 +690,7 @@ namespace IceRpc
         /// <summary>Converts path into a stringified identity.</summary>
         private static string PathToIdentity(string path, IceProxyFormat format)
         {
-            (string name, string category) = Slice.IdentityPathExtensions.FromPath(path);
+            (string name, string category) = IdentityPath.FromPath(path);
 
             if (name.Length == 0)
             {
