@@ -14,8 +14,8 @@ module IceRpc
         /// The W3C Trace Context field (for the telemetry interceptor and middleware).
         TraceContext = -2,
 
-        /// The payload compression field (for the compression interceptor and middleware).
-        Compression = -3,
+        /// The compression format of the payload (for request and response headers).
+        CompressionFormat = -3,
 
         /// The deadline field, provided "for info" to the service (for request headers).
         Deadline = -4,

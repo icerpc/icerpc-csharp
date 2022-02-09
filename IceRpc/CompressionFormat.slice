@@ -2,7 +2,7 @@
 
 module IceRpc
 {
-    /// The compression format of the Request or "Success" Response frame payload.
+    /// The compression format of a payload.
     unchecked enum CompressionFormat : byte
     {
         /// Reserved value which should not be encoded.
@@ -10,13 +10,5 @@ module IceRpc
 
         /// The payload is compressed using the deflate format.
         Deflate = 1,
-    }
-
-    /// The compression field of the payload carried by a frame.
-    [cs:readonly]
-    compact struct CompressionField
-    {
-        /// The compression format.
-        format: CompressionFormat,
     }
 }
