@@ -27,6 +27,7 @@ namespace IceRpc.Tests.Slice
         [TestCase("OpString")]
         [TestCase("OpMyEnum")]
         [TestCase("OpMyStruct")]
+        [TestCase("OpMyCompactStruct")]
         [TestCase("OpMyClassA")]
         [TestCase("OpByteSeq")]
         [TestCase("OpStringList")]

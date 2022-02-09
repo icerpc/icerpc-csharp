@@ -157,14 +157,13 @@ namespace IceRpc.Slice
                     case ReplyStatus.OperationNotExistException:
 
                         var requestFailed = new RequestFailedExceptionData(ref this);
-                        requestFailed.Facet.CheckValue();
 
                         systemException = replyStatus == ReplyStatus.OperationNotExistException ?
                             new OperationNotFoundException() : new ServiceNotFoundException();
 
                         systemException.Origin = new RemoteExceptionOrigin(
                             requestFailed.Identity.ToPath(),
-                            requestFailed.Facet.ToFragment(),
+                            requestFailed.Fragment,
                             requestFailed.Operation);
                         break;
 

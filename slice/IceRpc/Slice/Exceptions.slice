@@ -6,7 +6,7 @@ module IceRpc::Slice
     /// origin data member set during marshaling. With the Slice 1.1 encoding, this origin data member is set for
     /// {@link ServiceNotFoundException} and {@link OperationNotFoundException}, and is otherwise set to an unknown
     /// (all empty) value.
-    [cs:readonly] struct RemoteExceptionOrigin
+    [cs:readonly] compact struct RemoteExceptionOrigin
     {
         /// The path of the target service.
         path: string,

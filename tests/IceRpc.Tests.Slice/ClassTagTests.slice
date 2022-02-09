@@ -26,15 +26,15 @@ module IceRpc::Tests::Slice
         mString: tag(15) string?,
 
         mMyEnum: tag(20) MyEnum?,
-        mMyStruct: tag(21) MyStruct?,
-        mAnotherStruct: tag(22) AnotherStruct?,
+        mMyCompactStruct: tag(21) MyCompactStruct?,
+        mAnotherCompactStruct: tag(22) AnotherCompactStruct?,
 
         mByteSeq: tag(30) ByteSeq?,
         mStringSeq: tag(31) StringSeq?,
         mShortSeq: tag(32) ShortSeq?,
         mMyEnumSeq: tag(33) MyEnumSeq?,
-        mMyStructSeq: tag(34) MyStructSeq?,
-        mAnotherStructSeq: tag(35) AnotherStructSeq?,
+        mMyCompactStructSeq: tag(34) MyCompactStructSeq?,
+        mAnotherCompactStructSeq: tag(35) AnotherCompactStructSeq?,
 
         mIntDict: tag(40) IntDict?,
         mStringDict: tag(41) StringDict?,
@@ -43,8 +43,8 @@ module IceRpc::Tests::Slice
         mVarIntSeq: tag(44) VarIntSeq?,
 
         mByteDict: tag(50) ByteDict?,
-        mMyStructDict: tag(51) MyStructDict?,
-        mAnotherStructDict: tag(52) AnotherStructDict?,
+        mMyCompactStructDict: tag(51) MyCompactStructDict?,
+        mAnotherCompactStructDict: tag(52) AnotherCompactStructDict?,
     }
 
     class A
@@ -70,8 +70,8 @@ module IceRpc::Tests::Slice
 
     class TaggedWithCustom
     {
-        mMyStructList: tag(1) MyStructList?,
-        mAnotherStructList: tag(2) AnotherStructList?,
+        mMyCompactStructList: tag(1) MyCompactStructList?,
+        mAnotherCompactStructList: tag(2) AnotherCompactStructList?,
     }
 
     interface ClassTag

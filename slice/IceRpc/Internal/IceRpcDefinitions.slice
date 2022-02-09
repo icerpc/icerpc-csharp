@@ -37,7 +37,7 @@ module IceRpc::Internal
     /// - a request header (below)
     /// - a request payload
     [cs:readonly]
-    struct IceRpcRequestHeader
+    compact struct IceRpcRequestHeader
     {
         path: string,
         operation: string,
@@ -50,7 +50,7 @@ module IceRpc::Internal
     /// - a response header (below)
     /// - a response payload
     [cs:readonly]
-    struct IceRpcResponseHeader
+    compact struct IceRpcResponseHeader
     {
         resultType: ResultType,
         payloadEncoding: string, // empty equivalent to "2.0"
@@ -61,7 +61,7 @@ module IceRpc::Internal
     /// and to provide the stream IDs of the invocations being dispatched. Invocations with stream IDs superior to
     /// these stream IDs can safely be retried.
     [cs:readonly]
-    struct IceRpcGoAwayBody
+    compact struct IceRpcGoAwayBody
     {
         lastBidirectionalStreamId: varlong,
         lastUnidirectionalStreamId: varlong,
