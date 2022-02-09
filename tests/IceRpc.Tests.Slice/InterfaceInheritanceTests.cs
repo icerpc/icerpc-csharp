@@ -78,7 +78,7 @@ namespace IceRpc.Tests.Slice
             CollectionAssert.AreEqual(
                 new string[]
                 {
-                    "::IceRpc::Service",
+                    "::IceRpc::Slice::Service",
                     "::IceRpc::Tests::Slice::InterfaceInheritance::A"
                 },
                 await _aPrx.IceIdsAsync());
@@ -86,7 +86,7 @@ namespace IceRpc.Tests.Slice
             CollectionAssert.AreEqual(
                 new string[]
                 {
-                    "::IceRpc::Service",
+                    "::IceRpc::Slice::Service",
                     "::IceRpc::Tests::Slice::InterfaceInheritance::A",
                     "::IceRpc::Tests::Slice::InterfaceInheritance::B",
                 },
@@ -95,7 +95,7 @@ namespace IceRpc.Tests.Slice
             CollectionAssert.AreEqual(
                 new string[]
                 {
-                    "::IceRpc::Service",
+                    "::IceRpc::Slice::Service",
                     "::IceRpc::Tests::Slice::InterfaceInheritance::A",
                     "::IceRpc::Tests::Slice::InterfaceInheritance::B",
                     "::IceRpc::Tests::Slice::InterfaceInheritance::C",

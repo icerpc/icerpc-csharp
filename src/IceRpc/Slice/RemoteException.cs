@@ -1,12 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice;
 using System.Text;
 
-namespace IceRpc
+namespace IceRpc.Slice
 {
     /// <summary>Base class for exceptions defined in Slice.</summary>
-    /// <remarks>This class is part of the Slice engine code.</remarks>
     [TypeId("::IceRpc::RemoteException")]
     public class RemoteException : Exception
     {

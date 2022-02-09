@@ -101,10 +101,10 @@ namespace IceRpc.Tests.Api
             // TODO: unfortunately there is currently no way to decode this response (2.0-encoded exception)
 
             var joeProxy = _proxy with { Path = _joe };
-            IServicePrx slicePrx = new ServicePrx(joeProxy);
+            Slice.IServicePrx slicePrx = new Slice.ServicePrx(joeProxy);
 
             // the greeter does not implement ice_ping since ice_ping is a Slice operation:
-            Assert.ThrowsAsync<OperationNotFoundException>(async () => await slicePrx.IcePingAsync());
+            Assert.ThrowsAsync<Slice.OperationNotFoundException>(async () => await slicePrx.IcePingAsync());
         }
 
         [Test]
@@ -150,7 +150,7 @@ namespace IceRpc.Tests.Api
             {
                 if (request.Operation != _sayHelloOperation)
                 {
-                    throw new OperationNotFoundException();
+                    throw new Slice.OperationNotFoundException();
                 }
 
                 Assert.That(request.PayloadEncoding, Is.EqualTo(_customEncoding));

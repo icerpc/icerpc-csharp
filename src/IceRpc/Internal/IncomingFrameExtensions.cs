@@ -14,7 +14,7 @@ namespace IceRpc.Internal
         {
             if (frame.Protocol.HasFields)
             {
-                CompressionFormat compressionFormat = frame.Fields.Get(
+                CompressionFormat compressionFormat = frame.Fields.DecodeValue(
                     (int)FieldKey.CompressionFormat,
                     (ref SliceDecoder decoder) => decoder.DecodeCompressionFormat());
 
