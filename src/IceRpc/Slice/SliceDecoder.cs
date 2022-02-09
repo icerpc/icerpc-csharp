@@ -421,9 +421,7 @@ namespace IceRpc.Slice
 
                 try
                 {
-                    string fragment = proxyData.Facet;
-
-                    if (!protocol.HasFragment && fragment.Length > 0)
+                    if (!protocol.HasFragment && proxyData.Fragment.Length > 0)
                     {
                         throw new InvalidDataException($"unexpected fragment in {protocol} proxy");
                     }
@@ -434,7 +432,7 @@ namespace IceRpc.Slice
                         endpoint,
                         altEndpoints.ToImmutableList(),
                         proxyParams,
-                        fragment,
+                        proxyData.Fragment,
                         _invoker);
                 }
                 catch (InvalidDataException)

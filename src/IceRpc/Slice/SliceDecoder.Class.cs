@@ -163,7 +163,7 @@ namespace IceRpc.Slice
 
                         systemException.Origin = new RemoteExceptionOrigin(
                             requestFailed.Identity.ToPath(),
-                            requestFailed.Facet,
+                            requestFailed.Fragment,
                             requestFailed.Operation);
                         break;
 

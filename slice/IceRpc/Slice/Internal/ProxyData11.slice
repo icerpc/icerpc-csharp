@@ -16,10 +16,11 @@ module IceRpc::Slice::Internal
         category: string,
     }
 
-    /// The facet encoded as a sequence of 0 or 1 element (non percent-escaped). A sequence with 0 element is equivalent
-    /// an empty string. In C#, we map it to a percent-encoded string - a fragment.
+    /// The fragment of a service, encoded as a sequence with 0 or 1 element. The empty string is encoded as an empty
+    /// sequence. A non-empty string is encoded as a sequence with 1 element. While the fragment string is
+    /// percent-escaped, the sequence element is not.
     [cs:type("string")]
-    compact struct Facet
+    compact struct Fragment
     {
         value: sequence<string>, // has 0 or 1 element
     }
@@ -55,7 +56,7 @@ module IceRpc::Slice::Internal
     [cs:readonly]
     compact struct ProxyData11
     {
-        facet: Facet,
+        fragment: Fragment,
         invocationMode: InvocationMode,
         secure: bool,
         protocolMajor: byte,

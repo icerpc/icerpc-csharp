@@ -155,7 +155,7 @@ namespace IceRpc.Internal
                     var request = new IncomingRequest(
                         Protocol.Ice,
                         path: requestHeader.Identity.ToPath(),
-                        fragment: requestHeader.Facet,
+                        fragment: requestHeader.Fragment,
                         operation: requestHeader.Operation,
                         payload: new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
                         payloadEncoding,
@@ -436,7 +436,7 @@ namespace IceRpc.Internal
 
                 var requestHeader = new IceRequestHeader(
                     Identity.FromPath(request.Path),
-                    facet: request.Fragment,
+                    fragment: request.Fragment,
                     request.Operation,
                     // We're not checking FieldsOverrides because it makes no sense to use FieldsOverrides for
                     // idempotent.

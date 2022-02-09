@@ -9,7 +9,7 @@ module IceRpc::Slice::Internal
     compact struct RequestFailedExceptionData
     {
         identity: Identity,
-        facet: Facet,
+        fragment: Fragment,
         operation: string,
     }
 }
