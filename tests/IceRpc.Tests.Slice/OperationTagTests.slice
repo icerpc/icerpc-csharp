@@ -23,9 +23,12 @@ module IceRpc::Tests::Slice
 
         opMyEnum(p1: tag(1) MyEnum?) -> (r1: tag(1) MyEnum?, r2: tag(2) MyEnum?);
 
-        opMyStruct(p1: tag(1) MyStruct?) -> (r1: tag(1) MyStruct?, r2: tag(2) MyStruct?);
+        opMyCompactStruct(p1: tag(1) MyCompactStruct?) -> (r1: tag(1) MyCompactStruct?, r2: tag(2) MyCompactStruct?);
 
-        opAnotherStruct(p1: tag(1) AnotherStruct?) -> (r1: tag(1) AnotherStruct?, r2: tag(2) AnotherStruct?);
+        opAnotherCompactStruct(p1: tag(1) AnotherCompactStruct?) -> (
+            r1: tag(1) AnotherCompactStruct?,
+            r2: tag(2) AnotherCompactStruct?,
+        );
 
         opByteSeq(p1: tag(1) ByteSeq?) -> (r1: tag(1) ByteSeq?, r2: tag(2) ByteSeq?);
         opByteList(p1: tag(1) ByteList?) -> (r1: tag(1) ByteList?, r2: tag(2) ByteList?);
@@ -91,24 +94,30 @@ module IceRpc::Tests::Slice
             r2: tag(2) OptionalMyFixedLengthEnumSeq?,
         );
 
-        opMyStructSeq(p1: tag(1) MyStructSeq?) -> (r1: tag(1) MyStructSeq?, r2: tag(2) MyStructSeq?);
-        opMyStructList(p1: tag(1) MyStructList?) -> (r1: tag(1) MyStructList?, r2: tag(2) MyStructList?);
-        opOptionalMyStructSeq(p1: tag(1) OptionalMyStructSeq?) -> (
-            r1: tag(1) OptionalMyStructSeq?,
-            r2: tag(2) OptionalMyStructSeq?,
+        opMyCompactStructSeq(p1: tag(1) MyCompactStructSeq?) -> (
+            r1: tag(1) MyCompactStructSeq?,
+            r2: tag(2) MyCompactStructSeq?,
+        );
+        opMyCompactStructList(p1: tag(1) MyCompactStructList?) -> (
+            r1: tag(1) MyCompactStructList?,
+            r2: tag(2) MyCompactStructList?,
+        );
+        opOptionalMyCompactStructSeq(p1: tag(1) OptionalMyCompactStructSeq?) -> (
+            r1: tag(1) OptionalMyCompactStructSeq?,
+            r2: tag(2) OptionalMyCompactStructSeq?,
         );
 
-        opAnotherStructSeq(p1: tag(1) AnotherStructSeq?) -> (
-            r1: tag(1) AnotherStructSeq?,
-            r2: tag(2) AnotherStructSeq?,
+        opAnotherCompactStructSeq(p1: tag(1) AnotherCompactStructSeq?) -> (
+            r1: tag(1) AnotherCompactStructSeq?,
+            r2: tag(2) AnotherCompactStructSeq?,
         );
-        opAnotherStructList(p1: tag(1) AnotherStructList?) -> (
-            r1: tag(1) AnotherStructList?,
-            r2: tag(2) AnotherStructList?,
+        opAnotherCompactStructList(p1: tag(1) AnotherCompactStructList?) -> (
+            r1: tag(1) AnotherCompactStructList?,
+            r2: tag(2) AnotherCompactStructList?,
         );
-        opOptionalAnotherStructSeq(p1: tag(1) OptionalAnotherStructSeq?) -> (
-            r1: tag(1) OptionalAnotherStructSeq?,
-            r2: tag(2) OptionalAnotherStructSeq?,
+        opOptionalAnotherCompactStructSeq(p1: tag(1) OptionalAnotherCompactStructSeq?) -> (
+            r1: tag(1) OptionalAnotherCompactStructSeq?,
+            r2: tag(2) OptionalAnotherCompactStructSeq?,
         );
 
         opIntDict(p1: tag(1) IntDict?) -> (r1: tag(1) IntDict?, r2: tag(2) IntDict?);
@@ -138,7 +147,7 @@ module IceRpc::Tests::Slice
 
     interface OperationTagEncodedResult
     {
-        [cs:encoded-result] opMyStruct(p1: tag(1) MyStruct?) -> tag(1) MyStruct?;
+        [cs:encoded-result] opMyCompactStruct(p1: tag(1) MyCompactStruct?) -> tag(1) MyCompactStruct?;
         [cs:encoded-result] opStringSeq(p1: tag(1) StringSeq?) -> tag(1) StringSeq?;
         [cs:encoded-result] opIntDict(p1: tag(1) IntDict?) -> tag(1) IntDict?;
     }

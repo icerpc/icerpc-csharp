@@ -3,7 +3,7 @@
 // Ensure that using the same type names in different modules, doesn't cause any conflicts and generates correct code.
 module IceRpc::Tests::Slice::Scope
 {
-    struct S
+    compact struct S
     {
         v: int,
     }
@@ -26,7 +26,7 @@ module IceRpc::Tests::Slice::Scope
         v3,
     }
 
-    struct S1
+    compact struct S1
     {
         s: string,
     }
@@ -37,7 +37,7 @@ module IceRpc::Tests::Slice::Scope
     }
 
     // Ensure that struct data members can use a type name as a data member name.
-    struct S2
+    compact struct S2
     {
         E1: E1,
         S1: S1,
@@ -73,14 +73,14 @@ module IceRpc::Tests::Slice::Scope
 
     module Inner
     {
-        struct S
+        compact struct S
         {
             v: int,
         }
 
         module Inner2
         {
-            struct S
+            compact struct S
             {
                 v: int,
             }

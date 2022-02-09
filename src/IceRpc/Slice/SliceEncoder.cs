@@ -257,7 +257,7 @@ namespace IceRpc.Slice
                 (byte encodingMajor, byte encodingMinor) = proxy.Encoding.ToMajorMinor();
 
                 var proxyData = new ProxyData11(
-                    Facet.FromFragment(proxy.Fragment),
+                    proxy.Fragment,
                     GetInvocationMode(proxy),
                     secure: false,
                     protocolMajor: proxy.Protocol.ToByte(),
