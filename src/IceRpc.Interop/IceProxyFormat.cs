@@ -78,8 +78,8 @@ namespace IceRpc
                 throw new FormatException($"no identity in '{s}'");
             }
 
-            // Parsing the identity may throw FormatException.
-            var identity = Identity.Parse(identityString);
+            // Parsing the identity string may throw FormatException.
+            string path = IdentityToPath(identityString);
             string facet = "";
             Encoding encoding = IceDefinitions.Encoding;
             Endpoint? endpoint = null;
@@ -245,7 +245,7 @@ namespace IceRpc
                 // Well-known proxy
                 return new Proxy(Protocol.Ice)
                 {
-                    Path = identity.ToPath(),
+                    Path = path,
                     Fragment = Uri.EscapeDataString(facet),
                     Invoker = invoker ?? Proxy.DefaultInvoker,
                     Encoding = encoding,
@@ -326,7 +326,7 @@ namespace IceRpc
 
                 return new Proxy(Protocol.Ice)
                 {
-                    Path = identity.ToPath(),
+                    Path = path,
                     Fragment = Uri.EscapeDataString(facet),
                     Invoker = invoker ?? Proxy.DefaultInvoker,
                     Endpoint = endpoint,
@@ -379,7 +379,7 @@ namespace IceRpc
 
                 return new Proxy(Protocol.Ice)
                 {
-                    Path = identity.ToPath(),
+                    Path = path,
                     Fragment = Uri.EscapeDataString(facet),
                     Invoker = invoker ?? Proxy.DefaultInvoker,
                     Encoding = encoding,
@@ -398,23 +398,22 @@ namespace IceRpc
                 throw new NotSupportedException($"{nameof(ToString)} supports only ice proxies");
             }
 
-            var identity = Identity.FromPath(proxy.Path);
             string facet = Uri.UnescapeDataString(proxy.Fragment);
 
             var sb = new StringBuilder();
 
-            // If the encoded identity string contains characters which the reference parser uses as separators,
-            // then we enclose the identity string in quotes.
-            string id = identity.ToString(this);
-            if (StringUtil.FindFirstOf(id, " :@") != -1)
+            // If the identity string contains characters which the reference parser uses as separators, then we enclose
+            // the identity string in quotes.
+            string identity = PathToIdentity(proxy.Path, this);
+            if (StringUtil.FindFirstOf(identity, " :@") != -1)
             {
                 sb.Append('"');
-                sb.Append(id);
+                sb.Append(identity);
                 sb.Append('"');
             }
             else
             {
-                sb.Append(id);
+                sb.Append(identity);
             }
 
             if (facet.Length > 0)
@@ -613,6 +612,101 @@ namespace IceRpc
                 Port = port ?? 0,
                 Params = endpointParams.ToImmutableDictionary()
             };
+        }
+
+        /// <summary>Converts a stringified identity into a path.</summary>
+        private static string IdentityToPath(string identityString)
+        {
+            // Find unescaped separator. Note that the string may contain an escaped backslash before the separator.
+            int slash = -1, pos = 0;
+            while ((pos = identityString.IndexOf('/', pos)) != -1)
+            {
+                int escapes = 0;
+                while (pos - escapes > 0 && identityString[pos - escapes - 1] == '\\')
+                {
+                    escapes++;
+                }
+
+                // We ignore escaped escapes
+                if (escapes % 2 == 0)
+                {
+                    if (slash == -1)
+                    {
+                        slash = pos;
+                    }
+                    else
+                    {
+                        // Extra unescaped slash found.
+                        throw new FormatException($"unescaped backslash in identity '{identityString}'");
+                    }
+                }
+                pos++;
+            }
+
+            string category;
+            string? name = null;
+            if (slash == -1)
+            {
+                try
+                {
+                    name = StringUtil.UnescapeString(identityString, 0, identityString.Length, "/");
+                }
+                catch (ArgumentException ex)
+                {
+                    throw new FormatException($"invalid name in identity '{identityString}'", ex);
+                }
+                category = "";
+            }
+            else
+            {
+                try
+                {
+                    category = StringUtil.UnescapeString(identityString, 0, slash, "/");
+                }
+                catch (ArgumentException ex)
+                {
+                    throw new FormatException($"invalid category in identity '{identityString}'", ex);
+                }
+
+                if (slash + 1 < identityString.Length)
+                {
+                    try
+                    {
+                        name = StringUtil.UnescapeString(identityString, slash + 1, identityString.Length, "/");
+                    }
+                    catch (ArgumentException ex)
+                    {
+                        throw new FormatException($"invalid name in identity '{identityString}'", ex);
+                    }
+                }
+            }
+
+            return name?.Length > 0 ? Slice.IdentityPathExtensions.ToPath(name, category) :
+                throw new FormatException($"invalid empty name in identity '{identityString}'");
+
+        }
+
+        /// <summary>Converts path into a stringified identity.</summary>
+        private static string PathToIdentity(string path, IceProxyFormat format)
+        {
+            (string name, string category) = Slice.IdentityPathExtensions.FromPath(path);
+
+            if (name.Length == 0)
+            {
+                return "";
+            }
+
+            string escapedName = StringUtil.EscapeString(name, format.EscapeMode, '/');
+
+            if (category.Length == 0)
+            {
+                return escapedName;
+            }
+            else
+            {
+                string escapedCategory = StringUtil.EscapeString(category, format.EscapeMode, '/');
+                return $"{escapedCategory}/{escapedName}";
+            }
         }
 
         /// <summary>Converts an endpoint into a string in a format compatible with ZeroC Ice.</summary>

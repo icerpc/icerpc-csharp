@@ -1,16 +1,16 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc.Slice.Internal
+namespace IceRpc.Slice
 {
-    /// <summary>Extensions methods to encodes and decode a path into/from an Ice::Identity.</summary>
-    internal static class IdentityPathExtensions // TODO: see https://github.com/zeroc-ice/icerpc-csharp/issues/786
+    /// <summary>Extensions methods to encodes and decode a path into/from an Ice Identity.</summary>
+    public static class IdentityPathExtensions // TODO: see https://github.com/zeroc-ice/icerpc-csharp/issues/786
     {
         /// <summary>Decodes a path from an identity representation.</summary>
-        internal static string DecodeIdentityPath(this ref SliceDecoder decoder) =>
+        public static string DecodeIdentityPath(this ref SliceDecoder decoder) =>
             ToPath(decoder.DecodeString(), decoder.DecodeString());
 
         /// <summary>Encodes a path as an identity.</summary>
-        internal static void EncodeIdentityPath(this ref SliceEncoder encoder, string value)
+        public static void EncodeIdentityPath(this ref SliceEncoder encoder, string value)
         {
             (string name, string category) = FromPath(value);
             encoder.EncodeString(name);

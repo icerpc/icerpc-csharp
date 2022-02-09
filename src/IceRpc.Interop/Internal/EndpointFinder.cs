@@ -22,12 +22,12 @@ namespace IceRpc.Internal
 
         async Task<Proxy?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel)
         {
-            if (location.Category == null)
+            if (location.IsAdapterId)
             {
                 try
                 {
                     ServicePrx? prx =
-                        await _locator.FindAdapterByIdAsync(location.AdapterId, cancel: cancel).ConfigureAwait(false);
+                        await _locator.FindAdapterByIdAsync(location.Value, cancel: cancel).ConfigureAwait(false);
 
                     if (prx?.Proxy is Proxy proxy)
                     {
@@ -50,7 +50,7 @@ namespace IceRpc.Internal
                 try
                 {
                     ServicePrx? prx =
-                        await _locator.FindObjectByIdAsync(location.ToIdentity(), cancel: cancel).ConfigureAwait(false);
+                        await _locator.FindObjectByIdAsync(location.Value, cancel: cancel).ConfigureAwait(false);
 
                     if (prx?.Proxy is Proxy proxy)
                     {

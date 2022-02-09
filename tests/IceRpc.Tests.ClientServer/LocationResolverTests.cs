@@ -40,13 +40,12 @@ namespace IceRpc.Tests.ClientServer
 
             if (indirect.Proxy.Params.TryGetValue("adapter-id", out string? adapterId))
             {
-                pipeline.Use(LocationResolver(adapterId, category: null, direct.Proxy.Endpoint!.Value))
+                pipeline.Use(LocationResolver(isAdapterId: true, adapterId, direct.Proxy.Endpoint!.Value))
                         .UseBinder(_pool);
             }
             else
             {
-                var identity = Identity.FromPath(indirect.Proxy.Path);
-                pipeline.Use(LocationResolver(identity.Name, identity.Category, direct.Proxy.Endpoint!.Value))
+                pipeline.Use(LocationResolver(isAdapterId: false, indirect.Proxy.Path, direct.Proxy.Endpoint!.Value))
                         .UseBinder(_pool);
             }
 
@@ -96,8 +95,8 @@ namespace IceRpc.Tests.ClientServer
         // A very simple location resolver interceptor with no cache that resolves a single location represented by
         // location and category.
         private static Func<IInvoker, IInvoker> LocationResolver(
-            string location,
-            string? category,
+            bool isAdapterId,
+            string locationValue,
             Endpoint resolvedEndpoint) =>
             next => new InlineInvoker(
                 (request, cancel) =>
@@ -106,9 +105,8 @@ namespace IceRpc.Tests.ClientServer
                         request.Params.TryGetValue("adapter-id", out string? value) ? value : null;
 
                     if (request.Protocol == resolvedEndpoint.Protocol &&
-                        ((category == null && location == adapterId) ||
-                        (category != null && adapterId == null &&
-                         Identity.FromPath(request.Path) == new Identity(location, category))))
+                        ((isAdapterId && adapterId == locationValue) ||
+                        (!isAdapterId && adapterId == null && request.Path == locationValue)))
                     {
                         request.Endpoint = resolvedEndpoint;
                         CollectionAssert.IsEmpty(request.AltEndpoints);

@@ -18,7 +18,7 @@ namespace IceRpc.Tests.Internal
 
             for (int i = 0; i < 100; ++i)
             {
-                endpointCache.Set(new Location($"{i}"), proxy);
+                endpointCache.Set(new Location { IsAdapterId = true, Value = $"{i}" }, proxy);
             }
 
             Assert.AreEqual(10, endpointCacheImpl.Count);
@@ -26,14 +26,18 @@ namespace IceRpc.Tests.Internal
             // Make sure we kept the 10 most recent entries:
             for (int i = 90; i < 100; ++i)
             {
-                Assert.That(endpointCache.TryGetValue(new Location($"{i}"), out var _), Is.True);
+                Assert.That(
+                    endpointCache.TryGetValue(
+                        new Location { IsAdapterId = true, Value = $"{i}" },
+                        out var _),
+                    Is.True);
             }
 
             // Make sure removing an existing entry reduces the Count
 
-            endpointCache.Remove(new Location("20"));
+            endpointCache.Remove(new Location{ IsAdapterId = true, Value = "20" });
             Assert.AreEqual(10, endpointCacheImpl.Count); // was not there
-            endpointCache.Remove(new Location("95"));
+            endpointCache.Remove(new Location { IsAdapterId = true, Value = "95" });
             Assert.AreEqual(9, endpointCacheImpl.Count);
         }
     }
