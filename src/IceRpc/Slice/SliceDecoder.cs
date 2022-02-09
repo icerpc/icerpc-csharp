@@ -371,8 +371,8 @@ namespace IceRpc.Slice
 
             if (Encoding == IceRpc.Encoding.Slice11)
             {
-                var identity = new Identity(ref this);
-                if (identity.Name.Length == 0) // null proxy
+                string path = this.DecodeIdentityPath();
+                if (path == "/") // null proxy
                 {
                     return null;
                 }
@@ -428,7 +428,7 @@ namespace IceRpc.Slice
 
                     return new Proxy(
                         protocol,
-                        identity.ToPath(),
+                        path,
                         endpoint,
                         altEndpoints.ToImmutableList(),
                         proxyParams,

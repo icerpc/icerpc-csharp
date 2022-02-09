@@ -223,7 +223,7 @@ namespace IceRpc.Slice
             }
             else if (Encoding == IceRpc.Encoding.Slice11)
             {
-                Identity.Empty.Encode(ref this);
+                this.EncodeIdentityPath("/"); // identity with empty name and category
             }
             else
             {
@@ -243,17 +243,7 @@ namespace IceRpc.Slice
 
             if (Encoding == IceRpc.Encoding.Slice11)
             {
-                try
-                {
-                    Identity.FromPath(proxy.Path).Encode(ref this);
-                }
-                catch (FormatException ex)
-                {
-                    throw new NotSupportedException(
-                        $"cannot encode proxy with path '{proxy.Path}' using encoding 1.1",
-                        ex);
-                }
-
+                this.EncodeIdentityPath(proxy.Path);
                 (byte encodingMajor, byte encodingMinor) = proxy.Encoding.ToMajorMinor();
 
                 var proxyData = new ProxyData11(

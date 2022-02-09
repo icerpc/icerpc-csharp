@@ -129,10 +129,6 @@ namespace IceRpc.Internal
                 {
                     IceRequestHeader requestHeader = DecodeHeader(ref buffer);
 
-                    if (requestHeader.Identity.Name.Length == 0)
-                    {
-                        throw new InvalidDataException("received request with empty identity name");
-                    }
                     if (requestHeader.Operation.Length == 0)
                     {
                         throw new InvalidDataException("received request with empty operation name");
@@ -154,7 +150,7 @@ namespace IceRpc.Internal
 
                     var request = new IncomingRequest(
                         Protocol.Ice,
-                        path: requestHeader.Identity.ToPath(),
+                        path: requestHeader.Path,
                         fragment: requestHeader.Fragment,
                         operation: requestHeader.Operation,
                         payload: new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
@@ -435,8 +431,8 @@ namespace IceRpc.Internal
                 (byte encodingMajor, byte encodingMinor) = payloadEncoding.ToMajorMinor();
 
                 var requestHeader = new IceRequestHeader(
-                    Identity.FromPath(request.Path),
-                    fragment: request.Fragment,
+                    request.Path,
+                    request.Fragment,
                     request.Operation,
                     // We're not checking FieldsOverrides because it makes no sense to use FieldsOverrides for
                     // idempotent.

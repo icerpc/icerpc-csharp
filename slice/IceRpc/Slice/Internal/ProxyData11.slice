@@ -5,9 +5,9 @@ module IceRpc::Slice::Internal
 {
     // These definitions help with the encoding of proxies with the Slice 1.1 encoding.
 
-    /// The identity of a service. This internal definition must match Ice::Identity.
-    [cs:readonly]
-    compact struct Identity
+    /// The path of a service, encoded as an Ice::Identity.
+    [cs:type("string")]
+    compact struct IdentityPath
     {
         /// The name of the identity. An empty name is not a valid name.
         name: string,

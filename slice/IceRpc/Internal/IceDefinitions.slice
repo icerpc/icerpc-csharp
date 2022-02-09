@@ -51,7 +51,7 @@ module IceRpc::Internal
     [cs:readonly]
     compact struct IceRequestHeader
     {
-        identity: Slice::Internal::Identity,
+        path: Slice::Internal::IdentityPath,
         fragment: Slice::Internal::Fragment,
         operation: string,
         operationMode: OperationMode,

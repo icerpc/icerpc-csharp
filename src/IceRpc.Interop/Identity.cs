@@ -16,8 +16,12 @@ namespace IceRpc
         public static Identity FromPath(string path)
         {
             Proxy.CheckPath(path); // make sure the input is a valid URI path
-            var identity = Slice.Internal.Identity.FromPath(path);
-            return new(identity.Name, identity.Category);
+            (string name, string category) = Slice.Internal.IdentityPathExtensions.FromPath(path);
+            if (name.Length == 0)
+            {
+                throw new FormatException("the identity name cannot be empty");
+            }
+            return new(name, category);
         }
 
         /// <summary>Creates an Identity from a string in the ice format.</summary>
@@ -115,7 +119,7 @@ namespace IceRpc
 
         /// <summary>Converts this identity into a URI path.</summary>
         /// <returns>A URI path.</returns>
-        public string ToPath() => new Slice.Internal.Identity(Name, Category).ToPath();
+        public string ToPath() => Slice.Internal.IdentityPathExtensions.ToPath(Name, Category);
 
         /// <inheritdoc/>
         public override string ToString() => ToString(IceProxyFormat.Default);
