@@ -38,17 +38,17 @@ module IceRpc::Tests::Slice
     typealias MyFixedLengthEnumSeq = sequence<MyFixedLengthEnum>;
     typealias MyUncheckedEnumSeq = sequence<MyUncheckedEnum>;
 
-    typealias MyStructSeq = sequence<MyStruct>;
+    typealias MyCompactStructSeq = sequence<MyCompactStruct>;
     typealias OperationsSeq = sequence<Operations>;
-    typealias AnotherStructSeq = sequence<AnotherStruct>;
+    typealias AnotherCompactStructSeq = sequence<AnotherCompactStruct>;
 
     typealias OptionalMyEnumSeq = sequence<MyEnum?>;
     typealias OptionalMyFixedLengthEnumSeq = sequence<MyFixedLengthEnum?>;
     typealias OptionalMyUncheckedEnumSeq = sequence<MyUncheckedEnum?>;
 
-    typealias OptionalMyStructSeq = sequence<MyStruct?>;
+    typealias OptionalMyCompactStructSeq = sequence<MyCompactStruct?>;
     typealias OptionalOperationsSeq = sequence<Operations?>;
-    typealias OptionalAnotherStructSeq = sequence<AnotherStruct?>;
+    typealias OptionalAnotherCompactStructSeq = sequence<AnotherCompactStruct?>;
 
     // Sequence mapping
     typealias ByteList = [cs:generic("System.Collections.Generic.List")] sequence<byte>;
@@ -84,14 +84,14 @@ module IceRpc::Tests::Slice
     typealias MyUncheckedEnumList = [cs:generic("System.Collections.Generic.List")] sequence<MyUncheckedEnum>;
     typealias MyUncheckedEnumCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<MyUncheckedEnum>;
 
-    typealias MyStructList = [cs:generic("System.Collections.Generic.List")] sequence<MyStruct>;
-    typealias MyStructCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<MyStruct>;
+    typealias MyCompactStructList = [cs:generic("System.Collections.Generic.List")] sequence<MyCompactStruct>;
+    typealias MyCompactStructCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<MyCompactStruct>;
 
     typealias OperationsList = [cs:generic("System.Collections.Generic.List")] sequence<Operations>;
     typealias OperationsCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<Operations>;
 
-    typealias AnotherStructList = [cs:generic("System.Collections.Generic.List")] sequence<AnotherStruct>;
-    typealias AnotherStructCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<AnotherStruct>;
+    typealias AnotherCompactStructList = [cs:generic("System.Collections.Generic.List")] sequence<AnotherCompactStruct>;
+    typealias AnotherCompactStructCustomSeq = [cs:generic("IceRpc.Tests.Slice.CustomSequence")] sequence<AnotherCompactStruct>;
 
     interface SequenceOperations
     {
@@ -163,9 +163,15 @@ module IceRpc::Tests::Slice
             r1: MyUncheckedEnumSeq,
             r2: MyUncheckedEnumSeq,
         );
-        opMyStructSeq(p1: MyStructSeq, p2: MyStructSeq) -> (r1: MyStructSeq, r2: MyStructSeq);
+        opMyCompactStructSeq(p1: MyCompactStructSeq, p2: MyCompactStructSeq) -> (
+            r1: MyCompactStructSeq,
+            r2: MyCompactStructSeq,
+        );
         opOperationsSeq(p1: OperationsSeq, p2: OperationsSeq) -> (r1: OperationsSeq, r2: OperationsSeq);
-        opAnotherStructSeq(p1: AnotherStructSeq, p2: AnotherStructSeq) -> (r1: AnotherStructSeq, r2: AnotherStructSeq);
+        opAnotherCompactStructSeq(p1: AnotherCompactStructSeq, p2: AnotherCompactStructSeq) -> (
+            r1: AnotherCompactStructSeq,
+            r2: AnotherCompactStructSeq,
+        );
 
         // Optional defined types sequences
         opOptionalMyEnumSeq(p1: OptionalMyEnumSeq, p2: OptionalMyEnumSeq) -> (
@@ -180,17 +186,17 @@ module IceRpc::Tests::Slice
             r1: OptionalMyUncheckedEnumSeq,
             r2: OptionalMyUncheckedEnumSeq,
         );
-        opOptionalMyStructSeq(p1: OptionalMyStructSeq, p2: OptionalMyStructSeq) -> (
-            r1: OptionalMyStructSeq,
-            r2: OptionalMyStructSeq,
+        opOptionalMyCompactStructSeq(p1: OptionalMyCompactStructSeq, p2: OptionalMyCompactStructSeq) -> (
+            r1: OptionalMyCompactStructSeq,
+            r2: OptionalMyCompactStructSeq,
         );
         opOptionalOperationsSeq(p1: OptionalOperationsSeq, p2: OptionalOperationsSeq) -> (
             r1: OptionalOperationsSeq,
             r2: OptionalOperationsSeq,
         );
-        opOptionalAnotherStructSeq(p1: OptionalAnotherStructSeq, p2: OptionalAnotherStructSeq) -> (
-            r1: OptionalAnotherStructSeq,
-            r2: OptionalAnotherStructSeq,
+        opOptionalAnotherCompactStructSeq(p1: OptionalAnotherCompactStructSeq, p2: OptionalAnotherCompactStructSeq) -> (
+            r1: OptionalAnotherCompactStructSeq,
+            r2: OptionalAnotherCompactStructSeq,
         );
 
         // Sequence mapping
@@ -233,10 +239,13 @@ module IceRpc::Tests::Slice
             r2: MyUncheckedEnumCustomSeq,
         );
 
-        opMyStructList(p1: MyStructList, p2: MyStructList) -> (r1: MyStructList, r2: MyStructList);
-        opMyStructCustomSeq(p1: MyStructCustomSeq, p2: MyStructCustomSeq) -> (
-            r1: MyStructCustomSeq,
-            r2: MyStructCustomSeq,
+        opMyCompactStructList(p1: MyCompactStructList, p2: MyCompactStructList) -> (
+            r1: MyCompactStructList,
+            r2: MyCompactStructList,
+        );
+        opMyCompactStructCustomSeq(p1: MyCompactStructCustomSeq, p2: MyCompactStructCustomSeq) -> (
+            r1: MyCompactStructCustomSeq,
+            r2: MyCompactStructCustomSeq,
         );
 
         opOperationsList(p1: OperationsList, p2: OperationsList) -> (r1: OperationsList, r2: OperationsList);
@@ -245,13 +254,13 @@ module IceRpc::Tests::Slice
             r2: OperationsCustomSeq,
         );
 
-        opAnotherStructList(p1: AnotherStructList, p2: AnotherStructList) -> (
-            r1: AnotherStructList,
-            r2: AnotherStructList,
+        opAnotherCompactStructList(p1: AnotherCompactStructList, p2: AnotherCompactStructList) -> (
+            r1: AnotherCompactStructList,
+            r2: AnotherCompactStructList,
         );
-        opAnotherStructCustomSeq(p1: AnotherStructCustomSeq, p2: AnotherStructCustomSeq) -> (
-            r1: AnotherStructCustomSeq,
-            r2: AnotherStructCustomSeq,
+        opAnotherCompactStructCustomSeq(p1: AnotherCompactStructCustomSeq, p2: AnotherCompactStructCustomSeq) -> (
+            r1: AnotherCompactStructCustomSeq,
+            r2: AnotherCompactStructCustomSeq,
         );
     }
 }

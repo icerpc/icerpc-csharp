@@ -125,7 +125,7 @@ namespace IceRpc.Slice
             // before the indirection table and are included in the slice size.
             if ((_classContext.Current.SliceFlags & SliceFlags.HasTaggedMembers) != 0)
             {
-                EncodeByte(TagEndMarker);
+                EncodeByte(Slice11Definitions.TagEndMarker);
             }
 
             // Encodes the slice size if necessary.

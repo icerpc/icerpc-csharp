@@ -5,7 +5,7 @@ module Ice
 {
     /// The identity of a service reachable with the ice protocol.
     [cs:readonly]
-    struct Identity
+    compact struct Identity
     {
         /// The name of the identity. An empty name is not a valid name.
         name: string,

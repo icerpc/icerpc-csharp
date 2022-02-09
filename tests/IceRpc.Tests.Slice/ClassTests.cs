@@ -152,12 +152,12 @@ namespace IceRpc.Tests.Slice
         [Test]
         public async Task Class_WithComplexDictionaryAsync()
         {
-            var d = new Dictionary<MyStruct, MyClassL>();
+            var d = new Dictionary<MyCompactStruct, MyClassL>();
 
-            var k1 = new MyStruct(1, 1);
+            var k1 = new MyCompactStruct(1, 1);
             d[k1] = new MyClassL("one");
 
-            var k2 = new MyStruct(2, 2);
+            var k2 = new MyCompactStruct(2, 2);
             d[k2] = new MyClassL("two");
 
             (MyClassM m2, MyClassM m1) = await _prx.OpMAsync(new MyClassM(d));

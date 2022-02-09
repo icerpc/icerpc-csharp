@@ -7,7 +7,7 @@ module IceRpc::Slice::Internal
 
     /// The identity of a service. This internal definition must match Ice::Identity.
     [cs:readonly]
-    struct Identity
+    compact struct Identity
     {
         /// The name of the identity. An empty name is not a valid name.
         name: string,
@@ -53,7 +53,7 @@ module IceRpc::Slice::Internal
     ///     - a sequence of endpoints that can be empty
     ///     - an adapter ID string present only when the sequence of endpoints is empty
     [cs:readonly]
-    struct ProxyData11
+    compact struct ProxyData11
     {
         facet: Facet,
         invocationMode: InvocationMode,
