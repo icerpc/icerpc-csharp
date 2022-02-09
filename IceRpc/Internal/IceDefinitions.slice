@@ -52,7 +52,7 @@ module IceRpc::Internal
     compact struct IceRequestHeader
     {
         identity: Slice::Internal::Identity,
-        facet: Slice::Internal::Facet,
+        fragment: Slice::Internal::Fragment,
         operation: string,
         operationMode: OperationMode,
         context: Context,
