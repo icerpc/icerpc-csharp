@@ -16,16 +16,17 @@ module IceRpc::Slice::Internal
         category: string,
     }
 
-    // TODO: temporary, replace by typealias Facet = [cs::type("global::IceRpc.Slice.Internal.Facet")] sequence<string>;
-    [cs:readonly]
-    compact struct Facet
+    /// The fragment of a service, encoded as a sequence of 0 or 1 elements. The empty string is encoded as an empty
+    /// sequence. A non-empty string is encoded as a sequence with 1 element. While the fragment string is
+    /// percent-escaped, the sequence element is not.
+    [cs:type("string")]
+    compact struct Fragment
     {
-        value: sequence<string>,  // has 0 or 1 element
+        value: sequence<string>, // has 0 or 1 element
     }
 
     /// The InvocationMode is carried by proxies that use the ice protocol, and it specifies the behavior when sending
-    /// a request using such a proxy.
-    /// When marshaling an ice proxy, IceRPC only uses 2 values: Twoway and Datagram.
+    /// a request using such a proxy. When encoding an ice proxy, IceRPC only uses 2 values: Twoway and Datagram.
     enum InvocationMode : byte
     {
         /// This is the default invocation mode; a request using this mode always expects a response.
@@ -54,7 +55,7 @@ module IceRpc::Slice::Internal
     [cs:readonly]
     compact struct ProxyData11
     {
-        facet: Facet,
+        fragment: Fragment,
         invocationMode: InvocationMode,
         secure: bool,
         protocolMajor: byte,
