@@ -682,7 +682,7 @@ namespace IceRpc
                 }
             }
 
-            return name?.Length > 0 ? IdentityPath.ToPath(name, category) :
+            return name?.Length > 0 ? new Identity(name, category).ToPath() :
                 throw new FormatException($"invalid empty name in identity '{identityString}'");
 
         }
@@ -690,22 +690,22 @@ namespace IceRpc
         /// <summary>Converts path into a stringified identity.</summary>
         private static string PathToIdentity(string path, IceProxyFormat format)
         {
-            (string name, string category) = IdentityPath.FromPath(path);
+            var identity = Identity.Parse(path);
 
-            if (name.Length == 0)
+            if (identity.Name.Length == 0)
             {
                 return "";
             }
 
-            string escapedName = StringUtil.EscapeString(name, format.EscapeMode, '/');
+            string escapedName = StringUtil.EscapeString(identity.Name, format.EscapeMode, '/');
 
-            if (category.Length == 0)
+            if (identity.Category.Length == 0)
             {
                 return escapedName;
             }
             else
             {
-                string escapedCategory = StringUtil.EscapeString(category, format.EscapeMode, '/');
+                string escapedCategory = StringUtil.EscapeString(identity.Category, format.EscapeMode, '/');
                 return $"{escapedCategory}/{escapedName}";
             }
         }

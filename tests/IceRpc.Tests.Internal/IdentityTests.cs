@@ -26,7 +26,7 @@ namespace IceRpc.Tests.Internal
         [TestCase("foo/// ///#@", "/bar/", "/%2Fbar%2F/foo%2F%2F%2F%20%2F%2F%2F%23%40")]
         public void Identity_ToPath(string name, string category, string referencePath)
         {
-            var path = IdentityPath.ToPath(name, category);
+            var path = new Identity(name, category).ToPath();
             Assert.That(path, Is.EqualTo(referencePath));
         }
 
@@ -54,7 +54,7 @@ namespace IceRpc.Tests.Internal
             string ascii = "",
             string compat = "")
         {
-            var path = IdentityPath.ToPath(name, category);
+            var path = new Identity(name, category).ToPath();
             var proxy = new Proxy(Protocol.Ice) { Path = path };
 
             foreach (IceProxyFormat format in

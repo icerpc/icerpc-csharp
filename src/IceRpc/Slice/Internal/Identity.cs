@@ -2,13 +2,14 @@
 
 namespace IceRpc.Slice.Internal
 {
-    /// <summary>Helper methods to convert a path to/from an Ice identity.</summary>
-    internal static class IdentityPath
+    internal readonly partial record struct Identity
     {
-        /// <summary>Converts a path into an identity (name-category pair).</summary>
+        public override string ToString() => ToPath();
+
+        /// <summary>Parses a path into an identity.</summary>
         /// <param name="path">The path (percent escaped).</param>
-        /// <returns>The corresponding identity.</returns>
-        internal static (string Name, string Category) FromPath(string path)
+        /// <returns>The corresponding identity. Its name can be empty.</returns>
+        internal static Identity Parse(string path)
         {
             string workingPath = path[1..]; // removes leading /.
 
@@ -39,23 +40,20 @@ namespace IceRpc.Slice.Internal
                 category = "";
             }
 
-            return (name, category);
+            return new(name, category);
         }
 
-        /// <summary>Converts an identity (name-category pair) into a path.</summary>
-        /// <param name="name">The name (not percent escaped).</param>
-        /// <param name="category">The category (not percent escaped).</param>
-        /// <returns>The corresponding path.</returns>
-        internal static string ToPath(string name, string category)
+        /// <summary>Converts this identity into a path.</summary>
+        internal string ToPath()
         {
-            if (name.Length == 0)
+            if (Name.Length == 0)
             {
                 return "/";
             }
 
-            return category.Length > 0 ?
-                $"/{Uri.EscapeDataString(category)}/{Uri.EscapeDataString(name)}" :
-                $"/{Uri.EscapeDataString(name)}";
+            return Category.Length > 0 ?
+                $"/{Uri.EscapeDataString(Category)}/{Uri.EscapeDataString(Name)}" :
+                $"/{Uri.EscapeDataString(Name)}";
         }
     }
 }
