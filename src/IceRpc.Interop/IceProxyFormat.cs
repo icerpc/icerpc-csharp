@@ -403,8 +403,8 @@ namespace IceRpc
 
             var sb = new StringBuilder();
 
-            // If the identity string contains characters which the reference parser uses as separators, then we enclose
-            // the identity string in quotes.
+            // We enclose the identity string in quotes when the identity string contains characters we use as
+            // separators.
             string identity = PathToIdentity(proxy.Path, this);
             if (StringUtil.FindFirstOf(identity, " :@") != -1)
             {
