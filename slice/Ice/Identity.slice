@@ -1,8 +1,0 @@
-// Copyright (c) ZeroC, Inc. All rights reserved.
-
-[cs:namespace(IceRpc)]
-module Ice
-{
-    /// The identity of a service reachable with the ice protocol.
-    typealias Identity = IceRpc::Slice::IdentityPath;
-}

@@ -18,7 +18,7 @@ module Ice
     {
     }
 
-    /// This exception is thrown when an Ice object was not found.
+    /// This exception is thrown when a well-known service was not found.
     exception ObjectNotFoundException
     {
     }
@@ -28,18 +28,18 @@ module Ice
     {
     }
 
-    /// Client applications use Locator to resolve locations and well-known proxies. The Locator object also allows
-    /// server applications to retrieve a proxy to the LocatorRegistry object.
+    /// Client applications use Locator to resolve locations and well-known proxies. The Locator service also allows
+    /// server applications to retrieve a proxy to the LocatorRegistry service.
     interface Locator
     {
-        /// Finds an object by identity and facet and returns a proxy that provides a location or endpoint(s) that can
-        /// be used to reach the object using the ice protocol.
-        /// @param id The identity.
+        /// Finds a service by path and returns a proxy that provides a location or endpoint(s) that can be used to
+        /// reach the service using the ice protocol.
+        /// @param path The path.
         /// @return An ice proxy that provides a location or endpoint(s), or null if an object with the requested
-        /// identity was not found.
-        /// @throws ObjectNotFoundException Thrown if an object with the requested identity was not found. The caller
+        /// path was not found.
+        /// @throws ObjectNotFoundException Thrown if a service with the requested path was not found. The caller
         /// should treat this exception like a null return value.
-        idempotent findObjectById(id: Identity) -> IceRpc::Service?;
+        idempotent findObjectById(path: IdentityPath) -> IceRpc::Service?;
 
         /// Finds an object adapter by id and returns a proxy that provides the object adapter's endpoint(s). This
         /// operation is for object adapters using the ice protocol.
@@ -55,7 +55,7 @@ module Ice
         idempotent getRegistry() -> LocatorRegistry?;
     }
 
-    /// A server application registers the endpoints of its indirect object adapters with the LocatorRegistry object.
+    /// A server application registers the endpoints of its indirect object adapters with the LocatorRegistry service.
     interface LocatorRegistry
     {
         /// Registers or unregisters the endpoints of an object adapter that uses the ice protocol.
@@ -89,19 +89,19 @@ module Ice
             proxy: IceRpc::Service?,
         );
 
-        /// Registers a proxy for a server's Process object.
+        /// Registers a proxy for a server's Process service.
         /// @param serverId The server ID.
-        /// @param proxy A proxy for the server's Process object.
+        /// @param proxy A proxy for the server's Process service.
         /// @throws ServerNotFoundException Thrown if the locator does not know a server with this server ID.
         idempotent setServerProcessProxy(serverId: string, proxy: Process);
     }
 
-    /// This interface is implemented by services that implement the Ice::Locator interface, and is advertised as an Ice
-    /// object with the identity 'Ice/LocatorFinder'. This allows clients to retrieve the locator proxy with just the
+    /// This interface is implemented by services that implement the Ice::Locator interface, and is advertised as a
+    /// service with the path '/Ice/LocatorFinder'. This allows clients to retrieve the locator proxy with just the
     /// endpoint information of the service.
     interface LocatorFinder
     {
-        /// Gets the locator proxy implemented by the service hosting this finder object. The proxy might point to
+        /// Gets the locator proxy implemented by the service hosting this finder service. The proxy might point to
         /// several replicas.
         /// @return The locator proxy.
         getLocator() -> Locator;

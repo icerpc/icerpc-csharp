@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice.Internal;
-
-namespace IceRpc.Slice
+namespace IceRpc.Slice.Internal
 {
     /// <summary>Extensions methods to encode and decode a path into/from an Ice Identity.</summary>
     public static class IdentityPathExtensions // TODO: see https://github.com/zeroc-ice/icerpc-csharp/issues/786

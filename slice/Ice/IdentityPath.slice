@@ -1,15 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc::Slice
+[cs:namespace(IceRpc)]
+module Ice
 {
-    /// The path of a service, encoded as a name and a category like an Ice Identity.
+    /// The path of a service, encoded as an Ice identity.
     [cs:type("string")]
     compact struct IdentityPath
     {
-        /// The name.
         name: string,
-
-        /// The category.
         category: string,
     }
 }
