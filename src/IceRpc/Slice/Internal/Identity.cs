@@ -4,6 +4,9 @@ namespace IceRpc.Slice.Internal
 {
     internal readonly partial record struct Identity
     {
+        /// <summary>The null identity.</summary>
+        internal static Identity Empty { get; } = new("", "");
+
         public override string ToString() => ToPath();
 
         /// <summary>Parses a path into an identity.</summary>
@@ -34,13 +37,7 @@ namespace IceRpc.Slice.Internal
                 category = Uri.UnescapeDataString(workingPath[0..firstSlash]);
             }
 
-            if (name.Length == 0)
-            {
-                // null identity
-                category = "";
-            }
-
-            return new(name, category);
+            return name.Length == 0 ? Empty : new(name, category);
         }
 
         /// <summary>Converts this identity into a path.</summary>

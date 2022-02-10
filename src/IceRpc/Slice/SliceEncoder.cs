@@ -223,7 +223,7 @@ namespace IceRpc.Slice
             }
             else if (Encoding == IceRpc.Encoding.Slice11)
             {
-                this.EncodeIdentityPath("/"); // identity with empty name and category
+                Identity.Empty.Encode(ref this);
             }
             else
             {
