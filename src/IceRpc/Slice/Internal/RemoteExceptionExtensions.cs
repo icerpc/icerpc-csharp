@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc.Internal
+namespace IceRpc.Slice.Internal
 {
     /// <summary>Extension methods for class <see cref="RemoteException"/>.</summary>
     internal static class RemoteExceptionExtensions

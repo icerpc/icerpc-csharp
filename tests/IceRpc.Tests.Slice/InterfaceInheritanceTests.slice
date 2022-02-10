@@ -14,7 +14,7 @@ module IceRpc::Tests::Slice::InterfaceInheritance
         opB(p: B) -> B;
     }
 
-    interface C : A, Service
+    interface C : A, IceRpc::Slice::Service
     {
         opC(p: C) -> C;
     }

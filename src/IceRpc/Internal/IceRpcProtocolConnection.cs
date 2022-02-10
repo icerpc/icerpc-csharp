@@ -116,7 +116,7 @@ namespace IceRpc.Internal
                     }
 
                     // Decode Context from Fields and set corresponding feature.
-                    if (fields.Get(
+                    if (fields.DecodeValue(
                         (int)FieldKey.Context,
                         (ref SliceDecoder decoder) => decoder.DecodeDictionary(
                             minKeySize: 1,
@@ -235,7 +235,7 @@ namespace IceRpc.Internal
                 (header, fields) = DecodeHeader(readResult.Buffer);
                 responseReader.AdvanceTo(readResult.Buffer.End);
 
-                RetryPolicy? retryPolicy = fields.Get(
+                RetryPolicy? retryPolicy = fields.DecodeValue(
                     (int)FieldKey.RetryPolicy, (ref SliceDecoder decoder) => new RetryPolicy(ref decoder));
                 if (retryPolicy != null)
                 {

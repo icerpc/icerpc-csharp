@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc
+module IceRpc::Slice
 {
     /// All services defined in Slice implement this interface.
     interface Service

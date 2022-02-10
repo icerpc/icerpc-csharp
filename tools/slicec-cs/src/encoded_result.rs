@@ -76,7 +76,7 @@ immediately encodes the return value of operation {operation_name}."#,
     }
 
     if !returns_classes {
-        constructor_builder.add_parameter("IceRpc.Dispatch", &dispatch_parameter, None, None);
+        constructor_builder.add_parameter("IceRpc.Slice.Dispatch", &dispatch_parameter, None, None);
     }
 
     constructor_builder.set_body(

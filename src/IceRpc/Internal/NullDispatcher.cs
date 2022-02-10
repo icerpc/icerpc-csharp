@@ -1,5 +1,7 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
+
 namespace IceRpc.Internal
 {
     /// <summary>A dispatcher that always throws <see cref="ServiceNotFoundException"/> and can be used

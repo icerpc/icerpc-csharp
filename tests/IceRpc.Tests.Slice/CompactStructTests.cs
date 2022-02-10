@@ -2,7 +2,6 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using IceRpc.Slice;
 
 namespace IceRpc.Tests.Slice
 {

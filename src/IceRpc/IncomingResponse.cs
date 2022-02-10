@@ -24,9 +24,9 @@ namespace IceRpc
             PipeReader payload,
             Encoding payloadEncoding) :
             base(request.Protocol, payload, payloadEncoding)
-            {
-                Request = request;
-                ResultType = resultType;
-            }
+        {
+            Request = request;
+            ResultType = resultType;
+        }
     }
 }

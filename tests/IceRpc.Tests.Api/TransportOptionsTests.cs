@@ -87,8 +87,8 @@ namespace IceRpc.Tests.Api
 
             // Can't be less than 1Kb
             Assert.Throws<ArgumentException>(() => new SlicOptions() { PacketMaxSize = 1 });
-            Assert.Throws<ArgumentException>(() => new SlicOptions() { PauseWriterThreshold = 1});
-            Assert.Throws<ArgumentException>(() => new SlicOptions() { ResumeWriterThreshold = 1});
+            Assert.Throws<ArgumentException>(() => new SlicOptions() { PauseWriterThreshold = 1 });
+            Assert.Throws<ArgumentException>(() => new SlicOptions() { ResumeWriterThreshold = 1 });
         }
     }
 }
