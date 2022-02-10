@@ -1,6 +1,5 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice;
 using IceRpc.Tests.ReferencedAssemblies;
 
 using NUnit.Framework;

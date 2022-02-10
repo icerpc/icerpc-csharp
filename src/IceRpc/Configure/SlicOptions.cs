@@ -41,7 +41,7 @@ namespace IceRpc.Configure
         public int MinimumSegmentSize
         {
             get => _minimumSegmentSize;
-            init => _minimumSegmentSize = value >= 1024 ? value:
+            init => _minimumSegmentSize = value >= 1024 ? value :
                 throw new ArgumentException($"{nameof(MinimumSegmentSize)} can't be less than 1KB", nameof(value));
         }
 
