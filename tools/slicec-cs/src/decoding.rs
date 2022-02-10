@@ -420,7 +420,7 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
                             "Extensions",
                             namespace
                         ),
-                    identifier = struct_ref.identifier()
+                    name = fix_case(struct_ref.identifier(), CaseStyle::Pascal)
                 )
             } else {
                 format!(
