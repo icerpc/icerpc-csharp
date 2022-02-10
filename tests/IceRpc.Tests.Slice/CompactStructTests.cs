@@ -124,20 +124,27 @@ namespace IceRpc.Tests.Slice
         public override readonly string ToString() => $"{I + J}";
     }
 
-    public static class MyTimeSpanExtensions
+    public static class SliceEncoderMyTimeSpanExtensions
     {
         public static void EncodeMyTimeSpan(ref SliceEncoder encoder, TimeSpan value) =>
             encoder.EncodeVarLong(checked((long)value.TotalMilliseconds));
+    }
+
+    public static class SliceDecoderMyTimeSpanExtensions
+    {
 
         public static TimeSpan DecodeMyTimeSpan(ref SliceDecoder decoder) =>
             TimeSpan.FromMilliseconds(decoder.DecodeVarLong());
     }
 
-    public static class MyListExtensions
+    public static class SliceEncoderMyListExtensions
     {
         public static void EncodeMyList(ref SliceEncoder encoder, LinkedList<int> value) =>
             encoder.EncodeSequence(value.ToArray());
+    }
 
+    public static class SliceDecoderMyListExtensions
+    {
         public static LinkedList<int> DecodeMyList(ref SliceDecoder decoder) =>
             new(decoder.DecodeSequence<int>(null).Reverse());
     }
