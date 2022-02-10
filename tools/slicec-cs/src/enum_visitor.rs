@@ -4,6 +4,7 @@ use crate::comments::{doc_comment_message, CommentTag};
 use crate::generated_code::GeneratedCode;
 use crate::slicec_ext::*;
 
+use slice::code_gen_util::{fix_case, CaseStyle};
 use slice::grammar::*;
 use slice::visitor::Visitor;
 
@@ -16,7 +17,9 @@ impl<'a> Visitor for EnumVisitor<'a> {
     fn visit_enum_start(&mut self, enum_def: &Enum) {
         let mut code = CodeBlock::new();
         code.add_block(&enum_declaration(enum_def));
-        code.add_block(&enum_helper(enum_def));
+        code.add_block(&enum_underlying_extensions(enum_def));
+        code.add_block(&enum_encoder_extensions(enum_def));
+        code.add_block(&enum_decoder_extensions(enum_def));
         self.generated_code.insert_scoped(enum_def, code);
     }
 }
@@ -48,20 +51,16 @@ fn enum_values(enum_def: &Enum) -> CodeBlock {
     code
 }
 
-fn enum_helper(enum_def: &Enum) -> CodeBlock {
+fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
     let access = enum_def.access_modifier();
     let escaped_identifier = enum_def.escape_identifier();
     let namespace = &enum_def.namespace();
     let mut builder = ContainerBuilder::new(
         &format!("{} static class", access),
-        &enum_def.helper_name(namespace),
-    );
-
-    builder.add_comment(
-        "summary",
         &format!(
-            r#"Helper class for marshaling and unmarshaling <see cref="{}"/>."#,
-            escaped_identifier
+            "{}{}Extensions",
+            fix_case(enum_def.underlying_type().cs_keyword(), CaseStyle::Pascal),
+            fix_case(enum_def.identifier(), CaseStyle::Pascal)
         ),
     );
 
@@ -133,22 +132,26 @@ fn enum_helper(enum_def: &Enum) -> CodeBlock {
         .into(),
     );
 
-    // Enum decoding
-    builder.add_block(
-        format!(
-            r#"
-{access} static {escaped_identifier} Decode{identifier}(this ref SliceDecoder decoder) =>
-    As{identifier}({decode_enum});"#,
-            access = access,
-            identifier = enum_def.identifier(),
-            escaped_identifier = escaped_identifier,
-            decode_enum = match &enum_def.underlying {
-                Some(underlying) =>
-                    format!("decoder.Decode{}()", underlying.definition().type_suffix()),
-                _ => "decoder.DecodeSize()".to_owned(),
-            }
-        )
-        .into(),
+    builder.build().into()
+}
+
+fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
+    let access = enum_def.access_modifier();
+    let escaped_identifier = enum_def.escape_identifier();
+    let mut builder = ContainerBuilder::new(
+        &format!("{} static class", access),
+        &format!(
+            "SliceEncoder{}Extensions",
+            fix_case(enum_def.identifier(), CaseStyle::Pascal),
+        ),
+    );
+
+    builder.add_comment(
+        "summary",
+        &format!(
+            r#"Provide extension methods for encoding <see cref="{}"/>."#,
+            escaped_identifier
+        ),
     );
 
     // Enum encoding
@@ -166,6 +169,51 @@ fn enum_helper(enum_def: &Enum) -> CodeBlock {
                 None => "encoder.EncodeSize".to_owned(),
             },
             underlying_type = enum_def.underlying_type().cs_keyword()
+        )
+        .into(),
+    );
+
+    builder.build().into()
+}
+
+fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
+    let access = enum_def.access_modifier();
+    let escaped_identifier = enum_def.escape_identifier();
+    let mut builder = ContainerBuilder::new(
+        &format!("{} static class", access),
+        &format!(
+            "SliceDecoder{}Extensions",
+            fix_case(enum_def.identifier(), CaseStyle::Pascal),
+        ),
+    );
+
+    builder.add_comment(
+        "summary",
+        &format!(
+            r#"Provide extension methods for encoding <see cref="{}"/>."#,
+            escaped_identifier
+        ),
+    );
+
+    // Enum decoding
+    builder.add_block(
+        format!(
+            r#"
+{access} static {escaped_identifier} Decode{identifier}(this ref SliceDecoder decoder) =>
+    {underlying_extensions_class}.As{identifier}({decode_enum});"#,
+            access = access,
+            identifier = enum_def.identifier(),
+            escaped_identifier = escaped_identifier,
+            underlying_extensions_class = format!(
+                "{}{}Extensions",
+                fix_case(enum_def.underlying_type().cs_keyword(), CaseStyle::Pascal),
+                fix_case(enum_def.identifier(), CaseStyle::Pascal)
+            ),
+            decode_enum = match &enum_def.underlying {
+                Some(underlying) =>
+                    format!("decoder.Decode{}()", underlying.definition().type_suffix()),
+                _ => "decoder.DecodeSize()".to_owned(),
+            }
         )
         .into(),
     );

@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc;
+using IceRpc.Slice;
 
 namespace Demo;
 
