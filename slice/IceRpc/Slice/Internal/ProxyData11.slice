@@ -16,13 +16,6 @@ module IceRpc::Slice::Internal
         category: string,
     }
 
-    /// The path of a service, encoded as an {@link Identity}.
-    [cs:type("string")]
-    compact struct IdentityPath
-    {
-        value: Identity,
-    }
-
     /// The fragment of a service, encoded as a sequence of 0 or 1 elements. The empty string is encoded as an empty
     /// sequence. A non-empty string is encoded as a sequence with 1 element. While the fragment string is
     /// percent-escaped, the sequence element is not.

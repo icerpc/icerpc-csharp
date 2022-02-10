@@ -1,0 +1,11 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc::Slice
+{
+    /// The path of a service, encoded as an {@link Internal::Identity}.
+    [cs:type("string")]
+    compact struct IdentityPath
+    {
+        value: Internal::Identity,
+    }
+}

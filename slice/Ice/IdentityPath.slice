@@ -3,11 +3,5 @@
 [cs:namespace(IceRpc)]
 module Ice
 {
-    /// The path of a service, encoded as an Ice identity.
-    [cs:type("string")]
-    compact struct IdentityPath
-    {
-        name: string,
-        category: string,
-    }
+    typealias IdentityPath = IceRpc::Slice::IdentityPath;
 }
