@@ -8,7 +8,9 @@ pub trait EntityExt: Entity {
     /// Escapes and returns the definition's identifier, without any scoping.
     /// If the identifier is a C# keyword, a '@' prefix is appended to it.
     fn escape_identifier(&self) -> String;
+    fn escape_identifier_with_prefix(&self, suffix: &str) -> String;
     fn escape_identifier_with_suffix(&self, suffix: &str) -> String;
+    fn escape_identifier_with_prefix_and_suffix(&self, prefix: &str, suffix: &str) -> String;
 
     /// Escapes and returns the definition's identifier, fully scoped.
     /// If the identifier or any of the scopes are C# keywords, a '@' prefix is appended to them.
@@ -17,8 +19,16 @@ pub trait EntityExt: Entity {
     /// If scope is non-empty, this also qualifies the identifier's scope relative to the provided
     /// one.
     fn escape_scoped_identifier(&self, current_namespace: &str) -> String;
+    fn escape_scoped_identifier_with_prefix(&self, suffix: &str, current_namespace: &str)
+        -> String;
     fn escape_scoped_identifier_with_suffix(&self, suffix: &str, current_namespace: &str)
         -> String;
+    fn escape_scoped_identifier_with_prefix_and_suffix(
+        &self,
+        prefix: &str,
+        suffix: &str,
+        current_namespace: &str,
+    ) -> String;
 
     /// Returns the interface name corresponding to this entity's identifier, without scoping.
     /// eg. If this entity's identifier is `foo`, the C# interface name is `IFoo`.
@@ -59,9 +69,23 @@ where
         escape_keyword(&fix_case(self.identifier(), CaseStyle::Pascal))
     }
 
+    fn escape_identifier_with_prefix(&self, prefix: &str) -> String {
+        escape_keyword(&fix_case(
+            &format!("{}{}", prefix, self.identifier()),
+            CaseStyle::Pascal,
+        ))
+    }
+
     fn escape_identifier_with_suffix(&self, suffix: &str) -> String {
         escape_keyword(&fix_case(
             &format!("{}{}", self.identifier(), suffix),
+            CaseStyle::Pascal,
+        ))
+    }
+
+    fn escape_identifier_with_prefix_and_suffix(&self, prefix: &str, suffix: &str) -> String {
+        escape_keyword(&fix_case(
+            &format!("{}{}{}", prefix, self.identifier(), suffix),
             CaseStyle::Pascal,
         ))
     }
@@ -81,6 +105,23 @@ where
         }
     }
 
+    fn escape_scoped_identifier_with_prefix(
+        &self,
+        prefix: &str,
+        current_namespace: &str,
+    ) -> String {
+        let namespace = self.namespace();
+        if current_namespace == namespace {
+            self.escape_identifier_with_prefix(prefix)
+        } else {
+            format!(
+                "global::{}.{}",
+                namespace,
+                self.escape_identifier_with_prefix(prefix)
+            )
+        }
+    }
+
     fn escape_scoped_identifier_with_suffix(
         &self,
         suffix: &str,
@@ -94,6 +135,24 @@ where
                 "global::{}.{}",
                 namespace,
                 self.escape_identifier_with_suffix(suffix)
+            )
+        }
+    }
+
+    fn escape_scoped_identifier_with_prefix_and_suffix(
+        &self,
+        prefix: &str,
+        suffix: &str,
+        current_namespace: &str,
+    ) -> String {
+        let namespace = self.namespace();
+        if current_namespace == namespace {
+            self.escape_identifier_with_prefix_and_suffix(prefix, suffix)
+        } else {
+            format!(
+                "global::{}.{}",
+                namespace,
+                self.escape_identifier_with_prefix_and_suffix(prefix, suffix)
             )
         }
     }

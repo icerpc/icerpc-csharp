@@ -81,8 +81,13 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str) -> CodeBloc
             if struct_ref.definition().has_attribute("cs:type", false) {
                 write!(
                     code,
-                    "{scoped_identifier}Extensions.Decode{identifier}(ref decoder)",
-                    scoped_identifier = struct_ref.escape_scoped_identifier(namespace),
+                    "{decoder_extensions_class}.Decode{identifier}(ref decoder)",
+                    decoder_extensions_class = struct_ref
+                        .escape_scoped_identifier_with_prefix_and_suffix(
+                            "SliceDecoder",
+                            "Extensions",
+                            namespace
+                        ),
                     identifier = struct_ref.identifier(),
                 );
             } else {
@@ -96,9 +101,14 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str) -> CodeBloc
         TypeRefs::Enum(enum_ref) => {
             write!(
                 code,
-                "{}.Decode{}(ref decoder)",
-                enum_ref.helper_name(namespace),
-                enum_ref.identifier(),
+                "{decoder_extensions_class}.Decode{name}(ref decoder)",
+                decoder_extensions_class = enum_ref
+                    .escape_scoped_identifier_with_prefix_and_suffix(
+                        "SliceDecoder",
+                        "Extensions",
+                        namespace
+                    ),
+                name = fix_case(enum_ref.identifier(), CaseStyle::Pascal),
             );
         }
         TypeRefs::Trait(_) => {
@@ -210,11 +220,16 @@ pub fn decode_sequence(sequence_ref: &TypeRef<Sequence>, namespace: &str) -> Cod
                     Some(format!(
                         "\
 decoder.DecodeSequence(
-    ({enum_type_name} e) => _ = {helper}.As{name}(({underlying_type})e))",
+    ({enum_type_name} e) => _ = {underlying_extensions_class}.As{name}(({underlying_type})e))",
                         enum_type_name =
                             element_type.to_type_string(namespace, TypeContext::Decode, false),
-                        helper = enum_def.helper_name(namespace),
-                        name = enum_def.identifier(),
+                        underlying_extensions_class = enum_def
+                            .escape_scoped_identifier_with_prefix_and_suffix(
+                                enum_def.underlying_type().cs_keyword(),
+                                "Extensions",
+                                namespace
+                            ),
+                        name = fix_case(enum_def.identifier(), CaseStyle::Pascal),
                         underlying_type = enum_def.underlying_type().cs_keyword()
                     ))
                 }
@@ -288,11 +303,16 @@ decoder.DecodeSequenceWithBitSequence(
                         code,
                         "\
 decoder.DecodeSequence(
-    ({enum_type} e) => _ = {helper}.As{name}(({underlying_type})e))",
+    ({enum_type} e) => _ = {underlying_extensions_class}.As{name}(({underlying_type})e))",
                         enum_type =
                             element_type.to_type_string(namespace, TypeContext::Decode, false),
-                        helper = enum_def.helper_name(namespace),
-                        name = enum_def.identifier(),
+                        underlying_extensions_class = enum_def
+                            .escape_scoped_identifier_with_prefix_and_suffix(
+                                enum_def.underlying_type().cs_keyword(),
+                                "Extensions",
+                                namespace
+                            ),
+                        name = fix_case(enum_def.identifier(), CaseStyle::Pascal),
                         underlying_type = enum_def.underlying_type().cs_keyword()
                     );
                 }
@@ -375,16 +395,25 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
         }
         TypeRefs::Enum(enum_ref) => {
             format!(
-                "(ref SliceDecoder decoder) => {}.Decode{}(ref decoder)",
-                enum_ref.helper_name(namespace),
-                enum_ref.identifier()
+                "(ref SliceDecoder decoder) => {decoder_extensions_class}.Decode{name}(ref decoder)",
+                decoder_extensions_class = enum_ref.escape_scoped_identifier_with_prefix_and_suffix(
+                    "SliceDecoder",
+                    "Extensions",
+                    namespace
+                ),
+                name = fix_case(enum_ref.identifier(), CaseStyle::Pascal)
             )
         }
         TypeRefs::Struct(struct_ref) => {
             if struct_ref.definition().has_attribute("cs:type", false) {
                 format!(
-                    "(ref SliceDecoder decoder) => {scoped_identifier}Extensions.Decode{identifier}(ref decoder)",
-                    scoped_identifier = struct_ref.escape_scoped_identifier(namespace),
+                    "(ref SliceDecoder decoder) => {decoder_extensions_class}.Decode{identifier}(ref decoder)",
+                    decoder_extensions_class = struct_ref
+                        .escape_scoped_identifier_with_prefix_and_suffix(
+                            "SliceDecoder",
+                            "Extensions",
+                            namespace
+                        ),
                     identifier = struct_ref.identifier()
                 )
             } else {

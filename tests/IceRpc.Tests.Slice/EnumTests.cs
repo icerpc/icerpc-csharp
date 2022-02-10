@@ -60,27 +60,27 @@ namespace IceRpc.Tests.Slice
             Array myEnumValues = Enum.GetValues(typeof(MyEnum));
             foreach (object value in myEnumValues)
             {
-                Assert.AreEqual((MyEnum)value, MyEnumHelper.AsMyEnum((int)value));
+                Assert.AreEqual((MyEnum)value, IntMyEnumExtensions.AsMyEnum((int)value));
             }
 
             Array myFixedLengthEnumValues = Enum.GetValues(typeof(MyFixedLengthEnum));
             foreach (object value in myFixedLengthEnumValues)
             {
-                Assert.AreEqual((MyFixedLengthEnum)value, MyFixedLengthEnumHelper.AsMyFixedLengthEnum((short)value));
+                Assert.AreEqual((MyFixedLengthEnum)value, ShortMyFixedLengthEnumExtensions.AsMyFixedLengthEnum((short)value));
             }
 
             for (uint i = 0; i < 1024; ++i)
             {
-                Assert.AreEqual((MyUncheckedEnum)i, MyUncheckedEnumHelper.AsMyUncheckedEnum(i));
+                Assert.AreEqual((MyUncheckedEnum)i, UintMyUncheckedEnumExtensions.AsMyUncheckedEnum(i));
             }
 
-            Assert.Throws<InvalidDataException>(() => MyEnumHelper.AsMyEnum(2));
-            Assert.Throws<InvalidDataException>(() => MyEnumHelper.AsMyEnum(12));
-            Assert.Throws<InvalidDataException>(() => MyEnumHelper.AsMyEnum(22));
+            Assert.Throws<InvalidDataException>(() => IntMyEnumExtensions.AsMyEnum(2));
+            Assert.Throws<InvalidDataException>(() => IntMyEnumExtensions.AsMyEnum(12));
+            Assert.Throws<InvalidDataException>(() => IntMyEnumExtensions.AsMyEnum(22));
 
-            Assert.Throws<InvalidDataException>(() => MyFixedLengthEnumHelper.AsMyFixedLengthEnum(0));
-            Assert.Throws<InvalidDataException>(() => MyFixedLengthEnumHelper.AsMyFixedLengthEnum(12));
-            Assert.Throws<InvalidDataException>(() => MyFixedLengthEnumHelper.AsMyFixedLengthEnum(22));
+            Assert.Throws<InvalidDataException>(() => ShortMyFixedLengthEnumExtensions.AsMyFixedLengthEnum(0));
+            Assert.Throws<InvalidDataException>(() => ShortMyFixedLengthEnumExtensions.AsMyFixedLengthEnum(12));
+            Assert.Throws<InvalidDataException>(() => ShortMyFixedLengthEnumExtensions.AsMyFixedLengthEnum(22));
         }
 
         [TestCase("ice")]

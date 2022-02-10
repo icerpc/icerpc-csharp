@@ -110,8 +110,11 @@ fn encode_type(
                 TypeRefs::Struct(struct_ref) => {
                     if struct_ref.definition().has_attribute("cs:type", false) {
                         format!(
-                            "{scoped_identifier}Extensions.Encode{identifier}(ref {encoder_param}, {value});",
-                            scoped_identifier = struct_ref.escape_scoped_identifier(namespace),
+                            "{encoder_extensions_class}.Encode{identifier}(ref {encoder_param}, {value});",
+                            encoder_extensions_class = struct_ref.escape_scoped_identifier_with_prefix_and_suffix(
+                                "SliceEncoder",
+                                "Extensions",
+                                namespace),
                             identifier = struct_ref.identifier(),
                             encoder_param = encoder_param,
                             value = value
@@ -140,9 +143,14 @@ fn encode_type(
                     )
                 }
                 TypeRefs::Enum(enum_ref) => format!(
-                    "{helper}.Encode{name}(ref {encoder_param}, {param});",
-                    helper = enum_ref.helper_name(namespace),
-                    name = enum_ref.identifier(),
+                    "{encoder_extensions_class}.Encode{name}(ref {encoder_param}, {param});",
+                    encoder_extensions_class = enum_ref
+                        .escape_scoped_identifier_with_prefix_and_suffix(
+                            "SliceEncoder",
+                            "Extensions",
+                            namespace
+                    ),
+                    name = fix_case(enum_ref.identifier(), CaseStyle::Pascal),
                     param = value,
                     encoder_param = encoder_param
                 ),
@@ -460,10 +468,13 @@ pub fn encode_action(type_ref: &TypeRef, type_context: TypeContext, namespace: &
         TypeRefs::Enum(enum_ref) => {
             write!(
                 code,
-                "(ref SliceEncoder encoder, {value_type} value) => {helper}.Encode{name}(ref encoder, {value})",
+                "(ref SliceEncoder encoder, {value_type} value) => {encoder_extensions_class}.Encode{name}(ref encoder, {value})",
                 value_type = value_type,
-                helper = enum_ref.helper_name(namespace),
-                name = enum_ref.identifier(),
+                encoder_extensions_class = enum_ref.escape_scoped_identifier_with_prefix_and_suffix(
+                    "SliceEncoder",
+                    "Extensions",
+                    namespace),
+                name = fix_case(enum_ref.identifier(), CaseStyle::Pascal),
                 value = value
             )
         }
