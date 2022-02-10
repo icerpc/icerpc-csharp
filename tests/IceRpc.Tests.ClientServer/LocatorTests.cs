@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Features;
 using IceRpc.Slice;
 using NUnit.Framework;
 using System.Collections.Concurrent;
@@ -65,7 +66,9 @@ namespace IceRpc.Tests.ClientServer
                 {
                     if (request.Proxy == indirectGreeter.Proxy)
                     {
-                        Assert.AreEqual(greeter.Proxy.Endpoint, request.Endpoint);
+                        EndpointSelection? endpointSelection = request.Features.Get<EndpointSelection>();
+                        Assert.That(endpointSelection, Is.Not.Null);
+                        Assert.AreEqual(greeter.Proxy.Endpoint, endpointSelection.Endpoint);
                         _called = true;
                     }
                     return next.InvokeAsync(request, cancel);
@@ -114,11 +117,12 @@ namespace IceRpc.Tests.ClientServer
                 (request, cancel) =>
                 {
                     // Only test if the resolution was successful
-                    if (request.Endpoint != null)
+                    EndpointSelection? endpointSelection = request.Features.Get<EndpointSelection>();
+                    if (endpointSelection?.Endpoint != null)
                     {
                         if (request.Proxy == indirectGreeter.Proxy || request.Proxy == wellKnownGreeter.Proxy)
                         {
-                            Assert.AreEqual(_greeter.Proxy.Endpoint, request.Endpoint);
+                            Assert.AreEqual(_greeter.Proxy.Endpoint, endpointSelection.Endpoint);
                             _called = true;
                         }
                     }
@@ -199,7 +203,9 @@ namespace IceRpc.Tests.ClientServer
                 {
                     if (request.Proxy.Endpoint == null && request.Path == _greeter.Proxy.Path)
                     {
-                        Assert.AreEqual(greeter.Proxy.Endpoint, request.Endpoint);
+                        EndpointSelection? endpointSelection = request.Features.Get<EndpointSelection>();
+                        Assert.That(endpointSelection, Is.Not.Null);
+                        Assert.AreEqual(greeter.Proxy.Endpoint, endpointSelection.Endpoint);
                         _called = true;
                     }
                     return next.InvokeAsync(request, cancel);

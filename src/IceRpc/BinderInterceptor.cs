@@ -1,5 +1,7 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
+
 namespace IceRpc
 {
     /// <summary>A binder interceptor is responsible for providing connections to requests using an
@@ -27,29 +29,36 @@ namespace IceRpc
         {
             if (request.Connection == null)
             {
+                EndpointSelection? endpointSelection = request.Features.Get<EndpointSelection>();
+                if (endpointSelection == null)
+                {
+                    endpointSelection = new EndpointSelection(request.Proxy);
+                    request.Features = request.Features.With(endpointSelection);
+                }
+
                 // Filter-out excluded endpoints
-                if (request.ExcludedEndpoints.Any())
+                if (endpointSelection.ExcludedEndpoints.Any())
                 {
-                    if (request.Endpoint is Endpoint endpoint && request.ExcludedEndpoints.Contains(endpoint))
+                    if (endpointSelection.Endpoint is Endpoint endpoint && endpointSelection.ExcludedEndpoints.Contains(endpoint))
                     {
-                        request.Endpoint = null;
+                        endpointSelection.Endpoint = null;
                     }
-                    request.AltEndpoints = request.AltEndpoints.Except(request.ExcludedEndpoints);
+                    endpointSelection.AltEndpoints = endpointSelection.AltEndpoints.Except(endpointSelection.ExcludedEndpoints);
                 }
 
-                if (request.Endpoint == null && request.AltEndpoints.Any())
+                if (endpointSelection.Endpoint == null && endpointSelection.AltEndpoints.Any())
                 {
-                    request.Endpoint = request.AltEndpoints.First();
-                    request.AltEndpoints = request.AltEndpoints.Skip(1);
+                    endpointSelection.Endpoint = endpointSelection.AltEndpoints.First();
+                    endpointSelection.AltEndpoints = endpointSelection.AltEndpoints.Skip(1);
                 }
 
-                if (request.Endpoint == null)
+                if (endpointSelection.Endpoint == null)
                 {
                     throw new NoEndpointException(request.Proxy);
                 }
 
-                return PerformAsync(_connectionProvider.GetConnectionAsync(request.Endpoint.Value,
-                                                                           request.AltEndpoints,
+                return PerformAsync(_connectionProvider.GetConnectionAsync(endpointSelection.Endpoint.Value,
+                                                                           endpointSelection.AltEndpoints,
                                                                            cancel));
             }
             return _next.InvokeAsync(request, cancel);

@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Features;
 using IceRpc.Slice;
 using NUnit.Framework;
 
@@ -111,8 +112,12 @@ namespace IceRpc.Tests.ClientServer
                         (category != null && adapterId == null &&
                          Identity.FromPath(request.Path) == new Identity(location, category))))
                     {
-                        request.Endpoint = resolvedEndpoint;
-                        CollectionAssert.IsEmpty(request.AltEndpoints);
+                        var endpointSelection = new EndpointSelection()
+                        {
+                            Endpoint = resolvedEndpoint,
+                        };
+                        CollectionAssert.IsEmpty(endpointSelection.AltEndpoints);
+                        request.Features = request.Features.With(endpointSelection);
                     }
                     // else don't do anything
 

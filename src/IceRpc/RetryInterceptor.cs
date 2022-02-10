@@ -1,5 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
@@ -118,8 +119,12 @@ namespace IceRpc
                             !request.Connection.IsServer &&
                             retryPolicy == RetryPolicy.OtherReplica)
                         {
-                            request.ExcludedEndpoints = request.ExcludedEndpoints.Append(
-                                request.Connection.RemoteEndpoint!);
+                            EndpointSelection? endpointSelection = request.Features.Get<EndpointSelection>();
+                            if (endpointSelection != null)
+                            {
+                                endpointSelection.ExcludedEndpoints = endpointSelection.ExcludedEndpoints.Append(
+                                    request.Connection.RemoteEndpoint!);
+                            }
                         }
 
                         tryAgain = true;

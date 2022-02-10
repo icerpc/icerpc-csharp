@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
@@ -32,6 +33,13 @@ namespace IceRpc
                 Location location = default;
                 bool refreshCache = false;
 
+                EndpointSelection? endpointSelection = request.Features.Get<EndpointSelection>();
+                if (endpointSelection == null)
+                {
+                    endpointSelection = new EndpointSelection(request.Proxy);
+                    request.Features = request.Features.With(endpointSelection);
+                }
+
                 // We detect retries and don't use cached values for retries by setting refreshCache to true.
 
                 if (request.Features.Get<CachedResolutionFeature>() is CachedResolutionFeature cachedResolution)
@@ -42,7 +50,7 @@ namespace IceRpc
                     location = cachedResolution.Location;
                     refreshCache = true;
                 }
-                else if (request.Endpoint == null)
+                else if (endpointSelection.Endpoint == null)
                 {
                     if (request.Params.TryGetValue("adapter-id", out string? adapterId))
                     {
@@ -90,8 +98,8 @@ namespace IceRpc
                         if (proxy != null)
                         {
                             Debug.Assert(proxy.Endpoint != null);
-                            request.Endpoint = proxy.Endpoint;
-                            request.AltEndpoints = proxy.AltEndpoints;
+                            endpointSelection.Endpoint = proxy.Endpoint;
+                            endpointSelection.AltEndpoints = proxy.AltEndpoints;
                         }
                         // else, resolution failed and we don't update anything
                     }
