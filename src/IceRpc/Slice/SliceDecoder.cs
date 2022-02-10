@@ -98,7 +98,6 @@ namespace IceRpc.Slice
 
             _minTotalSeqSize = 0;
             _reader = new SequenceReader<byte>(buffer);
-
         }
 
         /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
@@ -1029,7 +1028,7 @@ namespace IceRpc.Slice
         }
 
         /// <summary>The exception thrown when attempting to decode at/past the end of the buffer.</summary>
-        private class EndOfBufferException : InvalidOperationException
+        internal class EndOfBufferException : InvalidOperationException
         {
             internal EndOfBufferException()
                 : base("attempting to decode past the end of the decoder buffer")
