@@ -5,7 +5,7 @@ using IceRpc.Slice.Internal;
 
 namespace IceRpc
 {
-    /// <summary>Extensions methods to encode and decode a path into/from an Ice Identity.</summary>
+    /// <summary>Extension methods to encode and decode a path into/from an Ice Identity.</summary>
     public static class IdentityPathExtensions // TODO: see https://github.com/zeroc-ice/icerpc-csharp/issues/786
     {
         /// <summary>Decodes a path from an identity representation.</summary>

@@ -16,7 +16,7 @@ module IceRpc::Slice::Internal
         category: string,
     }
 
-    /// The path of a service, encoded as an Identity.
+    /// The path of a service, encoded as an {@link Identity}.
     [cs:type("string")]
     compact struct IdentityPath
     {
