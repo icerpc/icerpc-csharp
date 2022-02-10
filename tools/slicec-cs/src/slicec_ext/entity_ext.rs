@@ -66,28 +66,19 @@ where
     /// Escapes and returns the definition's identifier, without any scoping.
     /// If the identifier is a C# keyword, a '@' prefix is appended to it.
     fn escape_identifier(&self) -> String {
-        escape_keyword(&fix_case(self.identifier(), CaseStyle::Pascal))
+        escape_identifier_impl(self.identifier())
     }
 
     fn escape_identifier_with_prefix(&self, prefix: &str) -> String {
-        escape_keyword(&fix_case(
-            &format!("{}{}", prefix, self.identifier()),
-            CaseStyle::Pascal,
-        ))
+        escape_identifier_impl(&format!("{}{}", prefix, self.identifier()))
     }
 
     fn escape_identifier_with_suffix(&self, suffix: &str) -> String {
-        escape_keyword(&fix_case(
-            &format!("{}{}", self.identifier(), suffix),
-            CaseStyle::Pascal,
-        ))
+        escape_identifier_impl(&format!("{}{}", self.identifier(), suffix))
     }
 
     fn escape_identifier_with_prefix_and_suffix(&self, prefix: &str, suffix: &str) -> String {
-        escape_keyword(&fix_case(
-            &format!("{}{}{}", prefix, self.identifier(), suffix),
-            CaseStyle::Pascal,
-        ))
+        escape_identifier_impl(&format!("{}{}{}", prefix, self.identifier(), suffix))
     }
 
     /// Escapes and returns the definition's identifier, fully scoped.
@@ -97,12 +88,11 @@ where
     /// If scope is non-empty, this also qualifies the identifier's scope relative to the provided
     /// one.
     fn escape_scoped_identifier(&self, current_namespace: &str) -> String {
-        let namespace = self.namespace();
-        if current_namespace == namespace {
-            self.escape_identifier()
-        } else {
-            format!("global::{}.{}", namespace, self.escape_identifier())
-        }
+        scoped_identifier(
+            &self.escape_identifier(),
+            &self.namespace(),
+            current_namespace,
+        )
     }
 
     fn escape_scoped_identifier_with_prefix(
@@ -110,16 +100,11 @@ where
         prefix: &str,
         current_namespace: &str,
     ) -> String {
-        let namespace = self.namespace();
-        if current_namespace == namespace {
-            self.escape_identifier_with_prefix(prefix)
-        } else {
-            format!(
-                "global::{}.{}",
-                namespace,
-                self.escape_identifier_with_prefix(prefix)
-            )
-        }
+        scoped_identifier(
+            &self.escape_identifier_with_prefix(prefix),
+            &self.namespace(),
+            current_namespace,
+        )
     }
 
     fn escape_scoped_identifier_with_suffix(
@@ -127,16 +112,11 @@ where
         suffix: &str,
         current_namespace: &str,
     ) -> String {
-        let namespace = self.namespace();
-        if current_namespace == namespace {
-            self.escape_identifier_with_suffix(suffix)
-        } else {
-            format!(
-                "global::{}.{}",
-                namespace,
-                self.escape_identifier_with_suffix(suffix)
-            )
-        }
+        scoped_identifier(
+            &self.escape_identifier_with_suffix(suffix),
+            &self.namespace(),
+            current_namespace,
+        )
     }
 
     fn escape_scoped_identifier_with_prefix_and_suffix(
@@ -145,16 +125,11 @@ where
         suffix: &str,
         current_namespace: &str,
     ) -> String {
-        let namespace = self.namespace();
-        if current_namespace == namespace {
-            self.escape_identifier_with_prefix_and_suffix(prefix, suffix)
-        } else {
-            format!(
-                "global::{}.{}",
-                namespace,
-                self.escape_identifier_with_prefix_and_suffix(prefix, suffix)
-            )
-        }
+        scoped_identifier(
+            &self.escape_identifier_with_prefix_and_suffix(prefix, suffix),
+            &self.namespace(),
+            current_namespace,
+        )
     }
 
     /// The helper name for this Entity
@@ -234,5 +209,21 @@ where
         } else {
             self.access_modifier()
         }
+    }
+}
+
+fn escape_identifier_impl(identifier: &str) -> String {
+    escape_keyword(&fix_case(identifier, CaseStyle::Pascal))
+}
+
+fn scoped_identifier(
+    identifier: &str,
+    identifier_namespace: &str,
+    current_namespace: &str,
+) -> String {
+    if current_namespace == identifier_namespace {
+        identifier.to_owned()
+    } else {
+        format!("global::{}.{}", identifier_namespace, identifier)
     }
 }

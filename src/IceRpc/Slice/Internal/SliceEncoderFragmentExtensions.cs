@@ -2,7 +2,7 @@
 
 namespace IceRpc.Slice.Internal
 {
-    /// <summary>Provide extension methods for encoding a fragment.</summary>
+    /// <summary>Provides an extension method for encoding a fragment.</summary>
     internal static class SliceEncoderFragmentExtensions
     {
         internal static void EncodeFragment(this ref SliceEncoder encoder, string value)
