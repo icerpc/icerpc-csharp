@@ -38,11 +38,11 @@ module IceRpc::Slice::Internal
     /// With the Slice 1.1 encoding, a proxy is encoded as a kind of discriminated union with:
     /// - Identity
     /// - if Identity is not the null identity:
-    ///     - ProxyData11
+    ///     - ProxyData
     ///     - a sequence of endpoints that can be empty
     ///     - an adapter ID string present only when the sequence of endpoints is empty
     [cs:readonly]
-    compact struct ProxyData11
+    compact struct ProxyData
     {
         fragment: Fragment,
         invocationMode: InvocationMode,

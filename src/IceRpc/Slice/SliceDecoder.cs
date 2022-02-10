@@ -377,7 +377,7 @@ namespace IceRpc.Slice
                     return null;
                 }
 
-                var proxyData = new ProxyData11(ref this);
+                var proxyData = new ProxyData(ref this);
 
                 if (proxyData.ProtocolMajor == 0)
                 {

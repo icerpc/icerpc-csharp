@@ -246,7 +246,7 @@ namespace IceRpc.Slice
                 this.EncodeIdentityPath(proxy.Path);
                 (byte encodingMajor, byte encodingMinor) = proxy.Encoding.ToMajorMinor();
 
-                var proxyData = new ProxyData11(
+                var proxyData = new ProxyData(
                     proxy.Fragment,
                     GetInvocationMode(proxy),
                     secure: false,
