@@ -81,14 +81,14 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str) -> CodeBloc
             if struct_ref.definition().has_attribute("cs:type", false) {
                 write!(
                     code,
-                    "{decoder_extensions_class}.Decode{identifier}(ref decoder)",
+                    "{decoder_extensions_class}.Decode{name}(ref decoder)",
                     decoder_extensions_class = struct_ref
                         .escape_scoped_identifier_with_prefix_and_suffix(
                             "SliceDecoder",
                             "Extensions",
                             namespace
                         ),
-                    identifier = struct_ref.identifier(),
+                    name = fix_case(struct_ref.identifier(), CaseStyle::Pascal)
                 );
             } else {
                 write!(code, "new {}(ref decoder)", type_string);
@@ -225,7 +225,10 @@ decoder.DecodeSequence(
                             element_type.to_type_string(namespace, TypeContext::Decode, false),
                         underlying_extensions_class = enum_def
                             .escape_scoped_identifier_with_prefix_and_suffix(
-                                enum_def.underlying_type().cs_keyword(),
+                                &fix_case(
+                                    enum_def.underlying_type().cs_keyword(),
+                                    CaseStyle::Pascal
+                                ),
                                 "Extensions",
                                 namespace
                             ),
@@ -308,7 +311,10 @@ decoder.DecodeSequence(
                             element_type.to_type_string(namespace, TypeContext::Decode, false),
                         underlying_extensions_class = enum_def
                             .escape_scoped_identifier_with_prefix_and_suffix(
-                                enum_def.underlying_type().cs_keyword(),
+                                &fix_case(
+                                    enum_def.underlying_type().cs_keyword(),
+                                    CaseStyle::Pascal
+                                ),
                                 "Extensions",
                                 namespace
                             ),
