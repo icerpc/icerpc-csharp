@@ -5,17 +5,6 @@ module IceRpc::Slice::Internal
 {
     // These definitions help with the encoding of proxies with the Slice 1.1 encoding.
 
-    /// The identity of a service. This internal definition must match Ice::Identity.
-    [cs:readonly]
-    compact struct Identity
-    {
-        /// The name of the identity. An empty name is not a valid name.
-        name: string,
-
-        /// The category of the identity. Can be empty.
-        category: string,
-    }
-
     /// The fragment of a service, encoded as a sequence of 0 or 1 elements. The empty string is encoded as an empty
     /// sequence. A non-empty string is encoded as a sequence with 1 element. While the fragment string is
     /// percent-escaped, the sequence element is not.
@@ -49,11 +38,11 @@ module IceRpc::Slice::Internal
     /// With the Slice 1.1 encoding, a proxy is encoded as a kind of discriminated union with:
     /// - Identity
     /// - if Identity is not the null identity:
-    ///     - ProxyData11
+    ///     - ProxyData
     ///     - a sequence of endpoints that can be empty
     ///     - an adapter ID string present only when the sequence of endpoints is empty
     [cs:readonly]
-    compact struct ProxyData11
+    compact struct ProxyData
     {
         fragment: Fragment,
         invocationMode: InvocationMode,

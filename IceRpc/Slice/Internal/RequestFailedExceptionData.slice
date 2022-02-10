@@ -8,7 +8,7 @@ module IceRpc::Slice::Internal
     [cs:readonly]
     compact struct RequestFailedExceptionData
     {
-        identity: Identity,
+        path: IdentityPath,
         fragment: Fragment,
         operation: string,
     }
