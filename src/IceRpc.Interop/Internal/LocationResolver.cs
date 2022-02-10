@@ -25,7 +25,9 @@ namespace IceRpc.Internal
             // A well-known proxy resolution can return a proxy with an adapter ID
             if (proxy != null && proxy.Params.TryGetValue("adapter-id", out string? adapterId))
             {
-                (proxy, _) = await ResolveAsync(new Location(adapterId), cancel).ConfigureAwait(false);
+                (proxy, _) = await ResolveAsync(
+                    new Location { IsAdapterId = true, Value = adapterId },
+                    cancel).ConfigureAwait(false);
             }
 
             return (proxy, false);
@@ -97,9 +99,10 @@ namespace IceRpc.Internal
                 {
                     // Resolves adapter ID recursively, by checking first the cache. If we resolved the well-known
                     // proxy, we request a cache refresh for the adapter ID.
-                    (proxy, _) = await ResolveAsync(new Location(adapterId),
-                                                    refreshCache || resolved,
-                                                    cancel).ConfigureAwait(false);
+                    (proxy, _) = await ResolveAsync(
+                        new Location { IsAdapterId = true, Value = adapterId },
+                        refreshCache || resolved,
+                        cancel).ConfigureAwait(false);
                 }
                 catch
                 {

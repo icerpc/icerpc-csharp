@@ -38,21 +38,11 @@ namespace IceRpc.Slice
                 {
                     case ReplyStatus.ObjectNotExistException:
                     case ReplyStatus.OperationNotExistException:
-                        Identity identity;
-                        try
-                        {
-                            identity = Identity.FromPath(v.Origin.Path);
-                        }
-                        catch
-                        {
-                            // ignored, i.e. we'll encode an empty identity + facet
-                            identity = Identity.Empty;
-                        }
-
                         var requestFailed = new RequestFailedExceptionData(
-                            identity,
+                            v.Origin.Path,
                             v.Origin.Fragment,
                             v.Origin.Operation);
+
                         requestFailed.Encode(ref this);
                         break;
 

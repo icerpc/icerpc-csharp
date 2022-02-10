@@ -243,20 +243,10 @@ namespace IceRpc.Slice
 
             if (Encoding == IceRpc.Encoding.Slice11)
             {
-                try
-                {
-                    Identity.FromPath(proxy.Path).Encode(ref this);
-                }
-                catch (FormatException ex)
-                {
-                    throw new NotSupportedException(
-                        $"cannot encode proxy with path '{proxy.Path}' using encoding 1.1",
-                        ex);
-                }
-
+                this.EncodeIdentityPath(proxy.Path);
                 (byte encodingMajor, byte encodingMinor) = proxy.Encoding.ToMajorMinor();
 
-                var proxyData = new ProxyData11(
+                var proxyData = new ProxyData(
                     proxy.Fragment,
                     GetInvocationMode(proxy),
                     secure: false,
