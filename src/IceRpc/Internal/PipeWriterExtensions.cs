@@ -12,7 +12,7 @@ namespace IceRpc.Internal
         /// completion, i.e. when the source is fully read.</summary>
         /// <param name="sink">The sink pipe writer.</param>
         /// <param name="source">The source pipe reader.</param>
-        /// <param name="completeWhenDone">When true, this method completes the writer after a successful copy.</param>
+        /// <param name="completeWhenDone">When true, this method completes the sink after a successful copy.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The flush result.</returns>
         internal static async Task<FlushResult> CopyFromAsync(
@@ -40,16 +40,12 @@ namespace IceRpc.Internal
                         source.AdvanceTo(readResult.Buffer.End); // always fully consumed
                     }
 
+                    // TODO: can the sink or source actually be canceled?
                     if (readResult.IsCompleted || flushResult.IsCompleted ||
                         readResult.IsCanceled || flushResult.IsCanceled)
                     {
                         break;
                     }
-                }
-
-                if (!completeWhenDone && !flushResult.IsCompleted && !flushResult.IsCanceled)
-                {
-                    flushResult = await sink.FlushAsync(cancel).ConfigureAwait(false);
                 }
             }
             else if (sink is AsyncCompletePipeWriter asyncWriter)
@@ -69,6 +65,7 @@ namespace IceRpc.Internal
                         source.AdvanceTo(readResult.Buffer.End); // always fully consumed
                     }
 
+                    // TODO: can the sink or source actually be canceled?
                     if (readResult.IsCompleted || flushResult.IsCompleted ||
                         readResult.IsCanceled || flushResult.IsCanceled)
                     {
@@ -77,9 +74,9 @@ namespace IceRpc.Internal
                     }
                 }
 
-                if (!completeWhenDone && !flushResult.IsCompleted && !flushResult.IsCanceled)
+                if (completeWhenDone)
                 {
-                    flushResult = await sink.FlushAsync(cancel).ConfigureAwait(false);
+                    await sink.CompleteAsync().ConfigureAwait(false);
                 }
             }
             else
@@ -108,6 +105,7 @@ namespace IceRpc.Internal
                         source.AdvanceTo(readResult.Buffer.End);
                     }
 
+                    // TODO: can the sink or source actually be canceled?
                     if (readResult.IsCompleted || readResult.IsCanceled ||
                         flushResult.IsCompleted || flushResult.IsCanceled)
                     {

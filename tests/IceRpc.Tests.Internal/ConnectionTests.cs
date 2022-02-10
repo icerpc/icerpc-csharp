@@ -44,6 +44,7 @@ namespace IceRpc.Tests.Internal
             {
                 await factory.ServerConnection.CloseAsync();
             }
+
             Assert.ThrowsAsync<ConnectionLostException>(async () => await pingTask);
             semaphore.Release();
         }

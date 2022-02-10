@@ -130,7 +130,7 @@ namespace IceRpc.Tests.Internal
         {
             Memory<byte> buffer = ClientStream.Output.GetMemory();
             ClientStream.Output.Advance(10);
-            Assert.Throws<InvalidOperationException>(() => ClientStream.Output.Complete());
+            Assert.Throws<NotSupportedException>(() => ClientStream.Output.Complete());
 
         }
 
@@ -165,6 +165,9 @@ namespace IceRpc.Tests.Internal
         [TestCase(4, 1024 * 1024, true)]
         public async Task MultiplexedStream_StreamSendReceiveAsync(int segmentCount, int segmentSize, bool consume)
         {
+            await ClientStream.Input.CompleteAsync();
+            await ServerStream.Output.CompleteAsync();
+
             byte[] sendBuffer = new byte[segmentSize * segmentCount];
             new Random().NextBytes(sendBuffer);
             int sendOffset = 0;
@@ -207,6 +210,9 @@ namespace IceRpc.Tests.Internal
                     Assert.That(sendOffset, Is.EqualTo(sendBuffer.Length));
                 }
             }
+
+            await ServerStream.Input.CompleteAsync().ConfigureAwait(false);
+            await ClientStream.Output.CompleteAsync().ConfigureAwait(false);
         }
 
         [Test]
@@ -243,6 +249,8 @@ namespace IceRpc.Tests.Internal
                 {
                     result = await ClientStream.Output.WriteAsync(new byte[1024 * 1024]);
                 }
+                Assert.That(result.IsCanceled, Is.False);
+                await ClientStream.Output.CompleteAsync();
             }
         }
 

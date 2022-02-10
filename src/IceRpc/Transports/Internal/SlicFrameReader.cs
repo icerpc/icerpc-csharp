@@ -3,14 +3,25 @@
 using IceRpc.Internal;
 using IceRpc.Slice;
 using System.Buffers;
+using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The Slic frame reader class reads Slic frames.</summary>
-    internal sealed class SlicFrameReader : ISlicFrameReader
+    /// <summary>The Slic frame reader class reads Slic frames. The implementation uses a pipe to read the Slice frame
+    /// header. The frame data is copied from the pipe until the pipe is empty. When empty, the data is directly read
+    /// from the read function (typically from the network connection).</summary>
+    internal sealed class SlicFrameReader : ISlicFrameReader, IDisposable
     {
-        private readonly PipeReader _reader;
+        private readonly Pipe _pipe;
+        private readonly Func<Memory<byte>, CancellationToken, ValueTask<int>> _readFunc;
+
+        public void Dispose()
+        {
+            var exception = new ConnectionLostException(new ObjectDisposedException(nameof(SlicFrameReader)));
+            _pipe.Reader.Complete(exception);
+            _pipe.Writer.Complete(exception);
+        }
 
         public async ValueTask ReadFrameDataAsync(Memory<byte> buffer, CancellationToken cancel)
         {
@@ -19,48 +30,72 @@ namespace IceRpc.Transports.Internal
                 return;
             }
 
-            ReadResult result = await _reader.ReadAtLeastAsync(buffer.Length, cancel).ConfigureAwait(false);
-            result.Buffer.Slice(0, buffer.Length).CopyTo(buffer.Span);
-            _reader.AdvanceTo(result.Buffer.GetPosition(buffer.Length));
+            // If there's still data on the pipe reader. Copy the data from the pipe reader.
+            while (buffer.Length > 0 && _pipe.Reader.TryRead(out ReadResult result))
+            {
+                int length = Math.Min(buffer.Length, (int)result.Buffer.Length);
+                result.Buffer.Slice(0, length).CopyTo(buffer.Span);
+                _pipe.Reader.AdvanceTo(result.Buffer.GetPosition(length));
+                buffer = buffer[length..];
+            }
+
+            // No more data from the pipe reader, read the remainder directly from the read function to avoid
+            // copies.
+            while (buffer.Length > 0)
+            {
+                int length = await _readFunc(buffer, cancel).ConfigureAwait(false);
+                buffer = buffer[length..];
+            }
         }
 
         public async ValueTask<(FrameType, int, long?)> ReadFrameHeaderAsync(CancellationToken cancel)
         {
             while (true)
             {
-                ReadResult readResult = await _reader.ReadAtLeastAsync(2, cancel).ConfigureAwait(false);
+                // If there's no data available for reading on the pipe reader, we feed the pipe writer with data read
+                // from _readFunc.
+                if (!_pipe.Reader.TryRead(out ReadResult readResult))
+                {
+                    // Read data from _readFunc.
+                    Memory<byte> buffer = _pipe.Writer.GetMemory();
+                    int count = await _readFunc!(buffer, cancel).ConfigureAwait(false);
+                    if (count == 0)
+                    {
+                        throw new ConnectionLostException(new ObjectDisposedException(nameof(SlicFrameReader)));
+                    }
+                    _pipe.Writer.Advance(count);
+                    await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+
+                    // Read again, this time data should be available.
+                    readResult = await _pipe.Reader.ReadAsync(cancel).ConfigureAwait(false);
+                }
+
                 try
                 {
-                    return DecodeSlicHeader(readResult.Buffer);
+                    Debug.Assert(readResult.Buffer.Length > 0);
+                    (FrameType type, int dataSize, long? streamId, long consumed) = readResult.Buffer.DecodeHeader();
+                    _pipe.Reader.AdvanceTo(readResult.Buffer.GetPosition(consumed));
+                    return (type, dataSize, streamId);
                 }
-                catch (InvalidOperationException) // TODO: make EndOfBuffer public?
+                catch (SliceDecoder.EndOfBufferException)
                 {
                     // Ignore, we need additional data to decode the header.
-                    _reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                    _pipe.Reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
                 }
-            }
-
-            (FrameType, int, long ?) DecodeSlicHeader(ReadOnlySequence<byte> buffer)
-            {
-                var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                var frameType = (FrameType)decoder.DecodeByte();
-                int frameSize = decoder.DecodeSize();
-
-                (FrameType frameType, int, long?) result;
-                if (frameType >= FrameType.Stream)
-                {
-                    ulong streamId = decoder.DecodeVarULong();
-                    result = (frameType, frameSize - SliceEncoder.GetVarULongEncodedSize(streamId), (long)streamId);
-                }
-                else
-                {
-                    result = (frameType, frameSize, null);
-                }
-                _reader.AdvanceTo(buffer.GetPosition(decoder.Consumed));
-                return result;
             }
         }
 
-        internal SlicFrameReader(PipeReader reader) => _reader = reader;
+        internal SlicFrameReader(
+            Func<Memory<byte>, CancellationToken, ValueTask<int>> readFunc,
+            MemoryPool<byte> pool,
+            int minimumSegmentSize)
+        {
+            _readFunc = readFunc;
+            _pipe = new Pipe(new PipeOptions(
+                pool: pool,
+                minimumSegmentSize: minimumSegmentSize,
+                pauseWriterThreshold: 0,
+                writerScheduler: PipeScheduler.Inline));
+        }
     }
 }
