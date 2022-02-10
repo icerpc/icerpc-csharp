@@ -1,4 +1,3 @@
-
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
@@ -409,29 +408,6 @@ namespace IceRpc.Tests.Api
                 Assert.AreEqual(p1.GetHashCode(), p2.GetHashCode());
             }
         }
-
-        /*
-        // TODO: move this test to Slice
-        [Test]
-        public async Task Proxy_InvokeAsync()
-        {
-            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-                .AddTransient<IDispatcher, Greeter>()
-                .BuildServiceProvider();
-
-            var proxy = Proxy.FromConnection(serviceProvider.GetRequiredService<Connection>(), GreeterPrx.DefaultPath);
-
-            IncomingResponse response =
-                await proxy.InvokeAsync("ice_ping",
-                                        proxy.Encoding,
-                                        payloadSource: Encoding.Slice20.CreateEmptyPayload());
-
-            Assert.DoesNotThrowAsync(async () => await response.CheckVoidReturnValueAsync(
-                proxy.Invoker,
-                SliceDecoder.GetActivator(typeof(ProxyTests).Assembly),
-                default));
-        }
-        */
 
         [Test]
         public async Task Proxy_ReceiveProxyAsync()
