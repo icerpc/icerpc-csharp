@@ -435,8 +435,8 @@ namespace IceRpc.Internal
                 (byte encodingMajor, byte encodingMinor) = payloadEncoding.ToMajorMinor();
 
                 var requestHeader = new IceRequestHeader(
-                    Identity.FromPath(request.Path),
-                    fragment: request.Fragment,
+                    Identity.FromPath(request.Proxy.Path),
+                    fragment: request.Proxy.Fragment,
                     request.Operation,
                     // We're not checking FieldsOverrides because it makes no sense to use FieldsOverrides for
                     // idempotent.

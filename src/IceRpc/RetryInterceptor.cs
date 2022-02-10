@@ -132,7 +132,7 @@ namespace IceRpc
 
                         _logger.LogRetryRequest(
                             request.Connection,
-                            request.Path,
+                            request.Proxy.Path,
                             request.Operation,
                             retryPolicy,
                             attempt,

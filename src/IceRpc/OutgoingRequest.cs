@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using System.Collections.Immutable;
 using System.IO.Pipelines;
 
 namespace IceRpc
@@ -15,9 +14,6 @@ namespace IceRpc
         /// <summary>The features of this request.</summary>
         public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
-        /// <summary>The fragment of the target service.</summary>
-        public string Fragment { get; }
-
         /// <summary>When true and the operation returns void, the request is sent as a oneway request. Otherwise, the
         /// request is sent as a twoway request.</summary>
         public bool IsOneway { get; init; }
@@ -28,12 +24,6 @@ namespace IceRpc
 
         /// <summary>The operation called on the service.</summary>
         public string Operation { get; }
-
-        /// <summary>The parameters of this request.</summary>
-        public ImmutableDictionary<string, string> Params { get; set; }
-
-        /// <summary>The path of the target service.</summary>
-        public string Path { get; }
 
         /// <summary>The proxy that is sending this request.</summary>
         public Proxy Proxy { get; }
@@ -53,13 +43,9 @@ namespace IceRpc
             base(proxy.Protocol, new DelayedPipeWriterDecorator())
         {
             Connection = proxy.Connection;
-            Fragment = proxy.Fragment;
-
             // We keep it to initialize it later
             InitialPayloadSink = (DelayedPipeWriterDecorator)PayloadSink;
             Operation = operation;
-            Params = proxy.Params;
-            Path = proxy.Path;
             Proxy = proxy;
         }
     }

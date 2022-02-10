@@ -105,12 +105,12 @@ namespace IceRpc.Tests.ClientServer
                 (request, cancel) =>
                 {
                     string? adapterId =
-                        request.Params.TryGetValue("adapter-id", out string? value) ? value : null;
+                        request.Proxy.Params.TryGetValue("adapter-id", out string? value) ? value : null;
 
                     if (request.Protocol == resolvedEndpoint.Protocol &&
                         ((category == null && location == adapterId) ||
                         (category != null && adapterId == null &&
-                         Identity.FromPath(request.Path) == new Identity(location, category))))
+                         Identity.FromPath(request.Proxy.Path) == new Identity(location, category))))
                     {
                         var endpointSelection = new EndpointSelection()
                         {

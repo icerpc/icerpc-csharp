@@ -52,7 +52,7 @@ namespace IceRpc
                 }
                 else if (endpointSelection.Endpoint == null)
                 {
-                    if (request.Params.TryGetValue("adapter-id", out string? adapterId))
+                    if (request.Proxy.Params.TryGetValue("adapter-id", out string? adapterId))
                     {
                         location = new Location(adapterId);
                     }
@@ -61,7 +61,7 @@ namespace IceRpc
                         // Well-known proxy
                         try
                         {
-                            location = new Location(Identity.FromPath(request.Path));
+                            location = new Location(Identity.FromPath(request.Proxy.Path));
                         }
                         catch (FormatException)
                         {

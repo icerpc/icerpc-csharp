@@ -201,7 +201,7 @@ namespace IceRpc.Tests.ClientServer
             _pipeline.Use(next => new InlineInvoker(
                 (request, cancel) =>
                 {
-                    if (request.Proxy.Endpoint == null && request.Path == _greeter.Proxy.Path)
+                    if (request.Proxy.Endpoint == null && request.Proxy.Path == _greeter.Proxy.Path)
                     {
                         EndpointSelection? endpointSelection = request.Features.Get<EndpointSelection>();
                         Assert.That(endpointSelection, Is.Not.Null);
