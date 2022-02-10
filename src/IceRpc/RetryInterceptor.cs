@@ -29,6 +29,13 @@ namespace IceRpc
 
         async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
+            EndpointSelection? endpointSelection = request.Features.Get<EndpointSelection>();
+            if (endpointSelection == null)
+            {
+                endpointSelection = new EndpointSelection(request.Proxy);
+                request.Features = request.Features.With(endpointSelection);
+            }
+
             // If the request size is greater than _requestMaxSize or the size of the request would increase the
             // buffer size beyond _bufferMaxSize we release the request after it was sent to avoid holding too
             // much memory and we won't retry in case of a failure.
@@ -119,11 +126,18 @@ namespace IceRpc
                             !request.Connection.IsServer &&
                             retryPolicy == RetryPolicy.OtherReplica)
                         {
-                            EndpointSelection? endpointSelection = request.Features.Get<EndpointSelection>();
-                            if (endpointSelection != null)
+                            // Filter-out the remote endpoint
+                            if (endpointSelection.Endpoint == request.Connection.RemoteEndpoint)
                             {
-                                endpointSelection.ExcludedEndpoints = endpointSelection.ExcludedEndpoints.Append(
-                                    request.Connection.RemoteEndpoint!);
+                                endpointSelection.Endpoint = null;
+                            }
+                            endpointSelection.AltEndpoints = endpointSelection.AltEndpoints.Where(
+                                e => e != request.Connection.RemoteEndpoint).ToList();
+
+                            if (endpointSelection.Endpoint == null && endpointSelection.AltEndpoints.Any())
+                            {
+                                endpointSelection.Endpoint = endpointSelection.AltEndpoints.First();
+                                endpointSelection.AltEndpoints = endpointSelection.AltEndpoints.Skip(1);
                             }
                         }
 

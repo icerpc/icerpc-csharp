@@ -29,37 +29,25 @@ namespace IceRpc
         {
             if (request.Connection == null)
             {
-                EndpointSelection? endpointSelection = request.Features.Get<EndpointSelection>();
-                if (endpointSelection == null)
+                Endpoint? endpoint;
+                IEnumerable<Endpoint> altEndpoints;
+                if (request.Features.Get<EndpointSelection>() is EndpointSelection endpointSelection)
                 {
-                    endpointSelection = new EndpointSelection(request.Proxy);
-                    request.Features = request.Features.With(endpointSelection);
+                    endpoint = endpointSelection.Endpoint;
+                    altEndpoints = endpointSelection.AltEndpoints;
+                }
+                else
+                {
+                    endpoint = request.Proxy.Endpoint;
+                    altEndpoints = request.Proxy.AltEndpoints;
                 }
 
-                // Filter-out excluded endpoints
-                if (endpointSelection.ExcludedEndpoints.Any())
-                {
-                    if (endpointSelection.Endpoint is Endpoint endpoint && endpointSelection.ExcludedEndpoints.Contains(endpoint))
-                    {
-                        endpointSelection.Endpoint = null;
-                    }
-                    endpointSelection.AltEndpoints = endpointSelection.AltEndpoints.Except(endpointSelection.ExcludedEndpoints);
-                }
-
-                if (endpointSelection.Endpoint == null && endpointSelection.AltEndpoints.Any())
-                {
-                    endpointSelection.Endpoint = endpointSelection.AltEndpoints.First();
-                    endpointSelection.AltEndpoints = endpointSelection.AltEndpoints.Skip(1);
-                }
-
-                if (endpointSelection.Endpoint == null)
+                if (endpoint == null)
                 {
                     throw new NoEndpointException(request.Proxy);
                 }
 
-                return PerformAsync(_connectionProvider.GetConnectionAsync(endpointSelection.Endpoint.Value,
-                                                                           endpointSelection.AltEndpoints,
-                                                                           cancel));
+                return PerformAsync(_connectionProvider.GetConnectionAsync(endpoint.Value, altEndpoints, cancel));
             }
             return _next.InvokeAsync(request, cancel);
 

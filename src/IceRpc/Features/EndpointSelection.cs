@@ -13,24 +13,15 @@ namespace IceRpc.Features
         /// <summary>The main target endpoint for the invocation.</summary>
         public Endpoint? Endpoint { get; set; }
 
-        /// <summary>A list of endpoints this invocation does not want to establish a connection to, typically because a
-        /// previous attempt asked the invocation not to.</summary>
-        public IEnumerable<Endpoint> ExcludedEndpoints { get; set; }
-
         /// <summary>Constructs en endpoint selection feature without initial endpoints.</summary>
-        public EndpointSelection()
-        {
-            AltEndpoints = ImmutableList<Endpoint>.Empty;
-            ExcludedEndpoints = ImmutableList<Endpoint>.Empty;
-        }
+        public EndpointSelection() => AltEndpoints = ImmutableList<Endpoint>.Empty;
 
         /// <summary>Constructs an endpoint selection feature that uses the proxy endpoints.</summary>
-        /// <param name="prx">The proxy to took the endpoints from.</param>
-        public EndpointSelection(Proxy prx)
+        /// <param name="proxy">The proxy to copy the endpoints from.</param>
+        public EndpointSelection(Proxy proxy)
         {
-            Endpoint = prx.Endpoint;
-            AltEndpoints = prx.AltEndpoints;
-            ExcludedEndpoints = ImmutableList<Endpoint>.Empty;
+            Endpoint = proxy.Endpoint;
+            AltEndpoints = proxy.AltEndpoints;
         }
     }
 }
