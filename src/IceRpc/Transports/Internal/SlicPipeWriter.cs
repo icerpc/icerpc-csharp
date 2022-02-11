@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using System.Buffers;
 using System.IO.Pipelines;
 using System.Diagnostics;
