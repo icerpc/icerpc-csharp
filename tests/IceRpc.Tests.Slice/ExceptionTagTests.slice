@@ -5,7 +5,7 @@ module IceRpc::Tests::Slice
     compact struct TaggedExceptionStruct
     {
         s: string,
-        v: int?,
+        v: int,
     }
 
     exception TaggedException

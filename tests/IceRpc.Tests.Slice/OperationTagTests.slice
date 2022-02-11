@@ -32,54 +32,30 @@ module IceRpc::Tests::Slice
 
         opByteSeq(p1: tag(1) ByteSeq?) -> (r1: tag(1) ByteSeq?, r2: tag(2) ByteSeq?);
         opByteList(p1: tag(1) ByteList?) -> (r1: tag(1) ByteList?, r2: tag(2) ByteList?);
-        opOptionalByteSeq(p1: tag(1) OptionalByteSeq?) -> (r1: tag(1) OptionalByteSeq?, r2: tag(2) OptionalByteSeq?);
 
         opBoolSeq(p1: tag(1) BoolSeq?) -> (r1: tag(1) BoolSeq?, r2: tag(2) BoolSeq?);
         opBoolList(p1: tag(1) BoolList?) -> (r1: tag(1) BoolList?, r2: tag(2) BoolList?);
-        opOptionalBoolSeq(p1: tag(1) OptionalBoolSeq?) -> (r1: tag(1) OptionalBoolSeq?, r2: tag(2) OptionalBoolSeq?);
 
         opShortSeq(p1: tag(1) ShortSeq?) -> (r1: tag(1) ShortSeq?, r2: tag(2) ShortSeq?);
         opShortList(p1: tag(1) ShortList?) -> (r1: tag(1) ShortList?, r2: tag(2) ShortList?);
-        opOptionalShortSeq(p1: tag(1) OptionalShortSeq?) -> (
-            r1: tag(1) OptionalShortSeq?,
-            r2: tag(2) OptionalShortSeq?,
-        );
 
         opIntSeq(p1: tag(1) IntSeq?) -> (r1: tag(1) IntSeq?, r2: tag(2) IntSeq?);
         opIntList(p1: tag(1) IntList?) -> (r1: tag(1) IntList?, r2: tag(2) IntList?);
-        opOptionalIntSeq(p1: tag(1) OptionalIntSeq?) -> (r1: tag(1) OptionalIntSeq?, r2: tag(2) OptionalIntSeq?);
 
         opLongSeq(p1: tag(1) LongSeq?) -> (r1: tag(1) LongSeq?, r2: tag(2) LongSeq?);
         opLongList(p1: tag(1) LongList?) -> (r1: tag(1) LongList?, r2: tag(2) LongList?);
-        opOptionalLongSeq(p1: tag(1) OptionalLongSeq?) -> (r1: tag(1) OptionalLongSeq?, r2: tag(2) OptionalLongSeq?);
 
         opFloatSeq(p1: tag(1) FloatSeq?) -> (r1: tag(1) FloatSeq?, r2: tag(2) FloatSeq?);
         opFloatList(p1: tag(1) FloatList?) -> (r1: tag(1) FloatList?, r2: tag(2) FloatList?);
-        opOptionalFloatSeq(p1: tag(1) OptionalFloatSeq?) -> (
-            r1: tag(1) OptionalFloatSeq?,
-            r2: tag(2) OptionalFloatSeq?,
-        );
 
         opDoubleSeq(p1: tag(1) DoubleSeq?) -> (r1: tag(1) DoubleSeq?, r2: tag(2) DoubleSeq?);
         opDoubleList(p1: tag(1) DoubleList?) -> (r1: tag(1) DoubleList?, r2: tag(2) DoubleList?);
-        opOptionalDoubleSeq(p1: tag(1) OptionalDoubleSeq?) -> (
-            r1: tag(1) OptionalDoubleSeq?,
-            r2: tag(2) OptionalDoubleSeq?,
-        );
 
         opStringSeq(p1: tag(1) StringSeq?) -> (r1: tag(1) StringSeq?, r2: tag(2) StringSeq?);
         opStringList(p1: tag(1) StringList?) -> (r1: tag(1) StringList?, r2: tag(2) StringList?);
-        opOptionalStringSeq(p1: tag(1) OptionalStringSeq?) -> (
-            r1: tag(1) OptionalStringSeq?,
-            r2: tag(2) OptionalStringSeq?,
-        );
 
         opMyEnumSeq(p1: tag(1) MyEnumSeq?) -> (r1: tag(1) MyEnumSeq?, r2: tag(2) MyEnumSeq?);
         opMyEnumList(p1: tag(1) MyEnumList?) -> (r1: tag(1) MyEnumList?, r2: tag(2) MyEnumList?);
-        opOptionalMyEnumSeq(p1: tag(1) OptionalMyEnumSeq?) -> (
-            r1: tag(1) OptionalMyEnumSeq?,
-            r2: tag(2) OptionalMyEnumSeq?,
-        );
 
         opMyFixedLengthEnumSeq(p1: tag(1) MyFixedLengthEnumSeq?) -> (
             r1: tag(1) MyFixedLengthEnumSeq?,
@@ -88,10 +64,6 @@ module IceRpc::Tests::Slice
         opMyFixedLengthEnumList(p1: tag(1) MyFixedLengthEnumList?) -> (
             r1: tag(1) MyFixedLengthEnumList?,
             r2: tag(2) MyFixedLengthEnumList?,
-        );
-        opOptionalMyFixedLengthEnumSeq(p1: tag(1) OptionalMyFixedLengthEnumSeq?) -> (
-            r1: tag(1) OptionalMyFixedLengthEnumSeq?,
-            r2: tag(2) OptionalMyFixedLengthEnumSeq?,
         );
 
         opMyCompactStructSeq(p1: tag(1) MyCompactStructSeq?) -> (
@@ -102,10 +74,6 @@ module IceRpc::Tests::Slice
             r1: tag(1) MyCompactStructList?,
             r2: tag(2) MyCompactStructList?,
         );
-        opOptionalMyCompactStructSeq(p1: tag(1) OptionalMyCompactStructSeq?) -> (
-            r1: tag(1) OptionalMyCompactStructSeq?,
-            r2: tag(2) OptionalMyCompactStructSeq?,
-        );
 
         opAnotherCompactStructSeq(p1: tag(1) AnotherCompactStructSeq?) -> (
             r1: tag(1) AnotherCompactStructSeq?,
@@ -115,10 +83,6 @@ module IceRpc::Tests::Slice
             r1: tag(1) AnotherCompactStructList?,
             r2: tag(2) AnotherCompactStructList?,
         );
-        opOptionalAnotherCompactStructSeq(p1: tag(1) OptionalAnotherCompactStructSeq?) -> (
-            r1: tag(1) OptionalAnotherCompactStructSeq?,
-            r2: tag(2) OptionalAnotherCompactStructSeq?,
-        );
 
         opIntDict(p1: tag(1) IntDict?) -> (r1: tag(1) IntDict?, r2: tag(2) IntDict?);
         opStringDict(p1: tag(1) StringDict?) -> (r1: tag(1) StringDict?, r2: tag(2) StringDict?);
@@ -127,21 +91,6 @@ module IceRpc::Tests::Slice
         opStringCustomDict(p1: tag(1) StringCustomDict?) -> (
             r1: tag(1) StringCustomDict?,
             r2: tag(2) StringCustomDict?,
-        );
-
-        opOptionalIntCustomDict(p1: tag(1) OptionalIntCustomDict?) -> (
-            r1: tag(1) OptionalIntCustomDict?,
-            r2: tag(2) OptionalIntCustomDict?,
-        );
-        opOptionalStringCustomDict(p1: tag(1) OptionalStringCustomDict?) -> (
-            r1: tag(1) OptionalStringCustomDict?,
-            r2: tag(2) OptionalStringCustomDict?,
-        );
-
-        opOptionalIntDict(p1: tag(1) OptionalIntDict?) -> (r1: tag(1) OptionalIntDict?, r2: tag(2) OptionalIntDict?);
-        opOptionalStringDict(p1: tag(1) OptionalStringDict?) -> (
-            r1: tag(1) OptionalStringDict?,
-            r2: tag(2) OptionalStringDict?,
         );
     }
 

@@ -1,0 +1,95 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc::Tests::Slice
+{
+    typealias OptionalByteDict = dictionary<byte, byte?>;
+    typealias OptionalBoolDict = dictionary<bool, bool?>;
+    typealias OptionalShortDict = dictionary<short, short?>;
+    typealias OptionalUShortDict = dictionary<ushort, ushort?>;
+    typealias OptionalIntDict = dictionary<int, int?>;
+    typealias OptionalVarIntDict = dictionary<varint, varint?>;
+    typealias OptionalUIntDict = dictionary<uint, uint?>;
+    typealias OptionalVarUIntDict = dictionary<varuint, varuint?>;
+    typealias OptionalLongDict = dictionary<long, long?>;
+    typealias OptionalVarLongDict = dictionary<varlong, varlong?>;
+    typealias OptionalULongDict = dictionary<ulong, ulong?>;
+    typealias OptionalVarULongDict = dictionary<varulong, varulong?>;
+    typealias OptionalStringDict = dictionary<string, string?>;
+
+    typealias OptionalMyEnumDict = dictionary<MyEnum, MyEnum?>;
+    typealias OptionalMyFixedLengthEnumDict = dictionary<MyFixedLengthEnum, MyFixedLengthEnum?>;
+    typealias OptionalMyUncheckedEnumDict = dictionary<MyUncheckedEnum, MyUncheckedEnum?>;
+    typealias OptionalMyCompactStructDict = dictionary<MyCompactStruct, MyCompactStruct?>;
+    typealias OptionalOperationsDict = dictionary<string, Operations?>;
+    typealias OptionalAnotherCompactStructDict = dictionary<string, AnotherCompactStruct?>;
+
+    typealias OptionalStringCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<string, string?>;
+
+    interface DictionaryOptionalValueOperations
+    {
+        // Optional builtin type dictionaries
+        opOptionalByteDict(p1: OptionalByteDict, p2: OptionalByteDict) -> (r1: OptionalByteDict, r2: OptionalByteDict);
+        opOptionalBoolDict(p1: OptionalBoolDict, p2: OptionalBoolDict) -> (r1: OptionalBoolDict, r2: OptionalBoolDict);
+        opOptionalShortDict(p1: OptionalShortDict, p2: OptionalShortDict) -> (
+            r1: OptionalShortDict,
+            r2: OptionalShortDict,
+        );
+        opOptionalUShortDict(p1: OptionalUShortDict, p2: OptionalUShortDict) -> (
+            r1: OptionalUShortDict,
+            r2: OptionalUShortDict,
+        );
+        opOptionalIntDict(p1: OptionalIntDict, p2: OptionalIntDict) -> (r1: OptionalIntDict, r2: OptionalIntDict);
+        opOptionalVarIntDict(p1: OptionalVarIntDict, p2: OptionalVarIntDict) -> (
+            r1: OptionalVarIntDict,
+            r2: OptionalVarIntDict,
+        );
+        opOptionalUIntDict(p1: OptionalUIntDict, p2: OptionalUIntDict) -> (r1: OptionalUIntDict, r2: OptionalUIntDict);
+        opOptionalVarUIntDict(p1: OptionalVarUIntDict, p2: OptionalVarUIntDict) -> (
+            r1: OptionalVarUIntDict,
+            r2: OptionalVarUIntDict,
+        );
+        opOptionalLongDict(p1: OptionalLongDict, p2: OptionalLongDict) -> (r1: OptionalLongDict, r2: OptionalLongDict);
+        opOptionalVarLongDict(p1: OptionalVarLongDict, p2: OptionalVarLongDict) -> (
+            r1: OptionalVarLongDict,
+            r2: OptionalVarLongDict,
+        );
+        opOptionalULongDict(p1: OptionalULongDict, p2: OptionalULongDict) -> (
+            r1: OptionalULongDict,
+            r2: OptionalULongDict,
+        );
+        opOptionalVarULongDict(p1: OptionalVarULongDict, p2: OptionalVarULongDict) -> (
+            r1: OptionalVarULongDict,
+            r2: OptionalVarULongDict,
+        );
+        opOptionalStringDict(p1: OptionalStringDict, p2: OptionalStringDict) -> (
+            r1: OptionalStringDict,
+            r2: OptionalStringDict,
+        );
+
+        // Dictionaries with optional constructed types
+        opOptionalMyEnumDict(p1: OptionalMyEnumDict, p2: OptionalMyEnumDict) -> (
+            r1: OptionalMyEnumDict,
+            r2: OptionalMyEnumDict,
+        );
+        opOptionalMyFixedLengthEnumDict(p1: OptionalMyFixedLengthEnumDict, p2: OptionalMyFixedLengthEnumDict) -> (
+            r1: OptionalMyFixedLengthEnumDict,
+            r2: OptionalMyFixedLengthEnumDict,
+        );
+        opOptionalMyUncheckedEnumDict(p1: OptionalMyUncheckedEnumDict, p2: OptionalMyUncheckedEnumDict) -> (
+            r1: OptionalMyUncheckedEnumDict,
+            r2: OptionalMyUncheckedEnumDict,
+        );
+        opOptionalMyCompactStructDict(p1: OptionalMyCompactStructDict, p2: OptionalMyCompactStructDict) -> (
+            r1: OptionalMyCompactStructDict,
+            r2: OptionalMyCompactStructDict,
+        );
+        opOptionalOperationsDict(p1: OptionalOperationsDict, p2: OptionalOperationsDict) -> (
+            r1: OptionalOperationsDict,
+            r2: OptionalOperationsDict,
+        );
+        opOptionalAnotherCompactStructDict(p1: OptionalAnotherCompactStructDict, p2: OptionalAnotherCompactStructDict) -> (
+            r1: OptionalAnotherCompactStructDict,
+            r2: OptionalAnotherCompactStructDict,
+        );
+    }
+}

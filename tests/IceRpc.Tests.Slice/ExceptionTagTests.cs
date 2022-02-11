@@ -38,7 +38,7 @@ namespace IceRpc.Tests.Slice
 
             pipeline.UseFeature(new DecodePayloadOptions { Activator = new ActivatorMinus() });
 
-            var ts = new TaggedExceptionStruct("bar", null);
+            var ts = new TaggedExceptionStruct("bar", 0);
 
             TaggedExceptionMinus ex =
                 Assert.ThrowsAsync<TaggedExceptionMinus>(async () => await prx.OpTaggedExceptionAsync(5, "foo", ts));
@@ -59,7 +59,7 @@ namespace IceRpc.Tests.Slice
 
             pipeline.UseFeature(new DecodePayloadOptions { Activator = new ActivatorPlus() });
 
-            var ts = new TaggedExceptionStruct("bar", null);
+            var ts = new TaggedExceptionStruct("bar", 0);
 
             TaggedExceptionPlus ex =
                 Assert.ThrowsAsync<TaggedExceptionPlus>(async () => await prx.OpTaggedExceptionAsync(null, "foo", ts));
@@ -78,7 +78,7 @@ namespace IceRpc.Tests.Slice
         {
             var prx = new ExceptionTagPrx(_prx);
 
-            var ts = new TaggedExceptionStruct("bar", null);
+            var ts = new TaggedExceptionStruct("bar", 0);
 
             TaggedException ex =
                 Assert.ThrowsAsync<TaggedException>(async () => await prx.OpTaggedExceptionAsync(null, "foo", ts));
