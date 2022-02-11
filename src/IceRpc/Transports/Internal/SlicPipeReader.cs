@@ -2,18 +2,19 @@
 
 using System.Buffers;
 using System.IO.Pipelines;
-using System.Diagnostics;
+
 namespace IceRpc.Transports.Internal
 {
     internal class SlicPipeReader : PipeReader
     {
         private int _examined;
-        private bool _isCompleted;
+        private Exception? _exception;
         private long _lastExaminedOffset;
         private readonly Pipe _pipe;
         private readonly Func<Memory<byte>, CancellationToken, ValueTask> _readFunc;
         private ReadResult _readResult;
         private readonly int _resumeThreshold;
+        private int _state;
         private readonly SlicMultiplexedStream _stream;
 
         public override void AdvanceTo(SequencePosition consumed) => AdvanceTo(consumed, consumed);
@@ -63,14 +64,15 @@ namespace IceRpc.Transports.Internal
 
         public override void Complete(Exception? exception = null)
         {
-            if (!_isCompleted)
+            if (_state.TrySetState(State.Completed))
             {
                 if (_readResult.IsCompleted)
                 {
-                    // If the peer is not longer sending data, just just mark reads as completed on the stream.
+                    // If the peer is no longer sending data, just just mark reads as completed on the stream.
                     _stream.TrySetReadCompleted();
                 }
-                else if (!_stream.ReadsCompleted)
+
+                if (!_stream.ReadsCompleted)
                 {
                     // If reads aren't marked as completed yet, abort stream reads. This will send a stream stop sending
                     // frame to the peer to notify it shouldn't send additional data.
@@ -88,10 +90,18 @@ namespace IceRpc.Transports.Internal
                     }
                 }
 
-                _pipe.Writer.Complete(exception);
                 _pipe.Reader.Complete(exception);
 
-                _isCompleted = true;
+                // Don't complete the writer if it's being used concurrently for receiving a frame. It will be completed
+                // once the reading terminates.
+                if (_state.HasState(State.Writing))
+                {
+                    _exception = exception;
+                }
+                else
+                {
+                    _pipe.Writer.Complete(exception);
+                }
             }
         }
 
@@ -148,6 +158,7 @@ namespace IceRpc.Transports.Internal
                 writerScheduler: PipeScheduler.Inline));
         }
 
+        /// <summary>Called when a stream reset is received.</summary>
         internal void ReceivedResetFrame(long error)
         {
             if (error.ToSlicError() == SlicStreamError.NoError)
@@ -160,57 +171,92 @@ namespace IceRpc.Transports.Internal
             }
         }
 
+        /// <summary>Called when a stream frame is received. It writes the data from the received stream frame to the
+        /// internal pipe writer.</summary>
         internal async ValueTask<int> ReceivedStreamFrameAsync(int dataSize, bool endStream)
         {
-            // Read and append the received data to the pipe writer.
-            int size = dataSize;
-            while (size > 0)
+            _state.SetState(State.Writing);
+            try
             {
-                // Receive the data and push it to the pipe writer.
-                Memory<byte> chunk = _pipe.Writer.GetMemory();
-                chunk = chunk[0..Math.Min(size, chunk.Length)];
-                await _readFunc(chunk, CancellationToken.None).ConfigureAwait(false);
-                size -= chunk.Length;
-                _pipe.Writer.Advance(chunk.Length);
-
-                // This should always complete synchronously since the sender isn't supposed to send more data than it
-                // is allowed. In other words, if the flush blocks because the PauseWriterThreshold is reached, the
-                // peer sent more data than it is allowed.
-                ValueTask<FlushResult> flushTask = _pipe.Writer.FlushAsync(CancellationToken.None);
-                if (!flushTask.IsCompletedSuccessfully)
+                if (_state.HasState(State.Completed))
                 {
-                    _ = flushTask.AsTask();
-                    throw new InvalidDataException("received more data than flow control permits");
+                    // If the Slic pipe reader is completed, skip the data.
+                    return 0;
                 }
 
-                FlushResult flushResult = await flushTask.ConfigureAwait(false);
-                if (flushResult.IsCompleted)
+                // Read and append the received data to the pipe writer.
+                int size = dataSize;
+                while (size > 0)
                 {
-                    // The reader is completed, return the number of bytes left to read.
-                    return dataSize - size;
-                }
-            }
+                    // Receive the data and push it to the pipe writer.
+                    Memory<byte> chunk = _pipe.Writer.GetMemory();
+                    chunk = chunk[0..Math.Min(size, chunk.Length)];
+                    await _readFunc(chunk, CancellationToken.None).ConfigureAwait(false);
+                    size -= chunk.Length;
+                    _pipe.Writer.Advance(chunk.Length);
 
-            if (endStream)
-            {
-                // We complete the pipe writer but we don't mark reads as completed. Reads will be marked as completed
-                // once the application calls TryRead/ReadAsync. It's important for unidirectional stream which would
-                // otherwise be shutdown before the data has been consumed by the application. This would allow a
-                // malicious client to open many unidirectional streams before the application gets a chance to consume
-                // the data, defeating the purpose of the UnidirectionalStreamMaxCount option.
-                await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
+                    // This should always complete synchronously since the sender isn't supposed to send more data than
+                    // it is allowed. In other words, if the flush blocks because the PauseWriterThreshold is reached,
+                    // the peer sent more data than it should have.
+                    ValueTask<FlushResult> flushTask = _pipe.Writer.FlushAsync(CancellationToken.None);
+                    if (!flushTask.IsCompleted)
+                    {
+                        _ = flushTask.AsTask();
+                        throw new InvalidDataException("received more data than flow control permits");
+                    }
+
+                    try
+                    {
+                        FlushResult flushResult = await flushTask.ConfigureAwait(false);
+                        if (flushResult.IsCompleted)
+                        {
+                            // The reader is completed, return the number of bytes left to skip.
+                            return dataSize - size;
+                        }
+                    }
+                    catch
+                    {
+                        // The reader is completed, return the number of bytes left to skip.
+                        return dataSize - size;
+                    }
+                }
+
+                if (endStream)
+                {
+                    // We complete the pipe writer but we don't mark reads as completed. Reads will be marked as
+                    // completed once the application calls TryRead/ReadAsync. It's important for unidirectional stream
+                    // which would otherwise be shutdown before the data has been consumed by the application. This
+                    // would allow a malicious client to open many unidirectional streams before the application gets a
+                    // chance to consume the data, defeating the purpose of the UnidirectionalStreamMaxCount option.
+                    await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
+                }
+
+                return dataSize;
             }
-            return dataSize;
+            finally
+            {
+                if (_state.HasState(State.Completed))
+                {
+                    await _pipe.Writer.CompleteAsync(_exception).ConfigureAwait(false);
+                }
+                _state.ClearState(State.Writing);
+            }
         }
 
         private void CheckIfCompleted()
         {
-            if (_isCompleted)
+            if (_state.HasState(State.Completed))
             {
                 // If the reader is completed, the caller is bogus, it shouldn't call reader operations after completing
                 // the pipe reader.
                 throw new InvalidOperationException($"reading is not allowed once the reader is completed");
             }
+        }
+
+        private enum State : int
+        {
+            Writing = 1,
+            Completed = 2,
         }
     }
 }

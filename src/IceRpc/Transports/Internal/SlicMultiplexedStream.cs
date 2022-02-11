@@ -81,7 +81,7 @@ namespace IceRpc.Transports.Internal
 
         internal bool IsShutdown => ReadsCompleted && WritesCompleted;
 
-        internal bool ReadsCompleted => ((State)Thread.VolatileRead(ref _state)).HasFlag(State.ReadCompleted);
+        internal bool ReadsCompleted => _state.HasState(State.ReadCompleted);
 
         /// <summary>The stream reset error is set if the stream is reset by the peer or locally. It's used to set
         /// the error for the <see cref="MultiplexedStreamAbortedException"/> raised by the stream.</summary>
@@ -103,7 +103,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal bool WritesCompleted => ((State)Thread.VolatileRead(ref _state)).HasFlag(State.WriteCompleted);
+        internal bool WritesCompleted => _state.HasState(State.WriteCompleted);
 
         private readonly SlicNetworkConnection _connection;
         private readonly ISlicFrameReader _frameReader;
@@ -251,7 +251,7 @@ namespace IceRpc.Transports.Internal
             if (!IsShutdown)
             {
                 // Shutdown the stream.
-                TrySetState(State.ReadCompleted | State.WriteCompleted);
+                TrySetStateAndShutdown(State.ReadCompleted | State.WriteCompleted);
 
                 // Ensure the Slic pipe reader and writer are completed.
                 var exception = new ConnectionLostException();
@@ -298,7 +298,7 @@ namespace IceRpc.Transports.Internal
         }
 
         internal ValueTask<int> ReceivedStreamFrameAsync(int size, bool endStream) =>
-            IsShutdown ? new(0) : _inputPipeReader.ReceivedStreamFrameAsync(size, endStream);
+            ReadsCompleted ? new(0) : _inputPipeReader.ReceivedStreamFrameAsync(size, endStream);
 
         internal void ReceivedResetFrame(long error)
         {
@@ -342,9 +342,9 @@ namespace IceRpc.Transports.Internal
                 new StreamResumeWriteBody((ulong)size).Encode,
                 CancellationToken.None).AsTask();
 
-        internal bool TrySetReadCompleted() => TrySetState(State.ReadCompleted);
+        internal bool TrySetReadCompleted() => TrySetStateAndShutdown(State.ReadCompleted);
 
-        internal bool TrySetWriteCompleted() => TrySetState(State.WriteCompleted);
+        internal bool TrySetWriteCompleted() => TrySetStateAndShutdown(State.WriteCompleted);
 
         private void Shutdown()
         {
@@ -394,13 +394,10 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private bool TrySetState(State state)
+        private bool TrySetStateAndShutdown(State state)
         {
-            var previousState = (State)Interlocked.Or(ref _state, (int)state);
-            State newState = previousState | state;
-            if (previousState == newState)
+            if (!_state.TrySetState(state, out State newState))
             {
-                // The given state was already set.
                 return false;
             }
             else
@@ -422,7 +419,7 @@ namespace IceRpc.Transports.Internal
         }
 
         [Flags]
-        private enum State : byte
+        private enum State : int
         {
             ReadCompleted = 1,
             WriteCompleted = 2,

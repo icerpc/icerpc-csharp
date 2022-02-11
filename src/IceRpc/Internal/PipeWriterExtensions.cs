@@ -86,6 +86,7 @@ namespace IceRpc.Internal
                 {
                     readResult = await source.ReadAsync(cancel).ConfigureAwait(false);
                     flushResult = default;
+
                     try
                     {
                         // TODO: If readResult.Buffer.Length is small, it might be better to call a single

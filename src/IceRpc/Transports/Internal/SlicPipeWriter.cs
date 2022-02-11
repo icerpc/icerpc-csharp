@@ -48,17 +48,20 @@ namespace IceRpc.Transports.Internal
                     }
                 }
 
+                _isCompleted = true;
+
                 _pipe.Writer.Complete(exception);
                 _pipe.Reader.Complete(exception);
-
-                // Mark the writer as completed after calling WriteAsync, it would throw otherwise.
-                _isCompleted = true;
             }
         }
 
         public override ValueTask<FlushResult> FlushAsync(CancellationToken cancel) =>
             // WriteAsync will flush the internal buffer
             WriteAsync(ReadOnlySequence<byte>.Empty, completeWhenDone: false, cancel);
+
+        public override Memory<byte> GetMemory(int sizeHint) => _pipe.Writer.GetMemory(sizeHint);
+
+        public override Span<byte> GetSpan(int sizeHint) => _pipe.Writer.GetSpan(sizeHint);
 
         public override ValueTask<FlushResult> WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancel) =>
             // Writing an empty buffer completes the stream.
@@ -87,17 +90,20 @@ namespace IceRpc.Transports.Internal
 
             if (_pipe.Writer.UnflushedBytes > 0)
             {
-                // Flush the internal pipe.
-                _ = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                // Flush the internal pipe. It can be completed if the peer sent the stop sending frame.
+                FlushResult flushResult = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                if (flushResult.IsCompleted)
+                {
+                    return flushResult;
+                }
 
                 // Read the data from the pipe.
                 ReadResult readResult = await _pipe.Reader.ReadAsync(CancellationToken.None).ConfigureAwait(false);
                 Debug.Assert(!readResult.IsCanceled);
                 if (readResult.IsCompleted)
                 {
-                    // The peer sent the stop sending frame.
-                    _pipe.Reader.AdvanceTo(readResult.Buffer.End);
-                    return new FlushResult(isCanceled: false, isCompleted: true);
+                    Debug.Assert(_isCompleted);
+                    CheckIfCompleted();
                 }
 
                 Debug.Assert(readResult.Buffer.Length > 0);
@@ -118,7 +124,7 @@ namespace IceRpc.Transports.Internal
                     Debug.Assert(!_pipe.Reader.TryRead(out ReadResult _));
                 }
             }
-            else if (source.Length > 0)
+            else if (source.Length > 0 || completeWhenDone)
             {
                 // If there's no unflushed bytes, we just send the source.
                 return await _stream.SendStreamFrameAsync(
@@ -129,24 +135,22 @@ namespace IceRpc.Transports.Internal
             }
             else
             {
+                // WriteAsync is called with an empty buffer and completeWhenDone = false. Some sinks such as the
+                // deflate compressor might do this.
                 return new FlushResult(isCanceled: false, isCompleted: false);
             }
         }
-
-        public override Memory<byte> GetMemory(int sizeHint) => _pipe.Writer.GetMemory(sizeHint);
-
-        public override Span<byte> GetSpan(int sizeHint) => _pipe.Writer.GetSpan(sizeHint);
 
         internal void ReceivedStopSendingFrame(long error)
         {
             // TODO: Look into cancelling the _stream.SendStreamFrameAsync() call if it's pending?
             if (error.ToSlicError() == SlicStreamError.NoError)
             {
-                _pipe.Writer.Complete();
+                _pipe.Reader.Complete();
             }
             else
             {
-                _pipe.Writer.Complete(new MultiplexedStreamAbortedException(error));
+                _pipe.Reader.Complete(new MultiplexedStreamAbortedException(error));
             }
         }
 

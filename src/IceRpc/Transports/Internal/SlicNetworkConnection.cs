@@ -170,11 +170,6 @@ namespace IceRpc.Transports.Internal
                     {
                         await ReadFramesAsync(CancellationToken.None).ConfigureAwait(false);
                     }
-                    catch (InvalidDataException ex)
-                    {
-                        await Console.Error.WriteLineAsync($"XXX {ex}").ConfigureAwait(false);
-                        _acceptedStreamQueue.TryComplete(ex);
-                    }
                     catch (Exception exception)
                     {
                         _acceptedStreamQueue.TryComplete(exception);
@@ -198,10 +193,8 @@ namespace IceRpc.Transports.Internal
 
             await _simpleNetworkConnection.DisposeAsync().ConfigureAwait(false);
 
-            _disposableReader.Dispose();
-
             // Unblock requests waiting on the semaphores.
-            var exception = new ObjectDisposedException($"{typeof(IMultiplexedNetworkConnection)}:{this}");
+            var exception = new ObjectDisposedException($"{typeof(SlicNetworkConnection)}:{this}");
             _bidirectionalStreamSemaphore?.Complete(exception);
             _unidirectionalStreamSemaphore?.Complete(exception);
             _sendSemaphore.Complete(exception);
@@ -210,6 +203,8 @@ namespace IceRpc.Transports.Internal
             {
                 stream.Abort();
             }
+
+            _disposableReader.Dispose();
 
             // Unblock task blocked on AcceptStreamAsync
             _acceptedStreamQueue.TryComplete(exception);
@@ -365,7 +360,7 @@ namespace IceRpc.Transports.Internal
             bool completeWhenDone,
             CancellationToken cancel)
         {
-            bool sendingSource1 = !source2.IsEmpty;
+            bool sendingSource1 = true;
             ReadOnlySequence<byte> sendSource = source1;
             Debug.Assert(!sendSource.IsEmpty || completeWhenDone);
             do

@@ -7,19 +7,21 @@ namespace IceRpc.Transports.Internal
 {
     internal static class SlicMemoryExtensions
     {
-        internal static (FrameType, int, long?, long consumed) DecodeHeader(this ReadOnlySequence<byte> buffer)
+        internal static (FrameType, int, long?, long) DecodeHeader(this ReadOnlySequence<byte> buffer)
         {
             var decoder = new SliceDecoder(buffer, Encoding.Slice20);
             var type = (FrameType)decoder.DecodeByte();
             int dataSize = decoder.DecodeSize();
-            long? streamId = null;
-            if (type >= FrameType.Stream)
+            if (type < FrameType.Stream)
+            {
+                return (type, dataSize, null, decoder.Consumed);
+            }
+            else
             {
                 ulong id = decoder.DecodeVarULong();
                 dataSize -= SliceEncoder.GetVarULongEncodedSize(id);
-                streamId = (long)id;
+                return (type, dataSize, (long)id, decoder.Consumed);
             }
-            return (type, dataSize, streamId, decoder.Consumed);
         }
 
         internal static (uint, InitializeBody?) DecodeInitialize(this ReadOnlyMemory<byte> buffer, FrameType type)
