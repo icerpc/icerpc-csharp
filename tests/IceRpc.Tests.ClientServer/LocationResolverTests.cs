@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Features;
 using IceRpc.Slice;
 using NUnit.Framework;
 
@@ -103,14 +104,18 @@ namespace IceRpc.Tests.ClientServer
                 (request, cancel) =>
                 {
                     string? adapterId =
-                        request.Params.TryGetValue("adapter-id", out string? value) ? value : null;
+                        request.Proxy.Params.TryGetValue("adapter-id", out string? value) ? value : null;
 
                     if (request.Protocol == resolvedEndpoint.Protocol &&
                         ((isAdapterId && adapterId == locationValue) ||
-                        (!isAdapterId && adapterId == null && request.Path == locationValue)))
+                        (!isAdapterId && adapterId == null && request.Proxy.Path == locationValue)))
                     {
-                        request.Endpoint = resolvedEndpoint;
-                        CollectionAssert.IsEmpty(request.AltEndpoints);
+                        var endpointSelection = new EndpointSelection()
+                        {
+                            Endpoint = resolvedEndpoint,
+                        };
+                        CollectionAssert.IsEmpty(endpointSelection.AltEndpoints);
+                        request.Features = request.Features.With(endpointSelection);
                     }
                     // else don't do anything
 

@@ -147,11 +147,11 @@ namespace IceRpc.Internal
 
         /// <summary>Starts a scope for method IProtocolConnection.ReceiveResponseAsync.</summary>
         internal static IDisposable StartReceiveResponseScope(this ILogger logger, OutgoingRequest request) =>
-            _receiveResponseScope(logger, request.Path, request.Operation);
+            _receiveResponseScope(logger, request.Proxy.Path, request.Operation);
 
         /// <summary>Starts a scope for method IProtocolConnection.SendRequestAsync.</summary>
         internal static IDisposable StartSendRequestScope(this ILogger logger, OutgoingRequest request) =>
-            _sendRequestScope(logger, request.Path, request.Operation);
+            _sendRequestScope(logger, request.Proxy.Path, request.Operation);
 
         /// <summary>Starts a scope for method IProtocolConnection.SendResponseAsync.</summary>
         internal static IDisposable StartSendResponseScope(

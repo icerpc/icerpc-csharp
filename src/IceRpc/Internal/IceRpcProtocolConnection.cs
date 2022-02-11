@@ -288,7 +288,7 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            if (request.Fragment.Length > 0)
+            if (request.Proxy.Fragment.Length > 0)
             {
                 throw new NotSupportedException("the icerpc protocol does not support fragments");
             }
@@ -367,7 +367,7 @@ namespace IceRpc.Internal
                 int headerStartPos = encoder.EncodedByteCount; // does not include the size
 
                 var header = new IceRpcRequestHeader(
-                    request.Path,
+                    request.Proxy.Path,
                     request.Operation,
                     request.PayloadEncoding == IceRpcDefinitions.Encoding ? "" : request.PayloadEncoding.ToString());
 

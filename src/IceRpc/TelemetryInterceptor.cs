@@ -33,17 +33,17 @@ namespace IceRpc
             if (request.Protocol.HasFields)
             {
                 Activity? activity = _options.ActivitySource?.CreateActivity(
-                    $"{request.Path}/{request.Operation}",
+                    $"{request.Proxy.Path}/{request.Operation}",
                     ActivityKind.Client);
                 if (activity == null && (_logger.IsEnabled(LogLevel.Critical) || Activity.Current != null))
                 {
-                    activity = new Activity($"{request.Path}/{request.Operation}");
+                    activity = new Activity($"{request.Proxy.Path}/{request.Operation}");
                 }
 
                 if (activity != null)
                 {
                     activity.AddTag("rpc.system", "icerpc");
-                    activity.AddTag("rpc.service", request.Path);
+                    activity.AddTag("rpc.service", request.Proxy.Path);
                     activity.AddTag("rpc.method", request.Operation);
                     // TODO add additional attributes
                     // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md#common-remote-procedure-call-conventions

@@ -23,7 +23,7 @@ namespace IceRpc
         async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
             _logger.LogSendingRequest(request.Connection,
-                                      request.Path,
+                                      request.Proxy.Path,
                                       request.Operation,
                                       request.PayloadEncoding);
             try
@@ -32,7 +32,7 @@ namespace IceRpc
                 if (!request.IsOneway)
                 {
                     _logger.LogReceivedResponse(request.Connection,
-                                                request.Path,
+                                                request.Proxy.Path,
                                                 request.Operation,
                                                 response.ResultType,
                                                 response.PayloadEncoding);
@@ -41,7 +41,7 @@ namespace IceRpc
             }
             catch (Exception ex)
             {
-                _logger.LogInvokeException(request.Connection, request.Path, request.Operation, ex);
+                _logger.LogInvokeException(request.Connection, request.Proxy.Path, request.Operation, ex);
                 throw;
             }
         }
