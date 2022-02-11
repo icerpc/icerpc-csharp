@@ -162,7 +162,7 @@ namespace IceRpc.Slice
                             new OperationNotFoundException() : new ServiceNotFoundException();
 
                         systemException.Origin = new RemoteExceptionOrigin(
-                            requestFailed.Identity.ToPath(),
+                            requestFailed.Path,
                             requestFailed.Fragment,
                             requestFailed.Operation);
                         break;

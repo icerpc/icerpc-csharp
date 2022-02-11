@@ -214,6 +214,9 @@ namespace IceRpc.Tests.Api
         [TestCase("name -f facet:coloc -h localhost", "/name", "facet")]
         [TestCase("category/name -f facet:coloc -h localhost", "/category/name", "facet")]
         [TestCase("cat$gory/nam$ -f fac$t:coloc -h localhost", "/cat%24gory/nam%24", "fac%24t")]
+        [TestCase("\\342\\x82\\254\\60\\x9\\60\\", "/%E2%82%AC0%090%5C")]
+        [TestCase("bar/foo", "/bar/foo")]
+        [TestCase("foo", "/foo")]
         public void Proxy_Parse_ValidInputIceFormat(string str, string? path = null, string? fragment = null)
         {
             var proxy = Proxy.Parse(str, format: IceProxyFormat.Default);
@@ -253,11 +256,6 @@ namespace IceRpc.Tests.Api
                 out GreeterPrx prx2),
                 Is.True);
             Assert.AreEqual(prx, prx2); // round-trip works
-
-            var identity = Identity.FromPath(prx.Proxy.Path);
-            var identity2 = Identity.FromPath(prx2.Proxy.Path);
-            Assert.AreEqual(identity, identity2);
-            Assert.AreEqual(prx.Proxy.Fragment, prx2.Proxy.Fragment); // facets
         }
 
         [TestCase("icerpc://host.zeroc.com/path?encoding=foo")]
@@ -344,6 +342,7 @@ namespace IceRpc.Tests.Api
         [TestCase("ice://host/s1/s2/s3")]          // too many slashes in path
         [TestCase("ice://host/cat/")]              // empty identity name
         [TestCase("ice://host/")]                  // empty identity name
+        [TestCase("ice://host//")]                 // empty identity name
         [TestCase("ice:/path?alt-endpoint=foo")]   // alt-endpoint proxy parameter
         [TestCase("ice:/path?adapter-id")]         // empty adapter-id
         [TestCase("ice:/path?adapter-id=foo&foo")] // extra parameter
@@ -365,7 +364,11 @@ namespace IceRpc.Tests.Api
         [TestCase("id -f \'facet x")]
         [TestCase("test -f facet@test @test")]
         [TestCase("test -p 2.0")]
-
+        [TestCase("xx\01FooBar")] // Illegal character < 32
+        [TestCase("xx\\ud911")] // Illegal surrogate
+        [TestCase("test/foo/bar")]
+        [TestCase("cat//test")]
+        [TestCase("cat/")] // Empty name
         public void Proxy_Parse_InvalidIceInput(string str)
         {
             Assert.Throws<FormatException>(() => Proxy.Parse(str, format: IceProxyFormat.Default));
@@ -405,29 +408,6 @@ namespace IceRpc.Tests.Api
                 Assert.AreEqual(p1.GetHashCode(), p2.GetHashCode());
             }
         }
-
-        /*
-        // TODO: move this test to Slice
-        [Test]
-        public async Task Proxy_InvokeAsync()
-        {
-            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-                .AddTransient<IDispatcher, Greeter>()
-                .BuildServiceProvider();
-
-            var proxy = Proxy.FromConnection(serviceProvider.GetRequiredService<Connection>(), GreeterPrx.DefaultPath);
-
-            IncomingResponse response =
-                await proxy.InvokeAsync("ice_ping",
-                                        proxy.Encoding,
-                                        payloadSource: Encoding.Slice20.CreateEmptyPayload());
-
-            Assert.DoesNotThrowAsync(async () => await response.CheckVoidReturnValueAsync(
-                proxy.Invoker,
-                SliceDecoder.GetActivator(typeof(ProxyTests).Assembly),
-                default));
-        }
-        */
 
         [Test]
         public async Task Proxy_ReceiveProxyAsync()

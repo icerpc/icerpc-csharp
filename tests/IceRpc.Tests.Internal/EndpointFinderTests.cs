@@ -14,15 +14,17 @@ namespace IceRpc.Tests.Internal
         {
             IEndpointFinder endpointFinder = new LocatorEndpointFinder(new FakeLocatorPrx());
 
-            Proxy? proxy = await endpointFinder.FindAsync(new Location("good"), cancel: default);
+            Proxy? proxy = await endpointFinder.FindAsync(
+                new Location { IsAdapterId = true, Value = "good" },
+                cancel: default);
             Assert.That(proxy, Is.Not.Null);
-            Assert.That(proxy.Endpoint, Is.Not.Null);
-            proxy = await endpointFinder.FindAsync(new Location("bad"), cancel: default);
+            Assert.That(proxy!.Endpoint, Is.Not.Null);
+            proxy = await endpointFinder.FindAsync(new Location { IsAdapterId = true, Value = "bad" }, cancel: default);
             Assert.That(proxy, Is.Null);
 
-            proxy = await endpointFinder.FindAsync(new Location(new Identity("good", "category")), cancel: default);
+            proxy = await endpointFinder.FindAsync(new Location { Value = "/category/good" }, cancel: default);
             Assert.That(proxy, Is.Not.Null);
-            proxy = await endpointFinder.FindAsync(new Location(new Identity("bad", "category")), cancel: default);
+            proxy = await endpointFinder.FindAsync(new Location { Value = "/category/bad" }, cancel: default);
             Assert.That(proxy, Is.Null);
         }
 
@@ -32,16 +34,16 @@ namespace IceRpc.Tests.Internal
             IEndpointFinder endpointFinder = new LocatorEndpointFinder(new InvalidProxyLocatorPrx());
 
             Assert.ThrowsAsync<InvalidDataException>(async () =>
-                await endpointFinder.FindAsync(new Location("loc"), cancel: default));
+                await endpointFinder.FindAsync(new Location { IsAdapterId = true, Value = "loc" }, cancel: default));
 
             Assert.ThrowsAsync<InvalidDataException>(async () =>
-                await endpointFinder.FindAsync(new Location("foo"), cancel: default));
+                await endpointFinder.FindAsync(new Location { IsAdapterId = true, Value = "foo" }, cancel: default));
 
             Assert.ThrowsAsync<InvalidDataException>(async () =>
-                await endpointFinder.FindAsync(new Location(new Identity("bad", "category")), cancel: default));
+                await endpointFinder.FindAsync(new Location { Value = "/category/bad" }, cancel: default));
 
             Assert.ThrowsAsync<InvalidDataException>(async () =>
-                await endpointFinder.FindAsync(new Location(new Identity("name", "category")), cancel: default));
+                await endpointFinder.FindAsync(new Location { Value = "/category/name" }, cancel: default));
         }
 
         [Test]
@@ -49,9 +51,11 @@ namespace IceRpc.Tests.Internal
         {
             IEndpointFinder endpointFinder = new LocatorEndpointFinder(new ThrowingLocatorPrx());
 
-            Assert.That(await endpointFinder.FindAsync(new Location("adapter"), cancel: default), Is.Null);
+            Assert.That(await endpointFinder.FindAsync
+            (new Location { IsAdapterId = true, Value = "adapter" },
+            cancel: default), Is.Null);
             Assert.That(
-                await endpointFinder.FindAsync(new Location(new Identity("name", "category")), cancel: default),
+                await endpointFinder.FindAsync(new Location { Value = "/category/name" }, cancel: default),
                 Is.Null);
         }
 
@@ -67,13 +71,13 @@ namespace IceRpc.Tests.Internal
             Assert.That(endpointCache.Removed, Is.False);
             Assert.That(endpointCache.Set, Is.False);
 
-            await endpointFinder.FindAsync(new Location("good"), cancel: default);
+            await endpointFinder.FindAsync(new Location { IsAdapterId = true, Value = "good" }, cancel: default);
 
             Assert.That(endpointCache.Removed, Is.False);
             Assert.That(endpointCache.Set, Is.True);
             endpointCache.Set = false;
 
-            await endpointFinder.FindAsync(new Location("bad"), cancel: default);
+            await endpointFinder.FindAsync(new Location { IsAdapterId = true, Value = "bad" }, cancel: default);
             Assert.That(endpointCache.Removed, Is.True);
             Assert.That(endpointCache.Set, Is.False);
         }
@@ -85,8 +89,8 @@ namespace IceRpc.Tests.Internal
 
             IEndpointFinder endpointFinder = new CoalesceEndpointFinderDecorator(blockingEndpointFinder);
 
-            var locA = new Location("a");
-            var locB = new Location("b");
+            var locA = new Location{ IsAdapterId = true, Value = "a" };
+            var locB = new Location{ IsAdapterId = true, Value = "b" };
 
             Task<Proxy?> t1 = endpointFinder.FindAsync(locA, cancel: default);
             Task<Proxy?> t2 = endpointFinder.FindAsync(locA, cancel: default);
@@ -111,12 +115,12 @@ namespace IceRpc.Tests.Internal
                         ServicePrx.Parse("dummy:tcp -h host -p 10000", format: IceProxyFormat.Default) : null);
 
             Task<ServicePrx?> ILocatorPrx.FindObjectByIdAsync(
-                Identity id,
+                string id,
                 Invocation? invocation,
                 CancellationToken cancel) =>
                     Task.FromResult<ServicePrx?>(
-                        id.Name == "good" ? ServicePrx.Parse("dummy @ adapter", format: IceProxyFormat.Default) :
-                            null);
+                        id.EndsWith("good", StringComparison.Ordinal) ?
+                            ServicePrx.Parse("dummy @ adapter", format: IceProxyFormat.Default) : null);
 
             Task<LocatorRegistryPrx?> ILocatorPrx.GetRegistryAsync(Invocation? invocation, CancellationToken cancel)
             {
@@ -135,11 +139,11 @@ namespace IceRpc.Tests.Internal
                         ServicePrx.Parse(id == "loc" ? "dummy @ adapter" : "dummy", format: IceProxyFormat.Default));
 
             Task<ServicePrx?> ILocatorPrx.FindObjectByIdAsync(
-                Identity id,
+                string id,
                 Invocation? invocation,
                 CancellationToken cancel) =>
                     Task.FromResult<ServicePrx?>(
-                        ServicePrx.Parse(id.Name == "bad" ? "icerpc://host/dummy?transport=foo" : "icerpc:/dummy"));
+                        ServicePrx.Parse(id == "bad" ? "icerpc://host/dummy?transport=foo" : "icerpc:/dummy"));
 
             Task<LocatorRegistryPrx?> ILocatorPrx.GetRegistryAsync(Invocation? invocation, CancellationToken cancel)
             {
@@ -157,7 +161,7 @@ namespace IceRpc.Tests.Internal
                 throw new AdapterNotFoundException();
 
             Task<ServicePrx?> ILocatorPrx.FindObjectByIdAsync(
-                Identity id,
+                string id,
                 Invocation? invocation,
                 CancellationToken cancel) => throw new ObjectNotFoundException();
 
@@ -187,7 +191,7 @@ namespace IceRpc.Tests.Internal
         {
             Task<Proxy?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel) =>
                 Task.FromResult<Proxy?>(
-                    location.AdapterId == "good" ?
+                    location.Value.EndsWith("good", StringComparison.Ordinal) ?
                         Proxy.Parse("dummy:tcp -h localhost -p 10000", format: IceProxyFormat.Default) : null);
         }
 
