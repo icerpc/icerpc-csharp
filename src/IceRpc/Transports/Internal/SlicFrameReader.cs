@@ -75,7 +75,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public async ValueTask<(FrameType, int, long?)> ReadFrameHeaderAsync(CancellationToken cancel)
+        public async ValueTask<(FrameType frameType, int frameSize, long? streamId)> ReadFrameHeaderAsync(CancellationToken cancel)
         {
             _state.SetState(State.Reading);
             try

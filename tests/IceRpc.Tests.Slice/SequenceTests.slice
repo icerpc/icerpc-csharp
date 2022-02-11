@@ -18,22 +18,6 @@ module IceRpc::Tests::Slice
     typealias DoubleSeq = sequence<double>;
     typealias StringSeq = sequence<string>;
 
-    typealias OptionalByteSeq = sequence<byte?>;
-    typealias OptionalBoolSeq = sequence<bool?>;
-    typealias OptionalShortSeq = sequence<short?>;
-    typealias OptionalUShortSeq = sequence<ushort?>;
-    typealias OptionalIntSeq = sequence<int?>;
-    typealias OptionalVarIntSeq = sequence<varint?>;
-    typealias OptionalUIntSeq = sequence<uint?>;
-    typealias OptionalVarUIntSeq = sequence<varuint?>;
-    typealias OptionalLongSeq = sequence<long?>;
-    typealias OptionalVarLongSeq = sequence<varlong?>;
-    typealias OptionalULongSeq = sequence<ulong?>;
-    typealias OptionalVarULongSeq = sequence<varulong?>;
-    typealias OptionalFloatSeq = sequence<float?>;
-    typealias OptionalDoubleSeq = sequence<double?>;
-    typealias OptionalStringSeq = sequence<string?>;
-
     typealias MyEnumSeq = sequence<MyEnum>;
     typealias MyFixedLengthEnumSeq = sequence<MyFixedLengthEnum>;
     typealias MyUncheckedEnumSeq = sequence<MyUncheckedEnum>;
@@ -41,14 +25,6 @@ module IceRpc::Tests::Slice
     typealias MyCompactStructSeq = sequence<MyCompactStruct>;
     typealias OperationsSeq = sequence<Operations>;
     typealias AnotherCompactStructSeq = sequence<AnotherCompactStruct>;
-
-    typealias OptionalMyEnumSeq = sequence<MyEnum?>;
-    typealias OptionalMyFixedLengthEnumSeq = sequence<MyFixedLengthEnum?>;
-    typealias OptionalMyUncheckedEnumSeq = sequence<MyUncheckedEnum?>;
-
-    typealias OptionalMyCompactStructSeq = sequence<MyCompactStruct?>;
-    typealias OptionalOperationsSeq = sequence<Operations?>;
-    typealias OptionalAnotherCompactStructSeq = sequence<AnotherCompactStruct?>;
 
     // Sequence mapping
     typealias ByteList = [cs:generic("System.Collections.Generic.List")] sequence<byte>;
@@ -112,47 +88,6 @@ module IceRpc::Tests::Slice
         opDoubleSeq(p1: DoubleSeq, p2: DoubleSeq) -> (r1: DoubleSeq, r2: DoubleSeq);
         opStringSeq(p1: StringSeq, p2: StringSeq) -> (r1: StringSeq, r2: StringSeq);
 
-        // Optional builtin types sequences
-        opOptionalByteSeq(p1: OptionalByteSeq, p2: OptionalByteSeq) -> (r1: OptionalByteSeq, r2: OptionalByteSeq);
-        opOptionalBoolSeq(p1: OptionalBoolSeq, p2: OptionalBoolSeq) -> (r1: OptionalBoolSeq, r2: OptionalBoolSeq);
-        opOptionalShortSeq(p1: OptionalShortSeq, p2: OptionalShortSeq) -> (r1: OptionalShortSeq, r2: OptionalShortSeq);
-        opOptionalUShortSeq(p1: OptionalUShortSeq, p2: OptionalUShortSeq) -> (
-            r1: OptionalUShortSeq,
-            r2: OptionalUShortSeq,
-        );
-        opOptionalIntSeq(p1: OptionalIntSeq, p2: OptionalIntSeq) -> (r1: OptionalIntSeq, r2: OptionalIntSeq);
-        opOptionalVarIntSeq(p1: OptionalVarIntSeq, p2: OptionalVarIntSeq) -> (
-            r1: OptionalVarIntSeq,
-            r2: OptionalVarIntSeq,
-        );
-        opOptionalUIntSeq(p1: OptionalUIntSeq, p2: OptionalUIntSeq) -> (r1: OptionalUIntSeq, r2: OptionalUIntSeq);
-        opOptionalVarUIntSeq(p1: OptionalVarUIntSeq, p2: OptionalVarUIntSeq) -> (
-            r1: OptionalVarUIntSeq,
-            r2: OptionalVarUIntSeq,
-        );
-        opOptionalLongSeq(p1: OptionalLongSeq, p2: OptionalLongSeq) -> (r1: OptionalLongSeq, r2: OptionalLongSeq);
-        opOptionalVarLongSeq(p1: OptionalVarLongSeq, p2: OptionalVarLongSeq) -> (
-            r1: OptionalVarLongSeq,
-            r2: OptionalVarLongSeq,
-        );
-        opOptionalULongSeq(p1: OptionalULongSeq, p2: OptionalULongSeq) -> (
-            r1: OptionalULongSeq,
-            r2: OptionalULongSeq,
-        );
-        opOptionalVarULongSeq(p1: OptionalVarULongSeq, p2: OptionalVarULongSeq) -> (
-            r1: OptionalVarULongSeq,
-            r2: OptionalVarULongSeq,
-        );
-        opOptionalFloatSeq(p1: OptionalFloatSeq, p2: OptionalFloatSeq) -> (r1: OptionalFloatSeq, r2: OptionalFloatSeq);
-        opOptionalDoubleSeq(p1: OptionalDoubleSeq, p2: OptionalDoubleSeq) -> (
-            r1: OptionalDoubleSeq,
-            r2: OptionalDoubleSeq,
-        );
-        opOptionalStringSeq(p1: OptionalStringSeq, p2: OptionalStringSeq) -> (
-            r1: OptionalStringSeq,
-            r2: OptionalStringSeq,
-        );
-
         // Defined types sequences
         opMyEnumSeq(p1: MyEnumSeq, p2: MyEnumSeq) -> (r1: MyEnumSeq, r2: MyEnumSeq);
         opMyFixedLengthEnumSeq(p1: MyFixedLengthEnumSeq, p2: MyFixedLengthEnumSeq) -> (
@@ -171,32 +106,6 @@ module IceRpc::Tests::Slice
         opAnotherCompactStructSeq(p1: AnotherCompactStructSeq, p2: AnotherCompactStructSeq) -> (
             r1: AnotherCompactStructSeq,
             r2: AnotherCompactStructSeq,
-        );
-
-        // Optional defined types sequences
-        opOptionalMyEnumSeq(p1: OptionalMyEnumSeq, p2: OptionalMyEnumSeq) -> (
-            r1: OptionalMyEnumSeq,
-            r2: OptionalMyEnumSeq,
-        );
-        opOptionalMyFixedLengthEnumSeq(p1: OptionalMyFixedLengthEnumSeq, p2: OptionalMyFixedLengthEnumSeq) -> (
-            r1: OptionalMyFixedLengthEnumSeq,
-            r2: OptionalMyFixedLengthEnumSeq,
-        );
-        opOptionalMyUncheckedEnumSeq(p1: OptionalMyUncheckedEnumSeq, p2: OptionalMyUncheckedEnumSeq) -> (
-            r1: OptionalMyUncheckedEnumSeq,
-            r2: OptionalMyUncheckedEnumSeq,
-        );
-        opOptionalMyCompactStructSeq(p1: OptionalMyCompactStructSeq, p2: OptionalMyCompactStructSeq) -> (
-            r1: OptionalMyCompactStructSeq,
-            r2: OptionalMyCompactStructSeq,
-        );
-        opOptionalOperationsSeq(p1: OptionalOperationsSeq, p2: OptionalOperationsSeq) -> (
-            r1: OptionalOperationsSeq,
-            r2: OptionalOperationsSeq,
-        );
-        opOptionalAnotherCompactStructSeq(p1: OptionalAnotherCompactStructSeq, p2: OptionalAnotherCompactStructSeq) -> (
-            r1: OptionalAnotherCompactStructSeq,
-            r2: OptionalAnotherCompactStructSeq,
         );
 
         // Sequence mapping
