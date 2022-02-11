@@ -30,7 +30,8 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public async ValueTask<(FrameType, int, long?)> ReadFrameHeaderAsync(CancellationToken cancel)
+        public async ValueTask<(FrameType FrameType, int FrameSize, long? StreamId)> ReadFrameHeaderAsync(
+            CancellationToken cancel)
         {
             (_frameType, _frameDataSize, _frameStreamId) =
                 await _decoratee.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
