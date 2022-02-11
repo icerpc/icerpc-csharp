@@ -231,7 +231,7 @@ namespace IceRpc.Internal
                         else
                         {
                             // The stream was aborted (occurs if the Slic connection is disposed).
-                            throw new ConnectionLostException(new ObjectDisposedException(nameof(IceRpcProtocolConnection)));
+                            throw new ConnectionLostException();
                         }
                     }
                 }
