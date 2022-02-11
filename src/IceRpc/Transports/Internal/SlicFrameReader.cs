@@ -19,17 +19,16 @@ namespace IceRpc.Transports.Internal
 
         public void Dispose()
         {
-            if (_state.TrySetState(State.Disposed))
-            {
+            _state.SetState(State.Disposed);
 
-                var exception = new ConnectionLostException();
-                _pipe.Writer.Complete(exception);
-                // Don't complete the reader if it's being used. Completing the reader while reading is in progress
-                // would cause the reads to return bogus data from the pipe recycled buffers.
-                if (!_state.HasState(State.Reading))
-                {
-                    _pipe.Reader.Complete(exception);
-                }
+            var exception = new ConnectionLostException();
+            _pipe.Writer.Complete(exception);
+
+            // Don't complete the reader if it's being used. Completing the reader while reading is in progress
+            // would cause the reads to return bogus data from the pipe recycled buffers.
+            if (!_state.HasFlag(State.Reading))
+            {
+                _pipe.Reader.Complete(exception);
             }
         }
 
@@ -38,7 +37,7 @@ namespace IceRpc.Transports.Internal
             _state.SetState(State.Reading);
             try
             {
-                if (_state.HasState(State.Disposed))
+                if (_state.HasFlag(State.Disposed))
                 {
                     throw new ConnectionLostException();
                 }
@@ -67,11 +66,11 @@ namespace IceRpc.Transports.Internal
             }
             finally
             {
-                if (_state.HasState(State.Disposed))
+                if (_state.HasFlag(State.Disposed))
                 {
                     await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
                 }
-                _state.ClearState(State.Reading);
+                _state.ClearFlag(State.Reading);
             }
         }
 
@@ -80,7 +79,7 @@ namespace IceRpc.Transports.Internal
             _state.SetState(State.Reading);
             try
             {
-                if (_state.HasState(State.Disposed))
+                if (_state.HasFlag(State.Disposed))
                 {
                     throw new ConnectionLostException();
                 }
@@ -121,11 +120,11 @@ namespace IceRpc.Transports.Internal
             }
             finally
             {
-                if (_state.HasState(State.Disposed))
+                if (_state.HasFlag(State.Disposed))
                 {
                     await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
                 }
-                _state.ClearState(State.Reading);
+                _state.ClearFlag(State.Reading);
             }
         }
 

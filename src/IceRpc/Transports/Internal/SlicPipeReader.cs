@@ -54,8 +54,11 @@ namespace IceRpc.Transports.Internal
                 consumedOffset == _readResult.Buffer.GetOffset(_readResult.Buffer.End);
 
             _pipe.Reader.AdvanceTo(consumed, examined);
+
             if (readsCompleted)
             {
+                // The application consumed all the byes and the peer is done sending data, we can mark reads as
+                // completed on the stream.
                 _stream.TrySetReadCompleted();
             }
         }
@@ -64,7 +67,7 @@ namespace IceRpc.Transports.Internal
 
         public override void Complete(Exception? exception = null)
         {
-            if (_state.TrySetState(State.Completed))
+            if (_state.TrySetFlag(State.Completed))
             {
                 if (_readResult.IsCompleted)
                 {
@@ -94,7 +97,7 @@ namespace IceRpc.Transports.Internal
 
                 // Don't complete the writer if it's being used concurrently for receiving a frame. It will be completed
                 // once the reading terminates.
-                if (_state.HasState(State.Writing))
+                if (_state.HasFlag(State.Writing))
                 {
                     _exception = exception;
                 }
@@ -172,27 +175,27 @@ namespace IceRpc.Transports.Internal
         }
 
         /// <summary>Called when a stream frame is received. It writes the data from the received stream frame to the
-        /// internal pipe writer.</summary>
+        /// internal pipe writer and returns the number of bytes that were consumed.</summary>
         internal async ValueTask<int> ReceivedStreamFrameAsync(int dataSize, bool endStream)
         {
             _state.SetState(State.Writing);
             try
             {
-                if (_state.HasState(State.Completed))
+                if (_state.HasFlag(State.Completed))
                 {
-                    // If the Slic pipe reader is completed, skip the data.
+                    // If the Slic pipe reader is completed, nothing was consumed.
                     return 0;
                 }
 
                 // Read and append the received data to the pipe writer.
-                int size = dataSize;
-                while (size > 0)
+                int size = 0;
+                while (size < dataSize)
                 {
                     // Receive the data and push it to the pipe writer.
                     Memory<byte> chunk = _pipe.Writer.GetMemory();
-                    chunk = chunk[0..Math.Min(size, chunk.Length)];
+                    chunk = chunk[0..Math.Min(dataSize - size, chunk.Length)];
                     await _readFunc(chunk, CancellationToken.None).ConfigureAwait(false);
-                    size -= chunk.Length;
+                    size += chunk.Length;
                     _pipe.Writer.Advance(chunk.Length);
 
                     // This should always complete synchronously since the sender isn't supposed to send more data than
@@ -210,14 +213,14 @@ namespace IceRpc.Transports.Internal
                         FlushResult flushResult = await flushTask.ConfigureAwait(false);
                         if (flushResult.IsCompleted)
                         {
-                            // The reader is completed, return the number of bytes left to skip.
-                            return dataSize - size;
+                            // The reader is completed, return the number of consumed bytes.
+                            return size;
                         }
                     }
                     catch
                     {
-                        // The reader is completed, return the number of bytes left to skip.
-                        return dataSize - size;
+                        // The reader is completed, return the number of consumed bytes.
+                        return size;
                     }
                 }
 
@@ -235,17 +238,19 @@ namespace IceRpc.Transports.Internal
             }
             finally
             {
-                if (_state.HasState(State.Completed))
+                if (_state.HasFlag(State.Completed))
                 {
+                    // If the Slic pipe reader has been completed while we were writting the data from the stream, we
+                    // make sure to complete the writer now since Complete didn't do it.
                     await _pipe.Writer.CompleteAsync(_exception).ConfigureAwait(false);
                 }
-                _state.ClearState(State.Writing);
+                _state.ClearFlag(State.Writing);
             }
         }
 
         private void CheckIfCompleted()
         {
-            if (_state.HasState(State.Completed))
+            if (_state.HasFlag(State.Completed))
             {
                 // If the reader is completed, the caller is bogus, it shouldn't call reader operations after completing
                 // the pipe reader.
