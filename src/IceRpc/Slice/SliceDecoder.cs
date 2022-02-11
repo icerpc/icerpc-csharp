@@ -361,103 +361,44 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Decodes a nullable proxy.</summary>
+        /// <param name="bitSequenceReader">The bit sequence reader, ignored with 1.1 encoding.</param>
         /// <returns>The decoded proxy, or null.</returns>
-        public Proxy? DecodeNullableProxy()
+        public Proxy? DecodeNullableProxy(ref BitSequenceReader bitSequenceReader)
         {
-            if (_connection == null)
-            {
-                throw new InvalidOperationException("cannot decode a proxy from an decoder with a null Connection");
-            }
-
             if (Encoding == IceRpc.Encoding.Slice11)
             {
                 string path = this.DecodeIdentityPath();
-                if (path == "/") // null proxy
-                {
-                    return null;
-                }
+                return path != "/" ? DecodeProxy(path) : null;
+            }
+            else
+            {
+                return bitSequenceReader.Read() ? DecodeProxy() : null;
+            }
+        }
 
-                var proxyData = new ProxyData(ref this);
-
-                if (proxyData.ProtocolMajor == 0)
-                {
-                    throw new InvalidDataException("received proxy with protocol set to 0");
-                }
-                if (proxyData.ProtocolMinor != 0)
-                {
-                    throw new InvalidDataException(
-                        $"received proxy with invalid protocolMinor value: {proxyData.ProtocolMinor}");
-                }
-
-                // The min size for an Endpoint with the 1.1 encoding is: transport (short = 2 bytes) + encapsulation
-                // header (6 bytes), for a total of 8 bytes.
-                int size = DecodeAndCheckSeqSize(8);
-
-                Endpoint? endpoint = null;
-                IEnumerable<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
-                var protocol = Protocol.FromByte(proxyData.ProtocolMajor);
-                ImmutableDictionary<string, string> proxyParams = ImmutableDictionary<string, string>.Empty;
-
-                if (size == 0)
-                {
-                    if (DecodeString() is string adapterId && adapterId.Length > 0)
-                    {
-                        proxyParams = proxyParams.Add("adapter-id", adapterId);
-                    }
-                }
-                else
-                {
-                    endpoint = DecodeEndpoint(protocol);
-                    if (size >= 2)
-                    {
-                        var endpointArray = new Endpoint[size - 1];
-                        for (int i = 0; i < size - 1; ++i)
-                        {
-                            endpointArray[i] = DecodeEndpoint(protocol);
-                        }
-                        altEndpoints = endpointArray;
-                    }
-                }
-
-                try
-                {
-                    if (!protocol.HasFragment && proxyData.Fragment.Length > 0)
-                    {
-                        throw new InvalidDataException($"unexpected fragment in {protocol} proxy");
-                    }
-
-                    return new Proxy(
-                        protocol,
-                        path,
-                        endpoint,
-                        altEndpoints.ToImmutableList(),
-                        proxyParams,
-                        proxyData.Fragment,
-                        _invoker);
-                }
-                catch (InvalidDataException)
-                {
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidDataException("received invalid proxy", ex);
-                }
+        /// <summary>Decodes a proxy.</summary>
+        /// <returns>The decoded proxy</returns>
+        public Proxy DecodeProxy()
+        {
+            if (Encoding == IceRpc.Encoding.Slice11)
+            {
+                string path = this.DecodeIdentityPath();
+                return path != "/" ? DecodeProxy(path) :
+                    throw new InvalidDataException("decoded null for a non-nullable proxy");
             }
             else
             {
                 string proxyString = DecodeString();
-
-                if (proxyString.Length == 0)
-                {
-                    return null;
-                }
-
                 try
                 {
                     if (proxyString.StartsWith('/')) // relative proxy
                     {
-                        return Proxy.FromConnection(_connection!, proxyString, _invoker);
+                        if (_connection == null)
+                        {
+                            throw new InvalidOperationException(
+                                "cannot decode a proxy from an decoder with a null Connection");
+                        }
+                        return Proxy.FromConnection(_connection, proxyString, _invoker);
                     }
                     else
                     {
@@ -475,11 +416,6 @@ namespace IceRpc.Slice
                 }
             }
         }
-
-        /// <summary>Decodes a proxy.</summary>
-        /// <returns>The decoded proxy</returns>
-        public Proxy DecodeProxy() =>
-            DecodeNullableProxy() ?? throw new InvalidDataException("decoded null for a non-nullable proxy");
 
         // Other methods
 
@@ -563,18 +499,25 @@ namespace IceRpc.Slice
 
         public BitSequenceReader GetBitSequenceReader(int bitSequenceSize)
         {
-            if (bitSequenceSize <= 0)
+            if (Encoding == SliceEncoding.Slice11)
             {
-                throw new ArgumentOutOfRangeException(
-                    nameof(bitSequenceSize),
-                    "bitSequenceSize must be greater than 0");
+                return default;
             }
+            else
+            {
+                if (bitSequenceSize <= 0)
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(bitSequenceSize),
+                        "bitSequenceSize must be greater than 0");
+                }
 
-            int size = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0);
-            ReadOnlySequence<byte> bitSequence = _reader.UnreadSequence.Slice(0, size);
-            _reader.Advance(size);
-            Debug.Assert(bitSequence.Length == size);
-            return new BitSequenceReader(bitSequence);
+                int size = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0);
+                ReadOnlySequence<byte> bitSequence = _reader.UnreadSequence.Slice(0, size);
+                _reader.Advance(size);
+                Debug.Assert(bitSequence.Length == size);
+                return new BitSequenceReader(bitSequence);
+            }
         }
 
         internal static int DecodeInt(ReadOnlySpan<byte> from) => BitConverter.ToInt32(from);
@@ -696,8 +639,6 @@ namespace IceRpc.Slice
 
             // The Slice 1.1 encoding of ice endpoints is transport-specific, and hard-coded here and in the
             // SliceEncoder. The preferred and fallback encoding for new transports is TransportCode.Uri.
-
-            Debug.Assert(_connection != null);
 
             Endpoint? endpoint = null;
             TransportCode transportCode = this.DecodeTransportCode();
@@ -986,6 +927,79 @@ namespace IceRpc.Slice
                     // Skip tagged value
                     Skip(DecodeSize());
                 }
+            }
+        }
+
+        /// <summary>Helper method to decode a proxy encoded with the 1.1 encoding.</summary>
+        /// <param name="path">The decoded path.</param>
+        /// <returns>The decoded proxy.</returns>
+        private Proxy DecodeProxy(string path)
+        {
+            var proxyData = new ProxyData(ref this);
+
+            if (proxyData.ProtocolMajor == 0)
+            {
+                throw new InvalidDataException("received proxy with protocol set to 0");
+            }
+            if (proxyData.ProtocolMinor != 0)
+            {
+                throw new InvalidDataException(
+                    $"received proxy with invalid protocolMinor value: {proxyData.ProtocolMinor}");
+            }
+
+            // The min size for an Endpoint with the 1.1 encoding is: transport (short = 2 bytes) + encapsulation
+            // header (6 bytes), for a total of 8 bytes.
+            int size = DecodeAndCheckSeqSize(8);
+
+            Endpoint? endpoint = null;
+            IEnumerable<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
+            var protocol = Protocol.FromByte(proxyData.ProtocolMajor);
+            ImmutableDictionary<string, string> proxyParams = ImmutableDictionary<string, string>.Empty;
+
+            if (size == 0)
+            {
+                if (DecodeString() is string adapterId && adapterId.Length > 0)
+                {
+                    proxyParams = proxyParams.Add("adapter-id", adapterId);
+                }
+            }
+            else
+            {
+                endpoint = DecodeEndpoint(protocol);
+                if (size >= 2)
+                {
+                    var endpointArray = new Endpoint[size - 1];
+                    for (int i = 0; i < size - 1; ++i)
+                    {
+                        endpointArray[i] = DecodeEndpoint(protocol);
+                    }
+                    altEndpoints = endpointArray;
+                }
+            }
+
+            try
+            {
+                if (!protocol.HasFragment && proxyData.Fragment.Length > 0)
+                {
+                    throw new InvalidDataException($"unexpected fragment in {protocol} proxy");
+                }
+
+                return new Proxy(
+                    protocol,
+                    path,
+                    endpoint,
+                    altEndpoints.ToImmutableList(),
+                    proxyParams,
+                    proxyData.Fragment,
+                    _invoker);
+            }
+            catch (InvalidDataException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException("received invalid proxy", ex);
             }
         }
 

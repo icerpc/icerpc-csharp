@@ -16,20 +16,6 @@ module IceRpc::Tests::Slice
     typealias VarULongDict = dictionary<varulong, varulong>;
     typealias StringDict = dictionary<string, string>;
 
-    typealias OptionalByteDict = dictionary<byte, byte?>;
-    typealias OptionalBoolDict = dictionary<bool, bool?>;
-    typealias OptionalShortDict = dictionary<short, short?>;
-    typealias OptionalUShortDict = dictionary<ushort, ushort?>;
-    typealias OptionalIntDict = dictionary<int, int?>;
-    typealias OptionalVarIntDict = dictionary<varint, varint?>;
-    typealias OptionalUIntDict = dictionary<uint, uint?>;
-    typealias OptionalVarUIntDict = dictionary<varuint, varuint?>;
-    typealias OptionalLongDict = dictionary<long, long?>;
-    typealias OptionalVarLongDict = dictionary<varlong, varlong?>;
-    typealias OptionalULongDict = dictionary<ulong, ulong?>;
-    typealias OptionalVarULongDict = dictionary<varulong, varulong?>;
-    typealias OptionalStringDict = dictionary<string, string?>;
-
     typealias MyEnumDict = dictionary<MyEnum, MyEnum>;
     typealias MyFixedLengthEnumDict = dictionary<MyFixedLengthEnum, MyFixedLengthEnum>;
     typealias MyUncheckedEnumDict = dictionary<MyUncheckedEnum, MyUncheckedEnum>;
@@ -37,19 +23,11 @@ module IceRpc::Tests::Slice
     typealias OperationsDict = dictionary<string, Operations>;
     typealias AnotherCompactStructDict = dictionary<string, AnotherCompactStruct>;
 
-    typealias OptionalMyEnumDict = dictionary<MyEnum, MyEnum?>;
-    typealias OptionalMyFixedLengthEnumDict = dictionary<MyFixedLengthEnum, MyFixedLengthEnum?>;
-    typealias OptionalMyUncheckedEnumDict = dictionary<MyUncheckedEnum, MyUncheckedEnum?>;
-    typealias OptionalMyCompactStructDict = dictionary<MyCompactStruct, MyCompactStruct?>;
-    typealias OptionalOperationsDict = dictionary<string, Operations?>;
-    typealias OptionalAnotherCompactStructDict = dictionary<string, AnotherCompactStruct?>;
-
     typealias ByteCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<byte, byte>;
     typealias BoolCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<bool, bool>;
     typealias ShortCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<short, short>;
     typealias UShortCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<ushort, ushort>;
     typealias IntCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<int, int>;
-    typealias OptionalIntCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<int, int?>;
     typealias VarIntCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<varint, varint>;
     typealias UIntCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<uint, uint>;
     typealias VarUIntCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<varuint, varuint>;
@@ -58,7 +36,6 @@ module IceRpc::Tests::Slice
     typealias ULongCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<ulong, ulong>;
     typealias VarULongCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<varulong, varulong>;
     typealias StringCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<string, string>;
-    typealias OptionalStringCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<string, string?>;
 
     typealias MyEnumCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<MyEnum, MyEnum>;
     typealias MyFixedLengthEnumCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<MyFixedLengthEnum, MyFixedLengthEnum>;
@@ -81,45 +58,6 @@ module IceRpc::Tests::Slice
         opVarULongDict(p1: VarULongDict, p2: VarULongDict) -> (r1: VarULongDict, r2: VarULongDict);
         opStringDict(p1: StringDict, p2: StringDict) -> (r1: StringDict, r2: StringDict);
 
-        // Optional builtin type dictionaries
-        opOptionalByteDict(p1: OptionalByteDict, p2: OptionalByteDict) -> (r1: OptionalByteDict, r2: OptionalByteDict);
-        opOptionalBoolDict(p1: OptionalBoolDict, p2: OptionalBoolDict) -> (r1: OptionalBoolDict, r2: OptionalBoolDict);
-        opOptionalShortDict(p1: OptionalShortDict, p2: OptionalShortDict) -> (
-            r1: OptionalShortDict,
-            r2: OptionalShortDict,
-        );
-        opOptionalUShortDict(p1: OptionalUShortDict, p2: OptionalUShortDict) -> (
-            r1: OptionalUShortDict,
-            r2: OptionalUShortDict,
-        );
-        opOptionalIntDict(p1: OptionalIntDict, p2: OptionalIntDict) -> (r1: OptionalIntDict, r2: OptionalIntDict);
-        opOptionalVarIntDict(p1: OptionalVarIntDict, p2: OptionalVarIntDict) -> (
-            r1: OptionalVarIntDict,
-            r2: OptionalVarIntDict,
-        );
-        opOptionalUIntDict(p1: OptionalUIntDict, p2: OptionalUIntDict) -> (r1: OptionalUIntDict, r2: OptionalUIntDict);
-        opOptionalVarUIntDict(p1: OptionalVarUIntDict, p2: OptionalVarUIntDict) -> (
-            r1: OptionalVarUIntDict,
-            r2: OptionalVarUIntDict,
-        );
-        opOptionalLongDict(p1: OptionalLongDict, p2: OptionalLongDict) -> (r1: OptionalLongDict, r2: OptionalLongDict);
-        opOptionalVarLongDict(p1: OptionalVarLongDict, p2: OptionalVarLongDict) -> (
-            r1: OptionalVarLongDict,
-            r2: OptionalVarLongDict,
-        );
-        opOptionalULongDict(p1: OptionalULongDict, p2: OptionalULongDict) -> (
-            r1: OptionalULongDict,
-            r2: OptionalULongDict,
-        );
-        opOptionalVarULongDict(p1: OptionalVarULongDict, p2: OptionalVarULongDict) -> (
-            r1: OptionalVarULongDict,
-            r2: OptionalVarULongDict,
-        );
-        opOptionalStringDict(p1: OptionalStringDict, p2: OptionalStringDict) -> (
-            r1: OptionalStringDict,
-            r2: OptionalStringDict,
-        );
-
         // Dictionaries with constructed types
         opMyEnumDict(p1: MyEnumDict, p2: MyEnumDict) -> (r1: MyEnumDict, r2: MyEnumDict);
         opMyFixedLengthEnumDict(p1: MyFixedLengthEnumDict, p2: MyFixedLengthEnumDict) -> (
@@ -140,42 +78,12 @@ module IceRpc::Tests::Slice
             r2: AnotherCompactStructDict,
         );
 
-        // Dictionaries with optional constructed types
-        opOptionalMyEnumDict(p1: OptionalMyEnumDict, p2: OptionalMyEnumDict) -> (
-            r1: OptionalMyEnumDict,
-            r2: OptionalMyEnumDict,
-        );
-        opOptionalMyFixedLengthEnumDict(p1: OptionalMyFixedLengthEnumDict, p2: OptionalMyFixedLengthEnumDict) -> (
-            r1: OptionalMyFixedLengthEnumDict,
-            r2: OptionalMyFixedLengthEnumDict,
-        );
-        opOptionalMyUncheckedEnumDict(p1: OptionalMyUncheckedEnumDict, p2: OptionalMyUncheckedEnumDict) -> (
-            r1: OptionalMyUncheckedEnumDict,
-            r2: OptionalMyUncheckedEnumDict,
-        );
-        opOptionalMyCompactStructDict(p1: OptionalMyCompactStructDict, p2: OptionalMyCompactStructDict) -> (
-            r1: OptionalMyCompactStructDict,
-            r2: OptionalMyCompactStructDict,
-        );
-        opOptionalOperationsDict(p1: OptionalOperationsDict, p2: OptionalOperationsDict) -> (
-            r1: OptionalOperationsDict,
-            r2: OptionalOperationsDict,
-        );
-        opOptionalAnotherCompactStructDict(p1: OptionalAnotherCompactStructDict, p2: OptionalAnotherCompactStructDict) -> (
-            r1: OptionalAnotherCompactStructDict,
-            r2: OptionalAnotherCompactStructDict,
-        );
-
         // Sorted dictionaries with builtin types
         opByteCustomDict(p1: ByteCustomDict, p2: ByteCustomDict) -> (r1: ByteCustomDict, r2: ByteCustomDict);
         opBoolCustomDict(p1: BoolCustomDict, p2: BoolCustomDict) -> (r1: BoolCustomDict, r2: BoolCustomDict);
         opShortCustomDict(p1: ShortCustomDict, p2: ShortCustomDict) -> (r1: ShortCustomDict, r2: ShortCustomDict);
         opUShortCustomDict(p1: UShortCustomDict, p2: UShortCustomDict) -> (r1: UShortCustomDict, r2: UShortCustomDict);
         opIntCustomDict(p1: IntCustomDict, p2: IntCustomDict) -> (r1: IntCustomDict, r2: IntCustomDict);
-        opOptionalIntCustomDict(p1: OptionalIntCustomDict, p2: OptionalIntCustomDict) -> (
-            r1: OptionalIntCustomDict,
-            r2: OptionalIntCustomDict,
-        );
         opVarIntCustomDict(p1: VarIntCustomDict, p2: VarIntCustomDict) -> (r1: VarIntCustomDict, r2: VarIntCustomDict);
         opUIntCustomDict(p1: UIntCustomDict, p2: UIntCustomDict) -> (r1: UIntCustomDict, r2: UIntCustomDict);
         opVarUIntCustomDict(p1: VarUIntCustomDict, p2: VarUIntCustomDict) -> (
@@ -193,10 +101,6 @@ module IceRpc::Tests::Slice
             r2: VarULongCustomDict,
         );
         opStringCustomDict(p1: StringCustomDict, p2: StringCustomDict) -> (r1: StringCustomDict, r2: StringCustomDict);
-        opOptionalStringCustomDict(p1: OptionalStringCustomDict, p2: OptionalStringCustomDict) -> (
-            r1: OptionalStringCustomDict,
-            r2: OptionalStringCustomDict,
-        );
 
         // Sorted dictionaries with constructed types
         opMyEnumCustomDict(p1: MyEnumCustomDict, p2: MyEnumCustomDict) -> (r1: MyEnumCustomDict, r2: MyEnumCustomDict);
