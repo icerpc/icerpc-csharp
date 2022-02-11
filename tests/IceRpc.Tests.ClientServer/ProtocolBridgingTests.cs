@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Slice;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -83,10 +84,11 @@ namespace IceRpc.Tests.ClientServer
 
                 var invocation = new Invocation
                 {
-                    Context = new Dictionary<string, string> { ["MyCtx"] = "hello" }
+                    Features = new FeatureCollection().WithContext(
+                        new Dictionary<string, string> { ["MyCtx"] = "hello" })
                 };
                 await prx.OpContextAsync(invocation);
-                CollectionAssert.AreEqual(invocation.Context, targetService.Context);
+                CollectionAssert.AreEqual(invocation.Features.GetContext(), targetService.Context);
                 targetService.Context = ImmutableDictionary<string, string>.Empty;
 
                 await prx.OpVoidAsync();
@@ -116,7 +118,7 @@ namespace IceRpc.Tests.ClientServer
 
             public ValueTask OpContextAsync(Dispatch dispatch, CancellationToken cancel)
             {
-                Context = dispatch.Context.ToImmutableDictionary();
+                Context = dispatch.Features.GetContext().ToImmutableDictionary();
                 return default;
             }
             public ValueTask OpExceptionAsync(Dispatch dispatch, CancellationToken cancel) =>
@@ -150,28 +152,20 @@ namespace IceRpc.Tests.ClientServer
 
                 Protocol targetProtocol = _target.Protocol;
 
-                // Fields and context forwarding
-                IDictionary<int, ReadOnlyMemory<byte>> fields = ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
+                // Context forwarding
                 FeatureCollection features = FeatureCollection.Empty;
-
-                if (incomingRequest.Protocol == Protocol.IceRpc && targetProtocol == Protocol.IceRpc)
+                if (incomingRequest.Protocol == Protocol.Ice || targetProtocol == Protocol.Ice)
                 {
-                    // The context is just another field, features remain empty
-                    fields = incomingRequest.Fields;
-                }
-                else
-                {
-                    // When Protocol or targetProtocol is Ice, fields remains empty and we put only the request context
-                    // in the initial features of the new outgoing request
+                    // When Protocol or targetProtocol is ice, we put the request context in the initial features of the
+                    // new outgoing request to ensure it gets forwarded.
                     features = features.WithContext(incomingRequest.Features.GetContext());
                 }
 
                 var outgoingRequest = new OutgoingRequest(_target, incomingRequest.Operation)
                 {
                     Features = features,
-                    Fields = fields,
+                    Fields = incomingRequest.Fields, // mostly ignored by ice, with the exception of Idempotent
                     IsOneway = incomingRequest.IsOneway,
-                    IsIdempotent = incomingRequest.IsIdempotent,
                     PayloadEncoding = incomingRequest.PayloadEncoding,
                     PayloadSource = incomingRequest.Payload
                 };

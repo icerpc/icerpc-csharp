@@ -1,0 +1,7 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+[cs:namespace(IceRpc)]
+module Ice
+{
+    typealias IdentityPath = IceRpc::Slice::IdentityPath;
+}

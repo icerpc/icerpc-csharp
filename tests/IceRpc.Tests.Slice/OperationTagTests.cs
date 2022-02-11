@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
-using IceRpc.Slice;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.IO.Pipelines;
@@ -134,27 +133,27 @@ namespace IceRpc.Tests.Slice
             }
 
             {
-                (MyStruct? r1, MyStruct? r2) = await doublePrx.OpMyStructAsync(null);
+                (MyCompactStruct? r1, MyCompactStruct? r2) = await doublePrx.OpMyCompactStructAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                var p1 = new MyStruct(1, 1);
-                (r1, r2) = await doublePrx.OpMyStructAsync(p1);
+                var p1 = new MyCompactStruct(1, 1);
+                (r1, r2) = await doublePrx.OpMyCompactStructAsync(p1);
                 Assert.AreEqual(p1, r1);
                 Assert.AreEqual(p1, r2);
             }
 
             {
-                (AnotherStruct? r1, AnotherStruct? r2) = await doublePrx.OpAnotherStructAsync(null);
+                (AnotherCompactStruct? r1, AnotherCompactStruct? r2) = await doublePrx.OpAnotherCompactStructAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                var p1 = new AnotherStruct(
+                var p1 = new AnotherCompactStruct(
                     "hello",
                     OperationsPrx.Parse("icerpc://localhost/hello"),
                     MyEnum.enum1,
-                    new MyStruct(1, 1));
-                (r1, r2) = await doublePrx.OpAnotherStructAsync(p1);
+                    new MyCompactStruct(1, 1));
+                (r1, r2) = await doublePrx.OpAnotherCompactStructAsync(p1);
                 Assert.AreEqual(p1, r1);
                 Assert.AreEqual(p1, r2);
             }
@@ -424,95 +423,95 @@ namespace IceRpc.Tests.Slice
             }
 
             {
-                (MyStruct[]? r1, MyStruct[]? r2) = await doublePrx.OpMyStructSeqAsync(null);
+                (MyCompactStruct[]? r1, MyCompactStruct[]? r2) = await doublePrx.OpMyCompactStructSeqAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                var p1 = new MyStruct[] { new MyStruct(1, 1) };
-                (r1, r2) = await doublePrx.OpMyStructSeqAsync(p1);
+                var p1 = new MyCompactStruct[] { new MyCompactStruct(1, 1) };
+                (r1, r2) = await doublePrx.OpMyCompactStructSeqAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p1, r2);
             }
 
             {
-                (List<MyStruct>? r1, List<MyStruct>? r2) = await doublePrx.OpMyStructListAsync(null);
+                (List<MyCompactStruct>? r1, List<MyCompactStruct>? r2) = await doublePrx.OpMyCompactStructListAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                var p1 = new List<MyStruct> { new MyStruct(1, 1) };
-                (r1, r2) = await doublePrx.OpMyStructListAsync(p1);
+                var p1 = new List<MyCompactStruct> { new MyCompactStruct(1, 1) };
+                (r1, r2) = await doublePrx.OpMyCompactStructListAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p1, r2);
             }
 
             {
-                (MyStruct?[]? r1, MyStruct?[]? r2) = await doublePrx.OpOptionalMyStructSeqAsync(null);
+                (MyCompactStruct?[]? r1, MyCompactStruct?[]? r2) = await doublePrx.OpOptionalMyCompactStructSeqAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                var p1 = new MyStruct?[] { new MyStruct(1, 1), null, new MyStruct(1, 1) };
-                (r1, r2) = await doublePrx.OpOptionalMyStructSeqAsync(p1);
+                var p1 = new MyCompactStruct?[] { new MyCompactStruct(1, 1), null, new MyCompactStruct(1, 1) };
+                (r1, r2) = await doublePrx.OpOptionalMyCompactStructSeqAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p1, r2);
             }
 
             {
-                (AnotherStruct[]? r1, AnotherStruct[]? r2) = await doublePrx.OpAnotherStructSeqAsync(null);
+                (AnotherCompactStruct[]? r1, AnotherCompactStruct[]? r2) = await doublePrx.OpAnotherCompactStructSeqAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                var p1 = new AnotherStruct[]
+                var p1 = new AnotherCompactStruct[]
                 {
-                    new AnotherStruct(
+                    new AnotherCompactStruct(
                         "hello",
                         OperationsPrx.Parse("icerpc://localhost/hello"),
                         MyEnum.enum1,
-                        new MyStruct(1, 1))
+                        new MyCompactStruct(1, 1))
                 };
-                (r1, r2) = await doublePrx.OpAnotherStructSeqAsync(p1);
+                (r1, r2) = await doublePrx.OpAnotherCompactStructSeqAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p1, r2);
             }
 
             {
-                (List<AnotherStruct>? r1, List<AnotherStruct>? r2) = await doublePrx.OpAnotherStructListAsync(null);
+                (List<AnotherCompactStruct>? r1, List<AnotherCompactStruct>? r2) = await doublePrx.OpAnotherCompactStructListAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                var p1 = new List<AnotherStruct>
+                var p1 = new List<AnotherCompactStruct>
                 {
-                    new AnotherStruct(
+                    new AnotherCompactStruct(
                         "hello",
                         OperationsPrx.Parse("icerpc://localhost/hello"),
                         MyEnum.enum1,
-                        new MyStruct(1, 1))
+                        new MyCompactStruct(1, 1))
                 };
-                (r1, r2) = await doublePrx.OpAnotherStructListAsync(p1);
+                (r1, r2) = await doublePrx.OpAnotherCompactStructListAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p1, r2);
             }
 
             {
-                (AnotherStruct?[]? r1, AnotherStruct?[]? r2) = await doublePrx.OpOptionalAnotherStructSeqAsync(null);
+                (AnotherCompactStruct?[]? r1, AnotherCompactStruct?[]? r2) = await doublePrx.OpOptionalAnotherCompactStructSeqAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                var p1 = new AnotherStruct?[]
+                var p1 = new AnotherCompactStruct?[]
                 {
-                    new AnotherStruct(
+                    new AnotherCompactStruct(
                         "hello",
                         OperationsPrx.Parse("icerpc://localhost/hello"),
                         MyEnum.enum1,
-                        new MyStruct(1, 1)),
+                        new MyCompactStruct(1, 1)),
                     null,
-                    new AnotherStruct(
+                    new AnotherCompactStruct(
                         "hello",
                         OperationsPrx.Parse("icerpc://localhost/hello"),
                         MyEnum.enum1,
-                        new MyStruct(1, 1)),
+                        new MyCompactStruct(1, 1)),
 
                 };
-                (r1, r2) = await doublePrx.OpOptionalAnotherStructSeqAsync(p1);
+                (r1, r2) = await doublePrx.OpOptionalAnotherCompactStructSeqAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p1, r2);
             }
@@ -617,11 +616,11 @@ namespace IceRpc.Tests.Slice
             encodedResultPrx.Proxy.Encoding = _prx.Proxy.Encoding;
 
             {
-                MyStruct? r1 = await encodedResultPrx.OpMyStructAsync(null);
+                MyCompactStruct? r1 = await encodedResultPrx.OpMyCompactStructAsync(null);
                 Assert.That(r1, Is.Null);
 
-                var p1 = new MyStruct(1, 1);
-                r1 = await encodedResultPrx.OpMyStructAsync(p1);
+                var p1 = new MyCompactStruct(1, 1);
+                r1 = await encodedResultPrx.OpMyCompactStructAsync(p1);
                 Assert.AreEqual(p1, r1);
             }
 
@@ -720,23 +719,23 @@ namespace IceRpc.Tests.Slice
 
     public class OperationTagDouble : Service, IOperationTagDouble
     {
-        public ValueTask<(AnotherStruct? R1, AnotherStruct? R2)> OpAnotherStructAsync(
-            AnotherStruct? p1,
+        public ValueTask<(AnotherCompactStruct? R1, AnotherCompactStruct? R2)> OpAnotherCompactStructAsync(
+            AnotherCompactStruct? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(IEnumerable<AnotherStruct>? R1, IEnumerable<AnotherStruct>? R2)> OpAnotherStructListAsync(
-            List<AnotherStruct>? p1,
+        public ValueTask<(IEnumerable<AnotherCompactStruct>? R1, IEnumerable<AnotherCompactStruct>? R2)> OpAnotherCompactStructListAsync(
+            List<AnotherCompactStruct>? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(IEnumerable<AnotherStruct>? R1, IEnumerable<AnotherStruct>? R2)> OpAnotherStructSeqAsync(
-            AnotherStruct[]? p1,
+        public ValueTask<(IEnumerable<AnotherCompactStruct>? R1, IEnumerable<AnotherCompactStruct>? R2)> OpAnotherCompactStructSeqAsync(
+            AnotherCompactStruct[]? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(IEnumerable<AnotherStruct?>? R1, IEnumerable<AnotherStruct?>? R2)> OpOptionalAnotherStructSeqAsync(
-            AnotherStruct?[]? p1,
+        public ValueTask<(IEnumerable<AnotherCompactStruct?>? R1, IEnumerable<AnotherCompactStruct?>? R2)> OpOptionalAnotherCompactStructSeqAsync(
+            AnotherCompactStruct?[]? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
@@ -885,23 +884,23 @@ namespace IceRpc.Tests.Slice
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(MyStruct? R1, MyStruct? R2)> OpMyStructAsync(
-            MyStruct? p1,
+        public ValueTask<(MyCompactStruct? R1, MyCompactStruct? R2)> OpMyCompactStructAsync(
+            MyCompactStruct? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(IEnumerable<MyStruct>? R1, IEnumerable<MyStruct>? R2)> OpMyStructListAsync(
-            List<MyStruct>? p1,
+        public ValueTask<(IEnumerable<MyCompactStruct>? R1, IEnumerable<MyCompactStruct>? R2)> OpMyCompactStructListAsync(
+            List<MyCompactStruct>? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(IEnumerable<MyStruct>? R1, IEnumerable<MyStruct>? R2)> OpMyStructSeqAsync(
-            MyStruct[]? p1,
+        public ValueTask<(IEnumerable<MyCompactStruct>? R1, IEnumerable<MyCompactStruct>? R2)> OpMyCompactStructSeqAsync(
+            MyCompactStruct[]? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<(IEnumerable<MyStruct?>? R1, IEnumerable<MyStruct?>? R2)> OpOptionalMyStructSeqAsync(
-            MyStruct?[]? p1,
+        public ValueTask<(IEnumerable<MyCompactStruct?>? R1, IEnumerable<MyCompactStruct?>? R2)> OpOptionalMyCompactStructSeqAsync(
+            MyCompactStruct?[]? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
@@ -1008,11 +1007,11 @@ namespace IceRpc.Tests.Slice
             Dispatch dispatch,
             CancellationToken cancel) => new(new IOperationTagEncodedResult.OpStringSeqEncodedResult(p1, dispatch));
 
-        public ValueTask<IOperationTagEncodedResult.OpMyStructEncodedResult> OpMyStructAsync(
-            MyStruct? p1,
+        public ValueTask<IOperationTagEncodedResult.OpMyCompactStructEncodedResult> OpMyCompactStructAsync(
+            MyCompactStruct? p1,
             Dispatch dispatch,
             CancellationToken cancel) =>
-            new(new IOperationTagEncodedResult.OpMyStructEncodedResult(p1, dispatch));
+            new(new IOperationTagEncodedResult.OpMyCompactStructEncodedResult(p1, dispatch));
     }
 
     public class OperationTag : Service, IOperationTag

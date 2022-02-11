@@ -38,21 +38,11 @@ namespace IceRpc.Slice
                 {
                     case ReplyStatus.ObjectNotExistException:
                     case ReplyStatus.OperationNotExistException:
-                        Identity identity;
-                        try
-                        {
-                            identity = Identity.FromPath(v.Origin.Path);
-                        }
-                        catch
-                        {
-                            // ignored, i.e. we'll encode an empty identity + facet
-                            identity = Identity.Empty;
-                        }
-
                         var requestFailed = new RequestFailedExceptionData(
-                            identity,
-                            Facet.FromFragment(v.Origin.Fragment),
+                            v.Origin.Path,
+                            v.Origin.Fragment,
                             v.Origin.Operation);
+
                         requestFailed.Encode(ref this);
                         break;
 
@@ -125,7 +115,7 @@ namespace IceRpc.Slice
             // before the indirection table and are included in the slice size.
             if ((_classContext.Current.SliceFlags & SliceFlags.HasTaggedMembers) != 0)
             {
-                EncodeByte(TagEndMarker);
+                EncodeByte(Slice11Definitions.TagEndMarker);
             }
 
             // Encodes the slice size if necessary.

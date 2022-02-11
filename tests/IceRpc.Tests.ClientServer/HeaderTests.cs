@@ -49,7 +49,7 @@ namespace IceRpc.Tests.ClientServer
                         new InlineInvoker(async (request, cancel) =>
                         {
                             IncomingResponse response = await next.InvokeAsync(request, cancel);
-                            if (response.Fields.Get(1, (ref SliceDecoder decoder) => decoder.DecodeString())
+                            if (response.Fields.DecodeValue(1, (ref SliceDecoder decoder) => decoder.DecodeString())
                                 is string stringValue)
                             {
                                 request.Features = request.Features.With(stringValue);
@@ -64,7 +64,7 @@ namespace IceRpc.Tests.ClientServer
 
             var invocation = new Invocation
             {
-                Context = new Dictionary<string, string> { ["foo"] = largeValue },
+                Features = new FeatureCollection().WithContext(new Dictionary<string, string> { ["foo"] = largeValue }),
                 IsOneway = serviceProvider.GetRequiredService<Endpoint>().Params.TryGetValue(
                     "transport",
                     out string? transport) && transport == "udp"
@@ -84,7 +84,7 @@ namespace IceRpc.Tests.ClientServer
 
             public ValueTask SayHelloAsync(string message, Dispatch dispatch, CancellationToken cancel)
             {
-                Assert.AreEqual(_expectedValue, dispatch.Context["foo"]);
+                Assert.AreEqual(_expectedValue, dispatch.Features.GetContext()["foo"]);
                 dispatch.Features = dispatch.Features.With(_expectedValue);
                 return default;
             }

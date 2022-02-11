@@ -89,7 +89,7 @@ namespace IceRpc
             Interlocked.Increment(ref _currentRequests);
             if (IsEnabled(EventLevel.Informational, EventKeywords.None))
             {
-                RequestStart(request.Path, request.Operation);
+                RequestStart(request.Proxy.Path, request.Operation);
             }
         }
 
@@ -99,7 +99,7 @@ namespace IceRpc
             Interlocked.Decrement(ref _currentRequests);
             if (IsEnabled(EventLevel.Informational, EventKeywords.None))
             {
-                RequestStop(request.Path, request.Operation);
+                RequestStop(request.Proxy.Path, request.Operation);
             }
         }
 
@@ -109,7 +109,7 @@ namespace IceRpc
             Interlocked.Increment(ref _canceledRequests);
             if (IsEnabled(EventLevel.Informational, EventKeywords.None))
             {
-                RequestCanceled(request.Path, request.Operation);
+                RequestCanceled(request.Proxy.Path, request.Operation);
             }
         }
 
@@ -123,7 +123,7 @@ namespace IceRpc
             Interlocked.Increment(ref _failedRequests);
             if (IsEnabled(EventLevel.Informational, EventKeywords.None))
             {
-                RequestFailed(request.Path, request.Operation, exception);
+                RequestFailed(request.Proxy.Path, request.Operation, exception);
             }
         }
 

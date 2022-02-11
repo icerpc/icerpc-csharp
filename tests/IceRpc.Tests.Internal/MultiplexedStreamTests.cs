@@ -6,7 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
 using System.IO.Pipelines;
-using System.Text;
 namespace IceRpc.Tests.Internal
 {
     [Timeout(5000)]

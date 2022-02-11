@@ -14,22 +14,16 @@ namespace IceRpc.Internal
         {
             if (frame.Protocol.HasFields)
             {
-                // TODO: switch to class for CompressionField?
-                CompressionField compressionField = frame.Fields.Get(
-                    (int)FieldKey.Compression,
-                    (ref SliceDecoder decoder) => new CompressionField(ref decoder));
+                CompressionFormat compressionFormat = frame.Fields.DecodeValue(
+                    (int)FieldKey.CompressionFormat,
+                    (ref SliceDecoder decoder) => decoder.DecodeCompressionFormat());
 
-                if (compressionField != default) // default means not set
+                if (compressionFormat == CompressionFormat.Deflate)
                 {
-                    if (compressionField.Format != CompressionFormat.Deflate)
-                    {
-                        throw new NotSupportedException(
-                            $"cannot decompress compression format '{compressionField.Format}'");
-                    }
-
                     frame.Payload = PipeReader.Create(
                         new DeflateStream(frame.Payload.AsStream(), CompressionMode.Decompress));
                 }
+                // else don't do anything
             }
         }
     }

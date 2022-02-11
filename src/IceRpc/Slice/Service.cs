@@ -1,16 +1,14 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace IceRpc
+namespace IceRpc.Slice
 {
     /// <summary>Base class of all services that implement Slice-defined interfaces.</summary>
-    /// <remarks>This class is part of the Slice engine code.</remarks>
     public class Service : IService, IDispatcher
     {
         /// <summary>A delegate that matches the signature of the generated SliceDXxx methods. For the generated

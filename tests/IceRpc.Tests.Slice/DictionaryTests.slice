@@ -33,16 +33,16 @@ module IceRpc::Tests::Slice
     typealias MyEnumDict = dictionary<MyEnum, MyEnum>;
     typealias MyFixedLengthEnumDict = dictionary<MyFixedLengthEnum, MyFixedLengthEnum>;
     typealias MyUncheckedEnumDict = dictionary<MyUncheckedEnum, MyUncheckedEnum>;
-    typealias MyStructDict = dictionary<MyStruct, MyStruct>;
+    typealias MyCompactStructDict = dictionary<MyCompactStruct, MyCompactStruct>;
     typealias OperationsDict = dictionary<string, Operations>;
-    typealias AnotherStructDict = dictionary<string, AnotherStruct>;
+    typealias AnotherCompactStructDict = dictionary<string, AnotherCompactStruct>;
 
     typealias OptionalMyEnumDict = dictionary<MyEnum, MyEnum?>;
     typealias OptionalMyFixedLengthEnumDict = dictionary<MyFixedLengthEnum, MyFixedLengthEnum?>;
     typealias OptionalMyUncheckedEnumDict = dictionary<MyUncheckedEnum, MyUncheckedEnum?>;
-    typealias OptionalMyStructDict = dictionary<MyStruct, MyStruct?>;
+    typealias OptionalMyCompactStructDict = dictionary<MyCompactStruct, MyCompactStruct?>;
     typealias OptionalOperationsDict = dictionary<string, Operations?>;
-    typealias OptionalAnotherStructDict = dictionary<string, AnotherStruct?>;
+    typealias OptionalAnotherCompactStructDict = dictionary<string, AnotherCompactStruct?>;
 
     typealias ByteCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<byte, byte>;
     typealias BoolCustomDict = [cs:generic("IceRpc.Tests.Slice.CustomDictionary")] dictionary<bool, bool>;
@@ -130,11 +130,14 @@ module IceRpc::Tests::Slice
             r1: MyUncheckedEnumDict,
             r2: MyUncheckedEnumDict,
         );
-        opMyStructDict(p1: MyStructDict, p2: MyStructDict) -> (r1: MyStructDict, r2: MyStructDict);
+        opMyCompactStructDict(p1: MyCompactStructDict, p2: MyCompactStructDict) -> (
+            r1: MyCompactStructDict,
+            r2: MyCompactStructDict,
+        );
         opOperationsDict(p1: OperationsDict, p2: OperationsDict) -> (r1: OperationsDict, r2: OperationsDict);
-        opAnotherStructDict(p1: AnotherStructDict, p2: AnotherStructDict) -> (
-            r1: AnotherStructDict,
-            r2: AnotherStructDict,
+        opAnotherCompactStructDict(p1: AnotherCompactStructDict, p2: AnotherCompactStructDict) -> (
+            r1: AnotherCompactStructDict,
+            r2: AnotherCompactStructDict,
         );
 
         // Dictionaries with optional constructed types
@@ -150,17 +153,17 @@ module IceRpc::Tests::Slice
             r1: OptionalMyUncheckedEnumDict,
             r2: OptionalMyUncheckedEnumDict,
         );
-        opOptionalMyStructDict(p1: OptionalMyStructDict, p2: OptionalMyStructDict) -> (
-            r1: OptionalMyStructDict,
-            r2: OptionalMyStructDict,
+        opOptionalMyCompactStructDict(p1: OptionalMyCompactStructDict, p2: OptionalMyCompactStructDict) -> (
+            r1: OptionalMyCompactStructDict,
+            r2: OptionalMyCompactStructDict,
         );
         opOptionalOperationsDict(p1: OptionalOperationsDict, p2: OptionalOperationsDict) -> (
             r1: OptionalOperationsDict,
             r2: OptionalOperationsDict,
         );
-        opOptionalAnotherStructDict(p1: OptionalAnotherStructDict, p2: OptionalAnotherStructDict) -> (
-            r1: OptionalAnotherStructDict,
-            r2: OptionalAnotherStructDict,
+        opOptionalAnotherCompactStructDict(p1: OptionalAnotherCompactStructDict, p2: OptionalAnotherCompactStructDict) -> (
+            r1: OptionalAnotherCompactStructDict,
+            r2: OptionalAnotherCompactStructDict,
         );
 
         // Sorted dictionaries with builtin types

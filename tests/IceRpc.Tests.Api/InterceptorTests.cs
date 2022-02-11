@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Slice;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
@@ -137,7 +138,7 @@ namespace IceRpc.Tests.Api
             Dictionary<string, string> ctx = await prx.OpContextAsync(
                 new Invocation
                 {
-                    Context = new Dictionary<string, string> { ["foo"] = "baz" }
+                    Features = new FeatureCollection().WithContext(new Dictionary<string, string> { ["foo"] = "baz" })
                 });
             CollectionAssert.AreEqual(ctx, new SortedDictionary<string, string> { ["foo"] = "bar" });
         }
@@ -147,7 +148,7 @@ namespace IceRpc.Tests.Api
             public ValueTask<IEnumerable<KeyValuePair<string, string>>> OpContextAsync(
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(dispatch.Context);
+                new(dispatch.Features.GetContext());
 
             public ValueTask<int> OpIntAsync(int value, Dispatch dispatch, CancellationToken cancel) => new(value);
         }

@@ -269,34 +269,38 @@ namespace IceRpc.Tests.Slice
                     Enumerable.Range(0, size).Select(i => (MyUncheckedEnum)i)));
 
             await TestEnumerableSeqAsync(
-                (p1, p2) => _prx.OpMyStructSeqAsync(p1, p2),
-                Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1)).ToArray(),
-                Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1)).ToArray());
+                (p1, p2) => _prx.OpMyCompactStructSeqAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => new MyCompactStruct(i, i + 1)).ToArray(),
+                Enumerable.Range(0, size).Select(i => new MyCompactStruct(i, i + 1)).ToArray());
 
             await TestListAsync(
-                (p1, p2) => _prx.OpMyStructListAsync(p1, p2),
-                Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1)).ToList(),
-                Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1)).ToList());
+                (p1, p2) => _prx.OpMyCompactStructListAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => new MyCompactStruct(i, i + 1)).ToList(),
+                Enumerable.Range(0, size).Select(i => new MyCompactStruct(i, i + 1)).ToList());
 
             await TestCustomSeqAsync(
-                (p1, p2) => _prx.OpMyStructCustomSeqAsync(p1, p2),
-                new CustomSequence<MyStruct>(Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1))),
-                new CustomSequence<MyStruct>(Enumerable.Range(0, size).Select(i => new MyStruct(i, i + 1))));
+                (p1, p2) => _prx.OpMyCompactStructCustomSeqAsync(p1, p2),
+                new CustomSequence<MyCompactStruct>(
+                    Enumerable.Range(0, size).Select(i => new MyCompactStruct(i, i + 1))),
+                new CustomSequence<MyCompactStruct>(
+                    Enumerable.Range(0, size).Select(i => new MyCompactStruct(i, i + 1))));
 
             await TestEnumerableSeqAsync(
-                (p1, p2) => _prx.OpAnotherStructSeqAsync(p1, p2),
-                Enumerable.Range(0, size).Select(i => GetAnotherStruct(myEnumValues, i)).ToArray(),
-                Enumerable.Range(0, size).Select(i => GetAnotherStruct(myEnumValues, i)).ToArray());
+                (p1, p2) => _prx.OpAnotherCompactStructSeqAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => GetAnotherCompactStruct(myEnumValues, i)).ToArray(),
+                Enumerable.Range(0, size).Select(i => GetAnotherCompactStruct(myEnumValues, i)).ToArray());
 
             await TestListAsync(
-                (p1, p2) => _prx.OpAnotherStructListAsync(p1, p2),
-                Enumerable.Range(0, size).Select(i => GetAnotherStruct(myEnumValues, i)).ToList(),
-                Enumerable.Range(0, size).Select(i => GetAnotherStruct(myEnumValues, i)).ToList());
+                (p1, p2) => _prx.OpAnotherCompactStructListAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => GetAnotherCompactStruct(myEnumValues, i)).ToList(),
+                Enumerable.Range(0, size).Select(i => GetAnotherCompactStruct(myEnumValues, i)).ToList());
 
             await TestCustomSeqAsync(
-                (p1, p2) => _prx.OpAnotherStructCustomSeqAsync(p1, p2),
-                new CustomSequence<AnotherStruct>(Enumerable.Range(0, size).Select(i => GetAnotherStruct(myEnumValues, i))),
-                new CustomSequence<AnotherStruct>(Enumerable.Range(0, size).Select(i => GetAnotherStruct(myEnumValues, i))));
+                (p1, p2) => _prx.OpAnotherCompactStructCustomSeqAsync(p1, p2),
+                new CustomSequence<AnotherCompactStruct>(
+                    Enumerable.Range(0, size).Select(i => GetAnotherCompactStruct(myEnumValues, i))),
+                new CustomSequence<AnotherCompactStruct>(
+                    Enumerable.Range(0, size).Select(i => GetAnotherCompactStruct(myEnumValues, i))));
 
             await TestEnumerableSeqAsync(
                 (p1, p2) => _prx.OpOperationsSeqAsync(p1, p2),
@@ -344,11 +348,11 @@ namespace IceRpc.Tests.Slice
                 Enumerable.Range(0, size).Select(i => (MyUncheckedEnum)i).ToArray());
 
             await TestEnumerableSeqAsync(
-                (p1, p2) => _prx.OpOptionalMyStructSeqAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalMyCompactStructSeqAsync(p1, p2),
                 Enumerable.Range(0, size).Select(
-                    i => i % 2 == 0 ? (MyStruct?)new MyStruct(i, i + 1) : null).ToArray(),
+                    i => i % 2 == 0 ? (MyCompactStruct?)new MyCompactStruct(i, i + 1) : null).ToArray(),
                 Enumerable.Range(0, size).Select(
-                    i => i % 2 == 0 ? (MyStruct?)new MyStruct(i, i + 1) : null).ToArray());
+                    i => i % 2 == 0 ? (MyCompactStruct?)new MyCompactStruct(i, i + 1) : null).ToArray());
 
             await TestEnumerableSeqAsync(
                 (p1, p2) => _prx.OpOptionalOperationsSeqAsync(p1, p2),
@@ -356,11 +360,11 @@ namespace IceRpc.Tests.Slice
                 Enumerable.Range(0, size).Select(i => i == 0 ? (OperationsPrx?)GetOperationsPrx(i) : null).ToArray());
 
             await TestEnumerableSeqAsync(
-                (p1, p2) => _prx.OpOptionalAnotherStructSeqAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalAnotherCompactStructSeqAsync(p1, p2),
                 Enumerable.Range(0, size).Select(
-                    i => i % 2 == 0 ? (AnotherStruct?)GetAnotherStruct(myEnumValues, i) : null).ToArray(),
+                    i => i % 2 == 0 ? (AnotherCompactStruct?)GetAnotherCompactStruct(myEnumValues, i) : null).ToArray(),
                 Enumerable.Range(0, size).Select(
-                    i => i % 2 == 0 ? (AnotherStruct?)GetAnotherStruct(myEnumValues, i) : null).ToArray());
+                    i => i % 2 == 0 ? (AnotherCompactStruct?)GetAnotherCompactStruct(myEnumValues, i) : null).ToArray());
         }
 
         public class SequenceOperations : Service, ISequenceOperations
@@ -567,9 +571,9 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<MyStruct> R1, IEnumerable<MyStruct> R2)> OpMyStructSeqAsync(
-                MyStruct[] p1,
-                MyStruct[] p2,
+            public ValueTask<(IEnumerable<MyCompactStruct> R1, IEnumerable<MyCompactStruct> R2)> OpMyCompactStructSeqAsync(
+                MyCompactStruct[] p1,
+                MyCompactStruct[] p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -579,9 +583,9 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<AnotherStruct> R1, IEnumerable<AnotherStruct> R2)> OpAnotherStructSeqAsync(
-                AnotherStruct[] p1,
-                AnotherStruct[] p2,
+            public ValueTask<(IEnumerable<AnotherCompactStruct> R1, IEnumerable<AnotherCompactStruct> R2)> OpAnotherCompactStructSeqAsync(
+                AnotherCompactStruct[] p1,
+                AnotherCompactStruct[] p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -604,9 +608,9 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<MyStruct?> R1, IEnumerable<MyStruct?> R2)> OpOptionalMyStructSeqAsync(
-                MyStruct?[] p1,
-                MyStruct?[] p2,
+            public ValueTask<(IEnumerable<MyCompactStruct?> R1, IEnumerable<MyCompactStruct?> R2)> OpOptionalMyCompactStructSeqAsync(
+                MyCompactStruct?[] p1,
+                MyCompactStruct?[] p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -616,9 +620,9 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<AnotherStruct?> R1, IEnumerable<AnotherStruct?> R2)> OpOptionalAnotherStructSeqAsync(
-                AnotherStruct?[] p1,
-                AnotherStruct?[] p2,
+            public ValueTask<(IEnumerable<AnotherCompactStruct?> R1, IEnumerable<AnotherCompactStruct?> R2)> OpOptionalAnotherCompactStructSeqAsync(
+                AnotherCompactStruct?[] p1,
+                AnotherCompactStruct?[] p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -731,15 +735,15 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<MyStruct> R1, IEnumerable<MyStruct> R2)> OpMyStructListAsync(
-                List<MyStruct> p1,
-                List<MyStruct> p2,
+            public ValueTask<(IEnumerable<MyCompactStruct> R1, IEnumerable<MyCompactStruct> R2)> OpMyCompactStructListAsync(
+                List<MyCompactStruct> p1,
+                List<MyCompactStruct> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<MyStruct> R1, IEnumerable<MyStruct> R2)> OpMyStructCustomSeqAsync(
-                CustomSequence<MyStruct> p1,
-                CustomSequence<MyStruct> p2,
+            public ValueTask<(IEnumerable<MyCompactStruct> R1, IEnumerable<MyCompactStruct> R2)> OpMyCompactStructCustomSeqAsync(
+                CustomSequence<MyCompactStruct> p1,
+                CustomSequence<MyCompactStruct> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -755,15 +759,15 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<AnotherStruct> R1, IEnumerable<AnotherStruct> R2)> OpAnotherStructListAsync(
-                List<AnotherStruct> p1,
-                List<AnotherStruct> p2,
+            public ValueTask<(IEnumerable<AnotherCompactStruct> R1, IEnumerable<AnotherCompactStruct> R2)> OpAnotherCompactStructListAsync(
+                List<AnotherCompactStruct> p1,
+                List<AnotherCompactStruct> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<AnotherStruct> R1, IEnumerable<AnotherStruct> R2)> OpAnotherStructCustomSeqAsync(
-                CustomSequence<AnotherStruct> p1,
-                CustomSequence<AnotherStruct> p2,
+            public ValueTask<(IEnumerable<AnotherCompactStruct> R1, IEnumerable<AnotherCompactStruct> R2)> OpAnotherCompactStructCustomSeqAsync(
+                CustomSequence<AnotherCompactStruct> p1,
+                CustomSequence<AnotherCompactStruct> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
         }
@@ -832,12 +836,12 @@ namespace IceRpc.Tests.Slice
 
         private static OperationsPrx GetOperationsPrx(int i) => OperationsPrx.Parse($"icerpc://host/foo-{i}");
 
-        private static AnotherStruct GetAnotherStruct(Array myEnumValues, int i)
+        private static AnotherCompactStruct GetAnotherCompactStruct(Array myEnumValues, int i)
         {
-            return new AnotherStruct($"hello-{i}",
+            return new AnotherCompactStruct($"hello-{i}",
                                      GetOperationsPrx(i),
                                      (MyEnum)myEnumValues.GetValue(i % myEnumValues.Length)!,
-                                     new MyStruct(i, i + 1));
+                                     new MyCompactStruct(i, i + 1));
         }
     }
 }

@@ -1,12 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice;
 using System.Collections.Immutable;
 
-namespace IceRpc
+namespace IceRpc.Slice
 {
     /// <summary>Base class for classes defined in Slice.</summary>
-    /// <remarks>This class is part of the Slice engine code.</remarks>
     public abstract class AnyClass
     {
         /// <summary>Returns the unknown slices if the class has a preserved-slice base class and has been sliced-off

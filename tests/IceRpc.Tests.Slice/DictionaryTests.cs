@@ -336,14 +336,18 @@ namespace IceRpc.Tests.Slice
                 Enumerable.Range(0, size).ToDictionary(i => (MyUncheckedEnum)i, i => (MyUncheckedEnum)i));
 
             await TestDictAsync(
-                (p1, p2) => _prx.OpMyStructDictAsync(p1, p2),
-                Enumerable.Range(0, size).ToDictionary(i => new MyStruct(i, i + 1), i => new MyStruct(i, i + 1)),
-                Enumerable.Range(0, size).ToDictionary(i => new MyStruct(i, i + 1), i => new MyStruct(i, i + 1)));
+                (p1, p2) => _prx.OpMyCompactStructDictAsync(p1, p2),
+                Enumerable.Range(0, size).ToDictionary(
+                    i => new MyCompactStruct(i, i + 1),
+                    i => new MyCompactStruct(i, i + 1)),
+                Enumerable.Range(0, size).ToDictionary(
+                    i => new MyCompactStruct(i, i + 1),
+                    i => new MyCompactStruct(i, i + 1)));
 
             await TestDictAsync(
-                (p1, p2) => _prx.OpAnotherStructDictAsync(p1, p2),
-                Enumerable.Range(0, size).ToDictionary(i => $"key-{i}", i => GetAnotherStruct(i)),
-                Enumerable.Range(0, size).ToDictionary(i => $"key-{i}", i => GetAnotherStruct(i)));
+                (p1, p2) => _prx.OpAnotherCompactStructDictAsync(p1, p2),
+                Enumerable.Range(0, size).ToDictionary(i => $"key-{i}", i => GetAnotherCompactStruct(i)),
+                Enumerable.Range(0, size).ToDictionary(i => $"key-{i}", i => GetAnotherCompactStruct(i)));
 
             await TestDictAsync(
                 (p1, p2) => _prx.OpOperationsDictAsync(p1, p2),
@@ -382,12 +386,12 @@ namespace IceRpc.Tests.Slice
 
             OperationsPrx GetOperationsPrx(int i) => OperationsPrx.Parse($"icerpc://host/foo-{i}");
 
-            AnotherStruct GetAnotherStruct(int i)
+            AnotherCompactStruct GetAnotherCompactStruct(int i)
             {
-                return new AnotherStruct($"hello-{i}",
+                return new AnotherCompactStruct($"hello-{i}",
                                          GetOperationsPrx(i),
                                          (MyEnum)myEnumValues.GetValue(i % myEnumValues.Length)!,
-                                         new MyStruct(i, i + 1));
+                                         new MyCompactStruct(i, i + 1));
             }
         }
 
@@ -425,22 +429,22 @@ namespace IceRpc.Tests.Slice
                     i => i % 2 == 0 ? (MyUncheckedEnum?)i : null));
 
             await TestDictAsync(
-                (p1, p2) => _prx.OpOptionalMyStructDictAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalMyCompactStructDictAsync(p1, p2),
                 Enumerable.Range(0, size).ToDictionary(
-                    i => new MyStruct(i, i + 1),
-                    i => i % 2 == 0 ? (MyStruct?)new MyStruct(i, i + 1) : null),
+                    i => new MyCompactStruct(i, i + 1),
+                    i => i % 2 == 0 ? (MyCompactStruct?)new MyCompactStruct(i, i + 1) : null),
                 Enumerable.Range(0, size).ToDictionary(
-                    i => new MyStruct(i, i + 1),
-                    i => i % 2 == 0 ? (MyStruct?)new MyStruct(i, i + 1) : null));
+                    i => new MyCompactStruct(i, i + 1),
+                    i => i % 2 == 0 ? (MyCompactStruct?)new MyCompactStruct(i, i + 1) : null));
 
             await TestDictAsync(
-                (p1, p2) => _prx.OpOptionalAnotherStructDictAsync(p1, p2),
+                (p1, p2) => _prx.OpOptionalAnotherCompactStructDictAsync(p1, p2),
                 Enumerable.Range(0, size).ToDictionary(
                     i => $"key-{i}",
-                    i => i % 2 == 0 ? (AnotherStruct?)GetAnotherStruct(i) : null),
+                    i => i % 2 == 0 ? (AnotherCompactStruct?)GetAnotherCompactStruct(i) : null),
                 Enumerable.Range(0, size).ToDictionary(
                     i => $"key-{i}",
-                    i => i % 2 == 0 ? (AnotherStruct?)GetAnotherStruct(i) : null));
+                    i => i % 2 == 0 ? (AnotherCompactStruct?)GetAnotherCompactStruct(i) : null));
 
             await TestDictAsync(
                 (p1, p2) => _prx.OpOptionalOperationsDictAsync(p1, p2),
@@ -455,12 +459,12 @@ namespace IceRpc.Tests.Slice
 
             OperationsPrx GetOperationsPrx(int i) => OperationsPrx.Parse($"icerpc://host/foo-{i}");
 
-            AnotherStruct GetAnotherStruct(int i)
+            AnotherCompactStruct GetAnotherCompactStruct(int i)
             {
-                return new AnotherStruct($"hello-{i}",
+                return new AnotherCompactStruct($"hello-{i}",
                                          GetOperationsPrx(i),
                                          (MyEnum)myEnumValues.GetValue(i % myEnumValues.Length)!,
-                                         new MyStruct(i, i + 1));
+                                         new MyCompactStruct(i, i + 1));
             }
         }
 
@@ -643,9 +647,9 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<MyStruct, MyStruct>> R1, IEnumerable<KeyValuePair<MyStruct, MyStruct>> R2)> OpMyStructDictAsync(
-                Dictionary<MyStruct, MyStruct> p1,
-                Dictionary<MyStruct, MyStruct> p2,
+            public ValueTask<(IEnumerable<KeyValuePair<MyCompactStruct, MyCompactStruct>> R1, IEnumerable<KeyValuePair<MyCompactStruct, MyCompactStruct>> R2)> OpMyCompactStructDictAsync(
+                Dictionary<MyCompactStruct, MyCompactStruct> p1,
+                Dictionary<MyCompactStruct, MyCompactStruct> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -655,9 +659,9 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<string, AnotherStruct>> R1, IEnumerable<KeyValuePair<string, AnotherStruct>> R2)> OpAnotherStructDictAsync(
-                Dictionary<string, AnotherStruct> p1,
-                Dictionary<string, AnotherStruct> p2,
+            public ValueTask<(IEnumerable<KeyValuePair<string, AnotherCompactStruct>> R1, IEnumerable<KeyValuePair<string, AnotherCompactStruct>> R2)> OpAnotherCompactStructDictAsync(
+                Dictionary<string, AnotherCompactStruct> p1,
+                Dictionary<string, AnotherCompactStruct> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -786,9 +790,9 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<MyStruct, MyStruct?>> R1, IEnumerable<KeyValuePair<MyStruct, MyStruct?>> R2)> OpOptionalMyStructDictAsync(
-                Dictionary<MyStruct, MyStruct?> p1,
-                Dictionary<MyStruct, MyStruct?> p2,
+            public ValueTask<(IEnumerable<KeyValuePair<MyCompactStruct, MyCompactStruct?>> R1, IEnumerable<KeyValuePair<MyCompactStruct, MyCompactStruct?>> R2)> OpOptionalMyCompactStructDictAsync(
+                Dictionary<MyCompactStruct, MyCompactStruct?> p1,
+                Dictionary<MyCompactStruct, MyCompactStruct?> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -798,9 +802,9 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<string, AnotherStruct?>> R1, IEnumerable<KeyValuePair<string, AnotherStruct?>> R2)> OpOptionalAnotherStructDictAsync(
-                Dictionary<string, AnotherStruct?> p1,
-                Dictionary<string, AnotherStruct?> p2,
+            public ValueTask<(IEnumerable<KeyValuePair<string, AnotherCompactStruct?>> R1, IEnumerable<KeyValuePair<string, AnotherCompactStruct?>> R2)> OpOptionalAnotherCompactStructDictAsync(
+                Dictionary<string, AnotherCompactStruct?> p1,
+                Dictionary<string, AnotherCompactStruct?> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
         }

@@ -16,25 +16,37 @@ namespace IceRpc.Tests.Internal
             ILocationResolver locationResolver = new CacheLessLocationResolver(endpointFinder);
 
             (Proxy? proxy, bool fromCache) =
-                await locationResolver.ResolveAsync(new Location("good"), refreshCache: false, cancel: default);
+                await locationResolver.ResolveAsync(
+                    new Location { IsAdapterId = true, Value = "good" },
+                    refreshCache: false,
+                    cancel: default);
 
             Assert.That(proxy, Is.Not.Null);
             Assert.That(fromCache, Is.False);
 
             (proxy, fromCache) =
-                await locationResolver.ResolveAsync(new Location("good"), refreshCache: true, cancel: default);
+                await locationResolver.ResolveAsync(
+                    new Location { IsAdapterId = true, Value = "good" },
+                    refreshCache: true,
+                    cancel: default);
 
             Assert.That(proxy, Is.Not.Null);
             Assert.That(fromCache, Is.False);
 
             (proxy, fromCache) =
-                await locationResolver.ResolveAsync(new Location("bad"), refreshCache: false, cancel: default);
+                await locationResolver.ResolveAsync(
+                    new Location { IsAdapterId = true, Value = "bad" },
+                    refreshCache: false,
+                    cancel: default);
 
             Assert.That(proxy, Is.Null);
             Assert.That(fromCache, Is.False);
 
             (proxy, fromCache) =
-                await locationResolver.ResolveAsync(new Location("bad"), refreshCache: true, cancel: default);
+                await locationResolver.ResolveAsync(
+                    new Location { IsAdapterId = true, Value = "bad" },
+                    refreshCache: true,
+                    cancel: default);
 
             Assert.That(proxy, Is.Null);
             Assert.That(fromCache, Is.False);
@@ -44,7 +56,7 @@ namespace IceRpc.Tests.Internal
         {
             Task<Proxy?> IEndpointFinder.FindAsync(Location location, CancellationToken cancel) =>
                 Task.FromResult<Proxy?>(
-                    location.AdapterId == "good" ?
+                    location.Value == "good" ?
                         Proxy.Parse("dummy:tcp -h localhost -p 10000", format: IceProxyFormat.Default) : null);
         }
     }

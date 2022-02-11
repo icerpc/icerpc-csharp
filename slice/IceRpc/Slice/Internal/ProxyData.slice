@@ -5,27 +5,17 @@ module IceRpc::Slice::Internal
 {
     // These definitions help with the encoding of proxies with the Slice 1.1 encoding.
 
-    /// The identity of a service. This internal definition must match Ice::Identity.
-    [cs:readonly]
-    struct Identity
+    /// The fragment of a service, encoded as a sequence of 0 or 1 elements. The empty string is encoded as an empty
+    /// sequence. A non-empty string is encoded as a sequence with 1 element. While the fragment string is
+    /// percent-escaped, the sequence element is not.
+    [cs:type("string")]
+    compact struct Fragment
     {
-        /// The name of the identity. An empty name is not a valid name.
-        name: string,
-
-        /// The category of the identity. Can be empty.
-        category: string,
-    }
-
-    // TODO: temporary, replace by typealias Facet = [cs::type("global::IceRpc.Slice.Internal.Facet")] sequence<string>;
-    [cs:readonly]
-    struct Facet
-    {
-        value: sequence<string>,  // has 0 or 1 element
+        value: sequence<string>, // has 0 or 1 element
     }
 
     /// The InvocationMode is carried by proxies that use the ice protocol, and it specifies the behavior when sending
-    /// a request using such a proxy.
-    /// When marshaling an ice proxy, IceRPC only uses 2 values: Twoway and Datagram.
+    /// a request using such a proxy. When encoding an ice proxy, IceRPC only uses 2 values: Twoway and Datagram.
     enum InvocationMode : byte
     {
         /// This is the default invocation mode; a request using this mode always expects a response.
@@ -48,13 +38,13 @@ module IceRpc::Slice::Internal
     /// With the Slice 1.1 encoding, a proxy is encoded as a kind of discriminated union with:
     /// - Identity
     /// - if Identity is not the null identity:
-    ///     - ProxyData11
+    ///     - ProxyData
     ///     - a sequence of endpoints that can be empty
     ///     - an adapter ID string present only when the sequence of endpoints is empty
     [cs:readonly]
-    struct ProxyData11
+    compact struct ProxyData
     {
-        facet: Facet,
+        fragment: Fragment,
         invocationMode: InvocationMode,
         secure: bool,
         protocolMajor: byte,

@@ -51,7 +51,7 @@ module IceRpc::Transports::Internal
 
     /// The Slic initialize frame body.
     [cs:readonly]
-    struct InitializeBody
+    compact struct InitializeBody
     {
         /// The application protocol name.
         applicationProtocolName: string,
@@ -62,7 +62,7 @@ module IceRpc::Transports::Internal
 
     /// The Slic initialize acknowledgment frame body.
     [cs:readonly]
-    struct InitializeAckBody
+    compact struct InitializeAckBody
     {
         /// The parameters.
         parameters: ParameterFields,
@@ -73,7 +73,7 @@ module IceRpc::Transports::Internal
     /// should send back a new Initialize frame with a version matching one of the versions provided by the Version
     /// frame body.
     [cs:readonly]
-    struct VersionBody
+    compact struct VersionBody
     {
         /// The supported Slic versions.
         versions: sequence<varuint>,
@@ -82,7 +82,7 @@ module IceRpc::Transports::Internal
     /// The body of the Stream reset frame. This frame is sent to notify the peer that sender is no longer interested in
     /// the stream. The error code is application protocol specific.
     [cs:readonly]
-    struct StreamResetBody
+    compact struct StreamResetBody
     {
         /// The application protocol error code indicating the reason of the reset.
         applicationProtocolErrorCode: varlong,
@@ -91,7 +91,7 @@ module IceRpc::Transports::Internal
     /// The body of the Stream resume write frame. This frame is sent to notify the peer that the receiver permits
     /// the sender to send additional data.
     [cs:readonly]
-    struct StreamResumeWriteBody
+    compact struct StreamResumeWriteBody
     {
         /// The size of the data that the sender can write.
         size: varulong,
@@ -100,7 +100,7 @@ module IceRpc::Transports::Internal
     /// The body of the Stream stop sending frame. This frame is sent to notify the peer that the receiver is no longer
     /// interested in receiving data.
     [cs:readonly]
-    struct StreamStopSendingBody
+    compact struct StreamStopSendingBody
     {
         /// The application protocol error code indicating the reason why the peer no longer needs to receive data.
         applicationProtocolErrorCode: varlong,

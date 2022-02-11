@@ -57,7 +57,7 @@ impl<'a> Visitor for ClassVisitor<'_> {
         if let Some(base) = class_def.base_class() {
             class_builder.add_base(base.escape_scoped_identifier(&namespace));
         } else {
-            class_builder.add_base("IceRpc.AnyClass".to_owned());
+            class_builder.add_base("IceRpc.Slice.AnyClass".to_owned());
         }
 
         // Add class fields

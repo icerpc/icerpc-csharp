@@ -60,7 +60,7 @@ namespace IceRpc.Tests.Api
                     router.Use(next => new InlineDispatcher(
                         async (request, cancel) =>
                         {
-                            int multiplier = request.Fields.Get(1, (ref SliceDecoder decoder) => decoder.DecodeInt());
+                            int multiplier = request.Fields.DecodeValue(1, (ref SliceDecoder decoder) => decoder.DecodeInt());
                             if (multiplier != 0) // 0 == default(int)
                             {
                                 request.Features = request.Features.With(multiplier);

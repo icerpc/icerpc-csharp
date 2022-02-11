@@ -5,6 +5,7 @@ using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using System.Buffers;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
@@ -38,6 +39,9 @@ namespace IceRpc.Internal
 
         /// <inheritdoc/>
         public event Action<string>? PeerShutdownInitiated;
+
+        private static readonly IDictionary<int, ReadOnlyMemory<byte>> _idempotentFields =
+            new Dictionary<int, ReadOnlyMemory<byte>> { [(int)FieldKey.Idempotent] = default }.ToImmutableDictionary();
 
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -125,15 +129,10 @@ namespace IceRpc.Internal
                 {
                     IceRequestHeader requestHeader = DecodeHeader(ref buffer);
 
-                    if (requestHeader.Identity.Name.Length == 0)
-                    {
-                        throw new InvalidDataException("received request with empty identity name");
-                    }
                     if (requestHeader.Operation.Length == 0)
                     {
                         throw new InvalidDataException("received request with empty operation name");
                     }
-                    requestHeader.Facet.CheckValue();
 
                     // The payload size is the encapsulation size less the 6 bytes of the encapsulation header.
                     int payloadSize = requestHeader.EncapsulationHeader.EncapsulationSize - 6;
@@ -151,15 +150,16 @@ namespace IceRpc.Internal
 
                     var request = new IncomingRequest(
                         Protocol.Ice,
-                        path: requestHeader.Identity.ToPath(),
-                        fragment: requestHeader.Facet.ToFragment(),
+                        path: requestHeader.Path,
+                        fragment: requestHeader.Fragment,
                         operation: requestHeader.Operation,
                         payload: new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
                         payloadEncoding,
                         responseWriter: requestId == 0 ?
                             InvalidPipeWriter.Instance : new SimpleNetworkConnectionPipeWriter(_networkConnection))
                     {
-                        IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
+                        Fields = requestHeader.OperationMode == OperationMode.Normal ?
+                            ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty : _idempotentFields,
                         IsOneway = requestId == 0,
                     };
 
@@ -431,10 +431,13 @@ namespace IceRpc.Internal
                 (byte encodingMajor, byte encodingMinor) = payloadEncoding.ToMajorMinor();
 
                 var requestHeader = new IceRequestHeader(
-                    Identity.FromPath(request.Path),
-                    Facet.FromFragment(request.Fragment),
+                    request.Proxy.Path,
+                    request.Proxy.Fragment,
                     request.Operation,
-                    request.IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
+                    // We're not checking FieldsOverrides because it makes no sense to use FieldsOverrides for
+                    // idempotent.
+                    request.Fields.ContainsKey((int)FieldKey.Idempotent) ? OperationMode.Idempotent :
+                        OperationMode.Normal,
                     request.Features.GetContext(),
                     new EncapsulationHeader(encapsulationSize: payloadSize + 6, encodingMajor, encodingMinor));
                 requestHeader.Encode(ref encoder);
