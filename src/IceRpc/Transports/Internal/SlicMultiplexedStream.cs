@@ -81,7 +81,7 @@ namespace IceRpc.Transports.Internal
 
         internal bool IsShutdown => ReadsCompleted && WritesCompleted;
 
-        internal bool ReadsCompleted => _state.HasState(State.ReadCompleted);
+        internal bool ReadsCompleted => _state.HasFlag(State.ReadCompleted);
 
         /// <summary>The stream reset error is set if the stream is reset by the peer or locally. It's used to set
         /// the error for the <see cref="MultiplexedStreamAbortedException"/> raised by the stream.</summary>
@@ -103,7 +103,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal bool WritesCompleted => _state.HasState(State.WriteCompleted);
+        internal bool WritesCompleted => _state.HasFlag(State.WriteCompleted);
 
         private readonly SlicNetworkConnection _connection;
         private readonly ISlicFrameReader _frameReader;
@@ -396,7 +396,7 @@ namespace IceRpc.Transports.Internal
 
         private bool TrySetStateAndShutdown(State state)
         {
-            if (!_state.TrySetState(state, out State newState))
+            if (!_state.TrySetFlag(state, out State newState))
             {
                 return false;
             }

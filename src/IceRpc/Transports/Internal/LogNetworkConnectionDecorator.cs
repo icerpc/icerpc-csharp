@@ -89,13 +89,12 @@ namespace IceRpc.Transports.Internal
             return sb.ToString().Trim();
         }
 
-        internal static string ToHexString(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
+        internal static string ToHexString(IReadOnlyList<ReadOnlyMemory<byte>> buffers)
         {
             int size = 0;
             var sb = new StringBuilder();
-            for (int i = 0; i < buffers.Length; ++i)
+            foreach (ReadOnlyMemory<byte> buffer in buffers)
             {
-                ReadOnlyMemory<byte> buffer = buffers.Span[i];
                 if (size < 64)
                 {
                     for (int j = 0; j < Math.Min(buffer.Length, 64 - size); ++j)

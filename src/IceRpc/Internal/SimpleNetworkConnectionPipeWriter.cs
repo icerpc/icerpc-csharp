@@ -73,13 +73,13 @@ namespace IceRpc.Internal
                             if (result.Buffer.IsSingleSegment)
                             {
                                 await _connection.WriteAsync(
-                                    new ReadOnlyMemory<byte>[] { result.Buffer.First },
+                                    new List<ReadOnlyMemory<byte>>() { result.Buffer.First },
                                     cancellationToken).ConfigureAwait(false);
                             }
                             else
                             {
                                 await _connection.WriteAsync(
-                                    new ReadOnlyMemory<byte>[] { result.Buffer.ToArray() },
+                                    new List<ReadOnlyMemory<byte>>() { result.Buffer.ToArray() },
                                     cancellationToken).ConfigureAwait(false);
                             }
                         }
@@ -99,6 +99,7 @@ namespace IceRpc.Internal
 
             return new FlushResult(isCanceled: false, isCompleted: _isReaderCompleted);
         }
+
         public override async ValueTask<FlushResult> WriteAsync(
             ReadOnlyMemory<byte> source,
             CancellationToken cancellationToken)
@@ -110,7 +111,7 @@ namespace IceRpc.Internal
                 try
                 {
                     await _connection.WriteAsync(
-                        new ReadOnlyMemory<byte>[] { source },
+                        new List<ReadOnlyMemory<byte>>() { source },
                         cancellationToken).ConfigureAwait(false);
                 }
                 catch

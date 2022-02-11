@@ -78,13 +78,13 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public async ValueTask WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
+        public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
         {
-            for (int i = 0; i < buffers.Length; ++i)
+            foreach (ReadOnlyMemory<byte> buffer in buffers)
             {
                 try
                 {
-                    FlushResult result = await _writer.WriteAsync(buffers.Span[i], cancel).ConfigureAwait(false);
+                    FlushResult result = await _writer.WriteAsync(buffer, cancel).ConfigureAwait(false);
                     if (result.IsCompleted)
                     {
                         throw new ObjectDisposedException(nameof(ColocNetworkConnection));

@@ -19,16 +19,17 @@ namespace IceRpc.Transports.Internal
 
         public void Dispose()
         {
-            _state.SetState(State.Disposed);
-
-            var exception = new ConnectionLostException();
-            _pipe.Writer.Complete(exception);
-
-            // Don't complete the reader if it's being used. Completing the reader while reading is in progress
-            // would cause the reads to return bogus data from the pipe recycled buffers.
-            if (!_state.HasFlag(State.Reading))
+            if (_state.TrySetFlag(State.Disposed))
             {
-                _pipe.Reader.Complete(exception);
+                var exception = new ConnectionLostException();
+                _pipe.Writer.Complete(exception);
+
+                // Don't complete the reader if it's being used. Completing the reader while reading is in progress
+                // would cause the reads to return bogus data from the pipe recycled buffers.
+                if (!_state.HasFlag(State.Reading))
+                {
+                    _pipe.Reader.Complete(exception);
+                }
             }
         }
 

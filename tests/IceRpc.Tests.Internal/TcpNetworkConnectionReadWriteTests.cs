@@ -17,10 +17,10 @@ namespace IceRpc.Tests.Internal
     [Timeout(5000)]
     public class TcpNetworkConnectionReadWriteTests
     {
-        private static readonly ReadOnlyMemory<ReadOnlyMemory<byte>> _oneBWriteBuffer =
-            new ReadOnlyMemory<byte>[] { new byte[1] };
-        private static readonly ReadOnlyMemory<ReadOnlyMemory<byte>> _oneMBWriteBuffer =
-            new ReadOnlyMemory<byte>[] { new byte[1024 * 1024] };
+        private static readonly IReadOnlyList<ReadOnlyMemory<byte>> _oneBWriteBuffer =
+            new List<ReadOnlyMemory<byte>>() { new byte[1] };
+        private static readonly IReadOnlyList<ReadOnlyMemory<byte>> _oneMBWriteBuffer =
+            new List<ReadOnlyMemory<byte>>() { new byte[1024 * 1024] };
 
         private ISimpleNetworkConnection ClientConnection => _clientConnection!;
         private ISimpleNetworkConnection ServerConnection => _serverConnection!;

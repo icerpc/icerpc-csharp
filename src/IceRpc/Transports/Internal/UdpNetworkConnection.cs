@@ -45,7 +45,7 @@ namespace IceRpc.Transports.Internal
             return builder.ToString();
         }
 
-        public abstract ValueTask WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel);
+        public abstract ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel);
 
         /// <summary>Prints the fields/properties of this class using the Records format.</summary>
         /// <param name="builder">The string builder.</param>
@@ -115,21 +115,32 @@ namespace IceRpc.Transports.Internal
         }
 
         public override async ValueTask WriteAsync(
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            IReadOnlyList<ReadOnlyMemory<byte>> buffers,
             CancellationToken cancel)
         {
             try
             {
-                if (buffers.Length == 1)
+                if (buffers.Count == 1)
                 {
-                    await Socket.SendAsync(buffers.Span[0], SocketFlags.None, cancel).ConfigureAwait(false);
+                    await Socket.SendAsync(buffers[0], SocketFlags.None, cancel).ConfigureAwait(false);
                 }
                 else
                 {
                     // Coalesce all buffers into a singled rented buffer.
-                    int size = buffers.GetByteCount();
+                    int size = 0;
+                    foreach (ReadOnlyMemory<byte> buffer in buffers)
+                    {
+                        size += buffer.Length;
+                    }
+
                     using IMemoryOwner<byte> writeBufferOwner = MemoryPool<byte>.Shared.Rent(size);
-                    buffers.CopyTo(writeBufferOwner.Memory);
+                    int offset = 0;
+                    foreach (ReadOnlyMemory<byte> buffer in buffers)
+                    {
+                        buffer.CopyTo(writeBufferOwner.Memory[offset..]);
+                        offset += buffer.Length;
+                    }
+
                     await Socket.SendAsync(writeBufferOwner.Memory[0..size],
                                            SocketFlags.None,
                                            cancel).ConfigureAwait(false);
@@ -268,7 +279,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override ValueTask WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
+        public override ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
             throw new InvalidOperationException("cannot write to a UDP server stream");
 
         internal UdpServerNetworkConnection(Endpoint endpoint, UdpServerOptions options)
