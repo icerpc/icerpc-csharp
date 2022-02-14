@@ -9,7 +9,7 @@ interface Greeter
 
 interface InterceptorTest
 {
-    opContext() -> Context;
+    opContext() -> dictionary<string, string>;
     opInt(value: int) -> int;
 }
 
