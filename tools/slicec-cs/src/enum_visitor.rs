@@ -64,6 +64,14 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
         ),
     );
 
+    builder.add_comment(
+        "summary",
+        &format!(
+            r#"Provide an extension method for converting the <see cref="{enum_name}"/> enum underlying type into a <see cref="{enum_name}"/> enumerator"#,
+            enum_name = escaped_identifier
+        ),
+    );
+
     // When the number of enumerators is smaller than the distance between the min and max
     // values, the values are not consecutive and we need to use a set to validate the value
     // during unmarshaling.
@@ -81,9 +89,8 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
         builder.add_block(
             format!(
                 "\
-{access} static readonly global::System.Collections.Generic.HashSet<{underlying}> EnumeratorValues =
+private static readonly global::System.Collections.Generic.HashSet<{underlying}> EnumeratorValues =
     new global::System.Collections.Generic.HashSet<{underlying}> {{ {enum_values} }};",
-                access = access,
                 underlying = enum_def.underlying_type().cs_keyword(),
                 enum_values = enum_def
                     .enumerators()
@@ -121,6 +128,13 @@ fn enum_underlying_extensions(enum_def: &Enum) -> CodeBlock {
     builder.add_block(
         format!(
             r#"
+/// <summary>Converts a <see cref="{underlying_type}" /> value to the <see cref="{escaped_identifier}" /> corresponding
+/// enumerator or throws <see cref="IceRpc.InvalidDataException"/> when the value doesn't correspond with one of the
+/// enumerators.</summary>
+/// <param name="value">The value being converted.</param>
+/// <returns>The enumerator.</returns>
+/// <exception cref="IceRpc.InvalidDataException">Raised when the value doesn't correspond with one of the enumerators.
+/// </exception>
 {access} static {escaped_identifier} As{identifier}(this {underlying_type} value) =>
     {as_enum};"#,
             access = access,
@@ -158,6 +172,9 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
     builder.add_block(
         format!(
             r#"
+/// <summary>Encodes a <see cref="{escaped_identifier}" /> enum.</summary>
+/// <param name="encoder">The Slice encoder.</param>
+/// <param name="value">The <see cref="{escaped_identifier}" /> enumerator value to encode.</param>
 {access} static void Encode{identifier}(this ref SliceEncoder encoder, {escaped_identifier} value) =>
     {encode_enum}(({underlying_type})value);"#,
             access = access,
@@ -199,6 +216,9 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
     builder.add_block(
         format!(
             r#"
+/// <summary>Decodes a <see cref="{escaped_identifier}" /> enum.</summary>
+/// <param name="decoder">The Slice decoder.</param>
+/// <returns>The decoded <see cref="{escaped_identifier}" /> enumerator value.</returns>
 {access} static {escaped_identifier} Decode{identifier}(this ref SliceDecoder decoder) =>
     {underlying_extensions_class}.As{identifier}({decode_enum});"#,
             access = access,
