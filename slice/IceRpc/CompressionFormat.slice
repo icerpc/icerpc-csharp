@@ -1,14 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc
-{
-    /// The compression format of a payload.
-    unchecked enum CompressionFormat : byte
-    {
-        /// Reserved value which should not be encoded.
-        NotCompressed = 0,
+module IceRpc;
 
-        /// The payload is compressed using the deflate format.
-        Deflate = 1,
-    }
+/// The compression format of a payload.
+unchecked enum CompressionFormat : byte
+{
+    /// Reserved value which should not be encoded.
+    NotCompressed = 0,
+
+    /// The payload is compressed using the deflate format.
+    Deflate = 1,
 }

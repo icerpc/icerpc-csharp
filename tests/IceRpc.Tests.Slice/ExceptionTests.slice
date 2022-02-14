@@ -1,21 +1,20 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc::Tests::Slice
+module IceRpc::Tests::Slice;
+
+exception MyExceptionA
 {
-    exception MyExceptionA
-    {
-        m1: int,
-    }
+    m1: int,
+}
 
-    exception MyExceptionB
-    {
-        m1: int,
-    }
+exception MyExceptionB
+{
+    m1: int,
+}
 
-    interface ExceptionOperations
-    {
-        throwA(a: int);
-        throwAorB(a: int);
-        throwRemoteException();
-    }
+interface ExceptionOperations
+{
+    throwA(a: int);
+    throwAorB(a: int);
+    throwRemoteException();
 }

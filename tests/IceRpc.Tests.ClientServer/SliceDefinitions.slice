@@ -1,15 +1,14 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc::Tests::ClientServer
-{
-    interface Greeter
-    {
-        sayHello(message: string);
-    }
+module IceRpc::Tests::ClientServer;
 
-    interface StressTest
-    {
-        opSendByteSeq(data: sequence<byte>);
-        opReceiveByteSeq(size: int) -> sequence<byte>;
-    }
+interface Greeter
+{
+    sayHello(message: string);
+}
+
+interface StressTest
+{
+    opSendByteSeq(data: sequence<byte>);
+    opReceiveByteSeq(size: int) -> sequence<byte>;
 }

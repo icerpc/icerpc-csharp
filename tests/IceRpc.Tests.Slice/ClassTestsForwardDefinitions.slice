@@ -1,14 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc::Tests::Slice
-{
-    class MyClassF1
-    {
-        name: string,
-    }
+module IceRpc::Tests::Slice;
 
-    interface MyInterfaceF2
-    {
-        op();
-    }
+class MyClassF1
+{
+    name: string,
+}
+
+interface MyInterfaceF2
+{
+    op();
 }
