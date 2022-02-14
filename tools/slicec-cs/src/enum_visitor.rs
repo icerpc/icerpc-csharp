@@ -212,6 +212,12 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
         ),
     );
 
+    let underlying_extensions_class = format!(
+        "{}{}Extensions",
+        fix_case(enum_def.underlying_type().cs_keyword(), CaseStyle::Pascal),
+        fix_case(enum_def.identifier(), CaseStyle::Pascal)
+    );
+
     // Enum decoding
     builder.add_block(
         format!(
@@ -224,11 +230,7 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
             access = access,
             identifier = enum_def.identifier(),
             escaped_identifier = escaped_identifier,
-            underlying_extensions_class = format!(
-                "{}{}Extensions",
-                fix_case(enum_def.underlying_type().cs_keyword(), CaseStyle::Pascal),
-                fix_case(enum_def.identifier(), CaseStyle::Pascal)
-            ),
+            underlying_extensions_class = underlying_extensions_class,
             decode_enum = match &enum_def.underlying {
                 Some(underlying) =>
                     format!("decoder.Decode{}()", underlying.definition().type_suffix()),
