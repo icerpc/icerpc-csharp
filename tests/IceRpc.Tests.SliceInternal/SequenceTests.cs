@@ -69,7 +69,7 @@ namespace IceRpc.Tests.SliceInternal
         /// <see cref="SliceDecoderExtensions.DecodeSequence"/> with a value type. Includes testing
         /// the <see cref="T[]"/>, <see cref="ImmutableArray{T}"/>, and <see cref="ArraySegment{T}"/>
         /// cases for <see cref="SliceEncoderExtensions.EncodeSequence"/>. Finally, covers
-        /// <see cref="SliceDecoder.DecodeLong"/></summary>
+        /// <see cref="SliceDecoder.DecodeLong"/></summary>.
         /// <param name="size">An int used to specify how many elements to generate in the sequence.</param>
         [TestCase(0)]
         [TestCase(256)]
