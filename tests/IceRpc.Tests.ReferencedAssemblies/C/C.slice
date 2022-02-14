@@ -1,19 +1,18 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc::Tests::ReferencedAssemblies
+module IceRpc::Tests::ReferencedAssemblies;
+
+class ClassC : ClassB
 {
-    class ClassC : ClassB
-    {
-        cValue: string,
-    }
+    cValue: string,
+}
 
-    class CompactClassC(3) : CompactClassB
-    {
-        cValue: string,
-    }
+class CompactClassC(3) : CompactClassB
+{
+    cValue: string,
+}
 
-    exception ExceptionC : ExceptionB
-    {
-        cValue: string,
-    }
+exception ExceptionC : ExceptionB
+{
+    cValue: string,
 }

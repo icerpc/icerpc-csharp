@@ -1,26 +1,25 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc::Tests::Slice::InterfaceInheritance
+module IceRpc::Tests::Slice::InterfaceInheritance;
+
+// Classic diamond-shaped inheritance
+
+interface A
 {
-    // Classic diamond-shaped inheritance
+    opA(p: A) -> D;
+}
 
-    interface A
-    {
-        opA(p: A) -> D;
-    }
+interface B : A
+{
+    opB(p: B) -> B;
+}
 
-    interface B : A
-    {
-        opB(p: B) -> B;
-    }
+interface C : A, IceRpc::Slice::Service
+{
+    opC(p: C) -> C;
+}
 
-    interface C : A, IceRpc::Slice::Service
-    {
-        opC(p: C) -> C;
-    }
-
-    interface D : B, C
-    {
-        opD(p: D) -> A;
-    }
+interface D : B, C
+{
+    opD(p: D) -> A;
 }

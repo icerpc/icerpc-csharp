@@ -1,49 +1,48 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc::Tests::Slice
+module IceRpc::Tests::Slice;
+
+compact struct MyCompactStruct
 {
-    compact struct MyCompactStruct
-    {
-        i: int,
-        j: int,
-    }
+    i: int,
+    j: int,
+}
 
-    compact struct AnotherCompactStruct
-    {
-        str: string,
-        prx: Operations,
-        en: MyEnum,
-        st: MyCompactStruct,
-    }
+compact struct AnotherCompactStruct
+{
+    str: string,
+    prx: Operations,
+    en: MyEnum,
+    st: MyCompactStruct,
+}
 
-    [cs:type("global::System.TimeSpan")]
-    compact struct MyTimeSpan
-    {
-        milliSeconds: long,
-    }
+[cs:type("global::System.TimeSpan")]
+compact struct MyTimeSpan
+{
+    milliSeconds: long,
+}
 
-    [cs:type("global::System.Collections.Generic.LinkedList<int>")]
-    compact struct MyList
-    {
-        value: sequence<int>
-    }
+[cs:type("global::System.Collections.Generic.LinkedList<int>")]
+compact struct MyList
+{
+    value: sequence<int>
+}
 
-    compact struct MyStructWithCustomType
-    {
-        timespan: MyTimeSpan,
-    }
+compact struct MyStructWithCustomType
+{
+    timespan: MyTimeSpan,
+}
 
-    interface CompactStructOperations
-    {
-        opMyCompactStruct(p1: MyCompactStruct, p2: MyCompactStruct) -> (r1: MyCompactStruct, r2: MyCompactStruct);
-        opAnotherCompactStruct(p1: AnotherCompactStruct, p2: AnotherCompactStruct) -> (
-            r1: AnotherCompactStruct,
-            r2: AnotherCompactStruct,
-        );
-        opMyTimeSpan1(p1: MyTimeSpan) -> MyTimeSpan;
-        opMyTimeSpan2(p1: MyTimeSpan, p2: MyTimeSpan) -> (r1: MyTimeSpan, r2: MyTimeSpan);
-        opMyStructWithCustomType(p1: MyStructWithCustomType) -> MyStructWithCustomType;
-        opMyList1(p1: MyList) -> MyList;
-        opMyList2(p1: MyList, p2: MyList) -> (r1: MyList, r2: MyList);
-    }
+interface CompactStructOperations
+{
+    opMyCompactStruct(p1: MyCompactStruct, p2: MyCompactStruct) -> (r1: MyCompactStruct, r2: MyCompactStruct);
+    opAnotherCompactStruct(p1: AnotherCompactStruct, p2: AnotherCompactStruct) -> (
+        r1: AnotherCompactStruct,
+        r2: AnotherCompactStruct,
+    );
+    opMyTimeSpan1(p1: MyTimeSpan) -> MyTimeSpan;
+    opMyTimeSpan2(p1: MyTimeSpan, p2: MyTimeSpan) -> (r1: MyTimeSpan, r2: MyTimeSpan);
+    opMyStructWithCustomType(p1: MyStructWithCustomType) -> MyStructWithCustomType;
+    opMyList1(p1: MyList) -> MyList;
+    opMyList2(p1: MyList, p2: MyList) -> (r1: MyList, r2: MyList);
 }

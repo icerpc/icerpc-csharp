@@ -1,48 +1,48 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc::Tests::Slice
+module IceRpc::Tests::Slice;
+
+trait MyTraitA;
+trait MyTraitB;
+
+struct TraitStructA
 {
-    trait MyTraitA;
-    trait MyTraitB;
+    s: string,
+}
 
-    struct TraitStructA
-    {
-        s: string,
-    }
+struct TraitStructB
+{
+    l: long,
+}
 
-    struct TraitStructB
-    {
-        l: long,
-    }
+struct TraitStructAB
+{
+    s: string,
+    l: long,
+}
 
-    struct TraitStructAB
-    {
-        s: string,
-        l: long,
-    }
+struct NestedTraitStruct
+{
+    t: MyTraitA,
+}
 
-    struct NestedTraitStruct
-    {
-        t: MyTraitA,
-    }
+struct OptionalNestedTraitStruct
+{
+    t1: MyTraitA?,
+    t2: MyTraitB?,
+}
 
-    struct OptionalNestedTraitStruct
-    {
-        t1: MyTraitA?,
-        t2: MyTraitB?,
-    }
+interface TraitOperations
+{
+    opTraitA(p1: MyTraitA) -> string;
+    opTraitB(p1: MyTraitB) -> long;
 
-    interface TraitOperations
-    {
-        opTraitA(p1: MyTraitA) -> string;
-        opTraitB(p1: MyTraitB) -> long;
+    opTraitASeq(p1: sequence<MyTraitA>) -> sequence<string>;
+    opTraitBDict(p1: dictionary<byte, MyTraitB>) -> dictionary<byte, long>;
+    opNestedTraitStruct(p1: NestedTraitStruct) -> string;
+    opOptionalNestedTraitStruct(p1: OptionalNestedTraitStruct) -> (s: string?, l: long?);
 
-        opTraitASeq(p1: sequence<MyTraitA>) -> sequence<string>;
-        opTraitBDict(p1: dictionary<byte, MyTraitB>) -> dictionary<byte, long>;
-        opNestedTraitStruct(p1: NestedTraitStruct) -> string;
-        opOptionalNestedTraitStruct(p1: OptionalNestedTraitStruct) -> (s: string?, l: long?);
+    opOptionalTrait(p1: MyTraitA?) -> string?;
 
-        opOptionalTrait(p1: MyTraitA?) -> string?;
-
-        opConvertToA(p1: MyTraitB) -> MyTraitA?;
-    }
+    opConvertToA(p1: MyTraitB) -> MyTraitA?;
 }
