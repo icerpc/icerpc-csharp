@@ -2,7 +2,7 @@
 
 using NUnit.Framework;
 
-namespace IceRpc.UnitTests;
+namespace IceRpc.Tests;
 
 [Timeout(30000)]
 public class FeatureCollectionTests

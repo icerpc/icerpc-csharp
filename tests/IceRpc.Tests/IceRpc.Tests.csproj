@@ -4,7 +4,7 @@
     <AnalysisMode>AllEnabledByDefault</AnalysisMode>
     <TargetFramework>net6.0</TargetFramework>
     <IsPackable>false</IsPackable>
-    <RunSettingsFilePath>$(MSBuildThisFileDirectory)..\..\test.runsettings</RunSettingsFilePath>
+    <RunSettingsFilePath>$(MSBuildThisFileDirectory)..\test.runsettings</RunSettingsFilePath>
     <ThreadPoolMinThreads>50</ThreadPoolMinThreads>
   </PropertyGroup>
 
@@ -23,9 +23,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\IceRpc\IceRpc.csproj" />
-    <ProjectReference Include="..\..\..\src\IceRpc.Coloc\IceRpc.Coloc.csproj" />
-    <ProjectReference Include="..\..\..\src\IceRpc.Interop\IceRpc.Interop.csproj" />
+    <ProjectReference Include="..\..\src\IceRpc\IceRpc.csproj" />
+    <ProjectReference Include="..\IceRpc.Tests.Common\IceRpc.Tests.Common.csproj" />
   </ItemGroup>
 
 </Project>
