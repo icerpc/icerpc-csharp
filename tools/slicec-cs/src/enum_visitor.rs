@@ -131,7 +131,7 @@ private static readonly global::System.Collections.Generic.HashSet<{underlying}>
     builder.add_block(
         format!(
             r#"
-/// <summary>Converts a <see cref="{underlying_type}" /> into the corresponding <see cref="{escaped_identifier}" /
+/// <summary>Converts a <see cref="{underlying_type}" /> into the corresponding <see cref="{escaped_identifier}" />
 /// enumerator.</summary>
 /// <param name="value">The value being converted.</param>
 /// <returns>The enumerator.</returns>
