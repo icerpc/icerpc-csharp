@@ -55,7 +55,7 @@ compact struct IceRequestHeader
     fragment: Slice::Internal::Fragment,
     operation: string,
     operationMode: OperationMode,
-    context: Context,
+    context: dictionary<string, string>,
     encapsulationHeader: EncapsulationHeader,
 }
 
