@@ -131,7 +131,7 @@ private static readonly global::System.Collections.Generic.HashSet<{underlying}>
     builder.add_block(
         format!(
             r#"
-/// <summary>Converts a <see cref="{underlying_type}" /> into the corresponding <see cref="{escaped_identifier}" />
+/// <summary>Converts a <see cref="{underlying_type}"/> into the corresponding <see cref="{escaped_identifier}"/>
 /// enumerator.</summary>
 /// <param name="value">The value being converted.</param>
 /// <returns>The enumerator.</returns>
@@ -174,9 +174,9 @@ fn enum_encoder_extensions(enum_def: &Enum) -> CodeBlock {
     builder.add_block(
         format!(
             r#"
-/// <summary>Encodes a <see cref="{escaped_identifier}" /> enum.</summary>
+/// <summary>Encodes a <see cref="{escaped_identifier}"/> enum.</summary>
 /// <param name="encoder">The Slice encoder.</param>
-/// <param name="value">The <see cref="{escaped_identifier}" /> enumerator value to encode.</param>
+/// <param name="value">The <see cref="{escaped_identifier}"/> enumerator value to encode.</param>
 {access} static void Encode{identifier}(this ref SliceEncoder encoder, {escaped_identifier} value) =>
     {encode_enum}(({underlying_type})value);"#,
             access = access,
@@ -224,9 +224,9 @@ fn enum_decoder_extensions(enum_def: &Enum) -> CodeBlock {
     builder.add_block(
         format!(
             r#"
-/// <summary>Decodes a <see cref="{escaped_identifier}" /> enum.</summary>
+/// <summary>Decodes a <see cref="{escaped_identifier}"/> enum.</summary>
 /// <param name="decoder">The Slice decoder.</param>
-/// <returns>The decoded <see cref="{escaped_identifier}" /> enumerator value.</returns>
+/// <returns>The decoded <see cref="{escaped_identifier}"/> enumerator value.</returns>
 {access} static {escaped_identifier} Decode{identifier}(this ref SliceDecoder decoder) =>
     {underlying_extensions_class}.As{identifier}({decode_enum});"#,
             access = access,
