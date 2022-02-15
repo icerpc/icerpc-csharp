@@ -348,9 +348,7 @@ impl FunctionBuilder {
                 {}(
     {})",
                 self.name,
-                CodeBlock::from(self.parameters.join(",\n"))
-                    .indent()
-                    .to_string()
+                CodeBlock::from(self.parameters.join(",\n")).indent()
             );
         } else {
             write!(code, "{}({})", self.name, self.parameters.join(", "))
