@@ -1,16 +1,20 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Configure;
-using IceRpc.Slice;
-using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using Multiplier = System.Int32;
 
 namespace IceRpc.UnitTests;
 
 [Timeout(30000)]
 public class FeatureCollectionTests
 {
+    [Test]
+    public void FeatureCollection_Empty()
+    {
+        Assert.That(FeatureCollection.Empty, Is.Empty);
+        Assert.That(FeatureCollection.Empty.IsReadOnly, Is.True);
+        Assert.Throws<InvalidOperationException>(() => FeatureCollection.Empty.Set("foo"));
+    }
+
     [Test]
     public void FeatureCollection_GetSet()
     {

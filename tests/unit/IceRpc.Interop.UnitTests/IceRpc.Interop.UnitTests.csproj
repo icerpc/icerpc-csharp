@@ -24,19 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\IceRpc\IceRpc.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="generated\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="certs\server.p12">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="certs\cacert.der">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <ProjectReference Include="..\..\..\src\IceRpc.Interop\IceRpc.Interop.csproj" />
   </ItemGroup>
 
 </Project>
