@@ -146,7 +146,7 @@ namespace IceRpc.Internal
                         requestHeader.EncapsulationHeader.PayloadEncodingMajor,
                         requestHeader.EncapsulationHeader.PayloadEncodingMinor);
 
-                    EncodePayloadSize(payloadSize, payloadEncoding, buffer.Span[0..4]);
+                    Slice20Encoding.EncodeSize(payloadSize, buffer.Span[0..4]);
 
                     var request = new IncomingRequest(
                         Protocol.Ice,
@@ -251,7 +251,7 @@ namespace IceRpc.Internal
                 ResultType resultType = replyStatus == ReplyStatus.OK ? ResultType.Success : ResultType.Failure;
 
                 // We write the payload size in the first 4 bytes of the buffer.
-                EncodePayloadSize(payloadSize, payloadEncoding, buffer.Span[0..4]);
+                Slice20Encoding.EncodeSize(payloadSize, buffer.Span[0..4]);
 
                 // For compatibility with ZeroC Ice "indirect" proxies
                 if (replyStatus == ReplyStatus.ObjectNotExistException && request.Proxy.Endpoint == null)
@@ -369,9 +369,8 @@ namespace IceRpc.Internal
 
             try
             {
-                (int payloadSize, bool isCanceled, bool isCompleted) = await payloadEncoding.DecodeSegmentSizeAsync(
-                    request.PayloadSource,
-                    cancel).ConfigureAwait(false);
+                (int payloadSize, bool isCanceled, bool isCompleted) =
+                    await request.PayloadSource.DecodeSegmentSizeAsync(cancel).ConfigureAwait(false);
 
                 if (isCanceled)
                 {
@@ -481,9 +480,7 @@ namespace IceRpc.Internal
                         }
 
                         (int payloadSize, bool isCanceled, bool isCompleted) =
-                            await payloadEncoding.DecodeSegmentSizeAsync(
-                                response.PayloadSource,
-                                cancel).ConfigureAwait(false);
+                            await response.PayloadSource.DecodeSegmentSizeAsync(cancel).ConfigureAwait(false);
 
                         if (isCanceled)
                         {
@@ -742,25 +739,6 @@ namespace IceRpc.Internal
             Debug.Assert(!flushResult.IsCompleted); // the reader can't reject the frame without triggering an exception
 
             await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
-        }
-
-        /// <summary>Encodes a payload size into a buffer with the specified encoding.</summary>
-        private static void EncodePayloadSize(int payloadSize, Encoding payloadEncoding, Span<byte> buffer)
-        {
-            Debug.Assert(buffer.Length == 4);
-
-            if (payloadEncoding == Encoding.Slice11)
-            {
-                SliceEncoder.EncodeInt(payloadSize, buffer);
-            }
-            else if (payloadEncoding == Encoding.Slice20)
-            {
-                Slice20Encoding.EncodeSize(payloadSize, buffer);
-            }
-            else
-            {
-                throw new NotSupportedException("an ice payload must be encoded with Slice 1.1 or Slice 2.0");
-            }
         }
 
         private void CancelDispatches()

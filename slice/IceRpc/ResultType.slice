@@ -8,6 +8,6 @@ enum ResultType : byte
     /// The request succeeded.
     Success = 0,
 
-    /// The request failed.
+    /// The request failed and the payload holds an exception encoded using the protocol's encoding.
     Failure = 1,
 }
