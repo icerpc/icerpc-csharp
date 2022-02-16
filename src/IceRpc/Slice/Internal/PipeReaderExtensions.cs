@@ -9,6 +9,56 @@ namespace IceRpc.Slice.Internal
     /// <summary>Extension methods to decode payloads carried by a PipeReader.</summary>
     internal static class PipeReaderExtensions
     {
+        /// <summary>Decodes the size of a segment from a PipeReader.</summary>
+        /// <remarks>The caller does not (and cannot) call AdvanceTo after calling this method.</remarks>
+        internal static async ValueTask<(int Size, bool IsCanceled, bool IsCompleted)> DecodeSegmentSizeAsync(
+            this PipeReader reader,
+            CancellationToken cancel)
+        {
+            ReadResult readResult = await reader.ReadAsync(cancel).ConfigureAwait(false);
+
+            if (readResult.IsCanceled)
+            {
+                return (-1, true, false);
+            }
+
+            if (readResult.Buffer.IsEmpty)
+            {
+                Debug.Assert(readResult.IsCompleted);
+                reader.AdvanceTo(readResult.Buffer.End);
+                return (0, false, true);
+            }
+
+            int sizeLength = Slice20Encoding.DecodeSizeLength(readResult.Buffer.FirstSpan[0]);
+            if (sizeLength > readResult.Buffer.Length)
+            {
+                reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                readResult = await reader.ReadAtLeastAsync(sizeLength, cancel).ConfigureAwait(false);
+
+                if (readResult.IsCanceled)
+                {
+                    return (-1, true, false);
+                }
+
+                if (readResult.Buffer.Length < sizeLength)
+                {
+                    throw new InvalidDataException("too few bytes in segment size");
+                }
+            }
+
+            ReadOnlySequence<byte> buffer = readResult.Buffer.Slice(readResult.Buffer.Start, sizeLength);
+            int size = DecodeSizeFromSequence(buffer);
+            bool isCompleted = readResult.IsCompleted && readResult.Buffer.Length == sizeLength;
+            reader.AdvanceTo(buffer.End);
+            return (size, false, isCompleted);
+
+            int DecodeSizeFromSequence(ReadOnlySequence<byte> buffer)
+            {
+                var decoder = new SliceDecoder(buffer, Encoding.Slice20);
+                return decoder.DecodeSize();
+            }
+        }
+
         /// <summary>Reads/decodes a remote exception from a response payload represented by a pipe reader.</summary>
         /// <param name="reader">The pipe reader.</param>
         /// <param name="encoding">The Slice encoding version.</param>
@@ -31,9 +81,7 @@ namespace IceRpc.Slice.Internal
             RemoteException result;
             try
             {
-                ReadResult readResult = await reader.ReadSegmentAsync(
-                    encoding,
-                    cancel).ConfigureAwait(false);
+                ReadResult readResult = await reader.ReadSegmentAsync(cancel).ConfigureAwait(false);
 
                 if (readResult.IsCanceled)
                 {
@@ -83,16 +131,12 @@ namespace IceRpc.Slice.Internal
 
         /// <summary>Reads a segment from a pipe reader.</summary>
         /// <param name="reader">The pipe reader.</param>
-        /// <param name="encoding">The Slice encoding.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>A read result with the segment read from the reader unless IsCanceled is true.</returns>
         /// <exception cref="InvalidDataException">Thrown when the segment size could not be decoded.</exception>
         /// <remarks>The caller must call AdvanceTo when the returned segment length is greater than 0. This method
         /// never marks the reader as completed.</remarks>
-        internal static async ValueTask<ReadResult> ReadSegmentAsync(
-            this PipeReader reader,
-            SliceEncoding encoding,
-            CancellationToken cancel)
+        internal static async ValueTask<ReadResult> ReadSegmentAsync(this PipeReader reader, CancellationToken cancel)
         {
             (int segmentSize, bool isCanceled, bool isCompleted) =
                 await reader.DecodeSegmentSizeAsync(cancel).ConfigureAwait(false);
@@ -121,56 +165,6 @@ namespace IceRpc.Slice.Internal
 
             return readResult.Buffer.Length == segmentSize ? readResult :
                 new ReadResult(readResult.Buffer.Slice(0, segmentSize), isCanceled: false, isCompleted: false);
-        }
-
-        /// <summary>Decodes the size of a segment from a PipeReader.</summary>
-        /// <remarks>The caller does not need to call AdvanceTo after calling this method.</remarks>
-        internal static async ValueTask<(int Size, bool IsCanceled, bool IsCompleted)> DecodeSegmentSizeAsync(
-            this PipeReader reader,
-            CancellationToken cancel)
-        {
-            ReadResult readResult = await reader.ReadAsync(cancel).ConfigureAwait(false);
-
-            if (readResult.IsCanceled)
-            {
-                return (-1, true, false);
-            }
-
-            if (readResult.Buffer.IsEmpty)
-            {
-                Debug.Assert(readResult.IsCompleted);
-                reader.AdvanceTo(readResult.Buffer.End);
-                return (0, false, true);
-            }
-
-            int sizeLength = Slice20Encoding.DecodeSizeLength(readResult.Buffer.FirstSpan[0]);
-            if (sizeLength > readResult.Buffer.Length)
-            {
-                reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                readResult = await reader.ReadAtLeastAsync(sizeLength, cancel).ConfigureAwait(false);
-
-                if (readResult.IsCanceled)
-                {
-                    return (-1, true, false);
-                }
-
-                if (readResult.Buffer.Length < sizeLength)
-                {
-                    throw new InvalidDataException("too few bytes in segment size");
-                }
-            }
-
-            ReadOnlySequence<byte> buffer = readResult.Buffer.Slice(readResult.Buffer.Start, sizeLength);
-            int size = DecodeSizeFromSequence(buffer);
-            bool isCompleted = readResult.IsCompleted && readResult.Buffer.Length == sizeLength;
-            reader.AdvanceTo(buffer.End);
-            return (size, false, isCompleted);
-
-            int DecodeSizeFromSequence(ReadOnlySequence<byte> buffer)
-            {
-                var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                return decoder.DecodeSize();
-            }
         }
 
         /// <summary>Reads/decodes a value from a pipe reader.</summary>
@@ -204,9 +198,7 @@ namespace IceRpc.Slice.Internal
 
             try
             {
-                ReadResult readResult = await reader.ReadSegmentAsync(
-                    encoding,
-                    cancel).ConfigureAwait(false);
+                ReadResult readResult = await reader.ReadSegmentAsync(cancel).ConfigureAwait(false);
 
                 if (readResult.IsCanceled)
                 {
@@ -267,9 +259,7 @@ namespace IceRpc.Slice.Internal
         {
             try
             {
-                ReadResult readResult = await reader.ReadSegmentAsync(
-                    encoding,
-                    cancel).ConfigureAwait(false);
+                ReadResult readResult = await reader.ReadSegmentAsync(cancel).ConfigureAwait(false);
 
                 if (readResult.IsCanceled)
                 {
@@ -364,7 +354,7 @@ namespace IceRpc.Slice.Internal
 
                     try
                     {
-                        readResult = await reader.ReadSegmentAsync(encoding, cancel).ConfigureAwait(false);
+                        readResult = await reader.ReadSegmentAsync(cancel).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {

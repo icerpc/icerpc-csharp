@@ -94,9 +94,7 @@ namespace IceRpc.Internal
                 PipeReader reader = stream.Input;
                 try
                 {
-                    ReadResult readResult = await reader.ReadSegmentAsync(
-                        Encoding.Slice20,
-                        cancel).ConfigureAwait(false);
+                    ReadResult readResult = await reader.ReadSegmentAsync(cancel).ConfigureAwait(false);
 
                     // At this point, nothing can call CancelPendingRead on the multiplexed stream pipe reader.
                     Debug.Assert(!readResult.IsCanceled);
@@ -217,9 +215,7 @@ namespace IceRpc.Internal
 
             try
             {
-                ReadResult readResult = await responseReader.ReadSegmentAsync(
-                    Encoding.Slice20,
-                    cancel).ConfigureAwait(false);
+                ReadResult readResult = await responseReader.ReadSegmentAsync(cancel).ConfigureAwait(false);
 
                 // The shutdown cancels pending reads for invocations that were not dispatched by the peer.
                 if (readResult.IsCanceled)
@@ -597,7 +593,6 @@ namespace IceRpc.Internal
             while (true)
             {
                 ReadResult readResult = await _remoteControlStream!.Input.ReadSegmentAsync(
-                    Encoding.Slice20,
                     cancel).ConfigureAwait(false);
                 try
                 {
