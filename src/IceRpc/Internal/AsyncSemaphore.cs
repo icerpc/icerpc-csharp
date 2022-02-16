@@ -28,15 +28,24 @@ namespace IceRpc.Internal
 
         /// <summary>Initializes a new instance of the asynchronous semaphore with the given maximum number of
         /// times to the semaphore can be entered.</summary>
+        /// <param name="initialCount">The initial number of time for the semaphore that can be entered.</param>
         /// <param name="maxCount">The maximum number of times the semaphore can be entered.</param>
         /// <exception cref="ArgumentOutOfRangeException">Raised if maxCount is less than 1.</exception>
-        internal AsyncSemaphore(int maxCount)
+        internal AsyncSemaphore(int initialCount, int maxCount)
         {
+            if (initialCount < 0)
+            {
+                throw new ArgumentOutOfRangeException($"{nameof(initialCount)} can't be < 0");
+            }
             if (maxCount < 1)
             {
-                throw new ArgumentOutOfRangeException("max count can't be < 1");
+                throw new ArgumentOutOfRangeException($"{nameof(maxCount)} can't be < 1");
             }
-            _currentCount = maxCount;
+            if (maxCount < initialCount)
+            {
+                throw new ArgumentOutOfRangeException($"{nameof(maxCount)} can't be < {nameof(initialCount)}");
+            }
+            _currentCount = initialCount;
             _maxCount = maxCount;
         }
 
@@ -90,6 +99,7 @@ namespace IceRpc.Internal
 
             ManualResetValueTaskCompletionSource<bool> taskCompletionSource;
             CancellationTokenRegistration tokenRegistration = default;
+
             lock (_mutex)
             {
                 if (_exception != null)
@@ -153,7 +163,7 @@ namespace IceRpc.Internal
                     }
                     catch
                     {
-                        // Ignore, this can occur if WaitAsync is canceled.
+                        // Ignore, this can occur if EnterAsync is canceled.
                     }
                 }
 

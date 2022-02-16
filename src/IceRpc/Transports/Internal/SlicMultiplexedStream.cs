@@ -114,7 +114,7 @@ namespace IceRpc.Transports.Internal
         private readonly SlicPipeWriter _outputPipeWriter;
         private volatile int _sendCredit = int.MaxValue;
         // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
-        private readonly AsyncSemaphore _sendCreditSemaphore = new(1);
+        private readonly AsyncSemaphore _sendCreditSemaphore = new(1, 1);
         private volatile Action? _shutdownAction;
         private TaskCompletionSource? _shutdownCompletedTaskSource;
         private long? _resetErrorCode;
@@ -297,8 +297,8 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal ValueTask<int> ReceivedStreamFrameAsync(int size, bool endStream) =>
-            ReadsCompleted ? new(0) : _inputPipeReader.ReceivedStreamFrameAsync(size, endStream);
+        internal ValueTask<int> ReceivedStreamFrameAsync(int size, bool endStream, CancellationToken cancel) =>
+            ReadsCompleted ? new(0) : _inputPipeReader.ReceivedStreamFrameAsync(size, endStream, cancel);
 
         internal void ReceivedResetFrame(long error)
         {

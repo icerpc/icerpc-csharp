@@ -71,7 +71,7 @@ namespace IceRpc.Transports.Internal
             {
                 if (_readResult.IsCompleted)
                 {
-                    // If the peer is no longer sending data, just just mark reads as completed on the stream.
+                    // If the peer is no longer sending data, just mark reads as completed on the stream.
                     _stream.TrySetReadCompleted();
                 }
 
@@ -118,6 +118,12 @@ namespace IceRpc.Transports.Internal
             // data got examined and consumed. It also needs to know if the reader is completed to mark reads as
             // completed on the stream.
             _readResult = result;
+            if (result.Buffer.IsEmpty && result.IsCompleted)
+            {
+                // Nothing to read and the writer is done, we can mark stream reads as completed now to release the
+                // stream count.
+                _stream.TrySetReadCompleted();
+            }
             return result;
         }
 
@@ -131,6 +137,12 @@ namespace IceRpc.Transports.Internal
                 // data got examined and consumed. It also needs to know if the reader is completed to mark reads as
                 // completed on the stream.
                 _readResult = result;
+                if (result.Buffer.IsEmpty && result.IsCompleted)
+                {
+                    // Nothing to read and the writer is done, we can mark stream reads as completed now to release the
+                    // stream count.
+                    _stream.TrySetReadCompleted();
+                }
                 return true;
             }
             else
@@ -176,7 +188,7 @@ namespace IceRpc.Transports.Internal
 
         /// <summary>Called when a stream frame is received. It writes the data from the received stream frame to the
         /// internal pipe writer and returns the number of bytes that were consumed.</summary>
-        internal async ValueTask<int> ReceivedStreamFrameAsync(int dataSize, bool endStream)
+        internal async ValueTask<int> ReceivedStreamFrameAsync(int dataSize, bool endStream, CancellationToken cancel)
         {
             _state.SetState(State.Writing);
             try
@@ -194,33 +206,37 @@ namespace IceRpc.Transports.Internal
                     // Receive the data and push it to the pipe writer.
                     Memory<byte> chunk = _pipe.Writer.GetMemory();
                     chunk = chunk[0..Math.Min(dataSize - size, chunk.Length)];
-                    await _readFunc(chunk, CancellationToken.None).ConfigureAwait(false);
+                    await _readFunc(chunk, cancel).ConfigureAwait(false);
                     size += chunk.Length;
                     _pipe.Writer.Advance(chunk.Length);
 
-                    // This should always complete synchronously since the sender isn't supposed to send more data than
-                    // it is allowed. In other words, if the flush blocks because the PauseWriterThreshold is reached,
-                    // the peer sent more data than it should have.
-                    ValueTask<FlushResult> flushTask = _pipe.Writer.FlushAsync(CancellationToken.None);
-                    if (!flushTask.IsCompleted)
+                    // Only flush if we didn't read all the data yet or if it's not the end of the stream. If it's the
+                    // end of the stream and we've read all the data, we rely on CompleteAsync bellow to flush the data.
+                    // This ensures the reader will get a read result with both the data and IsCompleted=true.
+                    if (size < dataSize || !endStream)
                     {
-                        _ = flushTask.AsTask();
-                        throw new InvalidDataException("received more data than flow control permits");
-                    }
-
-                    try
-                    {
-                        FlushResult flushResult = await flushTask.ConfigureAwait(false);
-                        if (flushResult.IsCompleted)
+                        // This should always complete synchronously since the sender isn't supposed to send more data
+                        // than it is allowed. In other words, if the flush blocks because the PauseWriterThreshold is
+                        // reached, the peer sent more data than it should have.
+                        ValueTask<FlushResult> flushTask = _pipe.Writer.FlushAsync(CancellationToken.None);
+                        if (!flushTask.IsCompleted)
                         {
-                            // The reader is completed, return the number of consumed bytes.
-                            return size;
+                            _ = flushTask.AsTask();
+                            throw new InvalidDataException("received more data than flow control permits");
                         }
-                    }
-                    catch
-                    {
-                        // The reader is completed, return the number of consumed bytes.
-                        return size;
+
+                        try
+                        {
+                            FlushResult flushResult = await flushTask.ConfigureAwait(false);
+                            if (flushResult.IsCompleted)
+                            {
+                                break; // The reader completed, it's not longer interested in the data.
+                            }
+                        }
+                        catch
+                        {
+                            break; // The reader completed, it's not longer interested in the data.
+                        }
                     }
                 }
 
@@ -234,7 +250,7 @@ namespace IceRpc.Transports.Internal
                     await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
                 }
 
-                return dataSize;
+                return size;
             }
             finally
             {

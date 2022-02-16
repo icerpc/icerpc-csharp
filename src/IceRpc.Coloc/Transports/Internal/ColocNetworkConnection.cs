@@ -34,7 +34,7 @@ namespace IceRpc.Transports.Internal
         public async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             ReadResult readResult = await _reader.ReadAsync(cancel).ConfigureAwait(false);
-            if (readResult.IsCompleted)
+            if (readResult.IsCanceled || readResult.IsCompleted)
             {
                 await _reader.CompleteAsync().ConfigureAwait(false);
                 throw new ObjectDisposedException(nameof(ColocNetworkConnection));

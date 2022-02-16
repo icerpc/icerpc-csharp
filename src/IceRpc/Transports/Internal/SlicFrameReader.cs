@@ -15,148 +15,106 @@ namespace IceRpc.Transports.Internal
     {
         private readonly Pipe _pipe;
         private readonly Func<Memory<byte>, CancellationToken, ValueTask<int>> _readFunc;
-        private int _state;
 
         public void Dispose()
         {
-            if (_state.TrySetFlag(State.Disposed))
-            {
-                // Don't complete the pipe if it's being used. Completing the reader or writer while reading is in
-                // progress would cause bogus data from the pipe recycled buffers to be returned.
-                if (!_state.HasFlag(State.Reading))
-                {
-                    var exception = new ConnectionLostException();
-                    _pipe.Writer.Complete(exception);
-                    _pipe.Reader.Complete(exception);
-                }
-            }
+            var exception = new ConnectionLostException();
+            _pipe.Writer.Complete(exception);
+            _pipe.Reader.Complete(exception);
         }
 
         public async ValueTask ReadFrameDataAsync(Memory<byte> buffer, CancellationToken cancel)
         {
-            _state.SetState(State.Reading);
-            try
+            if (buffer.IsEmpty)
             {
-                if (_state.HasFlag(State.Disposed))
-                {
-                    throw new ConnectionLostException();
-                }
-
-                if (buffer.IsEmpty)
-                {
-                    return;
-                }
-
-                // If there's still data on the pipe reader. Copy the data from the pipe reader.
-                while (buffer.Length > 0 && _pipe.Reader.TryRead(out ReadResult result))
-                {
-                    int length = Math.Min(buffer.Length, (int)result.Buffer.Length);
-                    result.Buffer.Slice(0, length).CopyTo(buffer.Span);
-                    _pipe.Reader.AdvanceTo(result.Buffer.GetPosition(length));
-                    buffer = buffer[length..];
-                }
-
-                // No more data from the pipe reader, read the remainder directly from the read function to avoid
-                // copies.
-                while (buffer.Length > 0)
-                {
-                    int length = await _readFunc(buffer, cancel).ConfigureAwait(false);
-                    buffer = buffer[length..];
-                }
+                return;
             }
-            finally
+
+            // If there's still data on the pipe reader. Copy the data from the pipe reader.
+            while (buffer.Length > 0 && _pipe.Reader.TryRead(out ReadResult result))
             {
-                if (_state.HasFlag(State.Disposed))
-                {
-                    await _pipe.Reader.CompleteAsync().ConfigureAwait(false);
-                    await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
-                }
-                _state.ClearFlag(State.Reading);
+                int length = Math.Min(buffer.Length, (int)result.Buffer.Length);
+                result.Buffer.Slice(0, length).CopyTo(buffer.Span);
+                _pipe.Reader.AdvanceTo(result.Buffer.GetPosition(length));
+                buffer = buffer[length..];
+            }
+
+            // No more data from the pipe reader, read the remainder directly from the read function to avoid
+            // copies.
+            while (buffer.Length > 0)
+            {
+                int length = await _readFunc(buffer, cancel).ConfigureAwait(false);
+                buffer = buffer[length..];
             }
         }
 
         public async ValueTask<(FrameType FrameType, int FrameSize, long? StreamId)> ReadFrameHeaderAsync(
             CancellationToken cancel)
         {
-            _state.SetState(State.Reading);
-            try
+            ReadResult readResult;
+
+            // Read the frame type
+            readResult = await ReadAtLeastAsync(1).ConfigureAwait(false);
+            if (readResult.Buffer.IsEmpty)
             {
-                if (_state.HasFlag(State.Disposed))
+                throw new ConnectionLostException();
+            }
+            var frameType = (FrameType)readResult.Buffer.FirstSpan[0];
+            _pipe.Reader.AdvanceTo(readResult.Buffer.GetPosition(1));
+
+            // Read the frame size
+            readResult = await ReadAtLeastAsync(1).ConfigureAwait(false);
+            if (readResult.Buffer.IsEmpty)
+            {
+                throw new ConnectionLostException();
+            }
+            int frameSizeLength = Slice20Encoding.DecodeSizeLength(readResult.Buffer.FirstSpan[0]);
+            if (frameSizeLength > readResult.Buffer.Length)
+            {
+                _pipe.Reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                readResult = await ReadAtLeastAsync(frameSizeLength).ConfigureAwait(false);
+                if (readResult.Buffer.Length < frameSizeLength)
                 {
                     throw new ConnectionLostException();
-                }
-
-                ReadResult readResult;
-
-                // Read the frame type
-                readResult = await ReadAtLeastAsync(1).ConfigureAwait(false);
-                if (readResult.Buffer.IsEmpty)
-                {
-                    throw new ConnectionLostException();
-                }
-                var frameType = (FrameType)readResult.Buffer.FirstSpan[0];
-                _pipe.Reader.AdvanceTo(readResult.Buffer.GetPosition(1));
-
-                // Read the frame size
-                readResult = await ReadAtLeastAsync(1).ConfigureAwait(false);
-                if (readResult.Buffer.IsEmpty)
-                {
-                    throw new ConnectionLostException();
-                }
-                int frameSizeLength = Slice20Encoding.DecodeSizeLength(readResult.Buffer.FirstSpan[0]);
-                if (frameSizeLength > readResult.Buffer.Length - 1)
-                {
-                    _pipe.Reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                    readResult = await ReadAtLeastAsync(frameSizeLength).ConfigureAwait(false);
-                    if (readResult.Buffer.Length < frameSizeLength)
-                    {
-                        throw new ConnectionLostException();
-                    }
-                }
-                int frameSize = DecodeSizeFromSequence(readResult.Buffer);
-                _pipe.Reader.AdvanceTo(readResult.Buffer.GetPosition(frameSizeLength));
-
-                if (frameType < FrameType.Stream)
-                {
-                    return (frameType, frameSize, null);
-                }
-                else
-                {
-                    // Read the stream ID
-                    int minSize = Math.Min(8, frameSize);
-                    readResult = await ReadAtLeastAsync(minSize).ConfigureAwait(false);
-                    if (readResult.Buffer.Length < minSize)
-                    {
-                        throw new ConnectionLostException();
-                    }
-
-                    (long streamId, int streamIdSize) = DecodeStreamIdFromSequence(readResult.Buffer);
-                    _pipe.Reader.AdvanceTo(readResult.Buffer.GetPosition(streamIdSize));
-                    frameSize -= streamIdSize;
-                    return (frameType, frameSize, streamId);
-                }
-
-                int DecodeSizeFromSequence(ReadOnlySequence<byte> buffer)
-                {
-                    var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                    return decoder.DecodeFixedLengthSize();
-                }
-
-                (long, int) DecodeStreamIdFromSequence(ReadOnlySequence<byte> buffer)
-                {
-                    var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                    ulong streamId = decoder.DecodeVarULong();
-                    return ((long)streamId, SliceEncoder.GetVarULongEncodedSize(streamId));
                 }
             }
-            finally
+            int frameSize = DecodeSizeFromSequence(readResult.Buffer);
+            _pipe.Reader.AdvanceTo(readResult.Buffer.GetPosition(frameSizeLength));
+
+            if (frameType < FrameType.Stream)
             {
-                if (_state.HasFlag(State.Disposed))
+                return (frameType, frameSize, null);
+            }
+            else
+            {
+                readResult = await ReadAtLeastAsync(1).ConfigureAwait(false);
+                int streamIdLength = SliceDecoder.DecodeVarLongLength(readResult.Buffer.FirstSpan[0]);
+                if (streamIdLength > readResult.Buffer.Length)
                 {
-                    await _pipe.Reader.CompleteAsync().ConfigureAwait(false);
-                    await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
+                    _pipe.Reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                    readResult = await ReadAtLeastAsync(streamIdLength).ConfigureAwait(false);
+                    if (readResult.Buffer.Length < streamIdLength)
+                    {
+                        throw new ConnectionLostException();
+                    }
                 }
-                _state.ClearFlag(State.Reading);
+                long streamId = DecodeStreamIdFromSequence(readResult.Buffer);
+                _pipe.Reader.AdvanceTo(readResult.Buffer.GetPosition(streamIdLength));
+                frameSize -= streamIdLength;
+                return (frameType, frameSize, streamId);
+            }
+
+            int DecodeSizeFromSequence(ReadOnlySequence<byte> buffer)
+            {
+                var decoder = new SliceDecoder(buffer, Encoding.Slice20);
+                return decoder.DecodeSize();
+            }
+
+            long DecodeStreamIdFromSequence(ReadOnlySequence<byte> buffer)
+            {
+                var decoder = new SliceDecoder(buffer, Encoding.Slice20);
+                ulong streamId = decoder.DecodeVarULong();
+                return (long)streamId;
             }
 
             async ValueTask<ReadResult> ReadAtLeastAsync(int minimumSize)
@@ -166,14 +124,15 @@ namespace IceRpc.Transports.Internal
                 {
                     return readResult;
                 }
+                minimumSize -= (int)readResult.Buffer.Length;
                 _pipe.Reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
 
-                // If there isn't, read enough data from _readFunc.
+                // Read enough data from _readFunc.
                 int count = 0;
                 while (count < minimumSize)
                 {
                     Memory<byte> buffer = _pipe.Writer.GetMemory();
-                    int read = await _readFunc!(buffer, cancel).ConfigureAwait(false);
+                    int read = await _readFunc(buffer, cancel).ConfigureAwait(false);
                     _pipe.Writer.Advance(read);
                     if (read == 0)
                     {

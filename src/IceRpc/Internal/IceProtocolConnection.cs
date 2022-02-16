@@ -57,7 +57,7 @@ namespace IceRpc.Internal
         private readonly ISimpleNetworkConnection _networkConnection;
         private int _nextRequestId;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly AsyncSemaphore _sendSemaphore = new(1);
+        private readonly AsyncSemaphore _sendSemaphore = new(1, 1);
         private bool _shutdown;
 
         /// <inheritdoc/>
