@@ -328,12 +328,7 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            if (request.PayloadEncoding is not SliceEncoding payloadEncoding)
-            {
-                throw new NotSupportedException(
-                    "the payload of a request must be encoded with a supported Slice encoding");
-            }
-            else if (_isUdp && !request.IsOneway)
+            if (_isUdp && !request.IsOneway)
             {
                 throw new InvalidOperationException("cannot send twoway request over UDP");
             }
@@ -427,7 +422,16 @@ namespace IceRpc.Internal
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
 
                 encoder.EncodeInt(requestId);
-                (byte encodingMajor, byte encodingMinor) = payloadEncoding.ToMajorMinor();
+
+                byte encodingMajor = 1;
+                byte encodingMinor = 1;
+
+                // TODO: temporary
+                if (request.PayloadEncoding is SliceEncoding payloadEncoding)
+                {
+                    (encodingMajor, encodingMinor) = payloadEncoding.ToMajorMinor();
+                }
+                // else remain 1.1
 
                 var requestHeader = new IceRequestHeader(
                     request.Proxy.Path,
