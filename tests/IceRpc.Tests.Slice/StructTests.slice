@@ -1,27 +1,26 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc::Tests::Slice
+module IceRpc::Tests::Slice;
+
+struct MyStruct
 {
-    struct MyStruct
-    {
-        i: int,
-        j: tag(1) int?,
-    }
+    i: int,
+    j: tag(1) int?,
+}
 
-    struct AnotherStruct
-    {
-        str: string,
-        prx: tag(0) Operations?,
-        en: MyEnum?,
-        st: tag(2) MyStruct?,
-    }
+struct AnotherStruct
+{
+    str: string,
+    prx: tag(0) Operations?,
+    en: MyEnum?,
+    st: tag(2) MyStruct?,
+}
 
-    interface StructOperations
-    {
-        opMyStruct(p1: MyStruct, p2: MyStruct) -> (r1: MyStruct, r2: MyStruct);
-        opAnotherStruct(p1: AnotherStruct, p2: AnotherStruct) -> (
-            r1: AnotherStruct,
-            r2: AnotherStruct,
-        );
-    }
+interface StructOperations
+{
+    opMyStruct(p1: MyStruct, p2: MyStruct) -> (r1: MyStruct, r2: MyStruct);
+    opAnotherStruct(p1: AnotherStruct, p2: AnotherStruct) -> (
+        r1: AnotherStruct,
+        r2: AnotherStruct,
+    );
 }

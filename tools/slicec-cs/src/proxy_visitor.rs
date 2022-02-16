@@ -347,9 +347,7 @@ if ({invocation}?.Features.Get<IceRpc.Features.CompressPayload>() == null)
         "\
 return Proxy.InvokeAsync(
     {});",
-        CodeBlock::from(invoke_args.join(",\n"))
-            .indent()
-            .to_string()
+        CodeBlock::from(invoke_args.join(",\n")).indent()
     );
 
     builder.set_body(body);

@@ -1,9 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc::Tests::Slice
+module IceRpc::Tests::Slice;
+
+interface AssembliesOperations
 {
-    interface AssembliesOperations
-    {
-        opA(b: IceRpc::Tests::ReferencedAssemblies::ClassA) -> IceRpc::Tests::ReferencedAssemblies::ClassA;
-    }
+    opA(b: IceRpc::Tests::ReferencedAssemblies::ClassA) -> IceRpc::Tests::ReferencedAssemblies::ClassA;
 }

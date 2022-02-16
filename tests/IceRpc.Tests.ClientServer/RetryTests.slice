@@ -1,28 +1,27 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc::Tests::ClientServer
+module IceRpc::Tests::ClientServer;
+
+exception RetrySystemFailure
 {
-    exception RetrySystemFailure
-    {
-    }
+}
 
-    interface RetryBidirTest
-    {
-        otherReplica();
-        afterDelay(n: int);
-    }
+interface RetryBidirTest
+{
+    otherReplica();
+    afterDelay(n: int);
+}
 
-    interface RetryTest
-    {
-        idempotent opIdempotent(failedAttempts: int, killConnection: bool);
-        opNotIdempotent(failedAttempts: int, killConnection: bool);
-        opWithData(failedAttempts: int, delay: int, data: sequence<byte>); // TODO rename this parameter to 'retryData'.
-        opRetryAfterDelay(failedAttempts: int, delay: int);
-        opRetryNo();
-    }
+interface RetryTest
+{
+    idempotent opIdempotent(failedAttempts: int, killConnection: bool);
+    opNotIdempotent(failedAttempts: int, killConnection: bool);
+    opWithData(failedAttempts: int, delay: int, data: sequence<byte>); // TODO rename this parameter to 'retryData'.
+    opRetryAfterDelay(failedAttempts: int, delay: int);
+    opRetryNo();
+}
 
-    interface RetryReplicatedTest
-    {
-        otherReplica();
-    }
+interface RetryReplicatedTest
+{
+    otherReplica();
 }

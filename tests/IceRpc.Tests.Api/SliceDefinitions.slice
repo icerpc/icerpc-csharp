@@ -1,39 +1,38 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc::Tests::Api
+module IceRpc::Tests::Api;
+
+interface Greeter
 {
-    interface Greeter
-    {
-        sayHello(message: string);
-    }
-
-    interface InterceptorTest
-    {
-        opContext() -> Context;
-        opInt(value: int) -> int;
-    }
-
-    interface ProxyTest
-    {
-        receiveProxy() -> ProxyTest?;
-        sendProxy(proxy: ProxyTest);
-    }
-
-    interface FeatureTest
-    {
-        compute(value: int) -> int;
-        failWithRemote();
-    }
-
-    interface BaseA {}
-    interface DerivedA : BaseA {}
-    interface MostDerivedA : DerivedA {}
-
-    interface BaseB {}
-    interface DerivedB : BaseB, BaseA {}
-    interface MostDerivedB : DerivedB, DerivedA {}
-
-    interface BaseC {}
-    interface DerivedC : BaseC, BaseB, BaseA {}
-    interface MostDerivedC : DerivedC, DerivedB, DerivedA {}
+    sayHello(message: string);
 }
+
+interface InterceptorTest
+{
+    opContext() -> dictionary<string, string>;
+    opInt(value: int) -> int;
+}
+
+interface ProxyTest
+{
+    receiveProxy() -> ProxyTest?;
+    sendProxy(proxy: ProxyTest);
+}
+
+interface FeatureTest
+{
+    compute(value: int) -> int;
+    failWithRemote();
+}
+
+interface BaseA {}
+interface DerivedA : BaseA {}
+interface MostDerivedA : DerivedA {}
+
+interface BaseB {}
+interface DerivedB : BaseB, BaseA {}
+interface MostDerivedB : DerivedB, DerivedA {}
+
+interface BaseC {}
+interface DerivedC : BaseC, BaseB, BaseA {}
+interface MostDerivedC : DerivedC, DerivedB, DerivedA {}

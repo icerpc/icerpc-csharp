@@ -1,21 +1,20 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc::Tests::Slice
+module IceRpc::Tests::Slice;
+
+exception CompressMyException
 {
-    exception CompressMyException
-    {
-        bytes: sequence<byte>,
-    }
+    bytes: sequence<byte>,
+}
 
-    interface CompressTest
-    {
-        [compress(args)] opCompressArgs(size: int, p1: sequence<byte>);
-        [compress(return)] opCompressReturn(size: int) -> sequence<byte>;
-        [compress(args, return)] opCompressArgsAndReturn(p1: sequence<byte>) -> sequence<byte>;
-        [compress(args, return)] opWithUserException(size: int);
+interface CompressTest
+{
+    [compress(args)] opCompressArgs(size: int, p1: sequence<byte>);
+    [compress(return)] opCompressReturn(size: int) -> sequence<byte>;
+    [compress(args, return)] opCompressArgsAndReturn(p1: sequence<byte>) -> sequence<byte>;
+    [compress(args, return)] opWithUserException(size: int);
 
-        [compress(args)] opCompressStreamArg(p1: stream byte) -> int;
-        [compress(return)] opCompressReturnStream(size: int) -> stream byte;
-        [compress(args, return)] opCompressStreamArgAndReturnStream(p1: stream byte) -> stream byte;
-    }
+    [compress(args)] opCompressStreamArg(p1: stream byte) -> int;
+    [compress(return)] opCompressReturnStream(size: int) -> stream byte;
+    [compress(args, return)] opCompressStreamArgAndReturnStream(p1: stream byte) -> stream byte;
 }

@@ -1,26 +1,25 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc
+module IceRpc;
+
+/// Keys of fields reserved for IceRPC request and response headers.
+unchecked enum FieldKey : int
 {
-    /// Keys of fields reserved for IceRPC request and response headers.
-    unchecked enum FieldKey : int
-    {
-        /// The string-string dictionary field (for request headers).
-        Context = 0,
+    /// The string-string dictionary field (for request headers).
+    Context = 0,
 
-        /// The retry policy field (for response headers).
-        RetryPolicy = -1,
+    /// The retry policy field (for response headers).
+    RetryPolicy = -1,
 
-        /// The W3C Trace Context field (for the telemetry interceptor and middleware).
-        TraceContext = -2,
+    /// The W3C Trace Context field (for the telemetry interceptor and middleware).
+    TraceContext = -2,
 
-        /// The compression format of the payload (for request and response headers).
-        CompressionFormat = -3,
+    /// The compression format of the payload (for request and response headers).
+    CompressionFormat = -3,
 
-        /// The deadline field, provided "for info" to the service (for request headers).
-        Deadline = -4,
+    /// The deadline field, provided "for info" to the service (for request headers).
+    Deadline = -4,
 
-        /// The idempotent field (for request headers).
-        Idempotent = -5,
-    }
+    /// The idempotent field (for request headers).
+    Idempotent = -5,
 }
