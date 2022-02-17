@@ -53,7 +53,7 @@ namespace IceRpc.Internal
                 request,
                 cancel).ConfigureAwait(false);
 
-            _logger.LogReceiveResponse(response.PayloadEncoding, response.ResultType);
+            _logger.LogReceiveResponse(response.ResultType);
             return response;
         }
 

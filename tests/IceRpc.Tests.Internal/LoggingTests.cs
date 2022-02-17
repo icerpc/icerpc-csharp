@@ -109,8 +109,7 @@ namespace IceRpc.Tests.Internal
                                   request.Proxy.Path,
                                   request.Operation,
                                   connection.NetworkConnectionInformation!.Value.LocalEndpoint,
-                                  connection.NetworkConnectionInformation!.Value.RemoteEndpoint,
-                                  response.PayloadEncoding);
+                                  connection.NetworkConnectionInformation!.Value.RemoteEndpoint);
 
                 Assert.That(loggerFactory.Logger!.Entries[1].State["ResultType"], Is.EqualTo(response.ResultType));
             }
@@ -273,8 +272,7 @@ namespace IceRpc.Tests.Internal
         private static IncomingResponse CreateIncomingResponse(OutgoingRequest request) => new(
             request,
             ResultType.Success,
-            PipeReader.Create(new ReadOnlySequence<byte>(new byte[10])),
-            Encoding.Slice20);
+            PipeReader.Create(new ReadOnlySequence<byte>(new byte[10])));
 
         private static OutgoingRequest CreateOutgoingRequest(Connection connection, bool twoway) =>
             new(new Proxy(connection.Protocol) { Path = "/dummy" }, operation: "foo")

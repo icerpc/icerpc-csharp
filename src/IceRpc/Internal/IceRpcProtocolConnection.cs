@@ -276,9 +276,7 @@ namespace IceRpc.Internal
             return new IncomingResponse(
                 request,
                 header.ResultType,
-                payload: responseReader,
-                payloadEncoding: header.PayloadEncoding.Length > 0 ?
-                    Encoding.FromString(header.PayloadEncoding) : IceRpcDefinitions.Encoding)
+                payload: responseReader)
             {
                 Fields = fields,
             };

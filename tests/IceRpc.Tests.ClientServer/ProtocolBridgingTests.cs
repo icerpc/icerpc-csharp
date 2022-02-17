@@ -201,7 +201,6 @@ namespace IceRpc.Tests.ClientServer
                 {
                     // Don't forward RetryPolicy
                     Fields = incomingResponse.Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
-                    PayloadEncoding = incomingResponse.PayloadEncoding,
                     PayloadSource = incomingResponse.Payload,
                     ResultType = incomingResponse.ResultType
                 };

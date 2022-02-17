@@ -363,11 +363,7 @@ namespace IceRpc
 
             // Wait for the response if it's a two-way request, otherwise return a response with an empty payload.
             IncomingResponse response = request.IsOneway ?
-                new IncomingResponse(
-                    request,
-                    ResultType.Success,
-                    EmptyPipeReader.Instance,
-                    request.PayloadEncoding) :
+                new IncomingResponse(request, ResultType.Success, EmptyPipeReader.Instance) :
                 await protocolConnection.ReceiveResponseAsync(request, cancel).ConfigureAwait(false);
 
             response.Connection = this;

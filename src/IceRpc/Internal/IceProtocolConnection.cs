@@ -246,7 +246,7 @@ namespace IceRpc.Internal
 
             try
             {
-                (ReplyStatus replyStatus, int payloadSize, Encoding payloadEncoding) = DecodeHeader(ref buffer);
+                (ReplyStatus replyStatus, int payloadSize, Encoding _) = DecodeHeader(ref buffer);
 
                 ResultType resultType = replyStatus switch
                 {
@@ -267,8 +267,7 @@ namespace IceRpc.Internal
                 return new IncomingResponse(
                     request,
                     resultType,
-                    new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
-                    payloadEncoding);
+                    new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable));
             }
             catch
             {
