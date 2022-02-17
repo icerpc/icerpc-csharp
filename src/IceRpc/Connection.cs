@@ -3,6 +3,7 @@
 using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
@@ -622,7 +623,16 @@ namespace IceRpc
                         }
                     }
 
-                    if (exception is not RemoteException remoteException || remoteException.ConvertToUnhandled)
+                    if (exception is RemoteException remoteException)
+                    {
+                        // With the ice protocol, ResultType=Failure exceptions must be ice system exceptions.
+                        if (remoteException.ConvertToUnhandled ||
+                            (Protocol == Protocol.Ice && !remoteException.IsIceSystemException()))
+                        {
+                            remoteException = new UnhandledException(exception);
+                        }
+                    }
+                    else
                     {
                         remoteException = new UnhandledException(exception);
                     }
