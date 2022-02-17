@@ -360,7 +360,7 @@ fn operation_dispatch(operation: &Operation) -> CodeBlock {
     format!(
         r#"
 [IceRpc.Slice.Operation("{name}")]
-protected static async global::System.Threading.Tasks.ValueTask<(SliceEncoding, global::System.IO.Pipelines.PipeReader, global::System.IO.Pipelines.PipeReader?)> {internal_name}(
+protected static async global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> {internal_name}(
     {interface_name} target,
     IceRpc.IncomingRequest request,
     global::System.Threading.CancellationToken cancel)
@@ -452,7 +452,7 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
 
         writeln!(
             code,
-            "return ({encoding}, returnValue.Payload, null);",
+            "return new IceRpc.OutgoingResponse(request) {{ PayloadSource = returnValue.Payload, PayloadEncoding = {encoding} }};",
             encoding = encoding
         );
     } else {
@@ -487,10 +487,10 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
 
         writeln!(
             code,
-            "return ({encoding}, {payload_source}, {payload_source_stream});",
-            encoding = encoding,
+            "return new OutgoingResponse(request) {{ PayloadSource = {payload_source}, PayloadSourceStream = {payload_source_stream}, PayloadEncoding = {encoding} }};",
             payload_source = dispatch_return_payload(operation, encoding),
-            payload_source_stream = payload_source_stream(operation, encoding)
+            payload_source_stream = payload_source_stream(operation, encoding),
+            encoding = encoding
         );
     }
 

@@ -14,7 +14,7 @@ namespace IceRpc.Slice
         /// <summary>A delegate that matches the signature of the generated SliceDXxx methods. For the generated
         /// methods, the type of <para>target</para> is the type of the generated service interface, whereas for this
         /// delegate it's <see cref="object"/>.</summary>
-        private delegate ValueTask<(SliceEncoding, PipeReader, PipeReader?)> DispatchMethod(
+        private delegate ValueTask<OutgoingResponse> DispatchMethod(
             object target,
             IncomingRequest request,
             CancellationToken cancel);
@@ -88,24 +88,8 @@ namespace IceRpc.Slice
         public ValueTask IcePingAsync(Dispatch dispatch, CancellationToken cancel) => default;
 
         /// <inheritdoc/>
-        public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
-        {
-            if (_dispatchMethods.TryGetValue(request.Operation, out DispatchMethod? dispatchMethod))
-            {
-                (SliceEncoding payloadEncoding, PipeReader responsePayloadSource, PipeReader? responsePayloadSourceStream) =
-                    await dispatchMethod(this, request, cancel).ConfigureAwait(false);
-
-                return new OutgoingResponse(request)
-                {
-                    PayloadSource = responsePayloadSource,
-                    PayloadSourceStream = responsePayloadSourceStream,
-                    PayloadEncoding = payloadEncoding,
-                };
-            }
-            else
-            {
-                throw new OperationNotFoundException();
-            }
-        }
+        public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel) =>
+            _dispatchMethods.TryGetValue(request.Operation, out DispatchMethod? dispatchMethod) ?
+                dispatchMethod(this, request, cancel) : throw new OperationNotFoundException();
     }
 }
