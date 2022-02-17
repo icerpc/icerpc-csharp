@@ -25,6 +25,9 @@ namespace IceRpc
         /// <summary>The operation called on the service.</summary>
         public string Operation { get; }
 
+        /// <summary>Returns the encoding of the payload of this request.</summary>
+        public Encoding PayloadEncoding { get; init; } = Encoding.Unknown;
+
         /// <summary>The proxy that is sending this request.</summary>
         public Proxy Proxy { get; }
 

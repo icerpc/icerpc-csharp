@@ -3,10 +3,11 @@
 namespace IceRpc.Slice.Internal
 {
     /// <summary>Extension methods for incoming frames.</summary>
+    // TODO: remove
     internal static class IncomingFrameExtensions
     {
-        internal static SliceEncoding GetSlicePayloadEncoding(this IncomingFrame frame) =>
-            frame.PayloadEncoding is SliceEncoding encoding ? encoding :
-                throw new NotSupportedException($"unsupported encoding '{frame.PayloadEncoding}'");
+        internal static SliceEncoding GetSlicePayloadEncoding(this IncomingRequest request) =>
+            request.PayloadEncoding is SliceEncoding encoding ? encoding :
+                throw new NotSupportedException($"unsupported encoding '{request.PayloadEncoding}'");
     }
 }

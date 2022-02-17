@@ -7,6 +7,9 @@ namespace IceRpc
     /// <summary>Represents a response protocol frame received by the application.</summary>
     public sealed class IncomingResponse : IncomingFrame
     {
+        /// <summary>Returns the encoding of the payload of this response.</summary>
+        public Encoding PayloadEncoding { get; }
+
         /// <summary>The request that received this response.</summary>
         public OutgoingRequest Request { get; }
 
@@ -23,8 +26,9 @@ namespace IceRpc
             ResultType resultType,
             PipeReader payload,
             Encoding payloadEncoding) :
-            base(request.Protocol, payload, payloadEncoding)
+            base(request.Protocol, payload)
         {
+            PayloadEncoding = payloadEncoding;
             Request = request;
             ResultType = resultType;
         }

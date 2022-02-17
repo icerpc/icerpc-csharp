@@ -41,7 +41,7 @@ namespace IceRpc.Slice
                 response.Request.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default;
 
             return response.Payload.ToAsyncEnumerable(
-                response.GetSlicePayloadEncoding(),
+                (SliceEncoding)response.Request.PayloadEncoding,
                 response.Connection,
                 decodePayloadOptions.ProxyInvoker ?? response.Request.Proxy.Invoker,
                 decodePayloadOptions.Activator ?? defaultActivator,
@@ -71,7 +71,7 @@ namespace IceRpc.Slice
 
             return response.ResultType == ResultType.Success ?
                 response.Payload.ReadValueAsync(
-                    response.GetSlicePayloadEncoding(),
+                    (SliceEncoding)response.Request.PayloadEncoding,
                     response.Connection,
                     decodePayloadOptions.ProxyInvoker ?? response.Request.Proxy.Invoker,
                     decodePayloadOptions.Activator ?? defaultActivator,

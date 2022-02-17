@@ -21,10 +21,6 @@ namespace IceRpc
         public IDictionary<int, EncodeAction> FieldsOverrides { get; set; } =
             ImmutableDictionary<int, EncodeAction>.Empty;
 
-        /// <summary>Returns the encoding of the payload of this frame.</summary>
-        /// <remarks>The header of the frame is always encoded using the frame protocol's encoding.</remarks>
-        public Encoding PayloadEncoding { get; init; } = Encoding.Unknown;
-
         /// <summary>Gets or sets the payload sink of this frame.</summary>
         public PipeWriter PayloadSink { get; set; }
 

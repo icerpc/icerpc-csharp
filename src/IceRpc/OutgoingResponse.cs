@@ -5,6 +5,9 @@ namespace IceRpc
     /// <summary>Represents a response protocol frame sent by the application.</summary>
     public sealed class OutgoingResponse : OutgoingFrame
     {
+        /// <summary>Returns the encoding of the payload of this response.</summary>
+        public Encoding PayloadEncoding { get; init; } = Encoding.Unknown;
+
         /// <summary>The corresponding request.</summary>
         public IncomingRequest Request { get; }
 
