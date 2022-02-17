@@ -246,7 +246,7 @@ namespace IceRpc.Internal
 
             try
             {
-                (ReplyStatus replyStatus, int payloadSize, Encoding _) = DecodeHeader(ref buffer);
+                (ReplyStatus replyStatus, int payloadSize) = DecodeHeader(ref buffer);
 
                 ResultType resultType = replyStatus switch
                 {
@@ -275,8 +275,7 @@ namespace IceRpc.Internal
                 throw;
             }
 
-            static (ReplyStatus ReplyStatus, int PayloadSize, Encoding PayloadEncoding) DecodeHeader(
-                ref Memory<byte> buffer)
+            static (ReplyStatus ReplyStatus, int PayloadSize) DecodeHeader(ref Memory<byte> buffer)
             {
                 // Decode the response.
                 var decoder = new SliceDecoder(buffer, Encoding.Slice11);
@@ -288,17 +287,15 @@ namespace IceRpc.Internal
                 ReplyStatus replyStatus = decoder.DecodeReplyStatus();
 
                 int payloadSize;
-                Encoding payloadEncoding;
 
                 if (replyStatus <= ReplyStatus.UserException)
                 {
                     var encapsulationHeader = new EncapsulationHeader(ref decoder);
                     payloadSize = encapsulationHeader.EncapsulationSize - 6;
-                    payloadEncoding = Encoding.FromMajorMinor(
-                        encapsulationHeader.PayloadEncodingMajor,
-                        encapsulationHeader.PayloadEncodingMinor);
+                    // we ignore the payload encoding, it's irrelevant: the caller knows which encoding to expect,
+                    // usually the same encoding as the request payload.
 
-                    buffer = buffer[((int)decoder.Consumed - 4)..]; // we don't encode the reply status
+                    buffer = buffer[((int)decoder.Consumed - 4)..]; // we don't include the reply status
 
                     if (payloadSize != buffer.Length - 4)
                     {
@@ -310,11 +307,10 @@ namespace IceRpc.Internal
                 {
                     // Ice system exception
                     payloadSize = buffer.Length - 4; // includes reply status, excludes the payload size
-                    payloadEncoding = Encoding.Slice11;
                     // buffer stays the same
                 }
 
-                return (replyStatus, payloadSize, payloadEncoding);
+                return (replyStatus, payloadSize);
             }
         }
 

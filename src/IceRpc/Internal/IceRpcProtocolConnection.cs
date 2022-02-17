@@ -449,8 +449,7 @@ namespace IceRpc.Internal
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
                 int headerStartPos = encoder.EncodedByteCount;
 
-                new IceRpcResponseHeader(response.ResultType, "").Encode(ref encoder);
-
+                new IceRpcResponseHeader(response.ResultType).Encode(ref encoder);
                 encoder.EncodeFieldDictionary(response.FieldsOverrides, response.Fields);
 
                 // We're done with the header encoding, write the header size.
