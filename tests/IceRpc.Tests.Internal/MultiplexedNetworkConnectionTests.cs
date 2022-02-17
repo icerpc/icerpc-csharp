@@ -162,6 +162,7 @@ namespace IceRpc.Tests.Internal
                     readResult = await clientStreams.Last().Input.ReadAsync(default);
                 }
                 Assert.That(readResult.IsCompleted);
+                // await clientStreams.Last().Input.CompleteAsync();
             }
 
             // Ensure streams are shutdown.

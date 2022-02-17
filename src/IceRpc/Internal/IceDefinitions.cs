@@ -26,7 +26,7 @@ namespace IceRpc.Internal
         // encoding of the frame header (always set to 1.0 with the an ice frame, even though we use 1.1).
         internal static readonly byte[] ProtocolBytes = new byte[] { 1, 0, 1, 0 };
 
-        internal static readonly ReadOnlyMemory<ReadOnlyMemory<byte>> CloseConnectionFrame =
+        internal static readonly IReadOnlyList<ReadOnlyMemory<byte>> CloseConnectionFrame =
             new ReadOnlyMemory<byte>[]
             {
                 new byte[]
@@ -45,7 +45,7 @@ namespace IceRpc.Internal
             ProtocolBytes[0], ProtocolBytes[1], ProtocolBytes[2], ProtocolBytes[3],
         };
 
-        internal static readonly ReadOnlyMemory<ReadOnlyMemory<byte>> ValidateConnectionFrame =
+        internal static readonly IReadOnlyList<ReadOnlyMemory<byte>> ValidateConnectionFrame =
             new ReadOnlyMemory<byte>[]
             {
                 new byte[]

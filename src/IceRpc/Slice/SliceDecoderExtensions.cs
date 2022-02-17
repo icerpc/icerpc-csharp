@@ -102,7 +102,7 @@ namespace IceRpc.Slice
         /// <param name="bitSequenceReader">The bit sequence reader.</param>
         /// <returns>The decoded Prx struct, or null.</returns>
         public static T? DecodeNullablePrx<T>(
-            ref this SliceDecoder decoder, 
+            ref this SliceDecoder decoder,
             ref BitSequenceReader bitSequenceReader) where T : struct, IPrx =>
             decoder.DecodeNullableProxy(ref bitSequenceReader) is Proxy proxy ? new T { Proxy = proxy } : null;
 
