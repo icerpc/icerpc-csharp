@@ -120,6 +120,7 @@ namespace IceRpc.Slice
                 return response.Payload.ReadRemoteExceptionAsync(
                     resultType == SliceResultType.Failure ?
                         response.Protocol.SliceEncoding! : (SliceEncoding)response.Request.PayloadEncoding,
+                    response.ResultType,
                     response.Connection,
                     decodePayloadOptions.ProxyInvoker ?? response.Request.Proxy.Invoker,
                     decodePayloadOptions.Activator ?? defaultActivator,

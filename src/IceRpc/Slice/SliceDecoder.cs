@@ -297,11 +297,12 @@ namespace IceRpc.Slice
 
         /// <summary>Decodes a remote exception.</summary>
         /// <returns>The remote exception.</returns>
-        public RemoteException DecodeException()
+        // TODO: replace method
+        public RemoteException DecodeException(ResultType resultType)
         {
             if (Encoding == IceRpc.Encoding.Slice11)
             {
-                return DecodeExceptionClass();
+                return DecodeExceptionClass(resultType);
             }
             else
             {

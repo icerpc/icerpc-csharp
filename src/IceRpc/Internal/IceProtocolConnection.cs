@@ -299,18 +299,7 @@ namespace IceRpc.Internal
                         encapsulationHeader.PayloadEncodingMajor,
                         encapsulationHeader.PayloadEncodingMinor);
 
-                    if (payloadEncoding == Encoding.Slice11 && replyStatus == ReplyStatus.UserException)
-                    {
-                        buffer = buffer[((int)decoder.Consumed - 5)..];
-
-                        // We encode the reply status (UserException) right after the payload size
-                        buffer.Span[4] = (byte)ReplyStatus.UserException;
-                        payloadSize += 1; // for the additional reply status
-                    }
-                    else
-                    {
-                        buffer = buffer[((int)decoder.Consumed - 4)..]; // no reply status
-                    }
+                    buffer = buffer[((int)decoder.Consumed - 4)..]; // we don't encode the reply status
 
                     if (payloadSize != buffer.Length - 4)
                     {
@@ -506,7 +495,7 @@ namespace IceRpc.Internal
 
                         if (response.ResultType != ResultType.Success)
                         {
-                            if (response.ResultType == ResultType.Failure || payloadEncoding == Encoding.Slice11)
+                            if (response.ResultType == ResultType.Failure)
                             {
                                 // extract reply status from 1.1-encoded payload
                                 ReadResult readResult = await response.PayloadSource.ReadAsync(
@@ -522,6 +511,13 @@ namespace IceRpc.Internal
                                 }
 
                                 replyStatus = (ReplyStatus)readResult.Buffer.FirstSpan[0];
+
+                                if (replyStatus <= ReplyStatus.UserException)
+                                {
+                                    throw new InvalidDataException(
+                                        "unexpected reply status value '{replyStatus}' in payload");
+                                }
+
                                 response.PayloadSource.AdvanceTo(readResult.Buffer.GetPosition(1));
                                 payloadSize -= 1;
                             }

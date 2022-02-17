@@ -62,6 +62,7 @@ namespace IceRpc.Slice.Internal
         /// <summary>Reads/decodes a remote exception from a response payload represented by a pipe reader.</summary>
         /// <param name="reader">The pipe reader.</param>
         /// <param name="encoding">The Slice encoding version.</param>
+        /// <param name="resultType">The result type.</param>
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <param name="activator">The Slice activator.</param>
@@ -72,6 +73,7 @@ namespace IceRpc.Slice.Internal
         internal static async ValueTask<RemoteException> ReadRemoteExceptionAsync(
             this PipeReader reader,
             SliceEncoding encoding,
+            ResultType resultType,
             Connection connection,
             IInvoker invoker,
             IActivator activator,
@@ -117,7 +119,7 @@ namespace IceRpc.Slice.Internal
                     invoker,
                     activator,
                     maxDepth);
-                remoteException = decoder.DecodeException();
+                remoteException = decoder.DecodeException(resultType);
 
                 if (remoteException is not UnknownSlicedRemoteException)
                 {
