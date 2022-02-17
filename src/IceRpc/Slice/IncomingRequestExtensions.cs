@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 
 namespace IceRpc.Slice
@@ -31,6 +32,38 @@ namespace IceRpc.Slice
                     $@"idempotent mismatch for operation '{request.Operation
                     }': received request marked idempotent for a non-idempotent operation");
             }
+        }
+
+        /// <summary>Creates an outgoing response from a remote exception.</summary>
+        /// <param name="request">The incoming request.</param>
+        /// <param name="remoteException">The remote exception to encode in the payload.</param>
+        /// <param name="requestPayloadEncoding">The encoding used for the request payload.</param>
+        /// <returns>An outgoing response with a <see cref="SliceResultType.ServiceFailure"/> result type.</returns>
+        public static OutgoingResponse CreateResponseFromRemoteException(
+            this IncomingRequest request,
+            RemoteException remoteException,
+            SliceEncoding requestPayloadEncoding)
+        {
+            if (remoteException.IsIceSystemException() || remoteException.ConvertToUnhandled)
+            {
+                throw new ArgumentException("invalid remote exception", nameof(remoteException));
+            }
+
+            var response = new OutgoingResponse(request)
+            {
+                ResultType = (ResultType)SliceResultType.ServiceFailure,
+                PayloadSource = requestPayloadEncoding.CreatePayloadFromRemoteException(remoteException),
+                PayloadEncoding = requestPayloadEncoding
+            };
+
+            if (response.Protocol.HasFields && remoteException.RetryPolicy != RetryPolicy.NoRetry)
+            {
+                RetryPolicy retryPolicy = remoteException.RetryPolicy;
+                response.FieldsOverrides = response.FieldsOverrides.With(
+                    (int)FieldKey.RetryPolicy,
+                    (ref SliceEncoder encoder) => retryPolicy.Encode(ref encoder));
+            }
+            return response;
         }
 
         /// <summary>Computes the Slice encoding to use when encoding a Slice-generated response.</summary>

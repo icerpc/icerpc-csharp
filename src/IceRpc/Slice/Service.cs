@@ -1,8 +1,8 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice.Internal;
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.IO.Pipelines;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -88,8 +88,29 @@ namespace IceRpc.Slice
         public ValueTask IcePingAsync(Dispatch dispatch, CancellationToken cancel) => default;
 
         /// <inheritdoc/>
-        public ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel) =>
-            _dispatchMethods.TryGetValue(request.Operation, out DispatchMethod? dispatchMethod) ?
-                dispatchMethod(this, request, cancel) : throw new OperationNotFoundException();
+        public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
+        {
+            // TODO: move try/catch block to SliceD and make method non-async.
+            if (_dispatchMethods.TryGetValue(request.Operation, out DispatchMethod? dispatchMethod))
+            {
+                try
+                {
+                    return await dispatchMethod(this, request, cancel).ConfigureAwait(false);
+                }
+                catch (RemoteException remoteException)
+                {
+                    if (remoteException.IsIceSystemException() || remoteException.ConvertToUnhandled)
+                    {
+                        throw;
+                    }
+
+                    return request.CreateResponseFromRemoteException(remoteException, request.GetSliceEncoding());
+                }
+            }
+            else
+            {
+                throw new OperationNotFoundException();
+            }
+        }
     }
 }

@@ -248,7 +248,12 @@ namespace IceRpc.Internal
             {
                 (ReplyStatus replyStatus, int payloadSize, Encoding payloadEncoding) = DecodeHeader(ref buffer);
 
-                ResultType resultType = replyStatus == ReplyStatus.OK ? ResultType.Success : ResultType.Failure;
+                ResultType resultType = replyStatus switch
+                {
+                    ReplyStatus.OK => ResultType.Success,
+                    ReplyStatus.UserException => (ResultType)SliceResultType.ServiceFailure,
+                    _ => ResultType.Failure
+                };
 
                 // We write the payload size in the first 4 bytes of the buffer.
                 Slice20Encoding.EncodeSize(payloadSize, buffer.Span[0..4]);
@@ -499,7 +504,7 @@ namespace IceRpc.Internal
 
                         ReplyStatus replyStatus = ReplyStatus.OK;
 
-                        if (response.ResultType == ResultType.Failure)
+                        if (response.ResultType != ResultType.Success)
                         {
                             if (payloadEncoding == Encoding.Slice11)
                             {

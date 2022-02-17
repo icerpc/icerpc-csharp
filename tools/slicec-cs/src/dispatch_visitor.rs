@@ -393,6 +393,13 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
         );
     }
 
+    // temporary way to "compute" the Slice encoding
+    let encoding = if operation.returns_classes() {
+        "IceRpc.Encoding.Slice11"
+    } else {
+        "request.GetSliceEncoding()"
+    };
+
     match parameters.as_slice() {
         [] => {
             // Verify the payload is indeed empty (it can contain tagged params that we have to skip).
@@ -444,12 +451,6 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
             args = args.join(", ")
         );
 
-        let encoding = if operation.returns_classes() {
-            "IceRpc.Encoding.Slice11"
-        } else {
-            "request.GetSliceEncoding()"
-        };
-
         writeln!(
             code,
             "return new IceRpc.OutgoingResponse(request) {{ PayloadSource = returnValue.Payload, PayloadEncoding = {encoding} }};",
@@ -477,13 +478,6 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
             async_operation_name = async_operation_name,
             args = args.join(", ")
         );
-
-        let encoding = if operation.returns_classes() {
-            "IceRpc.Encoding.Slice11"
-        } else {
-            code.writeln("var payloadEncoding = request.GetSliceEncoding();");
-            "payloadEncoding"
-        };
 
         writeln!(
             code,
