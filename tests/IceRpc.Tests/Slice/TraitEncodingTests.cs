@@ -14,7 +14,7 @@ public sealed class TraitEncodingTests
         // Test the generation of type-ids on structs.
         Assert.That(
             typeof(TraitStructA).GetSliceTypeId()!,
-            Is.EqualTo("::IceRpc::Tests::SliceInternal::TraitStructA")
+            Is.EqualTo("::IceRpc::Slice::Tests::TraitStructA")
         );
 
         Memory<byte> buffer = new byte[1024];
@@ -30,7 +30,7 @@ public sealed class TraitEncodingTests
             var tsa = new TraitStructA("Foo");
             tsa.EncodeTrait(ref encoder);
 
-            Assert.That(decoder.DecodeString(), Is.EqualTo("::IceRpc::Tests::SliceInternal::TraitStructA"));
+            Assert.That(decoder.DecodeString(), Is.EqualTo("::IceRpc::Slice::Tests::TraitStructA"));
             Assert.That(new TraitStructA(ref decoder), Is.EqualTo(tsa));
         }
 
@@ -41,7 +41,7 @@ public sealed class TraitEncodingTests
             var decoder = new SliceDecoder(buffer, encoding, activator: activator);
 
             var tsb = new TraitStructB(79);
-            encoder.EncodeString("::IceRpc::Tests::SliceInternal::TraitStructB");
+            encoder.EncodeString("::IceRpc::Slice::Tests::TraitStructB");
             tsb.Encode(ref encoder);
 
             Assert.That(decoder.DecodeTrait<TraitStructB>(), Is.EqualTo(tsb));
@@ -54,7 +54,7 @@ public sealed class TraitEncodingTests
             var decoder = new SliceDecoder(buffer, encoding, activator: activator);
 
             var tsa = new TraitStructA("Bar");
-            encoder.EncodeString("::IceRpc::Tests::SliceInternal::TraitStructA");
+            encoder.EncodeString("::IceRpc::Slice::Tests::TraitStructA");
             tsa.Encode(ref encoder);
 
             IMyTraitA decodedTrait = decoder.DecodeTrait<IMyTraitA>();
@@ -64,44 +64,34 @@ public sealed class TraitEncodingTests
         // Test that decoding a mismatched type fails.
         {
             var bufferWriter = new SingleBufferWriter(buffer);
-            var encoder = new SliceEncoder(bufferWriter, encoding);
-            var decoder = new SliceDecoder(buffer, encoding, activator: activator);
+           
+            
 
-            var tsb = new TraitStructB(97);
-            tsb.EncodeTrait(ref encoder);
-
-            try
+            Assert.Throws<InvalidDataException>(() =>
             {
+                var encoder = new SliceEncoder(bufferWriter, encoding);
+                var decoder = new SliceDecoder(buffer, encoding, activator: activator);
+                var tsb = new TraitStructB(97);
+                tsb.EncodeTrait(ref encoder);
                 decoder.DecodeTrait<IMyTraitA>();
-                Assert.Fail();
-            }
-            catch (InvalidDataException e)
-            {
-                Assert.That(e.Message, Is.EqualTo("decoded struct of type 'IceRpc.Tests.SliceInternal.TraitStructB' does not implement expected interface 'IceRpc.Tests.SliceInternal.IMyTraitA'"));
-            }
+            });
         }
 
         // Test that decoding an unknown type-id fails.
         {
             var bufferWriter = new SingleBufferWriter(buffer);
-            var encoder = new SliceEncoder(bufferWriter, encoding);
-            var decoder = new SliceDecoder(buffer, encoding, activator: activator);
+            
 
-            var tsb = new TraitStructB(42);
-            encoder.EncodeString("::IceRpc::Tests::SliceInternal::FakeTrait");
-            tsb.Encode(ref encoder);
-
-            try
+            Assert.Throws<InvalidDataException>(() =>
             {
+                var encoder = new SliceEncoder(bufferWriter, encoding);
+                var decoder = new SliceDecoder(buffer, encoding, activator: activator);
+
+                var tsb = new TraitStructB(42);
+                encoder.EncodeString("::IceRpc::Slice::Tests::FakeTrait");
+                tsb.Encode(ref encoder);
                 decoder.DecodeTrait<IMyTraitB>();
-                Assert.Fail();
-            }
-            catch (InvalidDataException e)
-            {
-                Assert.That(
-                    e.Message,
-                    Is.EqualTo("failed to decode struct with type ID '::IceRpc::Tests::SliceInternal::FakeTrait' implementing interface 'IceRpc.Tests.SliceInternal.IMyTraitB'"));
-            }
+            });
         }
     }
 }
