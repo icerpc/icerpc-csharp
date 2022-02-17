@@ -635,8 +635,7 @@ namespace IceRpc
                             request.Operation);
                     }
 
-                    // not necessarily the request payload encoding
-                    SliceEncoding sliceEncoding = request.GetSliceEncoding();
+                    SliceEncoding sliceEncoding = request.Protocol.SliceEncoding!;
 
                     response = new OutgoingResponse(request)
                     {

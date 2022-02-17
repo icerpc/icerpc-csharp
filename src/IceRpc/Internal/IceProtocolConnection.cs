@@ -506,7 +506,7 @@ namespace IceRpc.Internal
 
                         if (response.ResultType != ResultType.Success)
                         {
-                            if (payloadEncoding == Encoding.Slice11)
+                            if (response.ResultType == ResultType.Failure || payloadEncoding == Encoding.Slice11)
                             {
                                 // extract reply status from 1.1-encoded payload
                                 ReadResult readResult = await response.PayloadSource.ReadAsync(

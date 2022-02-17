@@ -39,6 +39,8 @@ namespace IceRpc.Slice
         /// <param name="remoteException">The remote exception to encode in the payload.</param>
         /// <param name="requestPayloadEncoding">The encoding used for the request payload.</param>
         /// <returns>An outgoing response with a <see cref="SliceResultType.ServiceFailure"/> result type.</returns>
+        /// <exception cref="ArgumentException">Thrown if <paramref name="remoteException"/> is a dispatch exception or
+        /// its <see cref="RemoteException.ConvertToUnhandled"/> property is <c>true</c>.</exception>
         public static OutgoingResponse CreateResponseFromRemoteException(
             this IncomingRequest request,
             RemoteException remoteException,
@@ -47,6 +49,14 @@ namespace IceRpc.Slice
             if (remoteException.IsIceSystemException() || remoteException.ConvertToUnhandled)
             {
                 throw new ArgumentException("invalid remote exception", nameof(remoteException));
+            }
+
+            if (remoteException.Origin == RemoteExceptionOrigin.Unknown)
+            {
+                remoteException.Origin = new RemoteExceptionOrigin(
+                    request.Path,
+                    request.Fragment,
+                    request.Operation);
             }
 
             var response = new OutgoingResponse(request)
