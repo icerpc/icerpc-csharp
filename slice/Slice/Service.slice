@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc::Slice;
+[cs:namespace("IceRpc.Slice")]
+module Slice;
 
 /// All services defined in Slice implement this interface.
 interface Service

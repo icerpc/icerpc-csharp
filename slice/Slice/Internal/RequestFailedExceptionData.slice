@@ -1,0 +1,21 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+// TODO use file scoped modules once there is support for cs:namespace for non top-level modules
+// https://github.com/zeroc-ice/icerpc-csharp/issues/815
+[cs:namespace("IceRpc.Slice")]
+[cs:internal]
+module Slice
+{
+    module Internal
+    {
+        /// The data carried by a RequestFailedException (ObjectNotExistException, FacetNotExistException or
+        /// OperationNotExistException) when encoded with the 1.1 encoding.
+        [cs:readonly]
+        compact struct RequestFailedExceptionData
+        {
+            path: IdentityPath,
+            fragment: Fragment,
+            operation: string,
+        }
+    }
+}

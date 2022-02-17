@@ -1,0 +1,21 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+// TODO https://github.com/zeroc-ice/icerpc-csharp/issues/815
+[cs:namespace("IceRpc.Slice")]
+[cs:internal]
+module Slice
+{
+    module Internal
+    {
+        /// The identity of a service. Used only with the 1.1 encoding.
+        [cs:readonly]
+        compact struct Identity
+        {
+            /// The name of the identity.
+            name: string,
+
+            /// The category of the identity.
+            category: string,
+        }
+    }
+}

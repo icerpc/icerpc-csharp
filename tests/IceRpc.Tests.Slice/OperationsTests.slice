@@ -24,7 +24,7 @@ interface Operations
     opString(p1: string, p2: string) -> (r1: string, r2: string);
 
     // Returns a proxy to a Service
-    opService(service: IceRpc::Slice::Service) -> IceRpc::Slice::Service;
+    opService(service: Slice::Service) -> Slice::Service;
 
     // Oneway Operations
     opOneway();
