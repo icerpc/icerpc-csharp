@@ -5,13 +5,12 @@ namespace IceRpc.Transports.Internal
     /// <summary>The Slic frame writer class writes Slic frames.</summary>
     internal sealed class SlicFrameWriter : ISlicFrameWriter
     {
-        private readonly Func<ReadOnlyMemory<ReadOnlyMemory<byte>>, CancellationToken, ValueTask> _writeFunc;
+        private readonly Func<IReadOnlyList<ReadOnlyMemory<byte>>, CancellationToken, ValueTask> _writeFunc;
 
         public async ValueTask WriteFrameAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
         {
             // A Slic frame must always be sent entirely even if the sending is canceled.
-            // TODO: Fix ISimpleNetworkConnection.WriteAsync or write using simple network connection PipeWriter
-            ValueTask task = _writeFunc(buffers.ToArray(), CancellationToken.None);
+            ValueTask task = _writeFunc(buffers, CancellationToken.None);
             if (task.IsCompleted || !cancel.CanBeCanceled)
             {
                 await task.ConfigureAwait(false);
@@ -22,7 +21,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal SlicFrameWriter(Func<ReadOnlyMemory<ReadOnlyMemory<byte>>, CancellationToken, ValueTask> writeFunc) =>
+        internal SlicFrameWriter(Func<IReadOnlyList<ReadOnlyMemory<byte>>, CancellationToken, ValueTask> writeFunc) =>
             _writeFunc = writeFunc;
     }
 }

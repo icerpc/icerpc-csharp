@@ -12,7 +12,6 @@ namespace IceRpc.Tests.Slice.Stream
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    // [Log(LogAttributeLevel.Debug)]
     public sealed class StreamParamTests : IAsyncDisposable
     {
         private readonly ServiceProvider _serviceProvider;

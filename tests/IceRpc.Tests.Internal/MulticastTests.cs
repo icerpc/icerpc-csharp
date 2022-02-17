@@ -28,7 +28,7 @@ namespace IceRpc.Tests.Internal
         {
             byte[] writeBuffer = new byte[size];
             new Random().NextBytes(writeBuffer);
-            ReadOnlyMemory<ReadOnlyMemory<byte>> sendBuffers = new ReadOnlyMemory<byte>[] { writeBuffer };
+            var sendBuffers = new List<ReadOnlyMemory<byte>>() { writeBuffer };
 
             string host = _ipv6 ? "[::1]" : "127.0.0.1";
             Endpoint serverEndpoint = GetEndpoint(host, port: 0, _ipv6, client: false);

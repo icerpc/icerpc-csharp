@@ -31,7 +31,9 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public PipeReader Input => _inputPipeReader;
+        public PipeReader Input => IsRemote || IsBidirectional ?
+            _inputPipeReader :
+            throw new InvalidOperationException($"can't get {nameof(Input)} on unidirectional local stream");
 
         /// <inheritdoc/>
         public bool IsBidirectional { get; }
@@ -70,14 +72,16 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public PipeWriter Output => _outputPipeWriter;
+        public PipeWriter Output => !IsRemote || IsBidirectional ?
+            _outputPipeWriter :
+            throw new InvalidOperationException($"can't get {nameof(Output)} on unidirectional remote stream");
 
         /// <summary>Specifies whether or not this is a stream initiated by the peer.</summary>
         internal bool IsRemote => _id != -1 && _id % 2 == (_connection.IsServer ? 0 : 1);
 
         internal bool IsShutdown => ReadsCompleted && WritesCompleted;
 
-        internal bool ReadsCompleted => ((State)Thread.VolatileRead(ref _state)).HasFlag(State.ReadCompleted);
+        internal bool ReadsCompleted => _state.HasFlag(State.ReadCompleted);
 
         /// <summary>The stream reset error is set if the stream is reset by the peer or locally. It's used to set
         /// the error for the <see cref="MultiplexedStreamAbortedException"/> raised by the stream.</summary>
@@ -99,21 +103,20 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal bool WritesCompleted => ((State)Thread.VolatileRead(ref _state)).HasFlag(State.WriteCompleted);
+        internal bool WritesCompleted => _state.HasFlag(State.WriteCompleted);
 
         private readonly SlicNetworkConnection _connection;
-        private long _id = -1;
-        private readonly PipeWriter _inputPipeWriter;
         private readonly ISlicFrameReader _frameReader;
         private readonly ISlicFrameWriter _frameWriter;
+        private long _id = -1;
+        private readonly SlicPipeReader _inputPipeReader;
         private readonly object _mutex = new();
+        private readonly SlicPipeWriter _outputPipeWriter;
         private volatile int _sendCredit = int.MaxValue;
         // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
-        private readonly AsyncSemaphore _sendCreditSemaphore = new(1);
+        private readonly AsyncSemaphore _sendCreditSemaphore = new(1, 1);
         private volatile Action? _shutdownAction;
         private TaskCompletionSource? _shutdownCompletedTaskSource;
-        private readonly SlicPipeReader _inputPipeReader;
-        private readonly SlicPipeWriter _outputPipeWriter;
         private long? _resetErrorCode;
         private int _state;
 
@@ -215,14 +218,13 @@ namespace IceRpc.Transports.Internal
             _frameReader = reader;
             _frameWriter = writer;
 
-            // Create a pipe to push the Slice received frame data to the SlicPipeReader.
-            var inputPipe = new Pipe(new PipeOptions(
-                pool: _connection.Pool,
-                minimumSegmentSize: _connection.MinimumSegmentSize,
-                pauseWriterThreshold: 0,
-                writerScheduler: PipeScheduler.Inline));
-            _inputPipeWriter = inputPipe.Writer;
-            _inputPipeReader = new SlicPipeReader(this, inputPipe.Reader, _connection.ResumeWriterThreshold);
+            _inputPipeReader = new SlicPipeReader(
+                this,
+                _connection.Pool,
+                _connection.MinimumSegmentSize,
+                _connection.ResumeWriterThreshold,
+                _connection.PauseWriterThreshold,
+                _frameReader.ReadFrameDataAsync);
 
             _outputPipeWriter = new SlicPipeWriter(this, _connection.Pool, _connection.MinimumSegmentSize);
 
@@ -248,27 +250,40 @@ namespace IceRpc.Transports.Internal
             // with the Slic connection when the connection is disposed.
             if (!IsShutdown)
             {
-                // TODO: consider adding ConnectionAbortedException(long errorCode) and support error codes when
-                // aborting connections. This allows to transmit an error code when the connection is aborted by the
-                // application. Of course, if the connection is lost, we won't receive anything and we would report a
-                // specific ConnectionLost error code locally. Quic and the .NET Quic API support application error
-                // codes for aborted connections..
-                var exception = new ConnectionLostException();
-
-                // Ensure the Slic pipe reader reports ConnectionLostException.
-                _inputPipeWriter.Complete(exception);
+                // Shutdown the stream.
+                TrySetStateAndShutdown(State.ReadCompleted | State.WriteCompleted);
 
                 // Ensure the Slic pipe reader and writer are completed.
+                var exception = new ConnectionLostException();
                 _inputPipeReader.Complete(exception);
                 _outputPipeWriter.Complete(exception);
-
-                // Shutdown the stream after completing the input pipe writer to ensure the Slic pipe reader will
-                // report ConnectionLostException.
-                TrySetState(State.ReadCompleted | State.WriteCompleted);
             }
         }
 
-        internal void ReceivedConsumed(int size)
+        internal async ValueTask<int> AcquireSendCreditAsync(CancellationToken cancel)
+        {
+            // Acquire the semaphore to ensure flow control allows sending additional data. It's important to acquire
+            // the semaphore before checking _sendCredit. The semaphore acquisition will block if we can't send
+            // additional data (_sendCredit == 0). Acquiring the semaphore ensures that we are allowed to send
+            // additional data and _sendCredit can be used to figure out the size of the next packet to send.
+            await _sendCreditSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+            return _sendCredit;
+        }
+
+        internal void ConsumeSendCredit(int consumed)
+        {
+            // Decrease the size of remaining data that we are allowed to send. If all the credit is consumed,
+            // _sendCredit will be 0 and we don't release the semaphore to prevent further sends. The semaphore will be
+            // released once the stream receives a StreamResumeWrite frame.
+            int sendCredit = Interlocked.Add(ref _sendCredit, -consumed);
+            if (sendCredit > 0)
+            {
+                _sendCreditSemaphore.Release();
+            }
+            Debug.Assert(sendCredit >= 0);
+        }
+
+        internal void ReceivedResumeWriterFrame(int size)
         {
             int newValue = Interlocked.Add(ref _sendCredit, size);
             if (newValue == size)
@@ -283,100 +298,10 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal async ValueTask ReceivedFrameAsync(int size, bool endStream)
-        {
-            // Set the reading state to ensure the stream isn't shutdown until the frame read is completed. Shutdown
-            // completes in the _inputPipeWriter so it's not safe to call shutdown while a frame is read.
-            SetState(State.Reading);
+        internal ValueTask<int> ReceivedStreamFrameAsync(int size, bool endStream, CancellationToken cancel) =>
+            ReadsCompleted ? new(0) : _inputPipeReader.ReceivedStreamFrameAsync(size, endStream, cancel);
 
-            try
-            {
-                if (IsShutdown)
-                {
-                    // The stream is being shutdown. Read and ignore the data.
-                    using IMemoryOwner<byte> owner = _connection.Pool.Rent(_connection.MinimumSegmentSize);
-                    while (size > 0)
-                    {
-                        Memory<byte> chunk = owner.Memory;
-                        if (chunk.Length > size)
-                        {
-                            chunk = chunk[0..size];
-                        }
-                        await _frameReader.ReadFrameDataAsync(chunk, CancellationToken.None).ConfigureAwait(false);
-                        size -= chunk.Length;
-                    }
-                }
-                else
-                {
-                    // Read and append the received data to the input pipe writer.
-                    while (size > 0)
-                    {
-                        // Receive the data and push it to the SlicReader pipe.
-                        Memory<byte> chunk = _inputPipeWriter.GetMemory();
-                        if (chunk.Length > size)
-                        {
-                            chunk = chunk[0..size];
-                        }
-
-                        await _frameReader.ReadFrameDataAsync(chunk, CancellationToken.None).ConfigureAwait(false);
-
-                        _inputPipeWriter.Advance(chunk.Length);
-                        size -= chunk.Length;
-
-                        // This should always complete synchronously since the sender isn't supposed to send more data
-                        // than it is allowed.
-                        ValueTask<FlushResult> flushTask = _inputPipeWriter.FlushAsync(CancellationToken.None);
-                        if (!flushTask.IsCompletedSuccessfully)
-                        {
-                            _ = flushTask.AsTask();
-                            throw new InvalidDataException("received more data than flow control permits");
-                        }
-
-                        // We don't check if the input pipe reader completed because we need to consume the whole frame
-                        // from the network connection.
-                        await flushTask.ConfigureAwait(false);
-                    }
-
-                    if (endStream)
-                    {
-                        // We complete the input pipe writer but we don't mark reads as completed. Reads will be marked
-                        // as completed by the Slic pipe reader once the application calls TryRead/ReadAsync. It's
-                        // important for unidirectional stream which would otherwise be shutdown before the data has
-                        // been consumed by the application. This would allow a malicious client to open many
-                        // unidirectional streams before the application gets a chance to consume the data, defeating
-                        // the purpose of the UnidirectionalStreamMaxCount option.
-                        await _inputPipeWriter.CompleteAsync().ConfigureAwait(false);
-                    }
-                }
-            }
-            finally
-            {
-                ClearState(State.Reading);
-            }
-        }
-
-        internal void ReceivedReset(long error)
-        {
-            if (!IsBidirectional && !IsRemote)
-            {
-                throw new InvalidDataException("received reset frame on local unidirectional stream");
-            }
-
-            // Complete the input pipe writer.
-            if (error.ToSlicError() == SlicStreamError.NoError)
-            {
-                _inputPipeWriter.Complete();
-            }
-            else
-            {
-                _inputPipeWriter.Complete(new MultiplexedStreamAbortedException(error));
-                ResetError = error;
-            }
-
-            TrySetReadCompleted();
-        }
-
-        internal void ReceivedStopSending(long error)
+        internal void ReceivedResetFrame(long error)
         {
             if (!IsBidirectional && !IsRemote)
             {
@@ -384,6 +309,23 @@ namespace IceRpc.Transports.Internal
             }
 
             ResetError = error;
+
+            _inputPipeReader.ReceivedResetFrame(error);
+
+            TrySetReadCompleted();
+        }
+
+        internal void ReceivedStopSendingFrame(long error)
+        {
+            if (!IsBidirectional && !IsRemote)
+            {
+                throw new InvalidDataException("received reset frame on local unidirectional stream");
+            }
+
+            ResetError = error;
+
+            _outputPipeWriter.ReceivedStopSendingFrame(error);
+
             TrySetWriteCompleted();
         }
 
@@ -401,55 +343,9 @@ namespace IceRpc.Transports.Internal
                 new StreamResumeWriteBody((ulong)size).Encode,
                 CancellationToken.None).AsTask();
 
-        internal async ValueTask<int> SendCreditAcquireAsync(CancellationToken cancel)
-        {
-            // Acquire the semaphore to ensure flow control allows sending additional data. It's important to acquire
-            // the semaphore before checking _sendCredit. The semaphore acquisition will block if we can't send
-            // additional data (_sendCredit == 0). Acquiring the semaphore ensures that we are allowed to send
-            // additional data and _sendCredit can be used to figure out the size of the next packet to send.
-            await _sendCreditSemaphore.EnterAsync(cancel).ConfigureAwait(false);
-            return _sendCredit;
-        }
+        internal bool TrySetReadCompleted() => TrySetStateAndShutdown(State.ReadCompleted);
 
-        internal void SendCreditConsumed(int consumed)
-        {
-            // Decrease the size of remaining data that we are allowed to send. If all the credit is consumed,
-            // _sendCredit will be 0 and we don't release the semaphore to prevent further sends. The semaphore will be
-            // released once the stream receives a StreamResumeWrite frame.
-            int sendCredit = Interlocked.Add(ref _sendCredit, -consumed);
-            if (sendCredit > 0)
-            {
-                _sendCreditSemaphore.Release();
-            }
-        }
-
-        internal bool TrySetReadCompleted() => TrySetState(State.ReadCompleted);
-
-        internal bool TrySetWriteCompleted() => TrySetState(State.WriteCompleted);
-
-        private void CheckShutdown(State state)
-        {
-            if (state == (State.ReadCompleted | State.WriteCompleted))
-            {
-                // The stream reads and writes are completed and we're not reading frames, shutdown the stream.
-                try
-                {
-                    Shutdown();
-                }
-                catch (Exception exception)
-                {
-                    Debug.Assert(false, $"unexpected exception {exception}");
-                }
-            }
-        }
-
-        private void ClearState(State state)
-        {
-            var previousState = (State)Interlocked.And(ref _state, ~(int)state);
-            State newState = previousState & ~state;
-            Debug.Assert(previousState != newState);
-            CheckShutdown(newState);
-        }
+        internal bool TrySetWriteCompleted() => TrySetStateAndShutdown(State.WriteCompleted);
 
         private void Shutdown()
         {
@@ -476,11 +372,11 @@ namespace IceRpc.Transports.Internal
                 // Release connection stream count or semaphore for this stream and remove it from the connection.
                 _connection.ReleaseStream(this);
 
-                // Local streams are released from the connection when the StreamLast or StreamReset frame is received.
-                // Since a remote unidirectional stream doesn't send stream frames, we have to send a
-                // UnidirectionalStreamReleased frame here to ensure the local stream is released from the connection by
-                // the peer. It's important to decrement the stream count with the ReleaseStream call above to prevent a
-                // race where the peer could start a new stream before the counter is decreased
+                // Local bidirectional streams are released from the connection when the StreamLast or StreamReset frame
+                // is received. Since a remote unidirectional stream doesn't send stream frames, we have to send a
+                // UnidirectionalStreamReleased frame here to ensure the peer's stream is released. It's important to
+                // send the frame after the ReleaseStream call above to prevent a race condition where the peer could
+                // start a new unidirectional stream before the local counter is decreased.
                 if (IsRemote && !IsBidirectional)
                 {
                     try
@@ -497,47 +393,37 @@ namespace IceRpc.Transports.Internal
                     }
                 }
             }
-
-            if (ResetError is long error)
-            {
-                _inputPipeWriter.Complete(new MultiplexedStreamAbortedException(error));
-            }
-            else
-            {
-                _inputPipeWriter.Complete();
-            }
         }
 
-        private void SetState(State state)
+        private bool TrySetStateAndShutdown(State state)
         {
-            if (!TrySetState(state))
+            if (!_state.TrySetFlag(state, out State newState))
             {
-                throw new InvalidOperationException($"state {state} already set");
-            }
-        }
-
-        private bool TrySetState(State state)
-        {
-            var previousState = (State)Interlocked.Or(ref _state, (int)state);
-            State newState = previousState | state;
-            if (previousState == newState)
-            {
-                // The given state was already set.
                 return false;
             }
             else
             {
-                CheckShutdown(newState);
+                if (newState == (State.ReadCompleted | State.WriteCompleted))
+                {
+                    // The stream reads and writes are completed.
+                    try
+                    {
+                        Shutdown();
+                    }
+                    catch (Exception exception)
+                    {
+                        Debug.Assert(false, $"unexpected exception {exception}");
+                    }
+                }
                 return true;
             }
         }
 
         [Flags]
-        private enum State : byte
+        private enum State : int
         {
             ReadCompleted = 1,
             WriteCompleted = 2,
-            Reading = 4,
         }
     }
 }

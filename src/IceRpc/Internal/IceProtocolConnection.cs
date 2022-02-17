@@ -57,7 +57,7 @@ namespace IceRpc.Internal
         private readonly ISimpleNetworkConnection _networkConnection;
         private int _nextRequestId;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly AsyncSemaphore _sendSemaphore = new(1);
+        private readonly AsyncSemaphore _sendSemaphore = new(1, 1);
         private bool _shutdown;
 
         /// <inheritdoc/>
@@ -685,7 +685,7 @@ namespace IceRpc.Internal
 
                     // Check the header
                     IceDefinitions.CheckHeader(buffer.Span[0..IceDefinitions.HeaderSize]);
-                    int frameSize = Slice11Encoding.DecodeFixedLengthSize(buffer.AsReadOnlySpan().Slice(10, 4));
+                    int frameSize = Slice11Encoding.DecodeFixedLengthSize(buffer.Span[10..14]);
                     if (frameSize != IceDefinitions.HeaderSize)
                     {
                         throw new InvalidDataException($"received Ice frame with only '{frameSize}' bytes");

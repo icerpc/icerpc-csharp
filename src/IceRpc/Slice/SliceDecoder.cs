@@ -98,7 +98,6 @@ namespace IceRpc.Slice
 
             _minTotalSeqSize = 0;
             _reader = new SequenceReader<byte>(buffer);
-
         }
 
         /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>

@@ -223,8 +223,9 @@ namespace IceRpc.Slice.Internal
 
             if (!hasStream)
             {
-                // If there are actually additional bytes on the pipe reader, we ignore them since we're not expecting
-                // a stream.
+                // If there are actually additional bytes on the pipe reader, we ignore them. It's possible the sender
+                // operation Slice definition specifies a stream parameter that is not specified on the operation local
+                // Slice definition.
                 await reader.CompleteAsync().ConfigureAwait(false);
             }
             return value;
@@ -280,6 +281,9 @@ namespace IceRpc.Slice.Internal
 
             if (!hasStream)
             {
+                // If there are actually additional bytes on the pipe reader, we ignore them. It's possible the sender
+                // operation Slice definition specifies a stream parameter that is not specified on the operation local
+                // Slice definition.
                 await reader.CompleteAsync().ConfigureAwait(false);
             }
 

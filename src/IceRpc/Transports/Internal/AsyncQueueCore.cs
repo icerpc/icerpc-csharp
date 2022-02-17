@@ -30,6 +30,14 @@ namespace IceRpc.Transports.Internal
         private ManualResetValueTaskSourceCore<T> _source = new() { RunContinuationsAsynchronously = true };
         private CancellationTokenRegistration _tokenRegistration;
 
+        public AsyncQueueCore()
+        {
+            _exception = null;
+            _lock = new();
+            _queue = null;
+            _tokenRegistration = default;
+        }
+
         /// <summary>Complete the pending <see cref="DequeueAsync"/> and discard queued items.</summary>
         internal bool TryComplete(Exception exception)
         {

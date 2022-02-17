@@ -19,6 +19,7 @@ namespace IceRpc.Tests.ClientServer
     // Tests for the Compress interceptor and middleware
 
     [Parallelizable(ParallelScope.All)]
+    [Timeout(10000)]
     public sealed class CompressTests
     {
         // The minimum compression factor we expect for the payloads
@@ -191,7 +192,6 @@ namespace IceRpc.Tests.ClientServer
                     if (compressPayload)
                     {
                         // Verify we received a compressed payload.
-                        Assert.That(readResult.IsCompleted, Is.True);
                         Assert.That(readResult.IsCompleted, Is.True);
                         Assert.That(readResult.Buffer, Has.Length.LessThan(uncompressedLength * CompressionFactor));
                     }

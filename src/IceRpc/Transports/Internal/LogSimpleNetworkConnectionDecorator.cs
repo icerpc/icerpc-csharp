@@ -16,10 +16,15 @@ namespace IceRpc.Transports.Internal
             return received;
         }
 
-        public async ValueTask WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
+        public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
         {
             await _decoratee.WriteAsync(buffers, cancel).ConfigureAwait(false);
-            Logger.LogSimpleNetworkConnectionWrite(buffers.GetByteCount(), ToHexString(buffers));
+            int size = 0;
+            foreach (ReadOnlyMemory<byte> buffer in buffers)
+            {
+                size += buffer.Length;
+            }
+            Logger.LogSimpleNetworkConnectionWrite(size, ToHexString(buffers));
         }
 
         internal static ISimpleNetworkConnection Decorate(

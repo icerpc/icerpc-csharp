@@ -9,6 +9,6 @@ namespace IceRpc.Transports.Internal
         ValueTask ReadFrameDataAsync(Memory<byte> buffer, CancellationToken cancel);
 
         /// <summary>Reads a Slic frame header.</summary>
-        ValueTask<(FrameType, int, long?)> ReadFrameHeaderAsync(CancellationToken cancel);
+        ValueTask<(FrameType FrameType, int FrameSize, long? StreamId)> ReadFrameHeaderAsync(CancellationToken cancel);
     }
 }
