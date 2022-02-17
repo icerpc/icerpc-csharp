@@ -38,6 +38,10 @@ namespace IceRpc.Tests.SliceInternal
             _sliced = SlicedFormatOperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
             _compact = CompactFormatOperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
             _classformat = ClassFormatOperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
+
+            _sliced.Proxy.Encoding = Encoding.Slice11;
+            _compact.Proxy.Encoding = Encoding.Slice11;
+            _classformat.Proxy.Encoding = Encoding.Slice11;
         }
 
         [OneTimeTearDown]
@@ -244,6 +248,7 @@ namespace IceRpc.Tests.SliceInternal
                 .BuildServiceProvider();
 
             var prx = ClassGraphOperationsPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
+            prx.Proxy.Encoding = Encoding.Slice11;
 
             var pipeline = new Pipeline();
             pipeline.UseFeature(new DecodePayloadOptions { MaxDepth = clientMaxDepth });

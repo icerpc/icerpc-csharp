@@ -394,11 +394,7 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
     }
 
     // temporary way to "compute" the Slice encoding
-    let encoding = if operation.returns_classes() {
-        "IceRpc.Encoding.Slice11"
-    } else {
-        "request.GetSliceEncoding()"
-    };
+    let encoding = "request.GetSliceEncoding()";
 
     match parameters.as_slice() {
         [] => {
