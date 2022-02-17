@@ -1,5 +1,5 @@
 
-module IceRpc::Tests::SliceInternal;
+module IceRpc::Slice::Tests;
 
 trait MyTraitA;
 trait MyTraitB;
