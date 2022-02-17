@@ -587,10 +587,11 @@ namespace IceRpc.Transports.Internal
 
                 // Only stream frames are expected at this point. Non stream frames are only exchanged at the
                 // initialization step.
-                if (streamId == null)
+                if (type < FrameType.Stream)
                 {
                     throw new InvalidDataException($"unexpected Slic frame with frame type '{type}'");
                 }
+                Debug.Assert(streamId != null);
 
                 switch (type)
                 {

@@ -27,7 +27,7 @@ namespace IceRpc.Internal
         internal static readonly byte[] ProtocolBytes = new byte[] { 1, 0, 1, 0 };
 
         internal static readonly IReadOnlyList<ReadOnlyMemory<byte>> CloseConnectionFrame =
-            new List<ReadOnlyMemory<byte>>()
+            new ReadOnlyMemory<byte>[]
             {
                 new byte[]
                 {
@@ -46,7 +46,7 @@ namespace IceRpc.Internal
         };
 
         internal static readonly IReadOnlyList<ReadOnlyMemory<byte>> ValidateConnectionFrame =
-            new List<ReadOnlyMemory<byte>>()
+            new ReadOnlyMemory<byte>[]
             {
                 new byte[]
                 {

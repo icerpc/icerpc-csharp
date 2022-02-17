@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 
 using static IceRpc.Transports.Internal.UdpUtils;
@@ -64,6 +65,7 @@ namespace IceRpc.Transports.Internal
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
 
         private readonly string? _multicastInterface;
+        private readonly List<ArraySegment<byte>> _segments = new();
         private readonly int _ttl;
 
         public override async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
@@ -126,24 +128,21 @@ namespace IceRpc.Transports.Internal
                 }
                 else
                 {
-                    // Coalesce all buffers into a singled rented buffer.
-                    int size = 0;
-                    foreach (ReadOnlyMemory<byte> buffer in buffers)
+                    _segments.Clear();
+                    foreach (ReadOnlyMemory<byte> memory in buffers)
                     {
-                        size += buffer.Length;
+                        if (MemoryMarshal.TryGetArray(memory, out ArraySegment<byte> segment))
+                        {
+                            _segments.Add(segment);
+                        }
+                        else
+                        {
+                            throw new ArgumentException(
+                                $"{nameof(buffers)} are not backed by arrays",
+                                nameof(buffers));
+                        }
                     }
-
-                    using IMemoryOwner<byte> writeBufferOwner = MemoryPool<byte>.Shared.Rent(size);
-                    int offset = 0;
-                    foreach (ReadOnlyMemory<byte> buffer in buffers)
-                    {
-                        buffer.CopyTo(writeBufferOwner.Memory[offset..]);
-                        offset += buffer.Length;
-                    }
-
-                    await Socket.SendAsync(writeBufferOwner.Memory[0..size],
-                                           SocketFlags.None,
-                                           cancel).ConfigureAwait(false);
+                    await Socket.SendAsync(_segments, SocketFlags.None).WaitAsync(cancel).ConfigureAwait(false);
                 }
                 Interlocked.Exchange(ref _lastActivity, (long)Time.Elapsed.TotalMilliseconds);
             }

@@ -25,7 +25,7 @@ namespace IceRpc.Transports.Internal
         }
 
         internal static bool HasFlag<T>(this ref int source, T value) where T : Enum =>
-            (Thread.VolatileRead(ref source) & (int)(IConvertible)value) > 0;
+            (Thread.VolatileRead(ref source) & Unsafe.As<T, int>(ref value)) > 0;
 
         internal static void ClearFlag<T>(this ref int source, T value) where T : Enum
         {

@@ -111,7 +111,7 @@ namespace IceRpc.Internal
                 try
                 {
                     await _connection.WriteAsync(
-                        new List<ReadOnlyMemory<byte>>() { source },
+                        new ReadOnlyMemory<byte>[] { source },
                         cancellationToken).ConfigureAwait(false);
                 }
                 catch

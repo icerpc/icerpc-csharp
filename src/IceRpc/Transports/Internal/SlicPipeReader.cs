@@ -11,7 +11,7 @@ namespace IceRpc.Transports.Internal
         private Exception? _exception;
         private long _lastExaminedOffset;
         private readonly Pipe _pipe;
-        private readonly Func<Memory<byte>, CancellationToken, ValueTask> _readFunc;
+        private readonly Func<Memory<byte>, CancellationToken, ValueTask> _readUntilFullFunc;
         private ReadResult _readResult;
         private readonly int _resumeThreshold;
         private int _state;
@@ -49,13 +49,13 @@ namespace IceRpc.Transports.Internal
 
             // If we reached the end of the sequence and the peer won't be sending additional data, we can mark reads as
             // completed on the stream.
-            bool readsCompleted =
+            bool isRemoteWriteCompleted =
                 _readResult.IsCompleted &&
                 consumedOffset == _readResult.Buffer.GetOffset(_readResult.Buffer.End);
 
             _pipe.Reader.AdvanceTo(consumed, examined);
 
-            if (readsCompleted)
+            if (isRemoteWriteCompleted)
             {
                 // The application consumed all the byes and the peer is done sending data, we can mark reads as
                 // completed on the stream.
@@ -157,11 +157,11 @@ namespace IceRpc.Transports.Internal
             int minimumSegmentSize,
             int resumeThreshold,
             int pauseThreshold,
-            Func<Memory<byte>, CancellationToken, ValueTask> readFunc)
+            Func<Memory<byte>, CancellationToken, ValueTask> readUntilFullFunc)
         {
             _stream = stream;
             _resumeThreshold = resumeThreshold;
-            _readFunc = readFunc;
+            _readUntilFullFunc = readUntilFullFunc;
 
             // We configure the pipe to pause writes once the Slic stream pause threshold + 1 is reached. The flush on
             // the pipe writer always complete synchronously unless the peer sends too much data. See the implementation
@@ -206,7 +206,7 @@ namespace IceRpc.Transports.Internal
                     // Receive the data and push it to the pipe writer.
                     Memory<byte> chunk = _pipe.Writer.GetMemory();
                     chunk = chunk[0..Math.Min(dataSize - size, chunk.Length)];
-                    await _readFunc(chunk, cancel).ConfigureAwait(false);
+                    await _readUntilFullFunc(chunk, cancel).ConfigureAwait(false);
                     size += chunk.Length;
                     _pipe.Writer.Advance(chunk.Length);
 
@@ -227,8 +227,7 @@ namespace IceRpc.Transports.Internal
 
                         try
                         {
-                            FlushResult flushResult = await flushTask.ConfigureAwait(false);
-                            if (flushResult.IsCompleted)
+                            if (flushTask.Result.IsCompleted)
                             {
                                 break; // The reader completed, it's not longer interested in the data.
                             }
@@ -256,7 +255,7 @@ namespace IceRpc.Transports.Internal
             {
                 if (_state.HasFlag(State.Completed))
                 {
-                    // If the Slic pipe reader has been completed while we were writting the data from the stream, we
+                    // If the Slic pipe reader has been completed while we were writing the data from the stream, we
                     // make sure to complete the writer now since Complete didn't do it.
                     await _pipe.Writer.CompleteAsync(_exception).ConfigureAwait(false);
                 }

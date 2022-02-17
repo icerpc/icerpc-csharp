@@ -7,7 +7,7 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The Slic frame reader class reads Slic frames. The implementation uses a pipe to read the Slice frame
+    /// <summary>The Slic frame reader class reads Slic frames. The implementation uses a pipe to read the Slic frame
     /// header. The frame data is copied from the pipe until the pipe is empty. When empty, the data is directly read
     /// from the read function (typically from the network connection).</summary>
     internal sealed class SlicFrameReader : ISlicFrameReader, IDisposable
@@ -30,17 +30,13 @@ namespace IceRpc.Transports.Internal
             }
 
             // If there's still data on the pipe reader. Copy the data from the pipe reader.
-            while (buffer.Length > 0 && _pipe.Reader.TryRead(out ReadResult result))
+            ReadResult result = default;
+            while (buffer.Length > 0 && _pipe.Reader.TryRead(out result))
             {
                 int length = Math.Min(buffer.Length, (int)result.Buffer.Length);
                 result.Buffer.Slice(0, length).CopyTo(buffer.Span);
                 _pipe.Reader.AdvanceTo(result.Buffer.GetPosition(length));
                 buffer = buffer[length..];
-                if (buffer.Length > 0 && result.IsCompleted)
-                {
-                    // If there's still data to read but the peer stopped sending data, throw.
-                    throw new ConnectionLostException();
-                }
             }
 
             // No more data from the pipe reader, read the remainder directly from the read function to avoid
@@ -48,6 +44,10 @@ namespace IceRpc.Transports.Internal
             while (buffer.Length > 0)
             {
                 int length = await _readFunc(buffer, cancel).ConfigureAwait(false);
+                if (length == 0)
+                {
+                    throw new ConnectionLostException();
+                }
                 buffer = buffer[length..];
             }
         }
@@ -59,28 +59,16 @@ namespace IceRpc.Transports.Internal
 
             // Read the frame type
             readResult = await ReadAtLeastAsync(1).ConfigureAwait(false);
-            if (readResult.Buffer.IsEmpty)
-            {
-                throw new ConnectionLostException();
-            }
             var frameType = (FrameType)readResult.Buffer.FirstSpan[0];
             _pipe.Reader.AdvanceTo(readResult.Buffer.GetPosition(1));
 
             // Read the frame size
             readResult = await ReadAtLeastAsync(1).ConfigureAwait(false);
-            if (readResult.Buffer.IsEmpty)
-            {
-                throw new ConnectionLostException();
-            }
             int frameSizeLength = Slice20Encoding.DecodeSizeLength(readResult.Buffer.FirstSpan[0]);
             if (frameSizeLength > readResult.Buffer.Length)
             {
                 _pipe.Reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
                 readResult = await ReadAtLeastAsync(frameSizeLength).ConfigureAwait(false);
-                if (readResult.Buffer.Length < frameSizeLength)
-                {
-                    throw new ConnectionLostException();
-                }
             }
             int frameSize = DecodeSizeFromSequence(readResult.Buffer);
             _pipe.Reader.AdvanceTo(readResult.Buffer.GetPosition(frameSizeLength));
@@ -97,10 +85,6 @@ namespace IceRpc.Transports.Internal
                 {
                     _pipe.Reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
                     readResult = await ReadAtLeastAsync(streamIdLength).ConfigureAwait(false);
-                    if (readResult.Buffer.Length < streamIdLength)
-                    {
-                        throw new ConnectionLostException();
-                    }
                 }
                 long streamId = DecodeStreamIdFromSequence(readResult.Buffer);
                 _pipe.Reader.AdvanceTo(readResult.Buffer.GetPosition(streamIdLength));
@@ -141,21 +125,13 @@ namespace IceRpc.Transports.Internal
                     if (read == 0)
                     {
                         // No more data to read from _readFunc.
-                        break;
+                        throw new ConnectionLostException();
                     }
                     count += read;
                 }
 
-                if (count < minimumSize)
-                {
-                    // Reading is completed, this will also flush the data.
-                    await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
-                }
-                else
-                {
-                    // Flush the data to the pipe.
-                    await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-                }
+                // Flush the data to the pipe.
+                await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
 
                 // Now, read it from the pipe.
                 return await _pipe.Reader.ReadAsync(CancellationToken.None).ConfigureAwait(false);

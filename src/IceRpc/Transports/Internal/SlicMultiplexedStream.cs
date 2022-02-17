@@ -371,11 +371,11 @@ namespace IceRpc.Transports.Internal
                 // Release connection stream count or semaphore for this stream and remove it from the connection.
                 _connection.ReleaseStream(this);
 
-                // Local streams are released from the connection when the StreamLast or StreamReset frame is received.
-                // Since a remote unidirectional stream doesn't send stream frames, we have to send a
-                // UnidirectionalStreamReleased frame here to ensure the local stream is released from the connection by
-                // the peer. It's important to decrement the stream count after the ReleaseStream call above to prevent
-                // a race condition where the peer could start a new stream before the local counter is decreased.
+                // Local bidirectional streams are released from the connection when the StreamLast or StreamReset frame
+                // is received. Since a remote unidirectional stream doesn't send stream frames, we have to send a
+                // UnidirectionalStreamReleased frame here to ensure the peer's stream is released. It's important to
+                // send the frame after the ReleaseStream call above to prevent a race condition where the peer could
+                // start a new unidirectional stream before the local counter is decreased.
                 if (IsRemote && !IsBidirectional)
                 {
                     try

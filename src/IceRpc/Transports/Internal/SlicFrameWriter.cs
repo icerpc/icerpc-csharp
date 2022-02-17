@@ -10,7 +10,6 @@ namespace IceRpc.Transports.Internal
         public async ValueTask WriteFrameAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
         {
             // A Slic frame must always be sent entirely even if the sending is canceled.
-            // TODO: Fix ISimpleNetworkConnection.WriteAsync or write using simple network connection PipeWriter
             ValueTask task = _writeFunc(buffers, CancellationToken.None);
             if (task.IsCompleted || !cancel.CanBeCanceled)
             {
