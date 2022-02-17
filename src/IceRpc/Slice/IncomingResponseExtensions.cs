@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice.Internal;
+using System.Diagnostics;
 
 namespace IceRpc.Slice
 {
@@ -14,30 +15,18 @@ namespace IceRpc.Slice
         /// <param name="hasStream"><c>true</c> if this void value is followed by a stream parameter;
         /// otherwise, <c>false</c>.</param>
         /// <param name="cancel">The cancellation token.</param>
-        public static async ValueTask CheckVoidReturnValueAsync(
+        public static ValueTask CheckVoidReturnValueAsync(
             this IncomingResponse response,
             IActivator defaultActivator,
             bool hasStream,
-            CancellationToken cancel)
-        {
-            if (response.ResultType == ResultType.Success)
-            {
-                await response.Payload.ReadVoidAsync(response.GetSlicePayloadEncoding(), hasStream, cancel).ConfigureAwait(false);
-            }
-            else
-            {
-                DecodePayloadOptions decodePayloadOptions =
-                    response.Request.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default;
-
-                throw await response.Payload.ReadRemoteExceptionAsync(
-                    response.GetSlicePayloadEncoding(),
-                    response.Connection,
-                    decodePayloadOptions.ProxyInvoker ?? response.Request.Proxy.Invoker,
-                    decodePayloadOptions.Activator ?? defaultActivator,
-                    decodePayloadOptions.MaxDepth,
-                    cancel).ConfigureAwait(false);
-            }
-        }
+            CancellationToken cancel) =>
+            response.ResultType == ResultType.Success ?
+                response.Payload.ReadVoidAsync((SliceEncoding)response.Request.PayloadEncoding, hasStream, cancel) :
+                ThrowRemoteExceptionAsync(
+                    response,
+                    response.Request.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default,
+                    defaultActivator,
+                    cancel);
 
         /// <summary>Creates an async enumerable over the payload reader of an incoming response.</summary>
         /// <param name="response">The incoming response.</param>
@@ -70,7 +59,7 @@ namespace IceRpc.Slice
         /// otherwise, <c>false</c>.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The return value.</returns>
-        public static async ValueTask<T> ToReturnValueAsync<T>(
+        public static ValueTask<T> ToReturnValueAsync<T>(
             this IncomingResponse response,
             IActivator defaultActivator,
             DecodeFunc<T> decodeFunc,
@@ -81,7 +70,7 @@ namespace IceRpc.Slice
                 response.Request.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default;
 
             return response.ResultType == ResultType.Success ?
-                await response.Payload.ReadValueAsync(
+                response.Payload.ReadValueAsync(
                     response.GetSlicePayloadEncoding(),
                     response.Connection,
                     decodePayloadOptions.ProxyInvoker ?? response.Request.Proxy.Invoker,
@@ -89,14 +78,59 @@ namespace IceRpc.Slice
                     decodePayloadOptions.MaxDepth,
                     decodeFunc,
                     hasStream,
-                    cancel).ConfigureAwait(false) :
-                throw await response.Payload.ReadRemoteExceptionAsync(
-                    response.GetSlicePayloadEncoding(),
+                    cancel) :
+                ThrowRemoteExceptionAsync<T>(
+                    response,
+                    decodePayloadOptions,
+                    defaultActivator,
+                    cancel);
+        }
+
+        private static async ValueTask ThrowRemoteExceptionAsync(
+            this IncomingResponse response,
+            DecodePayloadOptions decodePayloadOptions,
+            IActivator defaultActivator,
+            CancellationToken cancel) =>
+            throw await response.ToRemoteExceptionAsync(
+                decodePayloadOptions,
+                defaultActivator,
+                cancel).ConfigureAwait(false);
+
+        private static async ValueTask<T> ThrowRemoteExceptionAsync<T>(
+            this IncomingResponse response,
+            DecodePayloadOptions decodePayloadOptions,
+            IActivator defaultActivator,
+            CancellationToken cancel) =>
+            throw await response.ToRemoteExceptionAsync(
+                decodePayloadOptions,
+                defaultActivator,
+                cancel).ConfigureAwait(false);
+
+        private static ValueTask<RemoteException> ToRemoteExceptionAsync(
+            this IncomingResponse response,
+            DecodePayloadOptions decodePayloadOptions,
+            IActivator defaultActivator,
+            CancellationToken cancel)
+        {
+            Debug.Assert(response.ResultType != ResultType.Success);
+
+            var resultType = (SliceResultType)response.ResultType;
+            if (resultType is SliceResultType.Failure or SliceResultType.ServiceFailure)
+            {
+                return response.Payload.ReadRemoteExceptionAsync(
+                    (SliceEncoding)response.Request.PayloadEncoding,
+                    /*resultType == SliceResultType.Failure ?
+                        response.Protocol.SliceEncoding! : (SliceEncoding)response.Request.PayloadEncoding,*/
                     response.Connection,
                     decodePayloadOptions.ProxyInvoker ?? response.Request.Proxy.Invoker,
                     decodePayloadOptions.Activator ?? defaultActivator,
                     decodePayloadOptions.MaxDepth,
-                    cancel).ConfigureAwait(false);
+                    cancel);
+            }
+            else
+            {
+                throw new InvalidDataException($"received response with invalid result type value '{resultType}'");
+            }
         }
     }
 }
