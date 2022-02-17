@@ -42,8 +42,8 @@ namespace IceRpc
         /// <summary>Constructs an outgoing request.</summary>
         /// <param name="proxy">The <see cref="Proxy"/> used to send the request.</param>
         /// <param name="operation">The operation of the request.</param>
-        public OutgoingRequest(Proxy proxy, string operation) :
-            base(proxy.Protocol, new DelayedPipeWriterDecorator())
+        public OutgoingRequest(Proxy proxy, string operation)
+            : base(proxy.Protocol, new DelayedPipeWriterDecorator())
         {
             Connection = proxy.Connection;
             // We keep it to initialize it later

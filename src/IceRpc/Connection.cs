@@ -646,7 +646,6 @@ namespace IceRpc
                     response = new OutgoingResponse(request)
                     {
                         PayloadSource = sliceEncoding.CreatePayloadFromRemoteException(remoteException),
-                        PayloadEncoding = sliceEncoding,
                         ResultType = ResultType.Failure
                     };
 

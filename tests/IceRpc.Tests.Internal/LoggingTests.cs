@@ -189,8 +189,7 @@ namespace IceRpc.Tests.Internal
                                   request.Path,
                                   request.Operation,
                                   connection.NetworkConnectionInformation!.Value.RemoteEndpoint,
-                                  connection.NetworkConnectionInformation!.Value.LocalEndpoint,
-                                  response.PayloadEncoding);
+                                  connection.NetworkConnectionInformation!.Value.LocalEndpoint);
 
                 Assert.That(loggerFactory.Logger!.Entries[1].State["ResultType"], Is.EqualTo(response.ResultType));
             }

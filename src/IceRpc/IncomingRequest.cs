@@ -48,8 +48,8 @@ namespace IceRpc
             string operation,
             PipeReader payload,
             Encoding payloadEncoding,
-            PipeWriter responseWriter) :
-            base(protocol, payload)
+            PipeWriter responseWriter)
+            : base(protocol, payload)
         {
             Path = path;
             PayloadEncoding = payloadEncoding;

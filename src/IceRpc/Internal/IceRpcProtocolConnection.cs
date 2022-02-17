@@ -449,10 +449,7 @@ namespace IceRpc.Internal
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
                 int headerStartPos = encoder.EncodedByteCount;
 
-                new IceRpcResponseHeader(
-                    response.ResultType,
-                    response.PayloadEncoding == IceRpcDefinitions.Encoding ? "" :
-                        response.PayloadEncoding.ToString()).Encode(ref encoder);
+                new IceRpcResponseHeader(response.ResultType, "").Encode(ref encoder);
 
                 encoder.EncodeFieldDictionary(response.FieldsOverrides, response.Fields);
 

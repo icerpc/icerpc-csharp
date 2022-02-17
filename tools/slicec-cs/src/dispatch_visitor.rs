@@ -449,8 +449,7 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
 
         writeln!(
             code,
-            "return new IceRpc.OutgoingResponse(request) {{ PayloadSource = returnValue.Payload, PayloadEncoding = {encoding} }};",
-            encoding = encoding
+            "return new IceRpc.OutgoingResponse(request) {{ PayloadSource = returnValue.Payload }};"
         );
     } else {
         let mut args = match parameters.as_slice() {
@@ -477,10 +476,9 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
 
         writeln!(
             code,
-            "return new OutgoingResponse(request) {{ PayloadSource = {payload_source}, PayloadSourceStream = {payload_source_stream}, PayloadEncoding = {encoding} }};",
+            "return new OutgoingResponse(request) {{ PayloadSource = {payload_source}, PayloadSourceStream = {payload_source_stream} }};",
             payload_source = dispatch_return_payload(operation, encoding),
-            payload_source_stream = payload_source_stream(operation, encoding),
-            encoding = encoding
+            payload_source_stream = payload_source_stream(operation, encoding)
         );
     }
 
