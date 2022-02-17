@@ -13,6 +13,7 @@ namespace IceRpc.Transports.Internal
         private readonly Pipe _pipe;
         private readonly Func<Memory<byte>, CancellationToken, ValueTask> _readUntilFullFunc;
         private ReadResult _readResult;
+        private int _receiveCredit;
         private readonly int _resumeThreshold;
         private int _state;
         private readonly SlicMultiplexedStream _stream;
@@ -43,6 +44,7 @@ namespace IceRpc.Transports.Internal
             _examined += examinedLength;
             if (_examined >= _resumeThreshold)
             {
+                Interlocked.Add(ref _receiveCredit, _examined);
                 _stream.SendStreamResumeWrite(_examined);
                 _examined = 0;
             }
@@ -162,16 +164,11 @@ namespace IceRpc.Transports.Internal
             _stream = stream;
             _resumeThreshold = resumeThreshold;
             _readUntilFullFunc = readUntilFullFunc;
-
-            // We configure the pipe to pause writes once the Slic stream pause threshold + 1 is reached. The flush on
-            // the pipe writer always complete synchronously unless the peer sends too much data. See the implementation
-            // of ReceivedStreamFrameAsync below.
+            _receiveCredit = pauseThreshold;
             _pipe = new(new PipeOptions(
                 pool: pool,
                 minimumSegmentSize: minimumSegmentSize,
-                pauseWriterThreshold: pauseThreshold + 1,
-                writerScheduler: PipeScheduler.Inline,
-                readerScheduler: PipeScheduler.Inline));
+                writerScheduler: PipeScheduler.Inline));
         }
 
         /// <summary>Called when a stream reset is received.</summary>
@@ -200,6 +197,11 @@ namespace IceRpc.Transports.Internal
                     return 0;
                 }
 
+                if (Interlocked.Add(ref _receiveCredit, -dataSize) < 0)
+                {
+                    throw new InvalidDataException("received more data than flow control permits");
+                }
+
                 // Read and append the received data to the pipe writer.
                 int size = 0;
                 while (size < dataSize)
@@ -216,27 +218,7 @@ namespace IceRpc.Transports.Internal
                     // This ensures the reader will get a read result with both the data and IsCompleted=true.
                     if (size < dataSize || !endStream)
                     {
-                        // This should always complete synchronously since the sender isn't supposed to send more data
-                        // than it is allowed. In other words, if the flush blocks because the PauseWriterThreshold is
-                        // reached, the peer sent more data than it should have.
-                        ValueTask<FlushResult> flushTask = _pipe.Writer.FlushAsync(CancellationToken.None);
-                        if (!flushTask.IsCompleted)
-                        {
-                            _ = flushTask.AsTask();
-                            throw new InvalidDataException("received more data than flow control permits");
-                        }
-
-                        try
-                        {
-                            if (flushTask.Result.IsCompleted)
-                            {
-                                break; // The reader completed, it's not longer interested in the data.
-                            }
-                        }
-                        catch
-                        {
-                            break; // The reader completed, it's not longer interested in the data.
-                        }
+                        _ = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
                     }
                 }
 
