@@ -3,7 +3,6 @@
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using System.Buffers;
-using System.Diagnostics;
 using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
@@ -37,6 +36,11 @@ namespace IceRpc.Transports.Internal
                 result.Buffer.Slice(0, length).CopyTo(buffer.Span);
                 _pipe.Reader.AdvanceTo(result.Buffer.GetPosition(length));
                 buffer = buffer[length..];
+                if (buffer.Length > 0 && result.IsCompleted)
+                {
+                    // If there's still data to read but the peer stopped sending data, throw.
+                    throw new ConnectionLostException();
+                }
             }
 
             // No more data from the pipe reader, read the remainder directly from the read function to avoid
@@ -136,13 +140,22 @@ namespace IceRpc.Transports.Internal
                     _pipe.Writer.Advance(read);
                     if (read == 0)
                     {
-                        await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
+                        // No more data to read from _readFunc.
+                        break;
                     }
                     count += read;
                 }
 
-                // Push it to the pipe.
-                await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                if (count < minimumSize)
+                {
+                    // Reading is completed, this will also flush the data.
+                    await _pipe.Writer.CompleteAsync().ConfigureAwait(false);
+                }
+                else
+                {
+                    // Flush the data to the pipe.
+                    await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                }
 
                 // Now, read it from the pipe.
                 return await _pipe.Reader.ReadAsync(CancellationToken.None).ConfigureAwait(false);
