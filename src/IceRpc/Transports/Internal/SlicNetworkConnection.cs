@@ -697,13 +697,13 @@ namespace IceRpc.Transports.Internal
                             throw new InvalidDataException("stream resume write frame too large");
                         }
 
-                        StreamResumeWriteBody streamConsumed = await ReadFrameAsync(
+                        StreamResumeWriteBody resumeWrite = await ReadFrameAsync(
                             dataSize,
                             memory => memory.DecodeStreamResumeWrite(),
                             cancel).ConfigureAwait(false);
                         if (_streams.TryGetValue(streamId.Value, out SlicMultiplexedStream? stream))
                         {
-                            stream.ReceivedConsumedFrame((int)streamConsumed.Size);
+                            stream.ReceivedResumeWriterFrame((int)resumeWrite.Size);
                         }
                         break;
                     }

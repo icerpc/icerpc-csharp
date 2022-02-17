@@ -148,7 +148,8 @@ namespace IceRpc.Transports.Internal
                 pool: pool,
                 minimumSegmentSize: minimumSegmentSize,
                 pauseWriterThreshold: 0,
-                writerScheduler: PipeScheduler.Inline));
+                writerScheduler: PipeScheduler.Inline,
+                readerScheduler: PipeScheduler.Inline));
         }
 
         private enum State : int

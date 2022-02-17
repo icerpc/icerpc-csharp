@@ -280,9 +280,10 @@ namespace IceRpc.Transports.Internal
             {
                 _sendCreditSemaphore.Release();
             }
+            Debug.Assert(sendCredit >= 0);
         }
 
-        internal void ReceivedConsumedFrame(int size)
+        internal void ReceivedResumeWriterFrame(int size)
         {
             int newValue = Interlocked.Add(ref _sendCredit, size);
             if (newValue == size)

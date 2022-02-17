@@ -8,7 +8,7 @@ using System.Buffers;
 using System.IO.Pipelines;
 namespace IceRpc.Tests.Internal
 {
-    [Timeout(5000)]
+    [Timeout(10000)]
     [Parallelizable(ParallelScope.All)]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public class MultiplexedStreamTests

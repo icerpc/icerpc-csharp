@@ -170,7 +170,8 @@ namespace IceRpc.Transports.Internal
                 pool: pool,
                 minimumSegmentSize: minimumSegmentSize,
                 pauseWriterThreshold: pauseThreshold + 1,
-                writerScheduler: PipeScheduler.Inline));
+                writerScheduler: PipeScheduler.Inline,
+                readerScheduler: PipeScheduler.Inline));
         }
 
         /// <summary>Called when a stream reset is received.</summary>
