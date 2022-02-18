@@ -2,8 +2,9 @@
 
 using NUnit.Framework;
 using System.Threading.Tasks.Sources;
+using IceRpc.Transports.Internal;
 
-namespace IceRpc.Transports.Internal.Tests;
+namespace IceRpc.Transports.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
 public class AsyncQueueCoreTests

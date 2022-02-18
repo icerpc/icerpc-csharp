@@ -1,10 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using NUnit.Framework;
-using System.Buffers;
 using System.Diagnostics.Tracing;
-using System.IO.Pipelines;
 
 namespace IceRpc.Tests;
 
@@ -28,14 +25,7 @@ public sealed class DispatchEventSourceTests : IDisposable
         using var eventListener = new TestEventListener(expectedEventId);
         eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-        _eventSource.RequestStart(new IncomingRequest(
-            Protocol.IceRpc,
-            path: "/service",
-            fragment: "",
-            operation: "ice_id",
-            PipeReader.Create(ReadOnlySequence<byte>.Empty),
-            Encoding.Slice20,
-            responseWriter: InvalidPipeWriter.Instance));
+        _eventSource.RequestStart(TestUtil.CreateIncomingRequest("/service", "ice_id"));
 
         EventWrittenEventArgs? eventData = eventListener.EventData;
         Assert.That(eventData, Is.Not.Null);
@@ -54,14 +44,7 @@ public sealed class DispatchEventSourceTests : IDisposable
         using var eventListener = new TestEventListener(expectedEventId);
         eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-        _eventSource.RequestStop(new IncomingRequest(
-            Protocol.IceRpc,
-            path: "/service",
-            fragment: "",
-            "ice_id",
-            PipeReader.Create(ReadOnlySequence<byte>.Empty),
-            Encoding.Slice20,
-            responseWriter: InvalidPipeWriter.Instance));
+        _eventSource.RequestStop(TestUtil.CreateIncomingRequest("/service", "ice_id"));
 
         EventWrittenEventArgs? eventData = eventListener.EventData;
         Assert.That(eventData, Is.Not.Null);
@@ -80,14 +63,7 @@ public sealed class DispatchEventSourceTests : IDisposable
         using var eventListener = new TestEventListener(expectedEventId);
         eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-        _eventSource.RequestCanceled(new IncomingRequest(
-            Protocol.IceRpc,
-            path: "/service",
-            fragment: "",
-            operation: "ice_id",
-            PipeReader.Create(ReadOnlySequence<byte>.Empty),
-            Encoding.Slice20,
-            responseWriter: InvalidPipeWriter.Instance));
+        _eventSource.RequestCanceled(TestUtil.CreateIncomingRequest("/service", "ice_id"));
 
         EventWrittenEventArgs? eventData = eventListener.EventData;
         Assert.That(eventData, Is.Not.Null);
@@ -106,16 +82,7 @@ public sealed class DispatchEventSourceTests : IDisposable
         using var eventListener = new TestEventListener(expectedEventId);
         eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-        _eventSource.RequestFailed(
-            new IncomingRequest(
-                Protocol.IceRpc,
-                path: "/service",
-                fragment: "",
-                operation: "ice_id",
-                PipeReader.Create(ReadOnlySequence<byte>.Empty),
-                Encoding.Slice20,
-                responseWriter: InvalidPipeWriter.Instance),
-            "IceRpc.RemoteException");
+        _eventSource.RequestFailed(TestUtil.CreateIncomingRequest("/service", "ice_id"), "IceRpc.RemoteException");
 
         EventWrittenEventArgs? eventData = eventListener.EventData;
         Assert.That(eventData, Is.Not.Null);

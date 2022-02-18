@@ -1,8 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using NUnit.Framework;
+using IceRpc.Transports.Internal;
 
-namespace IceRpc.Transports.Internal.Tests;
+namespace IceRpc.Transports.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
 public class AsyncQueueTests

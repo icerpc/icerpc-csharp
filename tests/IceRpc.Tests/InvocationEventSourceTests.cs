@@ -25,8 +25,7 @@ public sealed class InvocationEventSourceTests : IDisposable
         using var eventListener = new TestEventListener(expectedEventId);
         eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-        var proxy = new Proxy(Protocol.IceRpc) { Path = "/service" };
-        _eventSource.RequestStart(new OutgoingRequest(proxy, operation: "ice_id"));
+        _eventSource.RequestStart(TestUtil.CreateOutgoingRequest(TestUtil.CreateProxy("/service"), "ice_id"));
 
         EventWrittenEventArgs? eventData = eventListener.EventData;
         Assert.That(eventData, Is.Not.Null);
@@ -45,8 +44,7 @@ public sealed class InvocationEventSourceTests : IDisposable
         using var eventListener = new TestEventListener(expectedEventId);
         eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-        var proxy = new Proxy(Protocol.IceRpc) { Path = "/service" };
-        _eventSource.RequestStop(new OutgoingRequest(proxy, operation: "ice_id"));
+        _eventSource.RequestStop(TestUtil.CreateOutgoingRequest(TestUtil.CreateProxy("/service"), "ice_id"));
 
         EventWrittenEventArgs? eventData = eventListener.EventData;
         Assert.That(eventData, Is.Not.Null);
@@ -65,8 +63,7 @@ public sealed class InvocationEventSourceTests : IDisposable
         using var eventListener = new TestEventListener(expectedEventId);
         eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-        var proxy = new Proxy(Protocol.IceRpc) { Path = "/service" };
-        _eventSource.RequestCanceled(new OutgoingRequest(proxy, operation: "ice_id"));
+        _eventSource.RequestCanceled(TestUtil.CreateOutgoingRequest(TestUtil.CreateProxy("/service"), "ice_id"));
 
         EventWrittenEventArgs? eventData = eventListener.EventData;
         Assert.That(eventData, Is.Not.Null);
@@ -85,9 +82,8 @@ public sealed class InvocationEventSourceTests : IDisposable
         using var eventListener = new TestEventListener(expectedEventId);
         eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-        var proxy = new Proxy(Protocol.IceRpc) { Path = "/service" };
         _eventSource.RequestFailed(
-            new OutgoingRequest(proxy, operation: "ice_id"),
+            TestUtil.CreateOutgoingRequest(TestUtil.CreateProxy("/service"), "ice_id"),
             "IceRpc.RemoteException");
 
         EventWrittenEventArgs? eventData = eventListener.EventData;

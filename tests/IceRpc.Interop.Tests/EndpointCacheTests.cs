@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using NUnit.Framework;
+using IceRpc.Tests;
 
 namespace IceRpc.Internal.Tests;
 
@@ -10,7 +11,7 @@ public class EndpointCacheTests
     [Test]
     public void EndpointCache_SetRemove()
     {
-        var proxy = Proxy.Parse("ice:/dummy");
+        var proxy = TestUtil.CreateProxy(Protocol.Ice, "/dummy");
 
         var endpointCacheImpl = new EndpointCache(10);
         IEndpointCache endpointCache = endpointCacheImpl;

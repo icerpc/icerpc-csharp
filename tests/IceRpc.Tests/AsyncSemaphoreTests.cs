@@ -1,8 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using NUnit.Framework;
+using IceRpc.Internal;
 
-namespace IceRpc.Internal.Tests;
+namespace IceRpc.Tests;
 
 [Parallelizable(scope: ParallelScope.All)]
 [Timeout(5000)]

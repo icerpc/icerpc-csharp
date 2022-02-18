@@ -1,9 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice.Internal;
 using NUnit.Framework;
 using System.Buffers;
 
-namespace IceRpc.Slice.Internal;
+namespace IceRpc.Slice;
 
 [Parallelizable(ParallelScope.All)]
 [Timeout(5000)]
