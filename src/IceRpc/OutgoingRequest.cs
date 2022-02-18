@@ -25,6 +25,9 @@ namespace IceRpc
         /// <summary>The operation called on the service.</summary>
         public string Operation { get; }
 
+        /// <summary>Returns the encoding of the payload of this request.</summary>
+        public Encoding PayloadEncoding { get; init; } = Encoding.Unknown;
+
         /// <summary>The proxy that is sending this request.</summary>
         public Proxy Proxy { get; }
 
@@ -39,8 +42,8 @@ namespace IceRpc
         /// <summary>Constructs an outgoing request.</summary>
         /// <param name="proxy">The <see cref="Proxy"/> used to send the request.</param>
         /// <param name="operation">The operation of the request.</param>
-        public OutgoingRequest(Proxy proxy, string operation) :
-            base(proxy.Protocol, new DelayedPipeWriterDecorator())
+        public OutgoingRequest(Proxy proxy, string operation)
+            : base(proxy.Protocol, new DelayedPipeWriterDecorator())
         {
             Connection = proxy.Connection;
             // We keep it to initialize it later

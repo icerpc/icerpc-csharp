@@ -23,9 +23,9 @@ namespace IceRpc
             try
             {
                 OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
-                if (response.ResultType == ResultType.Failure)
+                if (response.ResultType != ResultType.Success)
                 {
-                    _eventSource.RequestFailed(request, "IceRpc.RemoteException");
+                    _eventSource.RequestFailed(request, "IceRpc.RemoteException"); // TODO: fix exception name
                 }
                 return response;
             }

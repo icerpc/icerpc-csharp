@@ -495,7 +495,7 @@ namespace IceRpc.Tests.Slice
                 var pipe = new Pipe(); // TODO: pipe options
                 SliceEncoding encoding = _prx.Proxy.GetSliceEncoding();
                 var encoder = new SliceEncoder(pipe.Writer, encoding, default);
-                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+                Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
                 int startPos = encoder.EncodedByteCount;
 
                 encoder.EncodeTagged(
@@ -511,7 +511,7 @@ namespace IceRpc.Tests.Slice
                     "test",
                     (ref SliceEncoder encoder, string v) => encoder.EncodeString(v));
 
-                encoding.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+                SliceEncoder.EncodeVarULong((ulong)(encoder.EncodedByteCount - startPos), sizePlaceholder);
 
                 pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
                 return pipe.Reader;

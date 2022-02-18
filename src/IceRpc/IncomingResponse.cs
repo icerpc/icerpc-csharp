@@ -17,13 +17,8 @@ namespace IceRpc
         /// <param name="request">The corresponding outgoing request.</param>
         /// <param name="resultType">The <see cref="IceRpc.ResultType"/> of the response.</param>
         /// <param name="payload">The payload of the response.</param>
-        /// <param name="payloadEncoding">The encoding of the payload.</param>
-        internal IncomingResponse(
-            OutgoingRequest request,
-            ResultType resultType,
-            PipeReader payload,
-            Encoding payloadEncoding) :
-            base(request.Protocol, payload, payloadEncoding)
+        internal IncomingResponse(OutgoingRequest request, ResultType resultType, PipeReader payload)
+            : base(request.Protocol, payload)
         {
             Request = request;
             ResultType = resultType;
