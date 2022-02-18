@@ -11,7 +11,7 @@ public class EndpointCacheTests
     [Test]
     public void EndpointCache_SetRemove()
     {
-        var proxy = TestUtil.CreateProxy(Protocol.Ice, "/dummy");
+        var proxy = Proxy.Parse("ice:/dummy");
 
         var endpointCacheImpl = new EndpointCache(10);
         IEndpointCache endpointCache = endpointCacheImpl;
