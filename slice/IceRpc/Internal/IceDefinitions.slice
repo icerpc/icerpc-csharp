@@ -52,7 +52,7 @@ compact struct EncapsulationHeader
 compact struct IceRequestHeader
 {
     path: Slice::IdentityPath,
-    fragment: Slice::Internal::Fragment,
+    fragment: IceRpc::Slice::Internal::Fragment,
     operation: string,
     operationMode: OperationMode,
     context: dictionary<string, string>,
