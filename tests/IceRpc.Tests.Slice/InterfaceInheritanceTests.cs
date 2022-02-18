@@ -43,18 +43,18 @@ namespace IceRpc.Tests.Slice
         [Test]
         public async Task InterfaceInheritance_IceIsAAsync()
         {
-            Assert.That(await _aPrx.IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::A"),
+            Assert.That(await new ServicePrx(_aPrx.Proxy).IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::A"),
                         Is.True);
-            Assert.That(await _aPrx.IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::B"),
+            Assert.That(await new ServicePrx(_aPrx.Proxy).IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::B"),
                         Is.False);
-            Assert.That(await _aPrx.IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::D"),
+            Assert.That(await new ServicePrx(_aPrx.Proxy).IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::D"),
                         Is.False);
 
-            Assert.That(await _bPrx.IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::A"),
+            Assert.That(await new ServicePrx(_bPrx.Proxy).IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::A"),
                         Is.True);
-            Assert.That(await _bPrx.IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::B"),
+            Assert.That(await new ServicePrx(_bPrx.Proxy).IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::B"),
                         Is.True);
-            Assert.That(await _bPrx.IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::D"),
+            Assert.That(await new ServicePrx(_bPrx.Proxy).IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::D"),
                         Is.False);
 
             Assert.That(await _cPrx.IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::A"),
@@ -81,7 +81,7 @@ namespace IceRpc.Tests.Slice
                     "::IceRpc::Tests::Slice::InterfaceInheritance::A",
                     "::Slice::Service"
                 },
-                await _aPrx.IceIdsAsync());
+                await new ServicePrx(_aPrx.Proxy).IceIdsAsync());
 
             CollectionAssert.AreEqual(
                 new string[]
@@ -90,7 +90,7 @@ namespace IceRpc.Tests.Slice
                     "::IceRpc::Tests::Slice::InterfaceInheritance::B",
                     "::Slice::Service",
                 },
-                await _bPrx.IceIdsAsync());
+                await new ServicePrx(_bPrx.Proxy).IceIdsAsync());
 
             CollectionAssert.AreEqual(
                 new string[]

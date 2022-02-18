@@ -2,7 +2,7 @@
 
 module IceRpc::Tests::ClientServer;
 
-interface Greeter
+interface Greeter : Slice::Service
 {
     sayHello(message: string);
 }

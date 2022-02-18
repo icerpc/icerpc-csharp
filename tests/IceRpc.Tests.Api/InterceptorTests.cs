@@ -36,7 +36,7 @@ namespace IceRpc.Tests.Api
             var prx = new InterceptorTestPrx(_prx.Proxy with { Invoker = pipeline });
 
             pipeline.Use(next => new InlineInvoker((request, cancel) => throw new ArgumentException("message")));
-            Assert.ThrowsAsync<ArgumentException>(async () => await prx.IcePingAsync());
+            Assert.ThrowsAsync<ArgumentException>(async () => await new ServicePrx(prx.Proxy).IcePingAsync());
         }
 
         /// <summary>Ensure that invocation timeout is triggered if the interceptor takes too much time.</summary>
@@ -52,7 +52,7 @@ namespace IceRpc.Tests.Api
                 return await next.InvokeAsync(request, cancel);
             }));
 
-            Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync(
+            Assert.CatchAsync<OperationCanceledException>(async () => await new ServicePrx(prx.Proxy).IcePingAsync(
                 new Invocation { Timeout = TimeSpan.FromMilliseconds(10) }));
         }
 
@@ -80,7 +80,7 @@ namespace IceRpc.Tests.Api
                     return result;
                 }));
 
-            await prx.IcePingAsync();
+            await new ServicePrx(prx.Proxy).IcePingAsync();
 
             Assert.AreEqual("ProxyInterceptors -> 0", interceptorCalls[0]);
             Assert.AreEqual("ProxyInterceptors -> 1", interceptorCalls[1]);

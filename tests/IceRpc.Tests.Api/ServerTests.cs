@@ -51,11 +51,12 @@ namespace IceRpc.Tests.Api
                     MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
                     RemoteEndpoint = server.Endpoint
                 };
-                var proxy = GreeterPrx.FromConnection(connection);
+                var prx = GreeterPrx.FromConnection(connection);
 
-                Assert.ThrowsAsync<ConnectionRefusedException>(async () => await proxy.IcePingAsync());
+                Assert.ThrowsAsync<ConnectionRefusedException>(
+                    async () => await new ServicePrx(prx.Proxy).IcePingAsync());
                 server.Listen();
-                Assert.DoesNotThrowAsync(async () => await proxy.IcePingAsync());
+                Assert.DoesNotThrowAsync(async () => await new ServicePrx(prx.Proxy).IcePingAsync());
             }
 
             {
@@ -71,12 +72,13 @@ namespace IceRpc.Tests.Api
                     MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
                     RemoteEndpoint = server.Endpoint
                 };
-                var proxy = GreeterPrx.FromConnection(connection);
+                var prx = GreeterPrx.FromConnection(connection);
 
                 server.Listen();
 
                 // Throws ServiceNotFoundException when Dispatcher is null
-                Assert.ThrowsAsync<ServiceNotFoundException>(async () => await proxy.IcePingAsync());
+                Assert.ThrowsAsync<ServiceNotFoundException>(
+                    async () => await new ServicePrx(prx.Proxy).IcePingAsync());
             }
 
             {
@@ -98,11 +100,11 @@ namespace IceRpc.Tests.Api
                     MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
                     RemoteEndpoint = server.Endpoint
                 };
-                var proxy = GreeterPrx.FromConnection(connection);
+                var prx = GreeterPrx.FromConnection(connection);
                 server.Listen();
 
                 Assert.DoesNotThrow(() => router.Use(next => next)); // still fine
-                Assert.DoesNotThrowAsync(async () => await proxy.IcePingAsync());
+                Assert.DoesNotThrowAsync(async () => await new ServicePrx(prx.Proxy).IcePingAsync());
                 Assert.Throws<InvalidOperationException>(() => router.Use(next => next));
             }
 
@@ -208,10 +210,10 @@ namespace IceRpc.Tests.Api
                 LoggerFactory = LogAttributeLoggerFactory.Instance,
                 RemoteEndpoint = server.Endpoint
             };
-            var proxy = GreeterPrx.FromConnection(connection);
+            var prx = GreeterPrx.FromConnection(connection);
 
             using var cancellationSource = new CancellationTokenSource();
-            Task task = proxy.IcePingAsync(cancel: cancellationSource.Token);
+            Task task = new ServicePrx(prx.Proxy).IcePingAsync(cancel: cancellationSource.Token);
             await semaphore.WaitAsync(); // Wait for the dispatch
 
             Assert.That(task.IsCompleted, Is.False);
@@ -223,7 +225,7 @@ namespace IceRpc.Tests.Api
 
             // Verify the service still works.
             waitForCancellation = false;
-            Assert.DoesNotThrowAsync(async () => await proxy.IcePingAsync());
+            Assert.DoesNotThrowAsync(async () => await new ServicePrx(prx.Proxy).IcePingAsync());
             Assert.DoesNotThrowAsync(async () => await server.ShutdownAsync());
         }
 
@@ -253,9 +255,9 @@ namespace IceRpc.Tests.Api
                 RemoteEndpoint = server.Endpoint
             };
 
-            var proxy = GreeterPrx.FromConnection(connection);
+            var prx = GreeterPrx.FromConnection(connection);
 
-            Task task = proxy.IcePingAsync();
+            Task task = new ServicePrx(prx.Proxy).IcePingAsync();
             Assert.That(server.ShutdownComplete.IsCompleted, Is.False);
             await dispatchStartSemaphore.WaitAsync(); // Wait for the dispatch
 
@@ -313,9 +315,9 @@ namespace IceRpc.Tests.Api
                 LoggerFactory = LogAttributeLoggerFactory.Instance
             };
 
-            var proxy = GreeterPrx.FromConnection(connection);
+            var prx = GreeterPrx.FromConnection(connection);
 
-            Task task = proxy.IcePingAsync();
+            Task task = new ServicePrx(prx.Proxy).IcePingAsync();
             Assert.That(server.ShutdownComplete.IsCompleted, Is.False);
             await semaphore.WaitAsync(); // Wait for the dispatch
 

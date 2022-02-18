@@ -63,7 +63,7 @@ namespace IceRpc.Tests.Api
                 .BuildServiceProvider();
 
             var prx = GreeterPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
-            await prx.IcePingAsync();
+            await new ServicePrx(prx.Proxy).IcePingAsync();
 
             Assert.AreEqual("Middlewares -> 0", middlewareCalls[0]);
             Assert.AreEqual("Middlewares -> 1", middlewareCalls[1]);

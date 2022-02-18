@@ -62,15 +62,15 @@ namespace IceRpc.Tests.ClientServer
 
             prx.Proxy.AltEndpoints = ImmutableList.Create(server2.Endpoint, server3.Endpoint);
 
-            Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
+            Assert.DoesNotThrowAsync(async () => await new ServicePrx(prx.Proxy).IcePingAsync());
             Assert.That(
                 prx.Proxy.Connection!.NetworkConnectionInformation!.Value.RemoteEndpoint, Is.EqualTo(server1.Endpoint));
             await server1.ShutdownAsync();
-            Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
+            Assert.DoesNotThrowAsync(async () => await new ServicePrx(prx.Proxy).IcePingAsync());
             Assert.That(
                 prx.Proxy.Connection!.NetworkConnectionInformation!.Value.RemoteEndpoint, Is.EqualTo(server2.Endpoint));
             await server2.ShutdownAsync();
-            Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
+            Assert.DoesNotThrowAsync(async () => await new ServicePrx(prx.Proxy).IcePingAsync());
             Assert.That(
                 prx.Proxy.Connection!.NetworkConnectionInformation!.Value.RemoteEndpoint, Is.EqualTo(server3.Endpoint));
         }
@@ -85,7 +85,7 @@ namespace IceRpc.Tests.ClientServer
             var retryBidir = RetryBidirTestPrx.Parse("icerpc:/retry");
             retryBidir.Proxy.Endpoint = serviceProvider.GetRequiredService<Server>().Endpoint;
             retryBidir.Proxy.Invoker = serviceProvider.GetRequiredService<IInvoker>();
-            await retryBidir.IcePingAsync();
+            await new ServicePrx(retryBidir.Proxy).IcePingAsync();
 
             // endpointless proxy with a connection
             var bidir = new RetryBidirTestPrx(retryBidir.Proxy with { Endpoint = null });
@@ -118,7 +118,7 @@ namespace IceRpc.Tests.ClientServer
             // gracefully in between.
             byte[] seq = new byte[1024 * 10];
 
-            await retry.IcePingAsync();
+            await new ServicePrx(retry.Proxy).IcePingAsync();
             var results = new List<Task>();
             for (int i = 0; i < maxQueue; ++i)
             {
@@ -154,7 +154,7 @@ namespace IceRpc.Tests.ClientServer
             // between.
             byte[] seq = new byte[1024 * 10];
 
-            await retry.IcePingAsync();
+            await new ServicePrx(retry.Proxy).IcePingAsync();
             var results = new List<Task>();
             for (int i = 0; i < maxQueue; ++i)
             {

@@ -23,26 +23,30 @@ namespace IceRpc.Tests.Api
                 .BuildServiceProvider();
 
             var prx = GreeterPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
-            await prx.IcePingAsync();
+            await new ServicePrx(prx.Proxy).IcePingAsync();
 
             string[] ids = new string[]
             {
                 "::IceRpc::Tests::Api::Greeter",
                 "::Slice::Service",
             };
-            CollectionAssert.AreEqual(ids, await prx.IceIdsAsync());
+            CollectionAssert.AreEqual(ids, await new ServicePrx(prx.Proxy).IceIdsAsync());
 
-            Assert.That(await prx.IceIsAAsync("::IceRpc::Tests::Api::Greeter"), Is.True);
-            Assert.That(await prx.IceIsAAsync("::IceRpc::Tests::Api::Foo"), Is.False);
+            Assert.That(await new ServicePrx(prx.Proxy).IceIsAAsync("::IceRpc::Tests::Api::Greeter"), Is.True);
+            Assert.That(await new ServicePrx(prx.Proxy).IceIsAAsync("::IceRpc::Tests::Api::Foo"), Is.False);
 
             Assert.AreEqual(prx, await prx.AsAsync<GreeterPrx>());
 
             // Test that Service operation correctly forward the cancel param
             var canceled = new CancellationToken(canceled: true);
-            Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync(cancel: canceled));
-            Assert.CatchAsync<OperationCanceledException>(async () => await prx.IceIdsAsync(cancel: canceled));
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await prx.IceIsAAsync("::IceRpc::Tests::Api::Greeter", cancel: canceled));
+                async () => await new ServicePrx(prx.Proxy).IcePingAsync(cancel: canceled));
+            Assert.CatchAsync<OperationCanceledException>(
+                async () => await new ServicePrx(prx.Proxy).IceIdsAsync(cancel: canceled));
+            Assert.CatchAsync<OperationCanceledException>(
+                async () => await new ServicePrx(prx.Proxy).IceIsAAsync(
+                    "::IceRpc::Tests::Api::Greeter",
+                    cancel: canceled));
             Assert.CatchAsync<OperationCanceledException>(
                 async () => await prx.AsAsync<GreeterPrx>(cancel: canceled));
 
@@ -60,10 +64,10 @@ namespace IceRpc.Tests.Api
                 return next.InvokeAsync(request, cancel);
             }));
 
-            await prx.IcePingAsync(invocation);
-            await prx.IceIdsAsync(invocation);
-            await prx.IceIsAAsync("::IceRpc::Tests::Api::Greeter", invocation);
-            await prx.AsAsync<GreeterPrx>(invocation);
+            await new ServicePrx(prx.Proxy).IcePingAsync(invocation);
+            await new ServicePrx(prx.Proxy).IceIdsAsync(invocation);
+            await new ServicePrx(prx.Proxy).IceIsAAsync("::IceRpc::Tests::Api::Greeter", invocation);
+            await new ServicePrx(prx.Proxy).AsAsync<GreeterPrx>(invocation);
         }
 
         [TestCase("icerpc://localhost:10000/test?alt-endpoint=host2")]
@@ -504,7 +508,7 @@ namespace IceRpc.Tests.Api
 
             var prx = GreeterPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
             prx.Proxy.Encoding = Encoding.FromString(encoding);
-            await prx.IcePingAsync(); // works fine, we use the protocol's encoding in this case
+            await new ServicePrx(prx.Proxy).IcePingAsync(); // works fine, we use the protocol's encoding in this case
         }
 
         [Test]

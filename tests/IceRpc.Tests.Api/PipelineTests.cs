@@ -33,7 +33,7 @@ namespace IceRpc.Tests.Api
             prx.Proxy.Invoker = pipeline;
 
             Assert.AreEqual(0, value);
-            Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
+            Assert.DoesNotThrowAsync(async () => await new ServicePrx(prx.Proxy).IcePingAsync());
             Assert.AreEqual(3, value);
 
             // Verify we can't add an extra interceptor now
@@ -46,11 +46,11 @@ namespace IceRpc.Tests.Api
             });
 
             value = 0;
-            Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
+            Assert.DoesNotThrowAsync(async () => await new ServicePrx(prx.Proxy).IcePingAsync());
             Assert.AreEqual(3, value); // did not change the prx pipeline
 
             value = 0;
-            Assert.DoesNotThrowAsync(async () => await prx2.IcePingAsync());
+            Assert.DoesNotThrowAsync(async () => await new ServicePrx(prx2.Proxy).IcePingAsync());
             Assert.AreEqual(5, value); // 2 more interceptors executed with prx2
         }
 
@@ -77,7 +77,7 @@ namespace IceRpc.Tests.Api
                 .BuildServiceProvider();
 
             GreeterPrx prx = serviceProvider.GetProxy<GreeterPrx>();
-            await prx.IcePingAsync();
+            await new ServicePrx(prx.Proxy).IcePingAsync();
             Assert.That(lastOperation, Is.EqualTo("ice_ping"));
             await prx.SayHelloAsync(Message);
             Assert.That(lastOperation, Is.EqualTo("sayHello"));
