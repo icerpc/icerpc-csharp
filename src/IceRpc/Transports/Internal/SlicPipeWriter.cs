@@ -8,8 +8,9 @@ namespace IceRpc.Transports.Internal
 {
     internal class SlicPipeWriter : ReadOnlySequencePipeWriter
     {
-        private bool _isCompleted;
+        private Exception? _exception;
         private readonly Pipe _pipe;
+        private int _state;
         private readonly SlicMultiplexedStream _stream;
 
         public override void Advance(int bytes)
@@ -22,7 +23,7 @@ namespace IceRpc.Transports.Internal
 
         public override void Complete(Exception? exception = null)
         {
-            if (!_isCompleted)
+            if (_state.TrySetFlag(State.Completed))
             {
                 // If writes aren't marked as completed yet, abort stream writes. This will send a stream reset frame to
                 // the peer to notify it won't receive additional data.
@@ -47,10 +48,21 @@ namespace IceRpc.Transports.Internal
                     }
                 }
 
-                _isCompleted = true;
-
                 _pipe.Writer.Complete(exception);
-                _pipe.Reader.Complete(exception);
+
+                // Don't complete the reader if it's being used concurrently for sending a frame. It will be completed
+                // once the reading terminates.
+                if (_state.TrySetFlag(State.PipeReaderCompleted))
+                {
+                    if (_state.HasFlag(State.PipeReaderInUse))
+                    {
+                        _exception = exception;
+                    }
+                    else
+                    {
+                        _pipe.Reader.Complete(exception);
+                    }
+                }
             }
         }
 
@@ -89,38 +101,51 @@ namespace IceRpc.Transports.Internal
 
             if (_pipe.Writer.UnflushedBytes > 0)
             {
-                // Flush the internal pipe. It can be completed if the peer sent the stop sending frame.
-                FlushResult flushResult = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
-                if (flushResult.IsCompleted)
-                {
-                    return flushResult;
-                }
-
-                // Read the data from the pipe.
-                ReadResult readResult = await _pipe.Reader.ReadAsync(CancellationToken.None).ConfigureAwait(false);
-                Debug.Assert(!readResult.IsCanceled);
-                if (readResult.IsCompleted)
-                {
-                    Debug.Assert(_isCompleted);
-                    CheckIfCompleted();
-                }
-
-                Debug.Assert(readResult.Buffer.Length > 0);
+                _state.SetState(State.PipeReaderInUse);
                 try
                 {
-                    // Send the unflushed bytes and the source.
-                    return await _stream.SendStreamFrameAsync(
-                        readResult.Buffer,
-                        source,
-                        completeWhenDone,
-                        cancel).ConfigureAwait(false);
+                    if (_state.HasFlag(State.PipeReaderCompleted))
+                    {
+                        return new FlushResult(isCanceled: false, isCompleted: true);
+                    }
+
+                    // Flush the internal pipe. It can be completed if the peer sent the stop sending frame.
+                    FlushResult flushResult = await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                    if (flushResult.IsCompleted)
+                    {
+                        return flushResult;
+                    }
+
+                    // Read the data from the pipe.
+                    ReadResult readResult = await _pipe.Reader.ReadAsync(CancellationToken.None).ConfigureAwait(false);
+
+                    Debug.Assert(!readResult.IsCanceled && !readResult.IsCompleted && readResult.Buffer.Length > 0);
+                    try
+                    {
+                        // Send the unflushed bytes and the source.
+                        return await _stream.SendStreamFrameAsync(
+                            readResult.Buffer,
+                            source,
+                            completeWhenDone,
+                            cancel).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        _pipe.Reader.AdvanceTo(readResult.Buffer.End);
+
+                        // Make sure there's no more data to consume from the pipe.
+                        Debug.Assert(!_pipe.Reader.TryRead(out ReadResult _));
+                    }
                 }
                 finally
                 {
-                    _pipe.Reader.AdvanceTo(readResult.Buffer.End);
-
-                    // Make sure there's no more data to consume from the pipe.
-                    Debug.Assert(!_pipe.Reader.TryRead(out ReadResult _));
+                    if (_state.HasFlag(State.PipeReaderCompleted))
+                    {
+                        // If the Slic pipe writer has been completed while we were writing the data to the stream, we
+                        // make sure to complete the reader now since Complete didn't do it.
+                        await _pipe.Reader.CompleteAsync(_exception).ConfigureAwait(false);
+                    }
+                    _state.ClearFlag(State.PipeReaderInUse);
                 }
             }
             else if (source.Length > 0 || completeWhenDone)
@@ -143,13 +168,16 @@ namespace IceRpc.Transports.Internal
         internal void ReceivedStopSendingFrame(long error)
         {
             // TODO: Look into cancelling the _stream.SendStreamFrameAsync() call if it's pending?
-            if (error.ToSlicError() == SlicStreamError.NoError)
+            if (_state.TrySetFlag(State.PipeReaderCompleted))
             {
-                _pipe.Reader.Complete();
-            }
-            else
-            {
-                _pipe.Reader.Complete(new MultiplexedStreamAbortedException(error));
+                _exception = error.ToSlicError() == SlicStreamError.NoError ?
+                    null :
+                    new MultiplexedStreamAbortedException(error);
+
+                if (!_state.HasFlag(State.PipeReaderCompleted))
+                {
+                    _pipe.Reader.Complete(_exception);
+                }
             }
         }
 
@@ -169,12 +197,25 @@ namespace IceRpc.Transports.Internal
 
         private void CheckIfCompleted()
         {
-            if (_isCompleted)
+            if (_state.HasFlag(State.Completed))
             {
                 // If the writer is completed, the caller is bogus, it shouldn't call writer operations after completing
                 // the pipe writer.
                 throw new InvalidOperationException("writing is not allowed once the writer is completed");
             }
+        }
+
+        /// <summary>The state enumeration is used to ensure the writer is not used after it's completed and to ensure
+        /// that the internal pipe reader isn't completed concurrently when it's being used by WriteAsync.</summary>
+        private enum State : int
+        {
+            /// <summary><see cref="Complete"/> was called on this Slic pipe writer.</summary>
+            Completed = 1,
+            /// <summary>Data is being read from the internal pipe reader.</summary>
+            PipeReaderInUse = 2,
+            /// <summary>The internal pipe reader was completed either by <see cref="Complete"/> or <see
+            /// cref="ReceivedStopSendingFrame"/>.</summary>
+            PipeReaderCompleted = 4
         }
     }
 }

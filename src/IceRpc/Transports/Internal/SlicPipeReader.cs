@@ -99,13 +99,16 @@ namespace IceRpc.Transports.Internal
 
                 // Don't complete the writer if it's being used concurrently for receiving a frame. It will be completed
                 // once the reading terminates.
-                if (_state.HasFlag(State.Writing))
+                if (_state.TrySetFlag(State.PipeWriterCompleted))
                 {
-                    _exception = exception;
-                }
-                else
-                {
-                    _pipe.Writer.Complete(exception);
+                    if (_state.HasFlag(State.PipeWriterInUse))
+                    {
+                        _exception = exception;
+                    }
+                    else
+                    {
+                        _pipe.Writer.Complete(exception);
+                    }
                 }
             }
         }
@@ -167,6 +170,7 @@ namespace IceRpc.Transports.Internal
             _receiveCredit = pauseThreshold;
             _pipe = new(new PipeOptions(
                 pool: pool,
+                pauseWriterThreshold: 0,
                 minimumSegmentSize: minimumSegmentSize,
                 writerScheduler: PipeScheduler.Inline));
         }
@@ -174,13 +178,16 @@ namespace IceRpc.Transports.Internal
         /// <summary>Called when a stream reset is received.</summary>
         internal void ReceivedResetFrame(long error)
         {
-            if (error.ToSlicError() == SlicStreamError.NoError)
+            if (_state.TrySetFlag(State.PipeWriterCompleted))
             {
-                _pipe.Writer.Complete();
-            }
-            else
-            {
-                _pipe.Writer.Complete(new MultiplexedStreamAbortedException(error));
+                _exception = error.ToSlicError() == SlicStreamError.NoError ?
+                    null :
+                    new MultiplexedStreamAbortedException(error);
+
+                if (!_state.HasFlag(State.PipeWriterInUse))
+                {
+                    _pipe.Writer.Complete(_exception);
+                }
             }
         }
 
@@ -188,10 +195,10 @@ namespace IceRpc.Transports.Internal
         /// internal pipe writer and returns the number of bytes that were consumed.</summary>
         internal async ValueTask<int> ReceivedStreamFrameAsync(int dataSize, bool endStream, CancellationToken cancel)
         {
-            _state.SetState(State.Writing);
+            _state.SetState(State.PipeWriterInUse);
             try
             {
-                if (_state.HasFlag(State.Completed))
+                if (_state.HasFlag(State.PipeWriterCompleted))
                 {
                     // If the Slic pipe reader is completed, nothing was consumed.
                     return 0;
@@ -236,13 +243,13 @@ namespace IceRpc.Transports.Internal
             }
             finally
             {
-                if (_state.HasFlag(State.Completed))
+                if (_state.HasFlag(State.PipeWriterCompleted))
                 {
-                    // If the Slic pipe reader has been completed while we were writing the data from the stream, we
+                    // If the Slic pipe reader has been completed while we were reader the data from the stream, we
                     // make sure to complete the writer now since Complete didn't do it.
                     await _pipe.Writer.CompleteAsync(_exception).ConfigureAwait(false);
                 }
-                _state.ClearFlag(State.Writing);
+                _state.ClearFlag(State.PipeWriterInUse);
             }
         }
 
@@ -256,10 +263,18 @@ namespace IceRpc.Transports.Internal
             }
         }
 
+        /// <summary>The state enumeration is used to ensure the reader is not used after it's completed and to ensure
+        /// that the internal pipe writer isn't completed concurrently when it's being used by <see
+        /// cref="ReceivedStreamFrameAsync"/>.</summary>
         private enum State : int
         {
-            Writing = 1,
-            Completed = 2,
+            /// <summary><see cref="Complete"/> was called on this Slic pipe reader.</summary>
+            Completed = 1,
+            /// <summary>Data is being written to the internal pipe writer.</summary>
+            PipeWriterInUse = 2,
+            /// <summary>The internal pipe writer was completed either by <see cref="Complete"/> or <see
+            /// cref="ReceivedResetFrame"/>.</summary>
+            PipeWriterCompleted = 4
         }
     }
 }
