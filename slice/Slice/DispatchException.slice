@@ -1,0 +1,31 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+[cs:namespace("IceRpc.Slice")]
+module Slice;
+
+/// A dispatch exception is a built-in exception thrown when a server fails to dispatch a request. Since it's built-in,
+/// any client can decode this exception.
+exception DispatchException
+{
+    /// The error code that describes the failure.
+    errorCode: DispatchErrorCode,
+}
+
+/// The possible error codes carried by @DispatchException.
+unchecked enum DispatchErrorCode
+{
+    /// The dispatch could not find the target service.
+    ServiceNotFound,
+
+    /// The dispatch found the target service but this target service does not have the requested operation.
+    OperationNotFound,
+
+    /// The dispatch failed with an unhandled exception.
+    UnhandledException,
+
+    /// The dispatch failed because the request header or the request payload could not be decoded.
+    InvalidData,
+
+    /// The dispatch was canceled.
+    Canceled,
+}

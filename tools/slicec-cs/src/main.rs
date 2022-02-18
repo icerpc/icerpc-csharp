@@ -158,6 +158,7 @@ fn preamble(slice_file: &SliceFile) -> CodeBlock {
 #nullable enable
 
 #pragma warning disable 1591 // Missing XML Comment
+#pragma warning disable 1573 // TODO: workaround for https://github.com/zeroc-ice/icerpc-csharp/issues/820
 using IceRpc.Slice;
 
 [assembly:IceRpc.Slice.Slice("{file}.slice")]"#,

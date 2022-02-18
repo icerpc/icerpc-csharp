@@ -610,7 +610,7 @@ namespace IceRpc
                         // TODO: do we really need this protocol-dependent processing?
                         if (Protocol == Protocol.Ice)
                         {
-                            exception = new DispatchException("dispatch canceled by peer");
+                            exception = new DispatchException("dispatch canceled by peer", DispatchErrorCode.Canceled);
                         }
                         else
                         {
