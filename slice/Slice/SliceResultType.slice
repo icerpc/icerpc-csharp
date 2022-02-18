@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc::Slice;
+[cs:namespace("IceRpc.Slice")]
+module Slice;
 
 /// The type of result carried by a response frame when using Slice generated code for the invocation and dispatch.
 enum SliceResultType : byte
