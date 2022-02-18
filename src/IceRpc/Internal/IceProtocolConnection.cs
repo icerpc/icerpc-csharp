@@ -466,12 +466,6 @@ namespace IceRpc.Internal
                     await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
                     try
                     {
-                        if (request.PayloadEncoding is not SliceEncoding payloadEncoding)
-                        {
-                            throw new NotSupportedException(
-                                "the payload of a request must be encoded with a supported Slice encoding");
-                        }
-
                         (int payloadSize, bool isCanceled, bool isCompleted) =
                             await response.PayloadSource.DecodeSegmentSizeAsync(cancel).ConfigureAwait(false);
 
@@ -522,7 +516,7 @@ namespace IceRpc.Internal
                             }
                         }
 
-                        EncodeHeader(payloadEncoding, payloadSize, replyStatus);
+                        EncodeHeader(payloadSize, replyStatus);
 
                         // TODO: it would make sense to pass the known payloadSize to SendPayloadAsync
                         await SendPayloadAsync(
@@ -560,7 +554,7 @@ namespace IceRpc.Internal
                 }
             }
 
-            void EncodeHeader(SliceEncoding payloadEncoding, int payloadSize, ReplyStatus replyStatus)
+            void EncodeHeader(int payloadSize, ReplyStatus replyStatus)
             {
                 var encoder = new SliceEncoder(request.ResponseWriter, Encoding.Slice11);
 
@@ -572,15 +566,18 @@ namespace IceRpc.Internal
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
 
                 encoder.EncodeInt(requestId);
-                (byte encodingMajor, byte encodingMinor) = payloadEncoding.ToMajorMinor();
 
                 encoder.EncodeReplyStatus(replyStatus);
                 if (replyStatus <= ReplyStatus.UserException)
                 {
+                    // When IceRPC receives a response, it ignores the response encoding. So this "1.1" is only relevant
+                    // to a ZeroC Ice client that decodes the response. The only Slice encoding such a client can
+                    // possibly use to decode the response payload is 1.1 or 1.0, and we don't care about interop with
+                    // 1.0.
                     var encapsulationHeader = new EncapsulationHeader(
                         encapsulationSize: payloadSize + 6,
-                        encodingMajor,
-                        encodingMinor);
+                        payloadEncodingMajor: 1,
+                        payloadEncodingMinor: 1);
                     encapsulationHeader.Encode(ref encoder);
                 }
 

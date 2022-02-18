@@ -52,9 +52,9 @@ namespace IceRpc
             : base(protocol, payload)
         {
             Path = path;
-            PayloadEncoding = payloadEncoding;
             Fragment = fragment;
             Operation = operation;
+            PayloadEncoding = payloadEncoding;
             ResponseWriter = responseWriter;
         }
     }

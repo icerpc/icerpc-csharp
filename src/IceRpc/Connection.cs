@@ -619,16 +619,10 @@ namespace IceRpc
                         }
                     }
 
-                    if (exception is RemoteException remoteException)
-                    {
-                        // With the ice protocol, ResultType=Failure exceptions must be ice system exceptions.
-                        if (remoteException.ConvertToUnhandled ||
-                            (Protocol == Protocol.Ice && !remoteException.IsIceSystemException()))
-                        {
-                            remoteException = new UnhandledException(exception);
-                        }
-                    }
-                    else
+                    // With the ice protocol, a ResultType = Failure exception must be an ice system exception.
+                    if (exception is not RemoteException remoteException ||
+                        remoteException.ConvertToUnhandled ||
+                        (Protocol == Protocol.Ice && !remoteException.IsIceSystemException()))
                     {
                         remoteException = new UnhandledException(exception);
                     }

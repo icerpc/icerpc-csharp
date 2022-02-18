@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 
 namespace IceRpc.Slice
@@ -19,7 +18,7 @@ namespace IceRpc.Slice
             this IncomingRequest request,
             bool hasStream,
             CancellationToken cancel) =>
-            request.Payload.ReadVoidAsync(request.GetSlicePayloadEncoding(), hasStream, cancel);
+            request.Payload.ReadVoidAsync(request.GetSliceEncoding(), hasStream, cancel);
 
         /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared
         /// idempotent, the request is not marked idempotent. If the request is marked idempotent, it means the caller
@@ -98,7 +97,7 @@ namespace IceRpc.Slice
                     request.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default;
 
             return request.Payload.ReadValueAsync(
-                request.GetSlicePayloadEncoding(),
+                request.GetSliceEncoding(),
                 request.Connection,
                 decodePayloadOptions.ProxyInvoker ?? Proxy.DefaultInvoker,
                 decodePayloadOptions.Activator ?? defaultActivator,
@@ -121,7 +120,7 @@ namespace IceRpc.Slice
                 request.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default;
 
             return request.Payload.ToAsyncEnumerable(
-                request.GetSlicePayloadEncoding(),
+                request.GetSliceEncoding(),
                 request.Connection,
                 decodePayloadOptions.ProxyInvoker ?? Proxy.DefaultInvoker,
                 decodePayloadOptions.Activator ?? defaultActivator,
