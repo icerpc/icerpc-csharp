@@ -220,7 +220,7 @@ namespace IceRpc.Slice
         {
             if (Encoding == IceRpc.Encoding.Slice11)
             {
-                if(proxy != null)
+                if (proxy != null)
                 {
                     EncodeProxy(proxy);
                 }

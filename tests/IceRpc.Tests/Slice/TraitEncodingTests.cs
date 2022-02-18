@@ -64,8 +64,8 @@ public sealed class TraitEncodingTests
         // Test that decoding a mismatched type fails.
         {
             var bufferWriter = new SingleBufferWriter(buffer);
-           
-            
+
+
 
             Assert.Throws<InvalidDataException>(() =>
             {
@@ -80,7 +80,7 @@ public sealed class TraitEncodingTests
         // Test that decoding an unknown type-id fails.
         {
             var bufferWriter = new SingleBufferWriter(buffer);
-            
+
 
             Assert.Throws<InvalidDataException>(() =>
             {

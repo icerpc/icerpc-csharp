@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports.Internal;
 using NUnit.Framework;
 using System.Threading.Tasks.Sources;
-using IceRpc.Transports.Internal;
 
 namespace IceRpc.Transports.Tests;
 

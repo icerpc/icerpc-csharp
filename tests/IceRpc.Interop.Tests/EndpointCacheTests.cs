@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using NUnit.Framework;
-using IceRpc.Tests;
 
 namespace IceRpc.Internal.Tests;
 
@@ -35,7 +34,7 @@ public class EndpointCacheTests
 
         // Make sure removing an existing entry reduces the Count
 
-        endpointCache.Remove(new Location{ IsAdapterId = true, Value = "20" });
+        endpointCache.Remove(new Location { IsAdapterId = true, Value = "20" });
         Assert.AreEqual(10, endpointCacheImpl.Count); // was not there
         endpointCache.Remove(new Location { IsAdapterId = true, Value = "95" });
         Assert.AreEqual(9, endpointCacheImpl.Count);
