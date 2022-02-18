@@ -37,8 +37,8 @@ impl<'a> Visitor for ProxyVisitor<'_> {
 
         let add_service_prx = !(all_bases
             .iter()
-            .any(|b| b.module_scoped_identifier() == "IceRpc::Slice::Service")
-            || interface_def.module_scoped_identifier() == "IceRpc::Slice::Service");
+            .any(|b| b.module_scoped_identifier() == "Slice::Service")
+            || interface_def.module_scoped_identifier() == "Slice::Service");
 
         if add_service_prx {
             prx_impl_bases.push("IceRpc.Slice.IServicePrx".to_owned());

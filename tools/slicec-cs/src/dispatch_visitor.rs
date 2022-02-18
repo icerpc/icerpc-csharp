@@ -389,7 +389,7 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
 
     if operation.compress_return() {
         code.writeln(
-            "request.Features = request.Features.With(IceRpc.Features.CompressPayload.Yes);"
+            "request.Features = request.Features.With(IceRpc.Features.CompressPayload.Yes);",
         );
     }
 
@@ -476,7 +476,7 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
 
         writeln!(
             code,
-            "return new OutgoingResponse(request) {{ PayloadSource = {payload_source}, PayloadSourceStream = {payload_source_stream} }};",
+            "return new IceRpc.OutgoingResponse(request) {{ PayloadSource = {payload_source}, PayloadSourceStream = {payload_source_stream} }};",
             payload_source = dispatch_return_payload(operation, encoding),
             payload_source_stream = payload_source_stream(operation, encoding)
         );

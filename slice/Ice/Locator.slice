@@ -39,7 +39,7 @@ interface Locator
     /// path was not found.
     /// @throws ObjectNotFoundException Thrown if a service with the requested path was not found. The caller
     /// should treat this exception like a null return value.
-    idempotent findObjectById(path: IdentityPath) -> IceRpc::Slice::Service?;
+    idempotent findObjectById(path: IdentityPath) -> Slice::Service?;
 
     /// Finds an object adapter by id and returns a proxy that provides the object adapter's endpoint(s). This
     /// operation is for object adapters using the ice protocol.
@@ -48,7 +48,7 @@ interface Locator
     /// not found.
     /// @throws AdapterNotFoundException Thrown if an object adapter with this adapter ID was not found. The caller
     /// should treat this exception like a null return value.
-    idempotent findAdapterById(id: string) -> IceRpc::Slice::Service?;
+    idempotent findAdapterById(id: string) -> Slice::Service?;
 
     /// Gets the locator registry.
     /// @return The locator registry, or null if this locator has no registry.
@@ -68,7 +68,7 @@ interface LocatorRegistry
     /// @throws AdapterAlreadyActiveException Thrown if an object adapter with the same adapter ID has already
     /// registered its endpoints.
     // Note: idempotent is not quite correct, and kept only for backwards compatibility with old implementations.
-    idempotent setAdapterDirectProxy(id: string, proxy: IceRpc::Slice::Service?);
+    idempotent setAdapterDirectProxy(id: string, proxy: Slice::Service?);
 
     /// Registers or unregisters the endpoints of an object adapter that uses the ice protocol. This object adapter
     /// is member of a replica group.
@@ -86,7 +86,7 @@ interface LocatorRegistry
     idempotent setReplicatedAdapterDirectProxy(
         adapterId: string,
         replicaGroupId: string,
-        proxy: IceRpc::Slice::Service?,
+        proxy: Slice::Service?,
     );
 
     /// Registers a proxy for a server's Process service.
