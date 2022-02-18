@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-[cs:namespace("IceRpc.Slice")]
-module Slice;
+module IceRpc::Slice;
 
 /// The path of a service, encoded as an Ice identity.
 [cs:type("string")]
