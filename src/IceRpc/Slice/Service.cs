@@ -1,8 +1,8 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice.Internal;
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.IO.Pipelines;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -14,7 +14,7 @@ namespace IceRpc.Slice
         /// <summary>A delegate that matches the signature of the generated SliceDXxx methods. For the generated
         /// methods, the type of <para>target</para> is the type of the generated service interface, whereas for this
         /// delegate it's <see cref="object"/>.</summary>
-        private delegate ValueTask<(SliceEncoding, PipeReader, PipeReader?)> DispatchMethod(
+        private delegate ValueTask<OutgoingResponse> DispatchMethod(
             object target,
             IncomingRequest request,
             CancellationToken cancel);
@@ -90,17 +90,22 @@ namespace IceRpc.Slice
         /// <inheritdoc/>
         public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
         {
+            // TODO: move try/catch block to SliceD and make method non-async.
             if (_dispatchMethods.TryGetValue(request.Operation, out DispatchMethod? dispatchMethod))
             {
-                (SliceEncoding payloadEncoding, PipeReader responsePayloadSource, PipeReader? responsePayloadSourceStream) =
-                    await dispatchMethod(this, request, cancel).ConfigureAwait(false);
-
-                return new OutgoingResponse(request)
+                try
                 {
-                    PayloadSource = responsePayloadSource,
-                    PayloadSourceStream = responsePayloadSourceStream,
-                    PayloadEncoding = payloadEncoding,
-                };
+                    return await dispatchMethod(this, request, cancel).ConfigureAwait(false);
+                }
+                catch (RemoteException remoteException)
+                {
+                    if (remoteException.IsIceSystemException() || remoteException.ConvertToUnhandled)
+                    {
+                        throw;
+                    }
+
+                    return request.CreateResponseFromRemoteException(remoteException, request.GetSliceEncoding());
+                }
             }
             else
             {

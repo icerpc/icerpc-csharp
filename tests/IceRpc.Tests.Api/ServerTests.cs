@@ -338,9 +338,10 @@ namespace IceRpc.Tests.Api
 
             // Ensures the client gets a DispatchException with the Ice protocol and OperationCanceledException with
             // the IceRPC protocol.
+            // TODO: for now it's UnhandledException
             if (protocol == Protocol.Ice)
             {
-                Assert.ThrowsAsync<DispatchException>(async () => await task);
+                Assert.ThrowsAsync<UnhandledException>(async () => await task);
             }
             else
             {

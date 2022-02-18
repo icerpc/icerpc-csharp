@@ -18,7 +18,7 @@ namespace IceRpc.Slice
             this IncomingRequest request,
             bool hasStream,
             CancellationToken cancel) =>
-            request.Payload.ReadVoidAsync(request.GetSlicePayloadEncoding(), hasStream, cancel);
+            request.Payload.ReadVoidAsync(request.GetSliceEncoding(), hasStream, cancel);
 
         /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared
         /// idempotent, the request is not marked idempotent. If the request is marked idempotent, it means the caller
@@ -31,6 +31,47 @@ namespace IceRpc.Slice
                     $@"idempotent mismatch for operation '{request.Operation
                     }': received request marked idempotent for a non-idempotent operation");
             }
+        }
+
+        /// <summary>Creates an outgoing response from a remote exception.</summary>
+        /// <param name="request">The incoming request.</param>
+        /// <param name="remoteException">The remote exception to encode in the payload.</param>
+        /// <param name="requestPayloadEncoding">The encoding used for the request payload.</param>
+        /// <returns>An outgoing response with a <see cref="SliceResultType.ServiceFailure"/> result type.</returns>
+        /// <exception cref="ArgumentException">Thrown if <paramref name="remoteException"/> is a dispatch exception or
+        /// its <see cref="RemoteException.ConvertToUnhandled"/> property is <c>true</c>.</exception>
+        public static OutgoingResponse CreateResponseFromRemoteException(
+            this IncomingRequest request,
+            RemoteException remoteException,
+            SliceEncoding requestPayloadEncoding)
+        {
+            if (remoteException.IsIceSystemException() || remoteException.ConvertToUnhandled)
+            {
+                throw new ArgumentException("invalid remote exception", nameof(remoteException));
+            }
+
+            if (remoteException.Origin == RemoteExceptionOrigin.Unknown)
+            {
+                remoteException.Origin = new RemoteExceptionOrigin(
+                    request.Path,
+                    request.Fragment,
+                    request.Operation);
+            }
+
+            var response = new OutgoingResponse(request)
+            {
+                ResultType = (ResultType)SliceResultType.ServiceFailure,
+                PayloadSource = requestPayloadEncoding.CreatePayloadFromRemoteException(remoteException)
+            };
+
+            if (response.Protocol.HasFields && remoteException.RetryPolicy != RetryPolicy.NoRetry)
+            {
+                RetryPolicy retryPolicy = remoteException.RetryPolicy;
+                response.FieldsOverrides = response.FieldsOverrides.With(
+                    (int)FieldKey.RetryPolicy,
+                    (ref SliceEncoder encoder) => retryPolicy.Encode(ref encoder));
+            }
+            return response;
         }
 
         /// <summary>Computes the Slice encoding to use when encoding a Slice-generated response.</summary>
@@ -56,7 +97,7 @@ namespace IceRpc.Slice
                     request.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default;
 
             return request.Payload.ReadValueAsync(
-                request.GetSlicePayloadEncoding(),
+                request.GetSliceEncoding(),
                 request.Connection,
                 decodePayloadOptions.ProxyInvoker ?? Proxy.DefaultInvoker,
                 decodePayloadOptions.Activator ?? defaultActivator,
@@ -79,7 +120,7 @@ namespace IceRpc.Slice
                 request.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default;
 
             return request.Payload.ToAsyncEnumerable(
-                request.GetSlicePayloadEncoding(),
+                request.GetSliceEncoding(),
                 request.Connection,
                 decodePayloadOptions.ProxyInvoker ?? Proxy.DefaultInvoker,
                 decodePayloadOptions.Activator ?? defaultActivator,

@@ -88,7 +88,7 @@ var encoder_ = new SliceEncoder(pipe_.Writer, {encoding}, {class_format});
 Span<byte> sizePlaceholder_ = encoder_.GetPlaceholderSpan(4);
 int startPos_ = encoder_.EncodedByteCount;
 {encode_returns}
-{encoding}.EncodeFixedLengthSize(encoder_.EncodedByteCount - startPos_, sizePlaceholder_);
+SliceEncoder.EncodeVarULong((ulong)(encoder_.EncodedByteCount - startPos_), sizePlaceholder_);
 
 pipe_.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
 Payload = pipe_.Reader;",

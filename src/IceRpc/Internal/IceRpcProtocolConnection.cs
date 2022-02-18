@@ -95,9 +95,7 @@ namespace IceRpc.Internal
                 PipeReader reader = stream.Input;
                 try
                 {
-                    ReadResult readResult = await reader.ReadSegmentAsync(
-                        Encoding.Slice20,
-                        cancel).ConfigureAwait(false);
+                    ReadResult readResult = await reader.ReadSegmentAsync(cancel).ConfigureAwait(false);
 
                     if (readResult.Buffer.IsEmpty)
                     {
@@ -209,9 +207,7 @@ namespace IceRpc.Internal
 
             try
             {
-                ReadResult readResult = await responseReader.ReadSegmentAsync(
-                    Encoding.Slice20,
-                    cancel).ConfigureAwait(false);
+                ReadResult readResult = await responseReader.ReadSegmentAsync(cancel).ConfigureAwait(false);
 
                 if (readResult.IsCanceled)
                 {
@@ -280,9 +276,7 @@ namespace IceRpc.Internal
             return new IncomingResponse(
                 request,
                 header.ResultType,
-                payload: responseReader,
-                payloadEncoding: header.PayloadEncoding.Length > 0 ?
-                    Encoding.FromString(header.PayloadEncoding) : IceRpcDefinitions.Encoding)
+                payload: responseReader)
             {
                 Fields = fields,
             };
@@ -455,11 +449,7 @@ namespace IceRpc.Internal
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(2);
                 int headerStartPos = encoder.EncodedByteCount;
 
-                new IceRpcResponseHeader(
-                    response.ResultType,
-                    response.PayloadEncoding == IceRpcDefinitions.Encoding ? "" :
-                        response.PayloadEncoding.ToString()).Encode(ref encoder);
-
+                new IceRpcResponseHeader(response.ResultType).Encode(ref encoder);
                 encoder.EncodeFieldDictionary(response.FieldsOverrides, response.Fields);
 
                 // We're done with the header encoding, write the header size.
@@ -612,7 +602,6 @@ namespace IceRpc.Internal
             while (true)
             {
                 ReadResult readResult = await _remoteControlStream!.Input.ReadSegmentAsync(
-                    Encoding.Slice20,
                     cancel).ConfigureAwait(false);
                 try
                 {

@@ -133,13 +133,16 @@ namespace IceRpc.Slice
             }
         }
 
-        private RemoteException DecodeExceptionClass()
+        private RemoteException DecodeExceptionClass(ResultType resultType)
         {
             Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
 
-            // When the response is received over ice, IceProtocolConnection inserts this reply status. The response
-            // can alternatively come straight from an icerpc frame.
-            ReplyStatus replyStatus = this.DecodeReplyStatus();
+            ReplyStatus replyStatus = ReplyStatus.UserException;
+
+            if (resultType == ResultType.Failure)
+            {
+                replyStatus = this.DecodeReplyStatus();
+            }
 
             if (replyStatus == ReplyStatus.OK)
             {

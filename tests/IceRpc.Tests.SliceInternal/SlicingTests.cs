@@ -208,7 +208,7 @@ namespace IceRpc.Tests.SliceInternal
 
             // First we unmarshal the exception using the factory that knows all the types, no Slicing should occur in this case.
             var decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: activator);
-            RemoteException r = decoder.DecodeException();
+            RemoteException r = decoder.DecodeException((ResultType)SliceResultType.ServiceFailure);
             Assert.That(r, Is.InstanceOf<MyMostDerivedException>());
             var r1 = (MyMostDerivedException)r;
             Assert.That(p1.M1, Is.EqualTo(r1.M1));
@@ -223,7 +223,7 @@ namespace IceRpc.Tests.SliceInternal
 
             decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
 
-            r = decoder.DecodeException();
+            r = decoder.DecodeException((ResultType)SliceResultType.ServiceFailure);
             Assert.That(r, Is.InstanceOf<MyDerivedException>());
             Assert.That(r, Is.Not.InstanceOf<MyMostDerivedException>());
             var r2 = (MyDerivedException)r;
@@ -238,7 +238,7 @@ namespace IceRpc.Tests.SliceInternal
                     "::IceRpc::Tests::SliceInternal::MyDerivedException"));
 
             decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
-            r = decoder.DecodeException();
+            r = decoder.DecodeException((ResultType)SliceResultType.ServiceFailure);
             Assert.That(r, Is.Not.InstanceOf<MyDerivedException>());
             Assert.That(r, Is.InstanceOf<MyBaseException>());
             var r3 = (MyBaseException)r;
@@ -253,7 +253,7 @@ namespace IceRpc.Tests.SliceInternal
                     "::IceRpc::Tests::SliceInternal::MyBaseException"));
 
             decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
-            r = decoder.DecodeException();
+            r = decoder.DecodeException((ResultType)SliceResultType.ServiceFailure);
             Assert.That(r, Is.Not.InstanceOf<MyBaseException>());
             Assert.That(r, Is.InstanceOf<UnknownSlicedRemoteException>());
             Assert.That(((UnknownSlicedRemoteException)r).TypeId, Is.EqualTo("::IceRpc::Tests::SliceInternal::MyMostDerivedException"));
@@ -266,7 +266,7 @@ namespace IceRpc.Tests.SliceInternal
             buffer = bufferWriter.WrittenBuffer;
 
             decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: activator);
-            r = decoder.DecodeException();
+            r = decoder.DecodeException((ResultType)SliceResultType.ServiceFailure);
             Assert.That(r, Is.Not.InstanceOf<UnknownSlicedRemoteException>());
             Assert.That(r, Is.InstanceOf<RemoteException>()); // a plain RemoteException
         }

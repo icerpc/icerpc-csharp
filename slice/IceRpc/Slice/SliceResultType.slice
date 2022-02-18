@@ -1,0 +1,17 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc::Slice;
+
+/// The type of result carried by a response frame when using Slice generated code for the invocation and dispatch.
+enum SliceResultType : byte
+{
+    /// The request succeeded and the payload holds a return value encoded using the same encoding as the request
+    /// payload.
+    Success = 0,
+
+    /// The request failed and the payload holds an exception encoded using the protocol's encoding.
+    Failure = 1,
+
+    /// The request failed and the payload holds an exception encoded using the same encoding as the request payload.
+    ServiceFailure = 2,
+}

@@ -62,7 +62,6 @@ namespace IceRpc.Tests.Api
             IncomingResponse response = await joeProxy.Invoker.InvokeAsync(request).ConfigureAwait(false);
 
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
-            Assert.That(response.PayloadEncoding, Is.EqualTo(_customEncoding));
             string greetingResponse = _utf8.GetString((await ReadFullPayloadAsync(response.Payload)).Span);
             await response.Payload.CompleteAsync(); // done with payload
             Assert.That(greetingResponse, Is.EqualTo(_doingWell));
@@ -75,7 +74,6 @@ namespace IceRpc.Tests.Api
             };
             response = await austinProxy.Invoker.InvokeAsync(request);
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
-            Assert.That(response.PayloadEncoding, Is.EqualTo(_customEncoding));
             greetingResponse = _utf8.GetString((await ReadFullPayloadAsync(response.Payload)).Span);
             await response.Payload.CompleteAsync(); // done with payload
             Assert.That(greetingResponse, Is.EqualTo(_notGood));
@@ -96,7 +94,6 @@ namespace IceRpc.Tests.Api
             IncomingResponse response = await badProxy.Invoker.InvokeAsync(request);
 
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
-            Assert.That(response.PayloadEncoding, Is.EqualTo(Encoding.Slice20));
             await response.Payload.CompleteAsync(); // done with payload
             // TODO: unfortunately there is currently no way to decode this response (2.0-encoded exception)
 
@@ -123,7 +120,6 @@ namespace IceRpc.Tests.Api
             IncomingResponse response = await joeProxy.Invoker.InvokeAsync(request);
 
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
-            Assert.That(response.PayloadEncoding, Is.EqualTo(_customEncoding));
             Assert.That((await ReadFullPayloadAsync(response.Payload)).IsEmpty);
             await response.Payload.CompleteAsync(); // done with payload
 

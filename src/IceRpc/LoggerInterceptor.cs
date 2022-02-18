@@ -34,8 +34,7 @@ namespace IceRpc
                     _logger.LogReceivedResponse(request.Connection,
                                                 request.Proxy.Path,
                                                 request.Operation,
-                                                response.ResultType,
-                                                response.PayloadEncoding);
+                                                response.ResultType);
                 }
                 return response;
             }
@@ -73,8 +72,7 @@ namespace IceRpc
             Connection? connection,
             string path,
             string operation,
-            ResultType resultType,
-            Encoding payloadEncoding)
+            ResultType resultType)
         {
             if (logger.IsEnabled(LogLevel.Information))
             {
@@ -83,8 +81,7 @@ namespace IceRpc
                     connection?.NetworkConnectionInformation?.RemoteEndpoint.ToString() ?? "undefined",
                     path,
                     operation,
-                    resultType,
-                    payloadEncoding);
+                    resultType);
             }
         }
 
@@ -125,16 +122,14 @@ namespace IceRpc
             EventName = nameof(LoggerInterceptorEventIds.ReceivedResponse),
             Level = LogLevel.Information,
             Message = "received response (LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint}, " +
-                      "Path={Path}, Operation={Operation}, ResultType={ResultType}, " +
-                      "PayloadEncoding={PayloadEncoding})")]
+                      "Path={Path}, Operation={Operation}, ResultType={ResultType})")]
         private static partial void LogReceivedResponse(
             this ILogger logger,
             string localEndpoint,
             string remoteEndpoint,
             string path,
             string operation,
-            ResultType resultType,
-            Encoding payloadEncoding);
+            ResultType resultType);
 
         [LoggerMessage(
             EventId = (int)LoggerInterceptorEventIds.SendingRequest,

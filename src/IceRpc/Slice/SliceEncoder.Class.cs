@@ -53,9 +53,8 @@ namespace IceRpc.Slice
             }
             else
             {
-                // This reply status byte is read and removed by IceProtocolConnection and kept otherwise.
-                this.EncodeReplyStatus(ReplyStatus.UserException);
-
+                // We don't encode the ReplyStatus because "user exceptions" are always encoded with a SliceFailure
+                // result type.
                 _classContext.ClassFormat = FormatType.Sliced; // always encode exceptions in sliced format
                 _classContext.Current.InstanceType = InstanceType.Exception;
                 _classContext.Current.FirstSlice = true;

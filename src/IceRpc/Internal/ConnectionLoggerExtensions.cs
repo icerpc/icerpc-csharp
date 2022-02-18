@@ -99,11 +99,8 @@ namespace IceRpc.Internal
             EventId = (int)ConnectionEventIds.ReceiveResponse,
             EventName = nameof(ConnectionEventIds.ReceiveResponse),
             Level = LogLevel.Debug,
-            Message = "received response frame (PayloadEncoding={PayloadEncoding}, ResultType={ResultType})")]
-        internal static partial void LogReceiveResponse(
-            this ILogger logger,
-            Encoding payloadEncoding,
-            ResultType resultType);
+            Message = "received response frame (ResultType={ResultType})")]
+        internal static partial void LogReceiveResponse(this ILogger logger, ResultType resultType);
 
         [LoggerMessage(
             EventId = (int)ConnectionEventIds.SendRequest,
@@ -116,8 +113,8 @@ namespace IceRpc.Internal
             EventId = (int)ConnectionEventIds.SendResponse,
             EventName = nameof(ConnectionEventIds.SendResponse),
             Level = LogLevel.Debug,
-            Message = "sent response frame (PayloadEncoding={PayloadEncoding})")]
-        internal static partial void LogSendResponse(this ILogger logger, Encoding payloadEncoding);
+            Message = "sent response frame)")]
+        internal static partial void LogSendResponse(this ILogger logger);
 
         /// <summary>Starts a client connection scope.</summary>
         internal static IDisposable StartClientConnectionScope(

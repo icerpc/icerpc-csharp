@@ -3,6 +3,7 @@
 using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
@@ -362,11 +363,7 @@ namespace IceRpc
 
             // Wait for the response if it's a two-way request, otherwise return a response with an empty payload.
             IncomingResponse response = request.IsOneway ?
-                new IncomingResponse(
-                    request,
-                    ResultType.Success,
-                    EmptyPipeReader.Instance,
-                    request.PayloadEncoding) :
+                new IncomingResponse(request, ResultType.Success, EmptyPipeReader.Instance) :
                 await protocolConnection.ReceiveResponseAsync(request, cancel).ConfigureAwait(false);
 
             response.Connection = this;
@@ -622,7 +619,10 @@ namespace IceRpc
                         }
                     }
 
-                    if (exception is not RemoteException remoteException || remoteException.ConvertToUnhandled)
+                    // With the ice protocol, a ResultType = Failure exception must be an ice system exception.
+                    if (exception is not RemoteException remoteException ||
+                        remoteException.ConvertToUnhandled ||
+                        (Protocol == Protocol.Ice && !remoteException.IsIceSystemException()))
                     {
                         remoteException = new UnhandledException(exception);
                     }
@@ -635,13 +635,11 @@ namespace IceRpc
                             request.Operation);
                     }
 
-                    // not necessarily the request payload encoding
-                    SliceEncoding sliceEncoding = request.GetSliceEncoding();
+                    SliceEncoding sliceEncoding = request.Protocol.SliceEncoding!;
 
                     response = new OutgoingResponse(request)
                     {
                         PayloadSource = sliceEncoding.CreatePayloadFromRemoteException(remoteException),
-                        PayloadEncoding = sliceEncoding,
                         ResultType = ResultType.Failure
                     };
 
