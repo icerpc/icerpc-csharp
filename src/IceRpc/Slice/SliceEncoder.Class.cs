@@ -22,13 +22,13 @@ namespace IceRpc.Slice
         {
             Debug.Assert(_classContext.Current.InstanceType == InstanceType.None);
 
-            if (v.IsIceSystemException())
+            if (v is DispatchException dispatchException)
             {
-                ReplyStatus replyStatus = v switch
+                ReplyStatus replyStatus = dispatchException.ErrorCode switch
                 {
-                    ServiceNotFoundException => ReplyStatus.ObjectNotExistException,
-                    OperationNotFoundException => ReplyStatus.OperationNotExistException,
-                    _ => ReplyStatus.UnknownLocalException,
+                    DispatchErrorCode.ServiceNotFound => ReplyStatus.ObjectNotExistException,
+                    DispatchErrorCode.OperationNotFound => ReplyStatus.OperationNotExistException,
+                    _ => ReplyStatus.UnknownException,
                 };
 
                 // This reply status byte is read and removed by IceProtocolConnection and kept otherwise.

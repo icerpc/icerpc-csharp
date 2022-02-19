@@ -151,7 +151,7 @@ namespace IceRpc.Slice
 
             if (replyStatus > ReplyStatus.UserException)
             {
-                RemoteException systemException;
+                DispatchException dispatchException;
 
                 switch (replyStatus)
                 {
@@ -161,22 +161,24 @@ namespace IceRpc.Slice
 
                         var requestFailed = new RequestFailedExceptionData(ref this);
 
-                        systemException = replyStatus == ReplyStatus.OperationNotExistException ?
-                            new OperationNotFoundException() : new ServiceNotFoundException();
+                        dispatchException = new DispatchException(
+                            replyStatus == ReplyStatus.OperationNotExistException ?
+                                DispatchErrorCode.OperationNotFound : DispatchErrorCode.ServiceNotFound);
 
-                        systemException.Origin = new RemoteExceptionOrigin(
+                        dispatchException.Origin = new RemoteExceptionOrigin(
                             requestFailed.Path,
                             requestFailed.Fragment,
                             requestFailed.Operation);
                         break;
 
                     default:
-                        systemException = new UnhandledException(DecodeString());
+                        // TODO: parse string and extract more dispatch error codes.
+                        dispatchException = new DispatchException(DecodeString(), DispatchErrorCode.UnhandledException);
                         break;
                 }
 
-                systemException.ConvertToUnhandled = true;
-                return systemException;
+                dispatchException.ConvertToUnhandled = true;
+                return dispatchException;
             }
             else
             {

@@ -622,9 +622,12 @@ namespace IceRpc
                     // With the ice protocol, a ResultType = Failure exception must be an ice system exception.
                     if (exception is not RemoteException remoteException ||
                         remoteException.ConvertToUnhandled ||
-                        (Protocol == Protocol.Ice && !remoteException.IsIceSystemException()))
+                        (Protocol == Protocol.Ice && remoteException is not DispatchException))
                     {
-                        remoteException = new UnhandledException(exception);
+                        remoteException = new DispatchException(
+                            message: null,
+                            DispatchErrorCode.UnhandledException,
+                            exception);
                     }
 
                     if (remoteException.Origin == RemoteExceptionOrigin.Unknown)

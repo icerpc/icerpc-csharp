@@ -103,11 +103,11 @@ namespace IceRpc.Slice
 
     public readonly partial record struct RemoteExceptionOrigin
     {
-        /// <summary>With the Slice 1.1 encoding, <c>Unknown</c> is used as the remote exception origin for exceptions
-        /// other than <see cref="ServiceNotFoundException"/> and <see cref="OperationNotFoundException"/>.</summary>
-        public static readonly RemoteExceptionOrigin Unknown = new("", "", "");
+        /// <summary>The unknown origin.</summary>
+        public static readonly RemoteExceptionOrigin Unknown = new("/", "", "");
     }
 
+    /*
     public partial class ServiceNotFoundException
     {
         /// <inheritdoc/>
@@ -194,4 +194,5 @@ namespace IceRpc.Slice
             }
         }
     }
+    */
 }
