@@ -24,20 +24,14 @@ namespace IceRpc.Slice
 
             if (v is DispatchException dispatchException)
             {
-                ReplyStatus replyStatus = dispatchException.ErrorCode switch
-                {
-                    DispatchErrorCode.ServiceNotFound => ReplyStatus.ObjectNotExistException,
-                    DispatchErrorCode.OperationNotFound => ReplyStatus.OperationNotExistException,
-                    _ => ReplyStatus.UnknownException,
-                };
+                DispatchErrorCode errorCode = dispatchException.ErrorCode;
 
-                // This reply status byte is read and removed by IceProtocolConnection and kept otherwise.
-                this.EncodeReplyStatus(replyStatus);
-
-                switch (replyStatus)
+                switch (errorCode)
                 {
-                    case ReplyStatus.ObjectNotExistException:
-                    case ReplyStatus.OperationNotExistException:
+                    case DispatchErrorCode.ServiceNotFound:
+                    case DispatchErrorCode.OperationNotFound:
+                        this.EncodeReplyStatus(errorCode == DispatchErrorCode.ServiceNotFound ?
+                            ReplyStatus.ObjectNotExistException : ReplyStatus.OperationNotExistException);
                         var requestFailed = new RequestFailedExceptionData(
                             v.Origin.Path,
                             v.Origin.Fragment,
@@ -47,7 +41,10 @@ namespace IceRpc.Slice
                         break;
 
                     default:
-                        EncodeString(v.Message);
+                        this.EncodeReplyStatus(ReplyStatus.UnknownException);
+
+                        // We encode the error code in the message.
+                        EncodeString($"[({((byte)errorCode).ToString(CultureInfo.InvariantCulture)}] {v.Message}");
                         break;
                 }
             }

@@ -172,8 +172,28 @@ namespace IceRpc.Slice
                         break;
 
                     default:
-                        // TODO: parse string and extract more dispatch error codes.
-                        dispatchException = new DispatchException(DecodeString(), DispatchErrorCode.UnhandledException);
+                        string message = DecodeString();
+                        DispatchErrorCode errorCode = DispatchErrorCode.UnhandledException;
+
+                        // Attempt to parse the DispatchErrorCode from the message:
+                        if (message.StartsWith('[') &&
+                            message.IndexOf(']', StringComparison.Ordinal) is int pos && pos != -1)
+                        {
+                            try
+                            {
+                                errorCode = (DispatchErrorCode)byte.Parse(
+                                    message[1..pos],
+                                    CultureInfo.InvariantCulture);
+
+                                message = message[(pos + 1)..].TrimStart();
+                            }
+                            catch
+                            {
+                                // ignored, keep default errorCode
+                            }
+                        }
+
+                        dispatchException = new DispatchException(message, errorCode);
                         break;
                 }
 
