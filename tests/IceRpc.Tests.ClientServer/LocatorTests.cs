@@ -145,22 +145,25 @@ namespace IceRpc.Tests.ClientServer
             Assert.DoesNotThrowAsync(async () => await indirectGreeter.SayHelloAsync("hello"));
 
             // Force a retry to get re-resolution
-            Assert.ThrowsAsync<ServiceNotFoundException>(async () => await indirectGreeter.SayHelloAsync(
+            var dispatchException = Assert.ThrowsAsync<DispatchException>(() => indirectGreeter.SayHelloAsync(
                 "hello",
                 new Invocation
                 {
                     Features = new FeatureCollection().WithContext(
                         new Dictionary<string, string> { ["retry"] = "yes" })
                 }));
-            Assert.ThrowsAsync<NoEndpointException>(async () => await indirectGreeter.SayHelloAsync("hello"));
+
+            Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
+
+            Assert.ThrowsAsync<NoEndpointException>(() => indirectGreeter.SayHelloAsync("hello"));
 
             // Same with well-known greeter
 
-            Assert.ThrowsAsync<NoEndpointException>(async () => await wellKnownGreeter.SayHelloAsync("hello"));
+            Assert.ThrowsAsync<NoEndpointException>(() => wellKnownGreeter.SayHelloAsync("hello"));
             locator.RegisterWellKnownProxy(GreeterPath, indirectGreeter);
             locator.RegisterAdapter("adapt", _greeter);
             _called = false;
-            Assert.DoesNotThrowAsync(async () => await wellKnownGreeter.SayHelloAsync("hello"));
+            Assert.DoesNotThrowAsync(() => wellKnownGreeter.SayHelloAsync("hello"));
             Assert.That(_called, Is.True);
 
             Assert.That(locator.UnregisterWellKnownProxy(GreeterPath), Is.True);
@@ -168,19 +171,20 @@ namespace IceRpc.Tests.ClientServer
             if (cacheMaxSize > 1)
             {
                 // We still find it in the cache and can still call it.
-                Assert.DoesNotThrowAsync(async () => await wellKnownGreeter.SayHelloAsync("hello"));
+                Assert.DoesNotThrowAsync(() => wellKnownGreeter.SayHelloAsync("hello"));
 
                 // Force a retry to get re-resolution.
-                Assert.ThrowsAsync<ServiceNotFoundException>(async () => await wellKnownGreeter.SayHelloAsync(
+                dispatchException = Assert.ThrowsAsync<DispatchException>(() => wellKnownGreeter.SayHelloAsync(
                     "hello",
                     new Invocation
                     {
                         Features = new FeatureCollection().WithContext(
                             new Dictionary<string, string> { ["retry"] = "yes" })
                     }));
+                Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
             }
 
-            Assert.ThrowsAsync<NoEndpointException>(async () => await wellKnownGreeter.SayHelloAsync("hello"));
+            Assert.ThrowsAsync<NoEndpointException>(() => wellKnownGreeter.SayHelloAsync("hello"));
         }
 
         [TestCase("foo:tcp -h host1 -p 10000")]
@@ -305,8 +309,8 @@ namespace IceRpc.Tests.ClientServer
                 if (dispatch.Features.GetContext().ContainsKey("retry"))
                 {
                     // Other replica so that the retry interceptor clears the connection
-                    // We have to use ServiceNotFoundException because we use ice.
-                    throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
+                    // We have to use DispatchException(ServiceNotFound) because we use ice.
+                    throw new DispatchException(DispatchErrorCode.ServiceNotFound, RetryPolicy.OtherReplica);
                 }
                 return default;
             }
