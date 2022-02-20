@@ -104,95 +104,62 @@ namespace IceRpc.Slice
     public readonly partial record struct RemoteExceptionOrigin
     {
         /// <summary>The unknown origin.</summary>
-        public static readonly RemoteExceptionOrigin Unknown = new("/", "", "");
+        public static readonly RemoteExceptionOrigin Unknown = new("", "", "");
     }
 
-    /*
-    public partial class ServiceNotFoundException
+    public partial class DispatchException
     {
         /// <inheritdoc/>
         protected override string? DefaultMessage
         {
             get
             {
-                if (Origin != RemoteExceptionOrigin.Unknown)
+                switch (ErrorCode)
                 {
-                    var sb = new StringBuilder("could not find service '");
-                    sb.Append(Origin.Path);
-                    sb.Append("' while attempting to dispatch operation '");
-                    sb.Append(Origin.Operation);
-                    sb.Append('\'');
-                    return sb.ToString();
-                }
-                else
-                {
-                    return null;
-                }
-            }
-        }
-    }
+                    case DispatchErrorCode.ServiceNotFound:
+                        if (Origin != RemoteExceptionOrigin.Unknown)
+                        {
+                            var sb = new StringBuilder("could not find service '");
+                            sb.Append(Origin.Path);
+                            sb.Append("' while attempting to dispatch operation '");
+                            sb.Append(Origin.Operation);
+                            sb.Append('\'');
+                            return sb.ToString();
+                        }
+                        break;
 
-    public partial class OperationNotFoundException
-    {
-        /// <inheritdoc/>
-        protected override string? DefaultMessage
-        {
-            get
-            {
-                if (Origin != RemoteExceptionOrigin.Unknown)
-                {
-                    var sb = new StringBuilder("could not find operation '");
-                    sb.Append(Origin.Operation);
-                    sb.Append("' for service '");
-                    sb.Append(Origin.Path);
-                    sb.Append('\'');
-                    return sb.ToString();
-                }
-                else
-                {
-                    return null;
-                }
-            }
-        }
-    }
+                    case DispatchErrorCode.OperationNotFound:
+                        if (Origin != RemoteExceptionOrigin.Unknown)
+                        {
+                            var sb = new StringBuilder("could not find operation '");
+                            sb.Append(Origin.Operation);
+                            sb.Append("' for service '");
+                            sb.Append(Origin.Path);
+                            sb.Append('\'');
+                            return sb.ToString();
+                        }
+                        break;
 
-    public partial class UnhandledException : RemoteException
-    {
-        /// <summary>Constructs a new exception where the cause is a remote exception. The remote exception features
-        /// are inherited and set on this UnhandledException.</summary>
-        /// <param name="innerException">The remote exception that is the cause of the current exception.</param>
-        public UnhandledException(RemoteException innerException)
-            : base(message: null, innerException)
-        {
-        }
-
-        /// <summary>Constructs a new exception.</summary>
-        /// <param name="innerException">The exception that is the cause of the current exception.</param>
-        public UnhandledException(Exception innerException)
-            : base(message: null, innerException)
-        {
-        }
-
-        /// <inheritdoc/>
-        protected override string? DefaultMessage
-        {
-            get
-            {
-                string message = "unhandled exception";
-                if (Origin != RemoteExceptionOrigin.Unknown)
-                {
-                    message += $" while dispatching '{Origin.Operation}' on service '{Origin.Path}'";
-                }
+                    case DispatchErrorCode.UnhandledException:
+                        string message = "unhandled exception";
+                        if (Origin != RemoteExceptionOrigin.Unknown)
+                        {
+                            message += $" while dispatching '{Origin.Operation}' on service '{Origin.Path}'";
+                        }
 #if DEBUG
-                message += $":\n{InnerException}\n---";
+                        message += $":\n{InnerException}\n---";
 #else
-                // The stack trace of the inner exception can include sensitive information we don't want to send
-                // "over the wire" in non-debug builds.
-                message += $":\n{InnerException!.Message}";
+                        // The stack trace of the inner exception can include sensitive information we don't want to
+                        // send "over the wire" in non-debug builds.
+                        message += $":\n{InnerException!.Message}";
 #endif
-                return message;
+                        return message;
+
+                    default:
+                        break;
+                }
+                return null;
             }
         }
     }
-    */
 }
