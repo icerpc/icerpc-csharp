@@ -54,7 +54,7 @@ namespace IceRpc.Slice
 #else
                     // The stack trace of the inner exception can include sensitive information we don't want to
                     // send "over the wire" in non-debug builds.
-                    message += $":\n{InnerException!.Message}";
+                    message += $":\n{InnerException.Message}";
 #endif
                 }
                 return message;
