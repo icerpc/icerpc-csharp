@@ -626,7 +626,8 @@ namespace IceRpc
                     {
                         remoteException = new DispatchException(
                             message: null,
-                            DispatchErrorCode.UnhandledException,
+                            exception is InvalidDataException ?
+                                DispatchErrorCode.InvalidData : DispatchErrorCode.UnhandledException,
                             exception);
                     }
 

@@ -268,7 +268,7 @@ namespace IceRpc.Tests.SliceInternal
             {
                 DispatchException dispatchException = Assert.ThrowsAsync<DispatchException>(
                     async () => await prx.SendClassGraphAsync(CreateClassGraph(graphSize)));
-                Assert.That(dispatchException.ErrorCode, Is.EqualTo(DispatchErrorCode.UnhandledException));
+                Assert.That(dispatchException.ErrorCode, Is.EqualTo(DispatchErrorCode.InvalidData));
             }
             else
             {

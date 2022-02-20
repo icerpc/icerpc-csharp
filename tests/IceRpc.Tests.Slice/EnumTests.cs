@@ -105,14 +105,14 @@ namespace IceRpc.Tests.Slice
             Assert.ThrowsAsync<InvalidDataException>(async () => await prx.OpInvalidMyEnumAsync());
             Assert.ThrowsAsync<InvalidDataException>(async () => await prx.OpInvalidMyFixedLengthEnumAsync());
 
-            // Sending an invalid value for a checked enum results in a DispatchException(UnhandledException)
+            // Sending an invalid value for a checked enum results in a DispatchException(InvalidData)
             var dispatchException = Assert.ThrowsAsync<DispatchException>(
                 () => prx.OpMyEnumAsync((MyEnum)3, MyEnum.enum1));
-            Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.UnhandledException));
+            Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.InvalidData));
 
             dispatchException = Assert.ThrowsAsync<DispatchException>(
                 () => prx.OpMyFixedLengthEnumAsync(0, MyFixedLengthEnum.senum1));
-            Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.UnhandledException));
+            Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.InvalidData));
 
             static async Task TestAsync<T>(Func<T, T, Task<(T, T)>> invoker, T p1, T p2)
             {

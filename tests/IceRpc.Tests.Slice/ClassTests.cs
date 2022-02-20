@@ -229,7 +229,7 @@ namespace IceRpc.Tests.Slice
                 }
                 Assert.Fail();
             }
-            catch (DispatchException ex) when (ex.ErrorCode == DispatchErrorCode.UnhandledException)
+            catch (DispatchException ex) when (ex.ErrorCode == DispatchErrorCode.InvalidData)
             {
                 // Expected decode exception from the server (maximum depth reached)
             }

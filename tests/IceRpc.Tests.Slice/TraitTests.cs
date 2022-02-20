@@ -82,7 +82,8 @@ namespace IceRpc.Tests.Slice
                     SliceDecoder.GetActivator(typeof(TraitTests).Assembly),
                     hasStream: false,
                     cancel: default).AsTask());
-            Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.UnhandledException));
+
+            Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.InvalidData));
 
             // Constructs a payload that creates a stack overflow during decoding. We're targeting opNestedTraitStruct.
             PipeReader CreatePayload()
