@@ -2,7 +2,6 @@
 
 using IceRpc.Configure;
 using IceRpc.Internal;
-using System.Buffers;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
