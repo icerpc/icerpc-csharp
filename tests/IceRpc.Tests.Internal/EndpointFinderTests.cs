@@ -89,8 +89,8 @@ namespace IceRpc.Tests.Internal
 
             IEndpointFinder endpointFinder = new CoalesceEndpointFinderDecorator(blockingEndpointFinder);
 
-            var locA = new Location{ IsAdapterId = true, Value = "a" };
-            var locB = new Location{ IsAdapterId = true, Value = "b" };
+            var locA = new Location { IsAdapterId = true, Value = "a" };
+            var locB = new Location { IsAdapterId = true, Value = "b" };
 
             Task<Proxy?> t1 = endpointFinder.FindAsync(locA, cancel: default);
             Task<Proxy?> t2 = endpointFinder.FindAsync(locA, cancel: default);

@@ -222,13 +222,6 @@ impl FunctionBuilder {
         self
     }
 
-    pub fn add_parameters(&mut self, parameters: &[String]) -> &mut Self {
-        for p in parameters {
-            self.parameters.push(p.clone());
-        }
-        self
-    }
-
     pub fn add_base_parameter(&mut self, argument: &str) -> &mut Self {
         self.base_arguments.push(argument.to_owned());
         self
