@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-[cs:namespace("IceRpc.Slice")]
-module Slice;
+module IceRpc::Slice;
 
 /// With encoding 1.1, each tagged parameter has a specific tag format. This tag format describes how the data is
 /// encoded and how it can be skipped by the decoding code if the tagged parameter is present in the buffer but is
