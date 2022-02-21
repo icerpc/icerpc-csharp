@@ -12,7 +12,7 @@ use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
 use slice::code_gen_util::TypeContext;
-use slice::grammar::Exception;
+use slice::grammar::{Exception, Member};
 use slice::visitor::Visitor;
 
 pub struct ExceptionVisitor<'a> {
@@ -91,7 +91,9 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
                 .set_body({
                     let mut code = CodeBlock::new();
                     if !has_base && !members.is_empty() && !exception_def.uses_classes() {
-                        writeln!(code, "\
+                        writeln!(
+                            code,
+                            "\
 if (decoder.Encoding == IceRpc.Encoding.Slice11)
 {{
     {initialize_non_nullable_fields}
@@ -101,11 +103,18 @@ else
     {decode_data_members}
 }}
                         ",
-                        initialize_non_nullable_fields =
-                            initialize_non_nullable_fields(&members, FieldType::Exception).indent(),
-                        decode_data_members = decode_data_members(&members, namespace,  FieldType::Exception).indent())
+                            initialize_non_nullable_fields =
+                                initialize_non_nullable_fields(&members, FieldType::Exception)
+                                    .indent(),
+                            decode_data_members =
+                                decode_data_members(&members, namespace, FieldType::Exception)
+                                    .indent()
+                        )
                     } else {
-                        code.writeln(&initialize_non_nullable_fields(&members, FieldType::Exception))
+                        code.writeln(&initialize_non_nullable_fields(
+                            &members,
+                            FieldType::Exception,
+                        ))
                     }
                     code
                 })
@@ -220,17 +229,6 @@ fn one_shot_constructor(
     let inner_exception_parameter_name = escape_parameter_name(&all_data_members, "innerException");
     let retry_policy_parameter_name = escape_parameter_name(&all_data_members, "retryPolicy");
 
-    let all_parameters = all_data_members
-        .iter()
-        .map(|m| {
-            let member_type = m
-                .data_type
-                .to_type_string(namespace, TypeContext::DataMember, false);
-            let member_name = m.parameter_name();
-            format!("{} {}", member_type, member_name)
-        })
-        .collect::<Vec<_>>();
-
     let base_parameters = if let Some(base) = exception_def.base_exception() {
         base.all_members()
             .iter()
@@ -261,7 +259,16 @@ fn one_shot_constructor(
         ctor_builder.add_base_parameter(&message_parameter_name);
     }
 
-    ctor_builder.add_parameters(&all_parameters);
+    for member in &all_data_members {
+        ctor_builder.add_parameter(
+            &member
+                .data_type()
+                .to_type_string(&namespace, TypeContext::DataMember, false),
+            member.parameter_name().as_str(),
+            None,
+            Some(&doc_comment_message(*member)),
+        );
+    }
     ctor_builder.add_base_parameters(&base_parameters);
 
     if add_message_and_exception_parameters {
