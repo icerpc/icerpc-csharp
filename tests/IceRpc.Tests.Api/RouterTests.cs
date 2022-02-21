@@ -73,7 +73,7 @@ namespace IceRpc.Tests.Api
                 async (current, cancel) =>
                 {
                     value = 1;
-                    Assert.AreEqual(path, current.Path);
+                    Assert.That(current.Path, Is.EqualTo(path));
                     return await _service.DispatchAsync(current, cancel);
                 }));
 
@@ -81,7 +81,7 @@ namespace IceRpc.Tests.Api
 
             var greeter = GreeterPrx.FromConnection(_connection, path);
             await greeter.IcePingAsync();
-            Assert.AreEqual(1, value);
+            Assert.That(value, Is.EqualTo(1));
         }
 
         [TestCase("/foo", "/foo/")]
@@ -106,7 +106,7 @@ namespace IceRpc.Tests.Api
                 async (current, cancel) =>
                 {
                     called = true;
-                    Assert.AreEqual(path, current.Path);
+                    Assert.That(current.Path, Is.EqualTo(path));
                     Assert.That(current.Path, Does.StartWith(prefix.TrimEnd('/')));
                     return await _service.DispatchAsync(current, cancel);
                 }));
@@ -139,7 +139,7 @@ namespace IceRpc.Tests.Api
                 (request, cancel) =>
                 {
                     mainRouterMiddlewareCalled = true;
-                    Assert.AreEqual(path, request.Path);
+                    Assert.That(request.Path, Is.EqualTo(path));
                     return next.DispatchAsync(request, cancel);
                 }));
 
@@ -150,8 +150,8 @@ namespace IceRpc.Tests.Api
                         (request, cancel) =>
                         {
                             subRouterMiddlewareCalled = true;
-                            Assert.AreEqual(path, request.Path);
-                            Assert.AreEqual($"{r.AbsolutePrefix}{subpath}", request.Path);
+                            Assert.That(request.Path, Is.EqualTo(path));
+                            Assert.That(request.Path, Is.EqualTo($"{r.AbsolutePrefix}{subpath}"));
                             return _service.DispatchAsync(request, cancel);
                         }));
                 });
@@ -176,21 +176,21 @@ namespace IceRpc.Tests.Api
                 (request, cancel) =>
                 {
                     mainRouterMiddlewareCalled = true;
-                    Assert.AreEqual(path, request.Path);
+                    Assert.That(request.Path, Is.EqualTo(path));
                     return next.DispatchAsync(request, cancel);
                 }));
 
             _router.Route(prefix, r =>
                 {
-                    Assert.AreEqual(prefix.TrimEnd('/'), r.AbsolutePrefix);
+                    Assert.That(r.AbsolutePrefix, Is.EqualTo(prefix.TrimEnd('/')));
                     r.Route(subprefix, r =>
                     {
                         r.Map(subpath, new InlineDispatcher(
                             async (current, cancel) =>
                             {
                                 nestedRouterMiddlewareCalled = true;
-                                Assert.AreEqual(path, current.Path);
-                                Assert.AreEqual($"{r.AbsolutePrefix}{subpath}", current.Path);
+                                Assert.That(current.Path, Is.EqualTo(path));
+                                Assert.That(current.Path, Is.EqualTo($"{r.AbsolutePrefix}{subpath}"));
                                 return await _service.DispatchAsync(current, cancel);
                             }));
                     });

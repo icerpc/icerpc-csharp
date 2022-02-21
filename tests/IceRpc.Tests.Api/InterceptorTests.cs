@@ -82,11 +82,11 @@ namespace IceRpc.Tests.Api
 
             await prx.IcePingAsync();
 
-            Assert.AreEqual("ProxyInterceptors -> 0", interceptorCalls[0]);
-            Assert.AreEqual("ProxyInterceptors -> 1", interceptorCalls[1]);
-            Assert.AreEqual("ProxyInterceptors <- 1", interceptorCalls[2]);
-            Assert.AreEqual("ProxyInterceptors <- 0", interceptorCalls[3]);
-            Assert.AreEqual(4, interceptorCalls.Count);
+            Assert.That(interceptorCalls[0], Is.EqualTo("ProxyInterceptors -> 0"));
+            Assert.That(interceptorCalls[1], Is.EqualTo("ProxyInterceptors -> 1"));
+            Assert.That(interceptorCalls[2], Is.EqualTo("ProxyInterceptors <- 1"));
+            Assert.That(interceptorCalls[3], Is.EqualTo("ProxyInterceptors <- 0"));
+            Assert.That(interceptorCalls.Count, Is.EqualTo(4));
         }
 
         /// <summary>Ensure that invocation interceptors can bypass the remote call and directly return a result.
@@ -118,8 +118,8 @@ namespace IceRpc.Tests.Api
             int r1 = await prx.OpIntAsync(p1);
             int r2 = await prx.OpIntAsync(p2);
 
-            Assert.AreEqual(r1, p1);
-            Assert.AreEqual(r2, p1);
+            Assert.That(p1, Is.EqualTo(r1));
+            Assert.That(p1, Is.EqualTo(r2));
             Assert.That(response, Is.Not.Null);
         }
 
@@ -140,7 +140,7 @@ namespace IceRpc.Tests.Api
                 {
                     Features = new FeatureCollection().WithContext(new Dictionary<string, string> { ["foo"] = "baz" })
                 });
-            CollectionAssert.AreEqual(ctx, new SortedDictionary<string, string> { ["foo"] = "bar" });
+            Assert.That(new SortedDictionary<string, string> { ["foo"] = "bar" }, Is.EqualTo(ctx));
         }
 
         public class InterceptorTest : Service, IInterceptorTest
