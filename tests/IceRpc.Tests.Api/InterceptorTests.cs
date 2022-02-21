@@ -33,10 +33,10 @@ namespace IceRpc.Tests.Api
         public void Interceptor_Throws_ArgumentException()
         {
             var pipeline = new Pipeline();
-            var prx = new InterceptorTestPrx(_prx.Proxy with { Invoker = pipeline });
+            var prx = new ServicePrx(_prx.Proxy with { Invoker = pipeline });
 
             pipeline.Use(next => new InlineInvoker((request, cancel) => throw new ArgumentException("message")));
-            Assert.ThrowsAsync<ArgumentException>(async () => await new ServicePrx(prx.Proxy).IcePingAsync());
+            Assert.ThrowsAsync<ArgumentException>(async () => await prx.IcePingAsync());
         }
 
         /// <summary>Ensure that invocation timeout is triggered if the interceptor takes too much time.</summary>
