@@ -631,14 +631,6 @@ namespace IceRpc
                             exception);
                     }
 
-                    if (remoteException.Origin == RemoteExceptionOrigin.Unknown)
-                    {
-                        remoteException.Origin = new RemoteExceptionOrigin(
-                            request.Path,
-                            request.Fragment,
-                            request.Operation);
-                    }
-
                     SliceEncoding sliceEncoding = request.Protocol.SliceEncoding!;
 
                     response = new OutgoingResponse(request)

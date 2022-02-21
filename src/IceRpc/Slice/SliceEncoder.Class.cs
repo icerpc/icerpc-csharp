@@ -32,17 +32,14 @@ namespace IceRpc.Slice
                     case DispatchErrorCode.OperationNotFound:
                         this.EncodeReplyStatus(errorCode == DispatchErrorCode.ServiceNotFound ?
                             ReplyStatus.ObjectNotExistException : ReplyStatus.OperationNotExistException);
-                        var requestFailed = new RequestFailedExceptionData(
-                            v.Origin.Path,
-                            v.Origin.Fragment,
-                            v.Origin.Operation);
 
+                        // TODO: pass context to dispatch exception Encode
+                        var requestFailed = new RequestFailedExceptionData(path: "/", "", "");
                         requestFailed.Encode(ref this);
                         break;
 
                     default:
                         this.EncodeReplyStatus(ReplyStatus.UnknownException);
-
                         // We encode the error code in the message.
                         EncodeString($"[{((byte)errorCode).ToString(CultureInfo.InvariantCulture)}] {v.Message}");
                         break;

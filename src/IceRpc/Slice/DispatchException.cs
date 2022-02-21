@@ -12,41 +12,11 @@ namespace IceRpc.Slice
         {
             get
             {
-                switch (ErrorCode)
-                {
-                    case DispatchErrorCode.ServiceNotFound:
-                        if (Origin != RemoteExceptionOrigin.Unknown)
-                        {
-                            var sb = new StringBuilder("could not find service '");
-                            sb.Append(Origin.Path);
-                            sb.Append("' while attempting to dispatch operation '");
-                            sb.Append(Origin.Operation);
-                            sb.Append('\'');
-                            return sb.ToString();
-                        }
-                        break;
-
-                    case DispatchErrorCode.OperationNotFound:
-                        if (Origin != RemoteExceptionOrigin.Unknown)
-                        {
-                            var sb = new StringBuilder("could not find operation '");
-                            sb.Append(Origin.Operation);
-                            sb.Append("' for service '");
-                            sb.Append(Origin.Path);
-                            sb.Append('\'');
-                            return sb.ToString();
-                        }
-                        break;
-
-                    default:
-                        break;
-                }
-
                 string message = $"{nameof(DispatchException)} {{ ErrorCode = {ErrorCode} }}";
 
-                if (Origin != RemoteExceptionOrigin.Unknown)
+                if (Origin is IncomingResponse response)
                 {
-                    message += $" while dispatching '{Origin.Operation}' on service '{Origin.Path}'";
+                    message += $" thrown by operation '{response.Request.Operation}' on '{response.Request.Proxy}'";
                 }
                 if (InnerException != null)
                 {
