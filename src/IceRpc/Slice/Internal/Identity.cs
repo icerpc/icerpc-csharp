@@ -14,11 +14,6 @@ namespace IceRpc.Slice.Internal
         /// <returns>The corresponding identity. Its name can be empty.</returns>
         internal static Identity Parse(string path)
         {
-            if (!path.StartsWith('/'))
-            {
-                throw new FormatException("path must start with a /");
-            }
-
             string workingPath = path[1..]; // removes leading /.
 
             int firstSlash = workingPath.IndexOf('/', StringComparison.Ordinal);
