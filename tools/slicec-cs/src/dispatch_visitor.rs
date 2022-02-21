@@ -238,7 +238,7 @@ var encoder_ = new SliceEncoder(pipe_.Writer, {encoding}, {class_format});
 Span<byte> sizePlaceholder_ = encoder_.GetPlaceholderSpan(4);
 int startPos_ = encoder_.EncodedByteCount;
 {encode_returns}
-{encoding}.EncodeFixedLengthSize(encoder_.EncodedByteCount - startPos_, sizePlaceholder_);
+SliceEncoder.EncodeVarULong((ulong)(encoder_.EncodedByteCount - startPos_), sizePlaceholder_);
 
 pipe_.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
 return pipe_.Reader;",
@@ -360,7 +360,7 @@ fn operation_dispatch(operation: &Operation) -> CodeBlock {
     format!(
         r#"
 [IceRpc.Slice.Operation("{name}")]
-protected static async global::System.Threading.Tasks.ValueTask<(SliceEncoding, global::System.IO.Pipelines.PipeReader, global::System.IO.Pipelines.PipeReader?)> {internal_name}(
+protected static async global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> {internal_name}(
     {interface_name} target,
     IceRpc.IncomingRequest request,
     global::System.Threading.CancellationToken cancel)
@@ -389,9 +389,12 @@ fn operation_dispatch_body(operation: &Operation) -> CodeBlock {
 
     if operation.compress_return() {
         code.writeln(
-            "request.Features = request.Features.With(IceRpc.Features.CompressPayload.Yes);"
+            "request.Features = request.Features.With(IceRpc.Features.CompressPayload.Yes);",
         );
     }
+
+    // temporary way to "compute" the Slice encoding
+    let encoding = "request.GetSliceEncoding()";
 
     match parameters.as_slice() {
         [] => {
@@ -444,16 +447,9 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
             args = args.join(", ")
         );
 
-        let encoding = if operation.returns_classes() {
-            "IceRpc.Encoding.Slice11"
-        } else {
-            "request.GetSliceEncoding()"
-        };
-
         writeln!(
             code,
-            "return ({encoding}, returnValue.Payload, null);",
-            encoding = encoding
+            "return new IceRpc.OutgoingResponse(request) {{ PayloadSource = returnValue.Payload }};"
         );
     } else {
         let mut args = match parameters.as_slice() {
@@ -478,17 +474,9 @@ await request.CheckEmptyArgsAsync(hasStream: false, cancel).ConfigureAwait(false
             args = args.join(", ")
         );
 
-        let encoding = if operation.returns_classes() {
-            "IceRpc.Encoding.Slice11"
-        } else {
-            code.writeln("var payloadEncoding = request.GetSliceEncoding();");
-            "payloadEncoding"
-        };
-
         writeln!(
             code,
-            "return ({encoding}, {payload_source}, {payload_source_stream});",
-            encoding = encoding,
+            "return new IceRpc.OutgoingResponse(request) {{ PayloadSource = {payload_source}, PayloadSourceStream = {payload_source_stream} }};",
             payload_source = dispatch_return_payload(operation, encoding),
             payload_source_stream = payload_source_stream(operation, encoding)
         );

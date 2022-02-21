@@ -5,5 +5,5 @@ module IceRpc::Tests::SliceInternal;
 compact struct MyOptional
 {
     str: string,
-    service: IceRpc::Slice::Service?,
+    service: Slice::Service?,
 }

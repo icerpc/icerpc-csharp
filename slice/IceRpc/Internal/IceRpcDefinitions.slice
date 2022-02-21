@@ -53,7 +53,6 @@ compact struct IceRpcRequestHeader
 compact struct IceRpcResponseHeader
 {
     resultType: ResultType,
-    payloadEncoding: string, // empty equivalent to "2.0"
     // fields: Fields, (encoded/decoded manually)
 }
 

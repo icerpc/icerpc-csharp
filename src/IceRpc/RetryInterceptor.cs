@@ -180,7 +180,7 @@ namespace IceRpc
                 while (tryAgain);
 
                 Debug.Assert(response != null || exception != null);
-                Debug.Assert(response == null || response.ResultType == ResultType.Failure);
+                Debug.Assert(response == null || response.ResultType != ResultType.Success);
                 return response ?? throw ExceptionUtil.Throw(exception!);
             }
             finally

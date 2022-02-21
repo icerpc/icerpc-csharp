@@ -22,6 +22,9 @@ namespace IceRpc
         /// <summary>The path of the target service.</summary>
         public string Path { get; init; }
 
+        /// <summary>Returns the encoding of the payload of this request.</summary>
+        public Encoding PayloadEncoding { get; }
+
         /// <summary>Gets the cancellation dispatch source.</summary>
         internal CancellationTokenSource? CancelDispatchSource { get; set; }
 
@@ -45,12 +48,13 @@ namespace IceRpc
             string operation,
             PipeReader payload,
             Encoding payloadEncoding,
-            PipeWriter responseWriter) :
-            base(protocol, payload, payloadEncoding)
+            PipeWriter responseWriter)
+            : base(protocol, payload)
         {
             Path = path;
             Fragment = fragment;
             Operation = operation;
+            PayloadEncoding = payloadEncoding;
             ResponseWriter = responseWriter;
         }
     }

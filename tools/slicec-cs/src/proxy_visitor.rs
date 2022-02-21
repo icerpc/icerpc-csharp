@@ -37,8 +37,8 @@ impl<'a> Visitor for ProxyVisitor<'_> {
 
         let add_service_prx = !(all_bases
             .iter()
-            .any(|b| b.module_scoped_identifier() == "IceRpc::Slice::Service")
-            || interface_def.module_scoped_identifier() == "IceRpc::Slice::Service");
+            .any(|b| b.module_scoped_identifier() == "Slice::Service")
+            || interface_def.module_scoped_identifier() == "Slice::Service");
 
         if add_service_prx {
             prx_impl_bases.push("IceRpc.Slice.IServicePrx".to_owned());
@@ -491,7 +491,7 @@ var encoder_ = new SliceEncoder(pipe_.Writer, {encoding}, {class_format});
 Span<byte> sizePlaceholder_ = encoder_.GetPlaceholderSpan(4);
 int startPos_ = encoder_.EncodedByteCount;
 {encode_args}
-{encoding}.EncodeFixedLengthSize(encoder_.EncodedByteCount - startPos_, sizePlaceholder_);
+SliceEncoder.EncodeVarULong((ulong)(encoder_.EncodedByteCount - startPos_), sizePlaceholder_);
 
 pipe_.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
 return pipe_.Reader;",

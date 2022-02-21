@@ -14,7 +14,7 @@ interface B : A
     opB(p: B) -> B;
 }
 
-interface C : A, IceRpc::Slice::Service
+interface C : A, Slice::Service
 {
     opC(p: C) -> C;
 }

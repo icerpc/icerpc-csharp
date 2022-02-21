@@ -30,15 +30,16 @@ namespace IceRpc.Tests.Slice
         {
             var prx = new NamespaceMDOperationsPrx(_prx with { });
 
+            prx.Proxy.Encoding = Encoding.Slice11;
             C1 c1 = await prx.GetWithNamespaceC2AsC1Async();
             Assert.That(c1, Is.Not.Null);
             Assert.That(c1, Is.InstanceOf<C2>());
             Assert.DoesNotThrowAsync(async () => await prx.GetWithNamespaceC2AsC2Async());
+            prx.Proxy.Encoding = Encoding.Slice20;
             Assert.DoesNotThrowAsync(async () => await prx.GetWithNamespaceN1N2S1Async());
             Assert.DoesNotThrowAsync(async () => await prx.GetNestedM0M2M3S2Async());
             Assert.ThrowsAsync<E1>(async () => await prx.ThrowWithNamespaceE1Async());
 
-            Assert.AreEqual(Encoding.Slice20, prx.Proxy.Encoding);
             Assert.ThrowsAsync<E1>(async () => await prx.ThrowWithNamespaceE2Async());
 
             prx.Proxy.Encoding = Encoding.Slice11;

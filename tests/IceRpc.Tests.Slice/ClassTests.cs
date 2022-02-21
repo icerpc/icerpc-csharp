@@ -38,10 +38,12 @@ namespace IceRpc.Tests.Slice
                                     var pipe = new System.IO.Pipelines.Pipe(); // TODO: pipe options
 
                                     var encoder = new SliceEncoder(pipe.Writer, Encoding.Slice11, default);
-                                    Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
+                                    Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(2);
                                     int startPos = encoder.EncodedByteCount;
                                     encoder.EncodeClass(new MyClassAlsoEmpty());
-                                    Encoding.Slice11.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+                                    SliceEncoder.EncodeVarULong(
+                                        (ulong)(encoder.EncodedByteCount - startPos),
+                                        sizePlaceholder);
 
                                     pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
                                     return pipe.Reader;

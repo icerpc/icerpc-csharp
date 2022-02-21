@@ -78,28 +78,28 @@ namespace IceRpc.Tests.Slice
             CollectionAssert.AreEqual(
                 new string[]
                 {
-                    "::IceRpc::Slice::Service",
-                    "::IceRpc::Tests::Slice::InterfaceInheritance::A"
+                    "::IceRpc::Tests::Slice::InterfaceInheritance::A",
+                    "::Slice::Service"
                 },
                 await _aPrx.IceIdsAsync());
 
             CollectionAssert.AreEqual(
                 new string[]
                 {
-                    "::IceRpc::Slice::Service",
                     "::IceRpc::Tests::Slice::InterfaceInheritance::A",
                     "::IceRpc::Tests::Slice::InterfaceInheritance::B",
+                    "::Slice::Service",
                 },
                 await _bPrx.IceIdsAsync());
 
             CollectionAssert.AreEqual(
                 new string[]
                 {
-                    "::IceRpc::Slice::Service",
                     "::IceRpc::Tests::Slice::InterfaceInheritance::A",
                     "::IceRpc::Tests::Slice::InterfaceInheritance::B",
                     "::IceRpc::Tests::Slice::InterfaceInheritance::C",
                     "::IceRpc::Tests::Slice::InterfaceInheritance::D",
+                    "::Slice::Service",
                 },
                 await _dPrx.IceIdsAsync());
         }

@@ -142,6 +142,7 @@ namespace IceRpc.Tests.ClientServer
 
         public sealed class Forwarder : IDispatcher
         {
+            private static readonly IActivator _activator = SliceDecoder.GetActivator(typeof(Forwarder).Assembly);
             private readonly Proxy _target;
 
             async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(
@@ -175,12 +176,31 @@ namespace IceRpc.Tests.ClientServer
                 IncomingResponse incomingResponse = await _target.Invoker!.InvokeAsync(outgoingRequest, cancel);
 
                 // Then create an outgoing response from the incoming response
+                // When ResultType == Failure and the protocols are different, we need to transcode the exception
+                // (typically a dispatch exception). Fortunately, we can simply throw it.
+
+                if (incomingRequest.Protocol != incomingResponse.Protocol &&
+                    incomingResponse.ResultType == ResultType.Failure)
+                {
+                    // TODO: need better method to decode and throw the exception
+                    try
+                    {
+                        await incomingResponse.CheckVoidReturnValueAsync(
+                            _activator,
+                            hasStream: false,
+                            cancel).ConfigureAwait(false);
+                    }
+                    catch (RemoteException ex)
+                    {
+                        ex.ConvertToUnhandled = false;
+                        throw;
+                    }
+                }
 
                 return new OutgoingResponse(incomingRequest)
                 {
                     // Don't forward RetryPolicy
                     Fields = incomingResponse.Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
-                    PayloadEncoding = incomingResponse.PayloadEncoding,
                     PayloadSource = incomingResponse.Payload,
                     ResultType = incomingResponse.ResultType
                 };

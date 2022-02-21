@@ -297,11 +297,14 @@ namespace IceRpc.Slice
 
         /// <summary>Decodes a remote exception.</summary>
         /// <returns>The remote exception.</returns>
-        public RemoteException DecodeException()
+        // TODO: this method is temporary. We should decode 2.0-encoded exceptions like structs/traits. For 1.1-encoded
+        // exceptions, we probably need 2 separate methods, one for system exceptions aka dispatch exceptions
+        // (resultType = Failure) and one for user exceptions (resultType = ServiceFailure).
+        public RemoteException DecodeException(ResultType resultType)
         {
             if (Encoding == IceRpc.Encoding.Slice11)
             {
-                return DecodeExceptionClass();
+                return DecodeExceptionClass(resultType);
             }
             else
             {
