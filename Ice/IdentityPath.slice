@@ -3,4 +3,4 @@
 [cs:namespace(IceRpc)]
 module Ice;
 
-typealias IdentityPath = Slice::IdentityPath;
+typealias IdentityPath = IceRpc::Slice::IdentityPath;
