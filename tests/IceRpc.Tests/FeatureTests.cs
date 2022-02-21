@@ -21,23 +21,20 @@ public class FeatureCollectionTests
         var features = new FeatureCollection();
 
         Assert.That(features.Get<string>(), Is.Null);
-
         features.Set("foo");
-        string? s = features.Get<string>();
-        Assert.That(s, Is.Not.Null);
-        Assert.AreEqual("foo", s!);
+        Assert.That(features.Get<string>(), Is.EqualTo("foo"));
 
         // Test defaults
         var features2 = new FeatureCollection(features);
 
-        Assert.AreEqual("foo", features2.Get<string>());
+        Assert.That(features2.Get<string>(), Is.EqualTo("foo"));
         features2.Set("bar");
-        Assert.AreEqual("foo", features.Get<string>());
-        Assert.AreEqual("bar", features2.Get<string>());
+        Assert.That(features.Get<string>(), Is.EqualTo("foo"));
+        Assert.That(features2.Get<string>(), Is.EqualTo("bar"));
 
         features2.Set<string>(null);
-        Assert.AreEqual("foo", features.Get<string>());
-        Assert.AreEqual("foo", features2.Get<string>());
+        Assert.That(features.Get<string>(), Is.EqualTo("foo"));
+        Assert.That(features2.Get<string>(), Is.EqualTo("foo"));
     }
 
     [Test]
@@ -48,6 +45,6 @@ public class FeatureCollectionTests
         Assert.That(features[typeof(int)], Is.Null);
 
         features[typeof(int)] = 42;
-        Assert.AreEqual(42, (int)features[typeof(int)]!);
+        Assert.That((int)features[typeof(int)]!, Is.EqualTo(42));
     }
 }
