@@ -187,7 +187,7 @@ namespace IceRpc.Tests.ClientServer
         private class Greeter3 : Service, IGreeter
         {
             public ValueTask SayHelloAsync(string message, Dispatch dispatch, CancellationToken cancel) =>
-                throw new DispatchException("failed");
+                throw new DispatchException("failed", DispatchErrorCode.InvalidData);
         }
 
         private class TestEventListener : EventListener

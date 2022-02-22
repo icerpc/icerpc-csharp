@@ -45,7 +45,7 @@ namespace IceRpc.Slice
             RemoteException remoteException,
             SliceEncoding requestPayloadEncoding)
         {
-            if (remoteException.IsIceSystemException() || remoteException.ConvertToUnhandled)
+            if (remoteException is DispatchException || remoteException.ConvertToUnhandled)
             {
                 throw new ArgumentException("invalid remote exception", nameof(remoteException));
             }

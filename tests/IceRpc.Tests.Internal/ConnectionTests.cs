@@ -454,10 +454,10 @@ namespace IceRpc.Tests.Internal
                 // Ensure the dispatch is canceled.
                 await dispatchSemaphore.WaitAsync();
 
-                // The invocation on the connection should throw a DispatchException (for now UnhandledException)
+                // The invocation on the connection should throw a DispatchException
                 if (protocol == "ice")
                 {
-                    UnhandledException? ex = Assert.ThrowsAsync<UnhandledException>(async () => await pingTask);
+                    DispatchException? ex = Assert.ThrowsAsync<DispatchException>(async () => await pingTask);
                     Assert.That(ex!.RetryPolicy, Is.EqualTo(RetryPolicy.NoRetry));
                 }
                 else

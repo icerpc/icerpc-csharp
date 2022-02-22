@@ -610,7 +610,7 @@ namespace IceRpc
                         // TODO: do we really need this protocol-dependent processing?
                         if (Protocol == Protocol.Ice)
                         {
-                            exception = new DispatchException("dispatch canceled by peer");
+                            exception = new DispatchException("dispatch canceled by peer", DispatchErrorCode.Canceled);
                         }
                         else
                         {
@@ -622,9 +622,13 @@ namespace IceRpc
                     // With the ice protocol, a ResultType = Failure exception must be an ice system exception.
                     if (exception is not RemoteException remoteException ||
                         remoteException.ConvertToUnhandled ||
-                        (Protocol == Protocol.Ice && !remoteException.IsIceSystemException()))
+                        (Protocol == Protocol.Ice && remoteException is not DispatchException))
                     {
-                        remoteException = new UnhandledException(exception);
+                        remoteException = new DispatchException(
+                            message: null,
+                            exception is InvalidDataException ?
+                                DispatchErrorCode.InvalidData : DispatchErrorCode.UnhandledException,
+                            exception);
                     }
 
                     if (remoteException.Origin == RemoteExceptionOrigin.Unknown)

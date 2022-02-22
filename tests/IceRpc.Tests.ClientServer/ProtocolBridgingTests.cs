@@ -97,12 +97,14 @@ namespace IceRpc.Tests.ClientServer
 
                 Assert.ThrowsAsync<ProtocolBridgingException>(async () => await prx.OpExceptionAsync());
 
-                ServiceNotFoundException? exception = Assert.ThrowsAsync<ServiceNotFoundException>(
-                    async () => await prx.OpServiceNotFoundExceptionAsync());
+                var dispatchException = Assert.ThrowsAsync<DispatchException>(
+                    () => prx.OpServiceNotFoundExceptionAsync());
+
+                Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
 
                 // Verifies the exception is correctly populated:
-                Assert.AreEqual("/target", exception!.Origin.Path);
-                Assert.AreEqual("opServiceNotFoundException", exception.Origin.Operation);
+                Assert.AreEqual("/target", dispatchException!.Origin.Path);
+                Assert.AreEqual("opServiceNotFoundException", dispatchException.Origin.Operation);
 
                 ProtocolBridgingTestPrx newProxy = await prx.OpNewProxyAsync();
                 return newProxy;
@@ -135,7 +137,7 @@ namespace IceRpc.Tests.ClientServer
             public ValueTask OpOnewayAsync(int x, Dispatch dispatch, CancellationToken cancel) => default;
 
             public ValueTask OpServiceNotFoundExceptionAsync(Dispatch dispatch, CancellationToken cancel) =>
-                throw new ServiceNotFoundException();
+                throw new DispatchException(DispatchErrorCode.ServiceNotFound);
 
             public ValueTask OpVoidAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }

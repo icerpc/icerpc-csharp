@@ -91,7 +91,8 @@ namespace IceRpc.Tests.Api
         {
             _router.Map(registered, _failDispatcher);
             var greeter = GreeterPrx.FromConnection(_connection, path);
-            Assert.ThrowsAsync<ServiceNotFoundException>(async () => await greeter.IcePingAsync());
+            var dispatchException = Assert.ThrowsAsync<DispatchException>(() => greeter.IcePingAsync());
+            Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
         }
 
         [TestCase("/foo", "/foo/bar")]
@@ -122,7 +123,8 @@ namespace IceRpc.Tests.Api
         {
             _router.Mount(registered, _failDispatcher);
             var greeter = GreeterPrx.FromConnection(_connection, path);
-            Assert.ThrowsAsync<ServiceNotFoundException>(async () => await greeter.IcePingAsync());
+            var dispatchException = Assert.ThrowsAsync<DispatchException>(() => greeter.IcePingAsync());
+            Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
         }
 
         [TestCase("/foo", "/foo/bar", "/bar")]
