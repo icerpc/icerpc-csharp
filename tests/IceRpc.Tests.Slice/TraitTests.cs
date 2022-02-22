@@ -66,8 +66,9 @@ namespace IceRpc.Tests.Slice
         [TestCase(3000)]
         public async Task Trait_DecodeStackOverflow(int depth)
         {
-            var request = new OutgoingRequest(_prx.Proxy, "opNestedTraitStruct")
+            var request = new OutgoingRequest(_prx.Proxy)
             {
+                Operation = "opNestedTraitStruct",
                 PayloadSource = CreatePayload(),
                 PayloadEncoding = Encoding.Slice20
             };

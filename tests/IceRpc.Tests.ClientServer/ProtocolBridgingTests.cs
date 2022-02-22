@@ -164,11 +164,12 @@ namespace IceRpc.Tests.ClientServer
                     features = features.WithContext(incomingRequest.Features.GetContext());
                 }
 
-                var outgoingRequest = new OutgoingRequest(_target, incomingRequest.Operation)
+                var outgoingRequest = new OutgoingRequest(_target)
                 {
                     Features = features,
                     Fields = incomingRequest.Fields, // mostly ignored by ice, with the exception of Idempotent
                     IsOneway = incomingRequest.IsOneway,
+                    Operation = incomingRequest.Operation,
                     PayloadEncoding = incomingRequest.PayloadEncoding,
                     PayloadSource = incomingRequest.Payload
                 };

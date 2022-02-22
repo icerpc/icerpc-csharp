@@ -476,8 +476,9 @@ namespace IceRpc.Tests.Slice
         public async Task OperationTag_DuplicateTag()
         {
             PipeReader requestPayload = CreatePayload();
-            var request = new OutgoingRequest(_prx.Proxy, "opVoid")
+            var request = new OutgoingRequest(_prx.Proxy)
             {
+                Operation = "opVoid",
                 PayloadEncoding = _prx.Proxy.Encoding,
                 PayloadSource = requestPayload
             };

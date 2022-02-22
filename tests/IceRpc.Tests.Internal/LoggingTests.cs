@@ -274,10 +274,11 @@ namespace IceRpc.Tests.Internal
             PipeReader.Create(new ReadOnlySequence<byte>(new byte[10])));
 
         private static OutgoingRequest CreateOutgoingRequest(Connection connection, bool twoway) =>
-            new(new Proxy(connection.Protocol) { Path = "/dummy" }, operation: "foo")
+            new(new Proxy(connection.Protocol) { Path = "/dummy" })
             {
                 Connection = connection,
                 IsOneway = !twoway,
+                Operation = "foo",
                 PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
                 PayloadEncoding = Encoding.Slice20
             };

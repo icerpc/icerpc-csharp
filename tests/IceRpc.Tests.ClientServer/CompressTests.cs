@@ -95,8 +95,9 @@ namespace IceRpc.Tests.ClientServer
                 .BuildServiceProvider();
 
             var proxy = Proxy.FromConnection(serviceProvider.GetRequiredService<Connection>(), "/");
-            var request = new OutgoingRequest(proxy, "compressRequestPayload")
+            var request = new OutgoingRequest(proxy)
             {
+                Operation = "compressRequestPayload",
                 PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(_mainPayload))
             };
             if (compressPayload)
@@ -176,7 +177,7 @@ namespace IceRpc.Tests.ClientServer
                 .BuildServiceProvider();
 
             var proxy = Proxy.FromConnection(serviceProvider.GetRequiredService<Connection>(), "/");
-            var request = new OutgoingRequest(proxy, "compressResponsePayload");
+            var request = new OutgoingRequest(proxy) { Operation = "compressResponsePayload" };
 
             bool called = false;
 

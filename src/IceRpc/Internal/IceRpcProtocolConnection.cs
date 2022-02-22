@@ -118,11 +118,6 @@ namespace IceRpc.Internal
                     {
                         features = features.WithContext(context);
                     }
-
-                    if (header.Operation.Length == 0)
-                    {
-                        throw new InvalidDataException("received request with empty operation name");
-                    }
                 }
                 catch (Exception ex)
                 {
