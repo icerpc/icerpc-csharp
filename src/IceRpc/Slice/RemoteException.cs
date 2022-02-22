@@ -3,13 +3,10 @@
 namespace IceRpc.Slice
 {
     /// <summary>Base class for exceptions defined in Slice.</summary>
-    [TypeId("::IceRpc::RemoteException")]
-    public class RemoteException : Exception
+    public abstract class RemoteException : Exception
     {
         /// <inheritdoc/>
         public override string Message => _hasCustomMessage || DefaultMessage == null ? base.Message : DefaultMessage;
-
-        private static readonly string _sliceTypeId = TypeExtensions.GetSliceTypeId(typeof(RemoteException))!;
 
         /// <summary>When true, if this exception is thrown from the implementation of an operation, Ice will convert
         /// it into an Ice.UnhandledException. When false, Ice marshals this remote exception as-is. true is the
@@ -32,13 +29,13 @@ namespace IceRpc.Slice
 
         /// <summary>Constructs a remote exception with the default system message.</summary>
         /// <param name="retryPolicy">The retry policy for the exception.</param>
-        public RemoteException(RetryPolicy? retryPolicy = null) => RetryPolicy = retryPolicy ?? RetryPolicy.NoRetry;
+        protected RemoteException(RetryPolicy? retryPolicy = null) => RetryPolicy = retryPolicy ?? RetryPolicy.NoRetry;
 
         /// <summary>Constructs a remote exception with the provided message and inner exception.</summary>
         /// <param name="message">Message that describes the exception.</param>
         /// <param name="retryPolicy">The retry policy for the exception.</param>
         /// <param name="innerException">The inner exception.</param>
-        public RemoteException(
+        protected RemoteException(
             string? message,
             Exception? innerException = null,
             RetryPolicy? retryPolicy = null)
@@ -51,7 +48,7 @@ namespace IceRpc.Slice
         /// <summary>Constructs a remote exception with the provided message and origin.</summary>
         /// <param name="message">Message that describes the exception.</param>
         /// <param name="origin">The remote exception origin.</param>
-        public RemoteException(string? message, RemoteExceptionOrigin origin)
+        protected RemoteException(string? message, RemoteExceptionOrigin origin)
             : base(message)
         {
             Origin = origin;
@@ -60,7 +57,7 @@ namespace IceRpc.Slice
 
         /// <summary>Constructs a remote exception using a decoder.</summary>
         /// <param name="decoder">The decoder.</param>
-        public RemoteException(ref SliceDecoder decoder)
+        protected RemoteException(ref SliceDecoder decoder)
             : base(decoder.Encoding == Encoding.Slice11 ? null : decoder.DecodeString())
         {
             if (decoder.Encoding != Encoding.Slice11)
@@ -74,26 +71,11 @@ namespace IceRpc.Slice
         /// <summary>Decodes a remote exception.</summary>
         /// <param name="decoder">The Slice decoder.</param>
         // This implementation is only called on a plain RemoteException.
-        protected virtual void DecodeCore(ref SliceDecoder decoder)
-        {
-        }
+        protected abstract void DecodeCore(ref SliceDecoder decoder);
 
         /// <summary>Encodes a remote exception.</summary>
         /// <param name="encoder">The Slice encoder.</param>
-        protected virtual void EncodeCore(ref SliceEncoder encoder)
-        {
-            if (encoder.Encoding == Encoding.Slice11)
-            {
-                encoder.StartSlice(_sliceTypeId);
-                encoder.EndSlice(lastSlice: true);
-            }
-            else
-            {
-                encoder.EncodeString(_sliceTypeId);
-                encoder.EncodeString(Message);
-                Origin.Encode(ref encoder);
-            }
-        }
+        protected abstract void EncodeCore(ref SliceEncoder encoder);
 
         internal void Decode(ref SliceDecoder decoder) => DecodeCore(ref decoder);
         internal void Encode(ref SliceEncoder encoder) => EncodeCore(ref encoder);
