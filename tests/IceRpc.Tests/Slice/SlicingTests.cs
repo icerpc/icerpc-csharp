@@ -261,7 +261,7 @@ public class SlicingTests
         Assert.That(() => {
             buffer = new byte[1024];
             bufferWriter = new SingleBufferWriter(buffer);
-            encoder = new SliceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
+            var encoder = new SliceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
             encoder.EncodeException(r);
         }, Throws.TypeOf<InvalidOperationException>());
     }
