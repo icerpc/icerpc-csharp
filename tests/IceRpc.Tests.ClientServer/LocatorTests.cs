@@ -15,11 +15,11 @@ namespace IceRpc.Tests.ClientServer
     // [Log(LogAttributeLevel.Trace)]
     public sealed class LocatorTests : IAsyncDisposable
     {
-        private string GreeterPath => _greeter.Proxy.Path;
+        private string GreeterPath => _service.Proxy.Path;
 
         private bool _called;
         private readonly ConnectionPool _pool = new();
-        private readonly GreeterPrx _greeter;
+        private readonly ServicePrx _service;
 
         private readonly Pipeline _pipeline = new();
         private readonly Server _server;
@@ -39,9 +39,9 @@ namespace IceRpc.Tests.ClientServer
             _server.Listen();
 
             // Must be created after Listen to get the port number.
-            _greeter = GreeterPrx.Parse($"ice:{path}");
-            _greeter.Proxy.Endpoint = _server.Endpoint;
-            _greeter.Proxy.Invoker = _pipeline;
+            _service = ServicePrx.Parse($"ice:{path}");
+            _service.Proxy.Endpoint = _server.Endpoint;
+            _service.Proxy.Invoker = _pipeline;
         }
 
         [TestCase("adapt1", "foo:tcp -h host1 -p 10000")]
@@ -51,10 +51,10 @@ namespace IceRpc.Tests.ClientServer
         public async Task Locator_AdapterResolveAsync(string adapter, string proxy)
         {
             // There is no corresponding service, we're just testing the endpoints.
-            var greeter = GreeterPrx.Parse(proxy, _pipeline, IceProxyFormat.Default);
-            var greeterIdentity = greeter.Proxy.Path[1..];
+            var service = ServicePrx.Parse(proxy, _pipeline, IceProxyFormat.Default);
+            var greeterIdentity = service.Proxy.Path[1..];
 
-            var indirectGreeter = GreeterPrx.Parse(
+            var indirectGreeter = ServicePrx.Parse(
                 $"{greeterIdentity} @ {adapter}",
                 _pipeline,
                 IceProxyFormat.Default);
@@ -68,20 +68,20 @@ namespace IceRpc.Tests.ClientServer
                     {
                         EndpointSelection? endpointSelection = request.Features.Get<EndpointSelection>();
                         Assert.That(endpointSelection, Is.Not.Null);
-                        Assert.AreEqual(greeter.Proxy.Endpoint, endpointSelection.Endpoint);
+                        Assert.AreEqual(service.Proxy.Endpoint, endpointSelection.Endpoint);
                         _called = true;
                     }
                     return next.InvokeAsync(request, cancel);
                 }));
             _pipeline.UseBinder(_pool);
 
-            locator.RegisterAdapter(adapter, greeter);
+            locator.RegisterAdapter(adapter, service);
 
             CollectionAssert.IsEmpty(indirectGreeter.Proxy.AltEndpoints);
 
             ServicePrx? found = await locator.FindAdapterByIdAsync(adapter);
             Assert.That(found, Is.Not.Null);
-            Assert.AreEqual(found?.Proxy.Endpoint, greeter.Proxy.Endpoint);
+            Assert.AreEqual(found?.Proxy.Endpoint, service.Proxy.Endpoint);
 
             Assert.That(_called, Is.False);
             try
@@ -122,7 +122,7 @@ namespace IceRpc.Tests.ClientServer
                     {
                         if (request.Proxy == indirectGreeter.Proxy || request.Proxy == wellKnownGreeter.Proxy)
                         {
-                            Assert.AreEqual(_greeter.Proxy.Endpoint, endpointSelection.Endpoint);
+                            Assert.AreEqual(_service.Proxy.Endpoint, endpointSelection.Endpoint);
                             _called = true;
                         }
                     }
@@ -134,7 +134,7 @@ namespace IceRpc.Tests.ClientServer
 
             Assert.ThrowsAsync<NoEndpointException>(async () => await indirectGreeter.SayHelloAsync("hello"));
             Assert.That(_called, Is.False);
-            locator.RegisterAdapter("adapt", _greeter);
+            locator.RegisterAdapter("adapt", _service);
             Assert.DoesNotThrowAsync(async () => await indirectGreeter.SayHelloAsync("hello"));
             Assert.That(_called, Is.True);
             _called = false;
@@ -157,8 +157,8 @@ namespace IceRpc.Tests.ClientServer
             // Same with well-known greeter
 
             Assert.ThrowsAsync<NoEndpointException>(async () => await wellKnownGreeter.SayHelloAsync("hello"));
-            locator.RegisterWellKnownProxy(GreeterPath, indirectGreeter);
-            locator.RegisterAdapter("adapt", _greeter);
+            locator.RegisterWellKnownProxy(GreeterPath, new ServicePrx(indirectGreeter.Proxy));
+            locator.RegisterAdapter("adapt", _service);
             _called = false;
             Assert.DoesNotThrowAsync(async () => await wellKnownGreeter.SayHelloAsync("hello"));
             Assert.That(_called, Is.True);
@@ -190,10 +190,10 @@ namespace IceRpc.Tests.ClientServer
         public async Task Locator_WellKnownProxyResolveAsync(string proxy)
         {
             // There is no corresponding service, we're just testing the endpoints.
-            var greeter = GreeterPrx.Parse(proxy, _pipeline, IceProxyFormat.Default);
+            var greeter = ServicePrx.Parse(proxy, _pipeline, IceProxyFormat.Default);
             string identity = GreeterPath[1..]; // usually the stringified identity is just the path less leading /
 
-            var wellKnownGreeter = GreeterPrx.Parse(identity, _pipeline, IceProxyFormat.Default);
+            var wellKnownGreeter = ServicePrx.Parse(identity, _pipeline, IceProxyFormat.Default);
             Assert.That(wellKnownGreeter.Proxy.Endpoint, Is.Null);
 
             var locator = new FakeLocatorPrx();
@@ -201,7 +201,7 @@ namespace IceRpc.Tests.ClientServer
             _pipeline.Use(next => new InlineInvoker(
                 (request, cancel) =>
                 {
-                    if (request.Proxy.Endpoint == null && request.Proxy.Path == _greeter.Proxy.Path)
+                    if (request.Proxy.Endpoint == null && request.Proxy.Path == _service.Proxy.Path)
                     {
                         EndpointSelection? endpointSelection = request.Features.Get<EndpointSelection>();
                         Assert.That(endpointSelection, Is.Not.Null);
@@ -232,7 +232,7 @@ namespace IceRpc.Tests.ClientServer
 
             // Test with indirect endpoints
             string adapter = $"adapter/{identity}";
-            var indirectGreeter = GreeterPrx.Parse($"{identity} @ '{adapter}'", _pipeline, IceProxyFormat.Default);
+            var indirectGreeter = ServicePrx.Parse($"{identity} @ '{adapter}'", _pipeline, IceProxyFormat.Default);
 
             locator.RegisterAdapter(adapter, greeter);
 

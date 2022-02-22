@@ -35,7 +35,7 @@ namespace IceRpc.Tests.ClientServer
 
             {
                 await using AsyncServiceScope scope = serviceProvider.CreateAsyncScope();
-                GreeterPrx prx = scope.ServiceProvider.GetProxy<GreeterPrx>();
+                ServicePrx prx = scope.ServiceProvider.GetProxy<ServicePrx>(GreeterPrx.DefaultPath);
                 await prx.IcePingAsync();
                 Assert.That(called, Is.True);
                 Assert.That(invocationActivity, Is.Null);
@@ -46,7 +46,7 @@ namespace IceRpc.Tests.ClientServer
 
             {
                 await using AsyncServiceScope scope = serviceProvider.CreateAsyncScope();
-                GreeterPrx prx = scope.ServiceProvider.GetProxy<GreeterPrx>();
+                ServicePrx prx = scope.ServiceProvider.GetProxy<ServicePrx>(GreeterPrx.DefaultPath);
 
                 // Starting the test activity ensures that Activity.Current is not null which in turn will
                 // trigger the creation of the Invocation activity.
@@ -89,7 +89,7 @@ namespace IceRpc.Tests.ClientServer
                     })
                     .BuildServiceProvider();
 
-                await serviceProvider.GetProxy<GreeterPrx>().IcePingAsync();
+                await serviceProvider.GetProxy<ServicePrx>(GreeterPrx.DefaultPath).IcePingAsync();
                 Assert.That(called, Is.True);
                 Assert.That(dispatchActivity, Is.Null);
             }
@@ -134,7 +134,7 @@ namespace IceRpc.Tests.ClientServer
                     })
                     .BuildServiceProvider();
 
-                await serviceProvider.GetProxy<GreeterPrx>().IcePingAsync();
+                await serviceProvider.GetProxy<ServicePrx>(GreeterPrx.DefaultPath).IcePingAsync();
                 // Await the server shutdown to ensure the dispatch has finish
                 await serviceProvider.GetRequiredService<Server>().ShutdownAsync();
                 Assert.That(called, Is.True);
@@ -211,7 +211,7 @@ namespace IceRpc.Tests.ClientServer
             testActivity.Start();
             Assert.That(Activity.Current, Is.Not.Null);
 
-            await serviceProvider.GetProxy<GreeterPrx>().IcePingAsync();
+            await serviceProvider.GetProxy<ServicePrx>(GreeterPrx.DefaultPath).IcePingAsync();
             // Await the server shutdown to ensure the dispatch has finish
             await serviceProvider.GetRequiredService<Server>().ShutdownAsync();
             Assert.That(invocationActivity, Is.Not.Null);
