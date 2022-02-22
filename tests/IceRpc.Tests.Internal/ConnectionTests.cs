@@ -597,7 +597,7 @@ namespace IceRpc.Tests.Internal
 
                     var connection = new Connection(networkConnection, listener.Endpoint.Protocol)
                     {
-                        Dispatcher = _serviceProvider.GetService<IDispatcher>(),
+                        Dispatcher = _serviceProvider.GetService<IDispatcher>() ?? Connection.DefaultDispatcher,
                         Options = serverConnectionOptions ?? new(),
                         LoggerFactory = _serviceProvider.GetRequiredService<ILoggerFactory>()
                     };
