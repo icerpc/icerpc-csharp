@@ -258,7 +258,6 @@ public class SlicingTests
         Assert.That(((UnknownSlicedRemoteException)r).TypeId, Is.EqualTo("::IceRpc::Slice::Tests::MyMostDerivedException"));
 
         // Ensure that encoding an unknown remote exception fails with 'InvalidOperationException'.
-        // Since there is no Slice preservation for exceptions, 'r' is a plain non-slice 'RemoteException' here.
         Assert.That(() => {
             buffer = new byte[1024];
             bufferWriter = new SingleBufferWriter(buffer);
