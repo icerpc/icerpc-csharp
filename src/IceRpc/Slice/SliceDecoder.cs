@@ -1044,7 +1044,7 @@ namespace IceRpc.Slice
         }
 
         /// <summary>The exception thrown when attempting to decode at/past the end of the buffer.</summary>
-        private class EndOfBufferException : InvalidOperationException
+        private class EndOfBufferException : InvalidDataException
         {
             internal EndOfBufferException()
                 : base("attempting to decode past the end of the decoder buffer")

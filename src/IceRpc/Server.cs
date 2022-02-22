@@ -25,14 +25,14 @@ namespace IceRpc
         public static IServerTransport<ISimpleNetworkConnection> DefaultSimpleServerTransport { get; } =
             new CompositeSimpleServerTransport().UseTcp().UseUdp();
 
-        /// <summary>Gets or sets the options of server connections created by this server.</summary>
+        /// <summary>Gets or initializes the options of server connections created by this server.</summary>
         public ConnectionOptions ConnectionOptions { get; init; } = new();
 
-        /// <summary>Gets or sets the dispatcher of this server.</summary>
+        /// <summary>Gets or initializes the dispatcher of this server.</summary>
         /// <value>The dispatcher of this server.</value>
         /// <seealso cref="IDispatcher"/>
         /// <seealso cref="Configure.Router"/>
-        public IDispatcher? Dispatcher { get; init; }
+        public IDispatcher Dispatcher { get; init; } = Connection.DefaultDispatcher;
 
         /// <summary>Gets or sets the endpoint of this server.</summary>
         /// <value>The endpoint of this server. The endpoint's host is usually an IP address, and it cannot be a DNS

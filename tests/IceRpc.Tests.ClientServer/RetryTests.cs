@@ -90,8 +90,9 @@ namespace IceRpc.Tests.ClientServer
             // endpointless proxy with a connection
             var bidir = new RetryBidirTestPrx(retryBidir.Proxy with { Endpoint = null });
 
-            Assert.ThrowsAsync<ServiceNotFoundException>(
-                async () => await bidir.OtherReplicaAsync(cancel: CancellationToken.None));
+            var dispatchException = Assert.ThrowsAsync<DispatchException>(
+                () => bidir.OtherReplicaAsync(cancel: CancellationToken.None));
+             Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
 
             // The exception is not retryable with the Ice protocol. With the IceRPC protocol, we can retry using the
             // existing connection because the exception uses the AfterDelay retry policy.
@@ -379,7 +380,7 @@ namespace IceRpc.Tests.ClientServer
             await using ServiceProvider serviceProvider1 = new IntegrationTestServiceCollection()
                 .UseColoc(colocTransport, 1)
                 .AddTransient(_ => CreateDispatcher(new InlineDispatcher((request, cancel) =>
-                    throw new ServiceNotFoundException(RetryPolicy.OtherReplica))))
+                    throw new DispatchException(DispatchErrorCode.ServiceNotFound, RetryPolicy.OtherReplica))))
                 .BuildServiceProvider();
 
             await using ServiceProvider serviceProvider2 = new IntegrationTestServiceCollection()
@@ -393,7 +394,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     await request.Connection.CloseAsync("forcefully close connection!");
                     await Task.Delay(1000, cancel);
-                    throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
+                    throw new DispatchException(DispatchErrorCode.ServiceNotFound, RetryPolicy.OtherReplica);
                 })))
                 .BuildServiceProvider();
 
@@ -414,7 +415,8 @@ namespace IceRpc.Tests.ClientServer
 
             // The first replica fails with ServiceNotFoundException exception and there is no additional replicas.
             calls.Clear();
-            Assert.ThrowsAsync<ServiceNotFoundException>(async () => await prx.OtherReplicaAsync());
+            var dispatchException = Assert.ThrowsAsync<DispatchException>(() => prx.OtherReplicaAsync());
+            Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
             Assert.AreEqual(1, calls.Count);
             Assert.AreEqual(server1.ToString(), calls[0]);
 
@@ -637,14 +639,16 @@ namespace IceRpc.Tests.ClientServer
         {
             if (++_n < n)
             {
-                throw new ServiceNotFoundException(RetryPolicy.AfterDelay(TimeSpan.FromMilliseconds(10)));
+                throw new DispatchException(
+                    DispatchErrorCode.ServiceNotFound,
+                    RetryPolicy.AfterDelay(TimeSpan.FromMilliseconds(10)));
             }
             _n = 0;
             return default;
         }
 
         public ValueTask OtherReplicaAsync(Dispatch dispatch, CancellationToken cancel) =>
-            throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
+            throw new DispatchException(DispatchErrorCode.ServiceNotFound, RetryPolicy.OtherReplica);
     }
 
     public class Replicated : Service, IRetryReplicatedTest

@@ -46,6 +46,12 @@ namespace IceRpc
     /// <summary>Represents a connection used to send and receive requests and responses.</summary>
     public sealed class Connection : IAsyncDisposable
     {
+        /// <summary>The default value for <see cref="Dispatcher"/>.</summary>
+        public static IDispatcher DefaultDispatcher { get; } = new InlineDispatcher(
+            (request, cancel) => throw new DispatchException(
+                DispatchErrorCode.ServiceNotFound,
+                RetryPolicy.OtherReplica));
+
         /// <summary>The default value for <see cref="MultiplexedClientTransport"/>.</summary>
         public static IClientTransport<IMultiplexedNetworkConnection> DefaultMultiplexedClientTransport { get; } =
             new CompositeMultiplexedClientTransport().UseSlicOverTcp();
@@ -74,11 +80,9 @@ namespace IceRpc
             remove => _closed -= value;
         }
 
-        /// <summary>Gets or sets the dispatcher that dispatches requests received by this
-        /// connection.</summary>
-        /// <value>The dispatcher that dispatches requests received by this connection, or null if no
-        /// dispatcher is set.</value>
-        public IDispatcher? Dispatcher { get; init; }
+        /// <summary>Gets or initializes the dispatcher that dispatches requests received by this connection.</summary>
+        /// <value>The dispatcher that dispatches requests received by this connection.</value>
+        public IDispatcher Dispatcher { get; init; } = DefaultDispatcher;
 
         /// <summary>Specifies if the connection can be resumed after being closed. If <c>true</c>, the connection will
         /// be re-established by the next call to <see cref="ConnectAsync"/> or the next invocation. The <see
@@ -502,7 +506,7 @@ namespace IceRpc
                     // Start the receive request task. The task accepts new incoming requests and processes them. It
                     // only completes once the connection is closed.
                     _ = Task.Run(
-                        () => AcceptIncomingRequestAsync(_protocolConnection, Dispatcher ?? NullDispatcher.Instance),
+                        () => AcceptIncomingRequestAsync(_protocolConnection, Dispatcher),
                         CancellationToken.None);
                 }
             }
@@ -610,7 +614,7 @@ namespace IceRpc
                         // TODO: do we really need this protocol-dependent processing?
                         if (Protocol == Protocol.Ice)
                         {
-                            exception = new DispatchException("dispatch canceled by peer");
+                            exception = new DispatchException("dispatch canceled by peer", DispatchErrorCode.Canceled);
                         }
                         else
                         {
@@ -622,9 +626,13 @@ namespace IceRpc
                     // With the ice protocol, a ResultType = Failure exception must be an ice system exception.
                     if (exception is not RemoteException remoteException ||
                         remoteException.ConvertToUnhandled ||
-                        (Protocol == Protocol.Ice && !remoteException.IsIceSystemException()))
+                        (Protocol == Protocol.Ice && remoteException is not DispatchException))
                     {
-                        remoteException = new UnhandledException(exception);
+                        remoteException = new DispatchException(
+                            message: null,
+                            exception is InvalidDataException ?
+                                DispatchErrorCode.InvalidData : DispatchErrorCode.UnhandledException,
+                            exception);
                     }
 
                     if (remoteException.Origin == RemoteExceptionOrigin.Unknown)

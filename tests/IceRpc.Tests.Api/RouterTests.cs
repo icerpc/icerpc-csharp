@@ -46,15 +46,14 @@ namespace IceRpc.Tests.Api
             _router.Mount("/", _failDispatcher);
             string badPath = "/a/b/c/d/e/f/g/h/i/j/k/l/m/n/o/p/q";
             var greeter = GreeterPrx.FromConnection(_connection, badPath);
-            Assert.ThrowsAsync<DispatchException>(async () => await new ServicePrx(greeter.Proxy).IcePingAsync());
+            Assert.ThrowsAsync<DispatchException>(async () => await greeter.IcePingAsync());
         }
 
         [Test]
         public async Task Router_InvalidOperationAsync()
         {
             _router.Map<IGreeter>(new Greeter());
-            var prx = GreeterPrx.FromConnection(_connection);
-            await new ServicePrx(prx.Proxy).IcePingAsync();
+            await GreeterPrx.FromConnection(_connection).IcePingAsync();
             Assert.Throws<InvalidOperationException>(() => _router.Map<IGreeter>(new Greeter()));
             Assert.Throws<InvalidOperationException>(() => _router.Mount("/foo", new Greeter()));
             Assert.Throws<InvalidOperationException>(() => _router.Use(next => next));
@@ -81,7 +80,7 @@ namespace IceRpc.Tests.Api
             _router.Mount(path, _failDispatcher);
 
             var greeter = GreeterPrx.FromConnection(_connection, path);
-            await new ServicePrx(greeter.Proxy).IcePingAsync();
+            await greeter.IcePingAsync();
             Assert.AreEqual(1, value);
         }
 
@@ -92,8 +91,8 @@ namespace IceRpc.Tests.Api
         {
             _router.Map(registered, _failDispatcher);
             var greeter = GreeterPrx.FromConnection(_connection, path);
-            Assert.ThrowsAsync<ServiceNotFoundException>(
-                async () => await new ServicePrx(greeter.Proxy).IcePingAsync());
+            var dispatchException = Assert.ThrowsAsync<DispatchException>(() => greeter.IcePingAsync());
+            Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
         }
 
         [TestCase("/foo", "/foo/bar")]
@@ -114,7 +113,7 @@ namespace IceRpc.Tests.Api
                 }));
 
             var greeter = GreeterPrx.FromConnection(_connection, path);
-            await new ServicePrx(greeter.Proxy).IcePingAsync();
+            await greeter.IcePingAsync();
             Assert.That(called, Is.True);
         }
 
@@ -124,8 +123,8 @@ namespace IceRpc.Tests.Api
         {
             _router.Mount(registered, _failDispatcher);
             var greeter = GreeterPrx.FromConnection(_connection, path);
-            Assert.ThrowsAsync<ServiceNotFoundException>(
-                async () => await new ServicePrx(greeter.Proxy).IcePingAsync());
+            var dispatchException = Assert.ThrowsAsync<DispatchException>(() => greeter.IcePingAsync());
+            Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
         }
 
         [TestCase("/foo", "/foo/bar", "/bar")]
@@ -160,7 +159,7 @@ namespace IceRpc.Tests.Api
                 });
 
             var greeter = GreeterPrx.FromConnection(_connection, path);
-            await new ServicePrx(greeter.Proxy).IcePingAsync();
+            await greeter.IcePingAsync();
             Assert.That(mainRouterMiddlewareCalled, Is.True);
             Assert.That(subRouterMiddlewareCalled, Is.True);
         }
@@ -200,7 +199,7 @@ namespace IceRpc.Tests.Api
                 });
 
             var greeter = GreeterPrx.FromConnection(_connection, path);
-            await new ServicePrx(greeter.Proxy).IcePingAsync();
+            await greeter.IcePingAsync();
             Assert.That(mainRouterMiddlewareCalled, Is.True);
             Assert.That(nestedRouterMiddlewareCalled, Is.True);
         }
@@ -221,16 +220,16 @@ namespace IceRpc.Tests.Api
             _router.Map<IDerivedC>(new DerivedC());
             _router.Map<IMostDerivedC>(new MostDerivedC());
 
-            await new ServicePrx(GreeterPrx.FromConnection(_connection).Proxy).IcePingAsync();
-            await new ServicePrx(BaseAPrx.FromConnection(_connection).Proxy).IcePingAsync();
-            await new ServicePrx(DerivedAPrx.FromConnection(_connection).Proxy).IcePingAsync();
-            await new ServicePrx(MostDerivedAPrx.FromConnection(_connection).Proxy).IcePingAsync();
-            await new ServicePrx(BaseBPrx.FromConnection(_connection).Proxy).IcePingAsync();
-            await new ServicePrx(DerivedBPrx.FromConnection(_connection).Proxy).IcePingAsync();
-            await new ServicePrx(MostDerivedBPrx.FromConnection(_connection).Proxy).IcePingAsync();
-            await new ServicePrx(BaseCPrx.FromConnection(_connection).Proxy).IcePingAsync();
-            await new ServicePrx(DerivedCPrx.FromConnection(_connection).Proxy).IcePingAsync();
-            await new ServicePrx(MostDerivedCPrx.FromConnection(_connection).Proxy).IcePingAsync();
+            await GreeterPrx.FromConnection(_connection).IcePingAsync();
+            await BaseAPrx.FromConnection(_connection).IcePingAsync();
+            await DerivedAPrx.FromConnection(_connection).IcePingAsync();
+            await MostDerivedAPrx.FromConnection(_connection).IcePingAsync();
+            await BaseBPrx.FromConnection(_connection).IcePingAsync();
+            await DerivedBPrx.FromConnection(_connection).IcePingAsync();
+            await MostDerivedBPrx.FromConnection(_connection).IcePingAsync();
+            await BaseCPrx.FromConnection(_connection).IcePingAsync();
+            await DerivedCPrx.FromConnection(_connection).IcePingAsync();
+            await MostDerivedCPrx.FromConnection(_connection).IcePingAsync();
         }
 
         public class Greeter : Service, IGreeter
