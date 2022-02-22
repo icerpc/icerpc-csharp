@@ -19,8 +19,7 @@ public class EndpointCacheTests
         {
             endpointCache.Set(new Location { IsAdapterId = true, Value = $"{i}" }, proxy);
         }
-
-        Assert.AreEqual(10, endpointCacheImpl.Count);
+        Assert.That(endpointCacheImpl.Count, Is.EqualTo(10));
 
         // Make sure we kept the 10 most recent entries:
         for (int i = 90; i < 100; ++i)
@@ -35,8 +34,8 @@ public class EndpointCacheTests
         // Make sure removing an existing entry reduces the Count
 
         endpointCache.Remove(new Location { IsAdapterId = true, Value = "20" });
-        Assert.AreEqual(10, endpointCacheImpl.Count); // was not there
+        Assert.That(endpointCacheImpl.Count, Is.EqualTo(10)); // was not there
         endpointCache.Remove(new Location { IsAdapterId = true, Value = "95" });
-        Assert.AreEqual(9, endpointCacheImpl.Count);
+        Assert.That(endpointCacheImpl.Count, Is.EqualTo(9)); // was not there
     }
 }

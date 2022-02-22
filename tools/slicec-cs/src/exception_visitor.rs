@@ -262,7 +262,7 @@ fn one_shot_constructor(
         ctor_builder.add_parameter(
             &member
                 .data_type()
-                .to_type_string(&namespace, TypeContext::DataMember, false),
+                .to_type_string(namespace, TypeContext::DataMember, false),
             member.parameter_name().as_str(),
             None,
             Some(&doc_comment_message(*member)),

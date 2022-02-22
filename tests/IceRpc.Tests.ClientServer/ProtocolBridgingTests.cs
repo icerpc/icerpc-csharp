@@ -73,14 +73,14 @@ namespace IceRpc.Tests.ClientServer
             // forwardService.Proxy.Proxy
 
             ProtocolBridgingTestPrx newPrx = await TestProxyAsync(forwarderServicePrx, direct: false);
-            Assert.AreEqual(targetProtocol, (object)newPrx.Proxy.Protocol.Name);
+            Assert.That((object)newPrx.Proxy.Protocol.Name, Is.EqualTo(targetProtocol));
             _ = await TestProxyAsync(newPrx, direct: true);
 
             async Task<ProtocolBridgingTestPrx> TestProxyAsync(ProtocolBridgingTestPrx prx, bool direct)
             {
-                Assert.AreEqual(prx.Proxy.Path, direct ? "/target" : "/forward");
-
-                Assert.AreEqual(13, await prx.OpAsync(13));
+                var expectedPath = direct ? "/target" : "/forward";
+                Assert.That(prx.Proxy.Path, Is.EqualTo(expectedPath));
+                Assert.That(await prx.OpAsync(13), Is.EqualTo(13));
 
                 var invocation = new Invocation
                 {
@@ -88,7 +88,7 @@ namespace IceRpc.Tests.ClientServer
                         new Dictionary<string, string> { ["MyCtx"] = "hello" })
                 };
                 await prx.OpContextAsync(invocation);
-                CollectionAssert.AreEqual(invocation.Features.GetContext(), targetService.Context);
+                Assert.That(invocation.Features.GetContext(), Is.EqualTo(targetService.Context));
                 targetService.Context = ImmutableDictionary<string, string>.Empty;
 
                 await prx.OpVoidAsync();
