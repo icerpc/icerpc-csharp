@@ -214,7 +214,7 @@ namespace IceRpc.Tests.ClientServer
                 }
                 lock (_mutex)
                 {
-                    CollectionAssert.AreEquivalent(ExpectedEventCounters, ReceivedEventCounters);
+                    Assert.That(ReceivedEventCounters, Is.EquivalentTo(ExpectedEventCounters));
                 }
             }
 
