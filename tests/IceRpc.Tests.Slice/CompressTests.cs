@@ -108,13 +108,13 @@ namespace IceRpc.Tests.Slice
             byte[] newData = await prx.OpCompressArgsAndReturnAsync(data);
             Assert.That(compressedRequest, Is.True);
             Assert.That(compressedResponse, Is.True);
-            CollectionAssert.AreEqual(newData, data);
+           Assert.That(data, Is.EqualTo(newData));
 
             // The request is not compressed and the response is compressed
             newData = await prx.OpCompressReturnAsync(size);
             Assert.That(compressedRequest, Is.False);
             Assert.That(compressedResponse, Is.True);
-            CollectionAssert.AreEqual(newData, data);
+           Assert.That(data, Is.EqualTo(newData));
 
             // The exceptions are never compressed
             Assert.ThrowsAsync<CompressMyException>(async () => await prx.OpWithUserExceptionAsync(size));

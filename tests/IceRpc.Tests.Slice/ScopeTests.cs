@@ -48,10 +48,10 @@ namespace IceRpc.Tests.Slice
                Assert.That(await _prx1.OpSAsync(new Scope.S(0)), Is.EqualTo(s));
 
                 var sseq = new Scope.S[] { s };
-                CollectionAssert.AreEqual(sseq, await _prx1.OpSSeqAsync(sseq));
+               Assert.That(await _prx1.OpSSeqAsync(sseq), Is.EqualTo(sseq));
 
                 var smap = new Dictionary<string, Scope.S>() { { "a", s } };
-                CollectionAssert.AreEqual(smap, await _prx1.OpSMapAsync(smap));
+               Assert.That(await _prx1.OpSMapAsync(smap), Is.EqualTo(smap));
 
                 var c = new Scope.C(s);
                Assert.That((await _prx1.OpCAsync(c)).S, Is.EqualTo(s));
@@ -78,10 +78,10 @@ namespace IceRpc.Tests.Slice
                Assert.That(await _prx2.OpSAsync(s), Is.EqualTo(s));
 
                 var sseq = new Scope.Inner.Inner2.S[] { s };
-                CollectionAssert.AreEqual(sseq, await _prx2.OpSSeqAsync(sseq));
+               Assert.That(await _prx2.OpSSeqAsync(sseq), Is.EqualTo(sseq));
 
                 var smap = new Dictionary<string, Scope.Inner.Inner2.S>() { { "a", s } };
-                CollectionAssert.AreEqual(smap, await _prx2.OpSMapAsync(smap));
+               Assert.That(await _prx2.OpSMapAsync(smap), Is.EqualTo(smap));
 
                 var c = new Scope.Inner.Inner2.C(s);
                Assert.That((await _prx2.OpCAsync(c)).S, Is.EqualTo(s));
@@ -104,10 +104,10 @@ namespace IceRpc.Tests.Slice
                Assert.That(await _prx3.OpSAsync(s), Is.EqualTo(s));
 
                 var sseq = new Scope.Inner.Inner2.S[] { s };
-                CollectionAssert.AreEqual(sseq, await _prx3.OpSSeqAsync(sseq));
+               Assert.That(await _prx3.OpSSeqAsync(sseq), Is.EqualTo(sseq));
 
                 var smap = new Dictionary<string, Scope.Inner.Inner2.S>() { { "a", s } };
-                CollectionAssert.AreEqual(smap, await _prx3.OpSMapAsync(smap));
+               Assert.That(await _prx3.OpSMapAsync(smap), Is.EqualTo(smap));
 
                 var c = new Scope.Inner.Inner2.C(s);
                Assert.That((await _prx3.OpCAsync(c)).S, Is.EqualTo(s));
@@ -130,10 +130,10 @@ namespace IceRpc.Tests.Slice
                Assert.That(await _prx4.OpSAsync(s), Is.EqualTo(s));
 
                 var sseq = new Scope.S[] { s };
-                CollectionAssert.AreEqual(sseq, await _prx4.OpSSeqAsync(sseq));
+               Assert.That(await _prx4.OpSSeqAsync(sseq), Is.EqualTo(sseq));
 
                 var smap = new Dictionary<string, Scope.S>() { { "a", s } };
-                CollectionAssert.AreEqual(smap, await _prx4.OpSMapAsync(smap));
+               Assert.That(await _prx4.OpSMapAsync(smap), Is.EqualTo(smap));
 
                 var c = new Scope.C(s);
                Assert.That((await _prx4.OpCAsync(c)).S, Is.EqualTo(s));

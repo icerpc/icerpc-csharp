@@ -286,8 +286,8 @@ namespace IceRpc.Tests.Slice
             T[] p2)
         {
             (T[] r1, T[] r2) = await invoker(p1, p2);
-            CollectionAssert.AreEqual(r1, p1);
-            CollectionAssert.AreEqual(r2, p2);
+           Assert.That(p1, Is.EqualTo(r1));
+           Assert.That(p2, Is.EqualTo(r2));
         }
 
         private static async Task TestOptionalSeqAsync<T>(
@@ -296,8 +296,8 @@ namespace IceRpc.Tests.Slice
             T[] p2)
         {
             (T[] r1, T[] r2) = await invoker(p1, p2);
-            CollectionAssert.AreEqual(r1, p1);
-            CollectionAssert.AreEqual(r2, p2);
+           Assert.That(p1, Is.EqualTo(r1));
+           Assert.That(p2, Is.EqualTo(r2));
         }
 
         private static async Task TestEnumerableSeqAsync<T>(
@@ -306,8 +306,8 @@ namespace IceRpc.Tests.Slice
             T[] p2)
         {
             (T[] r1, T[] r2) = await invoker(p1, p2);
-            CollectionAssert.AreEqual(r1, p1);
-            CollectionAssert.AreEqual(r2, p2);
+           Assert.That(p1, Is.EqualTo(r1));
+           Assert.That(p2, Is.EqualTo(r2));
         }
 
         private static async Task TestReadOnlyMemorySeqAsync<T>(
@@ -316,8 +316,8 @@ namespace IceRpc.Tests.Slice
             T[] p2)
         {
             (T[] r1, T[] r2) = await invoker(p1, p2);
-            CollectionAssert.AreEqual(p1, r1);
-            CollectionAssert.AreEqual(p2, r2);
+           Assert.That(r1, Is.EqualTo(p1));
+           Assert.That(r2, Is.EqualTo(p2));
         }
 
         private static async Task TestListAsync<T>(
@@ -326,8 +326,8 @@ namespace IceRpc.Tests.Slice
                 List<T> p2)
         {
             (List<T> r1, List<T> r2) = await invoker(p1, p2);
-            CollectionAssert.AreEqual(r1, p1);
-            CollectionAssert.AreEqual(r2, p2);
+           Assert.That(p1, Is.EqualTo(r1));
+           Assert.That(p2, Is.EqualTo(r2));
         }
 
         private static async Task TestCustomSeqAsync<T>(
@@ -336,8 +336,8 @@ namespace IceRpc.Tests.Slice
             CustomSequence<T> p2)
         {
             (CustomSequence<T> r1, CustomSequence<T> r2) = await invoker(p1, p2);
-            CollectionAssert.AreEqual(r1, p1);
-            CollectionAssert.AreEqual(r2, p2);
+           Assert.That(p1, Is.EqualTo(r1));
+           Assert.That(p2, Is.EqualTo(r2));
         }
 
         private static T GetEnum<T>(Array values, int i) => (T)values.GetValue(i % values.Length)!;
