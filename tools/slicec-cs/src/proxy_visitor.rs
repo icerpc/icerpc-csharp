@@ -28,22 +28,12 @@ impl<'a> Visitor for ProxyVisitor<'_> {
         let all_bases: Vec<&Interface> = interface_def.all_base_interfaces();
         let bases: Vec<&Interface> = interface_def.base_interfaces();
 
-        let mut prx_impl_bases: Vec<String> = vec![prx_interface.clone(), "IPrx".to_owned()];
+        let prx_impl_bases: Vec<String> = vec![prx_interface.clone(), "IPrx".to_owned()];
 
-        let mut all_base_impl: Vec<String> = all_bases
+        let all_base_impl: Vec<String> = all_bases
             .iter()
             .map(|b| b.scoped_proxy_implementation_name(&namespace))
             .collect();
-
-        let add_service_prx = !(all_bases
-            .iter()
-            .any(|b| b.module_scoped_identifier() == "Slice::Service")
-            || interface_def.module_scoped_identifier() == "Slice::Service");
-
-        if add_service_prx {
-            prx_impl_bases.push("IceRpc.Slice.IServicePrx".to_owned());
-            all_base_impl.push("IceRpc.Slice.ServicePrx".to_owned());
-        }
 
         // prx bases
         let prx_bases: Vec<String> = bases
@@ -110,34 +100,6 @@ private static readonly IActivator _defaultActivator =
         }
 
         proxy_impl_builder.add_block(proxy_impl_static_methods(interface_def));
-
-        if add_service_prx {
-            proxy_impl_builder.add_block(
-                format!(
-                    "\
-/// <inheritdoc/>
-{access} global::System.Threading.Tasks.Task<string[]> IceIdsAsync(
-    IceRpc.Slice.Invocation? invocation = null,
-    global::System.Threading.CancellationToken cancel = default) =>
-    new IceRpc.Slice.ServicePrx(Proxy).IceIdsAsync(invocation, cancel);
-
-/// <inheritdoc/>
-{access} global::System.Threading.Tasks.Task<bool> IceIsAAsync(
-    string id,
-    IceRpc.Slice.Invocation? invocation = null,
-    global::System.Threading.CancellationToken cancel = default) =>
-    new IceRpc.Slice.ServicePrx(Proxy).IceIsAAsync(id, invocation, cancel);
-
-/// <inheritdoc/>
-{access} global::System.Threading.Tasks.Task IcePingAsync(
-    IceRpc.Slice.Invocation? invocation = null,
-    global::System.Threading.CancellationToken cancel = default) =>
-    new IceRpc.Slice.ServicePrx(Proxy).IcePingAsync(invocation, cancel);",
-                    access = access
-                )
-                .into(),
-            );
-        }
 
         for operation in interface_def.all_inherited_operations() {
             proxy_impl_builder.add_block(proxy_base_operation_impl(operation));

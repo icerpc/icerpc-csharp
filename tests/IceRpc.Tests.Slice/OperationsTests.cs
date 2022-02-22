@@ -68,7 +68,7 @@ namespace IceRpc.Tests.Slice
             // This is invoked as a oneway thanks to the metadata
             await _prx.OpOnewayMetadataAsync();
 
-            await _prx.IcePingAsync();
+            await new ServicePrx(_prx.Proxy).IcePingAsync();
         }
 
         [TestCase("icerpc://host:1000/identity?foo=bar")]
