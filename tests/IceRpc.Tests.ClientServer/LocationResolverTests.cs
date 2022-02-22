@@ -115,7 +115,6 @@ namespace IceRpc.Tests.ClientServer
                             Endpoint = resolvedEndpoint,
                         };
                         Assert.That(endpointSelection.AltEndpoints, Is.Empty);
-                        CollectionAssert.IsEmpty(endpointSelection.AltEndpoints);
                         request.Features = request.Features.With(endpointSelection);
                     }
                     // else don't do anything

@@ -32,7 +32,6 @@ namespace IceRpc.Tests.ClientServer
             service.Attempts = 0;
             invocation.Timeout = Timeout.InfiniteTimeSpan;
             await retry.OpRetryAfterDelayAsync(1, 100, invocation);
-            Assert.AreEqual(2, service.Attempts);
             Assert.That(service.Attempts, Is.EqualTo(2));
         }
 

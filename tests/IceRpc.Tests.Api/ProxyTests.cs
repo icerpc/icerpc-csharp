@@ -30,7 +30,7 @@ namespace IceRpc.Tests.Api
                 "::IceRpc::Tests::Api::Greeter",
                 "::Slice::Service",
             };
-            CollectionAssert.AreEqual(ids, await prx.IceIdsAsync());
+            Assert.That(await prx.IceIdsAsync(), Is.EquivalentTo(ids));
 
             Assert.That(await prx.IceIsAAsync("::IceRpc::Tests::Api::Greeter"), Is.True);
             Assert.That(await prx.IceIsAAsync("::IceRpc::Tests::Api::Foo"), Is.False);
