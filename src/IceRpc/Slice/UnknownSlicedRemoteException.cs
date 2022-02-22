@@ -17,6 +17,10 @@ namespace IceRpc.Slice
         /// <inheritdoc/>
         protected override void DecodeCore(ref SliceDecoder decoder) => Debug.Assert(false);
 
+        /// <inheritdoc/>
+        protected override void EncodeCore(ref SliceEncoder encoder) =>
+            throw new InvalidOperationException("cannot encode unknown remote exceptions");
+
         // Encode uses base class and does not include TypeId.
 
         /// <summary>Constructs an unknown sliced remote exception.</summary>

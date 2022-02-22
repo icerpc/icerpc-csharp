@@ -58,7 +58,7 @@ namespace IceRpc.Tests.ClientServer
             var proxy = Proxy.Parse($"{server1.Endpoint}", serviceProvider1.GetRequiredService<IInvoker>());
             proxy = proxy with { Path = "/retry" };
 
-            var prx = new RetryReplicatedTestPrx(proxy);
+            var prx = new ServicePrx(proxy);
 
             prx.Proxy.AltEndpoints = ImmutableList.Create(server2.Endpoint, server3.Endpoint);
 
@@ -82,7 +82,7 @@ namespace IceRpc.Tests.ClientServer
                 .AddTransient<IDispatcher, Bidir>()
                 .BuildServiceProvider();
 
-            var retryBidir = RetryBidirTestPrx.Parse("icerpc:/retry");
+            var retryBidir = ServicePrx.Parse("icerpc:/retry");
             retryBidir.Proxy.Endpoint = serviceProvider.GetRequiredService<Server>().Endpoint;
             retryBidir.Proxy.Invoker = serviceProvider.GetRequiredService<IInvoker>();
             await retryBidir.IcePingAsync();
@@ -112,14 +112,14 @@ namespace IceRpc.Tests.ClientServer
                 .UseProtocol(protocol)
                 .BuildServiceProvider();
             RetryTest service = serviceProvider.GetRequiredService<RetryTest>();
-            RetryTestPrx retry = new(serviceProvider.GetRequiredService<Proxy>());
+            var retry = new RetryTestPrx(serviceProvider.GetRequiredService<Proxy>());
 
             // Remote case: send multiple OpWithData, followed by a close and followed by multiple OpWithData. The
             // goal is to make sure that none of the OpWithData fail even if the server closes the connection
             // gracefully in between.
             byte[] seq = new byte[1024 * 10];
 
-            await retry.IcePingAsync();
+            await new ServicePrx(retry.Proxy).IcePingAsync();
             var results = new List<Task>();
             for (int i = 0; i < maxQueue; ++i)
             {
@@ -155,7 +155,7 @@ namespace IceRpc.Tests.ClientServer
             // between.
             byte[] seq = new byte[1024 * 10];
 
-            await retry.IcePingAsync();
+            await new ServicePrx(retry.Proxy).IcePingAsync();
             var results = new List<Task>();
             for (int i = 0; i < maxQueue; ++i)
             {

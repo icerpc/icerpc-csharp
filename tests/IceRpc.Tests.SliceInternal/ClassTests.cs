@@ -254,7 +254,7 @@ namespace IceRpc.Tests.SliceInternal
             pipeline.UseFeature(new DecodePayloadOptions { MaxDepth = clientMaxDepth });
             prx.Proxy.Invoker = pipeline;
 
-            await prx.IcePingAsync();
+            await new ServicePrx(prx.Proxy).IcePingAsync();
             if (graphSize > clientMaxDepth)
             {
                 Assert.ThrowsAsync<InvalidDataException>(async () => await prx.ReceiveClassGraphAsync(graphSize));
