@@ -18,10 +18,10 @@ namespace IceRpc.Tests.SliceInternal
             var buffer = new byte[256];
 
             EncodePayload(SliceEncoding.Slice20, myOptional);
-            Assert.AreEqual(myOptional, DecodePayload(SliceEncoding.Slice20));
+            Assert.That(myOptional, Is.EqualTo(DecodePayload(SliceEncoding.Slice20)));
 
             EncodePayload(SliceEncoding.Slice11, myOptional);
-            Assert.AreEqual(myOptional, DecodePayload(SliceEncoding.Slice11));
+            Assert.That(myOptional, Is.EqualTo(DecodePayload(SliceEncoding.Slice11)));
 
             void EncodePayload(SliceEncoding encoding, MyOptional value)
             {
