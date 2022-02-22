@@ -33,7 +33,7 @@ namespace IceRpc.Tests.Api
         public void Interceptor_Throws_ArgumentException()
         {
             var pipeline = new Pipeline();
-            var prx = new InterceptorTestPrx(_prx.Proxy with { Invoker = pipeline });
+            var prx = new ServicePrx(_prx.Proxy with { Invoker = pipeline });
 
             pipeline.Use(next => new InlineInvoker((request, cancel) => throw new ArgumentException("message")));
             Assert.ThrowsAsync<ArgumentException>(async () => await prx.IcePingAsync());
@@ -44,7 +44,7 @@ namespace IceRpc.Tests.Api
         public void Interceptor_Timeout_OperationCanceledException()
         {
             var pipeline = new Pipeline();
-            var prx = new InterceptorTestPrx(_prx.Proxy with { Invoker = pipeline });
+            var prx = new ServicePrx(_prx.Proxy with { Invoker = pipeline });
 
             pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
             {
@@ -80,7 +80,7 @@ namespace IceRpc.Tests.Api
                     return result;
                 }));
 
-            await prx.IcePingAsync();
+            await new ServicePrx(prx.Proxy).IcePingAsync();
 
             Assert.That(interceptorCalls[0], Is.EqualTo("ProxyInterceptors -> 0"));
             Assert.That(interceptorCalls[1], Is.EqualTo("ProxyInterceptors -> 1"));

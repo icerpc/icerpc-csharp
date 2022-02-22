@@ -22,29 +22,31 @@ namespace IceRpc.Tests.Api
                 .AddTransient<IDispatcher, Greeter>()
                 .BuildServiceProvider();
 
-            var prx = GreeterPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
-            await prx.IcePingAsync();
+            var greeter = GreeterPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
+            var service = new ServicePrx(greeter.Proxy);
 
             string[] ids = new string[]
             {
                 "::IceRpc::Tests::Api::Greeter",
                 "::Slice::Service",
             };
-            Assert.That(await prx.IceIdsAsync(), Is.EquivalentTo(ids));
 
-            Assert.That(await prx.IceIsAAsync("::IceRpc::Tests::Api::Greeter"), Is.True);
-            Assert.That(await prx.IceIsAAsync("::IceRpc::Tests::Api::Foo"), Is.False);
+            Assert.That(await service.IceIdsAsync(), Is.EqualTo(ids));
+            Assert.That(await service.IceIsAAsync("::IceRpc::Tests::Api::Greeter"), Is.True);
+            Assert.That(await service.IceIsAAsync("::IceRpc::Tests::Api::Foo"), Is.False);
+            Assert.That(await greeter.AsAsync<GreeterPrx>(), Is.EqualTo(greeter));
 
-            Assert.That(await prx.AsAsync<GreeterPrx>(), Is.EqualTo(prx));
 
             // Test that Service operation correctly forward the cancel param
             var canceled = new CancellationToken(canceled: true);
-            Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync(cancel: canceled));
-            Assert.CatchAsync<OperationCanceledException>(async () => await prx.IceIdsAsync(cancel: canceled));
+            Assert.CatchAsync<OperationCanceledException>(async () => await service.IcePingAsync(cancel: canceled));
+            Assert.CatchAsync<OperationCanceledException>(async () => await service.IceIdsAsync(cancel: canceled));
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await prx.IceIsAAsync("::IceRpc::Tests::Api::Greeter", cancel: canceled));
+                async () => await service.IceIsAAsync(
+                    "::IceRpc::Tests::Api::Greeter",
+                    cancel: canceled));
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await prx.AsAsync<GreeterPrx>(cancel: canceled));
+                async () => await service.AsAsync<GreeterPrx>(cancel: canceled));
 
             // Test that Service operations correctly forward the context
             var invocation = new Invocation
@@ -53,17 +55,17 @@ namespace IceRpc.Tests.Api
             };
 
             var pipeline = new Pipeline();
-            prx.Proxy.Invoker = pipeline;
+            service.Proxy.Invoker = pipeline;
             pipeline.Use(next => new InlineInvoker((request, cancel) =>
             {
                 Assert.That(request.Features.GetContext(), Is.EqualTo(invocation.Features.GetContext()));
                 return next.InvokeAsync(request, cancel);
             }));
 
-            await prx.IcePingAsync(invocation);
-            await prx.IceIdsAsync(invocation);
-            await prx.IceIsAAsync("::IceRpc::Tests::Api::Greeter", invocation);
-            await prx.AsAsync<GreeterPrx>(invocation);
+            await service.IcePingAsync(invocation);
+            await service.IceIdsAsync(invocation);
+            await service.IceIsAAsync("::IceRpc::Tests::Api::Greeter", invocation);
+            await service.AsAsync<GreeterPrx>(invocation);
         }
 
         [TestCase("icerpc://localhost:10000/test?alt-endpoint=host2")]
@@ -503,9 +505,11 @@ namespace IceRpc.Tests.Api
                 .AddTransient<IDispatcher, Greeter>()
                 .BuildServiceProvider();
 
-            var prx = GreeterPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
-            prx.Proxy.Encoding = Encoding.FromString(encoding);
-            await prx.IcePingAsync(); // works fine, we use the protocol's encoding in this case
+            var service = ServicePrx.FromConnection(
+                serviceProvider.GetRequiredService<Connection>(),
+                GreeterPrx.DefaultPath);
+            service.Proxy.Encoding = Encoding.FromString(encoding);
+            await service.IcePingAsync(); // works fine, we use the protocol's encoding in this case
         }
 
         [Test]

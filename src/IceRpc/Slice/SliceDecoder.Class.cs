@@ -151,7 +151,7 @@ namespace IceRpc.Slice
 
             if (replyStatus > ReplyStatus.UserException)
             {
-                RemoteException systemException;
+                DispatchException dispatchException;
 
                 switch (replyStatus)
                 {
@@ -161,22 +161,44 @@ namespace IceRpc.Slice
 
                         var requestFailed = new RequestFailedExceptionData(ref this);
 
-                        systemException = replyStatus == ReplyStatus.OperationNotExistException ?
-                            new OperationNotFoundException() : new ServiceNotFoundException();
+                        dispatchException = new DispatchException(
+                            replyStatus == ReplyStatus.OperationNotExistException ?
+                                DispatchErrorCode.OperationNotFound : DispatchErrorCode.ServiceNotFound);
 
-                        systemException.Origin = new RemoteExceptionOrigin(
+                        dispatchException.Origin = new RemoteExceptionOrigin(
                             requestFailed.Path,
                             requestFailed.Fragment,
                             requestFailed.Operation);
                         break;
 
                     default:
-                        systemException = new UnhandledException(DecodeString());
+                        string message = DecodeString();
+                        DispatchErrorCode errorCode = DispatchErrorCode.UnhandledException;
+
+                        // Attempt to parse the DispatchErrorCode from the message:
+                        if (message.StartsWith('[') &&
+                            message.IndexOf(']', StringComparison.Ordinal) is int pos && pos != -1)
+                        {
+                            try
+                            {
+                                errorCode = (DispatchErrorCode)byte.Parse(
+                                    message[1..pos],
+                                    CultureInfo.InvariantCulture);
+
+                                message = message[(pos + 1)..].TrimStart();
+                            }
+                            catch
+                            {
+                                // ignored, keep default errorCode
+                            }
+                        }
+
+                        dispatchException = new DispatchException(message, errorCode);
                         break;
                 }
 
-                systemException.ConvertToUnhandled = true;
-                return systemException;
+                dispatchException.ConvertToUnhandled = true;
+                return dispatchException;
             }
             else
             {

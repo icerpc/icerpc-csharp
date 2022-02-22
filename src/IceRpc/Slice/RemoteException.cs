@@ -1,17 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Text;
-
 namespace IceRpc.Slice
 {
     /// <summary>Base class for exceptions defined in Slice.</summary>
-    [TypeId("::IceRpc::RemoteException")]
-    public class RemoteException : Exception
+    public abstract class RemoteException : Exception
     {
         /// <inheritdoc/>
         public override string Message => _hasCustomMessage || DefaultMessage == null ? base.Message : DefaultMessage;
-
-        private static readonly string _sliceTypeId = TypeExtensions.GetSliceTypeId(typeof(RemoteException))!;
 
         /// <summary>When true, if this exception is thrown from the implementation of an operation, Ice will convert
         /// it into an Ice.UnhandledException. When false, Ice marshals this remote exception as-is. true is the
@@ -34,13 +29,13 @@ namespace IceRpc.Slice
 
         /// <summary>Constructs a remote exception with the default system message.</summary>
         /// <param name="retryPolicy">The retry policy for the exception.</param>
-        public RemoteException(RetryPolicy? retryPolicy = null) => RetryPolicy = retryPolicy ?? RetryPolicy.NoRetry;
+        protected RemoteException(RetryPolicy? retryPolicy = null) => RetryPolicy = retryPolicy ?? RetryPolicy.NoRetry;
 
         /// <summary>Constructs a remote exception with the provided message and inner exception.</summary>
         /// <param name="message">Message that describes the exception.</param>
         /// <param name="retryPolicy">The retry policy for the exception.</param>
         /// <param name="innerException">The inner exception.</param>
-        public RemoteException(
+        protected RemoteException(
             string? message,
             Exception? innerException = null,
             RetryPolicy? retryPolicy = null)
@@ -53,7 +48,7 @@ namespace IceRpc.Slice
         /// <summary>Constructs a remote exception with the provided message and origin.</summary>
         /// <param name="message">Message that describes the exception.</param>
         /// <param name="origin">The remote exception origin.</param>
-        public RemoteException(string? message, RemoteExceptionOrigin origin)
+        protected RemoteException(string? message, RemoteExceptionOrigin origin)
             : base(message)
         {
             Origin = origin;
@@ -62,7 +57,7 @@ namespace IceRpc.Slice
 
         /// <summary>Constructs a remote exception using a decoder.</summary>
         /// <param name="decoder">The decoder.</param>
-        public RemoteException(ref SliceDecoder decoder)
+        protected RemoteException(ref SliceDecoder decoder)
             : base(decoder.Encoding == Encoding.Slice11 ? null : decoder.DecodeString())
         {
             if (decoder.Encoding != Encoding.Slice11)
@@ -76,26 +71,11 @@ namespace IceRpc.Slice
         /// <summary>Decodes a remote exception.</summary>
         /// <param name="decoder">The Slice decoder.</param>
         // This implementation is only called on a plain RemoteException.
-        protected virtual void DecodeCore(ref SliceDecoder decoder)
-        {
-        }
+        protected abstract void DecodeCore(ref SliceDecoder decoder);
 
         /// <summary>Encodes a remote exception.</summary>
         /// <param name="encoder">The Slice encoder.</param>
-        protected virtual void EncodeCore(ref SliceEncoder encoder)
-        {
-            if (encoder.Encoding == Encoding.Slice11)
-            {
-                encoder.StartSlice(_sliceTypeId);
-                encoder.EndSlice(lastSlice: true);
-            }
-            else
-            {
-                encoder.EncodeString(_sliceTypeId);
-                encoder.EncodeString(Message);
-                Origin.Encode(ref encoder);
-            }
-        }
+        protected abstract void EncodeCore(ref SliceEncoder encoder);
 
         internal void Decode(ref SliceDecoder decoder) => DecodeCore(ref decoder);
         internal void Encode(ref SliceEncoder encoder) => EncodeCore(ref encoder);
@@ -103,95 +83,7 @@ namespace IceRpc.Slice
 
     public readonly partial record struct RemoteExceptionOrigin
     {
-        /// <summary>With the Slice 1.1 encoding, <c>Unknown</c> is used as the remote exception origin for exceptions
-        /// other than <see cref="ServiceNotFoundException"/> and <see cref="OperationNotFoundException"/>.</summary>
+        /// <summary>The unknown origin.</summary>
         public static readonly RemoteExceptionOrigin Unknown = new("", "", "");
-    }
-
-    public partial class ServiceNotFoundException
-    {
-        /// <inheritdoc/>
-        protected override string? DefaultMessage
-        {
-            get
-            {
-                if (Origin != RemoteExceptionOrigin.Unknown)
-                {
-                    var sb = new StringBuilder("could not find service '");
-                    sb.Append(Origin.Path);
-                    sb.Append("' while attempting to dispatch operation '");
-                    sb.Append(Origin.Operation);
-                    sb.Append('\'');
-                    return sb.ToString();
-                }
-                else
-                {
-                    return null;
-                }
-            }
-        }
-    }
-
-    public partial class OperationNotFoundException
-    {
-        /// <inheritdoc/>
-        protected override string? DefaultMessage
-        {
-            get
-            {
-                if (Origin != RemoteExceptionOrigin.Unknown)
-                {
-                    var sb = new StringBuilder("could not find operation '");
-                    sb.Append(Origin.Operation);
-                    sb.Append("' for service '");
-                    sb.Append(Origin.Path);
-                    sb.Append('\'');
-                    return sb.ToString();
-                }
-                else
-                {
-                    return null;
-                }
-            }
-        }
-    }
-
-    public partial class UnhandledException : RemoteException
-    {
-        /// <summary>Constructs a new exception where the cause is a remote exception. The remote exception features
-        /// are inherited and set on this UnhandledException.</summary>
-        /// <param name="innerException">The remote exception that is the cause of the current exception.</param>
-        public UnhandledException(RemoteException innerException)
-            : base(message: null, innerException)
-        {
-        }
-
-        /// <summary>Constructs a new exception.</summary>
-        /// <param name="innerException">The exception that is the cause of the current exception.</param>
-        public UnhandledException(Exception innerException)
-            : base(message: null, innerException)
-        {
-        }
-
-        /// <inheritdoc/>
-        protected override string? DefaultMessage
-        {
-            get
-            {
-                string message = "unhandled exception";
-                if (Origin != RemoteExceptionOrigin.Unknown)
-                {
-                    message += $" while dispatching '{Origin.Operation}' on service '{Origin.Path}'";
-                }
-#if DEBUG
-                message += $":\n{InnerException}\n---";
-#else
-                // The stack trace of the inner exception can include sensitive information we don't want to send
-                // "over the wire" in non-debug builds.
-                message += $":\n{InnerException!.Message}";
-#endif
-                return message;
-            }
-        }
     }
 }

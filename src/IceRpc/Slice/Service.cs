@@ -99,7 +99,7 @@ namespace IceRpc.Slice
                 }
                 catch (RemoteException remoteException)
                 {
-                    if (remoteException.IsIceSystemException() || remoteException.ConvertToUnhandled)
+                    if (remoteException is DispatchException || remoteException.ConvertToUnhandled)
                     {
                         throw;
                     }
@@ -109,7 +109,7 @@ namespace IceRpc.Slice
             }
             else
             {
-                throw new OperationNotFoundException();
+                throw new DispatchException(DispatchErrorCode.OperationNotFound);
             }
         }
     }

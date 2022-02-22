@@ -27,7 +27,9 @@ namespace IceRpc.Tests.Api
                 .BuildServiceProvider();
 
             var prx = GreeterPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
-            Assert.ThrowsAsync<UnhandledException>(() => prx.SayHelloAsync("hello"));
+            DispatchException dispatchException = Assert.ThrowsAsync<DispatchException>(
+                () => prx.SayHelloAsync("hello"));
+            Assert.That(dispatchException.ErrorCode, Is.EqualTo(DispatchErrorCode.UnhandledException));
             Assert.That(service.Called, Is.False);
         }
 
@@ -63,7 +65,7 @@ namespace IceRpc.Tests.Api
                 .BuildServiceProvider();
 
             var prx = GreeterPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
-            await prx.IcePingAsync();
+            await new ServicePrx(prx.Proxy).IcePingAsync();
 
             Assert.That(middlewareCalls[0], Is.EqualTo("Middlewares -> 0"));
             Assert.That(middlewareCalls[1], Is.EqualTo("Middlewares -> 1"));

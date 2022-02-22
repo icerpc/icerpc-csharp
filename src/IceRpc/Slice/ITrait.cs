@@ -2,7 +2,7 @@
 
 namespace IceRpc.Slice
 {
-    /// <summary>The common interface of all traits, and all Slice entities that can implement traits.</summary>
+    /// <summary>The common interface of all traits, and all Slice constructs that can implement traits.</summary>
     public interface ITrait
     {
         /// <summary>Encodes the trait to the provided <see cref="SliceEncoder"/>.</summary>

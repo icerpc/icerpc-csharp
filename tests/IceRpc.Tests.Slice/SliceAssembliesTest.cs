@@ -57,7 +57,8 @@ namespace IceRpc.Tests.Slice
 
                 // This should fail the server has no factory for ClassB and compact format prevents slicing
                 var prx = AssembliesOperationsPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
-                Assert.ThrowsAsync<UnhandledException>(async () => await prx.OpAAsync(new ClassB("A", "B")));
+                var dispatchException = Assert.ThrowsAsync<DispatchException>(() => prx.OpAAsync(new ClassB("A", "B")));
+                Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.InvalidData));
             }
 
             // Repeat but this time include ClassB assembly

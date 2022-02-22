@@ -68,7 +68,7 @@ namespace IceRpc.Tests.Slice
             // This is invoked as a oneway thanks to the metadata
             await _prx.OpOnewayMetadataAsync();
 
-            await _prx.IcePingAsync();
+            await new ServicePrx(_prx.Proxy).IcePingAsync();
         }
 
         [TestCase("icerpc://host:1000/identity?foo=bar")]
@@ -105,7 +105,8 @@ namespace IceRpc.Tests.Slice
                 .AddTransient<IDispatcher, NoOperations>()
                 .BuildServiceProvider();
             var prx = OperationsPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
-            Assert.ThrowsAsync<OperationNotFoundException>(async () => await prx.OpBoolAsync(true, false));
+            var dispatchException = Assert.ThrowsAsync<DispatchException>(() => prx.OpBoolAsync(true, false));
+            Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.OperationNotFound));
         }
 
         public class Operations : Service, IOperations
