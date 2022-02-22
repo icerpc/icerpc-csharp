@@ -30,7 +30,7 @@ namespace IceRpc.Tests.Slice
             Assert.That(oneTagged.A.HasValue, Is.False);
 
             oneTagged = new OneTagged(16);
-            Assert.AreEqual(16, oneTagged.A);
+           Assert.That(oneTagged.A, Is.EqualTo(16));
 
             CheckMultiTaggedHasNoValue(new MultiTagged());
         }
@@ -42,7 +42,7 @@ namespace IceRpc.Tests.Slice
             Assert.That(oneTagged.A.HasValue, Is.False);
 
             oneTagged = (OneTagged)await _prx.PingPongAsync(new OneTagged(16));
-            Assert.AreEqual(16, oneTagged.A);
+           Assert.That(oneTagged.A, Is.EqualTo(16));
 
             var multiTagged = (MultiTagged)await _prx.PingPongAsync(new MultiTagged());
             CheckMultiTaggedHasNoValue(multiTagged);
@@ -79,24 +79,24 @@ namespace IceRpc.Tests.Slice
             };
 
             var multiTagged1 = (MultiTagged)await _prx.PingPongAsync(multiTagged);
-            Assert.AreEqual(multiTagged.MByte, multiTagged1.MByte);
-            Assert.AreEqual(multiTagged.MBool, multiTagged1.MBool);
-            Assert.AreEqual(multiTagged.MShort, multiTagged1.MShort);
-            Assert.AreEqual(multiTagged.MInt, multiTagged1.MInt);
-            Assert.AreEqual(multiTagged.MLong, multiTagged1.MLong);
-            Assert.AreEqual(multiTagged.MFloat, multiTagged1.MFloat);
-            Assert.AreEqual(multiTagged.MDouble, multiTagged1.MDouble);
-            Assert.AreEqual(multiTagged.MUShort, multiTagged1.MUShort);
-            Assert.AreEqual(multiTagged.MUInt, multiTagged1.MUInt);
-            Assert.AreEqual(multiTagged.MULong, multiTagged1.MULong);
-            Assert.AreEqual(multiTagged.MVarInt, multiTagged1.MVarInt);
-            Assert.AreEqual(multiTagged.MVarLong, multiTagged1.MVarLong);
-            Assert.AreEqual(multiTagged.MVarUInt, multiTagged1.MVarUInt);
-            Assert.AreEqual(multiTagged.MVarULong, multiTagged1.MVarULong);
-            Assert.AreEqual(multiTagged.MString, multiTagged1.MString);
-            Assert.AreEqual(multiTagged.MMyEnum, multiTagged1.MMyEnum);
-            Assert.AreEqual(multiTagged.MMyCompactStruct, multiTagged1.MMyCompactStruct);
-            Assert.AreEqual(multiTagged.MAnotherCompactStruct, multiTagged1.MAnotherCompactStruct);
+           Assert.That(multiTagged1.MByte, Is.EqualTo(multiTagged.MByte));
+           Assert.That(multiTagged1.MBool, Is.EqualTo(multiTagged.MBool));
+           Assert.That(multiTagged1.MShort, Is.EqualTo(multiTagged.MShort));
+           Assert.That(multiTagged1.MInt, Is.EqualTo(multiTagged.MInt));
+           Assert.That(multiTagged1.MLong, Is.EqualTo(multiTagged.MLong));
+           Assert.That(multiTagged1.MFloat, Is.EqualTo(multiTagged.MFloat));
+           Assert.That(multiTagged1.MDouble, Is.EqualTo(multiTagged.MDouble));
+           Assert.That(multiTagged1.MUShort, Is.EqualTo(multiTagged.MUShort));
+           Assert.That(multiTagged1.MUInt, Is.EqualTo(multiTagged.MUInt));
+           Assert.That(multiTagged1.MULong, Is.EqualTo(multiTagged.MULong));
+           Assert.That(multiTagged1.MVarInt, Is.EqualTo(multiTagged.MVarInt));
+           Assert.That(multiTagged1.MVarLong, Is.EqualTo(multiTagged.MVarLong));
+           Assert.That(multiTagged1.MVarUInt, Is.EqualTo(multiTagged.MVarUInt));
+           Assert.That(multiTagged1.MVarULong, Is.EqualTo(multiTagged.MVarULong));
+           Assert.That(multiTagged1.MString, Is.EqualTo(multiTagged.MString));
+           Assert.That(multiTagged1.MMyEnum, Is.EqualTo(multiTagged.MMyEnum));
+           Assert.That(multiTagged1.MMyCompactStruct, Is.EqualTo(multiTagged.MMyCompactStruct));
+           Assert.That(multiTagged1.MAnotherCompactStruct, Is.EqualTo(multiTagged.MAnotherCompactStruct));
 
             Assert.That(multiTagged1.MByteSeq, Is.Null);
             CollectionAssert.AreEqual(multiTagged.MStringSeq, multiTagged1.MStringSeq);
@@ -139,24 +139,24 @@ namespace IceRpc.Tests.Slice
             };
 
             multiTagged1 = (MultiTagged)await _prx.PingPongAsync(multiTagged);
-            Assert.AreEqual(multiTagged.MByte, multiTagged1.MByte);
-            Assert.AreEqual(multiTagged.MBool, multiTagged1.MBool);
-            Assert.AreEqual(multiTagged.MShort, multiTagged1.MShort);
-            Assert.AreEqual(multiTagged.MInt, multiTagged1.MInt);
-            Assert.AreEqual(multiTagged.MLong, multiTagged1.MLong);
-            Assert.AreEqual(multiTagged.MFloat, multiTagged1.MFloat);
-            Assert.AreEqual(multiTagged.MDouble, multiTagged1.MDouble);
-            Assert.AreEqual(multiTagged.MUShort, multiTagged1.MUShort);
-            Assert.AreEqual(multiTagged.MUInt, multiTagged1.MUInt);
-            Assert.AreEqual(multiTagged.MULong, multiTagged1.MULong);
-            Assert.AreEqual(multiTagged.MVarInt, multiTagged1.MVarInt);
-            Assert.AreEqual(multiTagged.MVarLong, multiTagged1.MVarLong);
-            Assert.AreEqual(multiTagged.MVarUInt, multiTagged1.MVarUInt);
-            Assert.AreEqual(multiTagged.MVarULong, multiTagged1.MVarULong);
-            Assert.AreEqual(multiTagged.MString, multiTagged1.MString);
-            Assert.AreEqual(multiTagged.MMyEnum, multiTagged1.MMyEnum);
-            Assert.AreEqual(multiTagged.MMyCompactStruct, multiTagged1.MMyCompactStruct);
-            Assert.AreEqual(multiTagged.MAnotherCompactStruct, multiTagged1.MAnotherCompactStruct);
+           Assert.That(multiTagged1.MByte, Is.EqualTo(multiTagged.MByte));
+           Assert.That(multiTagged1.MBool, Is.EqualTo(multiTagged.MBool));
+           Assert.That(multiTagged1.MShort, Is.EqualTo(multiTagged.MShort));
+           Assert.That(multiTagged1.MInt, Is.EqualTo(multiTagged.MInt));
+           Assert.That(multiTagged1.MLong, Is.EqualTo(multiTagged.MLong));
+           Assert.That(multiTagged1.MFloat, Is.EqualTo(multiTagged.MFloat));
+           Assert.That(multiTagged1.MDouble, Is.EqualTo(multiTagged.MDouble));
+           Assert.That(multiTagged1.MUShort, Is.EqualTo(multiTagged.MUShort));
+           Assert.That(multiTagged1.MUInt, Is.EqualTo(multiTagged.MUInt));
+           Assert.That(multiTagged1.MULong, Is.EqualTo(multiTagged.MULong));
+           Assert.That(multiTagged1.MVarInt, Is.EqualTo(multiTagged.MVarInt));
+           Assert.That(multiTagged1.MVarLong, Is.EqualTo(multiTagged.MVarLong));
+           Assert.That(multiTagged1.MVarUInt, Is.EqualTo(multiTagged.MVarUInt));
+           Assert.That(multiTagged1.MVarULong, Is.EqualTo(multiTagged.MVarULong));
+           Assert.That(multiTagged1.MString, Is.EqualTo(multiTagged.MString));
+           Assert.That(multiTagged1.MMyEnum, Is.EqualTo(multiTagged.MMyEnum));
+           Assert.That(multiTagged1.MMyCompactStruct, Is.EqualTo(multiTagged.MMyCompactStruct));
+           Assert.That(multiTagged1.MAnotherCompactStruct, Is.EqualTo(multiTagged.MAnotherCompactStruct));
 
             CollectionAssert.AreEqual(multiTagged.MByteSeq, multiTagged1.MByteSeq);
             Assert.That(multiTagged1.MStringSeq, Is.Null);
@@ -182,11 +182,11 @@ namespace IceRpc.Tests.Slice
             Assert.That(b.MInt6.HasValue, Is.False);
 
             b = (B)await _prx.PingPongAsync(new B(10, 11, 12, 13, 0, null));
-            Assert.AreEqual(10, b.MInt1);
-            Assert.AreEqual(11, b.MInt2);
-            Assert.AreEqual(12, b.MInt3);
-            Assert.AreEqual(13, b.MInt4);
-            Assert.AreEqual(0, b.MInt5);
+           Assert.That(b.MInt1, Is.EqualTo(10));
+           Assert.That(b.MInt2, Is.EqualTo(11));
+           Assert.That(b.MInt3, Is.EqualTo(12));
+           Assert.That(b.MInt4, Is.EqualTo(13));
+           Assert.That(b.MInt5, Is.EqualTo(0));
             Assert.That(b.MInt6.HasValue, Is.False);
         }
 

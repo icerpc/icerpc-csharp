@@ -23,7 +23,7 @@ namespace IceRpc.Tests.Slice
                     new Pipeline().Use(next => new InlineInvoker((request, cancel) =>
                     {
                         executed = true;
-                        Assert.AreEqual("opCompressArgs", request.Operation);
+                       Assert.That(request.Operation, Is.EqualTo("opCompressArgs"));
                         Assert.AreEqual(keepDefault ? Features.CompressPayload.Yes : Features.CompressPayload.No,
                                         request.Features.Get<Features.CompressPayload>());
 

@@ -59,14 +59,14 @@ namespace IceRpc.Tests.Slice
             async Task Test1Async<T>(Func<T, Task<T>> invoker, T p1)
             {
                 T r1 = await invoker(p1);
-                Assert.AreEqual(p1, r1);
+               Assert.That(r1, Is.EqualTo(p1));
             }
 
             async Task Test2Async<T>(Func<T, Task<(T, T)>> invoker, T p1)
             {
                 (T r1, T r2) = await invoker(p1);
-                Assert.AreEqual(p1, r1);
-                Assert.AreEqual(p1, r2);
+               Assert.That(r1, Is.EqualTo(p1));
+               Assert.That(r2, Is.EqualTo(p1));
             }
         }
 

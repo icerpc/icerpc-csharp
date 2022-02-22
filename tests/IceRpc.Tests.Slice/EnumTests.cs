@@ -13,45 +13,45 @@ namespace IceRpc.Tests.Slice
         public void Enum_Values()
         {
             // Ensure the generate enum has the expected values
-            Assert.AreEqual(0, (int)MyEnum.enum1);
-            Assert.AreEqual(1, (int)MyEnum.enum2);
-            Assert.AreEqual(10, (int)MyEnum.enum3);
-            Assert.AreEqual(11, (int)MyEnum.enum4);
-            Assert.AreEqual(20, (int)MyEnum.enum5);
-            Assert.AreEqual(21, (int)MyEnum.enum6);
-            Assert.AreEqual(30, (int)MyEnum.enum7);
-            Assert.AreEqual(31, (int)MyEnum.enum8);
-            Assert.AreEqual(40, (int)MyEnum.enum9);
-            Assert.AreEqual(41, (int)MyEnum.enum10);
-            Assert.AreEqual(226, (int)MyEnum.enum11);
+           Assert.That((int)MyEnum.enum1, Is.EqualTo(0));
+           Assert.That((int)MyEnum.enum2, Is.EqualTo(1));
+           Assert.That((int)MyEnum.enum3, Is.EqualTo(10));
+           Assert.That((int)MyEnum.enum4, Is.EqualTo(11));
+           Assert.That((int)MyEnum.enum5, Is.EqualTo(20));
+           Assert.That((int)MyEnum.enum6, Is.EqualTo(21));
+           Assert.That((int)MyEnum.enum7, Is.EqualTo(30));
+           Assert.That((int)MyEnum.enum8, Is.EqualTo(31));
+           Assert.That((int)MyEnum.enum9, Is.EqualTo(40));
+           Assert.That((int)MyEnum.enum10, Is.EqualTo(41));
+           Assert.That((int)MyEnum.enum11, Is.EqualTo(226));
 
-            Assert.AreEqual(sizeof(short), sizeof(MyFixedLengthEnum));
+           Assert.That(sizeof(MyFixedLengthEnum), Is.EqualTo(sizeof(short)));
 
-            Assert.AreEqual(-3, (short)MyFixedLengthEnum.senum1);
-            Assert.AreEqual(-2, (short)MyFixedLengthEnum.senum2);
-            Assert.AreEqual(10, (short)MyFixedLengthEnum.senum3);
-            Assert.AreEqual(11, (short)MyFixedLengthEnum.senum4);
-            Assert.AreEqual(20, (short)MyFixedLengthEnum.senum5);
-            Assert.AreEqual(21, (short)MyFixedLengthEnum.senum6);
-            Assert.AreEqual(30, (short)MyFixedLengthEnum.senum7);
-            Assert.AreEqual(31, (short)MyFixedLengthEnum.senum8);
-            Assert.AreEqual(40, (short)MyFixedLengthEnum.senum9);
-            Assert.AreEqual(41, (short)MyFixedLengthEnum.senum10);
-            Assert.AreEqual(32766, (short)MyFixedLengthEnum.senum11);
+           Assert.That((short)MyFixedLengthEnum.senum1, Is.EqualTo(-3));
+           Assert.That((short)MyFixedLengthEnum.senum2, Is.EqualTo(-2));
+           Assert.That((short)MyFixedLengthEnum.senum3, Is.EqualTo(10));
+           Assert.That((short)MyFixedLengthEnum.senum4, Is.EqualTo(11));
+           Assert.That((short)MyFixedLengthEnum.senum5, Is.EqualTo(20));
+           Assert.That((short)MyFixedLengthEnum.senum6, Is.EqualTo(21));
+           Assert.That((short)MyFixedLengthEnum.senum7, Is.EqualTo(30));
+           Assert.That((short)MyFixedLengthEnum.senum8, Is.EqualTo(31));
+           Assert.That((short)MyFixedLengthEnum.senum9, Is.EqualTo(40));
+           Assert.That((short)MyFixedLengthEnum.senum10, Is.EqualTo(41));
+           Assert.That((short)MyFixedLengthEnum.senum11, Is.EqualTo(32766));
 
-            Assert.AreEqual(sizeof(uint), sizeof(MyUncheckedEnum));
+           Assert.That(sizeof(MyUncheckedEnum), Is.EqualTo(sizeof(uint)));
 
-            Assert.AreEqual(1, (uint)MyUncheckedEnum.E0);
-            Assert.AreEqual(2, (uint)MyUncheckedEnum.E1);
-            Assert.AreEqual(4, (uint)MyUncheckedEnum.E2);
-            Assert.AreEqual(8, (uint)MyUncheckedEnum.E3);
-            Assert.AreEqual(16, (uint)MyUncheckedEnum.E4);
-            Assert.AreEqual(32, (uint)MyUncheckedEnum.E5);
-            Assert.AreEqual(64, (uint)MyUncheckedEnum.E6);
-            Assert.AreEqual(128, (uint)MyUncheckedEnum.E7);
-            Assert.AreEqual(256, (uint)MyUncheckedEnum.E8);
-            Assert.AreEqual(512, (uint)MyUncheckedEnum.E9);
-            Assert.AreEqual(1024, (uint)MyUncheckedEnum.E10);
+           Assert.That((uint)MyUncheckedEnum.E0, Is.EqualTo(1));
+           Assert.That((uint)MyUncheckedEnum.E1, Is.EqualTo(2));
+           Assert.That((uint)MyUncheckedEnum.E2, Is.EqualTo(4));
+           Assert.That((uint)MyUncheckedEnum.E3, Is.EqualTo(8));
+           Assert.That((uint)MyUncheckedEnum.E4, Is.EqualTo(16));
+           Assert.That((uint)MyUncheckedEnum.E5, Is.EqualTo(32));
+           Assert.That((uint)MyUncheckedEnum.E6, Is.EqualTo(64));
+           Assert.That((uint)MyUncheckedEnum.E7, Is.EqualTo(128));
+           Assert.That((uint)MyUncheckedEnum.E8, Is.EqualTo(256));
+           Assert.That((uint)MyUncheckedEnum.E9, Is.EqualTo(512));
+           Assert.That((uint)MyUncheckedEnum.E10, Is.EqualTo(1024));
         }
 
         [Test]
@@ -60,18 +60,18 @@ namespace IceRpc.Tests.Slice
             Array myEnumValues = Enum.GetValues(typeof(MyEnum));
             foreach (object value in myEnumValues)
             {
-                Assert.AreEqual((MyEnum)value, IntMyEnumExtensions.AsMyEnum((int)value));
+               Assert.That(IntMyEnumExtensions.AsMyEnum((int)value), Is.EqualTo((MyEnum)value));
             }
 
             Array myFixedLengthEnumValues = Enum.GetValues(typeof(MyFixedLengthEnum));
             foreach (object value in myFixedLengthEnumValues)
             {
-                Assert.AreEqual((MyFixedLengthEnum)value, ShortMyFixedLengthEnumExtensions.AsMyFixedLengthEnum((short)value));
+               Assert.That(ShortMyFixedLengthEnumExtensions.AsMyFixedLengthEnum((short)value), Is.EqualTo((MyFixedLengthEnum)value));
             }
 
             for (uint i = 0; i < 1024; ++i)
             {
-                Assert.AreEqual((MyUncheckedEnum)i, UintMyUncheckedEnumExtensions.AsMyUncheckedEnum(i));
+               Assert.That(UintMyUncheckedEnumExtensions.AsMyUncheckedEnum(i), Is.EqualTo((MyUncheckedEnum)i));
             }
 
             Assert.Throws<InvalidDataException>(() => IntMyEnumExtensions.AsMyEnum(2));
@@ -117,8 +117,8 @@ namespace IceRpc.Tests.Slice
             static async Task TestAsync<T>(Func<T, T, Task<(T, T)>> invoker, T p1, T p2)
             {
                 (T r1, T r2) = await invoker(p1, p2);
-                Assert.AreEqual(p1, r1);
-                Assert.AreEqual(p2, r2);
+               Assert.That(r1, Is.EqualTo(p1));
+               Assert.That(r2, Is.EqualTo(p2));
             }
         }
 
