@@ -29,28 +29,30 @@ namespace IceRpc.Tests.Api
                 .AddTransient<IDispatcher, Greeter>()
                 .BuildServiceProvider();
 
-            var prx = GreeterPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
-            prx.Proxy.Invoker = pipeline;
+            var service = ServicePrx.FromConnection(
+                serviceProvider.GetRequiredService<Connection>(),
+                GreeterPrx.DefaultPath);
+            service.Proxy.Invoker = pipeline;
 
             Assert.AreEqual(0, value);
-            Assert.DoesNotThrowAsync(async () => await new ServicePrx(prx.Proxy).IcePingAsync());
+            Assert.DoesNotThrowAsync(async () => await new ServicePrx(service.Proxy).IcePingAsync());
             Assert.AreEqual(3, value);
 
             // Verify we can't add an extra interceptor now
             Assert.Throws<InvalidOperationException>(() => pipeline.Use(next => next));
 
             // Add more interceptors with With
-            var prx2 = new GreeterPrx(prx.Proxy with
+            var service2 = new ServicePrx(service.Proxy with
             {
                 Invoker = pipeline.With(CheckValue(nextValue, 4), CheckValue(nextValue, 5))
             });
 
             value = 0;
-            Assert.DoesNotThrowAsync(async () => await new ServicePrx(prx.Proxy).IcePingAsync());
+            Assert.DoesNotThrowAsync(async () => await new ServicePrx(service.Proxy).IcePingAsync());
             Assert.AreEqual(3, value); // did not change the prx pipeline
 
             value = 0;
-            Assert.DoesNotThrowAsync(async () => await new ServicePrx(prx2.Proxy).IcePingAsync());
+            Assert.DoesNotThrowAsync(async () => await service2.IcePingAsync());
             Assert.AreEqual(5, value); // 2 more interceptors executed with prx2
         }
 
@@ -76,10 +78,11 @@ namespace IceRpc.Tests.Api
                 })
                 .BuildServiceProvider();
 
-            GreeterPrx prx = serviceProvider.GetProxy<GreeterPrx>();
-            await new ServicePrx(prx.Proxy).IcePingAsync();
+            GreeterPrx greeter = serviceProvider.GetProxy<GreeterPrx>();
+            var service = new ServicePrx(greeter.Proxy);
+            await service.IcePingAsync();
             Assert.That(lastOperation, Is.EqualTo("ice_ping"));
-            await prx.SayHelloAsync(Message);
+            await greeter.SayHelloAsync(Message);
             Assert.That(lastOperation, Is.EqualTo("sayHello"));
         }
 

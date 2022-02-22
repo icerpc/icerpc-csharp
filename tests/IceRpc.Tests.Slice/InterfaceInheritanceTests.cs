@@ -43,18 +43,20 @@ namespace IceRpc.Tests.Slice
         [Test]
         public async Task InterfaceInheritance_IceIsAAsync()
         {
-            Assert.That(await new ServicePrx(_aPrx.Proxy).IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::A"),
+            var service = new ServicePrx(_aPrx.Proxy);
+            Assert.That(await service.IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::A"),
                         Is.True);
-            Assert.That(await new ServicePrx(_aPrx.Proxy).IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::B"),
+            Assert.That(await service.IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::B"),
                         Is.False);
-            Assert.That(await new ServicePrx(_aPrx.Proxy).IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::D"),
+            Assert.That(await service.IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::D"),
                         Is.False);
 
-            Assert.That(await new ServicePrx(_bPrx.Proxy).IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::A"),
+            service = new ServicePrx(_bPrx.Proxy);
+            Assert.That(await service.IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::A"),
                         Is.True);
-            Assert.That(await new ServicePrx(_bPrx.Proxy).IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::B"),
+            Assert.That(await service.IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::B"),
                         Is.True);
-            Assert.That(await new ServicePrx(_bPrx.Proxy).IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::D"),
+            Assert.That(await service.IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::D"),
                         Is.False);
 
             Assert.That(await _cPrx.IceIsAAsync("::IceRpc::Tests::Slice::InterfaceInheritance::A"),

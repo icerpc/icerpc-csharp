@@ -504,9 +504,11 @@ namespace IceRpc.Tests.Api
                 .AddTransient<IDispatcher, Greeter>()
                 .BuildServiceProvider();
 
-            var prx = GreeterPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
-            prx.Proxy.Encoding = Encoding.FromString(encoding);
-            await new ServicePrx(prx.Proxy).IcePingAsync(); // works fine, we use the protocol's encoding in this case
+            var service = ServicePrx.FromConnection(
+                serviceProvider.GetRequiredService<Connection>(),
+                GreeterPrx.DefaultPath);
+            service.Proxy.Encoding = Encoding.FromString(encoding);
+            await service.IcePingAsync(); // works fine, we use the protocol's encoding in this case
         }
 
         [Test]

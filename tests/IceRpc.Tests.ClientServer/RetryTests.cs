@@ -58,19 +58,19 @@ namespace IceRpc.Tests.ClientServer
             var proxy = Proxy.Parse($"{server1.Endpoint}", serviceProvider1.GetRequiredService<IInvoker>());
             proxy = proxy with { Path = "/retry" };
 
-            var prx = new RetryReplicatedTestPrx(proxy);
+            var prx = new ServicePrx(proxy);
 
             prx.Proxy.AltEndpoints = ImmutableList.Create(server2.Endpoint, server3.Endpoint);
 
-            Assert.DoesNotThrowAsync(async () => await new ServicePrx(prx.Proxy).IcePingAsync());
+            Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
             Assert.That(
                 prx.Proxy.Connection!.NetworkConnectionInformation!.Value.RemoteEndpoint, Is.EqualTo(server1.Endpoint));
             await server1.ShutdownAsync();
-            Assert.DoesNotThrowAsync(async () => await new ServicePrx(prx.Proxy).IcePingAsync());
+            Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
             Assert.That(
                 prx.Proxy.Connection!.NetworkConnectionInformation!.Value.RemoteEndpoint, Is.EqualTo(server2.Endpoint));
             await server2.ShutdownAsync();
-            Assert.DoesNotThrowAsync(async () => await new ServicePrx(prx.Proxy).IcePingAsync());
+            Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
             Assert.That(
                 prx.Proxy.Connection!.NetworkConnectionInformation!.Value.RemoteEndpoint, Is.EqualTo(server3.Endpoint));
         }
@@ -82,10 +82,10 @@ namespace IceRpc.Tests.ClientServer
                 .AddTransient<IDispatcher, Bidir>()
                 .BuildServiceProvider();
 
-            var retryBidir = RetryBidirTestPrx.Parse("icerpc:/retry");
+            var retryBidir = ServicePrx.Parse("icerpc:/retry");
             retryBidir.Proxy.Endpoint = serviceProvider.GetRequiredService<Server>().Endpoint;
             retryBidir.Proxy.Invoker = serviceProvider.GetRequiredService<IInvoker>();
-            await new ServicePrx(retryBidir.Proxy).IcePingAsync();
+            await retryBidir.IcePingAsync();
 
             // endpointless proxy with a connection
             var bidir = new RetryBidirTestPrx(retryBidir.Proxy with { Endpoint = null });
@@ -112,7 +112,7 @@ namespace IceRpc.Tests.ClientServer
                 .UseProtocol(protocol)
                 .BuildServiceProvider();
             RetryTest service = serviceProvider.GetRequiredService<RetryTest>();
-            RetryTestPrx retry = new(serviceProvider.GetRequiredService<Proxy>());
+            var retry = new RetryTestPrx(serviceProvider.GetRequiredService<Proxy>());
 
             // Remote case: send multiple OpWithData, followed by a close and followed by multiple OpWithData. The
             // goal is to make sure that none of the OpWithData fail even if the server closes the connection

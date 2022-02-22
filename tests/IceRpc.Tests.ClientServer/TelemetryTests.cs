@@ -35,8 +35,8 @@ namespace IceRpc.Tests.ClientServer
 
             {
                 await using AsyncServiceScope scope = serviceProvider.CreateAsyncScope();
-                ServicePrx prx = scope.ServiceProvider.GetProxy<ServicePrx>(GreeterPrx.DefaultPath);
-                await prx.IcePingAsync();
+                ServicePrx service = scope.ServiceProvider.GetProxy<ServicePrx>(GreeterPrx.DefaultPath);
+                await service.IcePingAsync();
                 Assert.That(called, Is.True);
                 Assert.That(invocationActivity, Is.Null);
             }
@@ -46,7 +46,7 @@ namespace IceRpc.Tests.ClientServer
 
             {
                 await using AsyncServiceScope scope = serviceProvider.CreateAsyncScope();
-                ServicePrx prx = scope.ServiceProvider.GetProxy<ServicePrx>(GreeterPrx.DefaultPath);
+                ServicePrx service = scope.ServiceProvider.GetProxy<ServicePrx>(GreeterPrx.DefaultPath);
 
                 // Starting the test activity ensures that Activity.Current is not null which in turn will
                 // trigger the creation of the Invocation activity.
@@ -54,7 +54,7 @@ namespace IceRpc.Tests.ClientServer
                 testActivity.Start();
                 Assert.That(Activity.Current, Is.Not.Null);
 
-                await prx.IcePingAsync();
+                await service.IcePingAsync();
 
                 Assert.That(called, Is.True);
                 Assert.That(invocationActivity, Is.Not.Null);

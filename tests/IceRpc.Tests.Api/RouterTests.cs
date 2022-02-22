@@ -50,9 +50,10 @@ namespace IceRpc.Tests.Api
         }
 
         [Test]
-        public void Router_InvalidOperation()
+        public async Task Router_InvalidOperationAsync()
         {
             _router.Map<IGreeter>(new Greeter());
+            await ServicePrx.FromConnection(_connection, GreeterPrx.DefaultPath).IcePingAsync();
             Assert.Throws<InvalidOperationException>(() => _router.Map<IGreeter>(new Greeter()));
             Assert.Throws<InvalidOperationException>(() => _router.Mount("/foo", new Greeter()));
             Assert.Throws<InvalidOperationException>(() => _router.Use(next => next));

@@ -99,7 +99,7 @@ namespace IceRpc.Tests.Api
                     MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
                     RemoteEndpoint = server.Endpoint
                 };
-                var proxy = ServicePrx.FromConnection(connection);
+                var proxy = ServicePrx.FromConnection(connection, GreeterPrx.DefaultPath);
                 server.Listen();
 
                 Assert.DoesNotThrow(() => router.Use(next => next)); // still fine
