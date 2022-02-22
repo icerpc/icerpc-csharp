@@ -181,7 +181,7 @@ namespace IceRpc.Slice
             encoder.EncodeException(exception);
             Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
-            pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
+            pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
         }
 
