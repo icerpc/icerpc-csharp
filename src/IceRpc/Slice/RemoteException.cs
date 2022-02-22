@@ -10,8 +10,6 @@ namespace IceRpc.Slice
         /// <inheritdoc/>
         public override string Message => _hasCustomMessage || DefaultMessage == null ? base.Message : DefaultMessage;
 
-        private static readonly string _sliceTypeId = TypeExtensions.GetSliceTypeId(typeof(RemoteException))!;
-
         /// <summary>When true, if this exception is thrown from the implementation of an operation, Ice will convert
         /// it into an Ice.UnhandledException. When false, Ice marshals this remote exception as-is. true is the
         /// default for exceptions unmarshaled by Ice, while false is the default for exceptions that did not originate
@@ -75,26 +73,11 @@ namespace IceRpc.Slice
         /// <summary>Decodes a remote exception.</summary>
         /// <param name="decoder">The Slice decoder.</param>
         // This implementation is only called on a plain RemoteException.
-        protected virtual void DecodeCore(ref SliceDecoder decoder)
-        {
-        }
+        protected abstract void DecodeCore(ref SliceDecoder decoder);
 
         /// <summary>Encodes a remote exception.</summary>
         /// <param name="encoder">The Slice encoder.</param>
-        protected virtual void EncodeCore(ref SliceEncoder encoder)
-        {
-            if (encoder.Encoding == Encoding.Slice11)
-            {
-                encoder.StartSlice(_sliceTypeId);
-                encoder.EndSlice(lastSlice: true);
-            }
-            else
-            {
-                encoder.EncodeString(_sliceTypeId);
-                encoder.EncodeString(Message);
-                Origin.Encode(ref encoder);
-            }
-        }
+        protected abstract void EncodeCore(ref SliceEncoder encoder);
 
         internal void Decode(ref SliceDecoder decoder) => DecodeCore(ref decoder);
         internal void Encode(ref SliceEncoder encoder) => EncodeCore(ref encoder);
