@@ -75,8 +75,9 @@ namespace IceRpc.Tests.Api
 
                 server.Listen();
 
-                // Throws ServiceNotFoundException when Dispatcher is null
-                Assert.ThrowsAsync<ServiceNotFoundException>(async () => await proxy.IcePingAsync());
+                // Throws DispatchException(ServiceNotFound) when Dispatcher is null
+                var dispatchException = Assert.ThrowsAsync<DispatchException>(() => proxy.IcePingAsync());
+                Assert.That(dispatchException!.ErrorCode, Is.EqualTo(Slice.DispatchErrorCode.ServiceNotFound));
             }
 
             {
@@ -336,12 +337,12 @@ namespace IceRpc.Tests.Api
                 cancellationSource.Cancel();
             }
 
-            // Ensures the client gets a DispatchException with the Ice protocol and OperationCanceledException with
-            // the IceRPC protocol.
-            // TODO: for now it's UnhandledException
+            // Ensures the client gets a DispatchException with the ice protocol and OperationCanceledException with
+            // the icerpc protocol.
             if (protocol == Protocol.Ice)
             {
-                Assert.ThrowsAsync<UnhandledException>(async () => await task);
+                var dispatchException = Assert.ThrowsAsync<DispatchException>(() => task);
+                Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.Canceled));
             }
             else
             {
@@ -349,7 +350,7 @@ namespace IceRpc.Tests.Api
             }
 
             // Shutdown shouldn't throw.
-            Assert.DoesNotThrowAsync(async () => await shutdownTask);
+            Assert.DoesNotThrowAsync(() => shutdownTask);
 
             Assert.That(server.ShutdownComplete.IsCompleted, Is.True);
         }

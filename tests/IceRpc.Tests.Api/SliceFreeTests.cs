@@ -101,7 +101,8 @@ namespace IceRpc.Tests.Api
             Slice.IServicePrx slicePrx = new Slice.ServicePrx(joeProxy);
 
             // the greeter does not implement ice_ping since ice_ping is a Slice operation:
-            Assert.ThrowsAsync<Slice.OperationNotFoundException>(async () => await slicePrx.IcePingAsync());
+            var dispatchException = Assert.ThrowsAsync<Slice.DispatchException>(() => slicePrx.IcePingAsync());
+            Assert.That(dispatchException!.ErrorCode, Is.EqualTo(Slice.DispatchErrorCode.OperationNotFound));
         }
 
         [Test]
@@ -146,7 +147,7 @@ namespace IceRpc.Tests.Api
             {
                 if (request.Operation != _sayHelloOperation)
                 {
-                    throw new Slice.OperationNotFoundException();
+                    throw new Slice.DispatchException(Slice.DispatchErrorCode.OperationNotFound);
                 }
 
                 Assert.That(request.PayloadEncoding, Is.EqualTo(_customEncoding));

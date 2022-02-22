@@ -216,7 +216,7 @@ namespace IceRpc.Configure
                             }
                             // and try again with the new shorter prefix
                         }
-                        throw new DispatchException("too many segments in path");
+                        throw new DispatchException("too many segments in path", DispatchErrorCode.InvalidData);
                     }
                 });
 
