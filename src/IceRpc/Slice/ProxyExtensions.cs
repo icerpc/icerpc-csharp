@@ -82,7 +82,7 @@ namespace IceRpc.Slice
 
                 if (invocation != null)
                 {
-                    invocation.Features = request.Features;
+                    invocation.Response = response;
                 }
 
                 return await responseDecodeFunc(response, cancel).ConfigureAwait(false);
@@ -143,7 +143,7 @@ namespace IceRpc.Slice
 
                 if (invocation != null)
                 {
-                    invocation.Features = request.Features;
+                    invocation.Response = response;
                 }
 
                 await response.CheckVoidReturnValueAsync(
