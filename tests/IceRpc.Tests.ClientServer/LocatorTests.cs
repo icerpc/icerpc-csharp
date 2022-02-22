@@ -68,7 +68,7 @@ namespace IceRpc.Tests.ClientServer
                     {
                         EndpointSelection? endpointSelection = request.Features.Get<EndpointSelection>();
                         Assert.That(endpointSelection, Is.Not.Null);
-                        Assert.AreEqual(greeter.Proxy.Endpoint, endpointSelection.Endpoint);
+                        Assert.That(greeter.Proxy.Endpoint, Is.EqualTo(endpointSelection?.Endpoint));
                         _called = true;
                     }
                     return next.InvokeAsync(request, cancel);
@@ -81,7 +81,7 @@ namespace IceRpc.Tests.ClientServer
 
             ServicePrx? found = await locator.FindAdapterByIdAsync(adapter);
             Assert.That(found, Is.Not.Null);
-            Assert.AreEqual(found?.Proxy.Endpoint, greeter.Proxy.Endpoint);
+            Assert.That(found?.Proxy.Endpoint, Is.EqualTo(greeter.Proxy.Endpoint));
 
             Assert.That(_called, Is.False);
             try
@@ -205,7 +205,7 @@ namespace IceRpc.Tests.ClientServer
                     {
                         EndpointSelection? endpointSelection = request.Features.Get<EndpointSelection>();
                         Assert.That(endpointSelection, Is.Not.Null);
-                        Assert.AreEqual(greeter.Proxy.Endpoint, endpointSelection.Endpoint);
+                        Assert.That(greeter.Proxy.Endpoint, Is.EqualTo(endpointSelection?.Endpoint));
                         _called = true;
                     }
                     return next.InvokeAsync(request, cancel);
@@ -216,7 +216,7 @@ namespace IceRpc.Tests.ClientServer
             locator.RegisterWellKnownProxy(GreeterPath, greeter);
             ServicePrx? found = await locator.FindObjectByIdAsync(GreeterPath);
             Assert.That(found, Is.Not.Null);
-            Assert.AreEqual(found?.Proxy.Endpoint, greeter.Proxy.Endpoint);
+            Assert.That(found?.Proxy.Endpoint, Is.EqualTo(greeter.Proxy.Endpoint));
 
             Assert.That(_called, Is.False);
             try
@@ -241,7 +241,7 @@ namespace IceRpc.Tests.ClientServer
 
             found = await locator.FindObjectByIdAsync(GreeterPath);
             Assert.That(found, Is.Not.Null);
-            Assert.AreEqual(indirectGreeter.Proxy.Endpoint, found?.Proxy.Endpoint); // partial resolution
+            Assert.That(found?.Proxy.Endpoint, Is.EqualTo(indirectGreeter.Proxy.Endpoint)); // partial resolution
 
             Assert.That(_called, Is.False);
             try
