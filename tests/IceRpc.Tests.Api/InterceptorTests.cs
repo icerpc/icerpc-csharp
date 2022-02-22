@@ -44,7 +44,7 @@ namespace IceRpc.Tests.Api
         public void Interceptor_Timeout_OperationCanceledException()
         {
             var pipeline = new Pipeline();
-            var prx = new InterceptorTestPrx(_prx.Proxy with { Invoker = pipeline });
+            var prx = new ServicePrx(_prx.Proxy with { Invoker = pipeline });
 
             pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
             {
@@ -52,7 +52,7 @@ namespace IceRpc.Tests.Api
                 return await next.InvokeAsync(request, cancel);
             }));
 
-            Assert.CatchAsync<OperationCanceledException>(async () => await new ServicePrx(prx.Proxy).IcePingAsync(
+            Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync(
                 new Invocation { Timeout = TimeSpan.FromMilliseconds(10) }));
         }
 

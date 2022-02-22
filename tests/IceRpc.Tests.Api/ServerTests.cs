@@ -51,7 +51,7 @@ namespace IceRpc.Tests.Api
                     MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
                     RemoteEndpoint = server.Endpoint
                 };
-                var proxy = GreeterPrx.FromConnection(connection);
+                var proxy = ServicePrx.FromConnection(connection);
 
                 Assert.ThrowsAsync<ConnectionRefusedException>(async () => await proxy.IcePingAsync());
                 server.Listen();
@@ -71,13 +71,13 @@ namespace IceRpc.Tests.Api
                     MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
                     RemoteEndpoint = server.Endpoint
                 };
-                var proxy = GreeterPrx.FromConnection(connection);
+                var proxy = ServicePrx.FromConnection(connection);
 
                 server.Listen();
 
                 // Throws DispatchException(ServiceNotFound) when Dispatcher is null
                 var dispatchException = Assert.ThrowsAsync<DispatchException>(() => proxy.IcePingAsync());
-                Assert.That(dispatchException!.ErrorCode, Is.EqualTo(Slice.DispatchErrorCode.ServiceNotFound));
+                Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
             }
 
             {
@@ -99,7 +99,7 @@ namespace IceRpc.Tests.Api
                     MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
                     RemoteEndpoint = server.Endpoint
                 };
-                var proxy = GreeterPrx.FromConnection(connection);
+                var proxy = ServicePrx.FromConnection(connection);
                 server.Listen();
 
                 Assert.DoesNotThrow(() => router.Use(next => next)); // still fine
@@ -209,7 +209,7 @@ namespace IceRpc.Tests.Api
                 LoggerFactory = LogAttributeLoggerFactory.Instance,
                 RemoteEndpoint = server.Endpoint
             };
-            var proxy = GreeterPrx.FromConnection(connection);
+            var proxy = ServicePrx.FromConnection(connection, GreeterPrx.DefaultPath);
 
             using var cancellationSource = new CancellationTokenSource();
             Task task = proxy.IcePingAsync(cancel: cancellationSource.Token);
@@ -254,7 +254,7 @@ namespace IceRpc.Tests.Api
                 RemoteEndpoint = server.Endpoint
             };
 
-            var proxy = GreeterPrx.FromConnection(connection);
+            var proxy = ServicePrx.FromConnection(connection, GreeterPrx.DefaultPath);
 
             Task task = proxy.IcePingAsync();
             Assert.That(server.ShutdownComplete.IsCompleted, Is.False);
@@ -314,7 +314,7 @@ namespace IceRpc.Tests.Api
                 LoggerFactory = LogAttributeLoggerFactory.Instance
             };
 
-            var proxy = GreeterPrx.FromConnection(connection);
+            var proxy = ServicePrx.FromConnection(connection, GreeterPrx.DefaultPath);
 
             Task task = proxy.IcePingAsync();
             Assert.That(server.ShutdownComplete.IsCompleted, Is.False);
