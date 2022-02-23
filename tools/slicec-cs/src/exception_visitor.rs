@@ -149,6 +149,20 @@ else
             .build(),
         );
 
+        let mut encode_core_body: CodeBlock = format!(r#"
+System.Diagnostics.Debug.Assert(encoder.Encoding == IceRpc.Encoding.Slice11);
+
+encoder.StartSlice(_sliceTypeId);
+{encode_data_members}"#,
+            encode_data_members = &encode_data_members(&members, namespace, FieldType::Exception),
+        ).into();
+        if has_base {
+            writeln!(encode_core_body, "encoder.EndSlice(lastSlice: false);");
+            writeln!(encode_core_body, "base.EncodeCore(ref encoder);");
+        } else {
+            writeln!(encode_core_body, "encoder.EndSlice(lastSlice: true);");
+        }
+
         exception_class_builder.add_block(
             FunctionBuilder::new(
                 "protected override",
@@ -157,51 +171,65 @@ else
                 FunctionType::BlockBody,
             )
             .add_parameter("ref SliceEncoder", "encoder", None, None)
-            .set_body({
-                let mut code = CodeBlock::new();
-                // TODO: don't need if (encoder.Encoding ==) when exception has classes
-                if has_base {
-                    writeln!(
-                        code,
-                        "\
-if (encoder.Encoding == IceRpc.Encoding.Slice11)
-{{
-    encoder.StartSlice(_sliceTypeId);
-    {encode_data_members}
-    encoder.EndSlice(lastSlice: false);
-    base.EncodeCore(ref encoder);
-}}
-else
-{{
-    base.EncodeCore(ref encoder);
-}}",
-                        encode_data_members =
-                            &encode_data_members(&members, namespace, FieldType::Exception,)
-                    );
-                } else {
-                    writeln!(
-                        code,
-                        "\
-if (encoder.Encoding == IceRpc.Encoding.Slice11)
-{{
-    encoder.StartSlice(_sliceTypeId);
-    {encode_data_members}
-    encoder.EndSlice(lastSlice: true);
-}}
-else
-{{
-    encoder.EncodeString(_sliceTypeId);
-    encoder.EncodeString(Message);
-    Origin.Encode(ref encoder);
-    {encode_data_members}
-}}",
-                        encode_data_members =
-                            &encode_data_members(&members, namespace, FieldType::Exception,)
-                    );
-                }
+            .set_body(encode_core_body)
+            .build(),
+        );
 
-                code
-            })
+        let encode_body = format!(r#"
+System.Diagnostics.Debug.Assert(encoder.Encoding != IceRpc.Encoding.Slice11);
+
+encoder.EncodeString(Message);
+Origin.Encode(ref encoder);
+{encode_data_members}"#,
+            encode_data_members = &encode_data_members(&members, namespace, FieldType::Exception),
+        ).into();
+        let qualifier = if has_base { "public new" } else { "public" };
+        exception_class_builder.add_block(
+            FunctionBuilder::new(
+                qualifier,
+                "void",
+                "Encode",
+                FunctionType::BlockBody,
+            )
+            .add_comment("summary", "Encodes the fields of this exception.")
+            .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
+            .set_body(encode_body)
+            .build(),
+        );
+
+        // 2.0 doesn't support exception inheritance, so we encode the least-derived exception.
+        let encode_trait_body_20 = if has_base {
+"base.EncodeTrait(ref encoder);"
+        } else {
+"encoder.EncodeString(_sliceTypeId);
+this.Encode(ref encoder);"
+        };
+        exception_class_builder.add_block(
+            FunctionBuilder::new(
+                "public override",
+                "void",
+                "EncodeTrait",
+                FunctionType::BlockBody,
+            )
+            .add_comment(
+                "summary",
+                "Encodes this exception as a trait, by encoding it's Slice type ID followed by it's fields",
+            )
+            .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
+            .set_body(format!(r#"
+if (encoder.Encoding == IceRpc.Encoding.Slice11)
+{{
+    encoder.StartException();
+    this.EncodeCore(ref encoder);
+    encoder.EndException();
+}}
+else
+{{
+    {encode_trait_body_20}
+}}"#,
+encode_trait_body_20 = encode_trait_body_20)
+                .into(),
+            )
             .build(),
         );
 
