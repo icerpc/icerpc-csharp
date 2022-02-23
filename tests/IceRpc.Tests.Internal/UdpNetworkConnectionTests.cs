@@ -95,10 +95,10 @@ namespace IceRpc.Tests.Internal
                         Memory<byte> readBuffer = new byte[UdpUtils.MaxPacketSize];
                         int received = await ServerConnection.ReadAsync(readBuffer, source.Token);
 
-                        Assert.AreEqual(writeBuffer.Length, received);
+                        Assert.That(writeBuffer.Length, Is.EqualTo(received));
                         for (int i = 0; i < received; ++i)
                         {
-                            Assert.AreEqual(writeBuffer[i], readBuffer.Span[i]);
+                            Assert.That(readBuffer.Span[i], Is.EqualTo(writeBuffer[i]));
                         }
                     }
                     break;
@@ -123,7 +123,7 @@ namespace IceRpc.Tests.Internal
                         using var source = new CancellationTokenSource(1000);
                         Memory<byte> readBuffer = new byte[UdpUtils.MaxPacketSize];
                         int received = await ServerConnection.ReadAsync(readBuffer, source.Token);
-                        Assert.AreEqual(writeBuffer.Length, received);
+                        Assert.That(writeBuffer.Length, Is.EqualTo(received));
                     }
                     break;
                 }
@@ -199,10 +199,10 @@ namespace IceRpc.Tests.Internal
                     ValueTask writeTask = ClientConnection.WriteAsync(writeBuffers, default);
                     Memory<byte> readBuffer = new byte[UdpUtils.MaxPacketSize];
                     int received = await ServerConnection.ReadAsync(readBuffer, source.Token);
-                    Assert.AreEqual(writeBuffer.Length, received);
+                    Assert.That(writeBuffer.Length, Is.EqualTo(received));
                     for (int i = 0; i < received; ++i)
                     {
-                        Assert.AreEqual(writeBuffer[i], readBuffer.Span[i]);
+                        Assert.That(readBuffer.Span[i], Is.EqualTo(writeBuffer[i]));
                     }
                     break;
                 }

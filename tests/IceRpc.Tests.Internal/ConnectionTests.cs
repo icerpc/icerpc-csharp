@@ -147,20 +147,20 @@ namespace IceRpc.Tests.Internal
             NetworkConnectionInformation? serverInformation = factory.ServerConnection.NetworkConnectionInformation;
             Assert.That(serverInformation, Is.Not.Null);
 
-            Assert.AreEqual("127.0.0.1", clientInformation?.LocalEndpoint.Host);
-            Assert.AreEqual("127.0.0.1", clientInformation?.RemoteEndpoint.Host);
+            Assert.That(clientInformation?.LocalEndpoint.Host, Is.EqualTo("127.0.0.1"));
+            Assert.That(clientInformation?.RemoteEndpoint.Host, Is.EqualTo("127.0.0.1"));
             Assert.That(clientInformation?.RemoteEndpoint!.Port, Is.EqualTo(serverInformation?.LocalEndpoint!.Port));
             if (transport != "udp")
             {
                 Assert.That(clientInformation?.LocalEndpoint!.Port, Is.EqualTo(serverInformation?.RemoteEndpoint!.Port));
-                Assert.AreEqual("127.0.0.1", clientInformation?.RemoteEndpoint!.Host);
+                Assert.That(clientInformation?.RemoteEndpoint!.Host, Is.EqualTo("127.0.0.1"));
             }
             Assert.That(factory.ClientConnection.IsServer, Is.False);
             Assert.That(factory.ServerConnection.IsServer, Is.True);
 
             if (secure)
             {
-                Assert.AreEqual("tcp", transport);
+                Assert.That(transport, Is.EqualTo("tcp"));
                 Assert.That(clientInformation?.RemoteCertificate, Is.Not.Null);
                 Assert.That(serverInformation?.RemoteCertificate, Is.Null);
             }
