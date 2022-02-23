@@ -27,7 +27,7 @@ namespace IceRpc.Slice
 
         private readonly bool _hasCustomMessage;
 
-        /// <summary>Encodes this exception as a trait, by encoding it's Slice type ID followed by it's fields.
+        /// <summary>Encodes this exception as a trait, by encoding its Slice type ID followed by its fields.
         /// </summary>
         /// <param name="encoder">The Slice encoder.</param>
         public abstract void EncodeTrait(ref SliceEncoder encoder);
