@@ -17,49 +17,6 @@ namespace IceRpc.Slice
         /// <param name="v">The class instance to encode.</param>
         public void EncodeClass(AnyClass v) => EncodeNullableClass(v);
 
-        /// <inheritdoc/>
-        private void EncodeExceptionClass(RemoteException v)
-        {
-            Debug.Assert(_classContext.Current.InstanceType == InstanceType.None);
-
-            if (v is DispatchException dispatchException)
-            {
-                DispatchErrorCode errorCode = dispatchException.ErrorCode;
-
-                switch (errorCode)
-                {
-                    case DispatchErrorCode.ServiceNotFound:
-                    case DispatchErrorCode.OperationNotFound:
-                        this.EncodeReplyStatus(errorCode == DispatchErrorCode.ServiceNotFound ?
-                            ReplyStatus.ObjectNotExistException : ReplyStatus.OperationNotExistException);
-                        var requestFailed = new RequestFailedExceptionData(
-                            v.Origin.Path,
-                            v.Origin.Fragment,
-                            v.Origin.Operation);
-
-                        requestFailed.Encode(ref this);
-                        break;
-
-                    default:
-                        this.EncodeReplyStatus(ReplyStatus.UnknownException);
-
-                        // We encode the error code in the message.
-                        EncodeString($"[{((byte)errorCode).ToString(CultureInfo.InvariantCulture)}] {v.Message}");
-                        break;
-                }
-            }
-            else
-            {
-                // We don't encode the ReplyStatus because "user exceptions" are always encoded with a SliceFailure
-                // result type.
-                _classContext.ClassFormat = FormatType.Sliced; // always encode exceptions in sliced format
-                _classContext.Current.InstanceType = InstanceType.Exception;
-                _classContext.Current.FirstSlice = true;
-                v.Encode(ref this);
-                _classContext.Current = default;
-            }
-        }
-
         /// <summary>Encodes a class instance, or null.</summary>
         /// <param name="v">The class instance to encode, or null.</param>
         public void EncodeNullableClass(AnyClass? v)

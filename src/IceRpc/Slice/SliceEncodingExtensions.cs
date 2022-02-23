@@ -4,6 +4,7 @@ using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO.Pipelines;
 
 namespace IceRpc.Slice
@@ -178,7 +179,39 @@ namespace IceRpc.Slice
             var encoder = new SliceEncoder(pipe.Writer, encoding);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
-            encoder.EncodeException(exception);
+
+            // Dispatch exceptions are encoded as "system exceptions" with 1.1.
+            if (encoding == IceRpc.Encoding.Slice11 && exception is DispatchException dispatchException)
+            {
+                DispatchErrorCode errorCode = dispatchException.ErrorCode;
+
+                switch (errorCode)
+                {
+                    case DispatchErrorCode.ServiceNotFound:
+                    case DispatchErrorCode.OperationNotFound:
+                        encoder.EncodeReplyStatus(errorCode == DispatchErrorCode.ServiceNotFound ?
+                            ReplyStatus.ObjectNotExistException : ReplyStatus.OperationNotExistException);
+                        var requestFailed = new RequestFailedExceptionData(
+                            dispatchException.Origin.Path,
+                            dispatchException.Origin.Fragment,
+                            dispatchException.Origin.Operation);
+
+                        requestFailed.Encode(ref encoder);
+                        break;
+
+                    default:
+                        encoder.EncodeReplyStatus(ReplyStatus.UnknownException);
+
+                        // We encode the error code in the message.
+                        encoder.EncodeString($"[{((byte)errorCode).ToString(CultureInfo.InvariantCulture)}] {dispatchException.Message}");
+                        break;
+                }
+            }
+            else
+            {
+                exception.EncodeTrait(ref encoder);
+            }
+
             Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.

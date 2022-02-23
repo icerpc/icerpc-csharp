@@ -199,18 +199,23 @@ namespace IceRpc.Slice
 
         // Encode methods for constructed types
 
-        /// <summary>Encodes a remote exception.</summary>
-        /// <param name="v">The remote exception to encode.</param>
-        public void EncodeException(RemoteException v)
+        /// <summary>TODOAUSTIN</summary>
+        public void StartException()
         {
-            if (Encoding == IceRpc.Encoding.Slice11)
-            {
-                EncodeExceptionClass(v);
-            }
-            else
-            {
-                v.Encode(ref this);
-            }
+            Debug.Assert(_classContext.Current.InstanceType == InstanceType.None);
+            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
+
+            _classContext.ClassFormat = FormatType.Sliced; // always encode exceptions in sliced format
+            _classContext.Current.InstanceType = InstanceType.Exception;
+            _classContext.Current.FirstSlice = true;
+        }
+
+        /// <summary>TODOAUSTIN</summary>
+        public void EndException()
+        {
+            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
+
+            _classContext.Current = default;
         }
 
         /// <summary>Encodes a nullable proxy.</summary>
