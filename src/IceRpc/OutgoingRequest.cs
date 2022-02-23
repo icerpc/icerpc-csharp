@@ -23,7 +23,7 @@ namespace IceRpc
         public bool IsSent { get; set; }
 
         /// <summary>The operation called on the service.</summary>
-        public string Operation { get; }
+        public string Operation { get; init; } = "";
 
         /// <summary>Returns the encoding of the payload of this request.</summary>
         public Encoding PayloadEncoding { get; init; } = Encoding.Unknown;
@@ -41,14 +41,12 @@ namespace IceRpc
 
         /// <summary>Constructs an outgoing request.</summary>
         /// <param name="proxy">The <see cref="Proxy"/> used to send the request.</param>
-        /// <param name="operation">The operation of the request.</param>
-        public OutgoingRequest(Proxy proxy, string operation)
+        public OutgoingRequest(Proxy proxy)
             : base(proxy.Protocol, new DelayedPipeWriterDecorator())
         {
             Connection = proxy.Connection;
             // We keep it to initialize it later
             InitialPayloadSink = (DelayedPipeWriterDecorator)PayloadSink;
-            Operation = operation;
             Proxy = proxy;
         }
     }

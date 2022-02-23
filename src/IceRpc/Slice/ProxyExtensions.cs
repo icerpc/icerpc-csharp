@@ -57,10 +57,11 @@ namespace IceRpc.Slice
                     nameof(invocation));
             }
 
-            var request = new OutgoingRequest(proxy, operation)
+            var request = new OutgoingRequest(proxy)
             {
                 Features = invocation?.Features ?? FeatureCollection.Empty,
                 Fields = idempotent ? _idempotentFields : ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty,
+                Operation = operation,
                 PayloadEncoding = payloadEncoding,
                 PayloadSource = payloadSource,
                 PayloadSourceStream = payloadSourceStream
@@ -117,11 +118,12 @@ namespace IceRpc.Slice
             bool oneway = false,
             CancellationToken cancel = default)
         {
-            var request = new OutgoingRequest(proxy, operation)
+            var request = new OutgoingRequest(proxy)
             {
                 Features = invocation?.Features ?? FeatureCollection.Empty,
                 Fields = idempotent ? _idempotentFields : ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty,
                 IsOneway = oneway || (invocation?.IsOneway ?? false),
+                Operation = operation,
                 PayloadEncoding = payloadEncoding,
                 PayloadSource = payloadSource,
                 PayloadSourceStream = payloadSourceStream

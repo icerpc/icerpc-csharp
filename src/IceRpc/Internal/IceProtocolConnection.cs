@@ -129,11 +129,6 @@ namespace IceRpc.Internal
                 {
                     IceRequestHeader requestHeader = DecodeHeader(ref buffer);
 
-                    if (requestHeader.Operation.Length == 0)
-                    {
-                        throw new InvalidDataException("received request with empty operation name");
-                    }
-
                     // The payload size is the encapsulation size less the 6 bytes of the encapsulation header.
                     int payloadSize = requestHeader.EncapsulationHeader.EncapsulationSize - 6;
                     if (payloadSize != buffer.Length - 4)
