@@ -1,0 +1,15 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+[cs:namespace("IceRpc.Slice")]
+module Slice;
+
+/// When a client decodes the payload of a "failure" response and does not know the type ID for the encoded exception,
+/// it throws an UnknownException.
+exception UnknownException
+{
+    /// The type ID of the exception that the client does not know.
+    typeId: string,
+
+    /// The message carried by the undecodable exception.
+    message: string,
+}

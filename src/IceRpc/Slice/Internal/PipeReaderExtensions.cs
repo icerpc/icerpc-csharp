@@ -121,7 +121,7 @@ namespace IceRpc.Slice.Internal
                     maxDepth);
                 remoteException = decoder.DecodeException(resultType);
 
-                if (remoteException is not UnknownSlicedRemoteException)
+                if (remoteException is not UnknownException)
                 {
                     decoder.CheckEndOfBuffer(skipTaggedParams: false);
                 }

@@ -319,9 +319,8 @@ namespace IceRpc.Slice
                 }
                 else
                 {
-                    // If we can't decode this exception, we return an UnknownSlicedRemoteException instead of throwing
-                    // "can't decode remote exception".
-                    return new UnknownSlicedRemoteException(typeId, ref this);
+                    // If we can't decode this exception, we return an UnknownException with the type ID and message.
+                    return new UnknownException(typeId, DecodeString());
                 }
             }
         }
