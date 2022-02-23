@@ -147,7 +147,7 @@ namespace IceRpc.Tests.Api
 
             _router.Route(prefix, r =>
                 {
-                   Assert.That(r.AbsolutePrefix, Is.EqualTo(prefix.TrimEnd('/')));
+                    Assert.That(r.AbsolutePrefix, Is.EqualTo(prefix.TrimEnd('/')));
                     r.Map(subpath, new InlineDispatcher(
                         (request, cancel) =>
                         {
