@@ -7,7 +7,7 @@ namespace IceRpc.Slice
     public sealed class Dispatch
     {
         /// <summary>The <see cref="Connection"/> over which the request was dispatched.</summary>
-        public Connection Connection => IncomingRequest.Connection;
+        public Connection Connection => Request.Connection;
 
         /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
         /// caller is no longer interested in the response and discards the request. The server-side runtime does not
@@ -21,7 +21,7 @@ namespace IceRpc.Slice
             {
                 if (_deadline == null)
                 {
-                    long value = IncomingRequest.Fields.DecodeValue(
+                    long value = Request.Fields.DecodeValue(
                         (int)FieldKey.Deadline,
                         (ref SliceDecoder decoder) => decoder.DecodeVarLong());
 
@@ -33,33 +33,33 @@ namespace IceRpc.Slice
         }
 
         /// <summary>The encoding used by the request.</summary>
-        public Encoding Encoding => IncomingRequest.PayloadEncoding;
+        public Encoding Encoding => Request.PayloadEncoding;
 
         /// <summary>The features associated with the request.</summary>
         public FeatureCollection Features
         {
-            get => IncomingRequest.Features;
-            set => IncomingRequest.Features = value;
+            get => Request.Features;
+            set => Request.Features = value;
         }
 
         /// <summary><c>True</c> for oneway requests, <c>False</c> otherwise.</summary>
-        public bool IsOneway => IncomingRequest.IsOneway;
+        public bool IsOneway => Request.IsOneway;
 
         /// <summary>The operation name.</summary>
-        public string Operation => IncomingRequest.Operation;
+        public string Operation => Request.Operation;
 
         /// <summary>The path (percent-escaped).</summary>
-        public string Path => IncomingRequest.Path;
+        public string Path => Request.Path;
 
         /// <summary>The protocol used by the request.</summary>
-        public Protocol Protocol => IncomingRequest.Protocol;
+        public Protocol Protocol => Request.Protocol;
 
-        /// <summary>The incoming request frame.</summary>
-        internal IncomingRequest IncomingRequest { get; }
+        /// <summary>The incoming request.</summary>
+        public IncomingRequest Request { get; }
 
         private DateTime? _deadline;
 
         /// <summary>Constructs a dispatch from an incoming request.</summary>
-        public Dispatch(IncomingRequest request) => IncomingRequest = request;
+        public Dispatch(IncomingRequest request) => Request = request;
     }
 }
