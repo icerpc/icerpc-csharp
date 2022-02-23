@@ -209,7 +209,7 @@ encoder.EncodeString(Message);
             )
             .add_comment(
                 "summary",
-                "Encodes this exception as a trait, by encoding it's Slice type ID followed by it's fields",
+                "Encodes this exception as a trait, by encoding its Slice type ID followed by its fields",
             )
             .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
             .set_body(format!(r#"
