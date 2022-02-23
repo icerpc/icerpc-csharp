@@ -13,45 +13,45 @@ namespace IceRpc.Tests.Slice
         public void Enum_Values()
         {
             // Ensure the generate enum has the expected values
-           Assert.That((int)MyEnum.enum1, Is.EqualTo(0));
-           Assert.That((int)MyEnum.enum2, Is.EqualTo(1));
-           Assert.That((int)MyEnum.enum3, Is.EqualTo(10));
-           Assert.That((int)MyEnum.enum4, Is.EqualTo(11));
-           Assert.That((int)MyEnum.enum5, Is.EqualTo(20));
-           Assert.That((int)MyEnum.enum6, Is.EqualTo(21));
-           Assert.That((int)MyEnum.enum7, Is.EqualTo(30));
-           Assert.That((int)MyEnum.enum8, Is.EqualTo(31));
-           Assert.That((int)MyEnum.enum9, Is.EqualTo(40));
-           Assert.That((int)MyEnum.enum10, Is.EqualTo(41));
-           Assert.That((int)MyEnum.enum11, Is.EqualTo(226));
+            Assert.That((int)MyEnum.enum1, Is.EqualTo(0));
+            Assert.That((int)MyEnum.enum2, Is.EqualTo(1));
+            Assert.That((int)MyEnum.enum3, Is.EqualTo(10));
+            Assert.That((int)MyEnum.enum4, Is.EqualTo(11));
+            Assert.That((int)MyEnum.enum5, Is.EqualTo(20));
+            Assert.That((int)MyEnum.enum6, Is.EqualTo(21));
+            Assert.That((int)MyEnum.enum7, Is.EqualTo(30));
+            Assert.That((int)MyEnum.enum8, Is.EqualTo(31));
+            Assert.That((int)MyEnum.enum9, Is.EqualTo(40));
+            Assert.That((int)MyEnum.enum10, Is.EqualTo(41));
+            Assert.That((int)MyEnum.enum11, Is.EqualTo(226));
 
-           Assert.That(sizeof(MyFixedLengthEnum), Is.EqualTo(sizeof(short)));
+            Assert.That(sizeof(MyFixedLengthEnum), Is.EqualTo(sizeof(short)));
 
-           Assert.That((short)MyFixedLengthEnum.senum1, Is.EqualTo(-3));
-           Assert.That((short)MyFixedLengthEnum.senum2, Is.EqualTo(-2));
-           Assert.That((short)MyFixedLengthEnum.senum3, Is.EqualTo(10));
-           Assert.That((short)MyFixedLengthEnum.senum4, Is.EqualTo(11));
-           Assert.That((short)MyFixedLengthEnum.senum5, Is.EqualTo(20));
-           Assert.That((short)MyFixedLengthEnum.senum6, Is.EqualTo(21));
-           Assert.That((short)MyFixedLengthEnum.senum7, Is.EqualTo(30));
-           Assert.That((short)MyFixedLengthEnum.senum8, Is.EqualTo(31));
-           Assert.That((short)MyFixedLengthEnum.senum9, Is.EqualTo(40));
-           Assert.That((short)MyFixedLengthEnum.senum10, Is.EqualTo(41));
-           Assert.That((short)MyFixedLengthEnum.senum11, Is.EqualTo(32766));
+            Assert.That((short)MyFixedLengthEnum.senum1, Is.EqualTo(-3));
+            Assert.That((short)MyFixedLengthEnum.senum2, Is.EqualTo(-2));
+            Assert.That((short)MyFixedLengthEnum.senum3, Is.EqualTo(10));
+            Assert.That((short)MyFixedLengthEnum.senum4, Is.EqualTo(11));
+            Assert.That((short)MyFixedLengthEnum.senum5, Is.EqualTo(20));
+            Assert.That((short)MyFixedLengthEnum.senum6, Is.EqualTo(21));
+            Assert.That((short)MyFixedLengthEnum.senum7, Is.EqualTo(30));
+            Assert.That((short)MyFixedLengthEnum.senum8, Is.EqualTo(31));
+            Assert.That((short)MyFixedLengthEnum.senum9, Is.EqualTo(40));
+            Assert.That((short)MyFixedLengthEnum.senum10, Is.EqualTo(41));
+            Assert.That((short)MyFixedLengthEnum.senum11, Is.EqualTo(32766));
 
-           Assert.That(sizeof(MyUncheckedEnum), Is.EqualTo(sizeof(uint)));
+            Assert.That(sizeof(MyUncheckedEnum), Is.EqualTo(sizeof(uint)));
 
-           Assert.That((uint)MyUncheckedEnum.E0, Is.EqualTo(1));
-           Assert.That((uint)MyUncheckedEnum.E1, Is.EqualTo(2));
-           Assert.That((uint)MyUncheckedEnum.E2, Is.EqualTo(4));
-           Assert.That((uint)MyUncheckedEnum.E3, Is.EqualTo(8));
-           Assert.That((uint)MyUncheckedEnum.E4, Is.EqualTo(16));
-           Assert.That((uint)MyUncheckedEnum.E5, Is.EqualTo(32));
-           Assert.That((uint)MyUncheckedEnum.E6, Is.EqualTo(64));
-           Assert.That((uint)MyUncheckedEnum.E7, Is.EqualTo(128));
-           Assert.That((uint)MyUncheckedEnum.E8, Is.EqualTo(256));
-           Assert.That((uint)MyUncheckedEnum.E9, Is.EqualTo(512));
-           Assert.That((uint)MyUncheckedEnum.E10, Is.EqualTo(1024));
+            Assert.That((uint)MyUncheckedEnum.E0, Is.EqualTo(1));
+            Assert.That((uint)MyUncheckedEnum.E1, Is.EqualTo(2));
+            Assert.That((uint)MyUncheckedEnum.E2, Is.EqualTo(4));
+            Assert.That((uint)MyUncheckedEnum.E3, Is.EqualTo(8));
+            Assert.That((uint)MyUncheckedEnum.E4, Is.EqualTo(16));
+            Assert.That((uint)MyUncheckedEnum.E5, Is.EqualTo(32));
+            Assert.That((uint)MyUncheckedEnum.E6, Is.EqualTo(64));
+            Assert.That((uint)MyUncheckedEnum.E7, Is.EqualTo(128));
+            Assert.That((uint)MyUncheckedEnum.E8, Is.EqualTo(256));
+            Assert.That((uint)MyUncheckedEnum.E9, Is.EqualTo(512));
+            Assert.That((uint)MyUncheckedEnum.E10, Is.EqualTo(1024));
         }
 
         [Test]
@@ -60,18 +60,18 @@ namespace IceRpc.Tests.Slice
             Array myEnumValues = Enum.GetValues(typeof(MyEnum));
             foreach (object value in myEnumValues)
             {
-               Assert.That(IntMyEnumExtensions.AsMyEnum((int)value), Is.EqualTo((MyEnum)value));
+                Assert.That(IntMyEnumExtensions.AsMyEnum((int)value), Is.EqualTo((MyEnum)value));
             }
 
             Array myFixedLengthEnumValues = Enum.GetValues(typeof(MyFixedLengthEnum));
             foreach (object value in myFixedLengthEnumValues)
             {
-               Assert.That(ShortMyFixedLengthEnumExtensions.AsMyFixedLengthEnum((short)value), Is.EqualTo((MyFixedLengthEnum)value));
+                Assert.That(ShortMyFixedLengthEnumExtensions.AsMyFixedLengthEnum((short)value), Is.EqualTo((MyFixedLengthEnum)value));
             }
 
             for (uint i = 0; i < 1024; ++i)
             {
-               Assert.That(UintMyUncheckedEnumExtensions.AsMyUncheckedEnum(i), Is.EqualTo((MyUncheckedEnum)i));
+                Assert.That(UintMyUncheckedEnumExtensions.AsMyUncheckedEnum(i), Is.EqualTo((MyUncheckedEnum)i));
             }
 
             Assert.Throws<InvalidDataException>(() => IntMyEnumExtensions.AsMyEnum(2));
@@ -117,8 +117,8 @@ namespace IceRpc.Tests.Slice
             static async Task TestAsync<T>(Func<T, T, Task<(T, T)>> invoker, T p1, T p2)
             {
                 (T r1, T r2) = await invoker(p1, p2);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p2));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p2));
             }
         }
 

@@ -45,110 +45,110 @@ namespace IceRpc.Tests.Slice
         {
             {
                 var s = new Scope.S(0);
-               Assert.That(await _prx1.OpSAsync(new Scope.S(0)), Is.EqualTo(s));
+                Assert.That(await _prx1.OpSAsync(new Scope.S(0)), Is.EqualTo(s));
 
                 var sseq = new Scope.S[] { s };
-               Assert.That(await _prx1.OpSSeqAsync(sseq), Is.EqualTo(sseq));
+                Assert.That(await _prx1.OpSSeqAsync(sseq), Is.EqualTo(sseq));
 
                 var smap = new Dictionary<string, Scope.S>() { { "a", s } };
-               Assert.That(await _prx1.OpSMapAsync(smap), Is.EqualTo(smap));
+                Assert.That(await _prx1.OpSMapAsync(smap), Is.EqualTo(smap));
 
                 var c = new Scope.C(s);
-               Assert.That((await _prx1.OpCAsync(c)).S, Is.EqualTo(s));
+                Assert.That((await _prx1.OpCAsync(c)).S, Is.EqualTo(s));
 
                 var cseq1 = new Scope.C[] { c };
                 var cseq2 = await _prx1.OpCSeqAsync(cseq1);
 
-               Assert.That(cseq2.Length, Is.EqualTo(1));
-               Assert.That(cseq2[0].S, Is.EqualTo(s));
+                Assert.That(cseq2.Length, Is.EqualTo(1));
+                Assert.That(cseq2[0].S, Is.EqualTo(s));
 
                 var cmap1 = new Dictionary<string, Scope.C>() { { "a", c } };
                 var cmap2 = await _prx1.OpCMapAsync(cmap1);
 
-               Assert.That(cmap2.Count, Is.EqualTo(1));
-               Assert.That(cmap2["a"].S, Is.EqualTo(s));
+                Assert.That(cmap2.Count, Is.EqualTo(1));
+                Assert.That(cmap2["a"].S, Is.EqualTo(s));
 
-               Assert.That(await _prx1.OpE1Async(Scope.E1.v1), Is.EqualTo(Scope.E1.v1));
-               Assert.That(await _prx1.OpS1Async(new Scope.S1("S1")), Is.EqualTo(new Scope.S1("S1")));
-               Assert.That((await _prx1.OpC1Async(new Scope.C1("C1"))).S, Is.EqualTo("C1"));
+                Assert.That(await _prx1.OpE1Async(Scope.E1.v1), Is.EqualTo(Scope.E1.v1));
+                Assert.That(await _prx1.OpS1Async(new Scope.S1("S1")), Is.EqualTo(new Scope.S1("S1")));
+                Assert.That((await _prx1.OpC1Async(new Scope.C1("C1"))).S, Is.EqualTo("C1"));
             }
 
             {
                 var s = new Scope.Inner.Inner2.S(0);
-               Assert.That(await _prx2.OpSAsync(s), Is.EqualTo(s));
+                Assert.That(await _prx2.OpSAsync(s), Is.EqualTo(s));
 
                 var sseq = new Scope.Inner.Inner2.S[] { s };
-               Assert.That(await _prx2.OpSSeqAsync(sseq), Is.EqualTo(sseq));
+                Assert.That(await _prx2.OpSSeqAsync(sseq), Is.EqualTo(sseq));
 
                 var smap = new Dictionary<string, Scope.Inner.Inner2.S>() { { "a", s } };
-               Assert.That(await _prx2.OpSMapAsync(smap), Is.EqualTo(smap));
+                Assert.That(await _prx2.OpSMapAsync(smap), Is.EqualTo(smap));
 
                 var c = new Scope.Inner.Inner2.C(s);
-               Assert.That((await _prx2.OpCAsync(c)).S, Is.EqualTo(s));
+                Assert.That((await _prx2.OpCAsync(c)).S, Is.EqualTo(s));
 
                 var cseq1 = new Scope.Inner.Inner2.C[] { c };
                 var cseq2 = await _prx2.OpCSeqAsync(cseq1);
 
-               Assert.That(cseq2.Length, Is.EqualTo(1));
-               Assert.That(cseq2[0].S, Is.EqualTo(s));
+                Assert.That(cseq2.Length, Is.EqualTo(1));
+                Assert.That(cseq2[0].S, Is.EqualTo(s));
 
                 var cmap1 = new Dictionary<string, Scope.Inner.Inner2.C>() { { "a", c } };
                 var cmap2 = await _prx2.OpCMapAsync(cmap1);
 
-               Assert.That(cmap2.Count, Is.EqualTo(1));
-               Assert.That(cmap2["a"].S, Is.EqualTo(s));
+                Assert.That(cmap2.Count, Is.EqualTo(1));
+                Assert.That(cmap2["a"].S, Is.EqualTo(s));
             }
 
             {
                 var s = new Scope.Inner.Inner2.S(0);
-               Assert.That(await _prx3.OpSAsync(s), Is.EqualTo(s));
+                Assert.That(await _prx3.OpSAsync(s), Is.EqualTo(s));
 
                 var sseq = new Scope.Inner.Inner2.S[] { s };
-               Assert.That(await _prx3.OpSSeqAsync(sseq), Is.EqualTo(sseq));
+                Assert.That(await _prx3.OpSSeqAsync(sseq), Is.EqualTo(sseq));
 
                 var smap = new Dictionary<string, Scope.Inner.Inner2.S>() { { "a", s } };
-               Assert.That(await _prx3.OpSMapAsync(smap), Is.EqualTo(smap));
+                Assert.That(await _prx3.OpSMapAsync(smap), Is.EqualTo(smap));
 
                 var c = new Scope.Inner.Inner2.C(s);
-               Assert.That((await _prx3.OpCAsync(c)).S, Is.EqualTo(s));
+                Assert.That((await _prx3.OpCAsync(c)).S, Is.EqualTo(s));
 
                 var cseq1 = new Scope.Inner.Inner2.C[] { c };
                 var cseq2 = await _prx3.OpCSeqAsync(cseq1);
 
-               Assert.That(cseq2.Length, Is.EqualTo(1));
-               Assert.That(cseq2[0].S, Is.EqualTo(s));
+                Assert.That(cseq2.Length, Is.EqualTo(1));
+                Assert.That(cseq2[0].S, Is.EqualTo(s));
 
                 var cmap1 = new Dictionary<string, Scope.Inner.Inner2.C>() { { "a", c } };
                 var cmap2 = await _prx3.OpCMapAsync(cmap1);
 
-               Assert.That(cmap2.Count, Is.EqualTo(1));
-               Assert.That(cmap2["a"].S, Is.EqualTo(s));
+                Assert.That(cmap2.Count, Is.EqualTo(1));
+                Assert.That(cmap2["a"].S, Is.EqualTo(s));
             }
 
             {
                 var s = new Scope.S(0);
-               Assert.That(await _prx4.OpSAsync(s), Is.EqualTo(s));
+                Assert.That(await _prx4.OpSAsync(s), Is.EqualTo(s));
 
                 var sseq = new Scope.S[] { s };
-               Assert.That(await _prx4.OpSSeqAsync(sseq), Is.EqualTo(sseq));
+                Assert.That(await _prx4.OpSSeqAsync(sseq), Is.EqualTo(sseq));
 
                 var smap = new Dictionary<string, Scope.S>() { { "a", s } };
-               Assert.That(await _prx4.OpSMapAsync(smap), Is.EqualTo(smap));
+                Assert.That(await _prx4.OpSMapAsync(smap), Is.EqualTo(smap));
 
                 var c = new Scope.C(s);
-               Assert.That((await _prx4.OpCAsync(c)).S, Is.EqualTo(s));
+                Assert.That((await _prx4.OpCAsync(c)).S, Is.EqualTo(s));
 
                 var cseq1 = new Scope.C[] { c };
                 var cseq2 = await _prx4.OpCSeqAsync(cseq1);
 
-               Assert.That(cseq2.Length, Is.EqualTo(1));
-               Assert.That(cseq2[0].S, Is.EqualTo(s));
+                Assert.That(cseq2.Length, Is.EqualTo(1));
+                Assert.That(cseq2[0].S, Is.EqualTo(s));
 
                 var cmap1 = new Dictionary<string, Scope.C>() { { "a", c } };
                 var cmap2 = await _prx4.OpCMapAsync(cmap1);
 
-               Assert.That(cmap2.Count, Is.EqualTo(1));
-               Assert.That(cmap2["a"].S, Is.EqualTo(s));
+                Assert.That(cmap2.Count, Is.EqualTo(1));
+                Assert.That(cmap2["a"].S, Is.EqualTo(s));
             }
         }
     }

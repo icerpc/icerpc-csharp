@@ -346,8 +346,8 @@ namespace IceRpc.Tests.Slice
                 Dictionary<Key, Value> p2) where Key : notnull
         {
             (Dictionary<Key, Value> r1, Dictionary<Key, Value> r2) = await invoker(p1, p2);
-           Assert.That(r1, Is.EqualTo(p1));
-           Assert.That(r2, Is.EqualTo(p2));
+            Assert.That(r1, Is.EqualTo(p1));
+            Assert.That(r2, Is.EqualTo(p2));
         }
     }
 }

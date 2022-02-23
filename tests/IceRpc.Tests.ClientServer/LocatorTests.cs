@@ -122,7 +122,7 @@ namespace IceRpc.Tests.ClientServer
                     {
                         if (request.Proxy == indirectGreeter.Proxy || request.Proxy == wellKnownGreeter.Proxy)
                         {
-                            Assert.AreEqual(_service.Proxy.Endpoint, endpointSelection.Endpoint);
+                           Assert.That(endpointSelection.Endpoint, Is.EqualTo(_service.Proxy.Endpoint));
                             _called = true;
                         }
                     }

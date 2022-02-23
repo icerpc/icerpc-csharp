@@ -49,16 +49,16 @@ namespace IceRpc.Tests.Slice
                 ParameterInfo[] m1Params = m1.GetParameters();
                 ParameterInfo[] m2Params = m1.GetParameters();
 
-               Assert.That(m2Params.Length, Is.EqualTo(m1Params.Length));
+                Assert.That(m2Params.Length, Is.EqualTo(m1Params.Length));
 
                 for (int i = 0; i < m1Params.Length; i++)
                 {
                     ParameterInfo p1 = m1Params[i];
                     ParameterInfo p2 = m2Params[i];
 
-                   Assert.That(p2.GetType(), Is.EqualTo(p1.GetType()));
+                    Assert.That(p2.GetType(), Is.EqualTo(p1.GetType()));
                 }
-               Assert.That(m2.ReturnType, Is.EqualTo(m1.ReturnType));
+                Assert.That(m2.ReturnType, Is.EqualTo(m1.ReturnType));
             }
         }
 
@@ -69,13 +69,13 @@ namespace IceRpc.Tests.Slice
             MemberInfo[] t1Members = t1.GetMembers();
             MemberInfo[] t2Members = t2.GetMembers();
 
-           Assert.That(t2Members.Length, Is.EqualTo(t1Members.Length));
+            Assert.That(t2Members.Length, Is.EqualTo(t1Members.Length));
 
             for (int i = 0; i < t1Members.Length; i++)
             {
                 MemberInfo m1 = t1Members[i];
                 MemberInfo m2 = t2Members[i];
-               Assert.That(m2.GetType(), Is.EqualTo(m1.GetType()));
+                Assert.That(m2.GetType(), Is.EqualTo(m1.GetType()));
             }
         }
     }

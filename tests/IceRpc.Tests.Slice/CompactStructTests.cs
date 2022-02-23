@@ -49,26 +49,26 @@ namespace IceRpc.Tests.Slice
         public async Task CompactStruct_CustomTypeAsync()
         {
             TimeSpan t1 = await _prx.OpMyTimeSpan1Async(TimeSpan.FromMilliseconds(100));
-           Assert.That(TimeSpan.FromMilliseconds(100), Is.EqualTo(t1));
+            Assert.That(TimeSpan.FromMilliseconds(100), Is.EqualTo(t1));
 
             (TimeSpan t2, TimeSpan t3) = await _prx.OpMyTimeSpan2Async(
                 TimeSpan.FromMilliseconds(100),
                 TimeSpan.FromMilliseconds(200));
-           Assert.That(TimeSpan.FromMilliseconds(100), Is.EqualTo(t2));
-           Assert.That(TimeSpan.FromMilliseconds(200), Is.EqualTo(t3));
+            Assert.That(TimeSpan.FromMilliseconds(100), Is.EqualTo(t2));
+            Assert.That(TimeSpan.FromMilliseconds(200), Is.EqualTo(t3));
 
             MyStructWithCustomType s1 = await _prx.OpMyStructWithCustomTypeAsync(new MyStructWithCustomType(t1));
-           Assert.That(TimeSpan.FromMilliseconds(100), Is.EqualTo(s1.Timespan));
+            Assert.That(TimeSpan.FromMilliseconds(100), Is.EqualTo(s1.Timespan));
 
             LinkedList<int> l1 = await _prx.OpMyList1Async(new LinkedList<int>(new int[] { 1, 2, 3 }));
-           Assert.That(new LinkedList<int>(new int[] { 1, 2, 3 }), Is.EqualTo(l1));
+            Assert.That(new LinkedList<int>(new int[] { 1, 2, 3 }), Is.EqualTo(l1));
         }
 
         static async Task TestAsync<T>(Func<T, T, Task<(T, T)>> invoker, T p1, T p2)
         {
             (T r1, T r2) = await invoker(p1, p2);
-           Assert.That(r1, Is.EqualTo(p1));
-           Assert.That(r2, Is.EqualTo(p2));
+            Assert.That(r1, Is.EqualTo(p1));
+            Assert.That(r2, Is.EqualTo(p2));
         }
 
         public class CompactStructOperations : Service, ICompactStructOperations

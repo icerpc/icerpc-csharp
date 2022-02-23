@@ -48,8 +48,8 @@ namespace IceRpc.Tests.Slice
                 Assert.That(r2, Is.Null);
 
                 (r1, r2) = await doublePrx.OpByteAsync(42);
-               Assert.That(r1, Is.EqualTo(42));
-               Assert.That(r2, Is.EqualTo(42));
+                Assert.That(r1, Is.EqualTo(42));
+                Assert.That(r2, Is.EqualTo(42));
             }
 
             {
@@ -68,8 +68,8 @@ namespace IceRpc.Tests.Slice
                 Assert.That(r2, Is.Null);
 
                 (r1, r2) = await doublePrx.OpShortAsync(42);
-               Assert.That(r1, Is.EqualTo(42));
-               Assert.That(r2, Is.EqualTo(42));
+                Assert.That(r1, Is.EqualTo(42));
+                Assert.That(r2, Is.EqualTo(42));
             }
 
             {
@@ -78,8 +78,8 @@ namespace IceRpc.Tests.Slice
                 Assert.That(r2, Is.Null);
 
                 (r1, r2) = await doublePrx.OpIntAsync(42);
-               Assert.That(r1, Is.EqualTo(42));
-               Assert.That(r2, Is.EqualTo(42));
+                Assert.That(r1, Is.EqualTo(42));
+                Assert.That(r2, Is.EqualTo(42));
             }
 
             {
@@ -88,8 +88,8 @@ namespace IceRpc.Tests.Slice
                 Assert.That(r2, Is.Null);
 
                 (r1, r2) = await doublePrx.OpLongAsync(42);
-               Assert.That(r1, Is.EqualTo(42));
-               Assert.That(r2, Is.EqualTo(42));
+                Assert.That(r1, Is.EqualTo(42));
+                Assert.That(r2, Is.EqualTo(42));
             }
 
             {
@@ -98,8 +98,8 @@ namespace IceRpc.Tests.Slice
                 Assert.That(r2, Is.Null);
 
                 (r1, r2) = await doublePrx.OpFloatAsync(42);
-               Assert.That(r1, Is.EqualTo(42));
-               Assert.That(r2, Is.EqualTo(42));
+                Assert.That(r1, Is.EqualTo(42));
+                Assert.That(r2, Is.EqualTo(42));
             }
 
             {
@@ -108,8 +108,8 @@ namespace IceRpc.Tests.Slice
                 Assert.That(r2, Is.Null);
 
                 (r1, r2) = await doublePrx.OpDoubleAsync(42);
-               Assert.That(r1, Is.EqualTo(42));
-               Assert.That(r2, Is.EqualTo(42));
+                Assert.That(r1, Is.EqualTo(42));
+                Assert.That(r2, Is.EqualTo(42));
             }
 
             {
@@ -118,8 +118,8 @@ namespace IceRpc.Tests.Slice
                 Assert.That(r2, Is.Null);
 
                 (r1, r2) = await doublePrx.OpStringAsync("hello");
-               Assert.That(r1, Is.EqualTo("hello"));
-               Assert.That(r2, Is.EqualTo("hello"));
+                Assert.That(r1, Is.EqualTo("hello"));
+                Assert.That(r2, Is.EqualTo("hello"));
             }
 
             {
@@ -128,8 +128,8 @@ namespace IceRpc.Tests.Slice
                 Assert.That(r2, Is.Null);
 
                 (r1, r2) = await doublePrx.OpMyEnumAsync(MyEnum.enum1);
-               Assert.That(r1, Is.EqualTo(MyEnum.enum1));
-               Assert.That(r2, Is.EqualTo(MyEnum.enum1));
+                Assert.That(r1, Is.EqualTo(MyEnum.enum1));
+                Assert.That(r2, Is.EqualTo(MyEnum.enum1));
             }
 
             {
@@ -139,8 +139,8 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new MyCompactStruct(1, 1);
                 (r1, r2) = await doublePrx.OpMyCompactStructAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -154,8 +154,8 @@ namespace IceRpc.Tests.Slice
                     MyEnum.enum1,
                     new MyCompactStruct(1, 1));
                 (r1, r2) = await doublePrx.OpAnotherCompactStructAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -165,8 +165,8 @@ namespace IceRpc.Tests.Slice
 
                 byte[] p1 = new byte[] { 42 };
                 (r1, r2) = await doublePrx.OpByteSeqAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -176,8 +176,8 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new List<byte> { 42 };
                 (r1, r2) = await doublePrx.OpByteListAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -187,8 +187,8 @@ namespace IceRpc.Tests.Slice
 
                 bool[] p1 = new bool[] { true };
                 (r1, r2) = await doublePrx.OpBoolSeqAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -198,8 +198,8 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new List<bool> { true };
                 (r1, r2) = await doublePrx.OpBoolListAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -209,8 +209,8 @@ namespace IceRpc.Tests.Slice
 
                 short[] p1 = new short[] { 42 };
                 (r1, r2) = await doublePrx.OpShortSeqAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -220,8 +220,8 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new List<short> { 42 };
                 (r1, r2) = await doublePrx.OpShortListAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -231,8 +231,8 @@ namespace IceRpc.Tests.Slice
 
                 int[] p1 = new int[] { 42 };
                 (r1, r2) = await doublePrx.OpIntSeqAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -242,8 +242,8 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new List<int> { 42 };
                 (r1, r2) = await doublePrx.OpIntListAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -253,8 +253,8 @@ namespace IceRpc.Tests.Slice
 
                 long[] p1 = new long[] { 42 };
                 (r1, r2) = await doublePrx.OpLongSeqAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -264,8 +264,8 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new List<long> { 42 };
                 (r1, r2) = await doublePrx.OpLongListAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -275,8 +275,8 @@ namespace IceRpc.Tests.Slice
 
                 float[] p1 = new float[] { 42 };
                 (r1, r2) = await doublePrx.OpFloatSeqAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -286,8 +286,8 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new List<float> { 42 };
                 (r1, r2) = await doublePrx.OpFloatListAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -297,8 +297,8 @@ namespace IceRpc.Tests.Slice
 
                 double[] p1 = new double[] { 42 };
                 (r1, r2) = await doublePrx.OpDoubleSeqAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -308,8 +308,8 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new List<double> { 42 };
                 (r1, r2) = await doublePrx.OpDoubleListAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -319,8 +319,8 @@ namespace IceRpc.Tests.Slice
 
                 string[] p1 = new string[] { "hello" };
                 (r1, r2) = await doublePrx.OpStringSeqAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -330,8 +330,8 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new List<string> { "hello" };
                 (r1, r2) = await doublePrx.OpStringListAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -341,8 +341,8 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new MyCompactStruct[] { new MyCompactStruct(1, 1) };
                 (r1, r2) = await doublePrx.OpMyCompactStructSeqAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -352,8 +352,8 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new List<MyCompactStruct> { new MyCompactStruct(1, 1) };
                 (r1, r2) = await doublePrx.OpMyCompactStructListAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -370,8 +370,8 @@ namespace IceRpc.Tests.Slice
                         new MyCompactStruct(1, 1))
                 };
                 (r1, r2) = await doublePrx.OpAnotherCompactStructSeqAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -388,8 +388,8 @@ namespace IceRpc.Tests.Slice
                         new MyCompactStruct(1, 1))
                 };
                 (r1, r2) = await doublePrx.OpAnotherCompactStructListAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -399,8 +399,8 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new Dictionary<int, int> { { 1, 1 } };
                 (r1, r2) = await doublePrx.OpIntDictAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -410,8 +410,8 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new CustomDictionary<int, int> { { 1, 1 } };
                 (r1, r2) = await doublePrx.OpIntCustomDictAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -421,8 +421,8 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new Dictionary<string, string> { { "a", "b" } };
                 (r1, r2) = await doublePrx.OpStringDictAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -433,8 +433,8 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new CustomDictionary<string, string> { { "a", "b" } };
                 (r1, r2) = await doublePrx.OpStringCustomDictAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
-               Assert.That(r2, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
         }
 
@@ -450,7 +450,7 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new MyCompactStruct(1, 1);
                 r1 = await encodedResultPrx.OpMyCompactStructAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
             }
 
             {
@@ -459,7 +459,7 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new Dictionary<int, int> { { 1, 1 } };
                 r1 = await encodedResultPrx.OpIntDictAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
             }
 
             {
@@ -468,7 +468,7 @@ namespace IceRpc.Tests.Slice
 
                 string[] p1 = new string[] { "hello" };
                 r1 = await encodedResultPrx.OpStringSeqAsync(p1);
-               Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r1, Is.EqualTo(p1));
             }
         }
 
@@ -535,7 +535,7 @@ namespace IceRpc.Tests.Slice
 
             {
                 (int? r1, string? r2) = await plusPrx.OpIntAsync(42, "42");
-               Assert.That(r1, Is.EqualTo(42));
+                Assert.That(r1, Is.EqualTo(42));
                 Assert.That(r2, Is.Null);
             }
 

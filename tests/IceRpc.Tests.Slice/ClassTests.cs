@@ -79,14 +79,14 @@ namespace IceRpc.Tests.Slice
             Assert.That(d, Is.Not.Null);
 
             Assert.AreNotEqual(b1, b2);
-           Assert.That(b1, Is.EqualTo(b1.TheB));
+            Assert.That(b1, Is.EqualTo(b1.TheB));
             Assert.That(b1.TheC, Is.Null);
             Assert.That(b1.TheA, Is.InstanceOf<MyClassB>());
-           Assert.That(b1.TheA, Is.EqualTo(((MyClassB)b1.TheA!).TheA));
-           Assert.That(b1, Is.EqualTo(((MyClassB)b1.TheA!).TheB));
-           Assert.That(b1.TheA, Is.EqualTo(((MyClassB)b1.TheA).TheC!.TheB));
+            Assert.That(b1.TheA, Is.EqualTo(((MyClassB)b1.TheA!).TheA));
+            Assert.That(b1, Is.EqualTo(((MyClassB)b1.TheA!).TheB));
+            Assert.That(b1.TheA, Is.EqualTo(((MyClassB)b1.TheA).TheC!.TheB));
 
-           Assert.That(b2, Is.EqualTo(b2.TheA));
+            Assert.That(b2, Is.EqualTo(b2.TheA));
             Assert.That(d.TheC, Is.Null);
 
             (MyClassB? r1, MyClassB? r2, MyClassC? r3, MyClassD? r4) = await _prx.GetAllAsync();
@@ -96,21 +96,21 @@ namespace IceRpc.Tests.Slice
             Assert.That(r4, Is.Not.Null);
 
             Assert.AreNotEqual(r1, r2);
-           Assert.That(r2, Is.EqualTo(r1.TheA));
-           Assert.That(r1, Is.EqualTo(r1.TheB));
+            Assert.That(r2, Is.EqualTo(r1.TheA));
+            Assert.That(r1, Is.EqualTo(r1.TheB));
             Assert.That(r1.TheC, Is.Null);
-           Assert.That(r2, Is.EqualTo(r2.TheA));
-           Assert.That(r1, Is.EqualTo(r2.TheB));
-           Assert.That(r3, Is.EqualTo(r2.TheC));
-           Assert.That(r2, Is.EqualTo(r3.TheB));
-           Assert.That(r1, Is.EqualTo(r4.TheA));
-           Assert.That(r2, Is.EqualTo(r4.TheB));
+            Assert.That(r2, Is.EqualTo(r2.TheA));
+            Assert.That(r1, Is.EqualTo(r2.TheB));
+            Assert.That(r3, Is.EqualTo(r2.TheC));
+            Assert.That(r2, Is.EqualTo(r3.TheB));
+            Assert.That(r1, Is.EqualTo(r4.TheA));
+            Assert.That(r2, Is.EqualTo(r4.TheB));
             Assert.That(r4.TheC, Is.Null);
 
             MyClassK? k = await _prx.GetKAsync();
             var l = k!.Value as MyClassL;
             Assert.That(l, Is.Not.Null);
-           Assert.That(l!.Data, Is.EqualTo("l"));
+            Assert.That(l!.Data, Is.EqualTo("l"));
 
             MyClassD1? d1 = await _prx.GetD1Async(
                 new MyClassD1(
@@ -118,19 +118,19 @@ namespace IceRpc.Tests.Slice
                     new MyClassA1("a2"),
                     new MyClassA1("a3"),
                     new MyClassA1("a4")));
-           Assert.That(d1!.A1!.Name, Is.EqualTo("a1"));
-           Assert.That(d1!.A2!.Name, Is.EqualTo("a2"));
-           Assert.That(d1!.A3!.Name, Is.EqualTo("a3"));
-           Assert.That(d1!.A4!.Name, Is.EqualTo("a4"));
+            Assert.That(d1!.A1!.Name, Is.EqualTo("a1"));
+            Assert.That(d1!.A2!.Name, Is.EqualTo("a2"));
+            Assert.That(d1!.A3!.Name, Is.EqualTo("a3"));
+            Assert.That(d1!.A4!.Name, Is.EqualTo("a4"));
 
             if (_prx.Proxy.Encoding == Encoding.Slice11)
             {
                 MyDerivedException? ex = Assert.ThrowsAsync<MyDerivedException>(
                     async () => await _prx.ThrowMyDerivedExceptionAsync());
-               Assert.That(ex!.A1!.Name, Is.EqualTo("a1"));
-               Assert.That(ex!.A2!.Name, Is.EqualTo("a2"));
-               Assert.That(ex!.A3!.Name, Is.EqualTo("a3"));
-               Assert.That(ex!.A4!.Name, Is.EqualTo("a4"));
+                Assert.That(ex!.A1!.Name, Is.EqualTo("a1"));
+                Assert.That(ex!.A2!.Name, Is.EqualTo("a2"));
+                Assert.That(ex!.A3!.Name, Is.EqualTo("a3"));
+                Assert.That(ex!.A4!.Name, Is.EqualTo("a4"));
             }
             else if (_prx.Proxy.Encoding == Encoding.Slice20)
             {
@@ -164,14 +164,14 @@ namespace IceRpc.Tests.Slice
             (MyClassM m2, MyClassM m1) = await _prx.OpMAsync(new MyClassM(d));
 
             Assert.That(m1, Is.Not.Null);
-           Assert.That(m1.V.Count, Is.EqualTo(2));
-           Assert.That(m1.V[k1].Data, Is.EqualTo("one"));
-           Assert.That(m1.V[k2].Data, Is.EqualTo("two"));
+            Assert.That(m1.V.Count, Is.EqualTo(2));
+            Assert.That(m1.V[k1].Data, Is.EqualTo("one"));
+            Assert.That(m1.V[k2].Data, Is.EqualTo("two"));
 
             Assert.That(m2, Is.Not.Null);
-           Assert.That(m2.V.Count, Is.EqualTo(2));
-           Assert.That(m2.V[k1].Data, Is.EqualTo("one"));
-           Assert.That(m2.V[k2].Data, Is.EqualTo("two"));
+            Assert.That(m2.V.Count, Is.EqualTo(2));
+            Assert.That(m2.V[k1].Data, Is.EqualTo("one"));
+            Assert.That(m2.V[k2].Data, Is.EqualTo("two"));
         }
 
         [Test]
@@ -180,21 +180,21 @@ namespace IceRpc.Tests.Slice
             // testing AnyClass as parameter
             {
                 (AnyClass? v3, AnyClass? v2) = await _prx.OpClassAsync(new MyClassL("l"));
-               Assert.That(((MyClassL)v2!).Data, Is.EqualTo("l"));
-               Assert.That(((MyClassL)v3!).Data, Is.EqualTo("l"));
+                Assert.That(((MyClassL)v2!).Data, Is.EqualTo("l"));
+                Assert.That(((MyClassL)v3!).Data, Is.EqualTo("l"));
             }
 
             {
                 (AnyClass?[] v3, AnyClass?[] v2) = await _prx.OpClassSeqAsync(new AnyClass[] { new MyClassL("l") });
-               Assert.That(((MyClassL)v2[0]!).Data, Is.EqualTo("l"));
-               Assert.That(((MyClassL)v3[0]!).Data, Is.EqualTo("l"));
+                Assert.That(((MyClassL)v2[0]!).Data, Is.EqualTo("l"));
+                Assert.That(((MyClassL)v3[0]!).Data, Is.EqualTo("l"));
             }
 
             {
                 var v1 = new Dictionary<string, AnyClass?> { { "l", new MyClassL("l") } };
                 (Dictionary<string, AnyClass?> v3, Dictionary<string, AnyClass?> v2) = await _prx.OpClassMapAsync(v1);
-               Assert.That(((MyClassL)v2["l"]!).Data, Is.EqualTo("l"));
-               Assert.That(((MyClassL)v3["l"]!).Data, Is.EqualTo("l"));
+                Assert.That(((MyClassL)v2["l"]!).Data, Is.EqualTo("l"));
+                Assert.That(((MyClassL)v3["l"]!).Data, Is.EqualTo("l"));
             }
         }
 
