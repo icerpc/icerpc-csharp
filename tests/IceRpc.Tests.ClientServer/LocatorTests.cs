@@ -220,7 +220,7 @@ namespace IceRpc.Tests.ClientServer
             // Test with direct endpoints
             locator.RegisterWellKnownProxy(GreeterPath, service);
             ServicePrx? found = await locator.FindObjectByIdAsync(GreeterPath);
-            
+
             Assert.That(found, Is.Not.Null);
             Assert.That(found?.Proxy.Endpoint, Is.EqualTo(service.Proxy.Endpoint));
             Assert.That(_called, Is.False);
@@ -245,7 +245,7 @@ namespace IceRpc.Tests.ClientServer
             locator.RegisterWellKnownProxy(GreeterPath, indirectService);
 
             found = await locator.FindObjectByIdAsync(GreeterPath);
-            
+
             Assert.That(found, Is.Not.Null);
             Assert.That(found?.Proxy.Endpoint, Is.EqualTo(indirectService.Proxy.Endpoint)); // partial resolution
             Assert.That(_called, Is.False);

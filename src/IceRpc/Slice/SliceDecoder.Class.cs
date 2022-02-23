@@ -151,7 +151,8 @@ namespace IceRpc.Slice
 
             if (replyStatus > ReplyStatus.UserException)
             {
-                DispatchException dispatchException;
+                string? message = null;
+                DispatchErrorCode errorCode;
 
                 switch (replyStatus)
                 {
@@ -161,19 +162,23 @@ namespace IceRpc.Slice
 
                         var requestFailed = new RequestFailedExceptionData(ref this);
 
-                        dispatchException = new DispatchException(
-                            replyStatus == ReplyStatus.OperationNotExistException ?
-                                DispatchErrorCode.OperationNotFound : DispatchErrorCode.ServiceNotFound);
+                        errorCode = replyStatus == ReplyStatus.OperationNotExistException ?
+                            DispatchErrorCode.OperationNotFound : DispatchErrorCode.ServiceNotFound;
 
-                        dispatchException.Origin = new RemoteExceptionOrigin(
-                            requestFailed.Path,
-                            requestFailed.Fragment,
-                            requestFailed.Operation);
+                        if (requestFailed.Operation.Length > 0)
+                        {
+                            string target = requestFailed.Fragment.Length > 0 ?
+                                $"{requestFailed.Path}#{requestFailed.Fragment}" : requestFailed.Path;
+
+                            message = @$"{nameof(DispatchException)} {{ ErrorCode = {errorCode
+                                } }} while dispatching '{requestFailed.Operation}' on '{target}'";
+                        }
+                        // else message remains null
                         break;
 
                     default:
-                        string message = DecodeString();
-                        DispatchErrorCode errorCode = DispatchErrorCode.UnhandledException;
+                        message = DecodeString();
+                        errorCode = DispatchErrorCode.UnhandledException;
 
                         // Attempt to parse the DispatchErrorCode from the message:
                         if (message.StartsWith('[') &&
@@ -192,13 +197,13 @@ namespace IceRpc.Slice
                                 // ignored, keep default errorCode
                             }
                         }
-
-                        dispatchException = new DispatchException(message, errorCode);
                         break;
                 }
 
-                dispatchException.ConvertToUnhandled = true;
-                return dispatchException;
+                return new DispatchException(message, errorCode)
+                {
+                    ConvertToUnhandled = true,
+                };
             }
             else
             {

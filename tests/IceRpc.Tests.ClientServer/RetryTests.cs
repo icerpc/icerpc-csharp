@@ -430,7 +430,6 @@ namespace IceRpc.Tests.ClientServer
             Assert.That(server1.ToString(), Is.EqualTo(calls[0]));
             Assert.That(server2.ToString(), Is.EqualTo(calls[1]));
 
-
             // The first replica fails with ServiceNotFoundException exception the second replica fails with
             // ConnectionLostException the last failure should be reported. The 3rd replica cannot be used because
             // ConnectionLostException cannot be retried for a non idempotent request.

@@ -12,7 +12,7 @@ namespace IceRpc.Slice
 
         /// <inheritdoc/>
         protected override string? DefaultMessage =>
-            $"{nameof(UnknownSlicedRemoteException)} {{ TypeId = {TypeId}, Origin = {Origin} }}";
+            $"{nameof(UnknownSlicedRemoteException)} {{ TypeId = {TypeId} }}";
 
         /// <inheritdoc/>
         protected override void DecodeCore(ref SliceDecoder decoder) => Debug.Assert(false);

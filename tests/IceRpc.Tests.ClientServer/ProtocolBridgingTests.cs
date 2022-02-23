@@ -101,10 +101,7 @@ namespace IceRpc.Tests.ClientServer
                     () => prx.OpServiceNotFoundExceptionAsync());
 
                 Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
-
-                // Verifies the exception is correctly populated:
-                Assert.That(dispatchException!.Origin.Path, Is.EqualTo("/target"));
-                Assert.That(dispatchException.Origin.Operation, Is.EqualTo("opServiceNotFoundException"));
+                Assert.That(dispatchException!.Origin, Is.Not.Null);
 
                 ProtocolBridgingTestPrx newProxy = await prx.OpNewProxyAsync();
                 return newProxy;

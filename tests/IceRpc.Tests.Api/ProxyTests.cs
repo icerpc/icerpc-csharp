@@ -36,7 +36,6 @@ namespace IceRpc.Tests.Api
             Assert.That(await service.IceIsAAsync("::IceRpc::Tests::Api::Foo"), Is.False);
             Assert.That(await greeter.AsAsync<GreeterPrx>(), Is.EqualTo(greeter));
 
-
             // Test that Service operation correctly forward the cancel param
             var canceled = new CancellationToken(canceled: true);
             Assert.CatchAsync<OperationCanceledException>(async () => await service.IcePingAsync(cancel: canceled));

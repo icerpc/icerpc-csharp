@@ -15,7 +15,7 @@ namespace IceRpc.Slice
         public bool ConvertToUnhandled { get; set; }
 
         /// <summary>The remote exception origin.</summary>
-        public RemoteExceptionOrigin Origin { get; internal set; } = RemoteExceptionOrigin.Unknown;
+        public IncomingResponse? Origin { get; internal set; }
 
         /// <summary>The remote exception retry policy.</summary>
         public RetryPolicy RetryPolicy { get; } = RetryPolicy.NoRetry;
@@ -45,32 +45,17 @@ namespace IceRpc.Slice
             _hasCustomMessage = message != null;
         }
 
-        /// <summary>Constructs a remote exception with the provided message and origin.</summary>
-        /// <param name="message">Message that describes the exception.</param>
-        /// <param name="origin">The remote exception origin.</param>
-        protected RemoteException(string? message, RemoteExceptionOrigin origin)
-            : base(message)
-        {
-            Origin = origin;
-            _hasCustomMessage = message != null;
-        }
-
         /// <summary>Constructs a remote exception using a decoder.</summary>
         /// <param name="decoder">The decoder.</param>
         protected RemoteException(ref SliceDecoder decoder)
             : base(decoder.Encoding == Encoding.Slice11 ? null : decoder.DecodeString())
         {
-            if (decoder.Encoding != Encoding.Slice11)
-            {
-                Origin = new RemoteExceptionOrigin(ref decoder);
-                _hasCustomMessage = true;
-            }
+            _hasCustomMessage = decoder.Encoding != Encoding.Slice11;
             ConvertToUnhandled = true;
         }
 
         /// <summary>Decodes a remote exception.</summary>
         /// <param name="decoder">The Slice decoder.</param>
-        // This implementation is only called on a plain RemoteException.
         protected abstract void DecodeCore(ref SliceDecoder decoder);
 
         /// <summary>Encodes a remote exception.</summary>
@@ -79,11 +64,5 @@ namespace IceRpc.Slice
 
         internal void Decode(ref SliceDecoder decoder) => DecodeCore(ref decoder);
         internal void Encode(ref SliceEncoder encoder) => EncodeCore(ref encoder);
-    }
-
-    public readonly partial record struct RemoteExceptionOrigin
-    {
-        /// <summary>The unknown origin.</summary>
-        public static readonly RemoteExceptionOrigin Unknown = new("", "", "");
     }
 }

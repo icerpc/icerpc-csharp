@@ -192,7 +192,6 @@ else
 {{
     encoder.EncodeString(_sliceTypeId);
     encoder.EncodeString(Message);
-    Origin.Encode(ref encoder);
     {encode_data_members}
 }}",
                         encode_data_members =
