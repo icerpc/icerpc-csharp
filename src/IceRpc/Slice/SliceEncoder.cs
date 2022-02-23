@@ -199,7 +199,7 @@ namespace IceRpc.Slice
 
         // Encode methods for constructed types
 
-        /// <summary>TODOAUSTIN</summary>
+        /// <summary>Marks the start of the encoding of a remote exception.</summary>
         public void StartException()
         {
             Debug.Assert(_classContext.Current.InstanceType == InstanceType.None);
@@ -210,7 +210,7 @@ namespace IceRpc.Slice
             _classContext.Current.FirstSlice = true;
         }
 
-        /// <summary>TODOAUSTIN</summary>
+        /// <summary>Marks the end of the encoding of a remote exception.</summary>
         public void EndException()
         {
             Debug.Assert(Encoding == IceRpc.Encoding.Slice11);

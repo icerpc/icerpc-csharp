@@ -149,7 +149,8 @@ else
             .build(),
         );
 
-        let mut encode_core_body: CodeBlock = format!(r#"
+        let mut encode_core_body: CodeBlock = format!(
+            r#"
 System.Diagnostics.Debug.Assert(encoder.Encoding == IceRpc.Encoding.Slice11);
 
 encoder.StartSlice(_sliceTypeId);
@@ -175,7 +176,8 @@ encoder.StartSlice(_sliceTypeId);
             .build(),
         );
 
-        let encode_body = format!(r#"
+        let encode_body = format!(
+            r#"
 System.Diagnostics.Debug.Assert(encoder.Encoding != IceRpc.Encoding.Slice11);
 
 encoder.EncodeString(Message);
@@ -184,24 +186,19 @@ encoder.EncodeString(Message);
         ).into();
         let qualifier = if has_base { "public new" } else { "public" };
         exception_class_builder.add_block(
-            FunctionBuilder::new(
-                qualifier,
-                "void",
-                "Encode",
-                FunctionType::BlockBody,
-            )
-            .add_comment("summary", "Encodes the fields of this exception.")
-            .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
-            .set_body(encode_body)
-            .build(),
+            FunctionBuilder::new(qualifier, "void", "Encode", FunctionType::BlockBody)
+                .add_comment("summary", "Encodes the fields of this exception.")
+                .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
+                .set_body(encode_body)
+                .build(),
         );
 
         // 2.0 doesn't support exception inheritance, so we encode the least-derived exception.
         let encode_trait_body_20 = if has_base {
-"base.EncodeTrait(ref encoder);"
+            "base.EncodeTrait(ref encoder);"
         } else {
-"encoder.EncodeString(_sliceTypeId);
-this.Encode(ref encoder);"
+            "encoder.EncodeString(_sliceTypeId);\n\
+            this.Encode(ref encoder);"
         };
         exception_class_builder.add_block(
             FunctionBuilder::new(
