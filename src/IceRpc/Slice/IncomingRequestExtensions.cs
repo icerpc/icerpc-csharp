@@ -50,14 +50,6 @@ namespace IceRpc.Slice
                 throw new ArgumentException("invalid remote exception", nameof(remoteException));
             }
 
-            if (remoteException.Origin == RemoteExceptionOrigin.Unknown)
-            {
-                remoteException.Origin = new RemoteExceptionOrigin(
-                    request.Path,
-                    request.Fragment,
-                    request.Operation);
-            }
-
             var response = new OutgoingResponse(request)
             {
                 ResultType = (ResultType)SliceResultType.ServiceFailure,

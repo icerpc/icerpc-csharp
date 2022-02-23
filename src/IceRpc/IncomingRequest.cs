@@ -11,16 +11,16 @@ namespace IceRpc
         public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
         /// <summary>The fragment of the target service. It's always empty with the icerpc protocol.</summary>
-        public string Fragment { get; init; }
+        public string Fragment { get; }
 
         /// <summary><c>True</c> for oneway requests, <c>false</c> otherwise.</summary>
         public bool IsOneway { get; init; }
 
         /// <summary>The operation called on the service.</summary>
-        public string Operation { get; init; }
+        public string Operation { get; }
 
         /// <summary>The path of the target service.</summary>
-        public string Path { get; init; }
+        public string Path { get; }
 
         /// <summary>Returns the encoding of the payload of this request.</summary>
         public Encoding PayloadEncoding { get; }

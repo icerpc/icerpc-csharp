@@ -106,7 +106,7 @@ namespace IceRpc.Tests.ClientServer
                     ServerCertificate = new X509Certificate2(GetCertificatePath("s_rsa_ca1.p12"), "password"),
                     RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
                     {
-                        Assert.AreEqual(cert0.GetCertHash(), certificate!.GetCertHash());
+                        Assert.That(cert0.GetCertHash(), Is.EqualTo(certificate!.GetCertHash()));
                         return certificate!.GetCertHash().SequenceEqual(cert0.GetCertHash());
                     },
                     ClientCertificateRequired = true,
@@ -121,9 +121,9 @@ namespace IceRpc.Tests.ClientServer
                     LocalCertificateSelectionCallback =
                         (sender, targetHost, certs, remoteCertificate, acceptableIssuers) =>
                         {
-                            Assert.AreEqual(2, certs.Count);
-                            Assert.AreEqual(cert0, certs[0]);
-                            Assert.AreEqual(cert1, certs[1]);
+                            Assert.That(certs.Count, Is.EqualTo(2));
+                            Assert.That(certs[0], Is.EqualTo(cert0));
+                            Assert.That(certs[1], Is.EqualTo(cert1));
                             return certs[0];
                         },
                     RemoteCertificateValidationCallback = CertificateValidaton.GetServerCertificateValidationCallback(

@@ -26,16 +26,16 @@ public sealed class InvocationEventSourceTests : IDisposable
         eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
         var proxy = new Proxy(Protocol.IceRpc) { Path = "/service" };
-        _eventSource.RequestStart(new OutgoingRequest(proxy, operation: "ice_id"));
+        _eventSource.RequestStart(new OutgoingRequest(proxy) { Operation = "ice_ping" });
 
         EventWrittenEventArgs? eventData = eventListener.EventData;
         Assert.That(eventData, Is.Not.Null);
-        Assert.AreEqual(expectedEventId, eventData!.EventId);
-        Assert.AreEqual("RequestStart", eventData.EventName);
-        Assert.AreEqual(EventLevel.Informational, eventData.Level);
+        Assert.That(eventData!.EventId, Is.EqualTo(expectedEventId));
+        Assert.That(eventData.EventName, Is.EqualTo("RequestStart"));
+        Assert.That(eventData.Level, Is.EqualTo(EventLevel.Informational));
         Assert.That(eventData.EventSource, Is.SameAs(_eventSource));
-        Assert.AreEqual("/service", eventData.Payload![0]);
-        Assert.AreEqual("ice_id", eventData.Payload![1]);
+        Assert.That(eventData.Payload![0], Is.EqualTo("/service"));
+        Assert.That(eventData.Payload![1], Is.EqualTo("ice_ping"));
     }
 
     [Test]
@@ -46,16 +46,16 @@ public sealed class InvocationEventSourceTests : IDisposable
         eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
         var proxy = new Proxy(Protocol.IceRpc) { Path = "/service" };
-        _eventSource.RequestStop(new OutgoingRequest(proxy, operation: "ice_id"));
+        _eventSource.RequestStop(new OutgoingRequest(proxy) { Operation = "ice_ping" });
 
         EventWrittenEventArgs? eventData = eventListener.EventData;
         Assert.That(eventData, Is.Not.Null);
-        Assert.AreEqual(expectedEventId, eventData!.EventId);
-        Assert.AreEqual("RequestStop", eventData.EventName);
-        Assert.AreEqual(EventLevel.Informational, eventData.Level);
+        Assert.That(eventData!.EventId, Is.EqualTo(expectedEventId));
+        Assert.That(eventData.EventName, Is.EqualTo("RequestStop"));
+        Assert.That(eventData.Level, Is.EqualTo(EventLevel.Informational));
         Assert.That(eventData.EventSource, Is.SameAs(_eventSource));
-        Assert.AreEqual("/service", eventData.Payload![0]);
-        Assert.AreEqual("ice_id", eventData.Payload![1]);
+        Assert.That(eventData.Payload![0], Is.EqualTo("/service"));
+        Assert.That(eventData.Payload![1], Is.EqualTo("ice_ping"));
     }
 
     [Test]
@@ -66,16 +66,16 @@ public sealed class InvocationEventSourceTests : IDisposable
         eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
         var proxy = new Proxy(Protocol.IceRpc) { Path = "/service" };
-        _eventSource.RequestCanceled(new OutgoingRequest(proxy, operation: "ice_id"));
+        _eventSource.RequestCanceled(new OutgoingRequest(proxy) { Operation = "ice_ping" });
 
         EventWrittenEventArgs? eventData = eventListener.EventData;
         Assert.That(eventData, Is.Not.Null);
-        Assert.AreEqual(expectedEventId, eventData!.EventId);
-        Assert.AreEqual("RequestCanceled", eventData.EventName);
-        Assert.AreEqual(EventLevel.Informational, eventData.Level);
+        Assert.That(eventData!.EventId, Is.EqualTo(expectedEventId));
+        Assert.That(eventData.EventName, Is.EqualTo("RequestCanceled"));
+        Assert.That(eventData.Level, Is.EqualTo(EventLevel.Informational));
         Assert.That(eventData.EventSource, Is.SameAs(_eventSource));
-        Assert.AreEqual("/service", eventData.Payload![0]);
-        Assert.AreEqual("ice_id", eventData.Payload![1]);
+        Assert.That(eventData.Payload![0], Is.EqualTo("/service"));
+        Assert.That(eventData.Payload![1], Is.EqualTo("ice_ping"));
     }
 
     [Test]
@@ -87,18 +87,18 @@ public sealed class InvocationEventSourceTests : IDisposable
 
         var proxy = new Proxy(Protocol.IceRpc) { Path = "/service" };
         _eventSource.RequestFailed(
-            new OutgoingRequest(proxy, operation: "ice_id"),
+            new OutgoingRequest(proxy) { Operation = "ice_ping" },
             "IceRpc.RemoteException");
 
         EventWrittenEventArgs? eventData = eventListener.EventData;
         Assert.That(eventData, Is.Not.Null);
-        Assert.AreEqual(expectedEventId, eventData!.EventId);
-        Assert.AreEqual("RequestFailed", eventData.EventName);
-        Assert.AreEqual(EventLevel.Informational, eventData.Level);
+        Assert.That(eventData!.EventId, Is.EqualTo(expectedEventId));
+        Assert.That(eventData.EventName, Is.EqualTo("RequestFailed"));
+        Assert.That(eventData.Level, Is.EqualTo(EventLevel.Informational));
         Assert.That(eventData.EventSource, Is.SameAs(_eventSource));
-        Assert.AreEqual("/service", eventData.Payload![0]);
-        Assert.AreEqual("ice_id", eventData.Payload![1]);
-        Assert.AreEqual("IceRpc.RemoteException", eventData.Payload![2]);
+        Assert.That(eventData.Payload![0], Is.EqualTo("/service"));
+        Assert.That(eventData.Payload![1], Is.EqualTo("ice_ping"));
+        Assert.That(eventData.Payload![2], Is.EqualTo("IceRpc.RemoteException"));
     }
 
     private class TestEventListener : EventListener

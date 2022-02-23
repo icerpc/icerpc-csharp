@@ -106,7 +106,7 @@ namespace IceRpc.Slice
                 defaultActivator,
                 cancel).ConfigureAwait(false);
 
-        private static ValueTask<RemoteException> ToRemoteExceptionAsync(
+        private static async ValueTask<RemoteException> ToRemoteExceptionAsync(
             this IncomingResponse response,
             DecodePayloadOptions decodePayloadOptions,
             IActivator defaultActivator,
@@ -117,7 +117,8 @@ namespace IceRpc.Slice
             var resultType = (SliceResultType)response.ResultType;
             if (resultType is SliceResultType.Failure or SliceResultType.ServiceFailure)
             {
-                return response.Payload.ReadRemoteExceptionAsync(
+                // TODO: refactor to "read" directly from response instead of response payload.
+                RemoteException remoteException = await response.Payload.ReadRemoteExceptionAsync(
                     resultType == SliceResultType.Failure ?
                         response.Protocol.SliceEncoding! : (SliceEncoding)response.Request.PayloadEncoding,
                     response.ResultType,
@@ -125,7 +126,9 @@ namespace IceRpc.Slice
                     decodePayloadOptions.ProxyInvoker ?? response.Request.Proxy.Invoker,
                     decodePayloadOptions.Activator ?? defaultActivator,
                     decodePayloadOptions.MaxDepth,
-                    cancel);
+                    cancel).ConfigureAwait(false);
+                remoteException.Origin = response;
+                return remoteException;
             }
             else
             {

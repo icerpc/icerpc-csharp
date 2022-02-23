@@ -78,7 +78,7 @@ namespace IceRpc.Tests.Internal
             IMultiplexedStream serverStream = await acceptTask;
 
             Assert.That(serverStream.IsBidirectional, Is.True);
-            Assert.AreEqual(serverStream.Id, clientStream.Id);
+            Assert.That(serverStream.Id, Is.EqualTo(clientStream.Id));
         }
 
         [Test]
@@ -103,7 +103,7 @@ namespace IceRpc.Tests.Internal
         {
             IMultiplexedStream clientStream = _clientConnection.CreateStream(bidirectional);
             Assert.Throws<InvalidOperationException>(() => _ = clientStream.Id); // stream is not started
-            Assert.AreEqual(bidirectional, clientStream.IsBidirectional);
+            Assert.That(clientStream.IsBidirectional, Is.EqualTo(bidirectional));
 
             await clientStream.Output.WriteAsync(new byte[10], true, default);
             Assert.That(clientStream.Id, Is.GreaterThanOrEqualTo(0));

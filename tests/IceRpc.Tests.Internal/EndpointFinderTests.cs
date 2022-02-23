@@ -99,10 +99,10 @@ namespace IceRpc.Tests.Internal
             Task<Proxy?> t5 = endpointFinder.FindAsync(locA, cancel: default);
             Task<Proxy?> t6 = endpointFinder.FindAsync(locB, cancel: default);
 
-            Assert.AreEqual(0, blockingEndpointFinder.Count);
+            Assert.That(blockingEndpointFinder.Count, Is.EqualTo(0));
             blockingEndpointFinder.Release(2);
             await Task.WhenAll(t1, t2, t3, t4, t5, t6);
-            Assert.AreEqual(2, blockingEndpointFinder.Count);
+            Assert.That(blockingEndpointFinder.Count, Is.EqualTo(2));
         }
 
         private class FakeLocatorPrx : ILocatorPrx

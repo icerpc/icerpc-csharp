@@ -34,12 +34,12 @@ namespace IceRpc.Tests.Api
                 GreeterPrx.DefaultPath);
             service.Proxy.Invoker = pipeline;
 
-            Assert.AreEqual(0, value);
-            Assert.DoesNotThrowAsync(async () => await new ServicePrx(service.Proxy).IcePingAsync());
-            Assert.AreEqual(3, value);
+            Assert.That(value, Is.EqualTo(0));
+            Assert.That(async () => await new ServicePrx(service.Proxy).IcePingAsync(), Throws.Nothing);
+            Assert.That(value, Is.EqualTo(3));
 
             // Verify we can't add an extra interceptor now
-            Assert.Throws<InvalidOperationException>(() => pipeline.Use(next => next));
+            Assert.That(() => pipeline.Use(next => next), Throws.InvalidOperationException);
 
             // Add more interceptors with With
             var service2 = new ServicePrx(service.Proxy with
@@ -48,12 +48,13 @@ namespace IceRpc.Tests.Api
             });
 
             value = 0;
-            Assert.DoesNotThrowAsync(async () => await new ServicePrx(service.Proxy).IcePingAsync());
-            Assert.AreEqual(3, value); // did not change the prx pipeline
+            Assert.That(async () => await new ServicePrx(service.Proxy).IcePingAsync(), Throws.Nothing);
+            Assert.That(value, Is.EqualTo(3)); // did not change the prx pipeline
 
             value = 0;
-            Assert.DoesNotThrowAsync(async () => await service2.IcePingAsync());
-            Assert.AreEqual(5, value); // 2 more interceptors executed with prx2
+            Assert.That(async () => await service2.IcePingAsync(), Throws.Nothing);
+            Assert.That(value, Is.EqualTo(5)); // 2 more interceptors executed with prx2
+
         }
 
         [TestCase("ice")]
@@ -91,7 +92,7 @@ namespace IceRpc.Tests.Api
             new InlineInvoker((request, cancel) =>
             {
                 int value = nextValue();
-                Assert.AreEqual(count, value);
+                Assert.That(value, Is.EqualTo(count));
                 return next.InvokeAsync(request, cancel);
             });
 

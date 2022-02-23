@@ -25,7 +25,6 @@ namespace IceRpc.Tests.Api
         private const string _joe = "/joe";
         private const string _greeting = "how are you doing?";
         private const string _notGood = "feeling under the weather";
-        private const string _sayHelloOperation = "sayHello";
         private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
 
         private readonly ServiceProvider _serviceProvider;
@@ -54,7 +53,7 @@ namespace IceRpc.Tests.Api
             var payload = new ReadOnlySequence<byte>(_utf8.GetBytes(_greeting));
 
             var joeProxy = _proxy with { Path = _joe };
-            var request = new OutgoingRequest(joeProxy, _sayHelloOperation)
+            var request = new OutgoingRequest(joeProxy)
             {
                 PayloadEncoding = _customEncoding,
                 PayloadSource = PipeReader.Create(payload)
@@ -67,7 +66,7 @@ namespace IceRpc.Tests.Api
             Assert.That(greetingResponse, Is.EqualTo(_doingWell));
 
             var austinProxy = _proxy with { Path = _austin };
-            request = new OutgoingRequest(austinProxy, _sayHelloOperation)
+            request = new OutgoingRequest(austinProxy)
             {
                 PayloadEncoding = _customEncoding,
                 PayloadSource = PipeReader.Create(payload)
@@ -85,7 +84,7 @@ namespace IceRpc.Tests.Api
             var payload = new ReadOnlySequence<byte>(_utf8.GetBytes(_greeting));
 
             var badProxy = _proxy with { Path = "/bad" };
-            var request = new OutgoingRequest(badProxy, _sayHelloOperation)
+            var request = new OutgoingRequest(badProxy)
             {
                 PayloadEncoding = _customEncoding,
                 PayloadSource = PipeReader.Create(payload)
@@ -111,7 +110,7 @@ namespace IceRpc.Tests.Api
             var payload = new ReadOnlySequence<byte>(_utf8.GetBytes(_greeting));
             var joeProxy = _proxy with { Path = _joe };
 
-            var request = new OutgoingRequest(joeProxy, _sayHelloOperation)
+            var request = new OutgoingRequest(joeProxy)
             {
                 IsOneway = true,
                 PayloadEncoding = _customEncoding,
@@ -145,7 +144,7 @@ namespace IceRpc.Tests.Api
 
             public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
             {
-                if (request.Operation != _sayHelloOperation)
+                if (request.Operation.Length > 0)
                 {
                     throw new Slice.DispatchException(Slice.DispatchErrorCode.OperationNotFound);
                 }

@@ -74,7 +74,7 @@ namespace IceRpc.Tests.ClientServer
 
             if (greeter.Proxy.Protocol == Protocol.IceRpc)
             {
-                Assert.AreEqual(largeValue, invocation.Features.Get<string>());
+                Assert.That(invocation.Features.Get<string>(), Is.EqualTo(largeValue));
             }
         }
 
@@ -84,7 +84,7 @@ namespace IceRpc.Tests.ClientServer
 
             public ValueTask SayHelloAsync(string message, Dispatch dispatch, CancellationToken cancel)
             {
-                Assert.AreEqual(_expectedValue, dispatch.Features.GetContext()["foo"]);
+                Assert.That(dispatch.Features.GetContext()["foo"], Is.EqualTo(_expectedValue));
                 dispatch.Features = dispatch.Features.With(_expectedValue);
                 return default;
             }

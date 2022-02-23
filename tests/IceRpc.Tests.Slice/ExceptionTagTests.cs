@@ -43,10 +43,10 @@ namespace IceRpc.Tests.Slice
             TaggedExceptionMinus ex =
                 Assert.ThrowsAsync<TaggedExceptionMinus>(async () => await prx.OpTaggedExceptionAsync(5, "foo", ts));
 
-            Assert.AreEqual(false, ex.MBool);
-            Assert.AreEqual("foo", ex.MString);
+            Assert.That(ex.MBool, Is.EqualTo(false));
+            Assert.That(ex.MString, Is.EqualTo("foo"));
             Assert.That(ex.MStruct, Is.Not.Null);
-            Assert.AreEqual(ts, ex.MStruct.Value);
+            Assert.That(ex.MStruct.Value, Is.EqualTo(ts));
         }
 
         [Test]
@@ -66,11 +66,11 @@ namespace IceRpc.Tests.Slice
 
             Assert.That(ex.MFloat, Is.Null);
 
-            Assert.AreEqual(false, ex.MBool);
+            Assert.That(ex.MBool, Is.EqualTo(false));
             Assert.That(ex.MInt, Is.Null);
-            Assert.AreEqual("foo", ex.MString);
+            Assert.That(ex.MString, Is.EqualTo("foo"));
             Assert.That(ex.MStruct, Is.Not.Null);
-            Assert.AreEqual(ts, ex.MStruct.Value);
+            Assert.That(ex.MStruct.Value, Is.EqualTo(ts));
         }
 
         [Test]
@@ -89,16 +89,16 @@ namespace IceRpc.Tests.Slice
                 DerivedException derivedEx = Assert.ThrowsAsync<DerivedException>(
                     async () => await prx.OpDerivedExceptionAsync(null, "foo", ts));
 
-                Assert.AreEqual("foo", derivedEx.MString1);
+                Assert.That(derivedEx.MString1, Is.EqualTo("foo"));
                 Assert.That(derivedEx.MStruct1, Is.Not.Null);
-                Assert.AreEqual(ts, derivedEx.MStruct1.Value);
+                Assert.That(derivedEx.MStruct1.Value, Is.EqualTo(ts));
                 CheckException(derivedEx);
 
                 RequiredException requiredEx = Assert.ThrowsAsync<RequiredException>(
                     async () => await prx.OpRequiredExceptionAsync(null, "foo", ts));
 
-                Assert.AreEqual("foo", requiredEx.MString1);
-                Assert.AreEqual(ts, requiredEx.MStruct1);
+                Assert.That(requiredEx.MString1, Is.EqualTo("foo"));
+                Assert.That(requiredEx.MStruct1, Is.EqualTo(ts));
                 CheckException(requiredEx);
             }
             else
@@ -114,11 +114,11 @@ namespace IceRpc.Tests.Slice
 
             void CheckException(TaggedException ex)
             {
-                Assert.AreEqual(false, ex.MBool);
+                Assert.That(ex.MBool, Is.EqualTo(false));
                 Assert.That(ex.MInt, Is.Null);
-                Assert.AreEqual("foo", ex.MString);
+                Assert.That(ex.MString, Is.EqualTo("foo"));
                 Assert.That(ex.MStruct, Is.Not.Null);
-                Assert.AreEqual(ts, ex.MStruct.Value);
+                Assert.That(ex.MStruct.Value, Is.EqualTo(ts));
             }
         }
 
@@ -126,7 +126,7 @@ namespace IceRpc.Tests.Slice
         {
             public object? CreateInstance(string typeId, ref SliceDecoder decoder)
             {
-                Assert.AreEqual(typeof(TaggedException).GetSliceTypeId(), typeId);
+                Assert.That(typeId, Is.EqualTo(typeof(TaggedException).GetSliceTypeId()));
                 return new TaggedExceptionMinus(ref decoder);
             }
         }
@@ -135,7 +135,7 @@ namespace IceRpc.Tests.Slice
         {
             public object? CreateInstance(string typeId, ref SliceDecoder decoder)
             {
-                Assert.AreEqual(typeof(TaggedException).GetSliceTypeId(), typeId);
+                Assert.That(typeId, Is.EqualTo(typeof(TaggedException).GetSliceTypeId()));
                 return new TaggedExceptionPlus(ref decoder);
             }
         }

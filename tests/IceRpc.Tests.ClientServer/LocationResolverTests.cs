@@ -90,7 +90,7 @@ namespace IceRpc.Tests.ClientServer
             var greeter = GreeterPrx.Parse($"{protocol}:/path");
             greeter.Proxy.Endpoint = _server.Endpoint;
             greeter.Proxy.Invoker = invoker;
-            Assert.AreNotEqual(0, greeter.Proxy.Endpoint!.Value.Port);
+            Assert.That(greeter.Proxy.Endpoint!.Value.Port, Is.Not.EqualTo(0));
             return greeter;
         }
 
@@ -114,7 +114,7 @@ namespace IceRpc.Tests.ClientServer
                         {
                             Endpoint = resolvedEndpoint,
                         };
-                        CollectionAssert.IsEmpty(endpointSelection.AltEndpoints);
+                        Assert.That(endpointSelection.AltEndpoints, Is.Empty);
                         request.Features = request.Features.With(endpointSelection);
                     }
                     // else don't do anything

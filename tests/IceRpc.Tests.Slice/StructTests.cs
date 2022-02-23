@@ -43,8 +43,8 @@ namespace IceRpc.Tests.Slice
         static async Task TestAsync<T>(Func<T, T, Task<(T, T)>> invoker, T p1, T p2)
         {
             (T r1, T r2) = await invoker(p1, p2);
-            Assert.AreEqual(p1, r1);
-            Assert.AreEqual(p2, r2);
+            Assert.That(r1, Is.EqualTo(p1));
+            Assert.That(r2, Is.EqualTo(p2));
         }
 
         public class StructOperations : Service, IStructOperations
