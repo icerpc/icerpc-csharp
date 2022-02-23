@@ -179,7 +179,6 @@ encoder.StartSlice(_sliceTypeId);
 System.Diagnostics.Debug.Assert(encoder.Encoding != IceRpc.Encoding.Slice11);
 
 encoder.EncodeString(Message);
-Origin.Encode(ref encoder);
 {encode_data_members}"#,
             encode_data_members = &encode_data_members(&members, namespace, FieldType::Exception),
         ).into();
