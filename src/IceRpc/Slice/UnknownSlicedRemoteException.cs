@@ -11,6 +11,10 @@ namespace IceRpc.Slice
         public string TypeId { get; }
 
         /// <inheritdoc/>
+        public override void EncodeTrait(ref SliceEncoder encoder) =>
+            throw new InvalidOperationException("cannot encode unknown remote exceptions");
+
+        /// <inheritdoc/>
         protected override string? DefaultMessage =>
             $"{nameof(UnknownSlicedRemoteException)} {{ TypeId = {TypeId}, Origin = {Origin} }}";
 
