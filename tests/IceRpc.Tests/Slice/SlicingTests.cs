@@ -194,7 +194,7 @@ public class SlicingTests
         var encoder = new SliceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
 
         var p1 = new MyMostDerivedException("most-derived", "derived", "base");
-        encoder.EncodeException(p1);
+        p1.EncodeTrait(ref encoder);
         buffer = bufferWriter.WrittenBuffer;
 
         // Create an activator that knows about all the types using in this test
@@ -262,7 +262,7 @@ public class SlicingTests
             buffer = new byte[1024];
             bufferWriter = new SingleBufferWriter(buffer);
             var encoder = new SliceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
-            encoder.EncodeException(r);
+            r.EncodeTrait(ref encoder);
         }, Throws.TypeOf<InvalidOperationException>());
     }
 
