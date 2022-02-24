@@ -1,9 +1,9 @@
 {
     "$schema": "http://json.schemastore.org/template",
     "author": "ZeroC",
-    "classifications": [ "Console", "Client" ],
+    "classifications": ["IceRPC", "Client"],
     "identity": "ZeroC.IceRpc.NET.Client",
-    "name": "IceRpc C# Client",
+    "name": "IceRPC Client",
     "shortName": "icerpc-client",
     "tags": {
         "language": "C#",
