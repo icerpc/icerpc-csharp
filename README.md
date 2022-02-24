@@ -112,3 +112,22 @@ following command:
 ```
 ./build.sh --examples --srcdist
 ```
+## Project Templates
+
+You can generate a starter project by using dotnet templates.
+
+Templates to generate a hello server and hello client are provided in `src/ProjectTemplates`
+
+To install these templates run:
+
+```
+dotnet new --install src/ProjectTemplates/server
+dotnet new --install src/ProjectTemplates/client
+```
+
+To create the starter projects using the provided templates run:
+
+```
+dotnet new icerpc-client
+dotnet new icerpc-server
+```

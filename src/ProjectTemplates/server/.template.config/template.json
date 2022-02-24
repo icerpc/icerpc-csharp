@@ -1,0 +1,19 @@
+{
+    "$schema": "http://json.schemastore.org/template",
+    "author": "ZeroC",
+    "classifications": ["IceRPC", "Server"],
+    "identity": "ZeroC.IceRpc.NET.Server",
+    "name": "IceRPC Server",
+    "shortName": "icerpc-server",
+    "tags": {
+        "language": "C#",
+        "type": "project"
+    },
+    "sourceName": "ZeroC.Server",
+    "preferNameDirectory": true,
+    "primaryOutputs": [
+        {
+            "path": "Server.csproj"
+        }
+    ]
+}
