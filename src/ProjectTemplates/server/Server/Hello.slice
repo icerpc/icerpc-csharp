@@ -1,0 +1,7 @@
+module Demo
+{
+    interface Hello
+    {
+        sayHello(greeting: string?) -> string?;
+    }
+}

@@ -1,0 +1,19 @@
+{
+    "$schema": "http://json.schemastore.org/template",
+    "author": "ZeroC",
+    "classifications": [ "Console", "Client" ],
+    "identity": "ZeroC.IceRpc.NET.Client",
+    "name": "IceRpc C# Client",
+    "shortName": "icerpc-client",
+    "tags": {
+        "language": "C#",
+        "type": "project"
+    },
+    "sourceName": "ZeroC.Client",
+    "preferNameDirectory": true,
+    "primaryOutputs": [
+        {
+            "path": "Client.csproj"
+        }
+    ]
+}
