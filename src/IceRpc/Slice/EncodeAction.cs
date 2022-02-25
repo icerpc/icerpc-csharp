@@ -11,5 +11,4 @@ namespace IceRpc.Slice
     /// <param name="encoder">The Slice encoder.</param>
     /// <param name="value">The value to encode with the encoder.</param>
     public delegate void EncodeAction<in T>(ref SliceEncoder encoder, T value);
-
 }
