@@ -319,7 +319,8 @@ namespace IceRpc.Slice
                 }
                 else
                 {
-                    // If we can't decode this exception, we return an UnknownException with the type ID and message.
+                    // If we can't decode this exception, we return an UnknownException with the undecodable
+                    // exception's type ID and message.
                     return new UnknownException(typeId, DecodeString());
                 }
             }
