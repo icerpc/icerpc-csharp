@@ -242,7 +242,7 @@ namespace IceRpc.Slice
                 }
                 else
                 {
-                    remoteEx = new UnknownSlicedRemoteException(mostDerivedTypeId);
+                    remoteEx = new UnknownException(mostDerivedTypeId, message: "");
                 }
 
                 _classContext.Current = default;

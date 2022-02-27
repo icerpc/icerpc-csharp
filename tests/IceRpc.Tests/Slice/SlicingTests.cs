@@ -254,16 +254,8 @@ public class SlicingTests
         decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: slicingActivator);
         r = decoder.DecodeException((ResultType)SliceResultType.ServiceFailure);
         Assert.That(r, Is.Not.InstanceOf<MyBaseException>());
-        Assert.That(r, Is.InstanceOf<UnknownSlicedRemoteException>());
-        Assert.That(((UnknownSlicedRemoteException)r).TypeId, Is.EqualTo("::IceRpc::Slice::Tests::MyMostDerivedException"));
-
-        // Ensure that encoding an unknown remote exception fails with 'InvalidOperationException'.
-        Assert.That(() => {
-            buffer = new byte[1024];
-            bufferWriter = new SingleBufferWriter(buffer);
-            var encoder = new SliceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
-            encoder.EncodeException(r);
-        }, Throws.TypeOf<InvalidOperationException>());
+        Assert.That(r, Is.InstanceOf<UnknownException>());
+        Assert.That(((UnknownException)r).TypeId, Is.EqualTo("::IceRpc::Slice::Tests::MyMostDerivedException"));
     }
 
     [Test]
