@@ -9,5 +9,8 @@ await using var connection = new Connection
 IHelloPrx twoway = HelloPrx.FromConnection(connection);
 
 Console.Write("Say Hello: ");
-string? greeting = Console.ReadLine();
-Console.WriteLine(await twoway.SayHelloAsync(greeting));
+
+if (Console.ReadLine() is string greeting)
+{
+    Console.WriteLine(await twoway.SayHelloAsync(greeting));
+}
