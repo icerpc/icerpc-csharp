@@ -149,64 +149,122 @@ else
             .build(),
         );
 
-        exception_class_builder.add_block(
-            FunctionBuilder::new(
-                "protected override",
-                "void",
-                "EncodeCore",
-                FunctionType::BlockBody,
-            )
-            .add_parameter("ref SliceEncoder", "encoder", None, None)
-            .set_body({
-                let mut code = CodeBlock::new();
-                // TODO: don't need if (encoder.Encoding ==) when exception has classes
-                if has_base {
-                    writeln!(
-                        code,
-                        "\
-if (encoder.Encoding == IceRpc.Encoding.Slice11)
-{{
-    encoder.StartSlice(_sliceTypeId);
-    {encode_data_members}
-    encoder.EndSlice(lastSlice: false);
-    base.EncodeCore(ref encoder);
-}}
-else
-{{
-    base.EncodeCore(ref encoder);
-}}",
-                        encode_data_members =
-                            &encode_data_members(&members, namespace, FieldType::Exception,)
-                    );
-                } else {
-                    writeln!(
-                        code,
-                        "\
-if (encoder.Encoding == IceRpc.Encoding.Slice11)
-{{
-    encoder.StartSlice(_sliceTypeId);
-    {encode_data_members}
-    encoder.EndSlice(lastSlice: true);
-}}
-else
-{{
-    encoder.EncodeString(_sliceTypeId);
-    encoder.EncodeString(Message);
-    {encode_data_members}
-}}",
-                        encode_data_members =
-                            &encode_data_members(&members, namespace, FieldType::Exception,)
-                    );
-                }
-
-                code
-            })
-            .build(),
-        );
+        exception_class_builder.add_block(write_encode_method(exception_def));
+        exception_class_builder.add_block(write_encode_trait_method(exception_def));
+        exception_class_builder.add_block(write_encode_core_method(exception_def));
 
         self.generated_code
             .insert_scoped(exception_def, exception_class_builder.build().into());
     }
+}
+
+fn write_encode_method(exception_def: &Exception) -> CodeBlock {
+    let members = &exception_def.members();
+    let namespace = &exception_def.namespace();
+    let has_base = exception_def.base.is_some();
+
+    let body = CodeBlock::from(format!(
+        r#"
+if (encoder.Encoding == IceRpc.Encoding.Slice11)
+{{
+    throw new InvalidOperationException("encoding an exception by its fields isn't supported with the 1.1 encoding");
+}}
+
+encoder.EncodeString(message);
+{encode_data_members}
+        "#,
+        encode_data_members = &encode_data_members(members, namespace, FieldType::Exception),
+    ));
+
+    let qualifier = if has_base { "public new" } else { "public" };
+
+    FunctionBuilder::new(qualifier, "void", "Encode", FunctionType::BlockBody)
+    .add_comment("summary", "Encodes the fields of this exception.")
+    .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
+    .set_body(body)
+    .build()
+}
+
+fn write_encode_trait_method(exception_def: &Exception) -> CodeBlock {
+    let has_base = exception_def.base.is_some();
+
+    let mut compat_body_block = CodeBlock::from(
+        r#"
+encoder.StartSlice(_sliceTypeId);
+this.EncodeCore(ref encoder);
+encoder.EndSlice(lastSlice: true);
+        "#
+    );
+
+    // Exception inheritance is only supported with the 1.1 encoding,
+    // so for 2.0 we only encode the least-derived base exception.
+    let mut current_body_block = CodeBlock::from(
+        if has_base {
+            r#"
+base.EncodeTrait(ref encoder);
+            "#
+        } else {
+            r#"
+encoder.EncodeString(_sliceTypeId);
+this.Encode(ref encoder);
+            "#
+        }
+    );
+
+    let body = CodeBlock::from(format!(
+        r#"
+if (encoder.Encoding == IceRpc.Encoding.Slice11)
+{{
+    {compat_body_block}
+}}
+else
+{{
+    {current_body_block}
+}}
+        "#,
+        compat_body_block = compat_body_block.indent(),
+        current_body_block = current_body_block.indent(),
+    ));
+
+    FunctionBuilder::new("public override", "void", "EncodeTrait", FunctionType::BlockBody)
+    .add_comment(
+        "summary",
+        "Encodes this exception as a trait, by encoding its Slice type ID followed by its fields.",
+    )
+    .add_parameter("ref SliceEncoder", "encoder", None, Some("The encoder."))
+    .set_body(body)
+    .build()
+}
+
+fn write_encode_core_method(exception_def: &Exception) -> CodeBlock {
+    let members = &exception_def.members();
+    let namespace = &exception_def.namespace();
+    let has_base = exception_def.base.is_some();
+
+    let mut body = CodeBlock::from(format!(
+        r#"
+if (encoder.Encoding != IceRpc.Encoding.Slice11)
+{{
+    throw new InvalidOperationException("encoding an exception in slices is only supported with the 1.1 encoding");
+}}
+
+encoder.StartSlice(_sliceTypeId);
+{encode_data_members}
+        "#,
+        encode_data_members = &encode_data_members(members, namespace, FieldType::Exception),
+    ));
+    if has_base {
+        writeln!(body, "encoder.EndSlice(lastSlice: false);");
+        writeln!(body, "base.EncodeCore(ref encoder);");
+    } else {
+        writeln!(body, "encoder.EndSlice(lastSlice: true);");
+    }
+
+    FunctionBuilder::new("protected override", "void", "EncodeCore", FunctionType::BlockBody)
+    .set_inherit_doc(true)
+    .add_parameter("ref SliceEncoder", "encoder", None, None)
+    .set_body(body)
+    .build()
 }
 
 fn one_shot_constructor(
