@@ -27,11 +27,11 @@ namespace IceRpc.Tests.ClientServer
         [TestCase("test", "test @ adapter", "test2")]
         public async Task LocationResolver_ResolveAsync(string proxy, params string[] badProxies)
         {
-            _pool = new ConnectionPool()
+            _pool = new ConnectionPool(new ConnectionOptions
             {
                 MultiplexedClientTransport = new CompositeMultiplexedClientTransport().UseSlicOverTcp(),
                 SimpleClientTransport = new CompositeSimpleClientTransport().UseTcp()
-            };
+            });
 
             var pipeline = new Pipeline();
             IProxyFormat? format = proxy.StartsWith("ice", StringComparison.Ordinal) ? null : IceProxyFormat.Default;

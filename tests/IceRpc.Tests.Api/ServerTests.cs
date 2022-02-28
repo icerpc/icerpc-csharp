@@ -15,12 +15,12 @@ namespace IceRpc.Tests.Api
         public async Task Server_Exceptions()
         {
             {
-                await using var server = new Server(Connection.DefaultDispatcher);
+                await using var server = new Server(ConnectionOptions.DefaultDispatcher);
                 Assert.That(server.Endpoint.ToString(), Is.EqualTo("icerpc://[::0]"));
             }
 
             {
-                await using var server = new Server(Connection.DefaultDispatcher, "icerpc://foo:10000");
+                await using var server = new Server(ConnectionOptions.DefaultDispatcher, "icerpc://foo:10000");
 
                 // A DNS name cannot be used with a server endpoint
                 Assert.Throws<NotSupportedException>(() => server.Listen());
@@ -28,7 +28,7 @@ namespace IceRpc.Tests.Api
 
             {
                 // Listen twice is incorrect
-                await using var server = new Server(Connection.DefaultDispatcher);
+                await using var server = new Server(ConnectionOptions.DefaultDispatcher);
                 server.Listen();
                 Assert.Throws<InvalidOperationException>(() => server.Listen());
             }
@@ -42,11 +42,11 @@ namespace IceRpc.Tests.Api
                     MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport),
                 });
 
-                await using var connection = new Connection
+                await using var connection = new Connection(new ConnectionOptions
                 {
                     MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
                     RemoteEndpoint = server.Endpoint
-                };
+                });
                 var proxy = ServicePrx.FromConnection(connection);
 
                 Assert.ThrowsAsync<ConnectionRefusedException>(async () => await proxy.IcePingAsync());
@@ -62,11 +62,11 @@ namespace IceRpc.Tests.Api
                     MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport),
                 });
 
-                await using var connection = new Connection
+                await using var connection = new Connection(new ConnectionOptions
                 {
                     MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
                     RemoteEndpoint = server.Endpoint
-                };
+                });
                 var proxy = ServicePrx.FromConnection(connection);
 
                 server.Listen();
@@ -90,11 +90,11 @@ namespace IceRpc.Tests.Api
                     MultiplexedServerTransport = new SlicServerTransport(colocTransport.ServerTransport),
                 });
 
-                await using var connection = new Connection
+                await using var connection = new Connection(new ConnectionOptions
                 {
                     MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
                     RemoteEndpoint = server.Endpoint
-                };
+                });
                 var proxy = ServicePrx.FromConnection(connection, GreeterPrx.DefaultPath);
                 server.Listen();
 
@@ -104,12 +104,13 @@ namespace IceRpc.Tests.Api
             }
 
             {
-                await using var server1 = new Server(Connection.DefaultDispatcher, "icerpc://127.0.0.1:15001");
+                await using var server1 = new Server(ConnectionOptions.DefaultDispatcher, "icerpc://127.0.0.1:15001");
                 server1.Listen();
 
                 Assert.ThrowsAsync<TransportException>(async () =>
                 {
-                    await using var server2 = new Server(Connection.DefaultDispatcher, "icerpc://127.0.0.1:15001");
+                    await using var server2 = new Server(
+                        ConnectionOptions.DefaultDispatcher, "icerpc://127.0.0.1:15001");
                     server2.Listen();
                 });
             }
@@ -135,7 +136,7 @@ namespace IceRpc.Tests.Api
 
             {
                 // Calling Listen on a disposed server throws ObjectDisposedException
-                var server = new Server(Connection.DefaultDispatcher);
+                var server = new Server(ConnectionOptions.DefaultDispatcher);
                 await server.DisposeAsync();
                 Assert.Throws<ObjectDisposedException>(() => server.Listen());
             }
@@ -179,12 +180,12 @@ namespace IceRpc.Tests.Api
 
             server.Listen();
 
-            await using var connection = new Connection
+            await using var connection = new Connection(new ConnectionOptions
             {
                 MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
                 LoggerFactory = LogAttributeLoggerFactory.Instance,
                 RemoteEndpoint = server.Endpoint
-            };
+            });
             var proxy = ServicePrx.FromConnection(connection, GreeterPrx.DefaultPath);
 
             using var cancellationSource = new CancellationTokenSource();
@@ -224,11 +225,11 @@ namespace IceRpc.Tests.Api
 
             server.Listen();
 
-            await using var connection = new Connection
+            await using var connection = new Connection(new ConnectionOptions
             {
                 MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
                 RemoteEndpoint = server.Endpoint
-            };
+            });
 
             var proxy = ServicePrx.FromConnection(connection, GreeterPrx.DefaultPath);
 
@@ -282,13 +283,13 @@ namespace IceRpc.Tests.Api
 
             server.Listen();
 
-            await using var connection = new Connection
+            await using var connection = new Connection(new ConnectionOptions
             {
                 SimpleClientTransport = colocTransport.ClientTransport,
                 MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
                 RemoteEndpoint = serverEndpoint,
                 LoggerFactory = LogAttributeLoggerFactory.Instance
-            };
+            });
 
             var proxy = ServicePrx.FromConnection(connection, GreeterPrx.DefaultPath);
 

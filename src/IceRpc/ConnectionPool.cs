@@ -12,48 +12,34 @@ namespace IceRpc
     /// <see cref="BinderInterceptor"/> interceptor.</summary>
     public sealed partial class ConnectionPool : IConnectionProvider, IAsyncDisposable
     {
-        /// <summary>The connection options.</summary>
-        public ConnectionOptions ConnectionOptions { get; init; } = new();
-
-        /// <summary>The dispatcher that will be set on connections from the pool to enable connections to receive
-        /// requests over the client connection.</summary>
-        /// <value>The dispatcher of this connection pool.</value>
-        /// <seealso cref="IDispatcher"/>
-        public IDispatcher Dispatcher { get; init; } = Connection.DefaultDispatcher;
-
-        /// <summary>The <see cref="IClientTransport{IMultiplexedNetworkConnection}"/> of connections created by
-        /// this pool.</summary>
-        public IClientTransport<IMultiplexedNetworkConnection> MultiplexedClientTransport { get; init; } =
-            Connection.DefaultMultiplexedClientTransport;
-
-        /// <summary>The logger factory of connections created by this pool.</summary>
-        public ILoggerFactory LoggerFactory { get; init; } = NullLoggerFactory.Instance;
-
-        /// <summary>Indicates whether or not <see cref="GetConnectionAsync"/> prefers returning an existing connection
-        /// over creating a new one.</summary>
-        /// <value>When <c>true</c>, GetConnectionAsync first iterates over all endpoints (in order) to look for an
-        /// existing compatible active connection; if it cannot find such a connection, it creates one by iterating
-        /// again over the endpoints. When <c>false</c>, GetConnectionAsync iterates over the endpoints only once to
-        /// retrieve or create an active connection. The default value is <c>true</c>.</value>
-        public bool PreferExistingConnection { get; set; } = true;
-
-        /// <summary>The <see cref="IClientTransport{ISimpleNetworkConnection}"/> of connections created by this pool.
-        /// </summary>
-        public IClientTransport<ISimpleNetworkConnection> SimpleClientTransport { get; init; } =
-            Connection.DefaultSimpleClientTransport;
-
+        private readonly ConnectionOptions? _connectionOptions;
         private readonly Dictionary<Endpoint, List<Connection>> _connections = new(EndpointComparer.ParameterLess);
         private readonly object _mutex = new();
+        private readonly bool _preferExistingConnection;
         private CancellationTokenSource? _shutdownCancelSource;
         private Task? _shutdownTask;
+
+        /// <summary>Constructs a connection pool.</summary>
+        /// <param name="connectionOptions">The connection options. Its <see cref="ConnectionOptions.RemoteEndpoint"/>
+        /// property is ignored.</param>
+        /// <param name="preferExistingConnection">Configures whether or not <see cref="GetConnectionAsync"/> prefers
+        /// returning an existing connection over creating a new one. When <c>true</c>, GetConnectionAsync first
+        /// iterates over all endpoints (in order) to look for an existing compatible active connection; if it cannot
+        /// find such a connection, it creates one by iterating again over the endpoints. When <c>false</c>,
+        /// GetConnectionAsync iterates over the endpoints only once to retrieve or create an active connection. The
+        /// default value is <c>true</c>.</param>
+        public ConnectionPool(ConnectionOptions? connectionOptions = null, bool preferExistingConnection = true)
+        {
+            _connectionOptions = connectionOptions;
+            _preferExistingConnection = preferExistingConnection;
+        }
 
         /// <summary>An alias for <see cref="ShutdownAsync"/>, except this method returns a <see cref="ValueTask"/>.
         /// </summary>
         /// <returns>A value task constructed using the task returned by ShutdownAsync.</returns>
         public ValueTask DisposeAsync() => new(ShutdownAsync());
 
-        /// <summary>Returns a connection to one of the specified endpoints. The behavior of this method depends on
-        /// <see cref="PreferExistingConnection"/>.</summary>
+        /// <summary>Returns a connection to one of the specified endpoints.</summary>
         /// <param name="endpoint">The first endpoint to try.</param>
         /// <param name="altEndpoints">The alternative endpoints.</param>
         /// <param name="cancel">The cancellation token.</param>
@@ -62,7 +48,7 @@ namespace IceRpc
             IEnumerable<Endpoint> altEndpoints,
             CancellationToken cancel)
         {
-            if (PreferExistingConnection)
+            if (_preferExistingConnection)
             {
                 Connection? connection = null;
                 lock (_mutex)
@@ -211,16 +197,19 @@ namespace IceRpc
 
                 if (connection == null)
                 {
-                    // Connections from the connection pool are not resumable.
-                    connection = new Connection
+                    ConnectionOptions connectionOptions;
+                    if (_connectionOptions == null)
                     {
-                        Dispatcher = Dispatcher,
-                        LoggerFactory = LoggerFactory,
-                        MultiplexedClientTransport = MultiplexedClientTransport,
-                        Options = ConnectionOptions,
-                        RemoteEndpoint = endpoint,
-                        SimpleClientTransport = SimpleClientTransport,
-                    };
+                        connectionOptions = new ConnectionOptions { RemoteEndpoint = endpoint };
+                    }
+                    else
+                    {
+                        connectionOptions = _connectionOptions.Clone();
+                        connectionOptions.RemoteEndpoint = endpoint;
+                    }
+
+                    // Connections from the connection pool are not resumable.
+                    connection = new Connection(connectionOptions);
                     if (!_connections.TryGetValue(endpoint, out connections))
                     {
                         connections = new List<Connection>();

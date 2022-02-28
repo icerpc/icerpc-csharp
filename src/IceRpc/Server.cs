@@ -104,13 +104,10 @@ namespace IceRpc
                     listener,
                     options.Dispatcher,
                     protocolConnectionFactory,
-                    new ConnectionOptions
-                    {
-                        CloseTimeout = options.CloseTimeout,
-                        ConnectTimeout = options.ConnectTimeout,
-                        IncomingFrameMaxSize = options.IncomingFrameMaxSize,
-                        KeepAlive = options.KeepAlive
-                    },
+                    options.CloseTimeout,
+                    options.ConnectTimeout,
+                    options.IncomingFrameMaxSize,
+                    options.KeepAlive,
                     closedEventHandler));
             }
 
@@ -118,7 +115,10 @@ namespace IceRpc
                 IListener<T> listener,
                 IDispatcher dispatcher,
                 IProtocolConnectionFactory<T> protocolConnectionFactory,
-                ConnectionOptions connectionOptions,
+                TimeSpan closeTimeout,
+                TimeSpan connectTimeout,
+                int incomingFrameMaxSize,
+                bool keepAlive,
                 EventHandler<ClosedEventArgs>? closedEventHandler) where T : INetworkConnection
             {
                 while (true)
@@ -146,11 +146,7 @@ namespace IceRpc
 
                     // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                    var connection = new Connection(networkConnection, Endpoint.Protocol)
-                    {
-                        Dispatcher = dispatcher,
-                        Options = connectionOptions
-                    };
+                    var connection = new Connection(networkConnection, Endpoint.Protocol, closeTimeout);
 #pragma warning restore CA2000
 
                     lock (_mutex)
@@ -182,7 +178,14 @@ namespace IceRpc
                     // such as TLS based transports where the handshake requires few round trips between the client
                     // and server. Waiting could also cause a security issue if the client doesn't respond to the
                     // connection initialization as we wouldn't be able to accept new connections in the meantime.
-                    _ = connection.ConnectAsync(networkConnection, protocolConnectionFactory, closedEventHandler);
+                    _ = connection.ConnectAsync(
+                        networkConnection,
+                        dispatcher,
+                        protocolConnectionFactory,
+                        connectTimeout,
+                        incomingFrameMaxSize,
+                        keepAlive,
+                        closedEventHandler);
                 }
             }
         }

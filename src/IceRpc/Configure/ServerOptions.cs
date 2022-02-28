@@ -70,7 +70,7 @@ namespace IceRpc.Configure
         /// <summary>Gets or sets the server's dispatcher.</summary>
         /// <seealso cref="IDispatcher"/>
         /// <seealso cref="Router"/>
-        public IDispatcher Dispatcher { get; set; } = Connection.DefaultDispatcher;
+        public IDispatcher Dispatcher { get; set; } = ConnectionOptions.DefaultDispatcher;
 
         /// <summary>The logger factory used to create loggers to log connection-related activities.</summary>
         public ILoggerFactory LoggerFactory { get; set; } = NullLoggerFactory.Instance;

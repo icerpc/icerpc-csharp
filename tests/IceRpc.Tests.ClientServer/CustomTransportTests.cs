@@ -73,11 +73,11 @@ namespace IceRpc.Tests.ClientServer
 
             server.Listen();
 
-            await using var connection = new Connection
+            await using var connection = new Connection(new ConnectionOptions
             {
                 MultiplexedClientTransport = new CustomClientTransport(),
                 RemoteEndpoint = server.Endpoint
-            };
+            });
 
             var prx = ServicePrx.FromConnection(connection);
             await prx.IcePingAsync();
@@ -107,7 +107,7 @@ namespace IceRpc.Tests.ClientServer
                 });
                 server.Listen();
 
-                await using var connection1 = new Connection
+                await using var connection1 = new Connection(new ConnectionOptions
                 {
                     MultiplexedClientTransport = new CustomClientTransport(),
                     // We add the custom endpoint here because listen updates the endpoint and the custom transport
@@ -116,12 +116,12 @@ namespace IceRpc.Tests.ClientServer
                     {
                         Params = server.Endpoint.Params.Add("custom-p", "bar")
                     }
-                };
+                });
 
                 var prx = ServicePrx.FromConnection(connection1);
                 await prx.IcePingAsync();
 
-                await using var connection2 = new Connection
+                await using var connection2 = new Connection(new ConnectionOptions
                 {
                     MultiplexedClientTransport = new SlicClientTransport(new TcpClientTransport()),
                     // We add the custom endpoint here because listen updates the endpoint and the custom transport
@@ -130,7 +130,7 @@ namespace IceRpc.Tests.ClientServer
                     {
                         Params = server.Endpoint.Params.Add("custom-p", "bar")
                     }
-                };
+                });
 
                 prx = ServicePrx.FromConnection(connection2);
                 Assert.ThrowsAsync<FormatException>(async () => await prx.IcePingAsync());

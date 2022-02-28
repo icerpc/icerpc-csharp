@@ -26,25 +26,6 @@ namespace IceRpc.Tests.Api
         public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
 
         [Test]
-        public async Task ConnectionPool_Dispatcher()
-        {
-            var dispatcher = new InlineDispatcher((request, cancel) => default);
-
-            await using var connectionPool = new ConnectionPool()
-            {
-                Dispatcher = dispatcher,
-                MultiplexedClientTransport = _clientTransport
-            };
-
-            Connection connection = await connectionPool.GetConnectionAsync(
-                _remoteEndpoint,
-                ImmutableList<Endpoint>.Empty,
-                default);
-
-            Assert.That(connection.Dispatcher, Is.EqualTo(dispatcher));
-        }
-
-        [Test]
         public async Task ConnectionPool_Dispose()
         {
             {
@@ -54,7 +35,8 @@ namespace IceRpc.Tests.Api
             }
 
             {
-                var connectionPool = new ConnectionPool() { MultiplexedClientTransport = _clientTransport };
+                var connectionPool = new ConnectionPool(
+                    new ConnectionOptions { MultiplexedClientTransport = _clientTransport });
                 _ = await connectionPool.GetConnectionAsync(
                     _remoteEndpoint,
                     ImmutableList<Endpoint>.Empty,
@@ -67,29 +49,25 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task ConnectionPool_ConnectionOptions()
         {
-            await using var connectionPool = new ConnectionPool()
-            {
-                ConnectionOptions = new()
+            await using var connectionPool = new ConnectionPool(
+                new ConnectionOptions
                 {
                     IncomingFrameMaxSize = 2048,
-                    KeepAlive = true
-                },
-                MultiplexedClientTransport = _clientTransport
-            };
+                    KeepAlive = true,
+                    MultiplexedClientTransport = _clientTransport
+                });
 
             Connection connection = await connectionPool.GetConnectionAsync(
                 _remoteEndpoint,
                 ImmutableList<Endpoint>.Empty,
                 default);
-
-            Assert.That(connection.Options.KeepAlive, Is.True);
-            Assert.That(connection.Options.IncomingFrameMaxSize, Is.EqualTo(2048));
         }
 
         [Test]
         public async Task ConnectionPool_ConnectionReused()
         {
-            await using var connectionPool = new ConnectionPool() { MultiplexedClientTransport = _clientTransport };
+            await using var connectionPool = new ConnectionPool(
+                new ConnectionOptions { MultiplexedClientTransport = _clientTransport });
 
             Connection connection = await connectionPool.GetConnectionAsync(
                 _remoteEndpoint,
@@ -136,11 +114,12 @@ namespace IceRpc.Tests.Api
             });
             server2.Listen();
 
-            await using var connectionPool = new ConnectionPool
-            {
-                MultiplexedClientTransport =
-                    serviceProvider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>()
-            };
+            await using var connectionPool = new ConnectionPool(
+                new ConnectionOptions
+                {
+                    MultiplexedClientTransport =
+                        serviceProvider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>()
+                });
 
             Connection connection1 = await connectionPool.GetConnectionAsync(
                 server1.Endpoint,

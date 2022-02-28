@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Slice;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
@@ -277,12 +278,12 @@ namespace IceRpc.Tests.ClientServer
                 .AddTransient<Connection>(serviceProvider =>
                 {
                     Server server = serviceProvider.GetRequiredService<Server>();
-                    return new Connection
+                    return new Connection(new ConnectionOptions
                     {
                         MultiplexedClientTransport =
                             serviceProvider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
                         RemoteEndpoint = $"icerpc://{clientHost}:{server.Endpoint.Port}"
-                    };
+                    });
                 })
                 .BuildServiceProvider();
 
