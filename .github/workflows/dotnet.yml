@@ -45,7 +45,7 @@ jobs:
       if: always()
       with:
         path: tests/IceRpc.Tests.ClientServer/TestResults/TestResults.xml
-        access-token: ${{ secrets.GITHUB_TOKEN }}
+        access-token: ${{ secrets.NUNIT_REPORTER_TOKEN }}
     - name: Build Examples
       run: ./build.sh --examples --srcdist
     - name: ReportGenerator
