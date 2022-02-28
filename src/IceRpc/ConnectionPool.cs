@@ -3,8 +3,6 @@
 using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Transports;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IceRpc
 {
@@ -12,7 +10,7 @@ namespace IceRpc
     /// <see cref="BinderInterceptor"/> interceptor.</summary>
     public sealed partial class ConnectionPool : IConnectionProvider, IAsyncDisposable
     {
-        private readonly ConnectionOptions? _connectionOptions;
+        private readonly ConnectionOptions _connectionOptions;
         private readonly Dictionary<Endpoint, List<Connection>> _connections = new(EndpointComparer.ParameterLess);
         private readonly object _mutex = new();
         private readonly bool _preferExistingConnection;
@@ -21,7 +19,7 @@ namespace IceRpc
 
         /// <summary>Constructs a connection pool.</summary>
         /// <param name="connectionOptions">The connection options. Its <see cref="ConnectionOptions.RemoteEndpoint"/>
-        /// property is ignored.</param>
+        /// property is ignored/replaced for each connection created by this pool.</param>
         /// <param name="preferExistingConnection">Configures whether or not <see cref="GetConnectionAsync"/> prefers
         /// returning an existing connection over creating a new one. When <c>true</c>, GetConnectionAsync first
         /// iterates over all endpoints (in order) to look for an existing compatible active connection; if it cannot
@@ -30,7 +28,7 @@ namespace IceRpc
         /// default value is <c>true</c>.</param>
         public ConnectionPool(ConnectionOptions? connectionOptions = null, bool preferExistingConnection = true)
         {
-            _connectionOptions = connectionOptions;
+            _connectionOptions = connectionOptions ?? new ConnectionOptions();
             _preferExistingConnection = preferExistingConnection;
         }
 
@@ -198,10 +196,7 @@ namespace IceRpc
                 if (connection == null)
                 {
                     // Connections from the connection pool are not resumable.
-                    connection = new Connection(
-                        _connectionOptions is ConnectionOptions connectionOptions ?
-                            connectionOptions with { RemoteEndpoint = endpoint } :
-                            new ConnectionOptions { RemoteEndpoint = endpoint });
+                    connection = new Connection(_connectionOptions with { RemoteEndpoint = endpoint });
 
                     if (!_connections.TryGetValue(endpoint, out connections))
                     {

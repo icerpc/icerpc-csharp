@@ -3,11 +3,9 @@
 using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Slice;
-using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
@@ -206,7 +204,7 @@ namespace IceRpc
 
         /// <summary>Constructs a client connection to a remote endpoint, using default values for all other properties.
         /// </summary>
-        /// <param name="remoteEndpoint">The remote endpoit.</param>
+        /// <param name="remoteEndpoint">The remote endpoint.</param>
         public Connection(Endpoint remoteEndpoint)
             : this(new ConnectionOptions { RemoteEndpoint = remoteEndpoint })
         {
