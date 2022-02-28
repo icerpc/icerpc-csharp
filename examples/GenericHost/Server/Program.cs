@@ -14,15 +14,6 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace ServerApp
 {
-    /// <summary>This class is used to read the server configuration options from the appsettings.json configuration
-    /// file.</summary>
-    public class ServerOptions
-    {
-        public ConnectionOptions ConnectionOptions { get; set; } = new();
-
-        public Endpoint Endpoint { get; set; } = "icerpc://[::0]";
-    }
-
     public class Program
     {
         public static void Main(string[] args) => CreateHostBuilder(args).Build().Run();
@@ -93,15 +84,14 @@ namespace ServerApp
                 IServerTransport<IMultiplexedNetworkConnection> serverTransport,
                 IOptions<ServerOptions> options,
                 IDispatcher dispatcher,
-                ILoggerFactory loggerFactory) =>
-                _server = new Server
-                {
-                    ConnectionOptions = options.Value.ConnectionOptions,
-                    Dispatcher = dispatcher,
-                    Endpoint = options.Value.Endpoint,
-                    LoggerFactory = loggerFactory,
-                    MultiplexedServerTransport = serverTransport
-                };
+                ILoggerFactory loggerFactory)
+            {
+                ServerOptions serverOptions = options.Value;
+                serverOptions.Dispatcher = dispatcher;
+                serverOptions.LoggerFactory = loggerFactory;
+                serverOptions.MultiplexedServerTransport = serverTransport;
+                _server = new Server(serverOptions);
+            }
 
             public Task StartAsync(CancellationToken cancellationToken)
             {
