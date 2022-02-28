@@ -3,7 +3,7 @@
 namespace IceRpc.Slice
 {
     /// <summary>Base class for exceptions defined in Slice.</summary>
-    public abstract class RemoteException : Exception
+    public abstract class RemoteException : Exception, ITrait
     {
         /// <inheritdoc/>
         public override string Message => _hasCustomMessage || DefaultMessage == null ? base.Message : DefaultMessage;
@@ -26,6 +26,10 @@ namespace IceRpc.Slice
         protected virtual string? DefaultMessage => null;
 
         private readonly bool _hasCustomMessage;
+
+        /// <summary>Encodes this exception as a trait, by encoding its Slice type ID followed by its fields.</summary>
+        /// <param name="encoder">The Slice encoder.</param>
+        public abstract void EncodeTrait(ref SliceEncoder encoder);
 
         /// <summary>Constructs a remote exception with the default system message.</summary>
         /// <param name="retryPolicy">The retry policy for the exception.</param>
@@ -63,6 +67,5 @@ namespace IceRpc.Slice
         protected abstract void EncodeCore(ref SliceEncoder encoder);
 
         internal void Decode(ref SliceDecoder decoder) => DecodeCore(ref decoder);
-        internal void Encode(ref SliceEncoder encoder) => EncodeCore(ref encoder);
     }
 }
