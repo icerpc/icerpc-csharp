@@ -84,10 +84,7 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Udp_IceRpcNotSupported()
         {
-            await using var server = new Server
-            {
-                Endpoint = "icerpc://[::0]:0?transport=udp"
-            };
+            await using var server = new Server(Connection.DefaultDispatcher, "icerpc://[::0]:0?transport=udp");
 
             // udp is not registered as a multiplexed transport
             Assert.Throws<UnknownTransportException>(() => server.Listen());

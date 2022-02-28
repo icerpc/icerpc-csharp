@@ -21,15 +21,22 @@ namespace IceRpc.Tests
                 IServerTransport<IMultiplexedNetworkConnection> multiplexedServerTransport =
                     serviceProvider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>();
 
-                var server = new Server
+                ConnectionOptions connectionOptions = serviceProvider.GetService<ConnectionOptions>() ??
+                    new ConnectionOptions();
+
+                var server = new Server(new ServerOptions
                 {
+                    CloseTimeout = connectionOptions.CloseTimeout,
+                    ConnectTimeout = connectionOptions.ConnectTimeout,
                     Dispatcher = serviceProvider.GetService<IDispatcher>() ?? Connection.DefaultDispatcher,
                     Endpoint = serviceProvider.GetRequiredService<Endpoint>(),
-                    SimpleServerTransport = simpleServerTransport,
+                    IncomingFrameMaxSize = connectionOptions.IncomingFrameMaxSize,
+                    KeepAlive = connectionOptions.KeepAlive,
+                    LoggerFactory = serviceProvider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance,
                     MultiplexedServerTransport = multiplexedServerTransport,
-                    ConnectionOptions = serviceProvider.GetService<ConnectionOptions>() ?? new(),
-                    LoggerFactory = serviceProvider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance
-                };
+                    SimpleServerTransport = simpleServerTransport,
+                });
+
                 server.Listen();
                 return server;
             });

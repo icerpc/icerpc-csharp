@@ -119,20 +119,20 @@ namespace IceRpc.Tests.Api
                 .AddTransient(typeof(Endpoint), _ => Endpoint.FromString(endpoint1Str))
                 .BuildServiceProvider();
 
-            await using var server1 = new Server
+            await using var server1 = new Server(new ServerOptions
             {
                 Endpoint = endpoint1Str,
                 MultiplexedServerTransport =
                     serviceProvider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>()
-            };
+            });
             server1.Listen();
 
-            await using var server2 = new Server
+            await using var server2 = new Server(new ServerOptions
             {
                 Endpoint = endpoint2Str,
                 MultiplexedServerTransport =
                     serviceProvider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>()
-            };
+            });
             server2.Listen();
 
             await using var connectionPool = new ConnectionPool

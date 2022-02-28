@@ -63,12 +63,12 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task CustomTransport_IcePingAsync()
         {
-            await using var server = new Server
+            await using var server = new Server(new ServerOptions
             {
                 MultiplexedServerTransport = new CustomServerTransport(),
                 Endpoint = "icerpc://127.0.0.1:0?tls=false&transport=custom",
                 Dispatcher = new MyService()
-            };
+            });
 
             server.Listen();
 
@@ -87,23 +87,23 @@ namespace IceRpc.Tests.ClientServer
         {
             // Using an unknown parameter with tcp transport results in FormatException
             {
-                await using var server = new Server
+                await using var server = new Server(new ServerOptions
                 {
                     MultiplexedServerTransport = new SlicServerTransport(new TcpServerTransport()),
                     Endpoint = "icerpc://127.0.0.1:0?tls=false&custom-p=bar",
                     Dispatcher = new MyService()
-                };
+                });
                 Assert.Throws<FormatException>(() => server.Listen());
             }
 
             // Custom transport handles any params that start with custom-
             {
-                await using var server = new Server
+                await using var server = new Server(new ServerOptions
                 {
                     MultiplexedServerTransport = new CustomServerTransport(),
                     Endpoint = "icerpc://127.0.0.1:0?tls=false&transport=custom&custom-p=bar",
                     Dispatcher = new MyService()
-                };
+                });
                 server.Listen();
 
                 await using var connection1 = new Connection
