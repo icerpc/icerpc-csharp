@@ -23,7 +23,7 @@ namespace IceRpc.Tests
 
                 var server = new Server
                 {
-                    Dispatcher = serviceProvider.GetService<IDispatcher>(),
+                    Dispatcher = serviceProvider.GetService<IDispatcher>() ?? Connection.DefaultDispatcher,
                     Endpoint = serviceProvider.GetRequiredService<Endpoint>(),
                     SimpleServerTransport = simpleServerTransport,
                     MultiplexedServerTransport = multiplexedServerTransport,

@@ -53,7 +53,7 @@ namespace IceRpc.Internal
                 request,
                 cancel).ConfigureAwait(false);
 
-            _logger.LogReceiveResponse(response.PayloadEncoding, response.ResultType);
+            _logger.LogReceiveResponse(response.ResultType);
             return response;
         }
 
@@ -73,7 +73,7 @@ namespace IceRpc.Internal
             using IDisposable connectionScope = _logger.StartConnectionScope(_information, _isServer);
             using IDisposable _ = _logger.StartSendResponseScope(response, request);
             await _decoratee.SendResponseAsync(response, request, cancel).ConfigureAwait(false);
-            _logger.LogSendResponse(response.PayloadEncoding);
+            _logger.LogSendResponse();
         }
 
         async Task IProtocolConnection.ShutdownAsync(string message, CancellationToken cancel)

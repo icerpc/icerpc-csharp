@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
@@ -178,9 +179,9 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
             encoder.EncodeException(exception);
-            encoding.EncodeFixedLengthSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
+            Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
-            pipe.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
+            pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.
             return pipe.Reader;
         }
 

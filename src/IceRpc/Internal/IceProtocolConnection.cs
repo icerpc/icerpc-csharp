@@ -5,6 +5,7 @@ using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using System.Buffers;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO.Pipelines;
 
@@ -39,6 +40,9 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public event Action<string>? PeerShutdownInitiated;
 
+        private static readonly IDictionary<int, ReadOnlyMemory<byte>> _idempotentFields =
+            new Dictionary<int, ReadOnlyMemory<byte>> { [(int)FieldKey.Idempotent] = default }.ToImmutableDictionary();
+
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly HashSet<IncomingRequest> _dispatches = new();
@@ -53,7 +57,7 @@ namespace IceRpc.Internal
         private readonly ISimpleNetworkConnection _networkConnection;
         private int _nextRequestId;
         private readonly TaskCompletionSource _pendingClose = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly AsyncSemaphore _sendSemaphore = new(1);
+        private readonly AsyncSemaphore _sendSemaphore = new(1, 1);
         private bool _shutdown;
 
         /// <inheritdoc/>
@@ -125,16 +129,6 @@ namespace IceRpc.Internal
                 {
                     IceRequestHeader requestHeader = DecodeHeader(ref buffer);
 
-                    if (requestHeader.Identity.Name.Length == 0)
-                    {
-                        throw new InvalidDataException("received request with empty identity name");
-                    }
-                    if (requestHeader.Operation.Length == 0)
-                    {
-                        throw new InvalidDataException("received request with empty operation name");
-                    }
-                    requestHeader.Facet.CheckValue();
-
                     // The payload size is the encapsulation size less the 6 bytes of the encapsulation header.
                     int payloadSize = requestHeader.EncapsulationHeader.EncapsulationSize - 6;
                     if (payloadSize != buffer.Length - 4)
@@ -147,21 +141,21 @@ namespace IceRpc.Internal
                         requestHeader.EncapsulationHeader.PayloadEncodingMajor,
                         requestHeader.EncapsulationHeader.PayloadEncodingMinor);
 
-                    EncodePayloadSize(payloadSize, payloadEncoding, buffer.Span[0..4]);
+                    Slice20Encoding.EncodeSize(payloadSize, buffer.Span[0..4]);
 
                     var request = new IncomingRequest(
                         Protocol.Ice,
-                        path: requestHeader.Identity.ToPath(),
-                        fragment: requestHeader.Facet.ToFragment(),
+                        path: requestHeader.Path,
+                        fragment: requestHeader.Fragment,
                         operation: requestHeader.Operation,
                         payload: new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
                         payloadEncoding,
                         responseWriter: requestId == 0 ?
                             InvalidPipeWriter.Instance : new SimpleNetworkConnectionPipeWriter(_networkConnection))
                     {
-                        IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
+                        Fields = requestHeader.OperationMode == OperationMode.Normal ?
+                            ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty : _idempotentFields,
                         IsOneway = requestId == 0,
-                        Deadline = DateTime.MaxValue
                     };
 
                     request.Features = request.Features.With(new IceRequest(requestId, outgoing: false));
@@ -247,29 +241,28 @@ namespace IceRpc.Internal
 
             try
             {
-                (ReplyStatus replyStatus, int payloadSize, Encoding payloadEncoding) = DecodeHeader(ref buffer);
+                (ReplyStatus replyStatus, int payloadSize) = DecodeHeader(ref buffer);
 
-                ResultType resultType = replyStatus == ReplyStatus.OK ? ResultType.Success : ResultType.Failure;
+                ResultType resultType = replyStatus switch
+                {
+                    ReplyStatus.OK => ResultType.Success,
+                    ReplyStatus.UserException => (ResultType)SliceResultType.ServiceFailure,
+                    _ => ResultType.Failure
+                };
 
                 // We write the payload size in the first 4 bytes of the buffer.
-                EncodePayloadSize(payloadSize, payloadEncoding, buffer.Span[0..4]);
-
-                FeatureCollection features = FeatureCollection.Empty;
+                Slice20Encoding.EncodeSize(payloadSize, buffer.Span[0..4]);
 
                 // For compatibility with ZeroC Ice "indirect" proxies
                 if (replyStatus == ReplyStatus.ObjectNotExistException && request.Proxy.Endpoint == null)
                 {
-                    features = features.With(RetryPolicy.OtherReplica);
+                    request.Features = request.Features.With(RetryPolicy.OtherReplica);
                 }
 
                 return new IncomingResponse(
                     request,
                     resultType,
-                    new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable),
-                    payloadEncoding)
-                {
-                    Features = features
-                };
+                    new DisposableSequencePipeReader(new ReadOnlySequence<byte>(buffer), disposable));
             }
             catch
             {
@@ -277,8 +270,7 @@ namespace IceRpc.Internal
                 throw;
             }
 
-            static (ReplyStatus ReplyStatus, int PayloadSize, Encoding PayloadEncoding) DecodeHeader(
-                ref Memory<byte> buffer)
+            static (ReplyStatus ReplyStatus, int PayloadSize) DecodeHeader(ref Memory<byte> buffer)
             {
                 // Decode the response.
                 var decoder = new SliceDecoder(buffer, Encoding.Slice11);
@@ -290,28 +282,15 @@ namespace IceRpc.Internal
                 ReplyStatus replyStatus = decoder.DecodeReplyStatus();
 
                 int payloadSize;
-                Encoding payloadEncoding;
 
                 if (replyStatus <= ReplyStatus.UserException)
                 {
                     var encapsulationHeader = new EncapsulationHeader(ref decoder);
                     payloadSize = encapsulationHeader.EncapsulationSize - 6;
-                    payloadEncoding = Encoding.FromMajorMinor(
-                        encapsulationHeader.PayloadEncodingMajor,
-                        encapsulationHeader.PayloadEncodingMinor);
+                    // we ignore the payload encoding, it's irrelevant: the caller knows which encoding to expect,
+                    // usually the same encoding as the request payload.
 
-                    if (payloadEncoding == Encoding.Slice11 && replyStatus == ReplyStatus.UserException)
-                    {
-                        buffer = buffer[((int)decoder.Consumed - 5)..];
-
-                        // We encode the reply status (UserException) right after the payload size
-                        buffer.Span[4] = (byte)ReplyStatus.UserException;
-                        payloadSize += 1; // for the additional reply status
-                    }
-                    else
-                    {
-                        buffer = buffer[((int)decoder.Consumed - 4)..]; // no reply status
-                    }
+                    buffer = buffer[((int)decoder.Consumed - 4)..]; // we don't include the reply status
 
                     if (payloadSize != buffer.Length - 4)
                     {
@@ -323,27 +302,17 @@ namespace IceRpc.Internal
                 {
                     // Ice system exception
                     payloadSize = buffer.Length - 4; // includes reply status, excludes the payload size
-                    payloadEncoding = Encoding.Slice11;
                     // buffer stays the same
                 }
 
-                return (replyStatus, payloadSize, payloadEncoding);
+                return (replyStatus, payloadSize);
             }
         }
 
         /// <inheritdoc/>
         public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            if (request.PayloadEncoding is not SliceEncoding payloadEncoding)
-            {
-                throw new NotSupportedException(
-                    "the payload of a request must be encoded with a supported Slice encoding");
-            }
-            else if (request.Fields.Count > 0 || request.FieldsDefaults.Count > 0)
-            {
-                throw new NotSupportedException($"the Ice protocol does not support fields");
-            }
-            else if (_isUdp && !request.IsOneway)
+            if (_isUdp && !request.IsOneway)
             {
                 throw new InvalidOperationException("cannot send twoway request over UDP");
             }
@@ -379,9 +348,8 @@ namespace IceRpc.Internal
 
             try
             {
-                (int payloadSize, bool isCanceled, bool isCompleted) = await payloadEncoding.DecodeSegmentSizeAsync(
-                    request.PayloadSource,
-                    cancel).ConfigureAwait(false);
+                (int payloadSize, bool isCanceled, bool isCompleted) =
+                    await request.PayloadSource.DecodeSegmentSizeAsync(cancel).ConfigureAwait(false);
 
                 if (isCanceled)
                 {
@@ -438,13 +406,25 @@ namespace IceRpc.Internal
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
 
                 encoder.EncodeInt(requestId);
-                (byte encodingMajor, byte encodingMinor) = payloadEncoding.ToMajorMinor();
+
+                byte encodingMajor = 1;
+                byte encodingMinor = 1;
+
+                // TODO: temporary
+                if (request.PayloadEncoding is SliceEncoding payloadEncoding)
+                {
+                    (encodingMajor, encodingMinor) = payloadEncoding.ToMajorMinor();
+                }
+                // else remain 1.1
 
                 var requestHeader = new IceRequestHeader(
-                    Identity.FromPath(request.Path),
-                    Facet.FromFragment(request.Fragment),
+                    request.Proxy.Path,
+                    request.Proxy.Fragment,
                     request.Operation,
-                    request.IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
+                    // We're not checking FieldsOverrides because it makes no sense to use FieldsOverrides for
+                    // idempotent.
+                    request.Fields.ContainsKey((int)FieldKey.Idempotent) ? OperationMode.Idempotent :
+                        OperationMode.Normal,
                     request.Features.GetContext(),
                     new EncapsulationHeader(encapsulationSize: payloadSize + 6, encodingMajor, encodingMinor));
                 requestHeader.Encode(ref encoder);
@@ -481,16 +461,8 @@ namespace IceRpc.Internal
                     await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
                     try
                     {
-                        if (request.PayloadEncoding is not SliceEncoding payloadEncoding)
-                        {
-                            throw new NotSupportedException(
-                                "the payload of a request must be encoded with a supported Slice encoding");
-                        }
-
                         (int payloadSize, bool isCanceled, bool isCompleted) =
-                            await payloadEncoding.DecodeSegmentSizeAsync(
-                                response.PayloadSource,
-                                cancel).ConfigureAwait(false);
+                            await response.PayloadSource.DecodeSegmentSizeAsync(cancel).ConfigureAwait(false);
 
                         if (isCanceled)
                         {
@@ -505,9 +477,9 @@ namespace IceRpc.Internal
 
                         ReplyStatus replyStatus = ReplyStatus.OK;
 
-                        if (response.ResultType == ResultType.Failure)
+                        if (response.ResultType != ResultType.Success)
                         {
-                            if (payloadEncoding == Encoding.Slice11)
+                            if (response.ResultType == ResultType.Failure)
                             {
                                 // extract reply status from 1.1-encoded payload
                                 ReadResult readResult = await response.PayloadSource.ReadAsync(
@@ -523,6 +495,13 @@ namespace IceRpc.Internal
                                 }
 
                                 replyStatus = (ReplyStatus)readResult.Buffer.FirstSpan[0];
+
+                                if (replyStatus <= ReplyStatus.UserException)
+                                {
+                                    throw new InvalidDataException(
+                                        "unexpected reply status value '{replyStatus}' in payload");
+                                }
+
                                 response.PayloadSource.AdvanceTo(readResult.Buffer.GetPosition(1));
                                 payloadSize -= 1;
                             }
@@ -532,7 +511,7 @@ namespace IceRpc.Internal
                             }
                         }
 
-                        EncodeHeader(payloadEncoding, payloadSize, replyStatus);
+                        EncodeHeader(payloadSize, replyStatus);
 
                         // TODO: it would make sense to pass the known payloadSize to SendPayloadAsync
                         await SendPayloadAsync(
@@ -570,7 +549,7 @@ namespace IceRpc.Internal
                 }
             }
 
-            void EncodeHeader(SliceEncoding payloadEncoding, int payloadSize, ReplyStatus replyStatus)
+            void EncodeHeader(int payloadSize, ReplyStatus replyStatus)
             {
                 var encoder = new SliceEncoder(request.ResponseWriter, Encoding.Slice11);
 
@@ -582,15 +561,18 @@ namespace IceRpc.Internal
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
 
                 encoder.EncodeInt(requestId);
-                (byte encodingMajor, byte encodingMinor) = payloadEncoding.ToMajorMinor();
 
                 encoder.EncodeReplyStatus(replyStatus);
                 if (replyStatus <= ReplyStatus.UserException)
                 {
+                    // When IceRPC receives a response, it ignores the response encoding. So this "1.1" is only relevant
+                    // to a ZeroC Ice client that decodes the response. The only Slice encoding such a client can
+                    // possibly use to decode the response payload is 1.1 or 1.0, and we don't care about interop with
+                    // 1.0.
                     var encapsulationHeader = new EncapsulationHeader(
                         encapsulationSize: payloadSize + 6,
-                        encodingMajor,
-                        encodingMinor);
+                        payloadEncodingMajor: 1,
+                        payloadEncodingMinor: 1);
                     encapsulationHeader.Encode(ref encoder);
                 }
 
@@ -691,7 +673,7 @@ namespace IceRpc.Internal
 
                     // Check the header
                     IceDefinitions.CheckHeader(buffer.Span[0..IceDefinitions.HeaderSize]);
-                    int frameSize = Slice11Encoding.DecodeFixedLengthSize(buffer.AsReadOnlySpan().Slice(10, 4));
+                    int frameSize = Slice11Encoding.DecodeFixedLengthSize(buffer.Span[10..14]);
                     if (frameSize != IceDefinitions.HeaderSize)
                     {
                         throw new InvalidDataException($"received Ice frame with only '{frameSize}' bytes");
@@ -749,25 +731,6 @@ namespace IceRpc.Internal
             Debug.Assert(!flushResult.IsCompleted); // the reader can't reject the frame without triggering an exception
 
             await outgoingFrame.PayloadSource.CompleteAsync().ConfigureAwait(false);
-        }
-
-        /// <summary>Encodes a payload size into a buffer with the specified encoding.</summary>
-        private static void EncodePayloadSize(int payloadSize, Encoding payloadEncoding, Span<byte> buffer)
-        {
-            Debug.Assert(buffer.Length == 4);
-
-            if (payloadEncoding == Encoding.Slice11)
-            {
-                SliceEncoder.EncodeInt(payloadSize, buffer);
-            }
-            else if (payloadEncoding == Encoding.Slice20)
-            {
-                Slice20Encoding.EncodeSize(payloadSize, buffer);
-            }
-            else
-            {
-                throw new NotSupportedException("an ice payload must be encoded with Slice 1.1 or Slice 2.0");
-            }
         }
 
         private void CancelDispatches()

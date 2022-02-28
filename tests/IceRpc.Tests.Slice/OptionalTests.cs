@@ -31,7 +31,7 @@ namespace IceRpc.Tests.Slice
             Assert.That(oneOptional.A.HasValue, Is.False);
 
             oneOptional = new OneOptional(16);
-            Assert.AreEqual(16, oneOptional.A);
+            Assert.That(oneOptional.A, Is.EqualTo(16));
 
             CheckMultiOptionalHasNoValue(new MultiOptional());
         }
@@ -47,7 +47,7 @@ namespace IceRpc.Tests.Slice
             oneOptionalOpt = await _prx.PingPongOneAsync(new OneOptional(16));
             Assert.That(oneOptionalOpt, Is.Not.Null);
             oneOptional = oneOptionalOpt.Value;
-            Assert.AreEqual(16, oneOptional.A);
+            Assert.That(oneOptional.A, Is.EqualTo(16));
 
             MultiOptional? multiOptionalOpt = await _prx.PingPongMultiAsync(new MultiOptional());
             Assert.That(multiOptionalOpt, Is.Not.Null);
@@ -63,15 +63,15 @@ namespace IceRpc.Tests.Slice
             multiOptional.MVarLong = 1;
             multiOptional.MString = "1";
             multiOptional.MMyEnum = MyEnum.enum1;
-            multiOptional.MAnotherStruct = new AnotherStruct(
+            multiOptional.MAnotherCompactStruct = new AnotherCompactStruct(
                 "hello",
                 OperationsPrx.Parse("icerpc://localhost/hello"),
                 MyEnum.enum1,
-                new MyStruct(1, 1));
+                new MyCompactStruct(1, 1));
 
             multiOptional.MStringSeq = new string[] { "hello" };
             multiOptional.MMyEnumSeq = new MyEnum[] { MyEnum.enum1 };
-            multiOptional.MAnotherStructSeq = new AnotherStruct[] { multiOptional.MAnotherStruct.Value };
+            multiOptional.MAnotherCompactStructSeq = new AnotherCompactStruct[] { multiOptional.MAnotherCompactStruct.Value };
 
             multiOptional.MStringDict = new Dictionary<string, string>()
             {
@@ -80,49 +80,49 @@ namespace IceRpc.Tests.Slice
             multiOptional.MVarIntSeq = new int[] { 1 };
 
             multiOptional.MByteDict = new Dictionary<byte, byte>() { { 1, 1 } };
-            multiOptional.MAnotherStructDict = new Dictionary<string, AnotherStruct>()
+            multiOptional.MAnotherCompactStructDict = new Dictionary<string, AnotherCompactStruct>()
             {
-                { "key", multiOptional.MAnotherStruct.Value}
+                { "key", multiOptional.MAnotherCompactStruct.Value}
             };
 
             MultiOptional? multiOptional1Opt = await _prx.PingPongMultiAsync(multiOptional);
             Assert.That(multiOptional1Opt, Is.Not.Null);
             var multiOptional1 = multiOptional1Opt.Value;
-            Assert.AreEqual(multiOptional.MByte, multiOptional1.MByte);
-            Assert.AreEqual(multiOptional.MBool, multiOptional1.MBool);
-            Assert.AreEqual(multiOptional.MShort, multiOptional1.MShort);
-            Assert.AreEqual(multiOptional.MInt, multiOptional1.MInt);
-            Assert.AreEqual(multiOptional.MLong, multiOptional1.MLong);
-            Assert.AreEqual(multiOptional.MFloat, multiOptional1.MFloat);
-            Assert.AreEqual(multiOptional.MDouble, multiOptional1.MDouble);
-            Assert.AreEqual(multiOptional.MUShort, multiOptional1.MUShort);
-            Assert.AreEqual(multiOptional.MUInt, multiOptional1.MUInt);
-            Assert.AreEqual(multiOptional.MULong, multiOptional1.MULong);
-            Assert.AreEqual(multiOptional.MVarInt, multiOptional1.MVarInt);
-            Assert.AreEqual(multiOptional.MVarLong, multiOptional1.MVarLong);
-            Assert.AreEqual(multiOptional.MVarUInt, multiOptional1.MVarUInt);
-            Assert.AreEqual(multiOptional.MVarULong, multiOptional1.MVarULong);
-            Assert.AreEqual(multiOptional.MString, multiOptional1.MString);
-            Assert.AreEqual(multiOptional.MMyEnum, multiOptional1.MMyEnum);
-            Assert.AreEqual(multiOptional.MMyStruct, multiOptional1.MMyStruct);
-            Assert.AreEqual(multiOptional.MAnotherStruct, multiOptional1.MAnotherStruct);
+            Assert.That(multiOptional1.MByte, Is.EqualTo(multiOptional.MByte));
+            Assert.That(multiOptional1.MBool, Is.EqualTo(multiOptional.MBool));
+            Assert.That(multiOptional1.MShort, Is.EqualTo(multiOptional.MShort));
+            Assert.That(multiOptional1.MInt, Is.EqualTo(multiOptional.MInt));
+            Assert.That(multiOptional1.MLong, Is.EqualTo(multiOptional.MLong));
+            Assert.That(multiOptional1.MFloat, Is.EqualTo(multiOptional.MFloat));
+            Assert.That(multiOptional1.MDouble, Is.EqualTo(multiOptional.MDouble));
+            Assert.That(multiOptional1.MUShort, Is.EqualTo(multiOptional.MUShort));
+            Assert.That(multiOptional1.MUInt, Is.EqualTo(multiOptional.MUInt));
+            Assert.That(multiOptional1.MULong, Is.EqualTo(multiOptional.MULong));
+            Assert.That(multiOptional1.MVarInt, Is.EqualTo(multiOptional.MVarInt));
+            Assert.That(multiOptional1.MVarLong, Is.EqualTo(multiOptional.MVarLong));
+            Assert.That(multiOptional1.MVarUInt, Is.EqualTo(multiOptional.MVarUInt));
+            Assert.That(multiOptional1.MVarULong, Is.EqualTo(multiOptional.MVarULong));
+            Assert.That(multiOptional1.MString, Is.EqualTo(multiOptional.MString));
+            Assert.That(multiOptional1.MMyEnum, Is.EqualTo(multiOptional.MMyEnum));
+            Assert.That(multiOptional1.MMyCompactStruct, Is.EqualTo(multiOptional.MMyCompactStruct));
+            Assert.That(multiOptional1.MAnotherCompactStruct, Is.EqualTo(multiOptional.MAnotherCompactStruct));
 
             Assert.That(multiOptional1.MByteSeq, Is.Null);
-            CollectionAssert.AreEqual(multiOptional.MStringSeq, multiOptional1.MStringSeq);
+            Assert.That(multiOptional1.MStringSeq, Is.EqualTo(multiOptional.MStringSeq));
             Assert.That(multiOptional1.MShortSeq, Is.Null);
-            CollectionAssert.AreEqual(multiOptional.MMyEnumSeq, multiOptional1.MMyEnumSeq);
-            Assert.That(multiOptional1.MMyStructSeq, Is.Null);
-            CollectionAssert.AreEqual(multiOptional.MAnotherStructSeq, multiOptional1.MAnotherStructSeq);
+            Assert.That(multiOptional1.MMyEnumSeq, Is.EqualTo(multiOptional.MMyEnumSeq));
+            Assert.That(multiOptional1.MMyCompactStructSeq, Is.Null);
+            Assert.That(multiOptional1.MAnotherCompactStructSeq, Is.EqualTo(multiOptional.MAnotherCompactStructSeq));
 
             Assert.That(multiOptional1.MIntDict, Is.Null);
-            CollectionAssert.AreEqual(multiOptional.MStringDict, multiOptional1.MStringDict);
+            Assert.That(multiOptional1.MStringDict, Is.EqualTo(multiOptional.MStringDict));
             Assert.That(multiOptional1.MUShortSeq, Is.Null);
             Assert.That(multiOptional1.MVarULongSeq, Is.Null);
-            CollectionAssert.AreEqual(multiOptional.MVarIntSeq, multiOptional1.MVarIntSeq);
+            Assert.That(multiOptional1.MVarIntSeq, Is.EqualTo(multiOptional.MVarIntSeq));
 
-            CollectionAssert.AreEqual(multiOptional.MByteDict, multiOptional1.MByteDict);
-            Assert.That(multiOptional1.MMyStructDict, Is.Null);
-            CollectionAssert.AreEqual(multiOptional.MAnotherStructDict, multiOptional1.MAnotherStructDict);
+            Assert.That(multiOptional1.MByteDict, Is.EqualTo(multiOptional.MByteDict));
+            Assert.That(multiOptional1.MMyCompactStructDict, Is.Null);
+            Assert.That(multiOptional1.MAnotherCompactStructDict, Is.EqualTo(multiOptional.MAnotherCompactStructDict));
 
             multiOptional = new MultiOptional();
             multiOptional.MBool = true;
@@ -133,58 +133,58 @@ namespace IceRpc.Tests.Slice
             multiOptional.MVarLong = 1;
             multiOptional.MVarULong = 1;
             multiOptional.MMyEnum = MyEnum.enum1;
-            multiOptional.MMyStruct = new MyStruct(1, 1);
+            multiOptional.MMyCompactStruct = new MyCompactStruct(1, 1);
 
             multiOptional.MByteSeq = new byte[] { 1 };
             multiOptional.MShortSeq = new short[] { 1 };
-            multiOptional.MMyStructSeq = new MyStruct[] { new MyStruct(1, 1) };
+            multiOptional.MMyCompactStructSeq = new MyCompactStruct[] { new MyCompactStruct(1, 1) };
 
             multiOptional.MIntDict = new Dictionary<int, int> { { 1, 1 } };
             multiOptional.MUShortSeq = new ushort[] { 1 };
             multiOptional.MVarIntSeq = new int[] { 1 };
-            multiOptional.MMyStructDict = new Dictionary<MyStruct, MyStruct>()
+            multiOptional.MMyCompactStructDict = new Dictionary<MyCompactStruct, MyCompactStruct>()
             {
-                { new MyStruct(1, 1), new MyStruct(1, 1) }
+                { new MyCompactStruct(1, 1), new MyCompactStruct(1, 1) }
             };
 
             multiOptional1Opt = await _prx.PingPongMultiAsync(multiOptional);
             Assert.That(multiOptional1Opt, Is.Not.Null);
             multiOptional1 = multiOptional1Opt.Value;
-            Assert.AreEqual(multiOptional.MByte, multiOptional1.MByte);
-            Assert.AreEqual(multiOptional.MBool, multiOptional1.MBool);
-            Assert.AreEqual(multiOptional.MShort, multiOptional1.MShort);
-            Assert.AreEqual(multiOptional.MInt, multiOptional1.MInt);
-            Assert.AreEqual(multiOptional.MLong, multiOptional1.MLong);
-            Assert.AreEqual(multiOptional.MFloat, multiOptional1.MFloat);
-            Assert.AreEqual(multiOptional.MDouble, multiOptional1.MDouble);
-            Assert.AreEqual(multiOptional.MUShort, multiOptional1.MUShort);
-            Assert.AreEqual(multiOptional.MUInt, multiOptional1.MUInt);
-            Assert.AreEqual(multiOptional.MULong, multiOptional1.MULong);
-            Assert.AreEqual(multiOptional.MVarInt, multiOptional1.MVarInt);
-            Assert.AreEqual(multiOptional.MVarLong, multiOptional1.MVarLong);
-            Assert.AreEqual(multiOptional.MVarUInt, multiOptional1.MVarUInt);
-            Assert.AreEqual(multiOptional.MVarULong, multiOptional1.MVarULong);
-            Assert.AreEqual(multiOptional.MString, multiOptional1.MString);
-            Assert.AreEqual(multiOptional.MMyEnum, multiOptional1.MMyEnum);
-            Assert.AreEqual(multiOptional.MMyStruct, multiOptional1.MMyStruct);
-            Assert.AreEqual(multiOptional.MAnotherStruct, multiOptional1.MAnotherStruct);
+            Assert.That(multiOptional1.MByte, Is.EqualTo(multiOptional.MByte));
+            Assert.That(multiOptional1.MBool, Is.EqualTo(multiOptional.MBool));
+            Assert.That(multiOptional1.MShort, Is.EqualTo(multiOptional.MShort));
+            Assert.That(multiOptional1.MInt, Is.EqualTo(multiOptional.MInt));
+            Assert.That(multiOptional1.MLong, Is.EqualTo(multiOptional.MLong));
+            Assert.That(multiOptional1.MFloat, Is.EqualTo(multiOptional.MFloat));
+            Assert.That(multiOptional1.MDouble, Is.EqualTo(multiOptional.MDouble));
+            Assert.That(multiOptional1.MUShort, Is.EqualTo(multiOptional.MUShort));
+            Assert.That(multiOptional1.MUInt, Is.EqualTo(multiOptional.MUInt));
+            Assert.That(multiOptional1.MULong, Is.EqualTo(multiOptional.MULong));
+            Assert.That(multiOptional1.MVarInt, Is.EqualTo(multiOptional.MVarInt));
+            Assert.That(multiOptional1.MVarLong, Is.EqualTo(multiOptional.MVarLong));
+            Assert.That(multiOptional1.MVarUInt, Is.EqualTo(multiOptional.MVarUInt));
+            Assert.That(multiOptional1.MVarULong, Is.EqualTo(multiOptional.MVarULong));
+            Assert.That(multiOptional1.MString, Is.EqualTo(multiOptional.MString));
+            Assert.That(multiOptional1.MMyEnum, Is.EqualTo(multiOptional.MMyEnum));
+            Assert.That(multiOptional1.MMyCompactStruct, Is.EqualTo(multiOptional.MMyCompactStruct));
+            Assert.That(multiOptional1.MAnotherCompactStruct, Is.EqualTo(multiOptional.MAnotherCompactStruct));
 
-            CollectionAssert.AreEqual(multiOptional.MByteSeq, multiOptional1.MByteSeq);
+            Assert.That(multiOptional1.MByteSeq, Is.EqualTo(multiOptional.MByteSeq));
             Assert.That(multiOptional1.MStringSeq, Is.Null);
-            CollectionAssert.AreEqual(multiOptional.MShortSeq, multiOptional1.MShortSeq);
+            Assert.That(multiOptional1.MShortSeq, Is.EqualTo(multiOptional.MShortSeq));
             Assert.That(multiOptional1.MMyEnumSeq, Is.Null);
-            CollectionAssert.AreEqual(multiOptional.MMyStructSeq, multiOptional1.MMyStructSeq);
-            Assert.That(multiOptional1.MAnotherStructSeq, Is.Null);
+            Assert.That(multiOptional1.MMyCompactStructSeq, Is.EqualTo(multiOptional.MMyCompactStructSeq));
+            Assert.That(multiOptional1.MAnotherCompactStructSeq, Is.Null);
 
-            CollectionAssert.AreEqual(multiOptional.MIntDict, multiOptional1.MIntDict);
+            Assert.That(multiOptional1.MIntDict, Is.EqualTo(multiOptional.MIntDict));
             Assert.That(multiOptional1.MStringDict, Is.Null);
-            CollectionAssert.AreEqual(multiOptional.MUShortSeq, multiOptional1.MUShortSeq);
+            Assert.That(multiOptional1.MUShortSeq, Is.EqualTo(multiOptional.MUShortSeq));
             Assert.That(multiOptional1.MVarULongSeq, Is.Null);
-            CollectionAssert.AreEqual(multiOptional.MVarIntSeq, multiOptional1.MVarIntSeq);
+            Assert.That(multiOptional1.MVarIntSeq, Is.EqualTo(multiOptional.MVarIntSeq));
 
             Assert.That(multiOptional1.MByteDict, Is.Null);
-            CollectionAssert.AreEqual(multiOptional.MMyStructDict, multiOptional1.MMyStructDict);
-            Assert.That(multiOptional1.MAnotherStructDict, Is.Null);
+            Assert.That(multiOptional1.MMyCompactStructDict, Is.EqualTo(multiOptional.MMyCompactStructDict));
+            Assert.That(multiOptional1.MAnotherCompactStructDict, Is.Null);
 
             {
                 (byte? r1, byte? r2) = await _prx.OpByteAsync(null);
@@ -192,8 +192,8 @@ namespace IceRpc.Tests.Slice
                 Assert.That(r2, Is.Null);
 
                 (r1, r2) = await _prx.OpByteAsync(42);
-                Assert.AreEqual(42, r1);
-                Assert.AreEqual(42, r2);
+                Assert.That(r1, Is.EqualTo(42));
+                Assert.That(r2, Is.EqualTo(42));
             }
 
             {
@@ -212,8 +212,8 @@ namespace IceRpc.Tests.Slice
                 Assert.That(r2, Is.Null);
 
                 (r1, r2) = await _prx.OpShortAsync(42);
-                Assert.AreEqual(42, r1);
-                Assert.AreEqual(42, r2);
+                Assert.That(r1, Is.EqualTo(42));
+                Assert.That(r2, Is.EqualTo(42));
             }
 
             {
@@ -222,8 +222,8 @@ namespace IceRpc.Tests.Slice
                 Assert.That(r2, Is.Null);
 
                 (r1, r2) = await _prx.OpIntAsync(42);
-                Assert.AreEqual(42, r1);
-                Assert.AreEqual(42, r2);
+                Assert.That(r1, Is.EqualTo(42));
+                Assert.That(r2, Is.EqualTo(42));
             }
 
             {
@@ -232,8 +232,8 @@ namespace IceRpc.Tests.Slice
                 Assert.That(r2, Is.Null);
 
                 (r1, r2) = await _prx.OpLongAsync(42);
-                Assert.AreEqual(42, r1);
-                Assert.AreEqual(42, r2);
+                Assert.That(r1, Is.EqualTo(42));
+                Assert.That(r2, Is.EqualTo(42));
             }
 
             {
@@ -242,8 +242,8 @@ namespace IceRpc.Tests.Slice
                 Assert.That(r2, Is.Null);
 
                 (r1, r2) = await _prx.OpFloatAsync(42);
-                Assert.AreEqual(42, r1);
-                Assert.AreEqual(42, r2);
+                Assert.That(r1, Is.EqualTo(42));
+                Assert.That(r2, Is.EqualTo(42));
             }
 
             {
@@ -252,8 +252,8 @@ namespace IceRpc.Tests.Slice
                 Assert.That(r2, Is.Null);
 
                 (r1, r2) = await _prx.OpDoubleAsync(42);
-                Assert.AreEqual(42, r1);
-                Assert.AreEqual(42, r2);
+                Assert.That(r1, Is.EqualTo(42));
+                Assert.That(r2, Is.EqualTo(42));
             }
 
             {
@@ -262,8 +262,8 @@ namespace IceRpc.Tests.Slice
                 Assert.That(r2, Is.Null);
 
                 (r1, r2) = await _prx.OpStringAsync("hello");
-                Assert.AreEqual("hello", r1);
-                Assert.AreEqual("hello", r2);
+                Assert.That(r1, Is.EqualTo("hello"));
+                Assert.That(r2, Is.EqualTo("hello"));
             }
 
             {
@@ -272,43 +272,43 @@ namespace IceRpc.Tests.Slice
                 Assert.That(r2, Is.Null);
 
                 (r1, r2) = await _prx.OpMyEnumAsync(MyEnum.enum1);
-                Assert.AreEqual(MyEnum.enum1, r1);
-                Assert.AreEqual(MyEnum.enum1, r2);
+                Assert.That(r1, Is.EqualTo(MyEnum.enum1));
+                Assert.That(r2, Is.EqualTo(MyEnum.enum1));
             }
 
             {
-                (MyStruct? r1, MyStruct? r2) = await _prx.OpMyStructAsync(null);
+                (MyCompactStruct? r1, MyCompactStruct? r2) = await _prx.OpMyCompactStructAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                var p1 = new MyStruct(1, 1);
-                (r1, r2) = await _prx.OpMyStructAsync(p1);
-                Assert.AreEqual(p1, r1);
-                Assert.AreEqual(p1, r2);
+                var p1 = new MyCompactStruct(1, 1);
+                (r1, r2) = await _prx.OpMyCompactStructAsync(p1);
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
-                MyStruct? r1 = await _prx.OpMyStructMarshaledResultAsync(null);
+                MyCompactStruct? r1 = await _prx.OpMyCompactStructMarshaledResultAsync(null);
                 Assert.That(r1, Is.Null);
 
-                var p1 = new MyStruct(1, 1);
-                r1 = await _prx.OpMyStructMarshaledResultAsync(p1);
-                Assert.AreEqual(p1, r1);
+                var p1 = new MyCompactStruct(1, 1);
+                r1 = await _prx.OpMyCompactStructMarshaledResultAsync(p1);
+                Assert.That(r1, Is.EqualTo(p1));
             }
 
             {
-                (AnotherStruct? r1, AnotherStruct? r2) = await _prx.OpAnotherStructAsync(null);
+                (AnotherCompactStruct? r1, AnotherCompactStruct? r2) = await _prx.OpAnotherCompactStructAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                var p1 = new AnotherStruct(
+                var p1 = new AnotherCompactStruct(
                     "hello",
                     OperationsPrx.Parse("icerpc://localhost/hello"),
                     MyEnum.enum1,
-                    new MyStruct(1, 1));
-                (r1, r2) = await _prx.OpAnotherStructAsync(p1);
-                Assert.AreEqual(p1, r1);
-                Assert.AreEqual(p1, r2);
+                    new MyCompactStruct(1, 1));
+                (r1, r2) = await _prx.OpAnotherCompactStructAsync(p1);
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -318,8 +318,8 @@ namespace IceRpc.Tests.Slice
 
                 byte[] p1 = new byte[] { 42 };
                 (r1, r2) = await _prx.OpByteSeqAsync(p1);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p1, r2);
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -329,8 +329,8 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new List<byte> { 42 };
                 (r1, r2) = await _prx.OpByteListAsync(p1);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p1, r2);
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -340,8 +340,8 @@ namespace IceRpc.Tests.Slice
 
                 bool[] p1 = new bool[] { true };
                 (r1, r2) = await _prx.OpBoolSeqAsync(p1);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p1, r2);
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -351,8 +351,8 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new List<bool> { true };
                 (r1, r2) = await _prx.OpBoolListAsync(p1);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p1, r2);
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -362,8 +362,8 @@ namespace IceRpc.Tests.Slice
 
                 short[] p1 = new short[] { 42 };
                 (r1, r2) = await _prx.OpShortSeqAsync(p1);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p1, r2);
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -373,8 +373,8 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new List<short> { 42 };
                 (r1, r2) = await _prx.OpShortListAsync(p1);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p1, r2);
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -384,8 +384,8 @@ namespace IceRpc.Tests.Slice
 
                 int[]? p1 = new int[] { 42 };
                 (r1, r2) = await _prx.OpIntSeqAsync(p1);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p1, r2);
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -395,8 +395,8 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new List<int> { 42 };
                 (r1, r2) = await _prx.OpIntListAsync(p1);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p1, r2);
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -406,8 +406,8 @@ namespace IceRpc.Tests.Slice
 
                 long[] p1 = new long[] { 42 };
                 (r1, r2) = await _prx.OpLongSeqAsync(p1);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p1, r2);
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -417,8 +417,8 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new List<long> { 42 };
                 (r1, r2) = await _prx.OpLongListAsync(p1);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p1, r2);
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -428,8 +428,8 @@ namespace IceRpc.Tests.Slice
 
                 float[] p1 = new float[] { 42 };
                 (r1, r2) = await _prx.OpFloatSeqAsync(p1);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p1, r2);
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -439,8 +439,8 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new List<float> { 42 };
                 (r1, r2) = await _prx.OpFloatListAsync(p1);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p1, r2);
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -450,8 +450,8 @@ namespace IceRpc.Tests.Slice
 
                 double[] p1 = new double[] { 42 };
                 (r1, r2) = await _prx.OpDoubleSeqAsync(p1);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p1, r2);
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -461,8 +461,8 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new List<double> { 42 };
                 (r1, r2) = await _prx.OpDoubleListAsync(p1);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p1, r2);
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -472,8 +472,8 @@ namespace IceRpc.Tests.Slice
 
                 string[] p1 = new string[] { "hello" };
                 (r1, r2) = await _prx.OpStringSeqAsync(p1);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p1, r2);
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -483,8 +483,8 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new List<string> { "hello" };
                 (r1, r2) = await _prx.OpStringListAsync(p1);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p1, r2);
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -493,65 +493,65 @@ namespace IceRpc.Tests.Slice
 
                 string[] p1 = new string[] { "hello" };
                 r1 = await _prx.OpStringSeqMarshaledResultAsync(p1);
-                CollectionAssert.AreEqual(p1, r1);
+                Assert.That(r1, Is.EqualTo(p1));
             }
 
             {
-                (MyStruct[]? r1, MyStruct[]? r2) = await _prx.OpMyStructSeqAsync(null);
+                (MyCompactStruct[]? r1, MyCompactStruct[]? r2) = await _prx.OpMyCompactStructSeqAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                var p1 = new MyStruct[] { new MyStruct(1, 1) };
-                (r1, r2) = await _prx.OpMyStructSeqAsync(p1);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p1, r2);
+                var p1 = new MyCompactStruct[] { new MyCompactStruct(1, 1) };
+                (r1, r2) = await _prx.OpMyCompactStructSeqAsync(p1);
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
-                (List<MyStruct>? r1, List<MyStruct>? r2) = await _prx.OpMyStructListAsync(null);
+                (List<MyCompactStruct>? r1, List<MyCompactStruct>? r2) = await _prx.OpMyCompactStructListAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                var p1 = new List<MyStruct> { new MyStruct(1, 1) };
-                (r1, r2) = await _prx.OpMyStructListAsync(p1);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p1, r2);
+                var p1 = new List<MyCompactStruct> { new MyCompactStruct(1, 1) };
+                (r1, r2) = await _prx.OpMyCompactStructListAsync(p1);
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
-                (AnotherStruct[]? r1, AnotherStruct[]? r2) = await _prx.OpAnotherStructSeqAsync(null);
+                (AnotherCompactStruct[]? r1, AnotherCompactStruct[]? r2) = await _prx.OpAnotherCompactStructSeqAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                var p1 = new AnotherStruct[]
+                var p1 = new AnotherCompactStruct[]
                 {
-                    new AnotherStruct(
+                    new AnotherCompactStruct(
                         "hello",
                         OperationsPrx.Parse("icerpc://localhost/hello"),
                         MyEnum.enum1,
-                        new MyStruct(1, 1))
+                        new MyCompactStruct(1, 1))
                 };
-                (r1, r2) = await _prx.OpAnotherStructSeqAsync(p1);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p1, r2);
+                (r1, r2) = await _prx.OpAnotherCompactStructSeqAsync(p1);
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
-                (List<AnotherStruct>? r1, List<AnotherStruct>? r2) = await _prx.OpAnotherStructListAsync(null);
+                (List<AnotherCompactStruct>? r1, List<AnotherCompactStruct>? r2) = await _prx.OpAnotherCompactStructListAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
-                var p1 = new List<AnotherStruct>
+                var p1 = new List<AnotherCompactStruct>
                 {
-                    new AnotherStruct(
+                    new AnotherCompactStruct(
                         "hello",
                         OperationsPrx.Parse("icerpc://localhost/hello"),
                         MyEnum.enum1,
-                        new MyStruct(1, 1))
+                        new MyCompactStruct(1, 1))
                 };
-                (r1, r2) = await _prx.OpAnotherStructListAsync(p1);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p1, r2);
+                (r1, r2) = await _prx.OpAnotherCompactStructListAsync(p1);
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -561,8 +561,8 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new Dictionary<int, int> { { 1, 1 } };
                 (r1, r2) = await _prx.OpIntDictAsync(p1);
-                CollectionAssert.AreEqual(p1, r1);
-                CollectionAssert.AreEqual(p1, r2);
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
 
             {
@@ -571,7 +571,7 @@ namespace IceRpc.Tests.Slice
 
                 var p1 = new Dictionary<int, int> { { 1, 1 } };
                 r1 = await _prx.OpIntDictMarshaledResultAsync(p1);
-                CollectionAssert.AreEqual(p1, r1);
+                Assert.That(r1, Is.EqualTo(p1));
             }
         }
 
@@ -593,15 +593,15 @@ namespace IceRpc.Tests.Slice
             Assert.That(multiOptional.MVarULong.HasValue, Is.False);
             Assert.That(multiOptional.MString, Is.Null);
             Assert.That(multiOptional.MMyEnum.HasValue, Is.False);
-            Assert.That(multiOptional.MMyStruct.HasValue, Is.False);
-            Assert.That(multiOptional.MAnotherStruct.HasValue, Is.False);
+            Assert.That(multiOptional.MMyCompactStruct.HasValue, Is.False);
+            Assert.That(multiOptional.MAnotherCompactStruct.HasValue, Is.False);
 
             Assert.That(multiOptional.MByteSeq, Is.Null);
             Assert.That(multiOptional.MStringSeq, Is.Null);
             Assert.That(multiOptional.MShortSeq, Is.Null);
             Assert.That(multiOptional.MMyEnumSeq, Is.Null);
-            Assert.That(multiOptional.MMyStructSeq, Is.Null);
-            Assert.That(multiOptional.MAnotherStructSeq, Is.Null);
+            Assert.That(multiOptional.MMyCompactStructSeq, Is.Null);
+            Assert.That(multiOptional.MAnotherCompactStructSeq, Is.Null);
 
             Assert.That(multiOptional.MIntDict, Is.Null);
             Assert.That(multiOptional.MStringDict, Is.Null);
@@ -610,24 +610,24 @@ namespace IceRpc.Tests.Slice
             Assert.That(multiOptional.MVarIntSeq, Is.Null);
 
             Assert.That(multiOptional.MByteDict, Is.Null);
-            Assert.That(multiOptional.MMyStructDict, Is.Null);
-            Assert.That(multiOptional.MAnotherStructDict, Is.Null);
+            Assert.That(multiOptional.MMyCompactStructDict, Is.Null);
+            Assert.That(multiOptional.MAnotherCompactStructDict, Is.Null);
         }
 
         public class OptionalOperations : Service, IOptionalOperations
         {
-            public ValueTask<(AnotherStruct? R1, AnotherStruct? R2)> OpAnotherStructAsync(
-                AnotherStruct? p1,
+            public ValueTask<(AnotherCompactStruct? R1, AnotherCompactStruct? R2)> OpAnotherCompactStructAsync(
+                AnotherCompactStruct? p1,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
-            public ValueTask<(IEnumerable<AnotherStruct>? R1, IEnumerable<AnotherStruct>? R2)> OpAnotherStructListAsync(
-                List<AnotherStruct>? p1,
+            public ValueTask<(IEnumerable<AnotherCompactStruct>? R1, IEnumerable<AnotherCompactStruct>? R2)> OpAnotherCompactStructListAsync(
+                List<AnotherCompactStruct>? p1,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
-            public ValueTask<(IEnumerable<AnotherStruct>? R1, IEnumerable<AnotherStruct>? R2)> OpAnotherStructSeqAsync(
-                AnotherStruct[]? p1,
+            public ValueTask<(IEnumerable<AnotherCompactStruct>? R1, IEnumerable<AnotherCompactStruct>? R2)> OpAnotherCompactStructSeqAsync(
+                AnotherCompactStruct[]? p1,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
@@ -735,24 +735,24 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
-            public ValueTask<(MyStruct? R1, MyStruct? R2)> OpMyStructAsync(
-                MyStruct? p1,
+            public ValueTask<(MyCompactStruct? R1, MyCompactStruct? R2)> OpMyCompactStructAsync(
+                MyCompactStruct? p1,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
-            public ValueTask<(IEnumerable<MyStruct>? R1, IEnumerable<MyStruct>? R2)> OpMyStructListAsync(
-                List<MyStruct>? p1,
+            public ValueTask<(IEnumerable<MyCompactStruct>? R1, IEnumerable<MyCompactStruct>? R2)> OpMyCompactStructListAsync(
+                List<MyCompactStruct>? p1,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 
-            public ValueTask<IOptionalOperations.OpMyStructMarshaledResultEncodedResult> OpMyStructMarshaledResultAsync(
-                MyStruct? p1,
+            public ValueTask<IOptionalOperations.OpMyCompactStructMarshaledResultEncodedResult> OpMyCompactStructMarshaledResultAsync(
+                MyCompactStruct? p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IOptionalOperations.OpMyStructMarshaledResultEncodedResult(p1, dispatch));
+                new(new IOptionalOperations.OpMyCompactStructMarshaledResultEncodedResult(p1, dispatch));
 
-            public ValueTask<(IEnumerable<MyStruct>? R1, IEnumerable<MyStruct>? R2)> OpMyStructSeqAsync(
-                MyStruct[]? p1,
+            public ValueTask<(IEnumerable<MyCompactStruct>? R1, IEnumerable<MyCompactStruct>? R2)> OpMyCompactStructSeqAsync(
+                MyCompactStruct[]? p1,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 

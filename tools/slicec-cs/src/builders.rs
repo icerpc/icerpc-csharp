@@ -222,13 +222,6 @@ impl FunctionBuilder {
         self
     }
 
-    pub fn add_parameters(&mut self, parameters: &[String]) -> &mut Self {
-        for p in parameters {
-            self.parameters.push(p.clone());
-        }
-        self
-    }
-
     pub fn add_base_parameter(&mut self, argument: &str) -> &mut Self {
         self.base_arguments.push(argument.to_owned());
         self
@@ -296,7 +289,7 @@ impl FunctionBuilder {
         match context {
             TypeContext::Decode => {
                 self.add_parameter(
-                    "IceRpc.Dispatch",
+                    "IceRpc.Slice.Dispatch",
                     &escape_parameter_name(&parameters, "dispatch"),
                     None,
                     Some("The dispatch properties"),
@@ -304,7 +297,7 @@ impl FunctionBuilder {
             }
             TypeContext::Encode => {
                 self.add_parameter(
-                    "IceRpc.Invocation?",
+                    "IceRpc.Slice.Invocation?",
                     &escape_parameter_name(&parameters, "invocation"),
                     Some("null"),
                     Some("The invocation properties."),
@@ -348,9 +341,7 @@ impl FunctionBuilder {
                 {}(
     {})",
                 self.name,
-                CodeBlock::from(self.parameters.join(",\n"))
-                    .indent()
-                    .to_string()
+                CodeBlock::from(self.parameters.join(",\n")).indent()
             );
         } else {
             write!(code, "{}({})", self.name, self.parameters.join(", "))

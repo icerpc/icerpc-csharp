@@ -22,48 +22,49 @@ namespace IceRpc.Tests.Api
                 .AddTransient<IDispatcher, Greeter>()
                 .BuildServiceProvider();
 
-            var prx = GreeterPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
-            await prx.IcePingAsync();
+            var greeter = GreeterPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
+            var service = new ServicePrx(greeter.Proxy);
 
             string[] ids = new string[]
             {
-                "::IceRpc::Service",
                 "::IceRpc::Tests::Api::Greeter",
+                "::Slice::Service",
             };
-            CollectionAssert.AreEqual(ids, await prx.IceIdsAsync());
 
-            Assert.That(await prx.IceIsAAsync("::IceRpc::Tests::Api::Greeter"), Is.True);
-            Assert.That(await prx.IceIsAAsync("::IceRpc::Tests::Api::Foo"), Is.False);
-
-            Assert.AreEqual(prx, await prx.AsAsync<GreeterPrx>());
+            Assert.That(await service.IceIdsAsync(), Is.EqualTo(ids));
+            Assert.That(await service.IceIsAAsync("::IceRpc::Tests::Api::Greeter"), Is.True);
+            Assert.That(await service.IceIsAAsync("::IceRpc::Tests::Api::Foo"), Is.False);
+            Assert.That(await greeter.AsAsync<GreeterPrx>(), Is.EqualTo(greeter));
 
             // Test that Service operation correctly forward the cancel param
             var canceled = new CancellationToken(canceled: true);
-            Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync(cancel: canceled));
-            Assert.CatchAsync<OperationCanceledException>(async () => await prx.IceIdsAsync(cancel: canceled));
+            Assert.CatchAsync<OperationCanceledException>(async () => await service.IcePingAsync(cancel: canceled));
+            Assert.CatchAsync<OperationCanceledException>(async () => await service.IceIdsAsync(cancel: canceled));
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await prx.IceIsAAsync("::IceRpc::Tests::Api::Greeter", cancel: canceled));
+                async () => await service.IceIsAAsync(
+                    "::IceRpc::Tests::Api::Greeter",
+                    cancel: canceled));
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await prx.AsAsync<GreeterPrx>(cancel: canceled));
+                async () => await service.AsAsync<GreeterPrx>(cancel: canceled));
 
             // Test that Service operations correctly forward the context
             var invocation = new Invocation
             {
-                Context = new Dictionary<string, string> { ["foo"] = "bar" }
+                Features = new FeatureCollection().WithContext(new Dictionary<string, string> { ["foo"] = "bar" })
             };
 
             var pipeline = new Pipeline();
-            prx.Proxy.Invoker = pipeline;
+            service.Proxy.Invoker = pipeline;
             pipeline.Use(next => new InlineInvoker((request, cancel) =>
             {
-                Assert.AreEqual(request.Features.GetContext(), invocation.Context);
+                Assert.That(request.Features.GetContext(), Is.EqualTo(invocation.Features.GetContext()));
                 return next.InvokeAsync(request, cancel);
             }));
 
-            await prx.IcePingAsync(invocation);
-            await prx.IceIdsAsync(invocation);
-            await prx.IceIsAAsync("::IceRpc::Tests::Api::Greeter", invocation);
-            await prx.AsAsync<GreeterPrx>(invocation);
+            await service.IcePingAsync(invocation);
+            await service.IceIdsAsync(invocation);
+            await service.IceIsAAsync("::IceRpc::Tests::Api::Greeter", invocation);
+            await service.AsAsync<GreeterPrx>(invocation);
         }
 
         [TestCase("icerpc://localhost:10000/test?alt-endpoint=host2")]
@@ -86,14 +87,14 @@ namespace IceRpc.Tests.Api
                 {
                     Assert.That(proxy, Is.EqualTo(proxy2));
 
-                    CollectionAssert.AreEqual(proxy.AltEndpoints, proxy2.AltEndpoints);
+                    Assert.That(proxy.AltEndpoints, Is.EqualTo(proxy2.AltEndpoints));
                     Assert.That(proxy.Connection, Is.EqualTo(proxy2.Connection));
                     Assert.That(proxy.Encoding, Is.EqualTo(proxy2.Encoding));
                     Assert.That(proxy.Endpoint, Is.EqualTo(proxy2.Endpoint));
                     Assert.That(proxy.Fragment, Is.EqualTo(proxy2.Fragment));
                     Assert.That(proxy.Invoker, Is.EqualTo(proxy2.Invoker));
                     Assert.That(proxy.OriginalUri, Is.EqualTo(proxy2.OriginalUri));
-                    CollectionAssert.AreEqual(proxy.Params, proxy2.Params);
+                    Assert.That(proxy.Params, Is.EqualTo(proxy2.Params));
                     Assert.That(proxy.Path, Is.EqualTo(proxy2.Path));
                 });
 
@@ -194,9 +195,9 @@ namespace IceRpc.Tests.Api
         public void Proxy_SetProperty_ArgumentException()
         {
             var iceProxy = Proxy.Parse("hello:tcp -h localhost -p 10000", format: IceProxyFormat.Default);
-            Assert.AreEqual(Protocol.Ice, iceProxy.Protocol);
+            Assert.That(iceProxy.Protocol, Is.EqualTo(Protocol.Ice));
             var icerpcProxy = Proxy.Parse("icerpc://host.zeroc.com/hello");
-            Assert.AreEqual(Protocol.IceRpc, icerpcProxy.Protocol);
+            Assert.That(icerpcProxy.Protocol, Is.EqualTo(Protocol.IceRpc));
 
             // Endpoints protocol must match the proxy protocol
             Assert.Throws<ArgumentException>(() => iceProxy.Endpoint = icerpcProxy.Endpoint);
@@ -214,13 +215,16 @@ namespace IceRpc.Tests.Api
         [TestCase("name -f facet:coloc -h localhost", "/name", "facet")]
         [TestCase("category/name -f facet:coloc -h localhost", "/category/name", "facet")]
         [TestCase("cat$gory/nam$ -f fac$t:coloc -h localhost", "/cat%24gory/nam%24", "fac%24t")]
+        [TestCase("\\342\\x82\\254\\60\\x9\\60\\", "/%E2%82%AC0%090%5C")]
+        [TestCase("bar/foo", "/bar/foo")]
+        [TestCase("foo", "/foo")]
         public void Proxy_Parse_ValidInputIceFormat(string str, string? path = null, string? fragment = null)
         {
             var proxy = Proxy.Parse(str, format: IceProxyFormat.Default);
 
             if (path != null)
             {
-                Assert.AreEqual(path, proxy.Path);
+                Assert.That(proxy.Path, Is.EqualTo(path));
             }
 
             if (fragment != null)
@@ -228,36 +232,32 @@ namespace IceRpc.Tests.Api
                 Assert.That(proxy.Fragment, Is.EqualTo(fragment));
             }
 
-            Assert.AreEqual(Protocol.Ice, proxy.Protocol);
+            Assert.That(proxy.Protocol, Is.EqualTo(Protocol.Ice));
             Assert.That(Proxy.TryParse(
                 proxy.ToString(IceProxyFormat.Default),
                 invoker: null,
                 format: IceProxyFormat.Default,
                 out Proxy? proxy2),
                 Is.True);
-            Assert.AreEqual(proxy, proxy2); // round-trip works
+
+            Assert.That(proxy, Is.EqualTo(proxy2)); // round-trip works
 
             // Also try with non-default ToStringMode
             proxy2 = Proxy.Parse(proxy.ToString(IceProxyFormat.ASCII), format: IceProxyFormat.Default);
-            Assert.AreEqual(proxy, proxy2);
+            Assert.That(proxy, Is.EqualTo(proxy2));
 
             proxy2 = Proxy.Parse(proxy.ToString(IceProxyFormat.Compat), format: IceProxyFormat.Default);
-            Assert.AreEqual(proxy, proxy2);
+            Assert.That(proxy, Is.EqualTo(proxy2));
 
             var prx = GreeterPrx.Parse(str, format: IceProxyFormat.Default);
-            Assert.AreEqual(Protocol.Ice, prx.Proxy.Protocol);
+            Assert.That(prx.Proxy.Protocol, Is.EqualTo(Protocol.Ice));
             Assert.That(GreeterPrx.TryParse(
                 prx.ToString(IceProxyFormat.Default),
                 invoker: null,
                 format: IceProxyFormat.Default,
                 out GreeterPrx prx2),
                 Is.True);
-            Assert.AreEqual(prx, prx2); // round-trip works
-
-            var identity = Identity.FromPath(prx.Proxy.Path);
-            var identity2 = Identity.FromPath(prx2.Proxy.Path);
-            Assert.AreEqual(identity, identity2);
-            Assert.AreEqual(prx.Proxy.Fragment, prx2.Proxy.Fragment); // facets
+            Assert.That(prx, Is.EqualTo(prx2)); // round-trip works
         }
 
         [TestCase("icerpc://host.zeroc.com/path?encoding=foo")]
@@ -344,6 +344,7 @@ namespace IceRpc.Tests.Api
         [TestCase("ice://host/s1/s2/s3")]          // too many slashes in path
         [TestCase("ice://host/cat/")]              // empty identity name
         [TestCase("ice://host/")]                  // empty identity name
+        [TestCase("ice://host//")]                 // empty identity name
         [TestCase("ice:/path?alt-endpoint=foo")]   // alt-endpoint proxy parameter
         [TestCase("ice:/path?adapter-id")]         // empty adapter-id
         [TestCase("ice:/path?adapter-id=foo&foo")] // extra parameter
@@ -365,7 +366,11 @@ namespace IceRpc.Tests.Api
         [TestCase("id -f \'facet x")]
         [TestCase("test -f facet@test @test")]
         [TestCase("test -p 2.0")]
-
+        [TestCase("xx\01FooBar")] // Illegal character < 32
+        [TestCase("xx\\ud911")] // Illegal surrogate
+        [TestCase("test/foo/bar")]
+        [TestCase("cat//test")]
+        [TestCase("cat/")] // Empty name
         public void Proxy_Parse_InvalidIceInput(string str)
         {
             Assert.Throws<FormatException>(() => Proxy.Parse(str, format: IceProxyFormat.Default));
@@ -399,35 +404,12 @@ namespace IceRpc.Tests.Api
 
             static void CheckGetHashCode(Proxy p1, Proxy p2)
             {
-                Assert.AreEqual(p1, p2);
-                Assert.AreEqual(p1.GetHashCode(), p2.GetHashCode());
+                Assert.That(p1, Is.EqualTo(p2));
+                Assert.That(p1.GetHashCode(), Is.EqualTo(p2.GetHashCode()));
                 // The second attempt should hit the hash code cache
-                Assert.AreEqual(p1.GetHashCode(), p2.GetHashCode());
+                Assert.That(p1.GetHashCode(), Is.EqualTo(p2.GetHashCode()));
             }
         }
-
-        /*
-        // TODO: move this test to Slice
-        [Test]
-        public async Task Proxy_InvokeAsync()
-        {
-            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-                .AddTransient<IDispatcher, Greeter>()
-                .BuildServiceProvider();
-
-            var proxy = Proxy.FromConnection(serviceProvider.GetRequiredService<Connection>(), GreeterPrx.DefaultPath);
-
-            IncomingResponse response =
-                await proxy.InvokeAsync("ice_ping",
-                                        proxy.Encoding,
-                                        payloadSource: Encoding.Slice20.CreateEmptyPayload());
-
-            Assert.DoesNotThrowAsync(async () => await response.CheckVoidReturnValueAsync(
-                proxy.Invoker,
-                SliceDecoder.GetActivator(typeof(ProxyTests).Assembly),
-                default));
-        }
-        */
 
         [Test]
         public async Task Proxy_ReceiveProxyAsync()
@@ -451,13 +433,13 @@ namespace IceRpc.Tests.Api
             var pipeline = new Pipeline();
             prx.Proxy.Invoker = pipeline;
             received = await prx.ReceiveProxyAsync();
-            Assert.AreEqual(pipeline, received?.Proxy.Invoker);
+            Assert.That(received?.Proxy.Invoker, Is.EqualTo(pipeline));
 
             // Same with an endpoint
             service.Prx = ProxyTestPrx.Parse("icerpc://localhost/foo");
             received = await prx.ReceiveProxyAsync();
-            Assert.AreEqual(service.Prx?.Proxy.Endpoint, received?.Proxy.Endpoint);
-            Assert.AreEqual(pipeline, received?.Proxy.Invoker);
+            Assert.That(received?.Proxy.Endpoint, Is.EqualTo(service.Prx?.Proxy.Endpoint));
+            Assert.That(received?.Proxy.Invoker, Is.EqualTo(pipeline));
         }
 
         [Test]
@@ -485,7 +467,7 @@ namespace IceRpc.Tests.Api
                 {
                     var router = new Router();
                     router.Map<IProxyTest>(service);
-                    router.UseRequestFeature(new DecodePayloadOptions { ProxyInvoker = pipeline });
+                    router.UseFeature(new DecodePayloadOptions { ProxyInvoker = pipeline });
                     return router;
                 })
                 .BuildServiceProvider();
@@ -494,7 +476,7 @@ namespace IceRpc.Tests.Api
             service.Prx = null;
             await prx.SendProxyAsync(prx);
             Assert.That(service.Prx, Is.Not.Null);
-            Assert.AreEqual(pipeline, service.Prx?.Proxy.Invoker);
+            Assert.That(service.Prx?.Proxy.Invoker, Is.EqualTo(pipeline));
         }
 
         [Test]
@@ -504,14 +486,14 @@ namespace IceRpc.Tests.Api
 
             var proxy = Proxy.Parse(proxyString);
 
-            Assert.AreEqual("/test", proxy.Path);
+            Assert.That(proxy.Path, Is.EqualTo("/test"));
 
             string complicated = $"{proxyString}?encoding=1.1&alt-endpoint=localhost";
             proxy = Proxy.Parse(complicated);
 
-            Assert.AreEqual(Encoding.Slice11, proxy.Encoding);
+            Assert.That(proxy.Encoding, Is.EqualTo(Encoding.Slice11));
             Endpoint altEndpoint = proxy.AltEndpoints[0];
-            Assert.AreEqual(1, proxy.AltEndpoints.Count);
+            Assert.That(proxy.AltEndpoints.Count, Is.EqualTo(1));
         }
 
         [TestCase("1.3")]
@@ -522,24 +504,26 @@ namespace IceRpc.Tests.Api
                 .AddTransient<IDispatcher, Greeter>()
                 .BuildServiceProvider();
 
-            var prx = GreeterPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
-            prx.Proxy.Encoding = Encoding.FromString(encoding);
-            await prx.IcePingAsync(); // works fine, we use the protocol's encoding in this case
+            var service = ServicePrx.FromConnection(
+                serviceProvider.GetRequiredService<Connection>(),
+                GreeterPrx.DefaultPath);
+            service.Proxy.Encoding = Encoding.FromString(encoding);
+            await service.IcePingAsync(); // works fine, we use the protocol's encoding in this case
         }
 
         [Test]
         public async Task Proxy_FactoryMethodsAsync()
         {
-            Assert.AreEqual("/IceRpc.Service", ServicePrx.DefaultPath);
+            Assert.That(ServicePrx.DefaultPath, Is.EqualTo("/Slice.Service"));
 
             var proxy = Proxy.FromPath("/test");
-            Assert.AreEqual("/test", proxy.Path);
+            Assert.That(proxy.Path, Is.EqualTo("/test"));
             Assert.That(proxy.Endpoint, Is.Null);
 
-            Assert.AreEqual("/IceRpc.Tests.Api.Greeter", GreeterPrx.DefaultPath);
+            Assert.That(GreeterPrx.DefaultPath, Is.EqualTo("/IceRpc.Tests.Api.Greeter"));
 
             var greeter = GreeterPrx.FromPath("/test");
-            Assert.AreEqual("/test", greeter.Proxy.Path);
+            Assert.That(greeter.Proxy.Path, Is.EqualTo("/test"));
             Assert.That(greeter.Proxy.Endpoint, Is.Null);
 
             dynamic? capture = null;
@@ -564,24 +548,25 @@ namespace IceRpc.Tests.Api
 
             Connection connection = serviceProvider.GetRequiredService<Connection>();
             proxy = Proxy.FromConnection(connection, ServicePrx.DefaultPath);
-            Assert.AreEqual(ServicePrx.DefaultPath, proxy.Path);
-            Assert.AreEqual(connection, proxy.Connection);
-            Assert.AreEqual(connection.RemoteEndpoint, proxy.Endpoint);
+            Assert.That(proxy.Path, Is.EqualTo(ServicePrx.DefaultPath));
+            Assert.That(proxy.Connection, Is.EqualTo(connection));
+            Assert.That(proxy.Endpoint, Is.EqualTo(connection.RemoteEndpoint));
 
             greeter = GreeterPrx.FromConnection(connection);
-            Assert.AreEqual(GreeterPrx.DefaultPath, greeter.Proxy.Path);
-            Assert.AreEqual(connection, greeter.Proxy.Connection);
-            Assert.AreEqual(connection.RemoteEndpoint, greeter.Proxy.Endpoint);
+            Assert.That(greeter.Proxy.Path, Is.EqualTo(GreeterPrx.DefaultPath));
+            Assert.That(greeter.Proxy.Connection, Is.EqualTo(connection));
+            Assert.That(greeter.Proxy.Endpoint, Is.EqualTo(connection.RemoteEndpoint));
 
             await ServicePrx.FromConnection(connection).IcePingAsync();
 
             Assert.That(capture, Is.Not.Null);
-            Assert.AreEqual(ServicePrx.DefaultPath, capture!.Service.Proxy.Path);
-            Assert.AreEqual(capture.ServerConnection, capture.Service.Proxy.Connection);
+            Assert.That(capture!.Service.Proxy.Path, Is.EqualTo(ServicePrx.DefaultPath));
+            Assert.That(capture.Service.Proxy.Connection, Is.EqualTo(capture.ServerConnection));
             Assert.That(capture.Service.Proxy.Endpoint, Is.Null);
 
-            Assert.AreEqual(GreeterPrx.DefaultPath, capture.Greeter.Proxy.Path);
-            Assert.AreEqual(capture.ServerConnection, capture.Greeter.Proxy.Connection);
+            Assert.That(capture.Greeter.Proxy.Path, Is.EqualTo(GreeterPrx.DefaultPath));
+            Assert.That(capture.Greeter.Proxy.Connection, Is.EqualTo(capture.ServerConnection));
+
             Assert.That(capture.Greeter.Proxy.Endpoint, Is.Null);
         }
 

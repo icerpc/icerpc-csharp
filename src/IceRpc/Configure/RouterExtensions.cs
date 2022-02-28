@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice;
 using Microsoft.Extensions.Logging;
-using System.Reflection;
 
 namespace IceRpc.Configure
 {
@@ -24,6 +22,17 @@ namespace IceRpc.Configure
         public static Router UseCompressor(this Router router, CompressOptions options) =>
             router.Use(next => new CompressorMiddleware(next, options));
 
+        /// <summary>Adds a middleware that sets a feature in all requests.</summary>
+        /// <paramtype name="T">The type of the feature.</paramtype>
+        /// <param name="router">The router being configured.</param>
+        /// <param name="feature">The value of the feature to set in all requests.</param>
+        public static Router UseFeature<T>(this Router router, T feature) =>
+            router.Use(next => new InlineDispatcher((request, cancel) =>
+            {
+                request.Features = request.Features.With(feature);
+                return next.DispatchAsync(request, cancel);
+            }));
+
         /// <summary>Adds a <see cref="LoggerMiddleware"/> to the router.</summary>
         /// <param name="router">The router being configured.</param>
         /// <param name="loggerFactory">The logger factory used to create the logger.</param>
@@ -37,17 +46,6 @@ namespace IceRpc.Configure
         /// <returns>The router being configured.</returns>
         public static Router UseMetrics(this Router router, DispatchEventSource eventSource) =>
             router.Use(next => new MetricsMiddleware(next, eventSource));
-
-        /// <summary>Adds a middleware that sets a feature in the request's features.</summary>
-        /// <paramtype name="T">The type of the feature.</paramtype>
-        /// <param name="router">The router being configured.</param>
-        /// <param name="feature">The value of the feature to set in all requests.</param>
-        public static Router UseRequestFeature<T>(this Router router, T feature) =>
-            router.Use(next => new InlineDispatcher((request, cancel) =>
-            {
-                request.Features = request.Features.With(feature);
-                return next.DispatchAsync(request, cancel);
-            }));
 
         /// <summary>Adds a <see cref="TelemetryMiddleware"/> that uses the default <see cref="TelemetryOptions"/> to
         /// the router.</summary>

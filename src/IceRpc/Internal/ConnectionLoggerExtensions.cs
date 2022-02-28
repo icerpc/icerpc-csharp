@@ -99,11 +99,8 @@ namespace IceRpc.Internal
             EventId = (int)ConnectionEventIds.ReceiveResponse,
             EventName = nameof(ConnectionEventIds.ReceiveResponse),
             Level = LogLevel.Debug,
-            Message = "received response frame (PayloadEncoding={PayloadEncoding}, ResultType={ResultType})")]
-        internal static partial void LogReceiveResponse(
-            this ILogger logger,
-            Encoding payloadEncoding,
-            ResultType resultType);
+            Message = "received response frame (ResultType={ResultType})")]
+        internal static partial void LogReceiveResponse(this ILogger logger, ResultType resultType);
 
         [LoggerMessage(
             EventId = (int)ConnectionEventIds.SendRequest,
@@ -116,8 +113,8 @@ namespace IceRpc.Internal
             EventId = (int)ConnectionEventIds.SendResponse,
             EventName = nameof(ConnectionEventIds.SendResponse),
             Level = LogLevel.Debug,
-            Message = "sent response frame (PayloadEncoding={PayloadEncoding})")]
-        internal static partial void LogSendResponse(this ILogger logger, Encoding payloadEncoding);
+            Message = "sent response frame)")]
+        internal static partial void LogSendResponse(this ILogger logger);
 
         /// <summary>Starts a client connection scope.</summary>
         internal static IDisposable StartClientConnectionScope(
@@ -147,11 +144,11 @@ namespace IceRpc.Internal
 
         /// <summary>Starts a scope for method IProtocolConnection.ReceiveResponseAsync.</summary>
         internal static IDisposable StartReceiveResponseScope(this ILogger logger, OutgoingRequest request) =>
-            _receiveResponseScope(logger, request.Path, request.Operation);
+            _receiveResponseScope(logger, request.Proxy.Path, request.Operation);
 
         /// <summary>Starts a scope for method IProtocolConnection.SendRequestAsync.</summary>
         internal static IDisposable StartSendRequestScope(this ILogger logger, OutgoingRequest request) =>
-            _sendRequestScope(logger, request.Path, request.Operation);
+            _sendRequestScope(logger, request.Proxy.Path, request.Operation);
 
         /// <summary>Starts a scope for method IProtocolConnection.SendResponseAsync.</summary>
         internal static IDisposable StartSendResponseScope(

@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Slice;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Buffers;
@@ -32,7 +33,7 @@ namespace IceRpc.Tests.Api
         public void Interceptor_Throws_ArgumentException()
         {
             var pipeline = new Pipeline();
-            var prx = new InterceptorTestPrx(_prx.Proxy with { Invoker = pipeline });
+            var prx = new ServicePrx(_prx.Proxy with { Invoker = pipeline });
 
             pipeline.Use(next => new InlineInvoker((request, cancel) => throw new ArgumentException("message")));
             Assert.ThrowsAsync<ArgumentException>(async () => await prx.IcePingAsync());
@@ -43,7 +44,7 @@ namespace IceRpc.Tests.Api
         public void Interceptor_Timeout_OperationCanceledException()
         {
             var pipeline = new Pipeline();
-            var prx = new InterceptorTestPrx(_prx.Proxy with { Invoker = pipeline });
+            var prx = new ServicePrx(_prx.Proxy with { Invoker = pipeline });
 
             pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
             {
@@ -79,13 +80,13 @@ namespace IceRpc.Tests.Api
                     return result;
                 }));
 
-            await prx.IcePingAsync();
+            await new ServicePrx(prx.Proxy).IcePingAsync();
 
-            Assert.AreEqual("ProxyInterceptors -> 0", interceptorCalls[0]);
-            Assert.AreEqual("ProxyInterceptors -> 1", interceptorCalls[1]);
-            Assert.AreEqual("ProxyInterceptors <- 1", interceptorCalls[2]);
-            Assert.AreEqual("ProxyInterceptors <- 0", interceptorCalls[3]);
-            Assert.AreEqual(4, interceptorCalls.Count);
+            Assert.That(interceptorCalls[0], Is.EqualTo("ProxyInterceptors -> 0"));
+            Assert.That(interceptorCalls[1], Is.EqualTo("ProxyInterceptors -> 1"));
+            Assert.That(interceptorCalls[2], Is.EqualTo("ProxyInterceptors <- 1"));
+            Assert.That(interceptorCalls[3], Is.EqualTo("ProxyInterceptors <- 0"));
+            Assert.That(interceptorCalls.Count, Is.EqualTo(4));
         }
 
         /// <summary>Ensure that invocation interceptors can bypass the remote call and directly return a result.
@@ -117,8 +118,8 @@ namespace IceRpc.Tests.Api
             int r1 = await prx.OpIntAsync(p1);
             int r2 = await prx.OpIntAsync(p2);
 
-            Assert.AreEqual(r1, p1);
-            Assert.AreEqual(r2, p1);
+            Assert.That(p1, Is.EqualTo(r1));
+            Assert.That(p1, Is.EqualTo(r2));
             Assert.That(response, Is.Not.Null);
         }
 
@@ -137,9 +138,9 @@ namespace IceRpc.Tests.Api
             Dictionary<string, string> ctx = await prx.OpContextAsync(
                 new Invocation
                 {
-                    Context = new Dictionary<string, string> { ["foo"] = "baz" }
+                    Features = new FeatureCollection().WithContext(new Dictionary<string, string> { ["foo"] = "baz" })
                 });
-            CollectionAssert.AreEqual(ctx, new SortedDictionary<string, string> { ["foo"] = "bar" });
+            Assert.That(new SortedDictionary<string, string> { ["foo"] = "bar" }, Is.EqualTo(ctx));
         }
 
         public class InterceptorTest : Service, IInterceptorTest
@@ -147,7 +148,7 @@ namespace IceRpc.Tests.Api
             public ValueTask<IEnumerable<KeyValuePair<string, string>>> OpContextAsync(
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(dispatch.Context);
+                new(dispatch.Features.GetContext());
 
             public ValueTask<int> OpIntAsync(int value, Dispatch dispatch, CancellationToken cancel) => new(value);
         }

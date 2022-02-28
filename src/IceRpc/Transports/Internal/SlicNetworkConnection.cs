@@ -3,9 +3,11 @@
 using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Slice;
-using System.Collections.Concurrent;
+using IceRpc.Slice.Internal;
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.IO.Pipelines;
 
 namespace IceRpc.Transports.Internal
 {
@@ -14,33 +16,37 @@ namespace IceRpc.Transports.Internal
     internal class SlicNetworkConnection : IMultiplexedNetworkConnection
     {
         public bool IsSecure => _simpleNetworkConnection.IsSecure;
-
         public TimeSpan LastActivity => _simpleNetworkConnection.LastActivity;
 
         internal TimeSpan IdleTimeout { get; set; }
         internal bool IsServer { get; }
+        internal int MinimumSegmentSize { get; }
+        internal int PauseWriterThreshold { get; }
         internal int PeerPacketMaxSize { get; private set; }
         internal int PeerPauseWriterThreshold { get; private set; }
-        internal int PauseWriterThreshold { get; }
-        internal int ResumeWriterThreshold { get; }
         internal MemoryPool<byte> Pool { get; }
-        internal int MinimumSegmentSize { get; }
+        internal int ResumeWriterThreshold { get; }
 
         private readonly AsyncQueue<IMultiplexedStream> _acceptedStreamQueue = new();
         private int _bidirectionalStreamCount;
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly int _bidirectionalMaxStreams;
-        private bool _isDisposed;
         private readonly IDisposable _disposableReader;
-        private readonly IDisposable _disposableWriter;
-
+        private bool _isDisposed;
         private long _lastRemoteBidirectionalStreamId = -1;
         private long _lastRemoteUnidirectionalStreamId = -1;
         // _mutex ensure the assignment of _lastRemoteXxx members and the addition of the stream to _streams is
         // an atomic operation.
         private readonly object _mutex = new();
+        private long _nextBidirectionalId;
+        private long _nextUnidirectionalId;
         private readonly int _packetMaxSize;
+        private readonly CancellationTokenSource _readCancellationTokenSource = new();
+        private AsyncSemaphore? _readCompletedSemaphore;
         private readonly ISlicFrameReader _reader;
+        private readonly List<ReadOnlyMemory<byte>> _sendBuffers = new(16);
+        private readonly ArrayBufferWriter<byte> _sendFrameWriter = new(256);
+        private readonly AsyncSemaphore _sendSemaphore = new(1, 1);
         private readonly ISimpleNetworkConnection _simpleNetworkConnection;
         private readonly ConcurrentDictionary<long, SlicMultiplexedStream> _streams = new();
         private readonly int _unidirectionalMaxStreams;
@@ -67,25 +73,34 @@ namespace IceRpc.Transports.Internal
             if (IsServer)
             {
                 // Read the Initialize frame sent by the client.
+                uint version;
+                InitializeBody? initializeBody;
                 (type, dataSize, _) = await _reader.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
-                (uint version, InitializeBody? initializeBody) = await _reader.ReadInitializeAsync(
-                    type,
-                    dataSize,
-                    cancel).ConfigureAwait(false);
+                {
+                    (version, initializeBody) =
+                        await ReadFrameAsync(
+                            dataSize,
+                            memory => memory.DecodeInitialize(type),
+                            cancel).ConfigureAwait(false);
+                }
 
                 if (version != 1)
                 {
                     // Unsupported version, try to negotiate another version by sending a Version frame with
                     // the Slic versions supported by this server.
-                    var versionBody = new VersionBody(new uint[] { SlicDefinitions.V1 });
-                    await _writer.WriteVersionAsync(versionBody, cancel).ConfigureAwait(false);
+                    await SendFrameAsync(
+                        stream: null,
+                        FrameType.Version,
+                        new VersionBody(new uint[] { SlicDefinitions.V1 }).Encode,
+                        cancel).ConfigureAwait(false);
 
                     // Read again the Initialize frame sent by the client.
                     (type, dataSize, _) = await _reader.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
-                    (version, initializeBody) = await _reader.ReadInitializeAsync(
-                        type,
-                        dataSize,
-                        cancel).ConfigureAwait(false);
+                    (version, initializeBody) =
+                        await ReadFrameAsync(
+                            dataSize,
+                            memory => memory.DecodeInitialize(type),
+                            cancel).ConfigureAwait(false);
                 }
 
                 if (initializeBody == null)
@@ -110,19 +125,32 @@ namespace IceRpc.Transports.Internal
                 SetParameters(initializeBody.Value.Parameters);
 
                 // Write back an InitializeAck frame.
-                var initializeAck = new InitializeAckBody(GetParameters());
-                await _writer.WriteInitializeAckAsync(initializeAck, cancel).ConfigureAwait(false);
+                await SendFrameAsync(
+                    stream: null,
+                    FrameType.InitializeAck,
+                    new InitializeAckBody(GetParameters()).Encode,
+                    cancel).ConfigureAwait(false);
             }
             else
             {
                 // Write the Initialize frame.
                 var initializeBody = new InitializeBody(Protocol.IceRpc.Name, GetParameters());
-                await _writer.WriteInitializeAsync(SlicDefinitions.V1, initializeBody, cancel).ConfigureAwait(false);
+                await SendFrameAsync(
+                    stream: null,
+                    FrameType.Initialize,
+                    (ref SliceEncoder encoder) =>
+                    {
+                        encoder.EncodeVarUInt(SlicDefinitions.V1);
+                        initializeBody.Encode(ref encoder);
+                    },
+                    cancel).ConfigureAwait(false);
 
                 // Read back either the InitializeAck or Version frame.
                 (type, dataSize, _) = await _reader.ReadFrameHeaderAsync(cancel).ConfigureAwait(false);
-                (InitializeAckBody? initializeAckBody, VersionBody? versionBody) =
-                    await _reader.ReadInitializeAckOrVersionAsync(type, dataSize, cancel).ConfigureAwait(false);
+                (InitializeAckBody? initializeAckBody, VersionBody? versionBody) = await ReadFrameAsync(
+                    dataSize,
+                    memory => memory.DecodeInitializeAckOrVersion(type),
+                    cancel).ConfigureAwait(false);
 
                 if (initializeAckBody != null)
                 {
@@ -137,16 +165,25 @@ namespace IceRpc.Transports.Internal
             }
 
             // Start a task to read frames from the network connection.
+            _readCompletedSemaphore = new AsyncSemaphore(0, 1);
             _ = Task.Run(
                 async () =>
                 {
                     try
                     {
-                        await ReadFramesAsync(CancellationToken.None).ConfigureAwait(false);
+                        await ReadFramesAsync(_readCancellationTokenSource.Token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        _acceptedStreamQueue.TryComplete(new ConnectionLostException());
                     }
                     catch (Exception exception)
                     {
                         _acceptedStreamQueue.TryComplete(exception);
+                    }
+                    finally
+                    {
+                        _readCompletedSemaphore.Release();
                     }
                 },
                 CancellationToken.None);
@@ -162,26 +199,39 @@ namespace IceRpc.Transports.Internal
         {
             lock (_mutex)
             {
+                if (_isDisposed)
+                {
+                    return;
+                }
                 _isDisposed = true;
             }
 
+            // Cancel reading and wait for the reading to complete if reading is in progress.
+            _readCancellationTokenSource.Cancel();
+            if (_readCompletedSemaphore != null)
+            {
+                await _readCompletedSemaphore.EnterAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+
+            // Close the network connection.
             await _simpleNetworkConnection.DisposeAsync().ConfigureAwait(false);
 
             // Unblock requests waiting on the semaphores.
-            var exception = new ObjectDisposedException($"{typeof(IMultiplexedNetworkConnection)}:{this}");
+            var exception = new ObjectDisposedException($"{typeof(SlicNetworkConnection)}:{this}");
             _bidirectionalStreamSemaphore?.Complete(exception);
             _unidirectionalStreamSemaphore?.Complete(exception);
+            _sendSemaphore.Complete(exception);
 
             foreach (SlicMultiplexedStream stream in _streams.Values)
             {
                 stream.Abort();
             }
 
+            _disposableReader.Dispose();
+            _readCancellationTokenSource.Dispose();
+
             // Unblock task blocked on AcceptStreamAsync
             _acceptedStreamQueue.TryComplete(exception);
-
-            _disposableReader.Dispose();
-            _disposableWriter.Dispose();
         }
 
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
@@ -195,34 +245,42 @@ namespace IceRpc.Transports.Internal
             SlicOptions slicOptions)
         {
             IsServer = isServer;
-
-            var reader = new SlicFrameReader(simpleNetworkConnection.ReadAsync);
-            _disposableReader = reader;
-            _reader = slicFrameReaderDecorator(reader);
-
-            var writer = new SynchronizedSlicFrameWriterDecorator(
-                slicFrameWriterDecorator(new SlicFrameWriter(simpleNetworkConnection.WriteAsync)),
-                this);
-
-            _disposableWriter = writer;
-            _writer = writer;
-
-            _simpleNetworkConnection = simpleNetworkConnection;
-            _packetMaxSize = slicOptions.PacketMaxSize;
             PauseWriterThreshold = slicOptions.PauseWriterThreshold;
             ResumeWriterThreshold = slicOptions.ResumeWriterThreshold;
+            Pool = slicOptions.Pool;
+            MinimumSegmentSize = slicOptions.MinimumSegmentSize;
+
+            _packetMaxSize = slicOptions.PacketMaxSize;
+            _bidirectionalMaxStreams = slicOptions.BidirectionalStreamMaxCount;
+            _unidirectionalMaxStreams = slicOptions.UnidirectionalStreamMaxCount;
+            _simpleNetworkConnection = simpleNetworkConnection;
+
+            var writer = new SlicFrameWriter(simpleNetworkConnection.WriteAsync);
+            var reader = new SlicFrameReader(
+                simpleNetworkConnection.ReadAsync,
+                slicOptions.Pool,
+                slicOptions.MinimumSegmentSize);
+
+            _writer = slicFrameWriterDecorator(writer);
+            _reader = slicFrameReaderDecorator(reader);
+            _disposableReader = reader;
 
             // Initially set the peer packet max size to the local max size to ensure we can receive the first
             // initialize frame.
             PeerPacketMaxSize = _packetMaxSize;
             PeerPauseWriterThreshold = PauseWriterThreshold;
 
-            // Configure the maximum stream counts to ensure the peer won't open more than one stream.
-            _bidirectionalMaxStreams = slicOptions.BidirectionalStreamMaxCount;
-            _unidirectionalMaxStreams = slicOptions.UnidirectionalStreamMaxCount;
-
-            Pool = slicOptions.Pool;
-            MinimumSegmentSize = slicOptions.MinimumSegmentSize;
+            // We use the same stream ID numbering scheme as Quic.
+            if (IsServer)
+            {
+                _nextBidirectionalId = 1;
+                _nextUnidirectionalId = 3;
+            }
+            else
+            {
+                _nextBidirectionalId = 0;
+                _nextUnidirectionalId = 2;
+            }
         }
 
         internal void AddStream(long id, SlicMultiplexedStream stream)
@@ -277,47 +335,222 @@ namespace IceRpc.Transports.Internal
             {
                 _bidirectionalStreamSemaphore!.Release();
             }
-            else
+        }
+
+        internal async ValueTask SendFrameAsync(
+            SlicMultiplexedStream? stream,
+            FrameType frameType,
+            EncodeAction? encode,
+            CancellationToken cancel)
+        {
+            await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+            try
             {
-                // Don't release the semaphore for unidirectional streams. The semaphore will be released
-                // by AcceptStreamAsync when the peer sends a StreamLast frame.
+                // Encode the frame with the frame writer.
+                _sendFrameWriter.Clear();
+                Encode(_sendFrameWriter);
+
+                // Send the frame.
+                _sendBuffers.Clear();
+                _sendBuffers.Add(_sendFrameWriter.WrittenMemory);
+                await _writer.WriteFrameAsync(_sendBuffers, cancel).ConfigureAwait(false);
+            }
+            finally
+            {
+                _sendSemaphore.Release();
+            }
+
+            void Encode(IBufferWriter<byte> writer)
+            {
+                var encoder = new SliceEncoder(writer, Encoding.Slice20);
+                encoder.EncodeByte((byte)frameType);
+                Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4);
+                int startPos = encoder.EncodedByteCount;
+
+                if (stream != null)
+                {
+                    encoder.EncodeVarULong((ulong)stream.Id);
+                }
+                encode?.Invoke(ref encoder);
+
+                Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder.Span);
             }
         }
 
-        internal async ValueTask SendStreamFrameAsync(
+        internal async ValueTask<FlushResult> SendStreamFrameAsync(
             SlicMultiplexedStream stream,
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
-            bool endStream,
+            ReadOnlySequence<byte> source1,
+            ReadOnlySequence<byte> source2,
+            bool completeWhenDone,
             CancellationToken cancel)
         {
-            AsyncSemaphore streamSemaphore = stream.IsBidirectional ?
-                _bidirectionalStreamSemaphore! :
-                _unidirectionalStreamSemaphore!;
+            bool sendingSource1 = true;
+            ReadOnlySequence<byte> sendSource = source1;
+            Debug.Assert(!sendSource.IsEmpty || completeWhenDone);
+            do
+            {
+                // Check if writes completed, the stream might have been reset by the peer. Don't send the data and
+                // return a completed flush result.
+                if (stream.WritesCompleted)
+                {
+                    if (stream.ResetError is long error &&
+                        error.ToSlicError() is SlicStreamError slicError &&
+                        slicError != SlicStreamError.NoError)
+                    {
+                        throw new MultiplexedStreamAbortedException(error);
+                    }
+                    else
+                    {
+                        return new FlushResult(isCanceled: false, isCompleted: true);
+                    }
+                }
 
-            if (!stream.IsStarted)
-            {
-                // If the outgoing stream isn't started, we need to acquire the stream semaphore to ensure we
-                // don't open more streams than the peer allows.
-                await streamSemaphore.EnterAsync(cancel).ConfigureAwait(false);
-            }
-
-            try
-            {
-                // The writer WriteStreamFrameAsync method requires the header to always be included as the first
-                // buffers of the send buffers. This avoids allocating a new ReadOnlyMemory<byte> array to append the
-                // header.
-                Debug.Assert(buffers.Length > 0);
-                Debug.Assert(buffers.Span[0].Length == SlicDefinitions.FrameHeader.Length);
-                await _writer.WriteStreamFrameAsync(stream, buffers, endStream, cancel).ConfigureAwait(false);
-            }
-            catch
-            {
+                // First, if the stream isn't started, we need to acquire the stream count semaphore. If there are more
+                // streams opened than the peer allows, this will block until a stream is shutdown.
                 if (!stream.IsStarted)
                 {
-                    // If the stream is still not started, release the semaphore.
-                    streamSemaphore.Release();
+                    AsyncSemaphore streamCountSemaphore = stream.IsBidirectional ?
+                        _bidirectionalStreamSemaphore! :
+                        _unidirectionalStreamSemaphore!;
+                    await streamCountSemaphore.EnterAsync(cancel).ConfigureAwait(false);
                 }
-                throw;
+
+                // Next, ensure send credit is available. If not, this will block until the receiver allows sending
+                // additional data.
+                int sendCredit = await stream.AcquireSendCreditAsync(cancel).ConfigureAwait(false);
+
+                // Finally, acquire the send semaphore to ensure only one stream writes to the connection.
+                await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+
+                try
+                {
+                    // Allocate stream ID if the stream isn't started. Thread-safety is provided by the send
+                    // semaphore.
+                    if (!stream.IsStarted)
+                    {
+                        if (stream.IsBidirectional)
+                        {
+                            AddStream(_nextBidirectionalId, stream);
+                            _nextBidirectionalId += 4;
+                        }
+                        else
+                        {
+                            AddStream(_nextUnidirectionalId, stream);
+                            _nextUnidirectionalId += 4;
+                        }
+                    }
+
+                    // Compose the Slic packet into _sendBuffers. We gather from source1 or source2 up to sendCredit
+                    // bytes or the Slic packet maximum size.
+                    int sendSize = 0;
+                    int sendMaxSize = Math.Min(sendCredit, PeerPacketMaxSize);
+                    _sendBuffers.Clear();
+                    _sendBuffers.Add(SlicDefinitions.FrameHeader); // The header will be replaced once encoded.
+                    while (sendSize < sendMaxSize)
+                    {
+                        if (sendingSource1 && sendSource.IsEmpty)
+                        {
+                            // Switch to source2 if we're done with source1.
+                            sendingSource1 = false;
+                            sendSource = source2;
+                        }
+
+                        if (sendSource.IsEmpty)
+                        {
+                            // No more data to gather!
+                            break;
+                        }
+
+                        // Add the send source data to the send buffers, no more data than the send credit left.
+                        sendSize += FillSendBuffers(ref sendSource, sendMaxSize - sendSize);
+                    }
+
+                    bool endStream = completeWhenDone && !sendingSource1 && sendSource.IsEmpty;
+
+                    // Notify the stream that we're consuming sendSize credit. It's important to call this before
+                    // sending the stream frame to avoid race conditions where the StreamResumeWrite frame could be
+                    // received before the send credit was updated.
+                    stream.ConsumeSendCredit(sendSize);
+
+                    if (endStream)
+                    {
+                        // At this point writes are considered completed on the stream. It's important to call
+                        // this before sending the last packet to avoid a race condition where the peer could
+                        // start a new stream before the Slic connection stream count is decreased.
+                        stream.TrySetWriteCompleted();
+                    }
+
+                    // We can encode the Slic header now that we known the data size and the stream ID.
+                    _sendBuffers[0] = EncodeSlicHeader(sendSize, endStream);
+
+                    // Write the frame.
+                    await _writer.WriteFrameAsync(_sendBuffers, cancel).ConfigureAwait(false);
+                }
+                catch (MultiplexedStreamAbortedException ex)
+                {
+                    if (ex.ToSlicError() == SlicStreamError.NoError)
+                    {
+                        return new FlushResult(isCanceled: false, isCompleted: true);
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+                finally
+                {
+                    _sendSemaphore.Release();
+                }
+            }
+            while (sendingSource1 || !sendSource.IsEmpty);
+
+            return new FlushResult(isCanceled: false, isCompleted: false);
+
+            ReadOnlyMemory<byte> EncodeSlicHeader(int sendSize, bool endStream)
+            {
+                // The stream ID is part of the frame data.
+                ulong streamId = checked((ulong)stream.Id);
+                sendSize += SliceEncoder.GetVarULongEncodedSize(streamId);
+
+                // Write the Slic frame header (frameType, frameSize, streamId).
+                _sendFrameWriter.Clear();
+                var encoder = new SliceEncoder(_sendFrameWriter, Encoding.Slice20);
+                encoder.EncodeByte((byte)(endStream ? FrameType.StreamLast : FrameType.Stream));
+                encoder.EncodeSize(sendSize);
+                encoder.EncodeVarULong(streamId);
+                return _sendFrameWriter.WrittenMemory;
+            }
+
+            int FillSendBuffers(ref ReadOnlySequence<byte> source, int maxSize)
+            {
+                Debug.Assert(maxSize > 0);
+                int size = 0;
+                SequencePosition position = source.Start;
+                while (true)
+                {
+                    if (!source.TryGet(ref position, out ReadOnlyMemory<byte> memory))
+                    {
+                        // No more data available.
+                        source = ReadOnlySequence<byte>.Empty;
+                        return size;
+                    }
+
+                    if (size + memory.Length < maxSize)
+                    {
+                        // Add the segment to the send buffers.
+                        _sendBuffers.Add(memory);
+                        size += memory.Length;
+                    }
+                    else
+                    {
+                        // We've reached the maximum send size. Slice the buffer to send and slice the source buffer
+                        // to the remaining data to consume.
+                        _sendBuffers.Add(memory[0..(maxSize - size)]);
+                        size += maxSize - size;
+                        source = source.Slice(source.GetPosition(size));
+                        return size;
+                    }
+                }
             }
         }
 
@@ -354,10 +587,11 @@ namespace IceRpc.Transports.Internal
 
                 // Only stream frames are expected at this point. Non stream frames are only exchanged at the
                 // initialization step.
-                if (streamId == null)
+                if (type < FrameType.Stream)
                 {
                     throw new InvalidDataException($"unexpected Slic frame with frame type '{type}'");
                 }
+                Debug.Assert(streamId != null);
 
                 switch (type)
                 {
@@ -378,10 +612,14 @@ namespace IceRpc.Transports.Internal
                                 "invalid stream frame, received 0 bytes without end of stream");
                         }
 
+                        int readSize = 0;
                         if (_streams.TryGetValue(streamId.Value, out SlicMultiplexedStream? stream))
                         {
                             // Let the stream receive the data.
-                            await stream.ReceivedFrameAsync(dataSize, endStream).ConfigureAwait(false);
+                            readSize = await stream.ReceivedStreamFrameAsync(
+                                dataSize,
+                                endStream,
+                                cancel).ConfigureAwait(false);
                         }
                         else if (isRemote && !IsKnownRemoteStream(streamId.Value, isBidirectional))
                         {
@@ -425,27 +663,31 @@ namespace IceRpc.Transports.Internal
                             }
 
                             // Let the stream receive the data.
-                            await stream.ReceivedFrameAsync(dataSize, endStream).ConfigureAwait(false);
+                            readSize = await stream.ReceivedStreamFrameAsync(
+                                dataSize,
+                                endStream,
+                                cancel).ConfigureAwait(false);
 
-                            // Queue the new stream.
-                            _acceptedStreamQueue.Enqueue(stream);
+                            // Queue the new stream only if it read the full size (otherwise, it has been shutdown).
+                            if (readSize == dataSize)
+                            {
+                                _acceptedStreamQueue.Enqueue(stream);
+                            }
                         }
-                        else
+
+                        if (readSize < dataSize)
                         {
                             // The stream has been shutdown. Read and ignore the data.
                             using IMemoryOwner<byte> owner = Pool.Rent(MinimumSegmentSize);
-                            int size = dataSize;
-                            while (size > 0)
+                            int sizeToRead = dataSize - readSize;
+                            while (sizeToRead > 0)
                             {
-                                Memory<byte> chunk = owner.Memory;
-                                if (chunk.Length > size)
-                                {
-                                    chunk = chunk[0..size];
-                                }
-                                await _reader.ReadFrameDataAsync(chunk, CancellationToken.None).ConfigureAwait(false);
-                                size -= chunk.Length;
+                                Memory<byte> chunk = owner.Memory[0..Math.Min(sizeToRead, owner.Memory.Length)];
+                                await _reader.ReadFrameDataAsync(chunk, cancel).ConfigureAwait(false);
+                                sizeToRead -= chunk.Length;
                             }
                         }
+
                         break;
                     }
                     case FrameType.StreamResumeWrite:
@@ -455,11 +697,13 @@ namespace IceRpc.Transports.Internal
                             throw new InvalidDataException("stream resume write frame too large");
                         }
 
-                        StreamResumeWriteBody streamConsumed =
-                            await _reader.ReadStreamResumeWriteAsync(dataSize, cancel).ConfigureAwait(false);
+                        StreamResumeWriteBody resumeWrite = await ReadFrameAsync(
+                            dataSize,
+                            memory => memory.DecodeStreamResumeWrite(),
+                            cancel).ConfigureAwait(false);
                         if (_streams.TryGetValue(streamId.Value, out SlicMultiplexedStream? stream))
                         {
-                            stream.ReceivedConsumed((int)streamConsumed.Size);
+                            stream.ReceivedResumeWriterFrame((int)resumeWrite.Size);
                         }
                         break;
                     }
@@ -470,11 +714,13 @@ namespace IceRpc.Transports.Internal
                             throw new InvalidDataException("stream reset frame too large");
                         }
 
-                        StreamResetBody streamReset =
-                            await _reader.ReadStreamResetAsync(dataSize, cancel).ConfigureAwait(false);
+                        StreamResetBody streamReset = await ReadFrameAsync(
+                            dataSize,
+                            memory => memory.DecodeStreamReset(),
+                            cancel).ConfigureAwait(false);
                         if (_streams.TryGetValue(streamId.Value, out SlicMultiplexedStream? stream))
                         {
-                            stream.ReceivedReset(streamReset.ApplicationProtocolErrorCode);
+                            stream.ReceivedResetFrame(streamReset.ApplicationProtocolErrorCode);
                         }
                         break;
                     }
@@ -485,11 +731,13 @@ namespace IceRpc.Transports.Internal
                             throw new InvalidDataException("stream stop sending frame too large");
                         }
 
-                        StreamStopSendingBody streamStopSending =
-                            await _reader.ReadStreamStopSendingAsync(dataSize, cancel).ConfigureAwait(false);
+                        StreamStopSendingBody streamStopSending = await ReadFrameAsync(
+                            dataSize,
+                            memory => memory.DecodeStreamStopSending(),
+                            cancel).ConfigureAwait(false);
                         if (_streams.TryGetValue(streamId.Value, out SlicMultiplexedStream? stream))
                         {
-                            stream.ReceivedStopSending(streamStopSending.ApplicationProtocolErrorCode);
+                            stream.ReceivedStopSendingFrame(streamStopSending.ApplicationProtocolErrorCode);
                         }
                         break;
                     }
@@ -500,7 +748,7 @@ namespace IceRpc.Transports.Internal
                             throw new InvalidDataException("unidirectional stream released frame too large");
                         }
 
-                        await _reader.ReadUnidirectionalStreamReleasedAsync(cancel).ConfigureAwait(false);
+                        await _reader.ReadFrameDataAsync(Memory<byte>.Empty, cancel).ConfigureAwait(false);
 
                         // Release the unidirectional stream semaphore for the unidirectional stream.
                         _unidirectionalStreamSemaphore!.Release();
@@ -529,6 +777,17 @@ namespace IceRpc.Transports.Internal
             }
         }
 
+        private async ValueTask<T> ReadFrameAsync<T>(
+            int size,
+            Func<ReadOnlyMemory<byte>, T> decode,
+            CancellationToken cancel)
+        {
+            using IMemoryOwner<byte> owner = Pool.Rent(size);
+            Memory<byte> buffer = owner.Memory[0..Math.Min(size, owner.Memory.Length)];
+            await _reader.ReadFrameDataAsync(buffer, cancel).ConfigureAwait(false);
+            return decode(owner.Memory[0..size]);
+        }
+
         private void SetParameters(IDictionary<int, IList<byte>> parameters)
         {
             TimeSpan? peerIdleTimeout = null;
@@ -537,11 +796,11 @@ namespace IceRpc.Transports.Internal
             {
                 if (key == ParameterKey.MaxBidirectionalStreams)
                 {
-                    _bidirectionalStreamSemaphore = new AsyncSemaphore((int)value);
+                    _bidirectionalStreamSemaphore = new AsyncSemaphore((int)value, (int)value);
                 }
                 else if (key == ParameterKey.MaxUnidirectionalStreams)
                 {
-                    _unidirectionalStreamSemaphore = new AsyncSemaphore((int)value);
+                    _unidirectionalStreamSemaphore = new AsyncSemaphore((int)value, (int)value);
                 }
                 else if (key == ParameterKey.IdleTimeout)
                 {

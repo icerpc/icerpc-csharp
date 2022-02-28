@@ -7,17 +7,14 @@ namespace IceRpc.Tests.Slice
 {
     [Timeout(5000)]
     [Parallelizable(ParallelScope.All)]
-    [TestFixture("ice")]
-    [TestFixture("icerpc")]
     public sealed class StructTests
     {
         private readonly StructOperationsPrx _prx;
         private readonly ServiceProvider _serviceProvider;
 
-        public StructTests(string protocolCode)
+        public StructTests()
         {
             _serviceProvider = new IntegrationTestServiceCollection()
-                .UseProtocol(protocolCode)
                 .AddTransient<IDispatcher, StructOperations>()
                 .BuildServiceProvider();
 
@@ -31,23 +28,23 @@ namespace IceRpc.Tests.Slice
         public async Task Struct_OperationsAsync()
         {
             // TODO Parse below should not use a connection with a different endpoint
-            await TestAsync((p1, p2) => _prx.OpMyStructAsync(p1, p2), new MyStruct(1, 2), new MyStruct(3, 4));
+            await TestAsync((p1, p2) => _prx.OpMyStructAsync(p1, p2), new MyStruct(1, 2), new MyStruct(3, null));
             await TestAsync((p1, p2) => _prx.OpAnotherStructAsync(p1, p2),
                             new AnotherStruct("hello",
-                                              OperationsPrx.Parse("icerpc://foo/bar"),
+                                              null,
                                               MyEnum.enum1,
                                               new MyStruct(1, 2)),
                             new AnotherStruct("world",
                                               OperationsPrx.Parse("icerpc://foo/bar"),
-                                              MyEnum.enum2,
+                                              null,
                                               new MyStruct(3, 4)));
+        }
 
-            static async Task TestAsync<T>(Func<T, T, Task<(T, T)>> invoker, T p1, T p2)
-            {
-                (T r1, T r2) = await invoker(p1, p2);
-                Assert.AreEqual(p1, r1);
-                Assert.AreEqual(p2, r2);
-            }
+        static async Task TestAsync<T>(Func<T, T, Task<(T, T)>> invoker, T p1, T p2)
+        {
+            (T r1, T r2) = await invoker(p1, p2);
+            Assert.That(r1, Is.EqualTo(p1));
+            Assert.That(r2, Is.EqualTo(p2));
         }
 
         public class StructOperations : Service, IStructOperations

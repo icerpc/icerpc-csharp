@@ -1,56 +1,55 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc::Tests::Slice
+module IceRpc::Tests::Slice;
+
+interface StreamParamOperations
 {
-    interface StreamParamOperations
-    {
-        opStreamByteReceive0() -> stream byte;
-        opStreamByteReceive1() -> (r1: byte, r2: stream byte);
-        opStreamByteReceive2() -> (r1: byte, r2: int, r3: stream byte);
+    opStreamByteReceive0() -> stream byte;
+    opStreamByteReceive1() -> (r1: byte, r2: stream byte);
+    opStreamByteReceive2() -> (r1: byte, r2: int, r3: stream byte);
 
-        opStreamByteSend0(p1: stream byte);
-        opStreamByteSend1(p1: byte, p2: stream byte);
-        opStreamByteSend2(p1: byte, p2: int, p3: stream byte);
+    opStreamByteSend0(p1: stream byte);
+    opStreamByteSend1(p1: byte, p2: stream byte);
+    opStreamByteSend2(p1: byte, p2: int, p3: stream byte);
 
-        opStreamByteSendReceive0(p1: stream byte) -> stream byte;
-        opStreamByteSendReceive1(p1: byte, p2: stream byte) -> (r1: byte, r2: stream byte);
-        opStreamByteSendReceive2(p1: byte, p2: int, p3: stream byte) -> (r1: byte, r2: int, r3: stream byte);
+    opStreamByteSendReceive0(p1: stream byte) -> stream byte;
+    opStreamByteSendReceive1(p1: byte, p2: stream byte) -> (r1: byte, r2: stream byte);
+    opStreamByteSendReceive2(p1: byte, p2: int, p3: stream byte) -> (r1: byte, r2: int, r3: stream byte);
 
-        opStreamMyStructReceive0() -> stream MyStruct;
-        opStreamMyStructReceive1() -> (r1: MyStruct, r2: stream MyStruct);
-        opStreamMyStructReceive2() -> (r1: MyStruct, r2: MyStruct, r3: stream MyStruct);
+    opStreamMyStructReceive0() -> stream MyStruct;
+    opStreamMyStructReceive1() -> (r1: MyStruct, r2: stream MyStruct);
+    opStreamMyStructReceive2() -> (r1: MyStruct, r2: MyStruct, r3: stream MyStruct);
 
-        opStreamMyStructSend0(p1: stream MyStruct);
-        opStreamMyStructSend1(p1: MyStruct, p2: stream MyStruct);
-        opStreamMyStructSend2(p1: MyStruct, p2: MyStruct, p3: stream MyStruct);
+    opStreamMyStructSend0(p1: stream MyStruct);
+    opStreamMyStructSend1(p1: MyStruct, p2: stream MyStruct);
+    opStreamMyStructSend2(p1: MyStruct, p2: MyStruct, p3: stream MyStruct);
 
-        opStreamMyStructSendAndCancel0(p1: stream MyStruct);
+    opStreamMyStructSendAndCancel0(p1: stream MyStruct);
 
-        opStreamMyStructSendReceive0(p1: stream MyStruct) -> stream MyStruct;
-        opStreamMyStructSendReceive1(p1: MyStruct, p2: stream MyStruct) -> (r1: MyStruct, r2: stream MyStruct);
-        opStreamMyStructSendReceive2(p1: MyStruct,p2: MyStruct, p3: stream MyStruct) -> (
-            r1: MyStruct,
-            r2: MyStruct,
-            r3: stream MyStruct,
-        );
+    opStreamMyStructSendReceive0(p1: stream MyStruct) -> stream MyStruct;
+    opStreamMyStructSendReceive1(p1: MyStruct, p2: stream MyStruct) -> (r1: MyStruct, r2: stream MyStruct);
+    opStreamMyStructSendReceive2(p1: MyStruct,p2: MyStruct, p3: stream MyStruct) -> (
+        r1: MyStruct,
+        r2: MyStruct,
+        r3: stream MyStruct,
+    );
 
-        opStreamAnotherStructReceive0() -> stream AnotherStruct;
-        opStreamAnotherStructReceive1() -> (r1: AnotherStruct, r2: stream AnotherStruct);
-        opStreamAnotherStructReceive2() -> (r1: AnotherStruct, r2: AnotherStruct, r3: stream AnotherStruct);
+    opStreamAnotherStructReceive0() -> stream AnotherStruct;
+    opStreamAnotherStructReceive1() -> (r1: AnotherStruct, r2: stream AnotherStruct);
+    opStreamAnotherStructReceive2() -> (r1: AnotherStruct, r2: AnotherStruct, r3: stream AnotherStruct);
 
-        opStreamAnotherStructSend0(p1: stream AnotherStruct);
-        opStreamAnotherStructSend1(p1: AnotherStruct, p2: stream AnotherStruct);
-        opStreamAnotherStructSend2(p1: AnotherStruct, p2: AnotherStruct, p3: stream AnotherStruct);
+    opStreamAnotherStructSend0(p1: stream AnotherStruct);
+    opStreamAnotherStructSend1(p1: AnotherStruct, p2: stream AnotherStruct);
+    opStreamAnotherStructSend2(p1: AnotherStruct, p2: AnotherStruct, p3: stream AnotherStruct);
 
-        opStreamAnotherStructSendReceive0(p1: stream AnotherStruct) -> stream AnotherStruct;
-        opStreamAnotherStructSendReceive1(p1: AnotherStruct, p2: stream AnotherStruct) -> (
-            r1: AnotherStruct,
-            r2: stream AnotherStruct,
-        );
-        opStreamAnotherStructSendReceive2(p1: AnotherStruct, p2: AnotherStruct, p3: stream AnotherStruct) -> (
-            r1: AnotherStruct,
-            r2: AnotherStruct,
-            r3: stream AnotherStruct,
-        );
-    }
+    opStreamAnotherStructSendReceive0(p1: stream AnotherStruct) -> stream AnotherStruct;
+    opStreamAnotherStructSendReceive1(p1: AnotherStruct, p2: stream AnotherStruct) -> (
+        r1: AnotherStruct,
+        r2: stream AnotherStruct,
+    );
+    opStreamAnotherStructSendReceive2(p1: AnotherStruct, p2: AnotherStruct, p3: stream AnotherStruct) -> (
+        r1: AnotherStruct,
+        r2: AnotherStruct,
+        r3: stream AnotherStruct,
+    );
 }

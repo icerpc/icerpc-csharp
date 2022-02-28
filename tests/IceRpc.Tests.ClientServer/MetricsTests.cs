@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Slice;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Diagnostics.Tracing;
@@ -186,7 +187,7 @@ namespace IceRpc.Tests.ClientServer
         private class Greeter3 : Service, IGreeter
         {
             public ValueTask SayHelloAsync(string message, Dispatch dispatch, CancellationToken cancel) =>
-                throw new DispatchException("failed");
+                throw new DispatchException("failed", DispatchErrorCode.InvalidData);
         }
 
         private class TestEventListener : EventListener
@@ -213,7 +214,7 @@ namespace IceRpc.Tests.ClientServer
                 }
                 lock (_mutex)
                 {
-                    CollectionAssert.AreEquivalent(ExpectedEventCounters, ReceivedEventCounters);
+                    Assert.That(ReceivedEventCounters, Is.EquivalentTo(ExpectedEventCounters));
                 }
             }
 

@@ -1,0 +1,15 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+[cs:internal]
+module IceRpc::Slice::Internal;
+
+/// The identity of a service. Used only with the 1.1 encoding.
+[cs:readonly]
+compact struct Identity
+{
+    /// The name of the identity.
+    name: string,
+
+    /// The category of the identity.
+    category: string,
+}

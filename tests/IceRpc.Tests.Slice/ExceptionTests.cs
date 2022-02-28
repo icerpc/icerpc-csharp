@@ -30,26 +30,26 @@ namespace IceRpc.Tests.Slice
         public void Exception_Constructors()
         {
             var a = new MyExceptionA(RetryPolicy.NoRetry);
-            Assert.AreEqual(RetryPolicy.NoRetry, a.RetryPolicy);
+            Assert.That(a.RetryPolicy, Is.EqualTo(RetryPolicy.NoRetry));
 
             a = new MyExceptionA(RetryPolicy.OtherReplica);
-            Assert.AreEqual(RetryPolicy.OtherReplica, a.RetryPolicy);
+            Assert.That(a.RetryPolicy, Is.EqualTo(RetryPolicy.OtherReplica));
 
             a = new MyExceptionA(RetryPolicy.AfterDelay(TimeSpan.FromSeconds(1)));
-            Assert.AreEqual(RetryPolicy.AfterDelay(TimeSpan.FromSeconds(1)), a.RetryPolicy);
+            Assert.That(a.RetryPolicy, Is.EqualTo(RetryPolicy.AfterDelay(TimeSpan.FromSeconds(1))));
 
             a = new MyExceptionA();
-            Assert.AreEqual(RetryPolicy.NoRetry, a.RetryPolicy);
+            Assert.That(a.RetryPolicy, Is.EqualTo(RetryPolicy.NoRetry));
 
-            Assert.AreEqual(10, new MyExceptionA(10).M1);
+            Assert.That(new MyExceptionA(10).M1, Is.EqualTo(10));
 
             var b = new MyExceptionB("my exception B", 20, retryPolicy: RetryPolicy.AfterDelay(TimeSpan.FromSeconds(1)));
             a = new MyExceptionA("my exception A", 10, b, RetryPolicy.AfterDelay(TimeSpan.FromSeconds(1)));
-            Assert.AreEqual("my exception A", a.Message);
-            Assert.AreEqual(10, a.M1);
+            Assert.That(a.Message, Is.EqualTo("my exception A"));
+            Assert.That(a.M1, Is.EqualTo(10));
             Assert.That(a, Is.Not.Null);
-            Assert.AreEqual(b, a.InnerException);
-            Assert.AreEqual(RetryPolicy.AfterDelay(TimeSpan.FromSeconds(1)), a.RetryPolicy);
+            Assert.That(a.InnerException, Is.EqualTo(b));
+            Assert.That(a.RetryPolicy, Is.EqualTo(RetryPolicy.AfterDelay(TimeSpan.FromSeconds(1))));
         }
 
         [Test]
@@ -57,24 +57,15 @@ namespace IceRpc.Tests.Slice
         {
             MyExceptionA? a = Assert.ThrowsAsync<MyExceptionA>(async () => await _prx.ThrowAAsync(10));
             Assert.That(a, Is.Not.Null);
-            Assert.AreEqual(10, a!.M1);
+            Assert.That(a!.M1, Is.EqualTo(10));
 
             a = Assert.ThrowsAsync<MyExceptionA>(async () => await _prx.ThrowAorBAsync(10));
             Assert.That(a, Is.Not.Null);
-            Assert.AreEqual(10, a!.M1);
+            Assert.That(a!.M1, Is.EqualTo(10));
 
             MyExceptionB? b = Assert.ThrowsAsync<MyExceptionB>(async () => await _prx.ThrowAorBAsync(0));
             Assert.That(b, Is.Not.Null);
-            Assert.AreEqual(0, b!.M1);
-
-            RemoteException? remoteEx =
-                Assert.ThrowsAsync<RemoteException>(async () => await _prx.ThrowRemoteExceptionAsync());
-
-            Assert.That(remoteEx, Is.Not.Null);
-            if (_prx.Proxy.Protocol == Protocol.IceRpc)
-            {
-                Assert.AreEqual("some message", remoteEx!.Message);
-            }
+            Assert.That(b!.M1, Is.EqualTo(0));
         }
 
         public class ExceptionOperations : Service, IExceptionOperations
@@ -91,9 +82,6 @@ namespace IceRpc.Tests.Slice
                     throw new MyExceptionB(a);
                 }
             }
-
-            public ValueTask ThrowRemoteExceptionAsync(Dispatch dispatch, CancellationToken cancel) =>
-                throw new RemoteException("some message");
         }
     }
 }

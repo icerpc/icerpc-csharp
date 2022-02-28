@@ -21,6 +21,7 @@ module IceRpc::Tests::Slice
 
     typealias MyEnumA = MyEnum;
     typealias MyStructA = MyStruct;
+    typealias MyCompactStructA = MyCompactStruct;
     typealias MyClassAA = MyClassA;
 
     typealias ByteSeqA = ByteSeq;
@@ -81,6 +82,9 @@ module IceRpc::Tests::Slice
         opMyStruct(p1: MyStruct) -> MyStruct;
         opMyStructA(p1: MyStructA) -> MyStructA;
 
+        opMyCompactStruct(p1: MyCompactStruct) -> MyCompactStruct;
+        opMyCompactStructA(p1: MyCompactStructA) -> MyCompactStructA;
+
         opMyClassA(p1: MyClassA) -> MyClassA;
         opMyClassAA(p1: MyClassAA) -> MyClassAA;
 
@@ -118,9 +122,10 @@ module IceRpc::Tests::Slice
             m15: string,
             m16: MyEnum,
             m17: IceRpc::Tests::Slice::MyStruct,
-            m18: IceRpc::Tests::Slice::MyClassA,
-            m19: ByteSeq,
-            m20: MyEnumDict,
+            m18: IceRpc::Tests::Slice::MyCompactStruct,
+            m19: IceRpc::Tests::Slice::MyClassA,
+            m20: ByteSeq,
+            m21: MyEnumDict,
         }
 
         class MyClassA
@@ -142,12 +147,13 @@ module IceRpc::Tests::Slice
             m15: stringA,
             m16: MyEnumA,
             m17: IceRpc::Tests::Slice::MyStructA,
-            m18: IceRpc::Tests::Slice::MyClassAA,
-            m19: ByteSeqA,
-            m20: MyEnumDictA,
+            m18: IceRpc::Tests::Slice::MyCompactStructA,
+            m19: IceRpc::Tests::Slice::MyClassAA,
+            m20: ByteSeqA,
+            m21: MyEnumDictA,
         }
 
-        class MyStruct
+        struct MyStruct
         {
             m1: bool,
             m2: byte,
@@ -171,7 +177,7 @@ module IceRpc::Tests::Slice
             m20: MyEnumDict,
         }
 
-        class MyStructA
+        struct MyStructA
         {
             m1: boolA,
             m2: byteA,

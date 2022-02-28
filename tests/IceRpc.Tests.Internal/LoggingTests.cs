@@ -34,13 +34,15 @@ namespace IceRpc.Tests.Internal
             using var loggerFactory = new TestLoggerFactory();
             var pipeline = new Pipeline();
             pipeline.UseRetry(new RetryOptions { MaxAttempts = 3, LoggerFactory = loggerFactory });
-            pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
-                {
-                    IncomingResponse response = await next.InvokeAsync(request, cancel);
-                    response.Features = response.Features.With(policy);
-                    return response;
-                }));
 
+            // We don't use a simple UseFeature here because we want to set the retry policy after receiving the
+            // response.
+            pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
+            {
+                IncomingResponse response = await next.InvokeAsync(request, cancel);
+                request.Features = request.Features.With(policy);
+                return response;
+            }));
             await pipeline.InvokeAsync(request);
 
             Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc"));
@@ -51,7 +53,7 @@ namespace IceRpc.Tests.Internal
                 (int)RetryInterceptorEventIds.RetryRequest,
                 LogLevel.Information,
                 "retrying request because of retryable exception",
-                request.Path,
+                request.Proxy.Path,
                 request.Operation,
                 connection.NetworkConnectionInformation!.Value.LocalEndpoint,
                 connection.NetworkConnectionInformation!.Value.RemoteEndpoint,
@@ -92,7 +94,7 @@ namespace IceRpc.Tests.Internal
                               (int)LoggerInterceptorEventIds.SendingRequest,
                               LogLevel.Information,
                               "sending request",
-                              request.Path,
+                              request.Proxy.Path,
                               request.Operation,
                               connection.NetworkConnectionInformation!.Value.LocalEndpoint,
                               connection.NetworkConnectionInformation!.Value.RemoteEndpoint,
@@ -104,11 +106,10 @@ namespace IceRpc.Tests.Internal
                                   (int)LoggerInterceptorEventIds.ReceivedResponse,
                                   LogLevel.Information,
                                   "received response",
-                                  request.Path,
+                                  request.Proxy.Path,
                                   request.Operation,
                                   connection.NetworkConnectionInformation!.Value.LocalEndpoint,
-                                  connection.NetworkConnectionInformation!.Value.RemoteEndpoint,
-                                  response.PayloadEncoding);
+                                  connection.NetworkConnectionInformation!.Value.RemoteEndpoint);
 
                 Assert.That(loggerFactory.Logger!.Entries[1].State["ResultType"], Is.EqualTo(response.ResultType));
             }
@@ -139,7 +140,7 @@ namespace IceRpc.Tests.Internal
                               (int)LoggerInterceptorEventIds.InvokeException,
                               LogLevel.Information,
                               "request invocation exception",
-                              request.Path,
+                              request.Proxy.Path,
                               request.Operation,
                               connection.NetworkConnectionInformation!.Value.LocalEndpoint,
                               connection.NetworkConnectionInformation!.Value.RemoteEndpoint,
@@ -188,8 +189,7 @@ namespace IceRpc.Tests.Internal
                                   request.Path,
                                   request.Operation,
                                   connection.NetworkConnectionInformation!.Value.RemoteEndpoint,
-                                  connection.NetworkConnectionInformation!.Value.LocalEndpoint,
-                                  response.PayloadEncoding);
+                                  connection.NetworkConnectionInformation!.Value.LocalEndpoint);
 
                 Assert.That(loggerFactory.Logger!.Entries[1].State["ResultType"], Is.EqualTo(response.ResultType));
             }
@@ -271,14 +271,14 @@ namespace IceRpc.Tests.Internal
         private static IncomingResponse CreateIncomingResponse(OutgoingRequest request) => new(
             request,
             ResultType.Success,
-            PipeReader.Create(new ReadOnlySequence<byte>(new byte[10])),
-            Encoding.Slice20);
+            PipeReader.Create(new ReadOnlySequence<byte>(new byte[10])));
 
         private static OutgoingRequest CreateOutgoingRequest(Connection connection, bool twoway) =>
-            new(new Proxy(connection.Protocol) { Path = "/dummy" }, operation: "foo")
+            new(new Proxy(connection.Protocol) { Path = "/dummy" })
             {
                 Connection = connection,
                 IsOneway = !twoway,
+                Operation = "foo",
                 PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(new byte[15])),
                 PayloadEncoding = Encoding.Slice20
             };

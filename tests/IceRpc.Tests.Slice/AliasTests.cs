@@ -27,6 +27,7 @@ namespace IceRpc.Tests.Slice
         [TestCase("OpString")]
         [TestCase("OpMyEnum")]
         [TestCase("OpMyStruct")]
+        [TestCase("OpMyCompactStruct")]
         [TestCase("OpMyClassA")]
         [TestCase("OpByteSeq")]
         [TestCase("OpStringList")]
@@ -48,16 +49,16 @@ namespace IceRpc.Tests.Slice
                 ParameterInfo[] m1Params = m1.GetParameters();
                 ParameterInfo[] m2Params = m1.GetParameters();
 
-                Assert.AreEqual(m1Params.Length, m2Params.Length);
+                Assert.That(m2Params.Length, Is.EqualTo(m1Params.Length));
 
                 for (int i = 0; i < m1Params.Length; i++)
                 {
                     ParameterInfo p1 = m1Params[i];
                     ParameterInfo p2 = m2Params[i];
 
-                    Assert.AreEqual(p1.GetType(), p2.GetType());
+                    Assert.That(p2.GetType(), Is.EqualTo(p1.GetType()));
                 }
-                Assert.AreEqual(m1.ReturnType, m2.ReturnType);
+                Assert.That(m2.ReturnType, Is.EqualTo(m1.ReturnType));
             }
         }
 
@@ -68,13 +69,13 @@ namespace IceRpc.Tests.Slice
             MemberInfo[] t1Members = t1.GetMembers();
             MemberInfo[] t2Members = t2.GetMembers();
 
-            Assert.AreEqual(t1Members.Length, t2Members.Length);
+            Assert.That(t2Members.Length, Is.EqualTo(t1Members.Length));
 
             for (int i = 0; i < t1Members.Length; i++)
             {
                 MemberInfo m1 = t1Members[i];
                 MemberInfo m2 = t2Members[i];
-                Assert.AreEqual(m1.GetType(), m2.GetType());
+                Assert.That(m2.GetType(), Is.EqualTo(m1.GetType()));
             }
         }
     }

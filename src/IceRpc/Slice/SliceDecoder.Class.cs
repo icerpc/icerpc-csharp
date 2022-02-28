@@ -133,13 +133,16 @@ namespace IceRpc.Slice
             }
         }
 
-        private RemoteException DecodeExceptionClass()
+        private RemoteException DecodeExceptionClass(ResultType resultType)
         {
             Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
 
-            // When the response is received over ice, IceProtocolConnection inserts this reply status. The response
-            // can alternatively come straight from an icerpc frame.
-            ReplyStatus replyStatus = this.DecodeReplyStatus();
+            ReplyStatus replyStatus = ReplyStatus.UserException;
+
+            if (resultType == ResultType.Failure)
+            {
+                replyStatus = this.DecodeReplyStatus();
+            }
 
             if (replyStatus == ReplyStatus.OK)
             {
@@ -148,7 +151,8 @@ namespace IceRpc.Slice
 
             if (replyStatus > ReplyStatus.UserException)
             {
-                RemoteException systemException;
+                string? message = null;
+                DispatchErrorCode errorCode;
 
                 switch (replyStatus)
                 {
@@ -157,24 +161,49 @@ namespace IceRpc.Slice
                     case ReplyStatus.OperationNotExistException:
 
                         var requestFailed = new RequestFailedExceptionData(ref this);
-                        requestFailed.Facet.CheckValue();
 
-                        systemException = replyStatus == ReplyStatus.OperationNotExistException ?
-                            new OperationNotFoundException() : new ServiceNotFoundException();
+                        errorCode = replyStatus == ReplyStatus.OperationNotExistException ?
+                            DispatchErrorCode.OperationNotFound : DispatchErrorCode.ServiceNotFound;
 
-                        systemException.Origin = new RemoteExceptionOrigin(
-                            requestFailed.Identity.ToPath(),
-                            requestFailed.Facet.ToFragment(),
-                            requestFailed.Operation);
+                        if (requestFailed.Operation.Length > 0)
+                        {
+                            string target = requestFailed.Fragment.Length > 0 ?
+                                $"{requestFailed.Path}#{requestFailed.Fragment}" : requestFailed.Path;
+
+                            message = @$"{nameof(DispatchException)} {{ ErrorCode = {errorCode
+                                } }} while dispatching '{requestFailed.Operation}' on '{target}'";
+                        }
+                        // else message remains null
                         break;
 
                     default:
-                        systemException = new UnhandledException(DecodeString());
+                        message = DecodeString();
+                        errorCode = DispatchErrorCode.UnhandledException;
+
+                        // Attempt to parse the DispatchErrorCode from the message:
+                        if (message.StartsWith('[') &&
+                            message.IndexOf(']', StringComparison.Ordinal) is int pos && pos != -1)
+                        {
+                            try
+                            {
+                                errorCode = (DispatchErrorCode)byte.Parse(
+                                    message[1..pos],
+                                    CultureInfo.InvariantCulture);
+
+                                message = message[(pos + 1)..].TrimStart();
+                            }
+                            catch
+                            {
+                                // ignored, keep default errorCode
+                            }
+                        }
                         break;
                 }
 
-                systemException.ConvertToUnhandled = true;
-                return systemException;
+                return new DispatchException(message, errorCode)
+                {
+                    ConvertToUnhandled = true,
+                };
             }
             else
             {
@@ -213,7 +242,7 @@ namespace IceRpc.Slice
                 }
                 else
                 {
-                    remoteEx = new UnknownSlicedRemoteException(mostDerivedTypeId);
+                    remoteEx = new UnknownException(mostDerivedTypeId, message: "");
                 }
 
                 _classContext.Current = default;

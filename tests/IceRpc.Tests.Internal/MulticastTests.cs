@@ -28,7 +28,7 @@ namespace IceRpc.Tests.Internal
         {
             byte[] writeBuffer = new byte[size];
             new Random().NextBytes(writeBuffer);
-            ReadOnlyMemory<ReadOnlyMemory<byte>> sendBuffers = new ReadOnlyMemory<byte>[] { writeBuffer };
+            var sendBuffers = new List<ReadOnlyMemory<byte>>() { writeBuffer };
 
             string host = _ipv6 ? "[::1]" : "127.0.0.1";
             Endpoint serverEndpoint = GetEndpoint(host, port: 0, _ipv6, client: false);
@@ -75,10 +75,10 @@ namespace IceRpc.Tests.Internal
                     {
                         Memory<byte> readBuffer = new byte[UdpUtils.MaxPacketSize];
                         int received = await serverConnection.ReadAsync(readBuffer, source.Token);
-                        Assert.AreEqual(writeBuffer.Length, received);
+                        Assert.That(received, Is.EqualTo(writeBuffer.Length));
                         for (int i = 0; i < received; ++i)
                         {
-                            Assert.AreEqual(writeBuffer[i], readBuffer.Span[i]);
+                            Assert.That(readBuffer.Span[i], Is.EqualTo(writeBuffer[i]));
                         }
                     }
                     break; // done
@@ -87,7 +87,7 @@ namespace IceRpc.Tests.Internal
                 {
                 }
             }
-            Assert.AreNotEqual(0, count);
+            Assert.That(count, Is.Not.EqualTo(0));
 
             await Task.WhenAll(listenerList.Select(listener => listener.DisposeAsync().AsTask()));
             await Task.WhenAll(serverConnectionList.Select(connection => connection.DisposeAsync().AsTask()));

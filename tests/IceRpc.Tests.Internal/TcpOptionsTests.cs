@@ -95,7 +95,7 @@ namespace IceRpc.Tests.Internal
 
                     Socket socket = clientConnection.Socket;
 
-                    Assert.AreEqual(localEndPoint, socket.LocalEndPoint);
+                    Assert.That(socket.LocalEndPoint, Is.EqualTo(localEndPoint));
                     break;
                 }
                 catch (TransportException)

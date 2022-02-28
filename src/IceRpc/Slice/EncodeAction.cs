@@ -11,10 +11,4 @@ namespace IceRpc.Slice
     /// <param name="encoder">The Slice encoder.</param>
     /// <param name="value">The value to encode with the encoder.</param>
     public delegate void EncodeAction<in T>(ref SliceEncoder encoder, T value);
-
-    /// <summary>A delegate that encodes a tuple passed as in-reference with an Slice encoder.</summary>
-    /// <typeparam name="T">The type of the tuple to encode.</typeparam>
-    /// <param name="encoder">The Slice encoder.</param>
-    /// <param name="value">The tuple to encode with the encoder.</param>
-    public delegate void TupleEncodeAction<T>(ref SliceEncoder encoder, in T value) where T : struct;
 }

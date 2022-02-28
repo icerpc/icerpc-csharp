@@ -20,7 +20,8 @@
     <ItemGroup>
       <SliceCompile Include="../../slice/$(AssemblyName)/*.slice" OutputDir="$(MSBuildProjectDirectory)/generated" />
       <SliceCompile Include="../../slice/$(AssemblyName)/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/generated/Internal" />
-      <SliceCompile Include="../../slice/$(AssemblyName)/Slice/*.slice" OutputDir="$(MSBuildProjectDirectory)/Slice/generated" />
+      <SliceCompile Include="../../slice/Slice/*.slice" OutputDir="$(MSBuildProjectDirectory)/Slice/generated" />
+      <SliceCompile Include="../../slice/$(AssemblyName)/Slice/*.slice" OutputDir="$(MSBuildProjectDirectory)/Slice/Internal/generated" />
       <SliceCompile Include="../../slice/$(AssemblyName)/Slice/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Slice/Internal/generated" />
       <SliceCompile Include="../../slice/$(AssemblyName)/Transports/*.slice" OutputDir="$(MSBuildProjectDirectory)/Transports/generated" />
       <SliceCompile Include="../../slice/$(AssemblyName)/Transports/Internal/*.slice" OutputDir="$(MSBuildProjectDirectory)/Transports/Internal/generated" />

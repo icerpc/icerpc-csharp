@@ -1,5 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
@@ -28,6 +29,13 @@ namespace IceRpc
 
         async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
+            EndpointSelection? endpointSelection = request.Features.Get<EndpointSelection>();
+            if (endpointSelection == null)
+            {
+                endpointSelection = new EndpointSelection(request.Proxy);
+                request.Features = request.Features.With(endpointSelection);
+            }
+
             // If the request size is greater than _requestMaxSize or the size of the request would increase the
             // buffer size beyond _bufferMaxSize we release the request after it was sent to avoid holding too
             // much memory and we won't retry in case of a failure.
@@ -67,7 +75,7 @@ namespace IceRpc
                             return response;
                         }
 
-                        retryPolicy = response.Features.Get<RetryPolicy>() ?? RetryPolicy.NoRetry;
+                        retryPolicy = request.Features.Get<RetryPolicy>() ?? RetryPolicy.NoRetry;
                     }
                     catch (NoEndpointException ex)
                     {
@@ -87,7 +95,8 @@ namespace IceRpc
 
                         // ConnectionClosedException is a graceful connection closure that is always safe to retry.
                         if (ex is ConnectionClosedException ||
-                            (ex is TransportException && (request.IsIdempotent || !request.IsSent)))
+                            (ex is TransportException &&
+                                (request.Fields.ContainsKey((int)FieldKey.Idempotent) || !request.IsSent)))
                         {
                             retryPolicy = RetryPolicy.Immediately;
                         }
@@ -117,8 +126,19 @@ namespace IceRpc
                             !request.Connection.IsServer &&
                             retryPolicy == RetryPolicy.OtherReplica)
                         {
-                            request.ExcludedEndpoints = request.ExcludedEndpoints.Append(
-                                request.Connection.RemoteEndpoint!);
+                            // Filter-out the remote endpoint
+                            if (endpointSelection.Endpoint == request.Connection.RemoteEndpoint)
+                            {
+                                endpointSelection.Endpoint = null;
+                            }
+                            endpointSelection.AltEndpoints = endpointSelection.AltEndpoints.Where(
+                                e => e != request.Connection.RemoteEndpoint).ToList();
+
+                            if (endpointSelection.Endpoint == null && endpointSelection.AltEndpoints.Any())
+                            {
+                                endpointSelection.Endpoint = endpointSelection.AltEndpoints.First();
+                                endpointSelection.AltEndpoints = endpointSelection.AltEndpoints.Skip(1);
+                            }
                         }
 
                         tryAgain = true;
@@ -126,7 +146,7 @@ namespace IceRpc
 
                         _logger.LogRetryRequest(
                             request.Connection,
-                            request.Path,
+                            request.Proxy.Path,
                             request.Operation,
                             retryPolicy,
                             attempt,
@@ -160,7 +180,7 @@ namespace IceRpc
                 while (tryAgain);
 
                 Debug.Assert(response != null || exception != null);
-                Debug.Assert(response == null || response.ResultType == ResultType.Failure);
+                Debug.Assert(response == null || response.ResultType != ResultType.Success);
                 return response ?? throw ExceptionUtil.Throw(exception!);
             }
             finally

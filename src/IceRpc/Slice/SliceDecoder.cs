@@ -98,7 +98,6 @@ namespace IceRpc.Slice
 
             _minTotalSeqSize = 0;
             _reader = new SequenceReader<byte>(buffer);
-
         }
 
         /// <summary>Constructs a new Slice decoder over a byte buffer.</summary>
@@ -298,11 +297,14 @@ namespace IceRpc.Slice
 
         /// <summary>Decodes a remote exception.</summary>
         /// <returns>The remote exception.</returns>
-        public RemoteException DecodeException()
+        // TODO: this method is temporary. We should decode 2.0-encoded exceptions like structs/traits. For 1.1-encoded
+        // exceptions, we probably need 2 separate methods, one for system exceptions aka dispatch exceptions
+        // (resultType = Failure) and one for user exceptions (resultType = ServiceFailure).
+        public RemoteException DecodeException(ResultType resultType)
         {
             if (Encoding == IceRpc.Encoding.Slice11)
             {
-                return DecodeExceptionClass();
+                return DecodeExceptionClass(resultType);
             }
             else
             {
@@ -317,9 +319,9 @@ namespace IceRpc.Slice
                 }
                 else
                 {
-                    // If we can't decode this exception, we return an UnknownSlicedRemoteException instead of throwing
-                    // "can't decode remote exception".
-                    return new UnknownSlicedRemoteException(typeId, ref this);
+                    // If we can't decode this exception, we return an UnknownException with the undecodable
+                    // exception's type ID and message.
+                    return new UnknownException(typeId, DecodeString());
                 }
             }
         }
@@ -361,106 +363,44 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Decodes a nullable proxy.</summary>
+        /// <param name="bitSequenceReader">The bit sequence reader, ignored with 1.1 encoding.</param>
         /// <returns>The decoded proxy, or null.</returns>
-        public Proxy? DecodeNullableProxy()
+        public Proxy? DecodeNullableProxy(ref BitSequenceReader bitSequenceReader)
         {
-            if (_connection == null)
-            {
-                throw new InvalidOperationException("cannot decode a proxy from an decoder with a null Connection");
-            }
-
             if (Encoding == IceRpc.Encoding.Slice11)
             {
-                var identity = new Identity(ref this);
-                if (identity.Name.Length == 0) // null proxy
-                {
-                    return null;
-                }
+                string path = this.DecodeIdentityPath();
+                return path != "/" ? DecodeProxy(path) : null;
+            }
+            else
+            {
+                return bitSequenceReader.Read() ? DecodeProxy() : null;
+            }
+        }
 
-                var proxyData = new ProxyData11(ref this);
-
-                if (proxyData.ProtocolMajor == 0)
-                {
-                    throw new InvalidDataException("received proxy with protocol set to 0");
-                }
-                if (proxyData.ProtocolMinor != 0)
-                {
-                    throw new InvalidDataException(
-                        $"received proxy with invalid protocolMinor value: {proxyData.ProtocolMinor}");
-                }
-
-                // The min size for an Endpoint with the 1.1 encoding is: transport (short = 2 bytes) + encapsulation
-                // header (6 bytes), for a total of 8 bytes.
-                int size = DecodeAndCheckSeqSize(8);
-
-                Endpoint? endpoint = null;
-                IEnumerable<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
-                var protocol = Protocol.FromByte(proxyData.ProtocolMajor);
-                ImmutableDictionary<string, string> proxyParams = ImmutableDictionary<string, string>.Empty;
-
-                if (size == 0)
-                {
-                    if (DecodeString() is string adapterId && adapterId.Length > 0)
-                    {
-                        proxyParams = proxyParams.Add("adapter-id", adapterId);
-                    }
-                }
-                else
-                {
-                    endpoint = DecodeEndpoint(protocol);
-                    if (size >= 2)
-                    {
-                        var endpointArray = new Endpoint[size - 1];
-                        for (int i = 0; i < size - 1; ++i)
-                        {
-                            endpointArray[i] = DecodeEndpoint(protocol);
-                        }
-                        altEndpoints = endpointArray;
-                    }
-                }
-
-                try
-                {
-                    proxyData.Facet.CheckValue();
-                    string fragment = proxyData.Facet.ToFragment();
-
-                    if (!protocol.HasFragment && fragment.Length > 0)
-                    {
-                        throw new InvalidDataException($"unexpected fragment in {protocol} proxy");
-                    }
-
-                    return new Proxy(
-                        protocol,
-                        identity.ToPath(),
-                        endpoint,
-                        altEndpoints.ToImmutableList(),
-                        proxyParams,
-                        fragment,
-                        _invoker);
-                }
-                catch (InvalidDataException)
-                {
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidDataException("received invalid proxy", ex);
-                }
+        /// <summary>Decodes a proxy.</summary>
+        /// <returns>The decoded proxy</returns>
+        public Proxy DecodeProxy()
+        {
+            if (Encoding == IceRpc.Encoding.Slice11)
+            {
+                string path = this.DecodeIdentityPath();
+                return path != "/" ? DecodeProxy(path) :
+                    throw new InvalidDataException("decoded null for a non-nullable proxy");
             }
             else
             {
                 string proxyString = DecodeString();
-
-                if (proxyString.Length == 0)
-                {
-                    return null;
-                }
-
                 try
                 {
                     if (proxyString.StartsWith('/')) // relative proxy
                     {
-                        return Proxy.FromConnection(_connection!, proxyString, _invoker);
+                        if (_connection == null)
+                        {
+                            throw new InvalidOperationException(
+                                "cannot decode a proxy from an decoder with a null Connection");
+                        }
+                        return Proxy.FromConnection(_connection, proxyString, _invoker);
                     }
                     else
                     {
@@ -478,11 +418,6 @@ namespace IceRpc.Slice
                 }
             }
         }
-
-        /// <summary>Decodes a proxy.</summary>
-        /// <returns>The decoded proxy</returns>
-        public Proxy DecodeProxy() =>
-            DecodeNullableProxy() ?? throw new InvalidDataException("decoded null for a non-nullable proxy");
 
         // Other methods
 
@@ -530,11 +465,10 @@ namespace IceRpc.Slice
             }
             else
             {
-                // TODO: the current version is for paramaters, return values and exception data members. It relies on
-                // the end of buffer to detect the end of the tag "dictionary", and does not use TagEndMarker.
-
                 int requestedTag = tag;
 
+                // For decoding parameters, return values, and exception data members we rely on the end of the buffer
+                // to detect the end of the tag 'dictionary'. Struct data members use TagEndMarker.
                 while (!_reader.End)
                 {
                     long startPos = _reader.Consumed;
@@ -546,7 +480,7 @@ namespace IceRpc.Slice
                         SkipSize();
                         return decodeFunc(ref this);
                     }
-                    else if (tag > requestedTag)
+                    else if (tag == Slice20Definitions.TagEndMarker || tag > requestedTag)
                     {
                         _reader.Rewind(_reader.Consumed - startPos); // rewind
                         break; // while
@@ -567,18 +501,25 @@ namespace IceRpc.Slice
 
         public BitSequenceReader GetBitSequenceReader(int bitSequenceSize)
         {
-            if (bitSequenceSize <= 0)
+            if (Encoding == SliceEncoding.Slice11)
             {
-                throw new ArgumentOutOfRangeException(
-                    nameof(bitSequenceSize),
-                    "bitSequenceSize must be greater than 0");
+                return default;
             }
+            else
+            {
+                if (bitSequenceSize <= 0)
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(bitSequenceSize),
+                        "bitSequenceSize must be greater than 0");
+                }
 
-            int size = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0);
-            ReadOnlySequence<byte> bitSequence = _reader.UnreadSequence.Slice(0, size);
-            _reader.Advance(size);
-            Debug.Assert(bitSequence.Length == size);
-            return new BitSequenceReader(bitSequence);
+                int size = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0);
+                ReadOnlySequence<byte> bitSequence = _reader.UnreadSequence.Slice(0, size);
+                _reader.Advance(size);
+                Debug.Assert(bitSequence.Length == size);
+                return new BitSequenceReader(bitSequence);
+            }
         }
 
         internal static int DecodeInt(ReadOnlySpan<byte> from) => BitConverter.ToInt32(from);
@@ -700,8 +641,6 @@ namespace IceRpc.Slice
 
             // The Slice 1.1 encoding of ice endpoints is transport-specific, and hard-coded here and in the
             // SliceEncoder. The preferred and fallback encoding for new transports is TransportCode.Uri.
-
-            Debug.Assert(_connection != null);
 
             Endpoint? endpoint = null;
             TransportCode transportCode = this.DecodeTransportCode();
@@ -944,7 +883,7 @@ namespace IceRpc.Slice
         private byte PeekByte() => _reader.TryPeek(out byte value) ? value : throw new EndOfBufferException();
 
         /// <summary>Skips the remaining tagged parameters, return value _or_ data members.</summary>
-        private void SkipTaggedParams()
+        public void SkipTaggedParams()
         {
             if (Encoding == IceRpc.Encoding.Slice11)
             {
@@ -977,16 +916,92 @@ namespace IceRpc.Slice
             }
             else
             {
-                // TODO: the current version is for paramaters, return values and exception data members. It relies on
-                // the end of buffer to detect the end of the tag "dictionary", and does not use TagEndMarker.
+                // For decoding parameters, return values, and exception data members we rely on the end of the buffer
+                // to detect the end of the tag 'dictionary'. Struct data members use TagEndMarker.
                 while (!_reader.End)
                 {
-                    // Skip tag
-                    _ = DecodeVarInt();
+                    // Read the next tag and skip it. If we read the tag end marker, exit the loop.
+                    if (DecodeVarInt() == Slice20Definitions.TagEndMarker)
+                    {
+                        break; // while
+                    }
 
                     // Skip tagged value
                     Skip(DecodeSize());
                 }
+            }
+        }
+
+        /// <summary>Helper method to decode a proxy encoded with the 1.1 encoding.</summary>
+        /// <param name="path">The decoded path.</param>
+        /// <returns>The decoded proxy.</returns>
+        private Proxy DecodeProxy(string path)
+        {
+            var proxyData = new ProxyData(ref this);
+
+            if (proxyData.ProtocolMajor == 0)
+            {
+                throw new InvalidDataException("received proxy with protocol set to 0");
+            }
+            if (proxyData.ProtocolMinor != 0)
+            {
+                throw new InvalidDataException(
+                    $"received proxy with invalid protocolMinor value: {proxyData.ProtocolMinor}");
+            }
+
+            // The min size for an Endpoint with the 1.1 encoding is: transport (short = 2 bytes) + encapsulation
+            // header (6 bytes), for a total of 8 bytes.
+            int size = DecodeAndCheckSeqSize(8);
+
+            Endpoint? endpoint = null;
+            IEnumerable<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
+            var protocol = Protocol.FromByte(proxyData.ProtocolMajor);
+            ImmutableDictionary<string, string> proxyParams = ImmutableDictionary<string, string>.Empty;
+
+            if (size == 0)
+            {
+                if (DecodeString() is string adapterId && adapterId.Length > 0)
+                {
+                    proxyParams = proxyParams.Add("adapter-id", adapterId);
+                }
+            }
+            else
+            {
+                endpoint = DecodeEndpoint(protocol);
+                if (size >= 2)
+                {
+                    var endpointArray = new Endpoint[size - 1];
+                    for (int i = 0; i < size - 1; ++i)
+                    {
+                        endpointArray[i] = DecodeEndpoint(protocol);
+                    }
+                    altEndpoints = endpointArray;
+                }
+            }
+
+            try
+            {
+                if (!protocol.HasFragment && proxyData.Fragment.Length > 0)
+                {
+                    throw new InvalidDataException($"unexpected fragment in {protocol} proxy");
+                }
+
+                return new Proxy(
+                    protocol,
+                    path,
+                    endpoint,
+                    altEndpoints.ToImmutableList(),
+                    proxyParams,
+                    proxyData.Fragment,
+                    _invoker);
+            }
+            catch (InvalidDataException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException("received invalid proxy", ex);
             }
         }
 
@@ -1029,7 +1044,7 @@ namespace IceRpc.Slice
         }
 
         /// <summary>The exception thrown when attempting to decode at/past the end of the buffer.</summary>
-        private class EndOfBufferException : InvalidOperationException
+        private class EndOfBufferException : InvalidDataException
         {
             internal EndOfBufferException()
                 : base("attempting to decode past the end of the decoder buffer")

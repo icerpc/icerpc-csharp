@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
-using IceRpc.Slice;
 using IceRpc.Tests.ReferencedAssemblies;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -25,14 +24,14 @@ namespace IceRpc.Tests.Slice
             var pipeline = new Pipeline();
             prx.Proxy.Invoker = pipeline;
             // Setup response activator excluding ClassB assembly
-            pipeline.UseResponseFeature(
+            pipeline.UseFeature(
                 new DecodePayloadOptions { Activator = SliceDecoder.GetActivator(typeof(ClassA).Assembly) });
             Assert.ThrowsAsync<InvalidDataException>(async () => await prx.OpAAsync(new ClassB("A", "B")));
 
             // Repeat but this time include ClassB assembly
             pipeline = new Pipeline();
             prx.Proxy.Invoker = pipeline;
-            pipeline.UseResponseFeature(
+            pipeline.UseFeature(
                 new DecodePayloadOptions { Activator = SliceDecoder.GetActivator(typeof(ClassB).Assembly) });
             await prx.OpAAsync(new ClassB("A", "B"));
         }
@@ -46,7 +45,7 @@ namespace IceRpc.Tests.Slice
                     .AddTransient<IDispatcher>(_ =>
                     {
                         var router = new Router();
-                        router.UseRequestFeature(
+                        router.UseFeature(
                             new DecodePayloadOptions
                             {
                                 Activator = SliceDecoder.GetActivator(typeof(ClassA).Assembly)
@@ -58,7 +57,8 @@ namespace IceRpc.Tests.Slice
 
                 // This should fail the server has no factory for ClassB and compact format prevents slicing
                 var prx = AssembliesOperationsPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
-                Assert.ThrowsAsync<UnhandledException>(async () => await prx.OpAAsync(new ClassB("A", "B")));
+                var dispatchException = Assert.ThrowsAsync<DispatchException>(() => prx.OpAAsync(new ClassB("A", "B")));
+                Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.InvalidData));
             }
 
             // Repeat but this time include ClassB assembly
@@ -68,7 +68,7 @@ namespace IceRpc.Tests.Slice
                     .AddTransient<IDispatcher>(_ =>
                     {
                         var router = new Router();
-                        router.UseRequestFeature(
+                        router.UseFeature(
                             new DecodePayloadOptions
                             {
                                 Activator = SliceDecoder.GetActivator(typeof(ClassB).Assembly)

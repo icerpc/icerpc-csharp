@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace IceRpc.Transports.Internal
@@ -23,8 +24,8 @@ namespace IceRpc.Transports.Internal
 
         // The MaxDataSize of the SSL implementation.
         private const int MaxSslDataSize = 16 * 1024;
-
         private long _lastActivity = (long)Time.Elapsed.TotalMilliseconds;
+        private readonly List<ArraySegment<byte>> _segments = new();
 
         public abstract Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel);
 
@@ -105,17 +106,17 @@ namespace IceRpc.Transports.Internal
             return builder.ToString();
         }
 
-        public async ValueTask WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
+        public async ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
         {
-            Debug.Assert(buffers.Length > 0);
+            Debug.Assert(buffers.Count > 0);
 
             try
             {
                 if (SslStream is SslStream sslStream)
                 {
-                    if (buffers.Length == 1)
+                    if (buffers.Count == 1)
                     {
-                        await sslStream.WriteAsync(buffers.Span[0], cancel).ConfigureAwait(false);
+                        await sslStream.WriteAsync(buffers[0], cancel).ConfigureAwait(false);
                     }
                     else
                     {
@@ -125,7 +126,7 @@ namespace IceRpc.Transports.Internal
                         int writeBufferSize = 0;
                         do
                         {
-                            ReadOnlyMemory<byte> buffer = buffers.Span[index];
+                            ReadOnlyMemory<byte> buffer = buffers[index];
                             if (writeBufferSize + buffer.Length < MaxSslDataSize)
                             {
                                 index++;
@@ -135,7 +136,7 @@ namespace IceRpc.Transports.Internal
                             {
                                 break; // while
                             }
-                        } while (index < buffers.Length);
+                        } while (index < buffers.Count);
 
                         if (index == 1)
                         {
@@ -149,7 +150,7 @@ namespace IceRpc.Transports.Internal
                             int offset = 0;
                             for (int i = 0; i < index; ++i)
                             {
-                                ReadOnlyMemory<byte> buffer = buffers.Span[i];
+                                ReadOnlyMemory<byte> buffer = buffers[i];
                                 buffer.CopyTo(writeBuffer[offset..]);
                                 offset += buffer.Length;
                             }
@@ -159,23 +160,35 @@ namespace IceRpc.Transports.Internal
                         }
 
                         // Send the remaining buffers one by one
-                        for (int i = index; i < buffers.Length; ++i)
+                        for (int i = index; i < buffers.Count; ++i)
                         {
-                            await sslStream.WriteAsync(buffers.Span[i], cancel).ConfigureAwait(false);
+                            await sslStream.WriteAsync(buffers[i], cancel).ConfigureAwait(false);
                         }
                     }
                 }
                 else
                 {
-                    if (buffers.Length == 1)
+                    if (buffers.Count == 1)
                     {
-                        await Socket.SendAsync(buffers.Span[0], SocketFlags.None, cancel).ConfigureAwait(false);
+                        await Socket.SendAsync(buffers[0], SocketFlags.None, cancel).ConfigureAwait(false);
                     }
                     else
                     {
-                        await Socket.SendAsync(
-                            buffers.ToSegmentList(),
-                            SocketFlags.None).WaitAsync(cancel).ConfigureAwait(false);
+                        _segments.Clear();
+                        foreach (ReadOnlyMemory<byte> memory in buffers)
+                        {
+                            if (MemoryMarshal.TryGetArray(memory, out ArraySegment<byte> segment))
+                            {
+                                _segments.Add(segment);
+                            }
+                            else
+                            {
+                                throw new ArgumentException(
+                                    $"{nameof(buffers)} are not backed by arrays",
+                                    nameof(buffers));
+                            }
+                        }
+                        await Socket.SendAsync(_segments, SocketFlags.None).WaitAsync(cancel).ConfigureAwait(false);
                     }
                 }
 

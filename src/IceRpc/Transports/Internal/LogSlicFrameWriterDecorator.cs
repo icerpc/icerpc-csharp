@@ -1,8 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
-using IceRpc.Slice;
 using Microsoft.Extensions.Logging;
+using System.Buffers;
 using System.Diagnostics;
 
 namespace IceRpc.Transports.Internal
@@ -14,40 +13,18 @@ namespace IceRpc.Transports.Internal
         private readonly ISlicFrameWriter _decoratee;
         private readonly ILogger _logger;
 
-        public async ValueTask WriteFrameAsync(
-            SlicMultiplexedStream? stream,
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
-            CancellationToken cancel)
+        public async ValueTask WriteFrameAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
         {
             try
             {
-                await _decoratee.WriteFrameAsync(stream, buffers, cancel).ConfigureAwait(false);
+                await _decoratee.WriteFrameAsync(buffers, cancel).ConfigureAwait(false);
             }
             catch (Exception exception)
             {
-                _logger.LogSendSlicFrameFailure((FrameType)buffers.Span[0].Span[0], exception);
+                _logger.LogSendSlicFrameFailure((FrameType)buffers[0].Span[0], exception);
                 throw;
             }
-            LogSentFrame(buffers);
-        }
-
-        public async ValueTask WriteStreamFrameAsync(
-            SlicMultiplexedStream stream,
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
-            bool endStream,
-            CancellationToken cancel)
-        {
-            int frameSize = buffers.GetByteCount() - SlicDefinitions.FrameHeader.Length;
-            _logger.LogSendingSlicFrame(endStream ? FrameType.StreamLast : FrameType.Stream, frameSize);
-            try
-            {
-                await _decoratee.WriteStreamFrameAsync(stream, buffers, endStream, cancel).ConfigureAwait(false);
-            }
-            catch (Exception exception)
-            {
-                _logger.LogSendSlicFrameFailure(endStream ? FrameType.StreamLast : FrameType.Stream, exception);
-                throw;
-            }
+            LogSentFrame(buffers[0]);
         }
 
         internal LogSlicFrameWriterDecorator(ISlicFrameWriter decoratee, ILogger logger)
@@ -56,28 +33,16 @@ namespace IceRpc.Transports.Internal
             _logger = logger;
         }
 
-        private void LogSentFrame(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
+        private void LogSentFrame(ReadOnlyMemory<byte> buffer)
         {
-            FrameType type;
-            int dataSize;
-            long? streamId = null;
-
-            using var reader = new BufferedReceiverSlicFrameReader(new BufferedReceiver(buffers.Span[0]));
-            (type, dataSize, streamId) = ReadFrame(() => reader.ReadFrameHeaderAsync(default));
-
-            int frameSize = dataSize;
-            if (streamId != null)
-            {
-                frameSize += SliceEncoder.GetVarULongEncodedSize((ulong)streamId);
-            }
-
-            // Log the received frame.
+            var sequence = new ReadOnlySequence<byte>(buffer);
+            (FrameType type, int dataSize, long? streamId, long consumed) = sequence.DecodeHeader();
+            buffer = buffer[(int)consumed..];
             switch (type)
             {
                 case FrameType.Initialize:
                 {
-                    (uint version, InitializeBody? initializeBody) =
-                        ReadFrame(() => reader.ReadInitializeAsync(type, dataSize, default));
+                    (uint version, InitializeBody? initializeBody) = buffer.DecodeInitialize(type);
                     _logger.LogSentSlicInitializeFrame(dataSize, version, initializeBody!.Value);
                     break;
                 }
@@ -85,7 +50,7 @@ namespace IceRpc.Transports.Internal
                 case FrameType.Version:
                 {
                     (InitializeAckBody? initializeAckBody, VersionBody? versionBody) =
-                        ReadFrame(() => reader.ReadInitializeAckOrVersionAsync(type, dataSize, default));
+                        buffer.DecodeInitializeAckOrVersion(type);
                     if (initializeAckBody != null)
                     {
                         _logger.LogSentSlicInitializeAckFrame(dataSize, initializeAckBody.Value);
@@ -96,22 +61,27 @@ namespace IceRpc.Transports.Internal
                     }
                     break;
                 }
+                case FrameType.Stream:
+                case FrameType.StreamLast:
+                {
+                    _logger.LogSentSlicFrame(type, dataSize);
+                    break;
+                }
                 case FrameType.StreamReset:
                 {
-                    StreamResetBody resetBody = ReadFrame(() => reader.ReadStreamResetAsync(dataSize, default));
+                    StreamResetBody resetBody = buffer.DecodeStreamReset();
                     _logger.LogSentSlicResetFrame(dataSize, resetBody.ApplicationProtocolErrorCode);
                     break;
                 }
                 case FrameType.StreamResumeWrite:
                 {
-                    StreamResumeWriteBody consumedBody = ReadFrame(() => reader.ReadStreamResumeWriteAsync(dataSize, default));
+                    StreamResumeWriteBody consumedBody = buffer.DecodeStreamResumeWrite();
                     _logger.LogSentSlicResumeWriteFrame(dataSize, (int)consumedBody.Size);
                     break;
                 }
                 case FrameType.StreamStopSending:
                 {
-                    StreamStopSendingBody stopSendingBody =
-                        ReadFrame(() => reader.ReadStreamStopSendingAsync(dataSize, default));
+                    StreamStopSendingBody stopSendingBody = buffer.DecodeStreamStopSending();
                     _logger.LogSentSlicStopSendingFrame(dataSize, stopSendingBody.ApplicationProtocolErrorCode);
                     break;
                 }
@@ -124,21 +94,6 @@ namespace IceRpc.Transports.Internal
                 {
                     Debug.Assert(false, $"unexpected Slic frame {type}");
                     break;
-                }
-            }
-
-            static T ReadFrame<T>(Func<ValueTask<T>> readFunc)
-            {
-                try
-                {
-                    ValueTask<T> task = readFunc();
-                    Debug.Assert(task.IsCompleted);
-                    return task.Result;
-                }
-                catch (Exception ex)
-                {
-                    Debug.Assert(false, $"failed to read Slic frame\n{ex}");
-                    return default;
                 }
             }
         }

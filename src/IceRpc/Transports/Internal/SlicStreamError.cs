@@ -5,9 +5,11 @@ namespace IceRpc.Transports.Internal
     /// <summary>Slic stream errors.</summary>
     internal enum SlicStreamError : int
     {
-        /// <summary>The stream pipe reader or writer was successfully completed.</summary>
+        /// <summary>The stream was successfully completed.</summary>
         NoError,
-        /// <summary>The stream pipe reader or writer was completed with an unexpected error.</summary>
+        /// <summary>The stream was aborted.</summary>
+        Aborted,
+        /// <summary>The stream was completed with an unexpected error.</summary>
         UnexpectedError,
     }
 

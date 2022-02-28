@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using System.Collections.Immutable;
 using System.IO.Pipelines;
 
 namespace IceRpc
@@ -9,31 +8,11 @@ namespace IceRpc
     /// <summary>Represents an ice or icerpc request frame sent by the application.</summary>
     public sealed class OutgoingRequest : OutgoingFrame
     {
-        /// <summary>The alternatives to <see cref="Endpoint"/>. It should be empty when Endpoint is null.</summary>
-        public IEnumerable<Endpoint> AltEndpoints { get; set; } = ImmutableList<Endpoint>.Empty;
-
-        /// <summary>The main target endpoint for this request.</summary>
-        public Endpoint? Endpoint { get; set; }
-
-        /// <summary>A list of endpoints this request does not want to establish a connection to, typically because a
-        /// previous attempt asked the request not to.</summary>
-        public IEnumerable<Endpoint> ExcludedEndpoints { get; set; } = ImmutableList<Endpoint>.Empty;
-
         /// <summary>The connection that will be used (or was used ) to send this request.</summary>
         public Connection? Connection { get; set; }
 
-        /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
-        /// caller is no longer interested in the response and discards the request. This deadline is sent with icerpc
-        /// requests but not with ice requests.</summary>
-        /// <remarks>The source of the cancellation token given to an invoker alongside this outgoing request is
-        /// expected to enforce this deadline.</remarks>
-        public DateTime Deadline { get; set; } = DateTime.MaxValue;
-
-        /// <summary>The fragment of the target service.</summary>
-        public string Fragment { get; }
-
-        /// <summary>When true, the operation is idempotent.</summary>
-        public bool IsIdempotent { get; init; }
+        /// <summary>The features of this request.</summary>
+        public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
         /// <summary>When true and the operation returns void, the request is sent as a oneway request. Otherwise, the
         /// request is sent as a twoway request.</summary>
@@ -44,13 +23,10 @@ namespace IceRpc
         public bool IsSent { get; set; }
 
         /// <summary>The operation called on the service.</summary>
-        public string Operation { get; }
+        public string Operation { get; init; } = "";
 
-        /// <summary>The parameters of this request.</summary>
-        public ImmutableDictionary<string, string> Params { get; set; }
-
-        /// <summary>The path of the target service.</summary>
-        public string Path { get; }
+        /// <summary>Returns the encoding of the payload of this request.</summary>
+        public Encoding PayloadEncoding { get; init; } = Encoding.Unknown;
 
         /// <summary>The proxy that is sending this request.</summary>
         public Proxy Proxy { get; }
@@ -65,21 +41,12 @@ namespace IceRpc
 
         /// <summary>Constructs an outgoing request.</summary>
         /// <param name="proxy">The <see cref="Proxy"/> used to send the request.</param>
-        /// <param name="operation">The operation of the request.</param>
-        public OutgoingRequest(Proxy proxy, string operation) :
-            base(proxy.Protocol, new DelayedPipeWriterDecorator())
+        public OutgoingRequest(Proxy proxy)
+            : base(proxy.Protocol, new DelayedPipeWriterDecorator())
         {
-            AltEndpoints = proxy.AltEndpoints;
             Connection = proxy.Connection;
-            Fragment = proxy.Fragment;
-
             // We keep it to initialize it later
             InitialPayloadSink = (DelayedPipeWriterDecorator)PayloadSink;
-
-            Endpoint = proxy.Endpoint;
-            Operation = operation;
-            Params = proxy.Params;
-            Path = proxy.Path;
             Proxy = proxy;
         }
     }

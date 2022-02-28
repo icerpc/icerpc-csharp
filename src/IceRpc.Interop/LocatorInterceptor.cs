@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
@@ -32,6 +33,13 @@ namespace IceRpc
                 Location location = default;
                 bool refreshCache = false;
 
+                EndpointSelection? endpointSelection = request.Features.Get<EndpointSelection>();
+                if (endpointSelection == null)
+                {
+                    endpointSelection = new EndpointSelection(request.Proxy);
+                    request.Features = request.Features.With(endpointSelection);
+                }
+
                 // We detect retries and don't use cached values for retries by setting refreshCache to true.
 
                 if (request.Features.Get<CachedResolutionFeature>() is CachedResolutionFeature cachedResolution)
@@ -42,18 +50,18 @@ namespace IceRpc
                     location = cachedResolution.Location;
                     refreshCache = true;
                 }
-                else if (request.Endpoint == null)
+                else if (endpointSelection.Endpoint == null)
                 {
-                    if (request.Params.TryGetValue("adapter-id", out string? adapterId))
+                    if (request.Proxy.Params.TryGetValue("adapter-id", out string? adapterId))
                     {
-                        location = new Location(adapterId);
+                        location = new Location { IsAdapterId = true, Value = adapterId };
                     }
                     else
                     {
                         // Well-known proxy
                         try
                         {
-                            location = new Location(Identity.FromPath(request.Path));
+                            location = new Location { Value = request.Proxy.Path };
                         }
                         catch (FormatException)
                         {
@@ -84,19 +92,14 @@ namespace IceRpc
                         else if (fromCache)
                         {
                             // Make sure the next attempt re-resolves location and sets refreshCache to true.
-
-                            if (request.Features.IsReadOnly)
-                            {
-                                request.Features = new FeatureCollection(request.Features);
-                            }
-                            request.Features.Set(new CachedResolutionFeature(location));
+                            request.Features = request.Features.With(new CachedResolutionFeature(location));
                         }
 
                         if (proxy != null)
                         {
                             Debug.Assert(proxy.Endpoint != null);
-                            request.Endpoint = proxy.Endpoint;
-                            request.AltEndpoints = proxy.AltEndpoints;
+                            endpointSelection.Endpoint = proxy.Endpoint;
+                            endpointSelection.AltEndpoints = proxy.AltEndpoints;
                         }
                         // else, resolution failed and we don't update anything
                     }
@@ -176,43 +179,18 @@ namespace IceRpc
             CancellationToken cancel);
     }
 
-    /// <summary>A location is either an adapter ID (string) or an <see cref="Identity"/> and corresponds to the
-    /// argument of <see cref="ILocator"/>'s find operations. When <see cref="Category"/> is null, the location
-    /// is an adapter ID; when it's not null, the location is an Identity.</summary>
+    /// <summary>A location is either an adapter ID or a path.</summary>
     public readonly record struct Location
     {
-        /// <summary>The adapter ID/identity name.</summary>
-        public readonly string AdapterId;
+        /// <summary>Returns true when this location holds an adapter ID; otherwise, false.</summary>
+        public bool IsAdapterId { get; init; }
 
-        /// <summary>When not null, the identity's category.</summary>
-        public readonly string? Category;
+        /// <summary>The adapter ID or path.</summary>
+        public string Value { get; init; }
 
-        /// <summary>A string that describes the location.</summary>
-        public string Kind => Category == null ? "adapter ID" : "identity";
+        internal string Kind => IsAdapterId ? "adapter ID" : "well-known proxy";
 
-        /// <summary>Constructs a location from an adapter ID.</summary>
-        public Location(string adapterId)
-        {
-            AdapterId = adapterId;
-            Category = null;
-        }
-
-        /// <summary>Constructs a location from an Identity.</summary>
-        public Location(Identity identity)
-        {
-            AdapterId = identity.Name;
-            Category = identity.Category;
-        }
-
-        /// <summary>Converts a location into an Identity.</summary>
-        /// <returns>The identity.</returns>
-        /// <exception cref="InvalidOperationException">Thrown when <see cref="Category"/> is null.</exception>
-        public Identity ToIdentity() =>
-            Category is string category ? new Identity(AdapterId, category) : throw new InvalidOperationException();
-
-        /// <summary>Converts a location into a string.</summary>
-        /// <returns>The adapter ID when <see cref="Category"/> is null; otherwise the identity as a string.</returns>
-        public override string ToString() =>
-            Category == null ? AdapterId : new Identity(AdapterId, Category).ToString();
+        /// <inheritdoc/>
+        public override string ToString() => Value;
     }
 }

@@ -25,7 +25,6 @@ namespace IceRpc.Tests.Api
         private const string _joe = "/joe";
         private const string _greeting = "how are you doing?";
         private const string _notGood = "feeling under the weather";
-        private const string _sayHelloOperation = "sayHello";
         private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
 
         private readonly ServiceProvider _serviceProvider;
@@ -54,7 +53,7 @@ namespace IceRpc.Tests.Api
             var payload = new ReadOnlySequence<byte>(_utf8.GetBytes(_greeting));
 
             var joeProxy = _proxy with { Path = _joe };
-            var request = new OutgoingRequest(joeProxy, _sayHelloOperation)
+            var request = new OutgoingRequest(joeProxy)
             {
                 PayloadEncoding = _customEncoding,
                 PayloadSource = PipeReader.Create(payload)
@@ -62,20 +61,18 @@ namespace IceRpc.Tests.Api
             IncomingResponse response = await joeProxy.Invoker.InvokeAsync(request).ConfigureAwait(false);
 
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
-            Assert.That(response.PayloadEncoding, Is.EqualTo(_customEncoding));
             string greetingResponse = _utf8.GetString((await ReadFullPayloadAsync(response.Payload)).Span);
             await response.Payload.CompleteAsync(); // done with payload
             Assert.That(greetingResponse, Is.EqualTo(_doingWell));
 
             var austinProxy = _proxy with { Path = _austin };
-            request = new OutgoingRequest(austinProxy, _sayHelloOperation)
+            request = new OutgoingRequest(austinProxy)
             {
                 PayloadEncoding = _customEncoding,
                 PayloadSource = PipeReader.Create(payload)
             };
             response = await austinProxy.Invoker.InvokeAsync(request);
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
-            Assert.That(response.PayloadEncoding, Is.EqualTo(_customEncoding));
             greetingResponse = _utf8.GetString((await ReadFullPayloadAsync(response.Payload)).Span);
             await response.Payload.CompleteAsync(); // done with payload
             Assert.That(greetingResponse, Is.EqualTo(_notGood));
@@ -87,7 +84,7 @@ namespace IceRpc.Tests.Api
             var payload = new ReadOnlySequence<byte>(_utf8.GetBytes(_greeting));
 
             var badProxy = _proxy with { Path = "/bad" };
-            var request = new OutgoingRequest(badProxy, _sayHelloOperation)
+            var request = new OutgoingRequest(badProxy)
             {
                 PayloadEncoding = _customEncoding,
                 PayloadSource = PipeReader.Create(payload)
@@ -96,15 +93,15 @@ namespace IceRpc.Tests.Api
             IncomingResponse response = await badProxy.Invoker.InvokeAsync(request);
 
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
-            Assert.That(response.PayloadEncoding, Is.EqualTo(Encoding.Slice20));
             await response.Payload.CompleteAsync(); // done with payload
             // TODO: unfortunately there is currently no way to decode this response (2.0-encoded exception)
 
             var joeProxy = _proxy with { Path = _joe };
-            IServicePrx slicePrx = new ServicePrx(joeProxy);
+            Slice.IServicePrx slicePrx = new Slice.ServicePrx(joeProxy);
 
             // the greeter does not implement ice_ping since ice_ping is a Slice operation:
-            Assert.ThrowsAsync<OperationNotFoundException>(async () => await slicePrx.IcePingAsync());
+            var dispatchException = Assert.ThrowsAsync<Slice.DispatchException>(() => slicePrx.IcePingAsync());
+            Assert.That(dispatchException!.ErrorCode, Is.EqualTo(Slice.DispatchErrorCode.OperationNotFound));
         }
 
         [Test]
@@ -113,7 +110,7 @@ namespace IceRpc.Tests.Api
             var payload = new ReadOnlySequence<byte>(_utf8.GetBytes(_greeting));
             var joeProxy = _proxy with { Path = _joe };
 
-            var request = new OutgoingRequest(joeProxy, _sayHelloOperation)
+            var request = new OutgoingRequest(joeProxy)
             {
                 IsOneway = true,
                 PayloadEncoding = _customEncoding,
@@ -123,7 +120,6 @@ namespace IceRpc.Tests.Api
             IncomingResponse response = await joeProxy.Invoker.InvokeAsync(request);
 
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Success));
-            Assert.That(response.PayloadEncoding, Is.EqualTo(_customEncoding));
             Assert.That((await ReadFullPayloadAsync(response.Payload)).IsEmpty);
             await response.Payload.CompleteAsync(); // done with payload
 
@@ -148,9 +144,9 @@ namespace IceRpc.Tests.Api
 
             public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
             {
-                if (request.Operation != _sayHelloOperation)
+                if (request.Operation.Length > 0)
                 {
-                    throw new OperationNotFoundException();
+                    throw new Slice.DispatchException(Slice.DispatchErrorCode.OperationNotFound);
                 }
 
                 Assert.That(request.PayloadEncoding, Is.EqualTo(_customEncoding));

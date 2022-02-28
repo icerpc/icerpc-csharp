@@ -1,6 +1,5 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice;
 using IceRpc.Tests.ReferencedAssemblies;
 
 using NUnit.Framework;
@@ -18,7 +17,7 @@ namespace IceRpc.Tests.Slice
 
             var decoder = new SliceDecoder(ReadOnlyMemory<byte>.Empty, Encoding.Slice11);
 
-            Assert.That(activator.CreateInstance("::IceRpc::ServiceNotFoundException", ref decoder), Is.Not.Null);
+            Assert.That(activator.CreateInstance("::Slice::DispatchException", ref decoder), Is.Not.Null);
 
             // The default activator doesn't know about types defined in separated assemblies
             Assert.That(activator.CreateInstance(ClassA.SliceTypeId, ref decoder), Is.Null);

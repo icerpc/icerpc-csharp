@@ -76,7 +76,7 @@ immediately encodes the return value of operation {operation_name}."#,
     }
 
     if !returns_classes {
-        constructor_builder.add_parameter("IceRpc.Dispatch", &dispatch_parameter, None, None);
+        constructor_builder.add_parameter("IceRpc.Slice.Dispatch", &dispatch_parameter, None, None);
     }
 
     constructor_builder.set_body(
@@ -88,7 +88,7 @@ var encoder_ = new SliceEncoder(pipe_.Writer, {encoding}, {class_format});
 Span<byte> sizePlaceholder_ = encoder_.GetPlaceholderSpan(4);
 int startPos_ = encoder_.EncodedByteCount;
 {encode_returns}
-{encoding}.EncodeFixedLengthSize(encoder_.EncodedByteCount - startPos_, sizePlaceholder_);
+SliceEncoder.EncodeVarULong((ulong)(encoder_.EncodedByteCount - startPos_), sizePlaceholder_);
 
 pipe_.Writer.Complete();  // flush to reader and sets Is[Writer]Completed to true.
 Payload = pipe_.Reader;",

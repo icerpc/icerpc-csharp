@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Slice;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
@@ -10,25 +11,28 @@ namespace IceRpc.Tests.Api
     [Parallelizable(ParallelScope.All)]
     public sealed class InvocationTimeoutTests
     {
-        /// <summary>Ensure that a request fails with OperationCanceledException after the invocation timeout expires.
+        /// <summary>Ensures that a request fails with OperationCanceledException after the invocation timeout expires.
         /// </summary>
         /// <param name="delay">The time in milliseconds to hold the dispatch to simulate an slow server.</param>
         /// <param name="timeout">The time in milliseconds used as the invocation timeout.</param>
-        [TestCase(10000, 1000)]
-        public async Task InvocationTimeout_WithInvocation(int delay, int timeout)
+        /// <param name="protocol">The protocol to use.</param>
+        [TestCase(10000, 1000, "icerpc")]
+        [TestCase(10000, 1000, "ice")]
+        public async Task InvocationTimeout_WithInvocation(int delay, int timeout, string protocol)
         {
             DateTime? dispatchDeadline = null;
-            DateTime? invocationDeadline = null;
+            bool invocationHasDeadline = false;
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .UseProtocol(protocol)
                 .AddTransient<IDispatcher>(_ =>
                 {
                     var router = new Router();
                     router.Use(next => new InlineDispatcher(
-                        async (current, cancel) =>
+                        async (request, cancel) =>
                         {
-                            dispatchDeadline = current.Deadline;
+                            dispatchDeadline = new Dispatch(request).Deadline;
                             await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
-                            return await next.DispatchAsync(current, cancel);
+                            return await next.DispatchAsync(request, cancel);
                         }));
                     router.Map<IGreeter>(new Greeter());
                     return router;
@@ -40,7 +44,7 @@ namespace IceRpc.Tests.Api
 
             pipeline.Use(next => new InlineInvoker((request, cancel) =>
             {
-                invocationDeadline = request.Deadline;
+                invocationHasDeadline = HasDeadline(request);
                 return next.InvokeAsync(request, cancel);
             }));
 
@@ -49,34 +53,44 @@ namespace IceRpc.Tests.Api
             DateTime expectedDeadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(timeout);
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync(invocation));
             Assert.That(dispatchDeadline, Is.Not.Null);
-            Assert.That(invocationDeadline, Is.Not.Null);
-            // Compare the deadlines as milliseconds because the deadline is transferred as a millisecond
-            // value and the conversion of the DateTime to the "long" type can result in a dispatch
-            // deadline which is different from the invocation deadline.
-            Assert.AreEqual(ToMilliSeconds(dispatchDeadline), ToMilliSeconds(invocationDeadline));
-            Assert.That(ToMilliSeconds(dispatchDeadline), Is.GreaterThanOrEqualTo(ToMilliSeconds(expectedDeadline)));
+            Assert.That(invocationHasDeadline, Is.True);
+
+            double difference = (dispatchDeadline!.Value - expectedDeadline).TotalMilliseconds;
+
+            // expectedDeadline is computed BEFORE the actual deadline is computed by the TimeoutInterceptor setup by
+            // the call and should always be smaller than the actual dealine. However, the actual deadline
+            // (dispatchDeadline) is converted to and from milliseconds, which can result in a tiny loss.
+            Assert.That(difference, Is.GreaterThan(-1.0));
+
+            if (prx.Proxy.Protocol == Protocol.IceRpc)
+            {
+                Assert.That(difference, Is.LessThan(50.0));
+            }
         }
 
-        /// <summary>Ensure that a request fails with OperationCanceledException after the invocation timeout expires.
+        /// <summary>Ensures that a request fails with OperationCanceledException after the invocation timeout expires.
         /// </summary>
         /// <param name="delay">The time in milliseconds to hold the dispatch to simulate an slow server.</param>
         /// <param name="timeout">The time in milliseconds used as the invocation timeout.</param>
-        [TestCase(10000, 1000)]
-        public async Task InvocationTimeout_WithTimeoutInterceptor(int delay, int timeout)
+        /// <param name="protocol">The protocol to use.</param>
+        [TestCase(10000, 1000, "icerpc")]
+        [TestCase(10000, 1000, "ice")]
+        public async Task InvocationTimeout_WithTimeoutInterceptor(int delay, int timeout, string protocol)
         {
             DateTime? dispatchDeadline = null;
-            DateTime? invocationDeadline = null;
+            bool invocationHasDeadline = false;
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .UseProtocol(protocol)
                 .AddTransient<IDispatcher>(_ =>
                 {
                     var router = new Router();
                     router.Use(next => new InlineDispatcher(
-                        async (current, cancel) =>
+                        async (request, cancel) =>
                         {
                             Assert.That(cancel.CanBeCanceled, Is.True);
-                            dispatchDeadline = current.Deadline;
+                            dispatchDeadline = new Dispatch(request).Deadline;
                             await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
-                            return await next.DispatchAsync(current, cancel);
+                            return await next.DispatchAsync(request, cancel);
                         }));
                     router.Map<IGreeter>(new Greeter());
                     return router;
@@ -88,41 +102,46 @@ namespace IceRpc.Tests.Api
             pipeline.UseTimeout(TimeSpan.FromMilliseconds(timeout));
             pipeline.Use(next => new InlineInvoker((request, cancel) =>
             {
-                invocationDeadline = request.Deadline;
+                invocationHasDeadline = HasDeadline(request);
                 return next.InvokeAsync(request, cancel);
             }));
             var prx = ServicePrx.FromConnection(serviceProvider.GetRequiredService<Connection>(), invoker: pipeline);
             var expectedDeadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(timeout);
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync());
             Assert.That(dispatchDeadline, Is.Not.Null);
-            Assert.That(invocationDeadline, Is.Not.Null);
-            // Compare the deadlines as milliseconds because the deadline is transferred as a millisecond
-            // value and the conversion of the DateTime to the "long" type can result in a dispatch
-            // deadline which is different from the invocation deadline.
-            Assert.AreEqual(ToMilliSeconds(dispatchDeadline), ToMilliSeconds(invocationDeadline));
-            Assert.That(ToMilliSeconds(dispatchDeadline), Is.GreaterThanOrEqualTo(ToMilliSeconds(expectedDeadline)));
+            Assert.That(invocationHasDeadline, Is.True);
+
+            double difference = (dispatchDeadline!.Value - expectedDeadline).TotalMilliseconds;
+            Assert.That(difference, Is.GreaterThan(-1.0));
+
+            if (prx.Proxy.Protocol == Protocol.IceRpc)
+            {
+                Assert.That(difference, Is.LessThan(50.0));
+            }
         }
 
         /// <summary>Ensure that a request fails with OperationCanceledException after the invocation timeout expires.
         /// </summary>
         /// <param name="delay">The time in milliseconds to hold the dispatch to simulate a slow server.</param>
         /// <param name="timeout">The time in milliseconds used as the invocation timeout.</param>
-        [TestCase(10000, 1000)]
-        public async Task InvocationTimeout_InvocationPrevails(int delay, int timeout)
+        [TestCase(10000, 1000, "icerpc")]
+        [TestCase(10000, 1000, "ice")]
+        public async Task InvocationTimeout_InvocationPrevails(int delay, int timeout, string protocol)
         {
             DateTime? dispatchDeadline = null;
-            DateTime? invocationDeadline = null;
+            bool invocationHasDeadline = false;
 
             await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .UseProtocol(protocol)
                 .AddTransient<IDispatcher>(_ =>
                 {
                     var router = new Router();
                     router.Use(next => new InlineDispatcher(
-                        async (current, cancel) =>
+                        async (request, cancel) =>
                         {
-                            dispatchDeadline = current.Deadline;
+                            dispatchDeadline = new Dispatch(request).Deadline;
                             await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
-                            return await next.DispatchAsync(current, cancel);
+                            return await next.DispatchAsync(request, cancel);
                         }));
                     router.Map<IGreeter>(new Greeter());
                     return router;
@@ -140,7 +159,7 @@ namespace IceRpc.Tests.Api
             pipeline.Use(next => new InlineInvoker((request, cancel) =>
             {
                 Assert.That(cancel.CanBeCanceled, Is.True);
-                invocationDeadline = request.Deadline;
+                invocationHasDeadline = HasDeadline(request);
                 return next.InvokeAsync(request, cancel);
             }));
             prx = ServicePrx.FromConnection(connection, invoker: pipeline);
@@ -148,16 +167,20 @@ namespace IceRpc.Tests.Api
             var expectedDeadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(timeout);
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync(invocation));
             Assert.That(dispatchDeadline, Is.Not.Null);
-            Assert.That(invocationDeadline, Is.Not.Null);
-            // Compare the deadlines as milliseconds because the deadline is transferred as a millisecond
-            // value and the conversion of the DateTime to the "long" type can result in a dispatch
-            // deadline which is different from the invocation deadline.
-            Assert.AreEqual(ToMilliSeconds(dispatchDeadline), ToMilliSeconds(invocationDeadline));
-            Assert.That(ToMilliSeconds(dispatchDeadline), Is.GreaterThanOrEqualTo(ToMilliSeconds(expectedDeadline)));
+            Assert.That(invocationHasDeadline, Is.True);
+
+            double difference = (dispatchDeadline!.Value - expectedDeadline).TotalMilliseconds;
+            Assert.That(difference, Is.GreaterThan(-1.0));
+
+            if (prx.Proxy.Protocol == Protocol.IceRpc)
+            {
+                Assert.That(difference, Is.LessThan(50.0));
+            }
         }
 
-        private static long ToMilliSeconds(DateTime? deadline) =>
-            (long)(deadline!.Value - DateTime.UnixEpoch).TotalMilliseconds;
+        private static bool HasDeadline(OutgoingRequest request) =>
+            request.Fields.ContainsKey((int)FieldKey.Deadline) ||
+            request.FieldsOverrides.ContainsKey((int)FieldKey.Deadline);
 
         private class Greeter : Service, IGreeter
         {

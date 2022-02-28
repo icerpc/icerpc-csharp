@@ -65,7 +65,7 @@ fn encode_type(
         TypeRefs::Interface(_) => {
             if type_ref.is_optional {
                 format!(
-                    "{encoder_param}.EncodeNullableProxy({param}?.Proxy);",
+                    "{encoder_param}.EncodeNullableProxy(ref bitSequenceWriter, {param}?.Proxy);",
                     encoder_param = encoder_param,
                     param = param
                 )
@@ -107,11 +107,26 @@ fn encode_type(
                         value = value
                     )
                 }
-                TypeRefs::Struct(_) => format!(
-                    "{value}.Encode(ref {encoder_param});",
-                    value = value,
-                    encoder_param = encoder_param
-                ),
+                TypeRefs::Struct(struct_ref) => {
+                    if struct_ref.definition().has_attribute("cs:type", false) {
+                        format!(
+                            "{encoder_extensions_class}.Encode{identifier}(ref {encoder_param}, {value});",
+                            encoder_extensions_class = struct_ref.escape_scoped_identifier_with_prefix_and_suffix(
+                                "SliceEncoder",
+                                "Extensions",
+                                namespace),
+                            identifier = struct_ref.identifier(),
+                            encoder_param = encoder_param,
+                            value = value
+                        )
+                    } else {
+                        format!(
+                            "{value}.Encode(ref {encoder_param});",
+                            value = value,
+                            encoder_param = encoder_param
+                        )
+                    }
+                }
                 TypeRefs::Trait(_) => format!(
                     "{param}.EncodeTrait(ref {encoder_param});",
                     param = param,
@@ -128,9 +143,14 @@ fn encode_type(
                     )
                 }
                 TypeRefs::Enum(enum_ref) => format!(
-                    "{helper}.Encode{name}(ref {encoder_param}, {param});",
-                    helper = enum_ref.helper_name(namespace),
-                    name = enum_ref.identifier(),
+                    "{encoder_extensions_class}.Encode{name}(ref {encoder_param}, {param});",
+                    encoder_extensions_class = enum_ref
+                        .escape_scoped_identifier_with_prefix_and_suffix(
+                            "SliceEncoder",
+                            "Extensions",
+                            namespace
+                    ),
+                    name = fix_case(enum_ref.identifier(), CaseStyle::Pascal),
                     param = value,
                     encoder_param = encoder_param
                 ),
@@ -152,9 +172,9 @@ if ({param} != null)
 }}
 ",
                     param = match concrete_typeref {
-                        TypeRefs::Sequence(sequence_def)
-                            if sequence_def.has_fixed_size_numeric_elements()
-                                && !sequence_def.has_attribute("cs:generic", false)
+                        TypeRefs::Sequence(sequence_ref)
+                            if sequence_ref.has_fixed_size_numeric_elements()
+                                && !sequence_ref.has_attribute("cs:generic", false)
                                 && type_context == TypeContext::Encode =>
                             format!("{}.Span", param),
                         _ => param.to_owned(),
@@ -377,9 +397,7 @@ fn encode_dictionary(
     {param},
     {encode_key},
     {encode_value})",
-        method = if dictionary_def.value_type.is_bit_sequence_encodable()
-            && dictionary_def.value_type.is_optional
-        {
+        method = if dictionary_def.value_type.is_bit_sequence_encodable() {
             "EncodeDictionaryWithBitSequence"
         } else {
             "EncodeDictionary"
@@ -410,7 +428,7 @@ pub fn encode_action(type_ref: &TypeRef, type_context: TypeContext, namespace: &
             if is_optional {
                 write!(
                     code,
-                    "(ref SliceEncoder encoder, {} value) => encoder.EncodeNullableProxy(value?.Proxy)",
+                    "(ref SliceEncoder encoder, {} value) => encoder.EncodeProxy(value!.Value.Proxy)",
                     value_type
                 );
             } else {
@@ -448,10 +466,13 @@ pub fn encode_action(type_ref: &TypeRef, type_context: TypeContext, namespace: &
         TypeRefs::Enum(enum_ref) => {
             write!(
                 code,
-                "(ref SliceEncoder encoder, {value_type} value) => {helper}.Encode{name}(ref encoder, {value})",
+                "(ref SliceEncoder encoder, {value_type} value) => {encoder_extensions_class}.Encode{name}(ref encoder, {value})",
                 value_type = value_type,
-                helper = enum_ref.helper_name(namespace),
-                name = enum_ref.identifier(),
+                encoder_extensions_class = enum_ref.escape_scoped_identifier_with_prefix_and_suffix(
+                    "SliceEncoder",
+                    "Extensions",
+                    namespace),
+                name = fix_case(enum_ref.identifier(), CaseStyle::Pascal),
                 value = value
             )
         }

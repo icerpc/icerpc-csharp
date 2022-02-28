@@ -19,6 +19,7 @@ namespace IceRpc.Tests.ClientServer
     // Tests for the Compress interceptor and middleware
 
     [Parallelizable(ParallelScope.All)]
+    [Timeout(10000)]
     public sealed class CompressTests
     {
         // The minimum compression factor we expect for the payloads
@@ -94,13 +95,14 @@ namespace IceRpc.Tests.ClientServer
                 .BuildServiceProvider();
 
             var proxy = Proxy.FromConnection(serviceProvider.GetRequiredService<Connection>(), "/");
-            var request = new OutgoingRequest(proxy, "compressRequestPayload")
+            var request = new OutgoingRequest(proxy)
             {
+                Operation = "compressRequestPayload",
                 PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(_mainPayload))
             };
             if (compressPayload)
             {
-                request.Features = new FeatureCollection().With(Features.CompressPayload.Yes);
+                request.Features = request.Features.With(Features.CompressPayload.Yes);
             }
             if (withStream)
             {
@@ -156,17 +158,15 @@ namespace IceRpc.Tests.ClientServer
                 {
                     Router router = new Router().UseCompressor();
 
-                    var features = new FeatureCollection();
                     if (compressPayload)
                     {
-                        features = features.With(Features.CompressPayload.Yes);
+                        router.UseFeature(Features.CompressPayload.Yes);
                     }
 
                     router.Map("/", new InlineDispatcher(
                         (request, cancel) => new(
                             new OutgoingResponse(request)
                             {
-                                Features = features,
                                 PayloadSource = PipeReader.Create(new ReadOnlySequence<byte>(_mainPayload)),
                                 PayloadSourceStream = PipeReader.Create(withStream ?
                                     new ReadOnlySequence<byte>(_streamPayload) :
@@ -177,7 +177,7 @@ namespace IceRpc.Tests.ClientServer
                 .BuildServiceProvider();
 
             var proxy = Proxy.FromConnection(serviceProvider.GetRequiredService<Connection>(), "/");
-            var request = new OutgoingRequest(proxy, "compressResponsePayload");
+            var request = new OutgoingRequest(proxy) { Operation = "compressResponsePayload" };
 
             bool called = false;
 
@@ -193,7 +193,6 @@ namespace IceRpc.Tests.ClientServer
                     if (compressPayload)
                     {
                         // Verify we received a compressed payload.
-                        Assert.That(readResult.IsCompleted, Is.True);
                         Assert.That(readResult.IsCompleted, Is.True);
                         Assert.That(readResult.Buffer, Has.Length.LessThan(uncompressedLength * CompressionFactor));
                     }

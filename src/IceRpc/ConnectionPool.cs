@@ -15,11 +15,11 @@ namespace IceRpc
         /// <summary>The connection options.</summary>
         public ConnectionOptions ConnectionOptions { get; init; } = new();
 
-        /// <summary>The dispatcher that will be set on connections from the pool to enable connections to
-        /// receive requests over the client conneciton.</summary>
+        /// <summary>The dispatcher that will be set on connections from the pool to enable connections to receive
+        /// requests over the client connection.</summary>
         /// <value>The dispatcher of this connection pool.</value>
         /// <seealso cref="IDispatcher"/>
-        public IDispatcher? Dispatcher { get; init; }
+        public IDispatcher Dispatcher { get; init; } = Connection.DefaultDispatcher;
 
         /// <summary>The <see cref="IClientTransport{IMultiplexedNetworkConnection}"/> of connections created by
         /// this pool.</summary>

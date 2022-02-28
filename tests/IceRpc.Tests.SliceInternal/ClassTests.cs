@@ -38,6 +38,10 @@ namespace IceRpc.Tests.SliceInternal
             _sliced = SlicedFormatOperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
             _compact = CompactFormatOperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
             _classformat = ClassFormatOperationsPrx.FromConnection(_serviceProvider.GetRequiredService<Connection>());
+
+            _sliced.Proxy.Encoding = Encoding.Slice11;
+            _compact.Proxy.Encoding = Encoding.Slice11;
+            _classformat.Proxy.Encoding = Encoding.Slice11;
         }
 
         [OneTimeTearDown]
@@ -238,18 +242,19 @@ namespace IceRpc.Tests.SliceInternal
                 {
                     var router = new Router();
                     router.Map<IClassGraphOperations>(new ClassGraphOperations());
-                    router.UseRequestFeature(new DecodePayloadOptions { MaxDepth = serverMaxDepth });
+                    router.UseFeature(new DecodePayloadOptions { MaxDepth = serverMaxDepth });
                     return router;
                 })
                 .BuildServiceProvider();
 
             var prx = ClassGraphOperationsPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
+            prx.Proxy.Encoding = Encoding.Slice11;
 
             var pipeline = new Pipeline();
-            pipeline.UseResponseFeature(new DecodePayloadOptions { MaxDepth = clientMaxDepth });
+            pipeline.UseFeature(new DecodePayloadOptions { MaxDepth = clientMaxDepth });
             prx.Proxy.Invoker = pipeline;
 
-            await prx.IcePingAsync();
+            await new ServicePrx(prx.Proxy).IcePingAsync();
             if (graphSize > clientMaxDepth)
             {
                 Assert.ThrowsAsync<InvalidDataException>(async () => await prx.ReceiveClassGraphAsync(graphSize));
@@ -261,8 +266,9 @@ namespace IceRpc.Tests.SliceInternal
 
             if (graphSize > serverMaxDepth)
             {
-                Assert.ThrowsAsync<UnhandledException>(
+                DispatchException dispatchException = Assert.ThrowsAsync<DispatchException>(
                     async () => await prx.SendClassGraphAsync(CreateClassGraph(graphSize)));
+                Assert.That(dispatchException.ErrorCode, Is.EqualTo(DispatchErrorCode.InvalidData));
             }
             else
             {

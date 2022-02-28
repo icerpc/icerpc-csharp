@@ -1,31 +1,30 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-module IceRpc::Tests::ClientServer
+module IceRpc::Tests::ClientServer;
+
+exception ProtocolBridgingException
 {
-    exception ProtocolBridgingException
-    {
-        number: int,
-    }
+    number: int,
+}
 
-    interface ProtocolBridgingTest
-    {
-        // Simple operations
-        op(x: int) -> int;
-        opVoid();
+interface ProtocolBridgingTest
+{
+    // Simple operations
+    op(x: int) -> int;
+    opVoid();
 
-        // Oneway operation
-        [oneway] opOneway(x: int);
+    // Oneway operation
+    [oneway] opOneway(x: int);
 
-        // Operation that throws remote exception
-        opException();
+    // Operation that throws remote exception
+    opException();
 
-        // Operation that throws ServiceNotFoundException (one of the special ice system exceptions)
-        opServiceNotFoundException();
+    // Operation that throws ServiceNotFoundException (one of the special ice system exceptions)
+    opServiceNotFoundException();
 
-        // Check the context is correctly forwarded
-        opContext();
+    // Check the context is correctly forwarded
+    opContext();
 
-        // Operation that returns a new proxy
-        opNewProxy() -> ProtocolBridgingTest;
-    }
+    // Operation that returns a new proxy
+    opNewProxy() -> ProtocolBridgingTest;
 }

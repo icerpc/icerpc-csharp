@@ -1,5 +1,7 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
+
 namespace IceRpc
 {
     /// <summary>A binder interceptor is responsible for providing connections to requests using an
@@ -27,30 +29,25 @@ namespace IceRpc
         {
             if (request.Connection == null)
             {
-                // Filter-out excluded endpoints
-                if (request.ExcludedEndpoints.Any())
+                Endpoint? endpoint;
+                IEnumerable<Endpoint> altEndpoints;
+                if (request.Features.Get<EndpointSelection>() is EndpointSelection endpointSelection)
                 {
-                    if (request.Endpoint is Endpoint endpoint && request.ExcludedEndpoints.Contains(endpoint))
-                    {
-                        request.Endpoint = null;
-                    }
-                    request.AltEndpoints = request.AltEndpoints.Except(request.ExcludedEndpoints);
+                    endpoint = endpointSelection.Endpoint;
+                    altEndpoints = endpointSelection.AltEndpoints;
+                }
+                else
+                {
+                    endpoint = request.Proxy.Endpoint;
+                    altEndpoints = request.Proxy.AltEndpoints;
                 }
 
-                if (request.Endpoint == null && request.AltEndpoints.Any())
-                {
-                    request.Endpoint = request.AltEndpoints.First();
-                    request.AltEndpoints = request.AltEndpoints.Skip(1);
-                }
-
-                if (request.Endpoint == null)
+                if (endpoint == null)
                 {
                     throw new NoEndpointException(request.Proxy);
                 }
 
-                return PerformAsync(_connectionProvider.GetConnectionAsync(request.Endpoint.Value,
-                                                                           request.AltEndpoints,
-                                                                           cancel));
+                return PerformAsync(_connectionProvider.GetConnectionAsync(endpoint.Value, altEndpoints, cancel));
             }
             return _next.InvokeAsync(request, cancel);
 

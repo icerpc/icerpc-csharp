@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Slice;
 using IceRpc.Transports;
 using NUnit.Framework;
 using System.Collections.Immutable;
@@ -50,7 +51,7 @@ namespace IceRpc.Tests.Api
                     MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
                     RemoteEndpoint = server.Endpoint
                 };
-                var proxy = GreeterPrx.FromConnection(connection);
+                var proxy = ServicePrx.FromConnection(connection);
 
                 Assert.ThrowsAsync<ConnectionRefusedException>(async () => await proxy.IcePingAsync());
                 server.Listen();
@@ -70,12 +71,13 @@ namespace IceRpc.Tests.Api
                     MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
                     RemoteEndpoint = server.Endpoint
                 };
-                var proxy = GreeterPrx.FromConnection(connection);
+                var proxy = ServicePrx.FromConnection(connection);
 
                 server.Listen();
 
-                // Throws ServiceNotFoundException when Dispatcher is null
-                Assert.ThrowsAsync<ServiceNotFoundException>(async () => await proxy.IcePingAsync());
+                // Throws DispatchException(ServiceNotFound) when Dispatcher is null
+                var dispatchException = Assert.ThrowsAsync<DispatchException>(() => proxy.IcePingAsync());
+                Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
             }
 
             {
@@ -97,7 +99,7 @@ namespace IceRpc.Tests.Api
                     MultiplexedClientTransport = new SlicClientTransport(colocTransport.ClientTransport),
                     RemoteEndpoint = server.Endpoint
                 };
-                var proxy = GreeterPrx.FromConnection(connection);
+                var proxy = ServicePrx.FromConnection(connection, GreeterPrx.DefaultPath);
                 server.Listen();
 
                 Assert.DoesNotThrow(() => router.Use(next => next)); // still fine
@@ -207,7 +209,7 @@ namespace IceRpc.Tests.Api
                 LoggerFactory = LogAttributeLoggerFactory.Instance,
                 RemoteEndpoint = server.Endpoint
             };
-            var proxy = GreeterPrx.FromConnection(connection);
+            var proxy = ServicePrx.FromConnection(connection, GreeterPrx.DefaultPath);
 
             using var cancellationSource = new CancellationTokenSource();
             Task task = proxy.IcePingAsync(cancel: cancellationSource.Token);
@@ -252,7 +254,7 @@ namespace IceRpc.Tests.Api
                 RemoteEndpoint = server.Endpoint
             };
 
-            var proxy = GreeterPrx.FromConnection(connection);
+            var proxy = ServicePrx.FromConnection(connection, GreeterPrx.DefaultPath);
 
             Task task = proxy.IcePingAsync();
             Assert.That(server.ShutdownComplete.IsCompleted, Is.False);
@@ -312,7 +314,7 @@ namespace IceRpc.Tests.Api
                 LoggerFactory = LogAttributeLoggerFactory.Instance
             };
 
-            var proxy = GreeterPrx.FromConnection(connection);
+            var proxy = ServicePrx.FromConnection(connection, GreeterPrx.DefaultPath);
 
             Task task = proxy.IcePingAsync();
             Assert.That(server.ShutdownComplete.IsCompleted, Is.False);
@@ -335,11 +337,12 @@ namespace IceRpc.Tests.Api
                 cancellationSource.Cancel();
             }
 
-            // Ensures the client gets a DispatchException with the Ice protocol and OperationCanceledException with
-            // the IceRPC protocol.
+            // Ensures the client gets a DispatchException with the ice protocol and OperationCanceledException with
+            // the icerpc protocol.
             if (protocol == Protocol.Ice)
             {
-                Assert.ThrowsAsync<DispatchException>(async () => await task);
+                var dispatchException = Assert.ThrowsAsync<DispatchException>(() => task);
+                Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.Canceled));
             }
             else
             {
@@ -347,7 +350,7 @@ namespace IceRpc.Tests.Api
             }
 
             // Shutdown shouldn't throw.
-            Assert.DoesNotThrowAsync(async () => await shutdownTask);
+            Assert.DoesNotThrowAsync(() => shutdownTask);
 
             Assert.That(server.ShutdownComplete.IsCompleted, Is.True);
         }

@@ -13,8 +13,8 @@ namespace IceRpc.Tests.Internal
     [Timeout(5000)]
     public class UdpNetworkConnectionTests
     {
-        private static readonly ReadOnlyMemory<ReadOnlyMemory<byte>> _oneBWriteBuffer =
-            new ReadOnlyMemory<byte>[] { new byte[1] };
+        private static readonly IReadOnlyList<ReadOnlyMemory<byte>> _oneBWriteBuffer =
+            new List<ReadOnlyMemory<byte>>() { new byte[1] };
 
         private ISimpleNetworkConnection ClientConnection => _clientConnection!;
         private ISimpleNetworkConnection ServerConnection => _serverConnection!;
@@ -69,7 +69,7 @@ namespace IceRpc.Tests.Internal
         {
             byte[] writeBuffer = new byte[size];
             new Random().NextBytes(writeBuffer);
-            ReadOnlyMemory<ReadOnlyMemory<byte>> writeBuffers = new ReadOnlyMemory<byte>[] { writeBuffer };
+            var writeBuffers = new List<ReadOnlyMemory<byte>>() { writeBuffer };
 
             var clientConnectionList = new List<ISimpleNetworkConnection>();
             for (int i = 0; i < clientConnectionCount; ++i)
@@ -95,10 +95,10 @@ namespace IceRpc.Tests.Internal
                         Memory<byte> readBuffer = new byte[UdpUtils.MaxPacketSize];
                         int received = await ServerConnection.ReadAsync(readBuffer, source.Token);
 
-                        Assert.AreEqual(writeBuffer.Length, received);
+                        Assert.That(writeBuffer.Length, Is.EqualTo(received));
                         for (int i = 0; i < received; ++i)
                         {
-                            Assert.AreEqual(writeBuffer[i], readBuffer.Span[i]);
+                            Assert.That(readBuffer.Span[i], Is.EqualTo(writeBuffer[i]));
                         }
                     }
                     break;
@@ -123,7 +123,7 @@ namespace IceRpc.Tests.Internal
                         using var source = new CancellationTokenSource(1000);
                         Memory<byte> readBuffer = new byte[UdpUtils.MaxPacketSize];
                         int received = await ServerConnection.ReadAsync(readBuffer, source.Token);
-                        Assert.AreEqual(writeBuffer.Length, received);
+                        Assert.That(writeBuffer.Length, Is.EqualTo(received));
                     }
                     break;
                 }
@@ -187,7 +187,7 @@ namespace IceRpc.Tests.Internal
         {
             byte[] writeBuffer = new byte[size];
             new Random().NextBytes(writeBuffer);
-            ReadOnlyMemory<ReadOnlyMemory<byte>> writeBuffers = new ReadOnlyMemory<byte>[] { writeBuffer };
+            var writeBuffers = new List<ReadOnlyMemory<byte>>() { writeBuffer };
 
             // Datagrams aren't reliable, try up to 5 times in case the datagram is lost.
             int count = 5;
@@ -199,10 +199,10 @@ namespace IceRpc.Tests.Internal
                     ValueTask writeTask = ClientConnection.WriteAsync(writeBuffers, default);
                     Memory<byte> readBuffer = new byte[UdpUtils.MaxPacketSize];
                     int received = await ServerConnection.ReadAsync(readBuffer, source.Token);
-                    Assert.AreEqual(writeBuffer.Length, received);
+                    Assert.That(writeBuffer.Length, Is.EqualTo(received));
                     for (int i = 0; i < received; ++i)
                     {
-                        Assert.AreEqual(writeBuffer[i], readBuffer.Span[i]);
+                        Assert.That(readBuffer.Span[i], Is.EqualTo(writeBuffer[i]));
                     }
                     break;
                 }

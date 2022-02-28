@@ -15,19 +15,12 @@ namespace IceRpc
             set => _connection = value;
         }
 
-        /// <summary>The features of this request.</summary>
-        public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
-
         /// <summary>Returns the fields of this frame.</summary>
-        public IReadOnlyDictionary<int, ReadOnlyMemory<byte>> Fields { get; init; } =
+        public IDictionary<int, ReadOnlyMemory<byte>> Fields { get; init; } =
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <summary>The payload of this frame.</summary>
         public PipeReader Payload { get; set; }
-
-        /// <summary>Returns the encoding of the payload of this frame.</summary>
-        /// <remarks>The header of the frame is always encoded using the frame protocol's encoding.</remarks>
-        public Encoding PayloadEncoding { get; }
 
         /// <summary>The Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }
@@ -37,11 +30,9 @@ namespace IceRpc
         /// <summary>Constructs an incoming frame.</summary>
         /// <param name="protocol">The protocol used to receive the frame.</param>
         /// <param name="payload">The payload of the new frame.</param>
-        /// <param name="payloadEncoding">The encoding of the payload.</param>
-        protected IncomingFrame(Protocol protocol, PipeReader payload, Encoding payloadEncoding)
+        protected IncomingFrame(Protocol protocol, PipeReader payload)
         {
             Payload = payload;
-            PayloadEncoding = payloadEncoding;
             Protocol = protocol;
         }
     }

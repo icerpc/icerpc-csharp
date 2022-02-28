@@ -22,50 +22,33 @@ namespace IceRpc.Slice
         {
             Debug.Assert(_classContext.Current.InstanceType == InstanceType.None);
 
-            if (v.IsIceSystemException())
+            if (v is DispatchException dispatchException)
             {
-                ReplyStatus replyStatus = v switch
+                DispatchErrorCode errorCode = dispatchException.ErrorCode;
+
+                switch (errorCode)
                 {
-                    ServiceNotFoundException => ReplyStatus.ObjectNotExistException,
-                    OperationNotFoundException => ReplyStatus.OperationNotExistException,
-                    _ => ReplyStatus.UnknownLocalException,
-                };
+                    case DispatchErrorCode.ServiceNotFound:
+                    case DispatchErrorCode.OperationNotFound:
+                        this.EncodeReplyStatus(errorCode == DispatchErrorCode.ServiceNotFound ?
+                            ReplyStatus.ObjectNotExistException : ReplyStatus.OperationNotExistException);
 
-                // This reply status byte is read and removed by IceProtocolConnection and kept otherwise.
-                this.EncodeReplyStatus(replyStatus);
-
-                switch (replyStatus)
-                {
-                    case ReplyStatus.ObjectNotExistException:
-                    case ReplyStatus.OperationNotExistException:
-                        Identity identity;
-                        try
-                        {
-                            identity = Identity.FromPath(v.Origin.Path);
-                        }
-                        catch
-                        {
-                            // ignored, i.e. we'll encode an empty identity + facet
-                            identity = Identity.Empty;
-                        }
-
-                        var requestFailed = new RequestFailedExceptionData(
-                            identity,
-                            Facet.FromFragment(v.Origin.Fragment),
-                            v.Origin.Operation);
+                        // TODO: pass context to dispatch exception Encode
+                        var requestFailed = new RequestFailedExceptionData(path: "/", "", "");
                         requestFailed.Encode(ref this);
                         break;
 
                     default:
-                        EncodeString(v.Message);
+                        this.EncodeReplyStatus(ReplyStatus.UnknownException);
+                        // We encode the error code in the message.
+                        EncodeString($"[{((byte)errorCode).ToString(CultureInfo.InvariantCulture)}] {v.Message}");
                         break;
                 }
             }
             else
             {
-                // This reply status byte is read and removed by IceProtocolConnection and kept otherwise.
-                this.EncodeReplyStatus(ReplyStatus.UserException);
-
+                // We don't encode the ReplyStatus because "user exceptions" are always encoded with a SliceFailure
+                // result type.
                 _classContext.ClassFormat = FormatType.Sliced; // always encode exceptions in sliced format
                 _classContext.Current.InstanceType = InstanceType.Exception;
                 _classContext.Current.FirstSlice = true;
@@ -125,7 +108,7 @@ namespace IceRpc.Slice
             // before the indirection table and are included in the slice size.
             if ((_classContext.Current.SliceFlags & SliceFlags.HasTaggedMembers) != 0)
             {
-                EncodeByte(TagEndMarker);
+                EncodeByte(Slice11Definitions.TagEndMarker);
             }
 
             // Encodes the slice size if necessary.

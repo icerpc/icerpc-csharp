@@ -38,7 +38,12 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
         mut ignore_optional: bool,
     ) -> String {
         let type_str = match &self.concrete_typeref() {
-            TypeRefs::Struct(struct_ref) => struct_ref.escape_scoped_identifier(namespace),
+            TypeRefs::Struct(struct_ref) => {
+                match struct_ref.definition().get_attribute("cs:type", false) {
+                    Some(args) => args.first().unwrap().to_owned(),
+                    None => struct_ref.escape_scoped_identifier(namespace),
+                }
+            }
             TypeRefs::Class(class_ref) => class_ref.escape_scoped_identifier(namespace),
             TypeRefs::Enum(enum_ref) => enum_ref.escape_scoped_identifier(namespace),
             TypeRefs::Interface(interface_ref) => {

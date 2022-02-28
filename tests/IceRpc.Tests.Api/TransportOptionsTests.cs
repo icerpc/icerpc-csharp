@@ -12,7 +12,7 @@ namespace IceRpc.Tests.Api
         public void TransportOptions_UdpClientOptions()
         {
             var options = new UdpClientOptions();
-            Assert.AreEqual(options.IdleTimeout, TimeSpan.FromSeconds(60));
+            Assert.That(options.IdleTimeout, Is.EqualTo(TimeSpan.FromSeconds(60)));
             Assert.That(options.IsIPv6Only, Is.False);
             Assert.That(options.LocalEndPoint, Is.Null);
             Assert.That(options.SendBufferSize, Is.Null);
@@ -36,7 +36,7 @@ namespace IceRpc.Tests.Api
         public void TransportOptions_TcpClientOptions()
         {
             var options = new TcpClientOptions();
-            Assert.AreEqual(options.IdleTimeout, TimeSpan.FromSeconds(60));
+            Assert.That(options.IdleTimeout, Is.EqualTo(TimeSpan.FromSeconds(60)));
             Assert.That(options.IsIPv6Only, Is.False);
             Assert.That(options.SendBufferSize, Is.Null);
             Assert.That(options.ReceiveBufferSize, Is.Null);
@@ -55,12 +55,12 @@ namespace IceRpc.Tests.Api
         public void TransportOptions_TcpServerOptions()
         {
             var options = new TcpServerOptions();
-            Assert.AreEqual(options.IdleTimeout, TimeSpan.FromSeconds(60));
+            Assert.That(options.IdleTimeout, Is.EqualTo(TimeSpan.FromSeconds(60)));
             Assert.That(options.IsIPv6Only, Is.False);
             Assert.That(options.SendBufferSize, Is.Null);
             Assert.That(options.ReceiveBufferSize, Is.Null);
             Assert.That(options.AuthenticationOptions, Is.Null);
-            Assert.AreEqual(511, options.ListenerBackLog);
+            Assert.That(options.ListenerBackLog, Is.EqualTo(511));
 
             Assert.Throws<ArgumentException>(() => new TcpServerOptions() { IdleTimeout = TimeSpan.Zero });
             // Buffer size must be at least 1KB
@@ -75,11 +75,11 @@ namespace IceRpc.Tests.Api
         public void TransportOptions_SlicOptions()
         {
             var options = new SlicOptions();
-            Assert.AreEqual(100, options.UnidirectionalStreamMaxCount);
-            Assert.AreEqual(100, options.BidirectionalStreamMaxCount);
-            Assert.AreEqual(16 * 1024, options.PacketMaxSize);
-            Assert.AreEqual(64 * 1024, options.PauseWriterThreshold);
-            Assert.AreEqual(32 * 1024, options.ResumeWriterThreshold);
+            Assert.That(options.UnidirectionalStreamMaxCount, Is.EqualTo(100));
+            Assert.That(options.BidirectionalStreamMaxCount, Is.EqualTo(100));
+            Assert.That(options.PacketMaxSize, Is.EqualTo(16 * 1024));
+            Assert.That(options.PauseWriterThreshold, Is.EqualTo(64 * 1024));
+            Assert.That(options.ResumeWriterThreshold, Is.EqualTo(32 * 1024));
 
             // Can't be less than 1
             Assert.Throws<ArgumentException>(() => new SlicOptions() { BidirectionalStreamMaxCount = 0 });
@@ -87,8 +87,8 @@ namespace IceRpc.Tests.Api
 
             // Can't be less than 1Kb
             Assert.Throws<ArgumentException>(() => new SlicOptions() { PacketMaxSize = 1 });
-            Assert.Throws<ArgumentException>(() => new SlicOptions() { PauseWriterThreshold = 1});
-            Assert.Throws<ArgumentException>(() => new SlicOptions() { ResumeWriterThreshold = 1});
+            Assert.Throws<ArgumentException>(() => new SlicOptions() { PauseWriterThreshold = 1 });
+            Assert.Throws<ArgumentException>(() => new SlicOptions() { ResumeWriterThreshold = 1 });
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 
@@ -39,7 +40,7 @@ namespace IceRpc.Tests.ClientServer
         {
             byte[] data = new byte[size];
             await _prx.OpSendByteSeqAsync(data);
-            CollectionAssert.AreEqual(data, _service.OpSendByteSeqData);
+            Assert.That(_service.OpSendByteSeqData, Is.EqualTo(data));
         }
 
         [TestCase(0)]
@@ -50,7 +51,7 @@ namespace IceRpc.Tests.ClientServer
         public async Task Stress_Receive_ByteSeq(int size)
         {
             byte[] data = await _prx.OpReceiveByteSeqAsync(size);
-            CollectionAssert.AreEqual(_service.OpReceiveByteSeqData, data);
+            Assert.That(_service.OpReceiveByteSeqData, Is.EqualTo(data));
         }
 
         public class StressTest : Service, IStressTest

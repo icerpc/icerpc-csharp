@@ -30,11 +30,11 @@ namespace IceRpc.Tests.Slice
         public async Task Invocation_EncodedResultAsync()
         {
             // TODO Parse below should not use a connection with a different endpoint
-            await Test1Async(p1 => _prx.OpAnotherStruct1Async(p1),
-                             new AnotherStruct("hello",
+            await Test1Async(p1 => _prx.OpAnotherCompactStruct1Async(p1),
+                             new AnotherCompactStruct("hello",
                                               OperationsPrx.Parse("icerpc://foo/bar"),
                                               MyEnum.enum1,
-                                              new MyStruct(1, 2)));
+                                              new MyCompactStruct(1, 2)));
 
             await Test1Async(p1 => _prx.OpStringSeq1Async(p1),
                             Enumerable.Range(0, 100).Select(i => $"hello-{i}").ToArray());
@@ -43,11 +43,11 @@ namespace IceRpc.Tests.Slice
                             Enumerable.Range(0, 100).Select(i => $"hello-{i}").ToDictionary(key => key,
                                                                                             value => value));
 
-            await Test2Async(p1 => _prx.OpAnotherStruct2Async(p1),
-                            new AnotherStruct("hello",
+            await Test2Async(p1 => _prx.OpAnotherCompactStruct2Async(p1),
+                            new AnotherCompactStruct("hello",
                                               OperationsPrx.Parse("icerpc://foo/bar"),
                                               MyEnum.enum1,
-                                              new MyStruct(1, 2)));
+                                              new MyCompactStruct(1, 2)));
 
             await Test2Async(p1 => _prx.OpStringSeq2Async(p1),
                             Enumerable.Range(0, 100).Select(i => $"hello-{i}").ToArray());
@@ -59,31 +59,31 @@ namespace IceRpc.Tests.Slice
             async Task Test1Async<T>(Func<T, Task<T>> invoker, T p1)
             {
                 T r1 = await invoker(p1);
-                Assert.AreEqual(p1, r1);
+                Assert.That(r1, Is.EqualTo(p1));
             }
 
             async Task Test2Async<T>(Func<T, Task<(T, T)>> invoker, T p1)
             {
                 (T r1, T r2) = await invoker(p1);
-                Assert.AreEqual(p1, r1);
-                Assert.AreEqual(p1, r2);
+                Assert.That(r1, Is.EqualTo(p1));
+                Assert.That(r2, Is.EqualTo(p1));
             }
         }
 
         public class EncodedResultOperations : Service, IEncodedResultOperations
         {
             // Encoded result
-            public ValueTask<IEncodedResultOperations.OpAnotherStruct1EncodedResult> OpAnotherStruct1Async(
-                AnotherStruct p1,
+            public ValueTask<IEncodedResultOperations.OpAnotherCompactStruct1EncodedResult> OpAnotherCompactStruct1Async(
+                AnotherCompactStruct p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IEncodedResultOperations.OpAnotherStruct1EncodedResult(p1, dispatch));
+                new(new IEncodedResultOperations.OpAnotherCompactStruct1EncodedResult(p1, dispatch));
 
-            public ValueTask<IEncodedResultOperations.OpAnotherStruct2EncodedResult> OpAnotherStruct2Async(
-                AnotherStruct p1,
+            public ValueTask<IEncodedResultOperations.OpAnotherCompactStruct2EncodedResult> OpAnotherCompactStruct2Async(
+                AnotherCompactStruct p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(new IEncodedResultOperations.OpAnotherStruct2EncodedResult(p1, p1, dispatch));
+                new(new IEncodedResultOperations.OpAnotherCompactStruct2EncodedResult(p1, p1, dispatch));
 
             public ValueTask<IEncodedResultOperations.OpStringSeq1EncodedResult> OpStringSeq1Async(
                 string[] p1,

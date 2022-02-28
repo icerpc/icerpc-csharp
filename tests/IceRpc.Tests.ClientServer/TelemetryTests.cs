@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Slice;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Diagnostics;
@@ -34,8 +35,8 @@ namespace IceRpc.Tests.ClientServer
 
             {
                 await using AsyncServiceScope scope = serviceProvider.CreateAsyncScope();
-                GreeterPrx prx = scope.ServiceProvider.GetProxy<GreeterPrx>();
-                await prx.IcePingAsync();
+                ServicePrx service = scope.ServiceProvider.GetProxy<ServicePrx>(GreeterPrx.DefaultPath);
+                await service.IcePingAsync();
                 Assert.That(called, Is.True);
                 Assert.That(invocationActivity, Is.Null);
             }
@@ -45,7 +46,7 @@ namespace IceRpc.Tests.ClientServer
 
             {
                 await using AsyncServiceScope scope = serviceProvider.CreateAsyncScope();
-                GreeterPrx prx = scope.ServiceProvider.GetProxy<GreeterPrx>();
+                ServicePrx service = scope.ServiceProvider.GetProxy<ServicePrx>(GreeterPrx.DefaultPath);
 
                 // Starting the test activity ensures that Activity.Current is not null which in turn will
                 // trigger the creation of the Invocation activity.
@@ -53,13 +54,13 @@ namespace IceRpc.Tests.ClientServer
                 testActivity.Start();
                 Assert.That(Activity.Current, Is.Not.Null);
 
-                await prx.IcePingAsync();
+                await service.IcePingAsync();
 
                 Assert.That(called, Is.True);
                 Assert.That(invocationActivity, Is.Not.Null);
-                Assert.AreEqual("/IceRpc.Tests.ClientServer.Greeter/ice_ping", invocationActivity!.DisplayName);
-                Assert.AreEqual(testActivity, invocationActivity.Parent);
-                Assert.AreEqual(testActivity, Activity.Current);
+                Assert.That(invocationActivity!.DisplayName, Is.EqualTo("/IceRpc.Tests.ClientServer.Greeter/ice_ping"));
+                Assert.That(testActivity, Is.EqualTo(invocationActivity.Parent));
+                Assert.That(testActivity, Is.EqualTo(Activity.Current));
                 testActivity.Stop();
             }
         }
@@ -88,7 +89,7 @@ namespace IceRpc.Tests.ClientServer
                     })
                     .BuildServiceProvider();
 
-                await serviceProvider.GetProxy<GreeterPrx>().IcePingAsync();
+                await serviceProvider.GetProxy<ServicePrx>(GreeterPrx.DefaultPath).IcePingAsync();
                 Assert.That(called, Is.True);
                 Assert.That(dispatchActivity, Is.Null);
             }
@@ -133,15 +134,15 @@ namespace IceRpc.Tests.ClientServer
                     })
                     .BuildServiceProvider();
 
-                await serviceProvider.GetProxy<GreeterPrx>().IcePingAsync();
+                await serviceProvider.GetProxy<ServicePrx>(GreeterPrx.DefaultPath).IcePingAsync();
                 // Await the server shutdown to ensure the dispatch has finish
                 await serviceProvider.GetRequiredService<Server>().ShutdownAsync();
                 Assert.That(called, Is.True);
                 Assert.That(dispatchActivity, Is.Not.Null);
-                Assert.AreEqual("/IceRpc.Tests.ClientServer.Greeter/ice_ping", dispatchActivity!.DisplayName);
+                Assert.That(dispatchActivity!.DisplayName, Is.EqualTo("/IceRpc.Tests.ClientServer.Greeter/ice_ping"));
                 // Wait to receive the dispatch activity stop event
                 Assert.That(await waitForStopSemaphore.WaitAsync(TimeSpan.FromSeconds(30)), Is.True);
-                CollectionAssert.AreEqual(dispatchStartedActivities, dispatchStoppedActivities);
+                Assert.That(dispatchStartedActivities, Is.EqualTo(dispatchStoppedActivities));
             }
         }
 
@@ -210,21 +211,20 @@ namespace IceRpc.Tests.ClientServer
             testActivity.Start();
             Assert.That(Activity.Current, Is.Not.Null);
 
-            await serviceProvider.GetProxy<GreeterPrx>().IcePingAsync();
+            await serviceProvider.GetProxy<ServicePrx>(GreeterPrx.DefaultPath).IcePingAsync();
             // Await the server shutdown to ensure the dispatch has finish
             await serviceProvider.GetRequiredService<Server>().ShutdownAsync();
             Assert.That(invocationActivity, Is.Not.Null);
-            Assert.AreEqual(testActivity, invocationActivity!.Parent);
+            Assert.That(invocationActivity!.Parent, Is.EqualTo(testActivity));
             Assert.That(dispatchActivity, Is.Not.Null);
-            Assert.AreEqual(invocationActivity.Id, dispatchActivity!.ParentId);
+            Assert.That(dispatchActivity!.ParentId, Is.EqualTo(invocationActivity.Id));
+            Assert.That(dispatchActivity.Baggage, Is.EqualTo(invocationActivity.Baggage));
 
-            CollectionAssert.AreEqual(invocationActivity.Baggage, dispatchActivity.Baggage);
-
-            Assert.AreEqual("Baz", dispatchActivity.GetBaggageItem("Foo"));
-            Assert.AreEqual("Information", dispatchActivity.GetBaggageItem("TraceLevel"));
+            Assert.That(dispatchActivity.GetBaggageItem("Foo"), Is.EqualTo("Baz"));
+            Assert.That(dispatchActivity.GetBaggageItem("TraceLevel"), Is.EqualTo("Information"));
             // Wait to receive the dispatch activity stop event
             Assert.That(await waitForStopSemaphore.WaitAsync(TimeSpan.FromSeconds(30)), Is.True);
-            CollectionAssert.AreEqual(dispatchStartedActivities, dispatchStoppedActivities);
+            Assert.That(dispatchStartedActivities, Is.EqualTo(dispatchStoppedActivities));
         }
 
         public class Greeter : Service, IGreeter

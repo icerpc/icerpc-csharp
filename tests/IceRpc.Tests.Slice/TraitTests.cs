@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.IO.Pipelines;
@@ -67,8 +66,9 @@ namespace IceRpc.Tests.Slice
         [TestCase(3000)]
         public async Task Trait_DecodeStackOverflow(int depth)
         {
-            var request = new OutgoingRequest(_prx.Proxy, "opNestedTraitStruct")
+            var request = new OutgoingRequest(_prx.Proxy)
             {
+                Operation = "opNestedTraitStruct",
                 PayloadSource = CreatePayload(),
                 PayloadEncoding = Encoding.Slice20
             };
@@ -78,11 +78,13 @@ namespace IceRpc.Tests.Slice
             Assert.That(response.ResultType, Is.EqualTo(ResultType.Failure));
 
             // Let's decode the exception. TODO: we should provide a more obvious exception-decoding API.
-            Assert.ThrowsAsync<UnhandledException>(async () =>
-                await response.CheckVoidReturnValueAsync(
+            var dispatchException = Assert.ThrowsAsync<DispatchException>(() =>
+                response.CheckVoidReturnValueAsync(
                     SliceDecoder.GetActivator(typeof(TraitTests).Assembly),
                     hasStream: false,
-                    cancel: default));
+                    cancel: default).AsTask());
+
+            Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.InvalidData));
 
             // Constructs a payload that creates a stack overflow during decoding. We're targeting opNestedTraitStruct.
             PipeReader CreatePayload()

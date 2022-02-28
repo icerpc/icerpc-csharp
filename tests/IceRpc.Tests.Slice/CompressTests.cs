@@ -23,7 +23,7 @@ namespace IceRpc.Tests.Slice
                     new Pipeline().Use(next => new InlineInvoker((request, cancel) =>
                     {
                         executed = true;
-                        Assert.AreEqual("opCompressArgs", request.Operation);
+                        Assert.That(request.Operation, Is.EqualTo("opCompressArgs"));
                         Assert.AreEqual(keepDefault ? Features.CompressPayload.Yes : Features.CompressPayload.No,
                                         request.Features.Get<Features.CompressPayload>());
 
@@ -38,7 +38,7 @@ namespace IceRpc.Tests.Slice
             if (!keepDefault)
             {
                 // The generated code does not and should not override a value set explicitly.
-                invocation.RequestFeatures = invocation.RequestFeatures.With(Features.CompressPayload.No);
+                invocation.Features = invocation.Features.With(Features.CompressPayload.No);
             }
 
             await prx.OpCompressArgsAsync(0, default, invocation);
@@ -65,9 +65,9 @@ namespace IceRpc.Tests.Slice
                         {
                             try
                             {
-                                compressedRequest = request.Fields.ContainsKey((int)FieldKey.Compression);
+                                compressedRequest = request.Fields.ContainsKey((int)FieldKey.CompressionFormat);
                                 OutgoingResponse response = await next.DispatchAsync(request, cancel);
-                                compressedResponse = response.Fields.ContainsKey((int)FieldKey.Compression);
+                                compressedResponse = response.Fields.ContainsKey((int)FieldKey.CompressionFormat);
                                 return response;
                             }
                             catch
@@ -108,13 +108,13 @@ namespace IceRpc.Tests.Slice
             byte[] newData = await prx.OpCompressArgsAndReturnAsync(data);
             Assert.That(compressedRequest, Is.True);
             Assert.That(compressedResponse, Is.True);
-            CollectionAssert.AreEqual(newData, data);
+            Assert.That(data, Is.EqualTo(newData));
 
             // The request is not compressed and the response is compressed
             newData = await prx.OpCompressReturnAsync(size);
             Assert.That(compressedRequest, Is.False);
             Assert.That(compressedResponse, Is.True);
-            CollectionAssert.AreEqual(newData, data);
+            Assert.That(data, Is.EqualTo(newData));
 
             // The exceptions are never compressed
             Assert.ThrowsAsync<CompressMyException>(async () => await prx.OpWithUserExceptionAsync(size));

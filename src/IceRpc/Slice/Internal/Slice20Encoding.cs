@@ -8,26 +8,6 @@ namespace IceRpc.Slice.Internal
         /// <summary>The Slice 2.0 encoding singleton.</summary>
         internal static SliceEncoding Instance { get; } = new Slice20Encoding();
 
-        internal static (int Size, int SizeLength) DecodeSize(ReadOnlySpan<byte> from)
-        {
-            ulong size = (from[0] & 0x03) switch
-            {
-                0 => (uint)from[0] >> 2,
-                1 => (uint)BitConverter.ToUInt16(from) >> 2,
-                2 => BitConverter.ToUInt32(from) >> 2,
-                _ => BitConverter.ToUInt64(from) >> 2
-            };
-
-            try
-            {
-                return (checked((int)size), DecodeSizeLength(from[0]));
-            }
-            catch (OverflowException ex)
-            {
-                throw new InvalidDataException("received invalid size", ex);
-            }
-        }
-
         internal static int DecodeSizeLength(byte b) => SliceDecoder.DecodeVarLongLength(b);
 
         /// <summary>Encodes a size into a span of bytes using a fixed number of bytes.</summary>
@@ -41,10 +21,6 @@ namespace IceRpc.Slice.Internal
             }
             SliceEncoder.EncodeVarULong((ulong)size, into);
         }
-
-        /// <summary>Computes the minimum number of bytes needed to encode a variable-length size with the 2.0 encoding.
-        /// </summary>
-        internal static int GetSizeLength(int size) => SliceEncoder.GetVarULongEncodedSize(checked((ulong)size));
 
         private Slice20Encoding()
             : base(Slice20Name)

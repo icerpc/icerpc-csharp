@@ -16,6 +16,6 @@ namespace IceRpc.Transports
         /// <param name="buffers">The buffers containing the data to write.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A value task that completes once the buffers are written.</returns>
-        ValueTask WriteAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel);
+        ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel);
     }
 }

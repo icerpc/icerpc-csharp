@@ -165,7 +165,7 @@ namespace IceRpc.Configure
                             if (path.Length == AbsolutePrefix.Length)
                             {
                                 // We consume everything so there is nothing left to match.
-                                return NullDispatcher.Instance.DispatchAsync(request, cancel);
+                                return Connection.DefaultDispatcher.DispatchAsync(request, cancel);
                             }
                             else
                             {
@@ -201,7 +201,7 @@ namespace IceRpc.Configure
 
                             if (prefix == "/")
                             {
-                                return NullDispatcher.Instance.DispatchAsync(request, cancel);
+                                return Connection.DefaultDispatcher.DispatchAsync(request, cancel);
                             }
 
                             // Cut last segment
@@ -216,7 +216,7 @@ namespace IceRpc.Configure
                             }
                             // and try again with the new shorter prefix
                         }
-                        throw new DispatchException("too many segments in path");
+                        throw new DispatchException("too many segments in path", DispatchErrorCode.InvalidData);
                     }
                 });
 

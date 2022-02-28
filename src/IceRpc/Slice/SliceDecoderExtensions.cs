@@ -78,8 +78,8 @@ namespace IceRpc.Slice
 
         /// <summary>Decodes fields.</summary>
         /// <param name="decoder">The Slice decoder.</param>
-        /// <returns>The fields as an immutable dictionary.</returns>
-        public static ImmutableDictionary<int, ReadOnlyMemory<byte>> DecodeFieldDictionary(this ref SliceDecoder decoder)
+        /// <returns>The fields.</returns>
+        public static IDictionary<int, ReadOnlyMemory<byte>> DecodeFieldDictionary(this ref SliceDecoder decoder)
         {
             int size = decoder.DecodeSize();
             if (size == 0)
@@ -88,20 +88,23 @@ namespace IceRpc.Slice
             }
             else
             {
-                var builder = ImmutableDictionary.CreateBuilder<int, ReadOnlyMemory<byte>>();
+                var dict = new Dictionary<int, ReadOnlyMemory<byte>>(size);
                 for (int i = 0; i < size; ++i)
                 {
-                    builder.Add(decoder.DecodeVarInt(), decoder.DecodeSequence<byte>());
+                    dict.Add(decoder.DecodeVarInt(), decoder.DecodeSequence<byte>());
                 }
-                return builder.ToImmutable();
+                return dict;
             }
         }
 
         /// <summary>Decodes a nullable Prx struct.</summary>
         /// <param name="decoder">The Slice decoder.</param>
+        /// <param name="bitSequenceReader">The bit sequence reader.</param>
         /// <returns>The decoded Prx struct, or null.</returns>
-        public static T? DecodeNullablePrx<T>(ref this SliceDecoder decoder) where T : struct, IPrx =>
-            decoder.DecodeNullableProxy() is Proxy proxy ? new T { Proxy = proxy } : null;
+        public static T? DecodeNullablePrx<T>(
+            ref this SliceDecoder decoder,
+            ref BitSequenceReader bitSequenceReader) where T : struct, IPrx =>
+            decoder.DecodeNullableProxy(ref bitSequenceReader) is Proxy proxy ? new T { Proxy = proxy } : null;
 
         /// <summary>Decodes a sequence of fixed-size numeric values.</summary>
         /// <param name="decoder">The Slice decoder.</param>

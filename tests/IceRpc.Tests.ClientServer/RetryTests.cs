@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Slice;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -31,7 +32,7 @@ namespace IceRpc.Tests.ClientServer
             service.Attempts = 0;
             invocation.Timeout = Timeout.InfiniteTimeSpan;
             await retry.OpRetryAfterDelayAsync(1, 100, invocation);
-            Assert.AreEqual(2, service.Attempts);
+            Assert.That(service.Attempts, Is.EqualTo(2));
         }
 
         [Test]
@@ -57,7 +58,7 @@ namespace IceRpc.Tests.ClientServer
             var proxy = Proxy.Parse($"{server1.Endpoint}", serviceProvider1.GetRequiredService<IInvoker>());
             proxy = proxy with { Path = "/retry" };
 
-            var prx = new RetryReplicatedTestPrx(proxy);
+            var prx = new ServicePrx(proxy);
 
             prx.Proxy.AltEndpoints = ImmutableList.Create(server2.Endpoint, server3.Endpoint);
 
@@ -81,7 +82,7 @@ namespace IceRpc.Tests.ClientServer
                 .AddTransient<IDispatcher, Bidir>()
                 .BuildServiceProvider();
 
-            var retryBidir = RetryBidirTestPrx.Parse("icerpc:/retry");
+            var retryBidir = ServicePrx.Parse("icerpc:/retry");
             retryBidir.Proxy.Endpoint = serviceProvider.GetRequiredService<Server>().Endpoint;
             retryBidir.Proxy.Invoker = serviceProvider.GetRequiredService<IInvoker>();
             await retryBidir.IcePingAsync();
@@ -89,8 +90,9 @@ namespace IceRpc.Tests.ClientServer
             // endpointless proxy with a connection
             var bidir = new RetryBidirTestPrx(retryBidir.Proxy with { Endpoint = null });
 
-            Assert.ThrowsAsync<ServiceNotFoundException>(
-                async () => await bidir.OtherReplicaAsync(cancel: CancellationToken.None));
+            var dispatchException = Assert.ThrowsAsync<DispatchException>(
+                () => bidir.OtherReplicaAsync(cancel: CancellationToken.None));
+             Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
 
             // The exception is not retryable with the Ice protocol. With the IceRPC protocol, we can retry using the
             // existing connection because the exception uses the AfterDelay retry policy.
@@ -110,14 +112,14 @@ namespace IceRpc.Tests.ClientServer
                 .UseProtocol(protocol)
                 .BuildServiceProvider();
             RetryTest service = serviceProvider.GetRequiredService<RetryTest>();
-            RetryTestPrx retry = new(serviceProvider.GetRequiredService<Proxy>());
+            var retry = new RetryTestPrx(serviceProvider.GetRequiredService<Proxy>());
 
             // Remote case: send multiple OpWithData, followed by a close and followed by multiple OpWithData. The
             // goal is to make sure that none of the OpWithData fail even if the server closes the connection
             // gracefully in between.
             byte[] seq = new byte[1024 * 10];
 
-            await retry.IcePingAsync();
+            await new ServicePrx(retry.Proxy).IcePingAsync();
             var results = new List<Task>();
             for (int i = 0; i < maxQueue; ++i)
             {
@@ -153,7 +155,7 @@ namespace IceRpc.Tests.ClientServer
             // between.
             byte[] seq = new byte[1024 * 10];
 
-            await retry.IcePingAsync();
+            await new ServicePrx(retry.Proxy).IcePingAsync();
             var results = new List<Task>();
             for (int i = 0; i < maxQueue; ++i)
             {
@@ -226,7 +228,7 @@ namespace IceRpc.Tests.ClientServer
             if (failedAttempts < maxAttempts && (protocol == "icerpc" || killConnection))
             {
                 await retry.OpIdempotentAsync(failedAttempts, killConnection);
-                Assert.AreEqual(failedAttempts + 1, service.Attempts);
+                Assert.That(service.Attempts, Is.EqualTo(failedAttempts + 1));
             }
             else
             {
@@ -243,11 +245,11 @@ namespace IceRpc.Tests.ClientServer
 
                 if (protocol == "icerpc" || killConnection)
                 {
-                    Assert.AreEqual(maxAttempts, service.Attempts);
+                    Assert.That(service.Attempts, Is.EqualTo(maxAttempts));
                 }
                 else
                 {
-                    Assert.AreEqual(1, service.Attempts);
+                    Assert.That(service.Attempts, Is.EqualTo(1));
                 }
             }
         }
@@ -262,7 +264,7 @@ namespace IceRpc.Tests.ClientServer
 
             // There is a single attempt because the retry policy doesn't allow to retry
             Assert.CatchAsync<RetrySystemFailure>(async () => await retry.OpRetryNoAsync());
-            Assert.AreEqual(1, service.Attempts);
+            Assert.That(service.Attempts, Is.EqualTo(1));
         }
 
         [TestCase("icerpc", 1, 1, false)] // 1 failure, 1 max attempts, don't kill the connection
@@ -302,12 +304,12 @@ namespace IceRpc.Tests.ClientServer
                 // Connection failures after a request was sent are not retryable for non idempotent operations
                 Assert.CatchAsync<ConnectionLostException>(
                     async () => await retry.OpNotIdempotentAsync(failedAttempts, killConnection));
-                Assert.AreEqual(1, service.Attempts);
+                Assert.That(service.Attempts, Is.EqualTo(1));
             }
             else if (failedAttempts < maxAttempts && (protocol == "icerpc" || killConnection))
             {
                 await retry.OpNotIdempotentAsync(failedAttempts, killConnection);
-                Assert.AreEqual(failedAttempts + 1, service.Attempts);
+                Assert.That(service.Attempts, Is.EqualTo(failedAttempts + 1));
             }
             else
             {
@@ -315,11 +317,11 @@ namespace IceRpc.Tests.ClientServer
                     async () => await retry.OpNotIdempotentAsync(failedAttempts, killConnection));
                 if (protocol == "icerpc" || killConnection)
                 {
-                    Assert.AreEqual(maxAttempts, service.Attempts);
+                    Assert.That(service.Attempts, Is.EqualTo(maxAttempts));
                 }
                 else
                 {
-                    Assert.AreEqual(1, service.Attempts);
+                    Assert.That(service.Attempts, Is.EqualTo(1));
                 }
             }
         }
@@ -353,9 +355,9 @@ namespace IceRpc.Tests.ClientServer
             // The service proxy has 2 endpoints, the request fails using the first endpoint with a retryable
             // exception that has OtherReplica retry policy, it then retries the second endpoint and succeed.
             Assert.DoesNotThrowAsync(async () => await prx.OtherReplicaAsync());
-            Assert.AreEqual(2, calls.Count);
-            Assert.AreEqual(server1.ToString(), calls[0]);
-            Assert.AreEqual(server2.ToString(), calls[1]);
+            Assert.That(calls.Count, Is.EqualTo(2));
+            Assert.That(server1.ToString(), Is.EqualTo(calls[0]));
+            Assert.That(server2.ToString(), Is.EqualTo(calls[1]));
 
             IDispatcher CreateDispatcher(IDispatcher next)
             {
@@ -378,7 +380,7 @@ namespace IceRpc.Tests.ClientServer
             await using ServiceProvider serviceProvider1 = new IntegrationTestServiceCollection()
                 .UseColoc(colocTransport, 1)
                 .AddTransient(_ => CreateDispatcher(new InlineDispatcher((request, cancel) =>
-                    throw new ServiceNotFoundException(RetryPolicy.OtherReplica))))
+                    throw new DispatchException(DispatchErrorCode.ServiceNotFound, RetryPolicy.OtherReplica))))
                 .BuildServiceProvider();
 
             await using ServiceProvider serviceProvider2 = new IntegrationTestServiceCollection()
@@ -392,7 +394,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     await request.Connection.CloseAsync("forcefully close connection!");
                     await Task.Delay(1000, cancel);
-                    throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
+                    throw new DispatchException(DispatchErrorCode.ServiceNotFound, RetryPolicy.OtherReplica);
                 })))
                 .BuildServiceProvider();
 
@@ -413,18 +415,20 @@ namespace IceRpc.Tests.ClientServer
 
             // The first replica fails with ServiceNotFoundException exception and there is no additional replicas.
             calls.Clear();
-            Assert.ThrowsAsync<ServiceNotFoundException>(async () => await prx.OtherReplicaAsync());
-            Assert.AreEqual(1, calls.Count);
-            Assert.AreEqual(server1.ToString(), calls[0]);
+
+            var dispatchException = Assert.ThrowsAsync<DispatchException>(() => prx.OtherReplicaAsync());
+            Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
+            Assert.That(calls.Count, Is.EqualTo(1));
+            Assert.That(server1.ToString(), Is.EqualTo(calls[0]));
 
             // The first replica fails with ServiceNotFoundException exception the second replica fails with
             // RetrySystemFailure the last failure should be reported.
             calls.Clear();
             prx.Proxy.AltEndpoints = ImmutableList.Create(server2.Endpoint);
             Assert.ThrowsAsync<RetrySystemFailure>(async () => await prx.OtherReplicaAsync());
-            Assert.AreEqual(2, calls.Count);
-            Assert.AreEqual(server1.ToString(), calls[0]);
-            Assert.AreEqual(server2.ToString(), calls[1]);
+            Assert.That(calls.Count, Is.EqualTo(2));
+            Assert.That(server1.ToString(), Is.EqualTo(calls[0]));
+            Assert.That(server2.ToString(), Is.EqualTo(calls[1]));
 
             // The first replica fails with ServiceNotFoundException exception the second replica fails with
             // ConnectionLostException the last failure should be reported. The 3rd replica cannot be used because
@@ -432,9 +436,9 @@ namespace IceRpc.Tests.ClientServer
             calls.Clear();
             prx.Proxy.AltEndpoints = ImmutableList.Create(server3.Endpoint, server2.Endpoint);
             Assert.ThrowsAsync<ConnectionLostException>(async () => await prx.OtherReplicaAsync());
-            Assert.AreEqual(2, calls.Count);
-            Assert.AreEqual(server1.ToString(), calls[0]);
-            Assert.AreEqual(server3.ToString(), calls[1]);
+            Assert.That(calls.Count, Is.EqualTo(2));
+            Assert.That(server1.ToString(), Is.EqualTo(calls[0]));
+            Assert.That(server3.ToString(), Is.EqualTo(calls[1]));
 
             IDispatcher CreateDispatcher(IDispatcher next)
             {
@@ -636,14 +640,16 @@ namespace IceRpc.Tests.ClientServer
         {
             if (++_n < n)
             {
-                throw new ServiceNotFoundException(RetryPolicy.AfterDelay(TimeSpan.FromMilliseconds(10)));
+                throw new DispatchException(
+                    DispatchErrorCode.ServiceNotFound,
+                    RetryPolicy.AfterDelay(TimeSpan.FromMilliseconds(10)));
             }
             _n = 0;
             return default;
         }
 
         public ValueTask OtherReplicaAsync(Dispatch dispatch, CancellationToken cancel) =>
-            throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
+            throw new DispatchException(DispatchErrorCode.ServiceNotFound, RetryPolicy.OtherReplica);
     }
 
     public class Replicated : Service, IRetryReplicatedTest

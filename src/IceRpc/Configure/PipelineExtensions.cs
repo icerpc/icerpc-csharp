@@ -1,8 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice;
 using Microsoft.Extensions.Logging;
-using System.Reflection;
 
 namespace IceRpc.Configure
 {
@@ -35,6 +33,17 @@ namespace IceRpc.Configure
         public static Pipeline UseCompressor(this Pipeline pipeline, CompressOptions options) =>
             pipeline.Use(next => new CompressorInterceptor(next, options));
 
+        /// <summary>Adds an interceptor that sets a feature in all requests.</summary>
+        /// <paramtype name="T">The type of the feature.</paramtype>
+        /// <param name="pipeline">The pipeline being configured.</param>
+        /// <param name="feature">The value of the feature to set.</param>
+        public static Pipeline UseFeature<T>(this Pipeline pipeline, T feature) =>
+            pipeline.Use(next => new InlineInvoker((request, cancel) =>
+            {
+                request.Features = request.Features.With(feature);
+                return next.InvokeAsync(request, cancel);
+            }));
+
         /// <summary>Adds a <see cref="LoggerInterceptor"/> to the pipeline.</summary>
         /// <param name="pipeline">The pipeline being configured.</param>
         /// <param name="loggerFactory">The logger factory used to create the logger.</param>
@@ -48,18 +57,6 @@ namespace IceRpc.Configure
         /// <returns>The pipeline being configured.</returns>
         public static Pipeline UseMetrics(this Pipeline pipeline, InvocationEventSource eventSource) =>
             pipeline.Use(next => new MetricsInterceptor(next, eventSource));
-
-        /// <summary>Adds an interceptor that sets a feature in the response's features.</summary>
-        /// <paramtype name="T">The type of the feature.</paramtype>
-        /// <param name="pipeline">The pipeline being configured.</param>
-        /// <param name="feature">The value of the feature to set in all responses.</param>
-        public static Pipeline UseResponseFeature<T>(this Pipeline pipeline, T feature) =>
-            pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
-            {
-                IncomingResponse response = await next.InvokeAsync(request, cancel).ConfigureAwait(false);
-                response.Features = response.Features.With(feature);
-                return response;
-            }));
 
         /// <summary>Adds a <see cref="RetryInterceptor"/> that use the default <see cref="RetryOptions"/> to the
         /// pipeline.</summary>

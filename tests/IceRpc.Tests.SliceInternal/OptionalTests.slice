@@ -1,0 +1,9 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module IceRpc::Tests::SliceInternal;
+
+compact struct MyOptional
+{
+    str: string,
+    service: Slice::Service?,
+}

@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Slice;
 using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -72,21 +73,22 @@ namespace IceRpc.Tests.ClientServer
             // forwardService.Proxy.Proxy
 
             ProtocolBridgingTestPrx newPrx = await TestProxyAsync(forwarderServicePrx, direct: false);
-            Assert.AreEqual(targetProtocol, (object)newPrx.Proxy.Protocol.Name);
+            Assert.That((object)newPrx.Proxy.Protocol.Name, Is.EqualTo(targetProtocol));
             _ = await TestProxyAsync(newPrx, direct: true);
 
             async Task<ProtocolBridgingTestPrx> TestProxyAsync(ProtocolBridgingTestPrx prx, bool direct)
             {
-                Assert.AreEqual(prx.Proxy.Path, direct ? "/target" : "/forward");
-
-                Assert.AreEqual(13, await prx.OpAsync(13));
+                var expectedPath = direct ? "/target" : "/forward";
+                Assert.That(prx.Proxy.Path, Is.EqualTo(expectedPath));
+                Assert.That(await prx.OpAsync(13), Is.EqualTo(13));
 
                 var invocation = new Invocation
                 {
-                    Context = new Dictionary<string, string> { ["MyCtx"] = "hello" }
+                    Features = new FeatureCollection().WithContext(
+                        new Dictionary<string, string> { ["MyCtx"] = "hello" })
                 };
                 await prx.OpContextAsync(invocation);
-                CollectionAssert.AreEqual(invocation.Context, targetService.Context);
+                Assert.That(invocation.Features.GetContext(), Is.EqualTo(targetService.Context));
                 targetService.Context = ImmutableDictionary<string, string>.Empty;
 
                 await prx.OpVoidAsync();
@@ -95,12 +97,11 @@ namespace IceRpc.Tests.ClientServer
 
                 Assert.ThrowsAsync<ProtocolBridgingException>(async () => await prx.OpExceptionAsync());
 
-                ServiceNotFoundException? exception = Assert.ThrowsAsync<ServiceNotFoundException>(
-                    async () => await prx.OpServiceNotFoundExceptionAsync());
+                var dispatchException = Assert.ThrowsAsync<DispatchException>(
+                    () => prx.OpServiceNotFoundExceptionAsync());
 
-                // Verifies the exception is correctly populated:
-                Assert.AreEqual("/target", exception!.Origin.Path);
-                Assert.AreEqual("opServiceNotFoundException", exception.Origin.Operation);
+                Assert.That(dispatchException!.ErrorCode, Is.EqualTo(DispatchErrorCode.ServiceNotFound));
+                Assert.That(dispatchException!.Origin, Is.Not.Null);
 
                 ProtocolBridgingTestPrx newProxy = await prx.OpNewProxyAsync();
                 return newProxy;
@@ -116,7 +117,7 @@ namespace IceRpc.Tests.ClientServer
 
             public ValueTask OpContextAsync(Dispatch dispatch, CancellationToken cancel)
             {
-                Context = dispatch.Context.ToImmutableDictionary();
+                Context = dispatch.Features.GetContext().ToImmutableDictionary();
                 return default;
             }
             public ValueTask OpExceptionAsync(Dispatch dispatch, CancellationToken cancel) =>
@@ -133,13 +134,14 @@ namespace IceRpc.Tests.ClientServer
             public ValueTask OpOnewayAsync(int x, Dispatch dispatch, CancellationToken cancel) => default;
 
             public ValueTask OpServiceNotFoundExceptionAsync(Dispatch dispatch, CancellationToken cancel) =>
-                throw new ServiceNotFoundException();
+                throw new DispatchException(DispatchErrorCode.ServiceNotFound);
 
             public ValueTask OpVoidAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }
 
         public sealed class Forwarder : IDispatcher
         {
+            private static readonly IActivator _activator = SliceDecoder.GetActivator(typeof(Forwarder).Assembly);
             private readonly Proxy _target;
 
             async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(
@@ -150,30 +152,21 @@ namespace IceRpc.Tests.ClientServer
 
                 Protocol targetProtocol = _target.Protocol;
 
-                // Fields and context forwarding
-                IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields =
-                    ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
+                // Context forwarding
                 FeatureCollection features = FeatureCollection.Empty;
-
-                if (incomingRequest.Protocol == Protocol.IceRpc && targetProtocol == Protocol.IceRpc)
+                if (incomingRequest.Protocol == Protocol.Ice || targetProtocol == Protocol.Ice)
                 {
-                    // The context is just another field, features remain empty
-                    fields = incomingRequest.Fields;
-                }
-                else
-                {
-                    // When Protocol or targetProtocol is Ice, fields remains empty and we put only the request context
-                    // in the initial features of the new outgoing request
+                    // When Protocol or targetProtocol is ice, we put the request context in the initial features of the
+                    // new outgoing request to ensure it gets forwarded.
                     features = features.WithContext(incomingRequest.Features.GetContext());
                 }
 
-                var outgoingRequest = new OutgoingRequest(_target, incomingRequest.Operation)
+                var outgoingRequest = new OutgoingRequest(_target)
                 {
-                    Deadline = incomingRequest.Deadline,
                     Features = features,
-                    FieldsDefaults = fields,
+                    Fields = incomingRequest.Fields, // mostly ignored by ice, with the exception of Idempotent
                     IsOneway = incomingRequest.IsOneway,
-                    IsIdempotent = incomingRequest.IsIdempotent,
+                    Operation = incomingRequest.Operation,
                     PayloadEncoding = incomingRequest.PayloadEncoding,
                     PayloadSource = incomingRequest.Payload
                 };
@@ -183,12 +176,31 @@ namespace IceRpc.Tests.ClientServer
                 IncomingResponse incomingResponse = await _target.Invoker!.InvokeAsync(outgoingRequest, cancel);
 
                 // Then create an outgoing response from the incoming response
+                // When ResultType == Failure and the protocols are different, we need to transcode the exception
+                // (typically a dispatch exception). Fortunately, we can simply throw it.
+
+                if (incomingRequest.Protocol != incomingResponse.Protocol &&
+                    incomingResponse.ResultType == ResultType.Failure)
+                {
+                    // TODO: need better method to decode and throw the exception
+                    try
+                    {
+                        await incomingResponse.CheckVoidReturnValueAsync(
+                            _activator,
+                            hasStream: false,
+                            cancel).ConfigureAwait(false);
+                    }
+                    catch (RemoteException ex)
+                    {
+                        ex.ConvertToUnhandled = false;
+                        throw;
+                    }
+                }
 
                 return new OutgoingResponse(incomingRequest)
                 {
                     // Don't forward RetryPolicy
-                    FieldsDefaults = incomingResponse.Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
-                    PayloadEncoding = incomingResponse.PayloadEncoding,
+                    Fields = incomingResponse.Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
                     PayloadSource = incomingResponse.Payload,
                     ResultType = incomingResponse.ResultType
                 };
