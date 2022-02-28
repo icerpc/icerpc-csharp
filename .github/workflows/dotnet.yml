@@ -41,11 +41,10 @@ jobs:
     - name: Test
       run: dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage" --logger:"nunit;LogFilePath=TestResults/TestResults.xml"
     - name: NUnit Reporter
-      uses: MirageNet/nunit-reporter@v1.1.0
+      uses: MirageNet/nunit-reporter@accesscode
       if: always()
       with:
-        path: tests/IceRpc.Tests.ClientServer/TestResults/TestResults.xml
-        access-token: ${{ secrets.NUNIT_REPORTER_TOKEN }}
+        path: tests/**/TestResults.xml
     - name: Build Examples
       run: ./build.sh --examples --srcdist
     - name: ReportGenerator
