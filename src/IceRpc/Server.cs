@@ -100,25 +100,12 @@ namespace IceRpc
                 }
 
                 // Run task to start accepting new connections.
-                _ = Task.Run(() => AcceptAsync(
-                    listener,
-                    options.Dispatcher,
-                    protocolConnectionFactory,
-                    options.CloseTimeout,
-                    options.ConnectTimeout,
-                    options.IncomingFrameMaxSize,
-                    options.KeepAlive,
-                    closedEventHandler));
+                _ = Task.Run(() => AcceptAsync(listener, protocolConnectionFactory, closedEventHandler));
             }
 
             async Task AcceptAsync<T>(
                 IListener<T> listener,
-                IDispatcher dispatcher,
                 IProtocolConnectionFactory<T> protocolConnectionFactory,
-                TimeSpan closeTimeout,
-                TimeSpan connectTimeout,
-                int incomingFrameMaxSize,
-                bool keepAlive,
                 EventHandler<ClosedEventArgs>? closedEventHandler) where T : INetworkConnection
             {
                 while (true)
@@ -146,7 +133,7 @@ namespace IceRpc
 
                     // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                    var connection = new Connection(networkConnection, Endpoint.Protocol, closeTimeout);
+                    var connection = new Connection(networkConnection, Endpoint.Protocol, options.CloseTimeout);
 #pragma warning restore CA2000
 
                     lock (_mutex)
@@ -180,11 +167,11 @@ namespace IceRpc
                     // connection initialization as we wouldn't be able to accept new connections in the meantime.
                     _ = connection.ConnectAsync(
                         networkConnection,
-                        dispatcher,
+                        options.Dispatcher,
                         protocolConnectionFactory,
-                        connectTimeout,
-                        incomingFrameMaxSize,
-                        keepAlive,
+                        options.ConnectTimeout,
+                        options.IncomingFrameMaxSize,
+                        options.KeepAlive,
                         closedEventHandler);
                 }
             }

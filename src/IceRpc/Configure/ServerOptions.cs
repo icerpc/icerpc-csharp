@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace IceRpc.Configure
 {
     /// <summary>A property bag used to configure a <see cref="Server"/>.</summary>
-    public sealed class ServerOptions
+    public sealed record class ServerOptions
     {
         /// <summary>The default value for <see cref="MultiplexedServerTransport"/>.</summary>
         public static IServerTransport<IMultiplexedNetworkConnection> DefaultMultiplexedServerTransport { get; } =
@@ -24,7 +24,7 @@ namespace IceRpc.Configure
         public TimeSpan CloseTimeout
         {
             get => _closeTimeout;
-            set => _closeTimeout = value != TimeSpan.Zero ? value :
+            init => _closeTimeout = value != TimeSpan.Zero ? value :
                 throw new ArgumentException($"0 is not a valid value for {nameof(CloseTimeout)}", nameof(value));
         }
 
@@ -33,17 +33,17 @@ namespace IceRpc.Configure
         public TimeSpan ConnectTimeout
         {
             get => _connectTimeout;
-            set => _connectTimeout = value != TimeSpan.Zero ? value :
+            init => _connectTimeout = value != TimeSpan.Zero ? value :
                 throw new ArgumentException($"0 is not a valid value for {nameof(ConnectTimeout)}", nameof(value));
         }
 
-        /// <summary>Gets or sets the server's endpoint. The endpoint's host is usually an IP address, and it cannot be
-        /// a DNS name.</summary>
+        /// <summary>Gets or initializes the server's endpoint. The endpoint's host is usually an IP address, and it
+        /// cannot be a DNS name.</summary>
         public Endpoint Endpoint
         {
             get => _endpoint;
-            set => _endpoint = value.Protocol.IsSupported ? value :
-                throw new NotSupportedException($"cannot set endpoint with protocol '{value.Protocol}'");
+            init => _endpoint = value.Protocol.IsSupported ? value :
+                throw new NotSupportedException($"cannot initialize endpoint with protocol '{value.Protocol}'");
         }
 
         /// <summary>The maximum size in bytes of an incoming Ice or IceRpc protocol frame. It's important to specify
@@ -54,7 +54,7 @@ namespace IceRpc.Configure
         public int IncomingFrameMaxSize
         {
             get => _incomingFrameMaxSize;
-            set => _incomingFrameMaxSize = value >= 1024 ? value :
+            init => _incomingFrameMaxSize = value >= 1024 ? value :
                 value <= 0 ? int.MaxValue :
                 throw new ArgumentException($"{nameof(IncomingFrameMaxSize)} cannot be less than 1KB ", nameof(value));
         }
@@ -65,24 +65,24 @@ namespace IceRpc.Configure
         /// </summary>
         /// <value><c>true</c> to enable connection keep alive; <c>false</c> to disable it. The default is <c>false</c>.
         /// </value>
-        public bool KeepAlive { get; set; }
+        public bool KeepAlive { get; init; }
 
-        /// <summary>Gets or sets the server's dispatcher.</summary>
+        /// <summary>Gets or initializes the server's dispatcher.</summary>
         /// <seealso cref="IDispatcher"/>
         /// <seealso cref="Router"/>
-        public IDispatcher Dispatcher { get; set; } = ConnectionOptions.DefaultDispatcher;
+        public IDispatcher Dispatcher { get; init; } = ConnectionOptions.DefaultDispatcher;
 
         /// <summary>The logger factory used to create loggers to log connection-related activities.</summary>
-        public ILoggerFactory LoggerFactory { get; set; } = NullLoggerFactory.Instance;
+        public ILoggerFactory LoggerFactory { get; init; } = NullLoggerFactory.Instance;
 
         /// <summary>The <see cref="IServerTransport{IMultiplexedNetworkConnection}"/> used by the server to accept
         /// multiplexed connections.</summary>
-        public IServerTransport<IMultiplexedNetworkConnection> MultiplexedServerTransport { get; set; } =
+        public IServerTransport<IMultiplexedNetworkConnection> MultiplexedServerTransport { get; init; } =
             DefaultMultiplexedServerTransport;
 
         /// <summary>The <see cref="IServerTransport{ISimpleNetworkConnection}"/> used by the server to accept simple
         /// connections.</summary>
-        public IServerTransport<ISimpleNetworkConnection> SimpleServerTransport { get; set; } =
+        public IServerTransport<ISimpleNetworkConnection> SimpleServerTransport { get; init; } =
             DefaultSimpleServerTransport;
 
         private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);

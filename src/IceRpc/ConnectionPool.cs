@@ -197,19 +197,12 @@ namespace IceRpc
 
                 if (connection == null)
                 {
-                    ConnectionOptions connectionOptions;
-                    if (_connectionOptions == null)
-                    {
-                        connectionOptions = new ConnectionOptions { RemoteEndpoint = endpoint };
-                    }
-                    else
-                    {
-                        connectionOptions = _connectionOptions.Clone();
-                        connectionOptions.RemoteEndpoint = endpoint;
-                    }
-
                     // Connections from the connection pool are not resumable.
-                    connection = new Connection(connectionOptions);
+                    connection = new Connection(
+                        _connectionOptions is ConnectionOptions connectionOptions ?
+                            connectionOptions with { RemoteEndpoint = endpoint } :
+                            new ConnectionOptions { RemoteEndpoint = endpoint });
+
                     if (!_connections.TryGetValue(endpoint, out connections))
                     {
                         connections = new List<Connection>();

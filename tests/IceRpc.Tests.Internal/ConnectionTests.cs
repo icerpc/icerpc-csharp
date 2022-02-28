@@ -592,16 +592,17 @@ namespace IceRpc.Tests.Internal
                 async Task<Connection> ConnectAsync(Endpoint endpoint)
                 {
                     // TODO: refactor test to use connection options correctly.
-                    ConnectionOptions connectionOptions = clientConnectionOptions?.Clone() ?? new();
-                    connectionOptions.IsResumable = false;
-                    connectionOptions.SimpleClientTransport =
-                         _serviceProvider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>();
-
-                    connectionOptions.MultiplexedClientTransport =
-                        _serviceProvider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
-
-                    connectionOptions.LoggerFactory = _serviceProvider.GetRequiredService<ILoggerFactory>();
-                    connectionOptions.RemoteEndpoint = endpoint;
+                    ConnectionOptions connectionOptions = clientConnectionOptions ?? new();
+                    connectionOptions = connectionOptions with
+                    {
+                        IsResumable = false,
+                        SimpleClientTransport =
+                            _serviceProvider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
+                        MultiplexedClientTransport =
+                            _serviceProvider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
+                        LoggerFactory = _serviceProvider.GetRequiredService<ILoggerFactory>(),
+                        RemoteEndpoint = endpoint
+                    };
 
                     var connection = new Connection(connectionOptions);
                     await connection.ConnectAsync(default);
