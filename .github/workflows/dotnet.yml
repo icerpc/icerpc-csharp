@@ -41,7 +41,7 @@ jobs:
     - name: Test
       run: dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage" --logger:"nunit;LogFilePath=TestResults/TestResults.xml"
     - name: NUnit Reporter
-      uses: MirageNet/nunit-reporter@v1.0.5
+      uses: MirageNet/nunit-reporter@v1.1.0
       if: always()
       with:
         path: tests/IceRpc.Tests.ClientServer/TestResults/TestResults.xml
