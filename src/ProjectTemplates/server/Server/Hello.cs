@@ -1,6 +1,5 @@
-using IceRpc.Slice;
-
-namespace Demo;
+using Demo;
+using IceRpc;
 
 public class Hello : Service, IHello
 {
