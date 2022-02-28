@@ -418,6 +418,7 @@ namespace IceRpc.Transports.Internal
                 // Next, ensure send credit is available. If not, this will block until the receiver allows sending
                 // additional data.
                 int sendCredit = await stream.AcquireSendCreditAsync(cancel).ConfigureAwait(false);
+                Debug.Assert (sendCredit > 0);
 
                 // Finally, acquire the send semaphore to ensure only one stream writes to the connection.
                 await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
@@ -479,6 +480,10 @@ namespace IceRpc.Transports.Internal
                         // start a new stream before the Slic connection stream count is decreased.
                         stream.TrySetWriteCompleted();
                     }
+                    else if (sendSize == 0)
+                    {
+                        return new FlushResult(isCanceled: false, isCompleted: false);
+                    }
 
                     // We can encode the Slic header now that we known the data size and the stream ID.
                     _sendBuffers[0] = EncodeSlicHeader(sendSize, endStream);
@@ -511,7 +516,6 @@ namespace IceRpc.Transports.Internal
                 // The stream ID is part of the frame data.
                 ulong streamId = checked((ulong)stream.Id);
                 sendSize += SliceEncoder.GetVarULongEncodedSize(streamId);
-
                 // Write the Slic frame header (frameType, frameSize, streamId).
                 _sendFrameWriter.Clear();
                 var encoder = new SliceEncoder(_sendFrameWriter, Encoding.Slice20);

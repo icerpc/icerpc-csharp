@@ -229,7 +229,7 @@ namespace IceRpc.Transports.Internal
                     }
                 }
 
-                if (endStream)
+                if (dataSize == 0 || endStream)
                 {
                     // We complete the pipe writer but we don't mark reads as completed. Reads will be marked as
                     // completed once the application calls TryRead/ReadAsync. It's important for unidirectional stream
