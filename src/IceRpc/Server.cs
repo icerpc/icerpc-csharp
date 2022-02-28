@@ -14,9 +14,8 @@ namespace IceRpc
     public sealed class Server : IAsyncDisposable
     {
         /// <summary>Returns the endpoint of this server.</summary>
-        /// <value>The endpoint of this server. The endpoint's host is usually an IP address, and it cannot be a DNS
-        /// name. Once <see cref="Listen"/> is called, the endpoint's value is the listening endpoint returned by the
-        /// transport.</value>
+        /// <value>The endpoint of this server. Once <see cref="Listen"/> is called, the endpoint's value is the
+        /// listening endpoint returned by the transport.</value>
         public Endpoint Endpoint { get; private set; }
 
         /// <summary>Returns a task that completes when the server's shutdown is complete: see <see
@@ -25,11 +24,11 @@ namespace IceRpc
 
         private readonly HashSet<Connection> _connections = new();
 
+        private readonly Action _listenAction;
+
         private IListener? _listener;
 
         private bool _listening;
-
-        private readonly Action _listenAction;
 
         // protects _shutdownTask
         private readonly object _mutex = new();
@@ -278,11 +277,11 @@ namespace IceRpc
                         await listener.DisposeAsync().ConfigureAwait(false);
                     }
 
-                    // Shuts down the connections to stop accepting new incoming requests. This ensures that
-                    // once ShutdownAsync returns, no new requests will be dispatched. ShutdownAsync on each
-                    // connections waits for the connection dispatch to complete. If the cancellation token is
-                    // canceled, the dispatch will be cancelled. This can speed up the shutdown if the
-                    // dispatch check the dispatch cancellation token.
+                    // Shuts down the connections to stop accepting new incoming requests. This ensures that once
+                    // ShutdownAsync returns, no new requests will be dispatched. ShutdownAsync on each connection waits
+                    // for the connection dispatch to complete. If the cancellation token is canceled, the dispatch will
+                    // be canceled. This can speed up the shutdown if the dispatch check the dispatch cancellation
+                    // token.
                     await Task.WhenAll(_connections.Select(
                         connection => connection.ShutdownAsync("server shutdown", cancel))).ConfigureAwait(false);
                 }
@@ -290,9 +289,9 @@ namespace IceRpc
                 {
                     _shutdownCancelSource!.Dispose();
 
-                    // The continuation is executed asynchronously (see _shutdownCompleteSource's
-                    // construction). This way, even if the continuation blocks waiting on ShutdownAsync to
-                    // complete (with incorrect code using Result or Wait()), ShutdownAsync will complete.
+                    // The continuation is executed asynchronously (see _shutdownCompleteSource's construction). This
+                    // way, even if the continuation blocks waiting on ShutdownAsync to complete (with incorrect code
+                    // using Result or Wait()), ShutdownAsync will complete.
                     _shutdownCompleteSource.TrySetResult(null);
                 }
             }
