@@ -1,11 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Configure;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace IceRpc
+namespace IceRpc.Configure
 {
     /// <summary>A property bag used to configure a <see cref="Server"/>.</summary>
     public sealed class ServerOptions
