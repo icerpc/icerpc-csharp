@@ -27,7 +27,7 @@ namespace IceRpc.Tests.SliceInternal
 
             buffer = bufferWriter.WrittenBuffer;
 
-            await using var connection = new Connection(new ConnectionOptions());
+            await using var connection = new Connection("icerpc://[::1]");
 
             Proxy proxy2 = DecodeProxy();
             Assert.That(proxy, Is.EqualTo(proxy2));

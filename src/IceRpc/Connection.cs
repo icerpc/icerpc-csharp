@@ -137,7 +137,8 @@ namespace IceRpc
         public Connection(ConnectionOptions options)
         {
             _closeTimeout = options.CloseTimeout;
-            _initialRemoteEndpoint = options.RemoteEndpoint;
+            _initialRemoteEndpoint = options.RemoteEndpoint ??
+                throw new ArgumentException($"options.RemoteEndpoint must be set to a non-null value", nameof(options));
             _isResumable = options.IsResumable;
 
             _connectAction = () =>
