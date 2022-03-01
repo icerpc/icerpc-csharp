@@ -179,9 +179,9 @@ namespace IceRpc.Slice
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
 
-            if (exception is DispatchException dispatchException)
+            if (encoding == IceRpc.Encoding.Slice11 && exception is DispatchException dispatchException)
             {
-                encoder.EncodeDispatchException(dispatchException);
+                encoder.EncodeDispatchExceptionAsSystemException(dispatchException);
             }
             else
             {

@@ -149,16 +149,16 @@ else
             .build(),
         );
 
-        exception_class_builder.add_block(write_encode_method(exception_def));
-        exception_class_builder.add_block(write_encode_trait_method(exception_def));
-        exception_class_builder.add_block(write_encode_core_method(exception_def));
+        exception_class_builder.add_block(encode_method(exception_def));
+        exception_class_builder.add_block(encode_trait_method(exception_def));
+        exception_class_builder.add_block(encode_core_method(exception_def));
 
         self.generated_code
             .insert_scoped(exception_def, exception_class_builder.build().into());
     }
 }
 
-fn write_encode_method(exception_def: &Exception) -> CodeBlock {
+fn encode_method(exception_def: &Exception) -> CodeBlock {
     let members = &exception_def.members();
     let namespace = &exception_def.namespace();
     let has_base = exception_def.base.is_some();
@@ -185,7 +185,7 @@ encoder.EncodeString(Message);
         .build()
 }
 
-fn write_encode_trait_method(exception_def: &Exception) -> CodeBlock {
+fn encode_trait_method(exception_def: &Exception) -> CodeBlock {
     let has_base = exception_def.base.is_some();
 
     // Exception inheritance is only supported with the 1.1 encoding,
@@ -225,12 +225,12 @@ else
         .build()
 }
 
-fn write_encode_core_method(exception_def: &Exception) -> CodeBlock {
+fn encode_core_method(exception_def: &Exception) -> CodeBlock {
     let members = &exception_def.members();
     let namespace = &exception_def.namespace();
     let has_base = exception_def.base.is_some();
 
-    let mut body = CodeBlock::from(format!(
+    let body = CodeBlock::from(format!(
         r#"
 if (encoder.Encoding != IceRpc.Encoding.Slice11)
 {{
@@ -239,15 +239,13 @@ if (encoder.Encoding != IceRpc.Encoding.Slice11)
 
 encoder.StartSlice(_sliceTypeId);
 {encode_data_members}
+encoder.EndSlice(lastSlice: {is_last_slice});
+{encode_base}
         "#,
         encode_data_members = &encode_data_members(members, namespace, FieldType::Exception),
+        is_last_slice = (!has_base).to_string(),
+        encode_base = if has_base { "base.EncodeCore(ref encoder);" } else { "" },
     ));
-    if has_base {
-        writeln!(body, "encoder.EndSlice(lastSlice: false);");
-        writeln!(body, "base.EncodeCore(ref encoder);");
-    } else {
-        writeln!(body, "encoder.EndSlice(lastSlice: true);");
-    }
 
     FunctionBuilder::new("protected override", "void", "EncodeCore", FunctionType::BlockBody)
         .set_inherit_doc(true)

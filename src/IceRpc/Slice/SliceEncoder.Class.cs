@@ -53,38 +53,31 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes a dispatch exception.
-        /// With the 1.1 encoding we encode it as a "system exception", otherwise we encode it normally.</summary>
+        /// <summary>Encodes a dispatch exception as an ice "system exception".</summary>
         /// <param name="v">The dispatch exception to encode.</param>
-        public void EncodeDispatchException(DispatchException v)
+        public void EncodeDispatchExceptionAsSystemException(DispatchException v)
         {
-            // Dispatch exceptions are encoded as "system exceptions" with 1.1.
-            if (Encoding == IceRpc.Encoding.Slice11)
+            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
+
+            DispatchErrorCode errorCode = v.ErrorCode;
+
+            switch (errorCode)
             {
-                DispatchErrorCode errorCode = v.ErrorCode;
+                case DispatchErrorCode.ServiceNotFound:
+                case DispatchErrorCode.OperationNotFound:
+                    this.EncodeReplyStatus(errorCode == DispatchErrorCode.ServiceNotFound ?
+                        ReplyStatus.ObjectNotExistException : ReplyStatus.OperationNotExistException);
 
-                switch (errorCode)
-                {
-                    case DispatchErrorCode.ServiceNotFound:
-                    case DispatchErrorCode.OperationNotFound:
-                        this.EncodeReplyStatus(errorCode == DispatchErrorCode.ServiceNotFound ?
-                            ReplyStatus.ObjectNotExistException : ReplyStatus.OperationNotExistException);
+                    // TODO: pass context to dispatch exception Encode
+                    var requestFailed = new RequestFailedExceptionData(path: "/", "", "");
+                    requestFailed.Encode(ref this);
+                    break;
 
-                        // TODO: pass context to dispatch exception Encode
-                        var requestFailed = new RequestFailedExceptionData(path: "/", "", "");
-                        requestFailed.Encode(ref this);
-                        break;
-
-                    default:
-                        this.EncodeReplyStatus(ReplyStatus.UnknownException);
-                        // We encode the error code in the message.
-                        EncodeString($"[{((byte)errorCode).ToString(CultureInfo.InvariantCulture)}] {v.Message}");
-                        break;
-                }
-            }
-            else
-            {
-                v.EncodeTrait(ref this);
+                default:
+                    this.EncodeReplyStatus(ReplyStatus.UnknownException);
+                    // We encode the error code in the message.
+                    EncodeString($"[{((byte)errorCode).ToString(CultureInfo.InvariantCulture)}] {v.Message}");
+                    break;
             }
         }
 
