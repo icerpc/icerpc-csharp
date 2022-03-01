@@ -44,7 +44,7 @@ jobs:
       uses: MirageNet/nunit-reporter@accesscode
       if: always()
       with:
-        path: tests/**/TestResults.xml
+        path: tests/IceRpc.Tests/TestResults/TestResults.xml
     - name: Build Examples
       run: ./build.sh --examples --srcdist
     - name: ReportGenerator
