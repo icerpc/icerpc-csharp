@@ -7,7 +7,7 @@ namespace IceRpc.Transports.Internal
 {
     internal class SlicPipeReader : PipeReader
     {
-        private int _examined;
+        private int _additionalCredit;
         private Exception? _exception;
         private long _lastExaminedOffset;
         private readonly Pipe _pipe;
@@ -24,36 +24,28 @@ namespace IceRpc.Transports.Internal
         {
             CheckIfCompleted();
 
-            if (_lastExaminedOffset == 0)
+            long startOffset = _readResult.Buffer.GetOffset(_readResult.Buffer.Start);
+            long consumedOffset = _readResult.Buffer.GetOffset(consumed) - startOffset;
+            long examinedOffset = _readResult.Buffer.GetOffset(examined) - startOffset;
+
+            // Add the additional examined bytes to the additional receive credit.
+            _additionalCredit += (int)(examinedOffset - _lastExaminedOffset);
+            _lastExaminedOffset = examinedOffset - consumedOffset;
+
+            // If the additional received credit is superior to the resume threshold notifies the sender that it can
+            // send additional data.
+            if (_additionalCredit >= _resumeThreshold)
             {
-                _lastExaminedOffset = _readResult.Buffer.GetOffset(_readResult.Buffer.Start);
-            }
-
-            // Figure out how much data was examined since last AdvanceTo call.
-            long examinedOffset = _readResult.Buffer.GetOffset(examined);
-            int examinedLength = (int)(examinedOffset - _lastExaminedOffset);
-
-            // If all the examined data has been consumed, the next pipe ReadAsync call will start reading from a new
-            // buffer. In this case, we reset _lastExaminedOffset to 0. The next AdvanceTo call will compute the
-            // examined data length from the start of the buffer.
-            long consumedOffset = _readResult.Buffer.GetOffset(consumed);
-            _lastExaminedOffset = consumedOffset == examinedOffset ? 0 : examinedOffset;
-
-            // Add the examined length to the total examined length. If it's larger than the resume threshold, send the
-            // stream resume write frame to the peer to obtain additional data.
-            _examined += examinedLength;
-            if (_examined >= _resumeThreshold)
-            {
-                Interlocked.Add(ref _receiveCredit, _examined);
-                _stream.SendStreamResumeWrite(_examined);
-                _examined = 0;
+                Interlocked.Add(ref _receiveCredit, (int)_additionalCredit);
+                _stream.SendStreamConsumed(_additionalCredit);
+                _additionalCredit = 0;
             }
 
             // If we reached the end of the sequence and the peer won't be sending additional data, we can mark reads as
             // completed on the stream.
             bool isRemoteWriteCompleted =
                 _readResult.IsCompleted &&
-                consumedOffset == _readResult.Buffer.GetOffset(_readResult.Buffer.End);
+                consumedOffset == _readResult.Buffer.GetOffset(_readResult.Buffer.End) - startOffset;
 
             _pipe.Reader.AdvanceTo(consumed, examined);
 
@@ -204,7 +196,8 @@ namespace IceRpc.Transports.Internal
                     return 0;
                 }
 
-                if (Interlocked.Add(ref _receiveCredit, -dataSize) < 0)
+                int newCredit = Interlocked.Add(ref _receiveCredit, -dataSize);
+                if (newCredit < 0)
                 {
                     throw new InvalidDataException("received more data than flow control permits");
                 }

@@ -90,10 +90,10 @@ namespace IceRpc.Transports.Internal
                     _logger.LogReceivedSlicResetFrame(dataSize, body.ApplicationProtocolErrorCode);
                     break;
                 }
-                case FrameType.StreamResumeWrite:
+                case FrameType.StreamConsumed:
                 {
-                    StreamResumeWriteBody body = buffer.DecodeStreamResumeWrite();
-                    _logger.LogReceivedSlicResumeWriteFrame(dataSize, (int)body.Size);
+                    StreamConsumedBody body = buffer.DecodeStreamConsumed();
+                    _logger.LogReceivedSlicConsumedFrame(dataSize, (int)body.Size);
                     break;
                 }
                 case FrameType.StreamStopSending:
