@@ -12,7 +12,7 @@
     <SliceCompile Include="Bidir.slice" />
     <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview4" PrivateAssets="All" />
     <PackageReference Include="icerpc" Version="$(IceRpcVersion)" />
-    <Compile Update="generated\NotificationCenter.cs">
+    <Compile Update="generated\AlertSystem.cs">
       <SliceCompileSource>Bidir.slice</SliceCompileSource>
     </Compile>
   </ItemGroup>
