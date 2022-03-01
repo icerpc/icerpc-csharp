@@ -173,6 +173,7 @@ if (encoder.Encoding == IceRpc.Encoding.Slice11)
 
 encoder.EncodeString(Message);
 {encode_data_members}
+encoder.EncodeVarInt(Slice20Definitions.TagEndMarker);
         "#,
         encode_data_members = &encode_data_members(members, namespace, FieldType::Exception),
     ));
