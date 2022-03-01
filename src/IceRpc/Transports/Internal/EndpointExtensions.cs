@@ -89,9 +89,8 @@ namespace IceRpc.Transports.Internal
             return (transportCode.Value, encodingMajor, encodingMinor, bytes);
         }
 
-        internal static (bool Compress, int Timeout, bool? Tls) ParseTcpParams(this Endpoint endpoint)
+        internal static (bool Compress, int Timeout) ParseTcpParams(this Endpoint endpoint)
         {
-            bool? tls = null;
             bool compress = false;
             int? timeout = null;
 
@@ -123,10 +122,10 @@ namespace IceRpc.Transports.Internal
                         }
                         break;
 
-                    case "tls":
+                    case "tls": // TODO: remove
                         try
                         {
-                            tls = bool.Parse(value);
+                            _ = bool.Parse(value);
                         }
                         catch (FormatException ex)
                         {
@@ -148,7 +147,7 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            return (compress, timeout ?? DefaultTcpTimeout, tls);
+            return (compress, timeout ?? DefaultTcpTimeout);
         }
 
         internal static (bool Compress, int Ttl, string? MulticastInterface) ParseUdpParams(this Endpoint endpoint)

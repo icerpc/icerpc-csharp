@@ -65,7 +65,7 @@ namespace IceRpc.Transports.Internal
                     $"endpoint '{endpoint}' cannot accept connections because it has a DNS name");
             }
 
-            _ = endpoint.ParseTcpParams().Tls; // TODO: remove
+            _ = endpoint.ParseTcpParams(); // checks it's ok
 
             _idleTimeout = options.IdleTimeout;
 

@@ -659,10 +659,11 @@ namespace IceRpc.Slice
 
                 if (endpoint.Protocol == Protocol.Ice)
                 {
+                    // TODO: should we resurrect the ssl transport with the ice protocol?
                     if (transport == TransportNames.Tcp)
                     {
-                        (compress, timeout, bool? tls) = endpoint.ParseTcpParams();
-                        transportCode = (tls ?? true) ? TransportCode.SSL : TransportCode.TCP;
+                        (compress, timeout) = endpoint.ParseTcpParams();
+                        transportCode = TransportCode.TCP;
                     }
                     else if (transport == TransportNames.Udp)
                     {

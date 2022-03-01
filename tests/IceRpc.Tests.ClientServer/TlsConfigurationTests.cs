@@ -164,6 +164,10 @@ namespace IceRpc.Tests.ClientServer
                         })
                 });
             }
+            else
+            {
+                serviceCollection.AddTransient(_ => new SslClientAuthenticationOptions());
+            }
             await using ServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
 
             ServicePrx prx = serviceProvider.GetProxy<ServicePrx>();
