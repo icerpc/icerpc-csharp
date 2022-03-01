@@ -199,20 +199,6 @@ namespace IceRpc.Slice
 
         // Encode methods for constructed types
 
-        /// <summary>Encodes a remote exception.</summary>
-        /// <param name="v">The remote exception to encode.</param>
-        public void EncodeException(RemoteException v)
-        {
-            if (Encoding == IceRpc.Encoding.Slice11)
-            {
-                EncodeExceptionClass(v);
-            }
-            else
-            {
-                v.Encode(ref this);
-            }
-        }
-
         /// <summary>Encodes a nullable proxy.</summary>
         /// <param name="bitSequenceWriter">The bit sequence writer.</param>
         /// <param name="proxy">The proxy to encode, or null.</param>
