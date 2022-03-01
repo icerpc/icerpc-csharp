@@ -24,14 +24,14 @@ namespace IceRpc
 
         private readonly HashSet<Connection> _connections = new();
 
-        private readonly Action _listenAction;
-
         private IListener? _listener;
 
         private bool _listening;
 
         // protects _shutdownTask
         private readonly object _mutex = new();
+
+        private readonly ServerOptions _options;
 
         private CancellationTokenSource? _shutdownCancelSource;
 
@@ -45,24 +45,65 @@ namespace IceRpc
         public Server(ServerOptions options)
         {
             Endpoint = options.Endpoint;
+            _options = options;
+        }
 
-            _listenAction = () =>
+        /// <summary>Constructs a server with the specified dispatcher. All other properties have their default values.
+        /// </summary>
+        /// <param name="dispatcher">The dispatcher of the server.</param>
+        public Server(IDispatcher dispatcher)
+            : this(new ServerOptions { Dispatcher = dispatcher })
+        {
+        }
+
+        /// <summary>Constructs a server with the specified dispatcher and endpoint. All other properties have their
+        /// default values.</summary>
+        /// <param name="dispatcher">The dispatcher of the server.</param>
+        /// <param name="endpoint">The endpoint of the server.</param>
+        public Server(IDispatcher dispatcher, Endpoint endpoint)
+            : this(new ServerOptions { Dispatcher = dispatcher, Endpoint = endpoint })
+        {
+        }
+
+        /// <summary>Starts listening on the configured endpoint and dispatching requests from clients. If the
+        /// configured endpoint is an IP endpoint with port 0, this method updates the endpoint to include the actual
+        /// port selected by the operating system.</summary>
+        /// <exception cref="InvalidOperationException">Thrown when the server is already listening.</exception>
+        /// <exception cref="ObjectDisposedException">Thrown when the server is shut down or shutting down.</exception>
+        /// <exception cref="TransportException">Thrown when another server is already listening on the same endpoint.
+        /// </exception>
+        public void Listen()
+        {
+            // We lock the mutex because ShutdownAsync can run concurrently.
+            lock (_mutex)
             {
-                if (Endpoint.Protocol == Protocol.Ice)
+                if (_listening)
+                {
+                    throw new InvalidOperationException($"server '{this}' is already listening");
+                }
+
+                if (_shutdownTask != null)
+                {
+                    throw new ObjectDisposedException($"{typeof(Server)}:{this}");
+                }
+
+                if (_options.Endpoint.Protocol == Protocol.Ice)
                 {
                     PerformListen(
-                        options.SimpleServerTransport,
+                        _options.SimpleServerTransport,
                         IceProtocol.Instance.ProtocolConnectionFactory,
                         LogSimpleNetworkConnectionDecorator.Decorate);
                 }
                 else
                 {
                     PerformListen(
-                        options.MultiplexedServerTransport,
+                        _options.MultiplexedServerTransport,
                         IceRpcProtocol.Instance.ProtocolConnectionFactory,
                         LogMultiplexedNetworkConnectionDecorator.Decorate);
                 }
-            };
+
+                _listening = true;
+            }
 
             void PerformListen<T>(
                 IServerTransport<T> serverTransport,
@@ -71,7 +112,7 @@ namespace IceRpc
             {
                 // This is the composition root of Server, where we install log decorators when logging is enabled.
 
-                ILogger logger = options.LoggerFactory.CreateLogger("IceRpc.Server");
+                ILogger logger = _options.LoggerFactory.CreateLogger("IceRpc.Server");
 
                 IListener<T> listener = serverTransport.Listen(Endpoint, logger);
                 _listener = listener;
@@ -133,7 +174,7 @@ namespace IceRpc
 
                     // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                    var connection = new Connection(networkConnection, Endpoint.Protocol, options.CloseTimeout);
+                    var connection = new Connection(networkConnection, Endpoint.Protocol, _options.CloseTimeout);
 #pragma warning restore CA2000
 
                     lock (_mutex)
@@ -167,57 +208,13 @@ namespace IceRpc
                     // connection initialization as we wouldn't be able to accept new connections in the meantime.
                     _ = connection.ConnectAsync(
                         networkConnection,
-                        options.Dispatcher,
+                        _options.Dispatcher,
                         protocolConnectionFactory,
-                        options.ConnectTimeout,
-                        options.IncomingFrameMaxSize,
-                        options.KeepAlive,
+                        _options.ConnectTimeout,
+                        _options.IncomingFrameMaxSize,
+                        _options.KeepAlive,
                         closedEventHandler);
                 }
-            }
-        }
-
-        /// <summary>Constructs a server with the specified dispatcher. All other properties have their default values.
-        /// </summary>
-        /// <param name="dispatcher">The dispatcher of the server.</param>
-        public Server(IDispatcher dispatcher)
-            : this(new ServerOptions { Dispatcher = dispatcher })
-        {
-        }
-
-        /// <summary>Constructs a server with the specified dispatcher and endpoint. All other properties have their
-        /// default values.</summary>
-        /// <param name="dispatcher">The dispatcher of the server.</param>
-        /// <param name="endpoint">The endpoint of the server.</param>
-        public Server(IDispatcher dispatcher, Endpoint endpoint)
-            : this(new ServerOptions { Dispatcher = dispatcher, Endpoint = endpoint })
-        {
-        }
-
-        /// <summary>Starts listening on the configured endpoint and dispatching requests from clients. If the
-        /// configured endpoint is an IP endpoint with port 0, this method updates the endpoint to include the actual
-        /// port selected by the operating system.</summary>
-        /// <exception cref="InvalidOperationException">Thrown when the server is already listening.</exception>
-        /// <exception cref="ObjectDisposedException">Thrown when the server is shut down or shutting down.</exception>
-        /// <exception cref="TransportException">Thrown when another server is already listening on the same endpoint.
-        /// </exception>
-        public void Listen()
-        {
-            // We lock the mutex because ShutdownAsync can run concurrently.
-            lock (_mutex)
-            {
-                if (_listening)
-                {
-                    throw new InvalidOperationException($"server '{this}' is already listening");
-                }
-
-                if (_shutdownTask != null)
-                {
-                    throw new ObjectDisposedException($"{typeof(Server)}:{this}");
-                }
-
-                _listenAction();
-                _listening = true;
             }
         }
 
