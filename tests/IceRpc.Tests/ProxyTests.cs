@@ -190,21 +190,4 @@ public class ProxyTests
             Assert.That(p1.GetHashCode(), Is.EqualTo(p2.GetHashCode()));
         }
     }
-
-    [Test]
-    public void Proxy_UriOptions()
-    {
-        string proxyString = "icerpc://localhost:10000/test";
-
-        var proxy = Proxy.Parse(proxyString);
-
-        Assert.That(proxy.Path, Is.EqualTo("/test"));
-
-        string complicated = $"{proxyString}?encoding=1.1&alt-endpoint=localhost";
-        proxy = Proxy.Parse(complicated);
-
-        Assert.That(proxy.Encoding, Is.EqualTo(Encoding.Slice11));
-        Endpoint altEndpoint = proxy.AltEndpoints[0];
-        Assert.That(proxy.AltEndpoints.Count, Is.EqualTo(1));
-    }
 }
