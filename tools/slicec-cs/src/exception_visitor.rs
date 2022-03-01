@@ -59,7 +59,8 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
 
         exception_class_builder.add_block(
             format!(
-                "private static readonly string _sliceTypeId = typeof({}).GetSliceTypeId()!;",
+                "public static{}readonly string SliceTypeId = typeof({}).GetSliceTypeId()!;",
+                if has_base { " new " } else { " " },
                 exception_name
             )
             .into(),
@@ -196,7 +197,7 @@ base.EncodeTrait(ref encoder);
         "#
     } else {
         r#"
-encoder.EncodeString(_sliceTypeId);
+encoder.EncodeString(SliceTypeId);
 this.Encode(ref encoder);
         "#
     });
@@ -237,7 +238,7 @@ if (encoder.Encoding != IceRpc.Encoding.Slice11)
     throw new InvalidOperationException("encoding an exception in slices is only supported with the 1.1 encoding");
 }}
 
-encoder.StartSlice(_sliceTypeId);
+encoder.StartSlice(SliceTypeId);
 {encode_data_members}
 encoder.EndSlice(lastSlice: {is_last_slice});
 {encode_base}
