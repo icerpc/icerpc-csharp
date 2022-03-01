@@ -84,14 +84,13 @@ namespace ServerApp
                 IServerTransport<IMultiplexedNetworkConnection> serverTransport,
                 IOptions<ServerOptions> options,
                 IDispatcher dispatcher,
-                ILoggerFactory loggerFactory)
-            {
-                ServerOptions serverOptions = options.Value;
-                serverOptions.Dispatcher = dispatcher;
-                serverOptions.LoggerFactory = loggerFactory;
-                serverOptions.MultiplexedServerTransport = serverTransport;
-                _server = new Server(serverOptions);
-            }
+                ILoggerFactory loggerFactory) =>
+                _server = new Server(options.Value with
+                {
+                    Dispatcher = dispatcher,
+                    LoggerFactory = loggerFactory,
+                    MultiplexedServerTransport = serverTransport
+                });
 
             public Task StartAsync(CancellationToken cancellationToken)
             {
