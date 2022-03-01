@@ -6,6 +6,7 @@ using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Net.Security;
 
 namespace IceRpc.Tests
 {
@@ -23,6 +24,7 @@ namespace IceRpc.Tests
 
                 var server = new Server(new ServerOptions
                 {
+                    AuthenticationOptions = serviceProvider.GetService<SslServerAuthenticationOptions>(),
                     Dispatcher = serviceProvider.GetService<IDispatcher>() ?? ConnectionOptions.DefaultDispatcher,
                     Endpoint = serviceProvider.GetRequiredService<Endpoint>(),
                     LoggerFactory = serviceProvider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance,

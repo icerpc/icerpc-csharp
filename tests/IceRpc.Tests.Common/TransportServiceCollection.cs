@@ -21,11 +21,7 @@ namespace IceRpc.Tests
             this.AddScoped(serviceProvider =>
                 serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Test"));
 
-            this.AddScoped(serviceProvider =>
-                new TcpServerOptions
-                {
-                    AuthenticationOptions = serviceProvider.GetService<SslServerAuthenticationOptions>()
-                });
+            this.AddScoped(serviceProvider => new TcpServerOptions());
 
             this.AddScoped(serviceProvider =>
                 new TcpClientOptions

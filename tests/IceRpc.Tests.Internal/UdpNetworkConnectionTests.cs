@@ -32,6 +32,7 @@ namespace IceRpc.Tests.Internal
             string host = _isIPv6 ? "[::1]" : "127.0.0.1";
             _listener = _serverTransport.Listen(
                 $"ice://{host}:0?transport=udp",
+                authenticationOptions: null,
                 LogAttributeLoggerFactory.Instance.Logger);
         }
 

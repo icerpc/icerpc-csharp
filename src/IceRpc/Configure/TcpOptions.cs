@@ -66,9 +66,6 @@ namespace IceRpc.Configure
     /// <summary>The options class for configuring <see cref="TcpServerTransport"/>.</summary>
     public sealed class TcpServerOptions : TcpOptions
     {
-        /// <summary>The SSL authentication options. If null, ssl/tls is disabled.</summary>
-        public SslServerAuthenticationOptions? AuthenticationOptions { get; init; }
-
         /// <summary>Configures the length of a server socket queue for accepting new connections. If a new connection
         /// request arrives and the queue is full, the client connection establishment will fail with a
         /// <see cref="ConnectionRefusedException"/> exception. The default value is 511.</summary>

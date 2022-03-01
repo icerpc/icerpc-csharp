@@ -114,7 +114,7 @@ namespace IceRpc
 
                 ILogger logger = _options.LoggerFactory.CreateLogger("IceRpc.Server");
 
-                IListener<T> listener = serverTransport.Listen(Endpoint, logger);
+                IListener<T> listener = serverTransport.Listen(Endpoint, _options.AuthenticationOptions, logger);
                 _listener = listener;
                 Endpoint = listener.Endpoint;
 

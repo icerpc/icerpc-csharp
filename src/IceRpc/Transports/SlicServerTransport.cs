@@ -3,6 +3,7 @@
 using IceRpc.Configure;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
+using System.Net.Security;
 
 namespace IceRpc.Transports
 {
@@ -34,12 +35,16 @@ namespace IceRpc.Transports
 
         IListener<IMultiplexedNetworkConnection> IServerTransport<IMultiplexedNetworkConnection>.Listen(
             Endpoint endpoint,
+            SslServerAuthenticationOptions? authenticationOptions,
             ILogger logger)
         {
             // This is the composition root of the Slic server transport, where we install log decorators when logging
             // is enabled.
 
-            IListener<ISimpleNetworkConnection> simpleListener = _simpleServerTransport.Listen(endpoint, logger);
+            IListener<ISimpleNetworkConnection> simpleListener = _simpleServerTransport.Listen(
+                endpoint,
+                authenticationOptions,
+                logger);
 
             Func<ISlicFrameReader, ISlicFrameReader> slicFrameReaderDecorator = _defaultSlicFrameReaderDecorator;
             Func<ISlicFrameWriter, ISlicFrameWriter> slicFrameWriterDecorator = _defaultSlicFrameWriterDecorator;

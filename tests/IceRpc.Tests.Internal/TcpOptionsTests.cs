@@ -254,7 +254,7 @@ namespace IceRpc.Tests.Internal
             Endpoint endpoint = $"icerpc://{host}:0?tls=false";
 
             // We pass the null logger to avoid decoration of the listener.
-            return serverTransport.Listen(endpoint, NullLogger.Instance);
+            return serverTransport.Listen(endpoint, authenticationOptions: null, NullLogger.Instance);
         }
     }
 }

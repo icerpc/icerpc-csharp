@@ -3,6 +3,7 @@
 using IceRpc.Configure;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
+using System.Net.Security;
 
 namespace IceRpc.Transports
 {
@@ -21,8 +22,14 @@ namespace IceRpc.Transports
 
         IListener<ISimpleNetworkConnection> IServerTransport<ISimpleNetworkConnection>.Listen(
             Endpoint endpoint,
+            SslServerAuthenticationOptions? authencationOptions,
             ILogger logger)
         {
+            if (authencationOptions != null)
+            {
+                throw new NotSupportedException("cannot create secure UDP server");
+            }
+
             // This is the composition root of the tcp server transport, where we install log decorators when logging
             // is enabled.
 #pragma warning disable CA2000 // the caller will Dispose the connection

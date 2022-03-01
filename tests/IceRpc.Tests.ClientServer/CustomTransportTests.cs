@@ -5,6 +5,7 @@ using IceRpc.Slice;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
+using System.Net.Security;
 
 namespace IceRpc.Tests.ClientServer
 {
@@ -39,7 +40,10 @@ namespace IceRpc.Tests.ClientServer
         private readonly IServerTransport<IMultiplexedNetworkConnection> _transport =
             new SlicServerTransport(new TcpServerTransport());
 
-        public IListener<IMultiplexedNetworkConnection> Listen(Endpoint endpoint, ILogger logger)
+        public IListener<IMultiplexedNetworkConnection> Listen(
+            Endpoint endpoint,
+            SslServerAuthenticationOptions? authenticationOptions,
+            ILogger logger)
         {
             if (endpoint.Params.TryGetValue("transport", out string? endpointTransport))
             {
@@ -55,7 +59,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 Params = endpoint.Params.Remove("custom-p").SetItem("transport", "tcp")
             };
-            return _transport.Listen(endpoint, logger);
+            return _transport.Listen(endpoint, authenticationOptions, logger);
         }
     }
 

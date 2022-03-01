@@ -4,6 +4,7 @@ using IceRpc.Slice;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Net.Security;
 
 namespace IceRpc.Configure
 {
@@ -23,6 +24,11 @@ namespace IceRpc.Configure
         /// <summary>Returns the default value for <see cref="SimpleClientTransport"/>.</summary>
         public static IClientTransport<ISimpleNetworkConnection> DefaultSimpleClientTransport { get; } =
             new CompositeSimpleClientTransport().UseTcp().UseUdp();
+
+        /// <summary>Gets or initializes the SSL client authentication options.</summary>
+        /// <value>The SSL client authentication options. When not null, <see cref="Connection.ConnectAsync"/>
+        /// will either establish a secure connection or fail.</value>
+        public SslClientAuthenticationOptions? AuthenticationOptions { get; init; }
 
         /// <summary>Gets or initializes the connection close timeout. This timeout is used when gracefully closing a
         /// connection to wait for the peer connection closure. If the peer doesn't close its side of the connection

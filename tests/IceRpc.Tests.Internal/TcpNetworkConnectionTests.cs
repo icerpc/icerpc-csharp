@@ -22,6 +22,7 @@ namespace IceRpc.Tests.Internal
         private readonly IClientTransport<ISimpleNetworkConnection> _clientTransport;
         private readonly Endpoint _endpoint;
         private readonly IServerTransport<ISimpleNetworkConnection> _serverTransport;
+        private readonly SslServerAuthenticationOptions _serverAuthenticationOptions;
 
         private readonly bool? _tls;
 
@@ -47,16 +48,13 @@ namespace IceRpc.Tests.Internal
                 AuthenticationOptions = clientAuthenticationOptions
             });
 
-            var serverAuthenticationOptions = new SslServerAuthenticationOptions
+            _serverAuthenticationOptions = new SslServerAuthenticationOptions
             {
                 ClientCertificateRequired = false,
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
             };
 
-            _serverTransport = new TcpServerTransport(new TcpServerOptions
-            {
-                AuthenticationOptions = serverAuthenticationOptions
-            });
+            _serverTransport = new TcpServerTransport();
 
             string tlsString = "";
             if (tls != null)
@@ -86,7 +84,10 @@ namespace IceRpc.Tests.Internal
         {
             await using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
             Assert.Throws<TransportException>(
-                () => _serverTransport.Listen(listener.Endpoint, LogAttributeLoggerFactory.Instance.Logger));
+                () => _serverTransport.Listen(
+                    listener.Endpoint,
+                    _serverAuthenticationOptions,
+                    LogAttributeLoggerFactory.Instance.Logger));
         }
 
         [Test]
@@ -243,7 +244,7 @@ namespace IceRpc.Tests.Internal
             _clientTransport.CreateConnection(endpoint, LogAttributeLoggerFactory.Instance.Logger);
 
         private IListener<ISimpleNetworkConnection> CreateListener(Endpoint endpoint) =>
-            _serverTransport.Listen(endpoint, LogAttributeLoggerFactory.Instance.Logger);
+            _serverTransport.Listen(endpoint, _serverAuthenticationOptions, LogAttributeLoggerFactory.Instance.Logger);
 
     }
 }

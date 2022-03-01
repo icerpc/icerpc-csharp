@@ -36,8 +36,10 @@ namespace IceRpc.Tests.Internal
             var listenerList = new List<IListener<ISimpleNetworkConnection>>();
             var serverConnectionList = new List<ISimpleNetworkConnection>();
 
-            IListener<ISimpleNetworkConnection> listener =
-                _serverTransport.Listen(serverEndpoint, LogAttributeLoggerFactory.Instance.Logger);
+            IListener<ISimpleNetworkConnection> listener = _serverTransport.Listen(
+                serverEndpoint,
+                authenticationOptions: null,
+                LogAttributeLoggerFactory.Instance.Logger);
             listenerList.Add(listener);
 
             serverEndpoint = serverEndpoint with { Port = listener.Endpoint.Port };
@@ -47,7 +49,10 @@ namespace IceRpc.Tests.Internal
             {
                 if (i > 0)
                 {
-                    listener = _serverTransport.Listen(serverEndpoint, LogAttributeLoggerFactory.Instance.Logger);
+                    listener = _serverTransport.Listen(
+                        serverEndpoint,
+                        authenticationOptions: null,
+                        LogAttributeLoggerFactory.Instance.Logger);
                 }
 
                 ISimpleNetworkConnection serverConnection = await listener.AcceptAsync();

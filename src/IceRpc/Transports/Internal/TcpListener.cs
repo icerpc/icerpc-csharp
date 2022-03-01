@@ -57,6 +57,7 @@ namespace IceRpc.Transports.Internal
 
         internal TcpListener(
             Endpoint endpoint,
+            SslServerAuthenticationOptions? authenticationOptions,
             TcpServerOptions options,
             Func<TcpServerNetworkConnection, ISimpleNetworkConnection> serverConnectionDecorator)
         {
@@ -74,7 +75,7 @@ namespace IceRpc.Transports.Internal
 
             _serverConnectionDecorator = serverConnectionDecorator;
 
-            _authenticationOptions = options.AuthenticationOptions;
+            _authenticationOptions = authenticationOptions;
 
             if (_authenticationOptions != null)
             {

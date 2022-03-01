@@ -42,13 +42,14 @@ namespace IceRpc.Tests.Internal
                 ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
             };
 
-            IServerTransport<ISimpleNetworkConnection> serverTransport =
-                new TcpServerTransport(new TcpServerOptions { AuthenticationOptions = serverAuthenticationOptions });
+            IServerTransport<ISimpleNetworkConnection> serverTransport = new TcpServerTransport();
 
             string host = _isIPv6 ? "[::1]" : "127.0.0.1";
 
-            _listener = serverTransport.Listen($"icerpc://{host}:0?tls={_tls}",
-                                               LogAttributeLoggerFactory.Instance.Logger);
+            _listener = serverTransport.Listen(
+                $"icerpc://{host}:0?tls={_tls}",
+                serverAuthenticationOptions,
+                LogAttributeLoggerFactory.Instance.Logger);
         }
 
         [SetUp]
