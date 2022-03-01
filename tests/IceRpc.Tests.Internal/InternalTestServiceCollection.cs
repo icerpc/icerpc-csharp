@@ -67,6 +67,7 @@ namespace IceRpc.Tests.Internal
             ILogger logger = serviceProvider.GetRequiredService<ILogger>();
             T connection = serviceProvider.GetRequiredService<IClientTransport<T>>().CreateConnection(
                 endpoint,
+                serviceProvider.GetService<SslClientAuthenticationOptions>(),
                 logger);
             LogNetworkConnectionDecoratorFactory<T>? decorator =
                 serviceProvider.GetService<LogNetworkConnectionDecoratorFactory<T>>();

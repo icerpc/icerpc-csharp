@@ -49,6 +49,7 @@ namespace IceRpc.Tests
 
                 return new ConnectionOptions
                 {
+                    AuthenticationOptions = serviceProvider.GetService<SslClientAuthenticationOptions>(),
                     RemoteEndpoint = serviceProvider.GetRequiredService<Server>().Endpoint,
                     SimpleClientTransport = simpleClientTransport,
                     MultiplexedClientTransport = multiplexedClientTransport,

@@ -40,7 +40,6 @@ namespace IceRpc.Tests.Api
             Assert.That(options.IsIPv6Only, Is.False);
             Assert.That(options.SendBufferSize, Is.Null);
             Assert.That(options.ReceiveBufferSize, Is.Null);
-            Assert.That(options.AuthenticationOptions, Is.Null);
             Assert.That(options.LocalEndPoint, Is.Null);
 
             // Invalid settings

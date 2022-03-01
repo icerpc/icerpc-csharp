@@ -23,12 +23,6 @@ namespace IceRpc.Tests
 
             this.AddScoped(serviceProvider => new TcpServerOptions());
 
-            this.AddScoped(serviceProvider =>
-                new TcpClientOptions
-                {
-                    AuthenticationOptions = serviceProvider.GetService<SslClientAuthenticationOptions>()
-                });
-
             // The default protocol is IceRpc
             this.AddScoped(_ => Protocol.IceRpc);
 

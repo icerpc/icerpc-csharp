@@ -315,7 +315,10 @@ namespace IceRpc.Transports.Internal
             return tls == null || tls == (_sslStream != null);
         }
 
-        internal TcpClientNetworkConnection(Endpoint remoteEndpoint, TcpClientOptions options)
+        internal TcpClientNetworkConnection(
+            Endpoint remoteEndpoint,
+            SslClientAuthenticationOptions? authenticationOptions,
+            TcpClientOptions options)
         {
             _remoteEndpoint = remoteEndpoint.WithTransport(TransportNames.Tcp);
 
@@ -358,7 +361,7 @@ namespace IceRpc.Transports.Internal
                 throw new TransportException(ex);
             }
 
-            _authenticationOptions = options.AuthenticationOptions;
+            _authenticationOptions = authenticationOptions;
             _idleTimeout = options.IdleTimeout;
         }
     }

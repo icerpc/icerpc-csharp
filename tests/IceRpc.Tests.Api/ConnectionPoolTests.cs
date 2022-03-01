@@ -126,6 +126,7 @@ namespace IceRpc.Tests.Api
             await using var connectionPool = new ConnectionPool(
                 new ConnectionOptions
                 {
+                    AuthenticationOptions = serviceProvider.GetService<SslClientAuthenticationOptions>(),
                     MultiplexedClientTransport =
                         serviceProvider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>()
                 });

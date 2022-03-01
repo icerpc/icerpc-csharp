@@ -280,6 +280,7 @@ namespace IceRpc.Tests.ClientServer
                     Server server = serviceProvider.GetRequiredService<Server>();
                     return new Connection(new ConnectionOptions
                     {
+                        AuthenticationOptions = serviceProvider.GetService<SslClientAuthenticationOptions>(),
                         MultiplexedClientTransport =
                             serviceProvider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
                         RemoteEndpoint = $"icerpc://{clientHost}:{server.Endpoint.Port}"

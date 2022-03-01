@@ -68,11 +68,11 @@ namespace IceRpc.Tests.Internal
                 TargetHost = _isIPv6 ? "[::1]" : "127.0.0.1"
             };
 
-            IClientTransport<ISimpleNetworkConnection> clientTransport = new TcpClientTransport(
-                new TcpClientOptions { AuthenticationOptions = clientAuthenticationOptions });
+            IClientTransport<ISimpleNetworkConnection> clientTransport = new TcpClientTransport();
 
             _clientConnection = clientTransport.CreateConnection(
                 _listener.Endpoint,
+                clientAuthenticationOptions,
                 LogAttributeLoggerFactory.Instance.Logger);
             Task<NetworkConnectionInformation> connectTask = _clientConnection.ConnectAsync(default);
 

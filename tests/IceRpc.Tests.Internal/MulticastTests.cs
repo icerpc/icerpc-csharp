@@ -62,8 +62,10 @@ namespace IceRpc.Tests.Internal
 
             string clientEndpoint = GetEndpoint(host, port: serverEndpoint.Port, _ipv6, client: true);
 
-            await using ISimpleNetworkConnection clientConnection =
-                _clientTransport.CreateConnection(clientEndpoint, LogAttributeLoggerFactory.Instance.Logger);
+            await using ISimpleNetworkConnection clientConnection = _clientTransport.CreateConnection(
+                clientEndpoint,
+                authenticationOptions: null,
+                LogAttributeLoggerFactory.Instance.Logger);
 
             _ = await clientConnection.ConnectAsync(default);
 

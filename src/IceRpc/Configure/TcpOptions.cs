@@ -53,9 +53,6 @@ namespace IceRpc.Configure
     /// <summary>The options class for configuring <see cref="TcpClientTransport"/>.</summary>
     public sealed class TcpClientOptions : TcpOptions
     {
-        /// <summary>The SSL authentication options. If null, ssl/tls is disabled.</summary>
-        public SslClientAuthenticationOptions? AuthenticationOptions { get; init; }
-
         /// <summary>The address and port represented by a .NET IPEndPoint to use for a client socket. If
         /// specified the client socket will bind to this address and port before connection
         /// establishment.</summary>

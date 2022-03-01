@@ -19,10 +19,11 @@ namespace IceRpc.Tests.Internal
     [Timeout(5000)]
     public class TcpNetworkConnectionTests
     {
+        private readonly SslClientAuthenticationOptions _clientAuthenticationOptions;
         private readonly IClientTransport<ISimpleNetworkConnection> _clientTransport;
         private readonly Endpoint _endpoint;
-        private readonly IServerTransport<ISimpleNetworkConnection> _serverTransport;
         private readonly SslServerAuthenticationOptions _serverAuthenticationOptions;
+        private readonly IServerTransport<ISimpleNetworkConnection> _serverTransport;
 
         private readonly bool? _tls;
 
@@ -32,7 +33,7 @@ namespace IceRpc.Tests.Internal
             bool isIPv6 = addressFamily == AddressFamily.InterNetworkV6;
             string host = isIPv6 ? "[::1]" : "127.0.0.1";
 
-            var clientAuthenticationOptions = new SslClientAuthenticationOptions
+            _clientAuthenticationOptions = new SslClientAuthenticationOptions
             {
                 RemoteCertificateValidationCallback =
                             CertificateValidaton.GetServerCertificateValidationCallback(
@@ -43,10 +44,7 @@ namespace IceRpc.Tests.Internal
                 TargetHost = host
             };
 
-            _clientTransport = new TcpClientTransport(new TcpClientOptions
-            {
-                AuthenticationOptions = clientAuthenticationOptions
-            });
+            _clientTransport = new TcpClientTransport();
 
             _serverAuthenticationOptions = new SslServerAuthenticationOptions
             {
@@ -241,7 +239,10 @@ namespace IceRpc.Tests.Internal
         }
 
         private ISimpleNetworkConnection CreateClientConnection(Endpoint endpoint) =>
-            _clientTransport.CreateConnection(endpoint, LogAttributeLoggerFactory.Instance.Logger);
+            _clientTransport.CreateConnection(
+                endpoint,
+                _clientAuthenticationOptions,
+                LogAttributeLoggerFactory.Instance.Logger);
 
         private IListener<ISimpleNetworkConnection> CreateListener(Endpoint endpoint) =>
             _serverTransport.Listen(endpoint, _serverAuthenticationOptions, LogAttributeLoggerFactory.Instance.Logger);

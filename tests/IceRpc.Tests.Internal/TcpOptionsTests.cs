@@ -234,8 +234,10 @@ namespace IceRpc.Tests.Internal
                 new TcpClientTransport(tcpOptions ?? new TcpClientOptions());
 
             // We pass the null logger to avoid decoration of the resulting connection.
-            ISimpleNetworkConnection clientConnection =
-                clientTransport.CreateConnection(endpoint, NullLogger.Instance);
+            ISimpleNetworkConnection clientConnection = clientTransport.CreateConnection(
+                endpoint,
+                authenticationOptions: null,
+                NullLogger.Instance);
 
             return (TcpClientNetworkConnection)clientConnection;
         }

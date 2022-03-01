@@ -14,7 +14,10 @@ namespace IceRpc.Tests.ClientServer
         private readonly IClientTransport<IMultiplexedNetworkConnection> _transport =
             new SlicClientTransport(new TcpClientTransport());
 
-        public IMultiplexedNetworkConnection CreateConnection(Endpoint remoteEndpoint, ILogger logger)
+        public IMultiplexedNetworkConnection CreateConnection(
+            Endpoint remoteEndpoint,
+            SslClientAuthenticationOptions? authenticationOptions,
+            ILogger logger)
         {
             if (remoteEndpoint.Params.TryGetValue("transport", out string? endpointTransport))
             {
@@ -31,7 +34,7 @@ namespace IceRpc.Tests.ClientServer
                 Params = remoteEndpoint.Params.Remove("custom-p").SetItem("transport", "tcp")
             };
 
-            return _transport.CreateConnection(remoteEndpoint, logger);
+            return _transport.CreateConnection(remoteEndpoint, authenticationOptions, logger);
         }
     }
 

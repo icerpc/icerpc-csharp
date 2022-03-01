@@ -60,6 +60,7 @@ namespace IceRpc.Tests.Internal
                 new SlicClientTransport(colocTransport.ClientTransport, clientOptions);
             IMultiplexedNetworkConnection clientConnection = clientTransport.CreateConnection(
                 "icerpc://127.0.0.1?transport=coloc",
+                authenticationOptions: null,
                 LogAttributeLoggerFactory.Instance.Logger);
 
             IMultiplexedNetworkConnection serverConnection = await listener.AcceptAsync();
