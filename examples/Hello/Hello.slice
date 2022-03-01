@@ -4,5 +4,5 @@ module Demo;
 
 interface Hello
 {
-    sayHello(greeting: string) -> string;
+    sayHello(greeting: string);
 }
