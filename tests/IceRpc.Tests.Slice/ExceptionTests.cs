@@ -53,7 +53,7 @@ namespace IceRpc.Tests.Slice
         }
 
         [Test]
-        public async Task Exception_Member_Operations()
+        public async Task Exception_Member_OperationsAsync()
         {
             // Exceptions can't be passed as members with the 1.1 encoding.
             if (_prx.Proxy.Encoding == Encoding.Slice11)

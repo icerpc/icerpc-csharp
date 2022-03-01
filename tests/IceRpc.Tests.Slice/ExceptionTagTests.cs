@@ -74,7 +74,7 @@ namespace IceRpc.Tests.Slice
         }
 
         [Test]
-        public async Task ExceptionTag_Operations()
+        public async Task ExceptionTag_OperationsAsync()
         {
             // Exceptions can't be passed as members with the 1.1 encoding.
             if (_prx.Encoding == Encoding.Slice11)
