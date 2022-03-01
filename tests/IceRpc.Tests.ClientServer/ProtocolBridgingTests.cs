@@ -56,12 +56,12 @@ namespace IceRpc.Tests.ClientServer
             // TODO: add context testing
 
             Server targetServer = targetServiceProvider.GetRequiredService<Server>();
-            var targetServicePrx = ProtocolBridgingTestPrx.Parse($"{targetServer.Protocol}:/target");
+            var targetServicePrx = ProtocolBridgingTestPrx.Parse($"{targetServer.Endpoint.Protocol}:/target");
             targetServicePrx.Proxy.Endpoint = targetServer.Endpoint;
             targetServicePrx.Proxy.Invoker = targetServiceProvider.GetRequiredService<IInvoker>();
 
             Server forwarderServer = forwarderServiceProvider.GetRequiredService<Server>();
-            var forwarderServicePrx = ProtocolBridgingTestPrx.Parse($"{forwarderServer.Protocol}:/forward");
+            var forwarderServicePrx = ProtocolBridgingTestPrx.Parse($"{forwarderServer.Endpoint.Protocol}:/forward");
             forwarderServicePrx.Proxy.Endpoint = forwarderServer.Endpoint;
             forwarderServicePrx.Proxy.Invoker = forwarderServiceProvider.GetRequiredService<IInvoker>();
 

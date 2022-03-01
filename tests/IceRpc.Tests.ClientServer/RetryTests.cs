@@ -402,8 +402,10 @@ namespace IceRpc.Tests.ClientServer
             Server server2 = serviceProvider2.GetRequiredService<Server>();
             Server server3 = serviceProvider3.GetRequiredService<Server>();
 
-            ConnectionPool pool = serviceProvider1.GetRequiredService<ConnectionPool>();
-            pool.PreferExistingConnection = false;
+            await using var pool = new ConnectionPool(
+                serviceProvider1.GetRequiredService<ConnectionOptions>(),
+                preferExistingConnection: false);
+
             var pipeline = new Pipeline();
             pipeline.UseRetry(new RetryOptions
             {

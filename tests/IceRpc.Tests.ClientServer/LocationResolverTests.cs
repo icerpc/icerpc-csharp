@@ -27,11 +27,11 @@ namespace IceRpc.Tests.ClientServer
         [TestCase("test", "test @ adapter", "test2")]
         public async Task LocationResolver_ResolveAsync(string proxy, params string[] badProxies)
         {
-            _pool = new ConnectionPool()
+            _pool = new ConnectionPool(new ConnectionOptions
             {
                 MultiplexedClientTransport = new CompositeMultiplexedClientTransport().UseSlicOverTcp(),
                 SimpleClientTransport = new CompositeSimpleClientTransport().UseTcp()
-            };
+            });
 
             var pipeline = new Pipeline();
             IProxyFormat? format = proxy.StartsWith("ice", StringComparison.Ordinal) ? null : IceProxyFormat.Default;
@@ -78,12 +78,7 @@ namespace IceRpc.Tests.ClientServer
         {
             string serverEndpoint = protocol == "icerpc" ?
                 "icerpc://127.0.0.1:0?tls=false" : "ice://127.0.0.1:0?tls=false";
-            _server = new Server
-            {
-                Dispatcher = new Greeter(),
-                Endpoint = serverEndpoint
-            };
-
+            _server = new Server(new Greeter(), serverEndpoint);
             _server.Listen();
 
             // Need to create proxy after calling Listen; otherwise, the port number is still 0.

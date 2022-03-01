@@ -47,7 +47,7 @@ namespace IceRpc.Tests
                     "ssl" => new TcpServerTransport(serviceProvider.GetService<TcpServerOptions>() ?? new()),
                     "udp" => new UdpServerTransport(serviceProvider.GetService<UdpServerOptions>() ?? new()),
                     "coloc" => serviceProvider.GetRequiredService<ColocTransport>().ServerTransport,
-                    _ => Server.DefaultSimpleServerTransport
+                    _ => ServerOptions.DefaultSimpleServerTransport
                 });
 
             // The default multiplexed server transport is Slic.
@@ -68,7 +68,7 @@ namespace IceRpc.Tests
                     "ssl" => new TcpClientTransport(serviceProvider.GetService<TcpClientOptions>() ?? new()),
                     "udp" => new UdpClientTransport(serviceProvider.GetService<UdpClientOptions>() ?? new()),
                     "coloc" => serviceProvider.GetRequiredService<ColocTransport>().ClientTransport,
-                    _ => Connection.DefaultSimpleClientTransport
+                    _ => ConnectionOptions.DefaultSimpleClientTransport
                 });
 
             // The default multiplexed client transport is Slic.

@@ -21,20 +21,22 @@ namespace IceRpc.Tests
                 IServerTransport<IMultiplexedNetworkConnection> multiplexedServerTransport =
                     serviceProvider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>();
 
-                var server = new Server
+                var server = new Server(new ServerOptions
                 {
-                    Dispatcher = serviceProvider.GetService<IDispatcher>() ?? Connection.DefaultDispatcher,
+                    Dispatcher = serviceProvider.GetService<IDispatcher>() ?? ConnectionOptions.DefaultDispatcher,
                     Endpoint = serviceProvider.GetRequiredService<Endpoint>(),
-                    SimpleServerTransport = simpleServerTransport,
+                    LoggerFactory = serviceProvider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance,
                     MultiplexedServerTransport = multiplexedServerTransport,
-                    ConnectionOptions = serviceProvider.GetService<ConnectionOptions>() ?? new(),
-                    LoggerFactory = serviceProvider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance
-                };
+                    SimpleServerTransport = simpleServerTransport,
+                    IncomingFrameMaxSize = 2048 * 1024 // TODO: temporary, for stress test
+                });
+
                 server.Listen();
                 return server;
             });
 
-            // The default Connection is configured to connect to the Server configured on the service collection.
+            // The default ConnectionOptions is configured to connect to the Server configured on the service
+            // collection.
             this.AddScoped(serviceProvider =>
             {
                 IClientTransport<ISimpleNetworkConnection> simpleClientTransport =
@@ -43,34 +45,23 @@ namespace IceRpc.Tests
                 IClientTransport<IMultiplexedNetworkConnection> multiplexedClientTransport =
                     serviceProvider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
 
-                return new Connection
+                return new ConnectionOptions
                 {
                     RemoteEndpoint = serviceProvider.GetRequiredService<Server>().Endpoint,
                     SimpleClientTransport = simpleClientTransport,
                     MultiplexedClientTransport = multiplexedClientTransport,
-                    Options = serviceProvider.GetService<ConnectionOptions>() ?? new(),
                     LoggerFactory = serviceProvider.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance,
-                    IsResumable = serviceProvider.GetService<ResumableConnection>() != null
+                    IsResumable = serviceProvider.GetService<ResumableConnection>() != null,
+                    IncomingFrameMaxSize = 2048 * 1024 // TODO: temporary, for stress test
                 };
             });
+
+            // The default Connection is configured to connect to the Server configured on the service collection.
+            this.AddScoped(serviceProvider => new Connection(serviceProvider.GetRequiredService<ConnectionOptions>()));
 
             // The default ConnectionPool is configured with the client transport from the service collection.
-            this.AddScoped(serviceProvider =>
-            {
-                IClientTransport<ISimpleNetworkConnection> simpleClientTransport =
-                    serviceProvider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>();
-
-                IClientTransport<IMultiplexedNetworkConnection> multiplexedClientTransport =
-                    serviceProvider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>();
-
-                return new ConnectionPool
-                {
-                    SimpleClientTransport = simpleClientTransport,
-                    MultiplexedClientTransport = multiplexedClientTransport,
-                    ConnectionOptions = serviceProvider.GetService<ConnectionOptions>() ?? new(),
-                    LoggerFactory = serviceProvider.GetService<ILoggerFactory>() ?? LogAttributeLoggerFactory.Instance
-                };
-            });
+            this.AddScoped(
+                serviceProvider => new ConnectionPool(serviceProvider.GetRequiredService<ConnectionOptions>()));
 
             // The default proxy is created from the Connection configured on the service collection.
             this.AddScoped(serviceProvider => Proxy.FromConnection(

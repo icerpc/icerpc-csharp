@@ -165,7 +165,7 @@ namespace IceRpc.Configure
                             if (path.Length == AbsolutePrefix.Length)
                             {
                                 // We consume everything so there is nothing left to match.
-                                return Connection.DefaultDispatcher.DispatchAsync(request, cancel);
+                                return ConnectionOptions.DefaultDispatcher.DispatchAsync(request, cancel);
                             }
                             else
                             {
@@ -201,7 +201,7 @@ namespace IceRpc.Configure
 
                             if (prefix == "/")
                             {
-                                return Connection.DefaultDispatcher.DispatchAsync(request, cancel);
+                                return ConnectionOptions.DefaultDispatcher.DispatchAsync(request, cancel);
                             }
 
                             // Cut last segment

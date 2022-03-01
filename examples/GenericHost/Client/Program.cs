@@ -16,15 +16,6 @@ namespace ClientApp
 {
     public class Program
     {
-        /// <summary>This class is used to read the client configuration options from the appsettings.json configuration
-        /// file.</summary>
-        public class ClientOptions
-        {
-            public ConnectionOptions ConnectionOptions { get; set; } = new();
-
-            public Endpoint Endpoint { get; set; } = "icerpc://[::1]";
-        }
-
         public static void Main(string[] args) => CreateHostBuilder(args).Build().Run();
 
         /// <summary>Creates the HostBuilder used to build the .NET Generic Host.</summary>
@@ -39,9 +30,9 @@ namespace ClientApp
                     // Add the ClientHostedService to the hosted services of the .NET Generic Host.
                     services.AddHostedService<ClientHostedService>();
 
-                    // Get the ClientOptions from the configuration and add it to the generic host options. The DI
-                    // container will inject it in services that require an IOptions<ClientOptions> dependency.
-                    services.AddOptions<ClientOptions>().Bind(hostContext.Configuration.GetSection("Client"));
+                    // Get the ConnectionOptions from the configuration and add it to the generic host options. The DI
+                    // container will inject it in services that require an IOptions<ConnectionOptions> dependency.
+                    services.AddOptions<ConnectionOptions>().Bind(hostContext.Configuration.GetSection("Connection"));
 
                     // Create the client transport and add it as a singleton service of the generic host services. The
                     // DI container will inject it in services that require an
@@ -98,20 +89,18 @@ namespace ClientApp
 
             public ClientHostedService(
                 IClientTransport<IMultiplexedNetworkConnection> clientTransport,
-                IOptions<ClientOptions> options,
+                IOptions<ConnectionOptions> options,
                 IInvoker invoker,
                 ILoggerFactory loggerFactory,
                 IHostApplicationLifetime applicationLifetime)
             {
                 _applicationLifetime = applicationLifetime;
 
-                _connection = new Connection()
+                _connection = new Connection(options.Value with
                 {
                     MultiplexedClientTransport = clientTransport,
-                    Options = options.Value.ConnectionOptions,
-                    RemoteEndpoint = options.Value.Endpoint,
                     LoggerFactory = loggerFactory
-                };
+                });
 
                 _proxy = HelloPrx.FromConnection(_connection, invoker: invoker);
             }

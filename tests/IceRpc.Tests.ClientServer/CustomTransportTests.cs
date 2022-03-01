@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Slice;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
@@ -63,20 +64,20 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task CustomTransport_IcePingAsync()
         {
-            await using var server = new Server
+            await using var server = new Server(new ServerOptions
             {
                 MultiplexedServerTransport = new CustomServerTransport(),
                 Endpoint = "icerpc://127.0.0.1:0?tls=false&transport=custom",
                 Dispatcher = new MyService()
-            };
+            });
 
             server.Listen();
 
-            await using var connection = new Connection
+            await using var connection = new Connection(new ConnectionOptions
             {
                 MultiplexedClientTransport = new CustomClientTransport(),
                 RemoteEndpoint = server.Endpoint
-            };
+            });
 
             var prx = ServicePrx.FromConnection(connection);
             await prx.IcePingAsync();
@@ -87,26 +88,26 @@ namespace IceRpc.Tests.ClientServer
         {
             // Using an unknown parameter with tcp transport results in FormatException
             {
-                await using var server = new Server
+                await using var server = new Server(new ServerOptions
                 {
                     MultiplexedServerTransport = new SlicServerTransport(new TcpServerTransport()),
                     Endpoint = "icerpc://127.0.0.1:0?tls=false&custom-p=bar",
                     Dispatcher = new MyService()
-                };
+                });
                 Assert.Throws<FormatException>(() => server.Listen());
             }
 
             // Custom transport handles any params that start with custom-
             {
-                await using var server = new Server
+                await using var server = new Server(new ServerOptions
                 {
                     MultiplexedServerTransport = new CustomServerTransport(),
                     Endpoint = "icerpc://127.0.0.1:0?tls=false&transport=custom&custom-p=bar",
                     Dispatcher = new MyService()
-                };
+                });
                 server.Listen();
 
-                await using var connection1 = new Connection
+                await using var connection1 = new Connection(new ConnectionOptions
                 {
                     MultiplexedClientTransport = new CustomClientTransport(),
                     // We add the custom endpoint here because listen updates the endpoint and the custom transport
@@ -115,12 +116,12 @@ namespace IceRpc.Tests.ClientServer
                     {
                         Params = server.Endpoint.Params.Add("custom-p", "bar")
                     }
-                };
+                });
 
                 var prx = ServicePrx.FromConnection(connection1);
                 await prx.IcePingAsync();
 
-                await using var connection2 = new Connection
+                await using var connection2 = new Connection(new ConnectionOptions
                 {
                     MultiplexedClientTransport = new SlicClientTransport(new TcpClientTransport()),
                     // We add the custom endpoint here because listen updates the endpoint and the custom transport
@@ -129,7 +130,7 @@ namespace IceRpc.Tests.ClientServer
                     {
                         Params = server.Endpoint.Params.Add("custom-p", "bar")
                     }
-                };
+                });
 
                 prx = ServicePrx.FromConnection(connection2);
                 Assert.ThrowsAsync<FormatException>(async () => await prx.IcePingAsync());

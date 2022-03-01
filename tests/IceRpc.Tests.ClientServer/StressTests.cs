@@ -23,7 +23,6 @@ namespace IceRpc.Tests.ClientServer
                 .AddTransient<IDispatcher>(_ => _service)
                 .UseTransport("tcp")
                 .UseProtocol(protocol)
-                .AddTransient(_ => new Configure.ConnectionOptions { IncomingFrameMaxSize = 2048 * 1024 })
                 .BuildServiceProvider();
             _prx = _serviceProvider.GetProxy<StressTestPrx>();
         }

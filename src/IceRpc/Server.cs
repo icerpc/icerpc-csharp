@@ -5,7 +5,6 @@ using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace IceRpc
 {
@@ -14,74 +13,16 @@ namespace IceRpc
     /// <see cref="Listen"/> and finally shut down with <see cref="ShutdownAsync"/>.</summary>
     public sealed class Server : IAsyncDisposable
     {
-        /// <summary>The default value for <see cref="Endpoint"/>.</summary>
-        public static Endpoint DefaultEndpoint { get; } = new Endpoint(Protocol.IceRpc);
-
-        /// <summary>The default value for <see cref="MultiplexedServerTransport"/>.</summary>
-        public static IServerTransport<IMultiplexedNetworkConnection> DefaultMultiplexedServerTransport { get; } =
-            new CompositeMultiplexedServerTransport().UseSlicOverTcp();
-
-        /// <summary>The default value for <see cref="SimpleServerTransport"/>.</summary>
-        public static IServerTransport<ISimpleNetworkConnection> DefaultSimpleServerTransport { get; } =
-            new CompositeSimpleServerTransport().UseTcp().UseUdp();
-
-        /// <summary>Gets or initializes the options of server connections created by this server.</summary>
-        public ConnectionOptions ConnectionOptions { get; init; } = new();
-
-        /// <summary>Gets or initializes the dispatcher of this server.</summary>
-        /// <value>The dispatcher of this server.</value>
-        /// <seealso cref="IDispatcher"/>
-        /// <seealso cref="Configure.Router"/>
-        public IDispatcher Dispatcher { get; init; } = Connection.DefaultDispatcher;
-
-        /// <summary>Gets or sets the endpoint of this server.</summary>
-        /// <value>The endpoint of this server. The endpoint's host is usually an IP address, and it cannot be a DNS
-        /// name. Once <see cref="Listen"/> is called, the endpoint can't be updated and its value is the listening
-        /// endpoint returned by the transport. The default value is transport specific (<c>icerpc://[::0]</c> for
-        /// TCP).</value>
-        public Endpoint Endpoint
-        {
-            get => _endpoint;
-            set
-            {
-                if (_listening)
-                {
-                    throw new InvalidOperationException("cannot change the endpoint of a server after calling Listen");
-                }
-                if (!value.Protocol.IsSupported)
-                {
-                    throw new NotSupportedException(
-                        $"cannot create server for endpoint with protocol '{value.Protocol}'");
-                }
-
-                _endpoint = value;
-            }
-        }
-
-        /// <summary>The logger factory used to create loggers to log connection-related activities.</summary>
-        public ILoggerFactory LoggerFactory { get; init; } = NullLoggerFactory.Instance;
-
-        /// <summary>The <see cref="IServerTransport{IMultiplexedNetworkConnection}"/> used by this server to accept
-        /// multiplexed connections.</summary>
-        public IServerTransport<IMultiplexedNetworkConnection> MultiplexedServerTransport { get; init; } =
-            DefaultMultiplexedServerTransport;
-
-        /// <summary>Gets the protocol used by this server.</summary>
-        /// <value>The protocol of this server.</value>
-        public Protocol Protocol => Endpoint.Protocol;
-
-        /// <summary>The <see cref="IServerTransport{ISimpleNetworkConnection}"/> used by this server to accept
-        /// simple connections.</summary>
-        public IServerTransport<ISimpleNetworkConnection> SimpleServerTransport { get; init; } =
-            DefaultSimpleServerTransport;
+        /// <summary>Returns the endpoint of this server.</summary>
+        /// <value>The endpoint of this server. Once <see cref="Listen"/> is called, the endpoint's value is the
+        /// listening endpoint returned by the transport.</value>
+        public Endpoint Endpoint { get; private set; }
 
         /// <summary>Returns a task that completes when the server's shutdown is complete: see <see
         /// cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
         public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
         private readonly HashSet<Connection> _connections = new();
-
-        private Endpoint _endpoint = DefaultEndpoint;
 
         private IListener? _listener;
 
@@ -90,6 +31,8 @@ namespace IceRpc
         // protects _shutdownTask
         private readonly object _mutex = new();
 
+        private readonly ServerOptions _options;
+
         private CancellationTokenSource? _shutdownCancelSource;
 
         private readonly TaskCompletionSource<object?> _shutdownCompleteSource =
@@ -97,9 +40,34 @@ namespace IceRpc
 
         private Task? _shutdownTask;
 
-        /// <summary>Starts listening on the configured endpoint (if any) and serving clients (by dispatching their
-        /// requests). If the configured endpoint is an IP endpoint with port 0, this method updates the endpoint to
-        /// include the actual port selected by the operating system.</summary>
+        /// <summary>Constructs a server.</summary>
+        /// <param name="options">The server options.</param>
+        public Server(ServerOptions options)
+        {
+            Endpoint = options.Endpoint;
+            _options = options;
+        }
+
+        /// <summary>Constructs a server with the specified dispatcher. All other properties have their default values.
+        /// </summary>
+        /// <param name="dispatcher">The dispatcher of the server.</param>
+        public Server(IDispatcher dispatcher)
+            : this(new ServerOptions { Dispatcher = dispatcher })
+        {
+        }
+
+        /// <summary>Constructs a server with the specified dispatcher and endpoint. All other properties have their
+        /// default values.</summary>
+        /// <param name="dispatcher">The dispatcher of the server.</param>
+        /// <param name="endpoint">The endpoint of the server.</param>
+        public Server(IDispatcher dispatcher, Endpoint endpoint)
+            : this(new ServerOptions { Dispatcher = dispatcher, Endpoint = endpoint })
+        {
+        }
+
+        /// <summary>Starts listening on the configured endpoint and dispatching requests from clients. If the
+        /// configured endpoint is an IP endpoint with port 0, this method updates the endpoint to include the actual
+        /// port selected by the operating system.</summary>
         /// <exception cref="InvalidOperationException">Thrown when the server is already listening.</exception>
         /// <exception cref="ObjectDisposedException">Thrown when the server is shut down or shutting down.</exception>
         /// <exception cref="TransportException">Thrown when another server is already listening on the same endpoint.
@@ -119,18 +87,22 @@ namespace IceRpc
                     throw new ObjectDisposedException($"{typeof(Server)}:{this}");
                 }
 
-                if (Protocol == Protocol.Ice)
+                if (_options.Endpoint.Protocol == Protocol.Ice)
                 {
-                    PerformListen(SimpleServerTransport,
-                                  IceProtocol.Instance.ProtocolConnectionFactory,
-                                  LogSimpleNetworkConnectionDecorator.Decorate);
+                    PerformListen(
+                        _options.SimpleServerTransport,
+                        IceProtocol.Instance.ProtocolConnectionFactory,
+                        LogSimpleNetworkConnectionDecorator.Decorate);
                 }
                 else
                 {
-                    PerformListen(MultiplexedServerTransport,
-                                  IceRpcProtocol.Instance.ProtocolConnectionFactory,
-                                  LogMultiplexedNetworkConnectionDecorator.Decorate);
+                    PerformListen(
+                        _options.MultiplexedServerTransport,
+                        IceRpcProtocol.Instance.ProtocolConnectionFactory,
+                        LogMultiplexedNetworkConnectionDecorator.Decorate);
                 }
+
+                _listening = true;
             }
 
             void PerformListen<T>(
@@ -140,11 +112,11 @@ namespace IceRpc
             {
                 // This is the composition root of Server, where we install log decorators when logging is enabled.
 
-                ILogger logger = LoggerFactory.CreateLogger("IceRpc.Server");
+                ILogger logger = _options.LoggerFactory.CreateLogger("IceRpc.Server");
 
                 IListener<T> listener = serverTransport.Listen(Endpoint, logger);
                 _listener = listener;
-                _endpoint = listener.Endpoint;
+                Endpoint = listener.Endpoint;
 
                 EventHandler<ClosedEventArgs>? closedEventHandler = null;
 
@@ -170,8 +142,79 @@ namespace IceRpc
 
                 // Run task to start accepting new connections.
                 _ = Task.Run(() => AcceptAsync(listener, protocolConnectionFactory, closedEventHandler));
+            }
 
-                _listening = true;
+            async Task AcceptAsync<T>(
+                IListener<T> listener,
+                IProtocolConnectionFactory<T> protocolConnectionFactory,
+                EventHandler<ClosedEventArgs>? closedEventHandler) where T : INetworkConnection
+            {
+                while (true)
+                {
+                    T networkConnection;
+                    try
+                    {
+                        networkConnection = await listener.AcceptAsync().ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                        lock (_mutex)
+                        {
+                            if (_shutdownTask != null)
+                            {
+                                return;
+                            }
+                        }
+
+                        // We wait for one second to avoid running in a tight loop in case the failures occurs
+                        // immediately again. Failures here are unexpected and could be considered fatal.
+                        await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+                        continue;
+                    }
+
+                    // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
+#pragma warning disable CA2000
+                    var connection = new Connection(networkConnection, Endpoint.Protocol, _options.CloseTimeout);
+#pragma warning restore CA2000
+
+                    lock (_mutex)
+                    {
+                        if (_shutdownTask != null)
+                        {
+                            _ = connection.CloseAsync("server shutdown");
+                            return;
+                        }
+
+                        _ = _connections.Add(connection);
+
+                        // Set the callback used to remove the connection from _connections. This can throw if the
+                        // connection is closed but it's not possible here since we've just constructed the
+                        // connection.
+                        connection.Closed += (sender, args) =>
+                        {
+                            lock (_mutex)
+                            {
+                                if (_shutdownTask == null)
+                                {
+                                    _connections.Remove(connection);
+                                }
+                            }
+                        };
+                    }
+
+                    // We don't wait for the connection to be activated. This could take a while for some transports
+                    // such as TLS based transports where the handshake requires few round trips between the client
+                    // and server. Waiting could also cause a security issue if the client doesn't respond to the
+                    // connection initialization as we wouldn't be able to accept new connections in the meantime.
+                    _ = connection.ConnectAsync(
+                        networkConnection,
+                        _options.Dispatcher,
+                        protocolConnectionFactory,
+                        _options.ConnectTimeout,
+                        _options.IncomingFrameMaxSize,
+                        _options.KeepAlive,
+                        closedEventHandler);
+                }
             }
         }
 
@@ -221,11 +264,11 @@ namespace IceRpc
                         await listener.DisposeAsync().ConfigureAwait(false);
                     }
 
-                    // Shuts down the connections to stop accepting new incoming requests. This ensures that
-                    // once ShutdownAsync returns, no new requests will be dispatched. ShutdownAsync on each
-                    // connections waits for the connection dispatch to complete. If the cancellation token is
-                    // canceled, the dispatch will be cancelled. This can speed up the shutdown if the
-                    // dispatch check the dispatch cancellation token.
+                    // Shuts down the connections to stop accepting new incoming requests. This ensures that once
+                    // ShutdownAsync returns, no new requests will be dispatched. ShutdownAsync on each connection waits
+                    // for the connection dispatch to complete. If the cancellation token is canceled, the dispatch will
+                    // be canceled. This can speed up the shutdown if the dispatch check the dispatch cancellation
+                    // token.
                     await Task.WhenAll(_connections.Select(
                         connection => connection.ShutdownAsync("server shutdown", cancel))).ConfigureAwait(false);
                 }
@@ -233,9 +276,9 @@ namespace IceRpc
                 {
                     _shutdownCancelSource!.Dispose();
 
-                    // The continuation is executed asynchronously (see _shutdownCompleteSource's
-                    // construction). This way, even if the continuation blocks waiting on ShutdownAsync to
-                    // complete (with incorrect code using Result or Wait()), ShutdownAsync will complete.
+                    // The continuation is executed asynchronously (see _shutdownCompleteSource's construction). This
+                    // way, even if the continuation blocks waiting on ShutdownAsync to complete (with incorrect code
+                    // using Result or Wait()), ShutdownAsync will complete.
                     _shutdownCompleteSource.TrySetResult(null);
                 }
             }
@@ -245,77 +288,6 @@ namespace IceRpc
         public override string ToString() => Endpoint.ToString();
 
         /// <inheritdoc/>
-        public async ValueTask DisposeAsync() =>
-            await ShutdownAsync(new CancellationToken(canceled: true)).ConfigureAwait(false);
-
-        private async Task AcceptAsync<T>(
-            IListener<T> listener,
-            IProtocolConnectionFactory<T> protocolConnectionFactory,
-            EventHandler<ClosedEventArgs>? closedEventHandler) where T : INetworkConnection
-        {
-            while (true)
-            {
-                T networkConnection;
-                try
-                {
-                    networkConnection = await listener.AcceptAsync().ConfigureAwait(false);
-                }
-                catch
-                {
-                    lock (_mutex)
-                    {
-                        if (_shutdownTask != null)
-                        {
-                            return;
-                        }
-                    }
-
-                    // We wait for one second to avoid running in a tight loop in case the failures occurs immediately
-                    // again. Failures here are unexpected and could be considered fatal.
-                    await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
-                    continue;
-                }
-
-                // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
-#pragma warning disable CA2000
-                var connection = new Connection(networkConnection, Protocol)
-                {
-                    Dispatcher = Dispatcher,
-                    Options = ConnectionOptions
-                };
-#pragma warning restore CA2000
-
-                lock (_mutex)
-                {
-                    if (_shutdownTask != null)
-                    {
-                        _ = connection.CloseAsync("server shutdown");
-                        return;
-                    }
-
-                    _ = _connections.Add(connection);
-
-                    // Set the callback used to remove the connection from _connections. This can throw if the
-                    // connection is closed but it's not possible here since we've just constructed the
-                    // connection.
-                    connection.Closed += (sender, args) =>
-                    {
-                        lock (_mutex)
-                        {
-                            if (_shutdownTask == null)
-                            {
-                                _connections.Remove(connection);
-                            }
-                        }
-                    };
-                }
-
-                // We don't wait for the connection to be activated. This could take a while for some transports
-                // such as TLS based transports where the handshake requires few round trips between the client
-                // and server. Waiting could also cause a security issue if the client doesn't respond to the
-                // connection initialization as we wouldn't be able to accept new connections in the meantime.
-                _ = connection.ConnectAsync(networkConnection, protocolConnectionFactory, closedEventHandler);
-            }
-        }
+        public ValueTask DisposeAsync() => new(ShutdownAsync(new CancellationToken(canceled: true)));
     }
 }
