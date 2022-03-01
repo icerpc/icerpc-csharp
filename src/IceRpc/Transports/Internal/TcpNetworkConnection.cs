@@ -372,15 +372,11 @@ namespace IceRpc.Transports.Internal
 
         internal override SslStream? SslStream => _sslStream;
 
-        // See https://tools.ietf.org/html/rfc5246#appendix-A.4
-        private const byte TlsHandshakeRecord = 0x16;
         private readonly SslServerAuthenticationOptions? _authenticationOptions;
         private bool _connected;
         private readonly TimeSpan _idleTimeout;
         private readonly Endpoint _localEndpoint;
         private SslStream? _sslStream;
-
-        private readonly bool? _tls;
 
         public override async Task<NetworkConnectionInformation> ConnectAsync(CancellationToken cancel)
         {
@@ -389,55 +385,11 @@ namespace IceRpc.Transports.Internal
 
             try
             {
-                bool secure;
-                if (_tls == false)
+                if (_authenticationOptions != null)
                 {
-                    // Don't establish a secure connection is the tls param is explicitly set to false.
-                    secure = false;
-                }
-                else if (_authenticationOptions != null)
-                {
-                    // On the server side, if the tls parameter is not set, the TCP socket checks the first
-                    // byte sent by the peer to figure out if the peer tries to establish a TLS connection.
-                    if (_tls == null)
-                    {
-                        // Peek one byte into the tcp stream to see if it contains the TLS handshake record
-                        Memory<byte> buffer = new byte[1];
-                        if (await Socket.ReceiveAsync(buffer, SocketFlags.Peek, cancel).ConfigureAwait(false) == 0)
-                        {
-                            throw new ConnectFailedException("could not read any byte from socket");
-                        }
-                        secure = buffer.Span[0] == TlsHandshakeRecord;
-                    }
-                    else
-                    {
-                        // Otherwise, assume a secure connection.
-                        secure = true;
-                    }
-                }
-                else
-                {
-                    // Authentication options are not set and the tls param is not explicitly set to false, we
-                    // throw because we can't establish a secure connection without authentication options.
-                    throw new InvalidOperationException(
-                        "cannot establish TLS connection: no TLS authentication options configured");
-                }
-
-                // If a secure connection is needed, create and authenticate the SslStream.
-                if (secure)
-                {
-                    Debug.Assert(_authenticationOptions != null);
-
                     // This can only be created with a connected socket.
                     _sslStream = new SslStream(new System.Net.Sockets.NetworkStream(Socket, false), false);
                     await _sslStream.AuthenticateAsServerAsync(_authenticationOptions, cancel).ConfigureAwait(false);
-                }
-
-                ImmutableDictionary<string, string> endpointParams = _localEndpoint.Params;
-                if (_tls == null)
-                {
-                    // the accepted endpoint gets a tls parameter
-                    endpointParams = endpointParams.Add("tls", _sslStream == null ? "false" : "true");
                 }
 
                 var ipEndPoint = (IPEndPoint)Socket.RemoteEndPoint!;
@@ -448,7 +400,7 @@ namespace IceRpc.Transports.Internal
                     {
                         Host = ipEndPoint.Address.ToString(),
                         Port = checked((ushort)ipEndPoint.Port),
-                        Params = endpointParams
+                        Params = _localEndpoint.Params
                     },
                     _idleTimeout,
                     _sslStream?.RemoteCertificate);
@@ -469,7 +421,6 @@ namespace IceRpc.Transports.Internal
         internal TcpServerNetworkConnection(
             Socket socket,
             Endpoint localEndpoint,
-            bool? tls,
             TimeSpan idleTimeout,
             SslServerAuthenticationOptions? authenticationOptions)
         {
@@ -477,7 +428,6 @@ namespace IceRpc.Transports.Internal
             _authenticationOptions = authenticationOptions;
             _idleTimeout = idleTimeout;
             _localEndpoint = localEndpoint;
-            _tls = tls;
         }
     }
 }

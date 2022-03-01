@@ -14,52 +14,45 @@ namespace IceRpc.Tests.Internal
     [Parallelizable(scope: ParallelScope.Fixtures)]
     [TestFixture(false, AddressFamily.InterNetwork)]
     [TestFixture(true, AddressFamily.InterNetwork)]
-    [TestFixture(null, AddressFamily.InterNetwork)]
     [TestFixture(false, AddressFamily.InterNetworkV6)]
     [Timeout(5000)]
     public class TcpNetworkConnectionTests
     {
-        private readonly SslClientAuthenticationOptions _clientAuthenticationOptions;
+        private readonly SslClientAuthenticationOptions? _clientAuthenticationOptions;
         private readonly IClientTransport<ISimpleNetworkConnection> _clientTransport;
         private readonly Endpoint _endpoint;
-        private readonly SslServerAuthenticationOptions _serverAuthenticationOptions;
+        private readonly SslServerAuthenticationOptions? _serverAuthenticationOptions;
         private readonly IServerTransport<ISimpleNetworkConnection> _serverTransport;
 
-        private readonly bool? _tls;
-
-        public TcpNetworkConnectionTests(bool? tls, AddressFamily addressFamily)
+        public TcpNetworkConnectionTests(bool tls, AddressFamily addressFamily)
         {
-            _tls = tls;
             bool isIPv6 = addressFamily == AddressFamily.InterNetworkV6;
             string host = isIPv6 ? "[::1]" : "127.0.0.1";
 
-            _clientAuthenticationOptions = new SslClientAuthenticationOptions
+            if (tls)
             {
-                RemoteCertificateValidationCallback =
-                            CertificateValidaton.GetServerCertificateValidationCallback(
-                                certificateAuthorities: new X509Certificate2Collection()
-                                {
-                                    new X509Certificate2("../../../certs/cacert.pem")
-                                }),
-                TargetHost = host
-            };
+                _clientAuthenticationOptions = new SslClientAuthenticationOptions
+                {
+                    RemoteCertificateValidationCallback =
+                                CertificateValidaton.GetServerCertificateValidationCallback(
+                                    certificateAuthorities: new X509Certificate2Collection()
+                                    {
+                                        new X509Certificate2("../../../certs/cacert.pem")
+                                    }),
+                    TargetHost = host
+                };
 
-            _clientTransport = new TcpClientTransport();
-
-            _serverAuthenticationOptions = new SslServerAuthenticationOptions
-            {
-                ClientCertificateRequired = false,
-                ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
-            };
-
-            _serverTransport = new TcpServerTransport();
-
-            string tlsString = "";
-            if (tls != null)
-            {
-                tlsString = $"?tls={tls}";
+                _serverAuthenticationOptions = new SslServerAuthenticationOptions
+                {
+                    ClientCertificateRequired = false,
+                    ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
+                };
             }
 
+            _clientTransport = new TcpClientTransport();
+            _serverTransport = new TcpServerTransport();
+
+            string tlsString = $"?tls={tls}";
             _endpoint = $"icerpc://{host}:0{tlsString}";
         }
 
@@ -104,12 +97,6 @@ namespace IceRpc.Tests.Internal
             Task<NetworkConnectionInformation> serverConnectTask = serverConnection.ConnectAsync(default);
 
             _ = await connectTask;
-
-            if (_tls == null)
-            {
-                await clientConnection.WriteAsync(new ReadOnlyMemory<byte>[] { new byte[1] }, default);
-            }
-
             _ = await serverConnectTask;
         }
 
@@ -132,7 +119,7 @@ namespace IceRpc.Tests.Internal
             await using ISimpleNetworkConnection serverConnection = await acceptTask;
             await clientConnection.DisposeAsync();
 
-            if (_tls == false)
+            if (_serverAuthenticationOptions == null)
             {
                 // Server side ConnectAsync is a no-op for non secure TCP connections so it won't throw.
                 _ = await serverConnection.ConnectAsync(default);
@@ -200,7 +187,7 @@ namespace IceRpc.Tests.Internal
             source.Cancel();
             var serverConnectTask = serverConnection.ConnectAsync(source.Token);
 
-            if (_tls == false)
+            if (_serverAuthenticationOptions == null)
             {
                 // Server-side ConnectionAsync is a no-op for non-secure TCP connections so it won't throw.
                 await serverConnectTask;
@@ -217,7 +204,7 @@ namespace IceRpc.Tests.Internal
             await using IListener<ISimpleNetworkConnection> listener = CreateListener(_endpoint);
 
             using var source = new CancellationTokenSource();
-            if (_tls == false)
+            if (_clientAuthenticationOptions == null)
             {
                 // ConnectAsync might complete synchronously with TCP
             }

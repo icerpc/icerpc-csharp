@@ -17,9 +17,6 @@ namespace IceRpc.Transports.Internal
         private readonly Func<TcpServerNetworkConnection, ISimpleNetworkConnection> _serverConnectionDecorator;
         private readonly Socket _socket;
 
-        // tls parsed from endpoint
-        private readonly bool? _tls;
-
         public async Task<ISimpleNetworkConnection> AcceptAsync()
         {
             Socket acceptedSocket;
@@ -41,7 +38,6 @@ namespace IceRpc.Transports.Internal
 #pragma warning disable CA2000 // the caller will Dispose the connection and _serverConnectionDecorator never throws
                 new TcpServerNetworkConnection(acceptedSocket,
                                                Endpoint,
-                                               _tls,
                                                _idleTimeout,
                                                _authenticationOptions));
 #pragma warning restore CA2000
@@ -69,7 +65,7 @@ namespace IceRpc.Transports.Internal
                     $"endpoint '{endpoint}' cannot accept connections because it has a DNS name");
             }
 
-            _tls = endpoint.ParseTcpParams().Tls;
+            _ = endpoint.ParseTcpParams().Tls; // TODO: remove
 
             _idleTimeout = options.IdleTimeout;
 
@@ -82,9 +78,9 @@ namespace IceRpc.Transports.Internal
                 // Add the endpoint protocol to the SSL application protocols (used by TLS ALPN)
                 _authenticationOptions = _authenticationOptions.Clone();
                 _authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
-                    {
-                        new SslApplicationProtocol(endpoint.Protocol.Name)
-                    };
+                {
+                    new SslApplicationProtocol(endpoint.Protocol.Name)
+                };
             }
 
             var address = new IPEndPoint(ipAddress, endpoint.Port);
