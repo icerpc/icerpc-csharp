@@ -17,11 +17,11 @@ namespace IceRpc.Slice
     /// <summary>Decodes a byte buffer encoded using the Slice encoding.</summary>
     public ref partial struct SliceDecoder
     {
+        /// <summary>The number of bytes decoded in the underlying buffer.</summary>
+        public long Consumed => _reader.Consumed;
+
         /// <summary>The Slice encoding decoded by this decoder.</summary>
         public SliceEncoding Encoding { get; }
-
-        /// <summary>The number of bytes decoded in the underlying buffer.</summary>
-        internal long Consumed => _reader.Consumed;
 
         private static readonly UTF8Encoding _utf8 =
             new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true); // no BOM
@@ -158,40 +158,7 @@ namespace IceRpc.Slice
 
         /// <summary>Decodes a size encoded on a variable number of bytes.</summary>
         /// <returns>The size decoded by this decoder.</returns>
-        public int DecodeSize()
-        {
-            // The implementation does not use any internal or private property and therefore DecodeSize could be an
-            // extension method. It's an instance method because it's considered fundamental.
-
-            if (Encoding == IceRpc.Encoding.Slice11)
-            {
-                byte firstByte = DecodeByte();
-                if (firstByte < 255)
-                {
-                    return firstByte;
-                }
-                else
-                {
-                    int size = DecodeInt();
-                    if (size < 0)
-                    {
-                        throw new InvalidDataException($"decoded invalid size: {size}");
-                    }
-                    return size;
-                }
-            }
-            else
-            {
-                try
-                {
-                    return checked((int)DecodeVarULong());
-                }
-                catch (OverflowException ex)
-                {
-                    throw new InvalidDataException("cannot decode size larger than int.MaxValue", ex);
-                }
-            }
-        }
+        public int DecodeSize() => TryDecodeSize(out int value) ? value :  throw new EndOfBufferException();
 
         /// <summary>Decodes a string.</summary>
         /// <returns>The string decoded by this decoder.</returns>
@@ -630,6 +597,107 @@ namespace IceRpc.Slice
             {
                 Skip(DecodeVarLongLength(PeekByte()));
             }
+        }
+
+        /// <summary>Tries to decode a byte.</summary>
+        // TODO: public for performance test purpose.
+        public bool TryDecodeByte(out byte value) => _reader.TryRead(out value);
+
+        /// <summary>Tries to decode an int.</summary>
+        // TODO: public for performance test purpose.
+        public bool TryDecodeInt(out int value) => SequenceMarshal.TryRead(ref _reader, out value);
+
+        /// <summary>Tries to decode a size encoded on a variable number of bytes.</summary>
+        /// <returns>The size decoded by this decoder.</returns>
+        // TODO: public for performance test purpose.
+        public bool TryDecodeSize(out int size)
+        {
+            if (Encoding == IceRpc.Encoding.Slice11)
+            {
+                if (TryDecodeByte(out byte firstByte) && firstByte < 255)
+                {
+                    size = firstByte;
+                    return true;
+                }
+                else if (TryDecodeInt(out size))
+                {
+                    if (size < 0)
+                    {
+                        throw new InvalidDataException($"decoded invalid size: {size}");
+                    }
+                    return true;
+                }
+                else
+                {
+                    size = 0;
+                    return false;
+                }
+            }
+            else
+            {
+                if (TryDecodeVarULong(out ulong v))
+                {
+                    size = checked((int)v);
+                    return true;
+                }
+                else
+                {
+                    size = 0;
+                    return false;
+                }
+            }
+        }
+
+        /// <summary>Decodes a ulong. This ulong is encoded using Ice's variable-size integer encoding.
+        /// </summary>
+        /// <returns>The ulong decoded by this decoder.</returns>
+        // TODO: public for performance test purpose.
+        public bool TryDecodeVarULong(out ulong value)
+        {
+            if (_reader.TryPeek(out byte b))
+            {
+                switch (b & 0x03)
+                {
+                    case 0:
+                    {
+                        if (_reader.TryRead(out byte byteValue))
+                        {
+                            value = (uint)byteValue >> 2;
+                            return true;
+                        }
+                        break;
+                    }
+                    case 1:
+                    {
+                        if (SequenceMarshal.TryRead(ref _reader, out ushort ushortValue))
+                        {
+                            value = (uint)ushortValue >> 2;
+                            return true;
+                        }
+                        break;
+                    }
+                    case 2:
+                    {
+                        if (SequenceMarshal.TryRead(ref _reader, out uint uintValue))
+                        {
+                            value = uintValue >> 2;
+                            return true;
+                        }
+                        break;
+                    }
+                    default:
+                    {
+                        if (SequenceMarshal.TryRead(ref _reader, out ulong ulongValue))
+                        {
+                            value = ulongValue >> 2;
+                            return true;
+                        }
+                        break;
+                    }
+                }
+            }
+            value = 0;
+            return false;
         }
 
         /// <summary>Decodes an endpoint (Slice 1.1).</summary>
