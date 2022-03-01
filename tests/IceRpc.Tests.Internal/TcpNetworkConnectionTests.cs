@@ -51,9 +51,7 @@ namespace IceRpc.Tests.Internal
 
             _clientTransport = new TcpClientTransport();
             _serverTransport = new TcpServerTransport();
-
-            string tlsString = $"?tls={tls}";
-            _endpoint = $"icerpc://{host}:0{tlsString}";
+            _endpoint = $"icerpc://{host}:0";
         }
 
         [Test]

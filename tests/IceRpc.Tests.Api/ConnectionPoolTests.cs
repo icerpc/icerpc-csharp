@@ -90,7 +90,6 @@ namespace IceRpc.Tests.Api
 
         [TestCase("icerpc://connectPoolTests.1?transport=coloc", "icerpc://connectPoolTests.2?transport=coloc")]
         [TestCase("icerpc://connectPoolTests:1000?transport=coloc", "icerpc://connectPoolTests:1002?transport=coloc")]
-        [TestCase("icerpc://127.0.0.1:0?tls=true", "icerpc://127.0.0.1:0", true)]
         public async Task ConnectionPool_ConnectionNotReused(
             string endpoint1Str,
             string endpoint2Str,

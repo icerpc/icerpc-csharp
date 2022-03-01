@@ -253,7 +253,7 @@ namespace IceRpc.Tests.Internal
             IServerTransport<ISimpleNetworkConnection> serverTransport =
                 new TcpServerTransport(tcpOptions ?? new TcpServerOptions());
             host ??= _isIPv6 ? "[::1]" : "127.0.0.1";
-            Endpoint endpoint = $"icerpc://{host}:0?tls=false";
+            Endpoint endpoint = $"icerpc://{host}:0";
 
             // We pass the null logger to avoid decoration of the listener.
             return serverTransport.Listen(endpoint, authenticationOptions: null, NullLogger.Instance);

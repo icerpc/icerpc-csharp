@@ -122,17 +122,6 @@ namespace IceRpc.Transports.Internal
                         }
                         break;
 
-                    case "tls": // TODO: remove
-                        try
-                        {
-                            _ = bool.Parse(value);
-                        }
-                        catch (FormatException ex)
-                        {
-                            throw new FormatException($"invalid value for tls parameter in endpoint '{endpoint}'", ex);
-                        }
-                        break;
-
                     case "z":
                         if (value.Length > 0)
                         {
