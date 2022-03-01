@@ -32,7 +32,7 @@ namespace ClientApp
 
                     // Get the ConnectionOptions from the configuration and add it to the generic host options. The DI
                     // container will inject it in services that require an IOptions<ConnectionOptions> dependency.
-                    services.AddOptions<ConnectionOptions>().Bind(hostContext.Configuration.GetSection("Client"));
+                    services.AddOptions<ConnectionOptions>().Bind(hostContext.Configuration.GetSection("Connection"));
 
                     // Create the client transport and add it as a singleton service of the generic host services. The
                     // DI container will inject it in services that require an

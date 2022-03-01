@@ -208,9 +208,9 @@ namespace IceRpc
             }
 
             Task PerformConnectAsync<T>(
-               IClientTransport<T> clientTransport,
-               IProtocolConnectionFactory<T> protocolConnectionFactory,
-               LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory) where T : INetworkConnection
+                IClientTransport<T> clientTransport,
+                IProtocolConnectionFactory<T> protocolConnectionFactory,
+                LogNetworkConnectionDecoratorFactory<T> logDecoratorFactory) where T : INetworkConnection
             {
                 // This is the composition root of client Connections, where we install log decorators when logging is
                 // enabled.
