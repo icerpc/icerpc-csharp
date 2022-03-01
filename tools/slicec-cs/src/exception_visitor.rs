@@ -12,7 +12,7 @@ use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
 use slice::code_gen_util::TypeContext;
-use slice::grammar::{Exception, Member};
+use slice::grammar::{Exception, Member, Type};
 use slice::visitor::Visitor;
 
 pub struct ExceptionVisitor<'a> {
