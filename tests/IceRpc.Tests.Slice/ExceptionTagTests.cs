@@ -41,7 +41,7 @@ namespace IceRpc.Tests.Slice
             var ts = new TaggedExceptionStruct("bar", 0);
 
             TaggedExceptionMinus ex =
-                Assert.ThrowsAsync<TaggedExceptionMinus>(async () => await prx.OpTaggedExceptionAsync(5, "foo", ts));
+                Assert.ThrowsAsync<TaggedExceptionMinus>(async () => await prx.ThrowTaggedExceptionAsync(5, "foo", ts));
 
             Assert.That(ex.MBool, Is.EqualTo(false));
             Assert.That(ex.MString, Is.EqualTo("foo"));
@@ -62,7 +62,7 @@ namespace IceRpc.Tests.Slice
             var ts = new TaggedExceptionStruct("bar", 0);
 
             TaggedExceptionPlus ex =
-                Assert.ThrowsAsync<TaggedExceptionPlus>(async () => await prx.OpTaggedExceptionAsync(null, "foo", ts));
+                Assert.ThrowsAsync<TaggedExceptionPlus>(async () => await prx.ThrowTaggedExceptionAsync(null, "foo", ts));
 
             Assert.That(ex.MFloat, Is.Null);
 
@@ -74,6 +74,29 @@ namespace IceRpc.Tests.Slice
         }
 
         [Test]
+        public async Task ExceptionTag_Operations()
+        {
+            // Exceptions can't be passed as members with the 1.1 encoding.
+            if (_prx.Encoding == Encoding.Slice11)
+            {
+                return;
+            }
+
+            var prx = new ExceptionTagPrx(_prx);
+            var tes = new TaggedExceptionStruct("bar", 0);
+            var tex = new TaggedException(tes, null, false, "foo");
+
+            var result = await prx.OpTaggedExceptionAsync(tex);
+
+            Assert.That(result.MStruct, Is.Not.Null);
+            Assert.That(result.MStruct.Value.S, Is.EqualTo("bar"));
+            Assert.That(result.MStruct.Value.V, Is.EqualTo(0));
+            Assert.That(result.MInt, Is.Null);
+            Assert.That(result.MBool, Is.EqualTo(false));
+            Assert.That(result.MString, Is.EqualTo("foo"));
+        }
+
+        [Test]
         public void ExceptionTag_Throw()
         {
             var prx = new ExceptionTagPrx(_prx);
@@ -81,13 +104,13 @@ namespace IceRpc.Tests.Slice
             var ts = new TaggedExceptionStruct("bar", 0);
 
             TaggedException ex =
-                Assert.ThrowsAsync<TaggedException>(async () => await prx.OpTaggedExceptionAsync(null, "foo", ts));
+                Assert.ThrowsAsync<TaggedException>(async () => await prx.ThrowTaggedExceptionAsync(null, "foo", ts));
             CheckException(ex);
 
             if (prx.Proxy.Encoding == Encoding.Slice11)
             {
                 DerivedException derivedEx = Assert.ThrowsAsync<DerivedException>(
-                    async () => await prx.OpDerivedExceptionAsync(null, "foo", ts));
+                    async () => await prx.ThrowDerivedExceptionAsync(null, "foo", ts));
 
                 Assert.That(derivedEx.MString1, Is.EqualTo("foo"));
                 Assert.That(derivedEx.MStruct1, Is.Not.Null);
@@ -95,7 +118,7 @@ namespace IceRpc.Tests.Slice
                 CheckException(derivedEx);
 
                 RequiredException requiredEx = Assert.ThrowsAsync<RequiredException>(
-                    async () => await prx.OpRequiredExceptionAsync(null, "foo", ts));
+                    async () => await prx.ThrowRequiredExceptionAsync(null, "foo", ts));
 
                 Assert.That(requiredEx.MString1, Is.EqualTo("foo"));
                 Assert.That(requiredEx.MStruct1, Is.EqualTo(ts));
@@ -104,11 +127,11 @@ namespace IceRpc.Tests.Slice
             else
             {
                 ex = Assert.ThrowsAsync<TaggedException>(
-                    async () => await prx.OpDerivedExceptionAsync(null, "foo", ts));
+                    async () => await prx.ThrowDerivedExceptionAsync(null, "foo", ts));
                 CheckException(ex);
 
                 ex = Assert.ThrowsAsync<TaggedException>(
-                    async () => await prx.OpRequiredExceptionAsync(null, "foo", ts));
+                    async () => await prx.ThrowRequiredExceptionAsync(null, "foo", ts));
                 CheckException(ex);
             }
 
@@ -143,7 +166,12 @@ namespace IceRpc.Tests.Slice
 
     public class ExceptionTag : Service, IExceptionTag
     {
-        public ValueTask OpDerivedExceptionAsync(
+        public ValueTask<TaggedException> OpTaggedExceptionAsync(
+            TaggedException p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new(p1);
+
+        public ValueTask ThrowDerivedExceptionAsync(
             int? p1,
             string? p2,
             TaggedExceptionStruct? p3,
@@ -155,7 +183,7 @@ namespace IceRpc.Tests.Slice
                                                                     mString1: p2,
                                                                     mStruct1: p3);
 
-        public ValueTask OpRequiredExceptionAsync(
+        public ValueTask ThrowRequiredExceptionAsync(
             int? p1,
             string? p2,
             TaggedExceptionStruct? p3,
@@ -168,7 +196,7 @@ namespace IceRpc.Tests.Slice
                                         mString1: p2 ?? "test",
                                         mStruct1: p3 ?? new TaggedExceptionStruct());
 
-        public ValueTask OpTaggedExceptionAsync(
+        public ValueTask ThrowTaggedExceptionAsync(
             int? p1,
             string? p2,
             TaggedExceptionStruct? p3,
