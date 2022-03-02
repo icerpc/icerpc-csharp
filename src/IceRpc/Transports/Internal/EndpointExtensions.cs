@@ -99,7 +99,7 @@ namespace IceRpc.Transports.Internal
                 switch (name)
                 {
                     case "transport":
-                        if (value != TransportNames.Tcp)
+                        if (value != TransportNames.Tcp && value != TransportNames.Ssl)
                         {
                             throw new FormatException(
                                 $"invalid value for transport parameter in endpoint '{endpoint}'");

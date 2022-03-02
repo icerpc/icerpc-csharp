@@ -308,7 +308,34 @@ namespace IceRpc.Transports.Internal
             SslClientAuthenticationOptions? authenticationOptions,
             TcpClientOptions options)
         {
-            _remoteEndpoint = remoteEndpoint.WithTransport(TransportNames.Tcp);
+            if (remoteEndpoint.Params.TryGetValue("transport", out string? endpointTransport))
+            {
+                switch (endpointTransport)
+                {
+                    case TransportNames.Tcp:
+                        // Note that we don't change authenticationOptions with tcp.
+                        break;
+
+                    case TransportNames.Ssl:
+                        // With ssl, we always "turn on" SSL
+                        authenticationOptions ??= new SslClientAuthenticationOptions();
+                        break;
+
+                    default:
+                        throw new ArgumentException(
+                            $"cannot use {endpointTransport} transport with endpoint '{remoteEndpoint}'",
+                            nameof(remoteEndpoint));
+                }
+            }
+            else
+            {
+                remoteEndpoint = remoteEndpoint with
+                {
+                    Params = remoteEndpoint.Params.Add("transport", TransportNames.Tcp)
+                };
+            }
+
+            _remoteEndpoint = remoteEndpoint;
 
             _addr = IPAddress.TryParse(_remoteEndpoint.Host, out IPAddress? ipAddress) ?
                 new IPEndPoint(ipAddress, _remoteEndpoint.Port) :

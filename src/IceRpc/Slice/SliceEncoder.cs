@@ -645,16 +645,25 @@ namespace IceRpc.Slice
 
                 if (endpoint.Protocol == Protocol.Ice)
                 {
-                    // TODO: should we resurrect the ssl transport with the ice protocol?
-                    if (transport == TransportNames.Tcp)
+                    switch (transport)
                     {
-                        (compress, timeout) = endpoint.ParseTcpParams();
-                        transportCode = TransportCode.TCP;
-                    }
-                    else if (transport == TransportNames.Udp)
-                    {
-                        transportCode = TransportCode.UDP;
-                        compress = endpoint.ParseUdpParams().Compress;
+                        case TransportNames.Ssl:
+                            (compress, timeout) = endpoint.ParseTcpParams();
+                            transportCode = TransportCode.SSL;
+                            break;
+
+                        case TransportNames.Tcp:
+                            (compress, timeout) = endpoint.ParseTcpParams();
+                            transportCode = TransportCode.TCP;
+                            break;
+
+                        case TransportNames.Udp:
+                            compress = endpoint.ParseUdpParams().Compress;
+                            transportCode = TransportCode.UDP;
+                            break;
+
+                        default:
+                            break;
                     }
                 }
                 // else transportCode remains Uri

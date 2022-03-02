@@ -686,7 +686,10 @@ namespace IceRpc.Slice
                             ImmutableDictionary<string, string>.Builder builder =
                                 ImmutableDictionary.CreateBuilder<string, string>();
 
-                            builder.Add("transport", TransportNames.Tcp);
+                            builder.Add(
+                                "transport",
+                                transportCode == TransportCode.TCP ? TransportNames.Tcp : TransportNames.Ssl);
+
                             if (timeout != Transports.Internal.EndpointExtensions.DefaultTcpTimeout)
                             {
                                 builder.Add("t", timeout.ToString(CultureInfo.InvariantCulture));

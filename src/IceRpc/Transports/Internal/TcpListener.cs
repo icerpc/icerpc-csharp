@@ -57,7 +57,33 @@ namespace IceRpc.Transports.Internal
             TcpServerOptions options,
             Func<TcpServerNetworkConnection, ISimpleNetworkConnection> serverConnectionDecorator)
         {
-            endpoint = endpoint.WithTransport(TransportNames.Tcp);
+            if (endpoint.Params.TryGetValue("transport", out string? endpointTransport))
+            {
+                switch (endpointTransport)
+                {
+                    case TransportNames.Tcp:
+                        break;
+
+                    case TransportNames.Ssl:
+                        if (authenticationOptions == null)
+                        {
+                            throw new ArgumentNullException();
+                        }
+                        break;
+
+                    default:
+                        throw new ArgumentException(
+                            $"cannot use {endpointTransport} transport with endpoint '{endpoint}'",
+                            nameof(endpoint));
+                }
+            }
+            else
+            {
+                endpoint = endpoint with
+                {
+                    Params = endpoint.Params.Add("transport", TransportNames.Tcp)
+                };
+            }
 
             if (!IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress))
             {
@@ -65,7 +91,7 @@ namespace IceRpc.Transports.Internal
                     $"endpoint '{endpoint}' cannot accept connections because it has a DNS name");
             }
 
-            _ = endpoint.ParseTcpParams(); // checks it's ok
+            _ = endpoint.ParseTcpParams();
 
             _idleTimeout = options.IdleTimeout;
 
