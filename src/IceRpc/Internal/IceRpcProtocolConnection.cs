@@ -51,7 +51,6 @@ namespace IceRpc.Internal
         private readonly object _mutex = new();
         private readonly IMultiplexedNetworkConnection _networkConnection;
         private int? _peerIncomingFrameMaxSize;
-        private readonly CancellationTokenSource _receiveRequestCancellationSource = new();
         private IMultiplexedStream? _remoteControlStream;
         private readonly CancellationTokenSource _shutdownCancellationSource = new();
         private bool _shutdownCanceled;
@@ -59,11 +58,7 @@ namespace IceRpc.Internal
         private readonly TaskCompletionSource _waitForGoAwayCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public void Dispose()
-        {
-            _shutdownCancellationSource.Dispose();
-            _receiveRequestCancellationSource.Dispose();
-        }
+        public void Dispose() => _shutdownCancellationSource.Dispose();
 
         public Task PingAsync(CancellationToken cancel) =>
             SendControlFrameAsync(IceRpcControlFrameType.Ping, null, cancel);
@@ -71,15 +66,13 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async Task<IncomingRequest> ReceiveRequestAsync()
         {
-            CancellationToken cancel = _receiveRequestCancellationSource.Token;
-
             while (true)
             {
                 // Accepts a new stream.
                 IMultiplexedStream stream;
                 try
                 {
-                    stream = await _networkConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
+                    stream = await _networkConnection.AcceptStreamAsync(CancellationToken.None).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -101,7 +94,7 @@ namespace IceRpc.Internal
                 PipeReader reader = stream.Input;
                 try
                 {
-                    ReadResult readResult = await reader.ReadSegmentAsync(cancel).ConfigureAwait(false);
+                    ReadResult readResult = await reader.ReadSegmentAsync(CancellationToken.None).ConfigureAwait(false);
 
                     if (readResult.Buffer.IsEmpty)
                     {
@@ -548,9 +541,6 @@ namespace IceRpc.Internal
             {
                 throw new InvalidDataException($"{nameof(IceRpcControlFrameType.GoAwayCompleted)} frame is not empty");
             }
-
-            // Cancel pending ReceiveRequestAsync call.
-            _receiveRequestCancellationSource.Cancel();
         }
 
         /// <inheritdoc/>
