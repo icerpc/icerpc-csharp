@@ -62,23 +62,11 @@ namespace IceRpc.Transports.Internal
 
             if (endpoint.Params.TryGetValue("transport", out string? endpointTransport))
             {
-                switch (endpointTransport)
+                if (endpointTransport == TransportNames.Ssl && authenticationOptions == null)
                 {
-                    case TransportNames.Tcp:
-                        break;
-
-                    case TransportNames.Ssl:
-                        if (authenticationOptions == null)
-                        {
-                            throw new ArgumentNullException(
-                                nameof(authenticationOptions),
-                                $"{nameof(authenticationOptions)} cannot be null with the ssl transport");
-                        }
-                        break;
-
-                    default:
-                        Debug.Assert(false);
-                        break;
+                    throw new ArgumentNullException(
+                        nameof(authenticationOptions),
+                        $"{nameof(authenticationOptions)} cannot be null with the ssl transport");
                 }
             }
             else
