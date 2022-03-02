@@ -650,9 +650,9 @@ namespace IceRpc.Internal
                 await _controlStream!.Output.FlushAsync(cancel).ConfigureAwait(false);
             }
 
-            void EncodeFrame(IBufferWriter<byte> bufferWriter)
+            void EncodeFrame(PipeWriter writer)
             {
-                var encoder = new SliceEncoder(bufferWriter, Encoding.Slice20);
+                var encoder = new SliceEncoder(writer, Encoding.Slice20);
                 Memory<byte> sizePlaceholder = encoder.GetPlaceholderMemory(4); // TODO: reduce bytes?
                 int startPos = encoder.EncodedByteCount; // does not include the size
                 encoder.EncodeByte((byte)frameType);

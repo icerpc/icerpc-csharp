@@ -16,13 +16,13 @@ public class EncodingBuiltInTypesTests
 {
     private readonly Memory<byte> _buffer;
     private readonly SliceEncoding _encoding;
-    private readonly SingleBufferWriter _bufferWriter;
+    private readonly MemoryBufferWriter _bufferWriter;
 
     public EncodingBuiltInTypesTests(string encoding)
     {
         _encoding = SliceEncoding.FromString(encoding);
         _buffer = new byte[256];
-        _bufferWriter = new SingleBufferWriter(_buffer);
+        _bufferWriter = new MemoryBufferWriter(_buffer);
     }
 
     /// <summary>Test the encoding of a fixed size numeric type.</summary>
@@ -38,7 +38,7 @@ public class EncodingBuiltInTypesTests
         long r1 = decoder.DecodeLong();
 
         Assert.That(p1, Is.EqualTo(r1));
-        Assert.That(_bufferWriter.WrittenBuffer.Length, Is.EqualTo(sizeof(long)));
+        Assert.That(_bufferWriter.WrittenMemory.Length, Is.EqualTo(sizeof(long)));
         Assert.That(decoder.Consumed, Is.EqualTo(sizeof(long)));
     }
 

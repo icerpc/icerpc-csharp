@@ -15,13 +15,13 @@ public class EncodingSequenceTests
 {
     private readonly Memory<byte> _buffer;
     private readonly SliceEncoding _encoding;
-    private readonly SingleBufferWriter _bufferWriter;
+    private readonly MemoryBufferWriter _bufferWriter;
 
     public EncodingSequenceTests(string encoding)
     {
         _encoding = SliceEncoding.FromString(encoding);
         _buffer = new byte[1024 * 1024];
-        _bufferWriter = new SingleBufferWriter(_buffer);
+        _bufferWriter = new MemoryBufferWriter(_buffer);
     }
 
     /// <summary>Tests <see cref="SliceEncoderExtensions.EncodeSpan"/> and
@@ -39,7 +39,7 @@ public class EncodingSequenceTests
         int[] r1 = decoder.DecodeSequence<int>();
 
         Assert.That(p1, Is.EqualTo(r1));
-        Assert.That(decoder.Consumed, Is.EqualTo(_bufferWriter.WrittenBuffer.Length));
+        Assert.That(decoder.Consumed, Is.EqualTo(_bufferWriter.WrittenMemory.Length));
         Assert.That(decoder.Consumed, Is.EqualTo(encoder.GetSizeLength(size) + size * sizeof(int)));
     }
 
@@ -61,7 +61,7 @@ public class EncodingSequenceTests
             (ref SliceDecoder decoder) => decoder.DecodeString());
 
         Assert.That(p1, Is.EqualTo(r1));
-        Assert.That(decoder.Consumed, Is.EqualTo(_bufferWriter.WrittenBuffer.Length));
+        Assert.That(decoder.Consumed, Is.EqualTo(_bufferWriter.WrittenMemory.Length));
     }
 
     /// <summary>Tests <see cref="SliceEncoderExtensions.EncodeSequence"/> and
@@ -100,6 +100,6 @@ public class EncodingSequenceTests
         Assert.That(p3, Is.EqualTo(r3));
         Assert.That(p4, Is.EqualTo(r4));
 
-        Assert.That(decoder.Consumed, Is.EqualTo(_bufferWriter.WrittenBuffer.Length));
+        Assert.That(decoder.Consumed, Is.EqualTo(_bufferWriter.WrittenMemory.Length));
     }
 }
