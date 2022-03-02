@@ -1,11 +1,7 @@
 using Demo;
 using IceRpc;
 
-await using var connection = new Connection
-{
-    RemoteEndpoint = "icerpc://127.0.0.1:10000?tls=false",
-    Dispatcher = new AlertRecipient()
-};
+await using var server = new Server(new AlertRecipient(), "icerpc://127.0.0.1?tls=false");
 
 AlertSystemPrx alertSystem = AlertSystemPrx.FromConnection(connection);
 AlertRecipientPrx alertRecipient = AlertRecipientPrx.FromPath("/");

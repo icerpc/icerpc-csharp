@@ -3,12 +3,7 @@ using IceRpc;
 
 try
 {
-    AlertSystem alertSystem = new AlertSystem();
-    await using var server = new Server
-    {
-        Endpoint = "icerpc://127.0.0.1:10000?tls=false",
-        Dispatcher = alertSystem
-    };
+    await using var server = new Server(new AlertSystem(), "icerpc://127.0.0.1?tls=false");
 
     // Destroy the server on Ctrl+C or Ctrl+Break
     Console.CancelKeyPress += (sender, eventArgs) =>
@@ -16,8 +11,8 @@ try
         eventArgs.Cancel = true;
         _ = server.ShutdownAsync();
     };
-    server.Listen();
 
+    server.Listen();
     await server.ShutdownComplete;
 }
 catch (Exception ex)
