@@ -20,10 +20,5 @@ namespace IceRpc.Transports
 
         /// <summary>Sets the action which is called when the stream is reset.</summary>
         Action? ShutdownAction { get; set; }
-
-        /// <summary>Waits for the stream shutdown completion.</summary>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A task that completes once the stream is shutdown.</returns>
-        Task WaitForShutdownAsync(CancellationToken cancel);
     }
 }

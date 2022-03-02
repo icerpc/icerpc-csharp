@@ -54,8 +54,6 @@ namespace IceRpc.Transports.Internal
         private readonly ILogger _logger;
         private PipeWriter? _output;
 
-        public Task WaitForShutdownAsync(CancellationToken cancel) => _decoratee.WaitForShutdownAsync(cancel);
-
         public override string? ToString() => _decoratee.ToString();
 
         internal LogMultiplexedStreamDecorator(IMultiplexedStream decoratee, ILogger logger)

@@ -63,10 +63,10 @@ namespace IceRpc.Transports.Internal
             return new StreamResetBody(ref decoder);
         }
 
-        internal static StreamResumeWriteBody DecodeStreamResumeWrite(this ReadOnlyMemory<byte> buffer)
+        internal static StreamConsumedBody DecodeStreamConsumed(this ReadOnlyMemory<byte> buffer)
         {
             var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-            return new StreamResumeWriteBody(ref decoder);
+            return new StreamConsumedBody(ref decoder);
         }
 
         internal static StreamStopSendingBody DecodeStreamStopSending(this ReadOnlyMemory<byte> buffer)

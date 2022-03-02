@@ -118,10 +118,6 @@ namespace IceRpc.Tests.Internal
             }
             await ClientStream.Input.CompleteAsync();
             await ServerStream.Output.CompleteAsync();
-
-            // Ensure streams are shutdown.
-            await ServerStream.WaitForShutdownAsync(default);
-            await ClientStream.WaitForShutdownAsync(default);
         }
 
         [Test]
@@ -259,10 +255,6 @@ namespace IceRpc.Tests.Internal
             // Complete the server input pipe to ensure that it doesn't cause any issues while concurrently receiving
             // frames from the client. Because the server output pipe is already completed, the stream will shutdown.
             await ServerStream.Input.CompleteAsync();
-
-            // Both stream should be shutdown at this point.
-            await ServerStream.WaitForShutdownAsync(default);
-            await ClientStream.WaitForShutdownAsync(default);
 
             // Ensure the connection can still accept streams.
             ValueTask<IMultiplexedStream> serverTask = _serverConnection!.AcceptStreamAsync(default);
