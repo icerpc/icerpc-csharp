@@ -1,27 +1,29 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
 using Demo;
 using IceRpc;
 using IceRpc.Configure;
 
 ConnectionOptions options = new ConnectionOptions
 {
-    Dispatcher = new AlertRecipient(),
-    RemoteEndpoint = "icerpc://127.0.0.1?tls=false",
+    Dispatcher = new AlertObserver(),
+    RemoteEndpoint = "icerpc://127.0.0.1",
 };
 
 await using var connection = new Connection(options);
 
 AlertSystemPrx alertSystem = AlertSystemPrx.FromConnection(connection);
-AlertRecipientPrx alertRecipient = AlertRecipientPrx.FromPath("/");
+AlertObserverPrx alertObserver = AlertObserverPrx.FromPath("/");
 
 Console.WriteLine("Waiting for Alert ...");
-await alertSystem.AddObserverAsync(alertRecipient);
+await alertSystem.AddObserverAsync(alertObserver);
 
 // Destroy the client on Ctrl+C or Ctrl+Break
-TaskCompletionSource tcs = new TaskCompletionSource();
+TaskCompletionSource completionSource = new TaskCompletionSource();
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
     eventArgs.Cancel = true;
-    tcs.SetResult();
+    completionSource.SetResult();
 };
 
-await tcs.Task;
+await completionSource.Task;

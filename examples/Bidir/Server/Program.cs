@@ -1,9 +1,11 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
 using Demo;
 using IceRpc;
 
 try
 {
-    await using var server = new Server(new AlertSystem(), "icerpc://127.0.0.1?tls=false");
+    await using var server = new Server(new AlertSystem());
 
     // Destroy the server on Ctrl+C or Ctrl+Break
     Console.CancelKeyPress += (sender, eventArgs) =>
