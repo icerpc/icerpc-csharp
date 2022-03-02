@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -16,9 +17,6 @@ namespace IceRpc.Transports.Internal
         private readonly TimeSpan _idleTimeout;
         private readonly Func<TcpServerNetworkConnection, ISimpleNetworkConnection> _serverConnectionDecorator;
         private readonly Socket _socket;
-
-        // tls parsed from endpoint
-        private readonly bool? _tls;
 
         public async Task<ISimpleNetworkConnection> AcceptAsync()
         {
@@ -41,7 +39,6 @@ namespace IceRpc.Transports.Internal
 #pragma warning disable CA2000 // the caller will Dispose the connection and _serverConnectionDecorator never throws
                 new TcpServerNetworkConnection(acceptedSocket,
                                                Endpoint,
-                                               _tls,
                                                _idleTimeout,
                                                _authenticationOptions));
 #pragma warning restore CA2000
@@ -57,10 +54,28 @@ namespace IceRpc.Transports.Internal
 
         internal TcpListener(
             Endpoint endpoint,
+            SslServerAuthenticationOptions? authenticationOptions,
             TcpServerOptions options,
             Func<TcpServerNetworkConnection, ISimpleNetworkConnection> serverConnectionDecorator)
         {
-            endpoint = endpoint.WithTransport(TransportNames.Tcp);
+            _ = endpoint.ParseTcpParams(); // sanity check
+
+            if (endpoint.Params.TryGetValue("transport", out string? endpointTransport))
+            {
+                if (endpointTransport == TransportNames.Ssl && authenticationOptions == null)
+                {
+                    throw new ArgumentNullException(
+                        nameof(authenticationOptions),
+                        $"{nameof(authenticationOptions)} cannot be null with the ssl transport");
+                }
+            }
+            else
+            {
+                endpoint = endpoint with
+                {
+                    Params = endpoint.Params.Add("transport", TransportNames.Tcp)
+                };
+            }
 
             if (!IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress))
             {
@@ -68,22 +83,20 @@ namespace IceRpc.Transports.Internal
                     $"endpoint '{endpoint}' cannot accept connections because it has a DNS name");
             }
 
-            _tls = endpoint.ParseTcpParams().Tls;
-
             _idleTimeout = options.IdleTimeout;
 
             _serverConnectionDecorator = serverConnectionDecorator;
 
-            _authenticationOptions = options.AuthenticationOptions;
+            _authenticationOptions = authenticationOptions;
 
             if (_authenticationOptions != null)
             {
                 // Add the endpoint protocol to the SSL application protocols (used by TLS ALPN)
                 _authenticationOptions = _authenticationOptions.Clone();
                 _authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
-                    {
-                        new SslApplicationProtocol(endpoint.Protocol.Name)
-                    };
+                {
+                    new SslApplicationProtocol(endpoint.Protocol.Name)
+                };
             }
 
             var address = new IPEndPoint(ipAddress, endpoint.Port);

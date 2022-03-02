@@ -7,6 +7,7 @@ using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
+using System.Net.Security;
 
 namespace IceRpc.Tests.Internal
 {
@@ -595,6 +596,7 @@ namespace IceRpc.Tests.Internal
                     ConnectionOptions connectionOptions = clientConnectionOptions ?? new();
                     connectionOptions = connectionOptions with
                     {
+                        AuthenticationOptions = _serviceProvider.GetService<SslClientAuthenticationOptions>(),
                         IsResumable = false,
                         SimpleClientTransport =
                             _serviceProvider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),

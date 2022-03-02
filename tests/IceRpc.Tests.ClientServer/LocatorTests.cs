@@ -29,7 +29,7 @@ namespace IceRpc.Tests.ClientServer
             var router = new Router();
             string path = $"/{Guid.NewGuid()}";
             router.Map(path, new Greeter());
-            string serverEndpoint = "ice://127.0.0.1:0?tls=false";
+            string serverEndpoint = "ice://127.0.0.1:0";
             _server = new Server(router, serverEndpoint);
             _server.Listen();
 

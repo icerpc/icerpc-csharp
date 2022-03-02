@@ -29,26 +29,32 @@ namespace IceRpc.Tests.Internal
         private readonly IListener<ISimpleNetworkConnection> _listener;
         private readonly bool _isIPv6;
         private ISimpleNetworkConnection? _serverConnection;
+
         private readonly bool _tls;
 
         public TcpNetworkConnectionReadWriteTests(bool tls, AddressFamily addressFamily)
         {
-            _isIPv6 = addressFamily == AddressFamily.InterNetworkV6;
             _tls = tls;
+            _isIPv6 = addressFamily == AddressFamily.InterNetworkV6;
 
-            var serverAuthenticationOptions = new SslServerAuthenticationOptions
+            SslServerAuthenticationOptions? serverAuthenticationOptions = null;
+            if (_tls)
             {
-                ClientCertificateRequired = false,
-                ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
-            };
+                serverAuthenticationOptions = new SslServerAuthenticationOptions
+                {
+                    ClientCertificateRequired = false,
+                    ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
+                };
+            }
 
-            IServerTransport<ISimpleNetworkConnection> serverTransport =
-                new TcpServerTransport(new TcpServerOptions { AuthenticationOptions = serverAuthenticationOptions });
+            IServerTransport<ISimpleNetworkConnection> serverTransport = new TcpServerTransport();
 
             string host = _isIPv6 ? "[::1]" : "127.0.0.1";
 
-            _listener = serverTransport.Listen($"icerpc://{host}:0?tls={_tls}",
-                                               LogAttributeLoggerFactory.Instance.Logger);
+            _listener = serverTransport.Listen(
+                $"icerpc://{host}:0",
+                serverAuthenticationOptions,
+                LogAttributeLoggerFactory.Instance.Logger);
         }
 
         [SetUp]
@@ -56,22 +62,26 @@ namespace IceRpc.Tests.Internal
         {
             Task<ISimpleNetworkConnection> acceptTask = _listener.AcceptAsync();
 
-            var clientAuthenticationOptions = new SslClientAuthenticationOptions
+            SslClientAuthenticationOptions? clientAuthenticationOptions = null;
+            if (_tls)
             {
-                RemoteCertificateValidationCallback =
-                            CertificateValidaton.GetServerCertificateValidationCallback(
-                                certificateAuthorities: new X509Certificate2Collection()
-                                {
-                                    new X509Certificate2("../../../certs/cacert.pem")
-                                }),
-                TargetHost = _isIPv6 ? "[::1]" : "127.0.0.1"
-            };
+                clientAuthenticationOptions = new SslClientAuthenticationOptions
+                {
+                    RemoteCertificateValidationCallback =
+                                CertificateValidaton.GetServerCertificateValidationCallback(
+                                    certificateAuthorities: new X509Certificate2Collection()
+                                    {
+                                        new X509Certificate2("../../../certs/cacert.pem")
+                                    }),
+                    TargetHost = _isIPv6 ? "[::1]" : "127.0.0.1"
+                };
+            }
 
-            IClientTransport<ISimpleNetworkConnection> clientTransport = new TcpClientTransport(
-                new TcpClientOptions { AuthenticationOptions = clientAuthenticationOptions });
+            IClientTransport<ISimpleNetworkConnection> clientTransport = new TcpClientTransport();
 
             _clientConnection = clientTransport.CreateConnection(
                 _listener.Endpoint,
+                clientAuthenticationOptions,
                 LogAttributeLoggerFactory.Instance.Logger);
             Task<NetworkConnectionInformation> connectTask = _clientConnection.ConnectAsync(default);
 

@@ -89,9 +89,8 @@ namespace IceRpc.Transports.Internal
             return (transportCode.Value, encodingMajor, encodingMinor, bytes);
         }
 
-        internal static (bool Compress, int Timeout, bool? Tls) ParseTcpParams(this Endpoint endpoint)
+        internal static (bool Compress, int Timeout) ParseTcpParams(this Endpoint endpoint)
         {
-            bool? tls = null;
             bool compress = false;
             int? timeout = null;
 
@@ -100,7 +99,7 @@ namespace IceRpc.Transports.Internal
                 switch (name)
                 {
                     case "transport":
-                        if (value != TransportNames.Tcp)
+                        if (value != TransportNames.Tcp && value != TransportNames.Ssl)
                         {
                             throw new FormatException(
                                 $"invalid value for transport parameter in endpoint '{endpoint}'");
@@ -123,17 +122,6 @@ namespace IceRpc.Transports.Internal
                         }
                         break;
 
-                    case "tls":
-                        try
-                        {
-                            tls = bool.Parse(value);
-                        }
-                        catch (FormatException ex)
-                        {
-                            throw new FormatException($"invalid value for tls parameter in endpoint '{endpoint}'", ex);
-                        }
-                        break;
-
                     case "z":
                         if (value.Length > 0)
                         {
@@ -148,7 +136,7 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            return (compress, timeout ?? DefaultTcpTimeout, tls);
+            return (compress, timeout ?? DefaultTcpTimeout);
         }
 
         internal static (bool Compress, int Ttl, string? MulticastInterface) ParseUdpParams(this Endpoint endpoint)

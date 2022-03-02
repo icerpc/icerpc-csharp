@@ -4,6 +4,7 @@ using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.IO.Pipelines;
+using System.Net.Security;
 
 namespace IceRpc.Transports
 {
@@ -15,8 +16,14 @@ namespace IceRpc.Transports
         /// <inheritdoc/>
         ISimpleNetworkConnection IClientTransport<ISimpleNetworkConnection>.CreateConnection(
             Endpoint remoteEndpoint,
+            SslClientAuthenticationOptions? authenticationOptions,
             ILogger logger)
         {
+            if (authenticationOptions != null)
+            {
+                throw new NotSupportedException("cannot create a secure Coloc connection");
+            }
+
             remoteEndpoint = remoteEndpoint.WithTransport(ColocTransport.Name);
 
             if (remoteEndpoint.Params.Count > 1)

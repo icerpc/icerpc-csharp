@@ -13,21 +13,24 @@ namespace IceRpc.Configure
     /// <summary>Extension methods for class <see cref="CompositeClientTransport{ISimpleNetworkConnection}"/>.</summary>
     public static class CompositeSimpleClientTransportExtensions
     {
-        /// <summary>Adds the tcp client transport to this composite client transport.</summary>
+        /// <summary>Adds the tcp and ssl client transports to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
         /// <returns>The transport being configured.</returns>
         public static CompositeClientTransport<ISimpleNetworkConnection> UseTcp(
             this CompositeClientTransport<ISimpleNetworkConnection> clientTransport) =>
             clientTransport.UseTcp(new TcpClientOptions());
 
-        /// <summary>Adds the tcp client transport to this composite client transport.</summary>
+        /// <summary>Adds the tcp and ssl client transports to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
         /// <param name="options">The TCP client options.</param>
         /// <returns>The transport being configured.</returns>
         public static CompositeClientTransport<ISimpleNetworkConnection> UseTcp(
             this CompositeClientTransport<ISimpleNetworkConnection> clientTransport,
-            TcpClientOptions options) =>
-            clientTransport.Add(TransportNames.Tcp, new TcpClientTransport(options));
+            TcpClientOptions options)
+        {
+            var transport = new TcpClientTransport(options);
+            return clientTransport.Add(TransportNames.Tcp, transport).Add(TransportNames.Ssl, transport);
+        }
 
         /// <summary>Adds the udp client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The client transport being configured.</param>

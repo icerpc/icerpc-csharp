@@ -3,6 +3,7 @@
 using IceRpc.Configure;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
+using System.Net.Security;
 
 namespace IceRpc.Transports
 {
@@ -25,6 +26,7 @@ namespace IceRpc.Transports
         /// <inheritdoc/>
         IListener<ISimpleNetworkConnection> IServerTransport<ISimpleNetworkConnection>.Listen(
             Endpoint endpoint,
+            SslServerAuthenticationOptions? authenticationOptions,
             ILogger logger)
         {
             // This is the composition root of the tcp server transport, where we install log decorators when logging
@@ -34,7 +36,7 @@ namespace IceRpc.Transports
                 logger.IsEnabled(TcpLoggerExtensions.MaxLogLevel) ?
                     connection => new LogTcpNetworkConnectionDecorator(connection, logger) : connection => connection;
 
-            return new TcpListener(endpoint, _options, serverConnectionDecorator);
+            return new TcpListener(endpoint, authenticationOptions, _options, serverConnectionDecorator);
         }
     }
 }
