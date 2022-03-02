@@ -25,14 +25,14 @@ namespace IceRpc.Tests.Slice
             prx.Proxy.Invoker = pipeline;
             // Setup response activator excluding ClassB assembly
             pipeline.UseFeature(
-                new DecodePayloadOptions { Activator = SliceDecoder.GetActivator(typeof(ClassA).Assembly) });
+                new SliceDecodePayloadOptions { Activator = SliceDecoder.GetActivator(typeof(ClassA).Assembly) });
             Assert.ThrowsAsync<InvalidDataException>(async () => await prx.OpAAsync(new ClassB("A", "B")));
 
             // Repeat but this time include ClassB assembly
             pipeline = new Pipeline();
             prx.Proxy.Invoker = pipeline;
             pipeline.UseFeature(
-                new DecodePayloadOptions { Activator = SliceDecoder.GetActivator(typeof(ClassB).Assembly) });
+                new SliceDecodePayloadOptions { Activator = SliceDecoder.GetActivator(typeof(ClassB).Assembly) });
             await prx.OpAAsync(new ClassB("A", "B"));
         }
 
@@ -46,7 +46,7 @@ namespace IceRpc.Tests.Slice
                     {
                         var router = new Router();
                         router.UseFeature(
-                            new DecodePayloadOptions
+                            new SliceDecodePayloadOptions
                             {
                                 Activator = SliceDecoder.GetActivator(typeof(ClassA).Assembly)
                             });
@@ -69,7 +69,7 @@ namespace IceRpc.Tests.Slice
                     {
                         var router = new Router();
                         router.UseFeature(
-                            new DecodePayloadOptions
+                            new SliceDecodePayloadOptions
                             {
                                 Activator = SliceDecoder.GetActivator(typeof(ClassB).Assembly)
                             });

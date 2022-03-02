@@ -1,12 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc.Slice
+namespace IceRpc.Configure
 {
-    /// <summary>Configures the decoding of stream parameters and return values.</summary>
-    public sealed class StreamDecoderOptions
+    /// <summary>Configures the decoding of Slice stream parameters and return values.</summary>
+    public sealed class SliceStreamDecoderOptions
     {
         /// <summary>The default instance.</summary>
-        public static StreamDecoderOptions Default { get; } = new();
+        public static SliceStreamDecoderOptions Default { get; } = new();
 
         /// <summary>When the Slice engine decodes a stream into an async enumerable, it will pause when the number of
         /// bytes decoded but not read is greater or equal to this value.</summary>
@@ -23,7 +23,7 @@ namespace IceRpc.Slice
         /// never pause.</param>
         /// <param name="resumeWriterThreshold">The resume writer threshold value. -1 means use half of
         /// <paramref name="pauseWriterThreshold"/>.</param>
-        public StreamDecoderOptions(long pauseWriterThreshold = -1, long resumeWriterThreshold = -1)
+        public SliceStreamDecoderOptions(long pauseWriterThreshold = -1, long resumeWriterThreshold = -1)
         {
             const int DefaultPauseWriterThreshold = 65_536; // 64K, like System.IO.Pipelines.Pipe
 

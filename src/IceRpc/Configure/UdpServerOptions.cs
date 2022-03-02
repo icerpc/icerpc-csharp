@@ -5,7 +5,7 @@ using IceRpc.Transports;
 namespace IceRpc.Configure
 {
     /// <summary>The options class for configuring <see cref="UdpServerTransport"/>.</summary>
-    public sealed class UdpServerOptions
+    public sealed record class UdpServerOptions
     {
         /// <summary>Configures an IPv6 socket to only support IPv6. The socket won't support IPv4 mapped addresses
         /// when this property is set to true. The default value is false.</summary>

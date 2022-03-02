@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace IceRpc.Configure
 {
     /// <summary>An options class for configuring a Locator interceptor.</summary>
-    public sealed class LocatorOptions
+    public sealed record class LocatorOptions
     {
         /// <summary>When true, if the lookup finds a stale cache entry, it returns the stale entry's endpoint(s)
         /// and executes a call "in the background" to refresh this entry. The default is false, meaning the lookup

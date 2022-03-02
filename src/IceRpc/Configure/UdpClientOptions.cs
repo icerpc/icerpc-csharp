@@ -6,7 +6,7 @@ using System.Net;
 namespace IceRpc.Configure
 {
     /// <summary>The options class for configuring <see cref="UdpClientTransport"/>.</summary>
-    public sealed class UdpClientOptions
+    public sealed record class UdpClientOptions
     {
         /// <summary>The idle timeout. This timeout is used to monitor the network connection. If the connection
         /// is idle within this timeout period, the connection is gracefully closed. It can't be 0 and the default

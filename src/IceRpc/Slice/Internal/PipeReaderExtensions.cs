@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
@@ -314,7 +315,7 @@ namespace IceRpc.Slice.Internal
             IActivator activator,
             int maxDepth,
             DecodeFunc<T> decodeFunc,
-            StreamDecoderOptions streamDecoderOptions)
+            SliceStreamDecoderOptions streamDecoderOptions)
         {
             Func<ReadOnlySequence<byte>, IEnumerable<T>> decodeBufferFunc = buffer =>
             {

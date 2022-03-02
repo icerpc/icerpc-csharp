@@ -5,7 +5,7 @@ using System.Buffers;
 namespace IceRpc.Configure
 {
     /// <summary>An options class for configuring Slic based transports.</summary>
-    public class SlicOptions
+    public sealed record class SlicOptions
     {
         private int _bidirectionalStreamMaxCount = 100;
         private int _minimumSegmentSize = 4096;

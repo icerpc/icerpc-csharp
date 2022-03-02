@@ -7,7 +7,7 @@ namespace IceRpc.Configure
 {
     /// <summary>Options class to configure <see cref="TelemetryMiddleware"/> and <see cref="TelemetryInterceptor"/>.
     /// </summary>
-    public sealed class TelemetryOptions
+    public sealed record class TelemetryOptions
     {
         /// <summary>If set to a non null object the <see cref="ActivitySource"/> is used to start the request and
         /// response activities.</summary>
