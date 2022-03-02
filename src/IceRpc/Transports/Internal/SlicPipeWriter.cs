@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.IO.Pipelines;
@@ -101,7 +102,11 @@ namespace IceRpc.Transports.Internal
 
             if (_pipe.Writer.UnflushedBytes > 0)
             {
-                _state.SetState(State.PipeReaderInUse);
+                if (!_state.TrySetFlag(State.PipeReaderInUse))
+                {
+                    throw new InvalidOperationException($"{nameof(WriteAsync)} is not thread safe");
+                }
+
                 try
                 {
                     if (_state.HasFlag(State.PipeReaderCompleted))

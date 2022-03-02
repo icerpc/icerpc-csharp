@@ -5,6 +5,7 @@ using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Collections.Immutable;
+using System.Net.Security;
 
 namespace IceRpc.Tests.Api
 {
@@ -89,17 +90,22 @@ namespace IceRpc.Tests.Api
 
         [TestCase("icerpc://connectPoolTests.1?transport=coloc", "icerpc://connectPoolTests.2?transport=coloc")]
         [TestCase("icerpc://connectPoolTests:1000?transport=coloc", "icerpc://connectPoolTests:1002?transport=coloc")]
-        [TestCase("icerpc://127.0.0.1:0?tls=true", "icerpc://127.0.0.1:0?tls=false")]
-        [TestCase("icerpc://127.0.0.1:0?tls=true", "icerpc://127.0.0.1:0")]
-        public async Task ConnectionPool_ConnectionNotReused(string endpoint1Str, string endpoint2Str)
+        public async Task ConnectionPool_ConnectionNotReused(
+            string endpoint1Str,
+            string endpoint2Str,
+            bool useTls = false)
         {
-            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
-                .UseTls()
-                .AddTransient(typeof(Endpoint), _ => Endpoint.FromString(endpoint1Str))
-                .BuildServiceProvider();
+            IServiceCollection serviceCollection = new IntegrationTestServiceCollection()
+                .AddTransient(typeof(Endpoint), _ => Endpoint.FromString(endpoint1Str));
+            if (useTls)
+            {
+                serviceCollection.UseTls();
+            }
+            await using ServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
 
             await using var server1 = new Server(new ServerOptions
             {
+                AuthenticationOptions = serviceProvider.GetService<SslServerAuthenticationOptions>(),
                 Endpoint = endpoint1Str,
                 MultiplexedServerTransport =
                     serviceProvider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>()
@@ -108,6 +114,7 @@ namespace IceRpc.Tests.Api
 
             await using var server2 = new Server(new ServerOptions
             {
+                AuthenticationOptions = serviceProvider.GetService<SslServerAuthenticationOptions>(),
                 Endpoint = endpoint2Str,
                 MultiplexedServerTransport =
                     serviceProvider.GetRequiredService<IServerTransport<IMultiplexedNetworkConnection>>()
@@ -117,6 +124,7 @@ namespace IceRpc.Tests.Api
             await using var connectionPool = new ConnectionPool(
                 new ConnectionOptions
                 {
+                    AuthenticationOptions = serviceProvider.GetService<SslClientAuthenticationOptions>(),
                     MultiplexedClientTransport =
                         serviceProvider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>()
                 });

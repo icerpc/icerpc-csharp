@@ -118,10 +118,6 @@ namespace IceRpc.Tests.Internal
             }
             await ClientStream.Input.CompleteAsync();
             await ServerStream.Output.CompleteAsync();
-
-            // Ensure streams are shutdown.
-            await ServerStream.WaitForShutdownAsync(default);
-            await ClientStream.WaitForShutdownAsync(default);
         }
 
         [Test]
@@ -214,6 +210,35 @@ namespace IceRpc.Tests.Internal
             await ClientStream.Output.CompleteAsync().ConfigureAwait(false);
         }
 
+        [TestCase(32)]
+        [TestCase(256)]
+        [TestCase(512)]
+        public async Task MultiplexedStream_StreamSendReceive2Async(int bufferSize)
+        {
+            await ClientStream.Input.CompleteAsync();
+            await ServerStream.Output.CompleteAsync();
+
+            byte[] sendBuffer = new byte[bufferSize];
+            new Random().NextBytes(sendBuffer);
+            _ = Task.Run(async () =>
+            {
+                FlushResult flushResult = default;
+                while (!flushResult.IsCompleted)
+                {
+                    flushResult = await ClientStream.Output.WriteAsync(sendBuffer, CancellationToken.None);
+                }
+            });
+
+            for (int i = 0; i < 1000; ++i)
+            {
+                ReadResult readResult = await ServerStream.Input.ReadAtLeastAsync(bufferSize);
+                ServerStream.Input.AdvanceTo(readResult.Buffer.GetPosition(bufferSize));
+            }
+
+            await ServerStream.Input.CompleteAsync().ConfigureAwait(false);
+            await ClientStream.Output.CompleteAsync().ConfigureAwait(false);
+        }
+
         [Test]
         public async Task MultiplexedStream_StreamCompleteOnFrameRead()
         {
@@ -230,10 +255,6 @@ namespace IceRpc.Tests.Internal
             // Complete the server input pipe to ensure that it doesn't cause any issues while concurrently receiving
             // frames from the client. Because the server output pipe is already completed, the stream will shutdown.
             await ServerStream.Input.CompleteAsync();
-
-            // Both stream should be shutdown at this point.
-            await ServerStream.WaitForShutdownAsync(default);
-            await ClientStream.WaitForShutdownAsync(default);
 
             // Ensure the connection can still accept streams.
             ValueTask<IMultiplexedStream> serverTask = _serverConnection!.AcceptStreamAsync(default);

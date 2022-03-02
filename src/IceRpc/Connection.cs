@@ -217,7 +217,10 @@ namespace IceRpc
 
                 ILogger logger = _options.LoggerFactory.CreateLogger("IceRpc.Client");
 
-                T networkConnection = clientTransport.CreateConnection(RemoteEndpoint, logger);
+                T networkConnection = clientTransport.CreateConnection(
+                    RemoteEndpoint,
+                    _options.AuthenticationOptions,
+                    logger);
 
                 EventHandler<ClosedEventArgs>? closedEventHandler = null;
 

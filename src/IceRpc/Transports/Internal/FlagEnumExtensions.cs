@@ -36,13 +36,5 @@ namespace IceRpc.Transports.Internal
                 throw new InvalidOperationException("state was already cleared");
             }
         }
-
-        internal static void SetState<T>(this ref int source, T value) where T : Enum
-        {
-            if (!TrySetFlag(ref source, value))
-            {
-                throw new InvalidOperationException("state was already set");
-            }
-        }
     }
 }

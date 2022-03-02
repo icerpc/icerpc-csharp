@@ -3,6 +3,7 @@
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Net.Security;
 
 namespace IceRpc.Configure
 {
@@ -16,6 +17,11 @@ namespace IceRpc.Configure
         /// <summary>Returns the default value for <see cref="SimpleServerTransport"/>.</summary>
         public static IServerTransport<ISimpleNetworkConnection> DefaultSimpleServerTransport { get; } =
             new CompositeSimpleServerTransport().UseTcp().UseUdp();
+
+        /// <summary>Gets or initializes the SSL server authentication options.</summary>
+        /// <value>The SSL server authentication options. When not null, the server will accept only secure connections.
+        /// </value>
+        public SslServerAuthenticationOptions? AuthenticationOptions { get; init; }
 
         /// <summary>Gets or initializes the connection close timeout. This timeout is used when gracefully closing a
         /// connection to wait for the peer connection closure. If the peer doesn't close its side of the connection

@@ -178,7 +178,16 @@ namespace IceRpc.Slice
             var encoder = new SliceEncoder(pipe.Writer, encoding);
             Span<byte> sizePlaceholder = encoder.GetPlaceholderSpan(4);
             int startPos = encoder.EncodedByteCount;
-            encoder.EncodeException(exception);
+
+            if (encoding == IceRpc.Encoding.Slice11 && exception is DispatchException dispatchException)
+            {
+                encoder.EncodeDispatchExceptionAsSystemException(dispatchException);
+            }
+            else
+            {
+                exception.EncodeTrait(ref encoder);
+            }
+
             Slice20Encoding.EncodeSize(encoder.EncodedByteCount - startPos, sizePlaceholder);
 
             pipe.Writer.Complete(); // flush to reader and sets Is[Writer]Completed to true.

@@ -4,6 +4,7 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Net.Security;
 
 namespace IceRpc.Tests.Internal
 {
@@ -27,6 +28,7 @@ namespace IceRpc.Tests.Internal
                 IListener<T> listener =
                     serviceProvider.GetRequiredService<IServerTransport<T>>().Listen(
                         serviceProvider.GetRequiredService<Endpoint>(),
+                        serviceProvider.GetService<SslServerAuthenticationOptions>(),
                         serviceProvider.GetRequiredService<ILogger>());
 
                 LogNetworkConnectionDecoratorFactory<T>? decorator =
@@ -65,6 +67,7 @@ namespace IceRpc.Tests.Internal
             ILogger logger = serviceProvider.GetRequiredService<ILogger>();
             T connection = serviceProvider.GetRequiredService<IClientTransport<T>>().CreateConnection(
                 endpoint,
+                serviceProvider.GetService<SslClientAuthenticationOptions>(),
                 logger);
             LogNetworkConnectionDecoratorFactory<T>? decorator =
                 serviceProvider.GetService<LogNetworkConnectionDecoratorFactory<T>>();

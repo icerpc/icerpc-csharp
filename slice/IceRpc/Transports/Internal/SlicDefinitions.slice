@@ -20,8 +20,8 @@ enum FrameType : byte
     StreamLast,
     /// The stream reset frame terminates the stream.
     StreamReset,
-    /// The stream resume write frame is sent to notify the peer that it can resume write to send additional data.
-    StreamResumeWrite,
+    /// The stream consumed frame is sent to increase the peer's send credit.
+    StreamConsumed,
     /// The stream stop sending frame is sent to notify the peer it should stop sending data.
     StreamStopSending,
     /// The unidirectional stream released frame notifies the stream initiator that the remote side released the
@@ -88,12 +88,11 @@ compact struct StreamResetBody
     applicationProtocolErrorCode: varlong,
 }
 
-/// The body of the Stream resume write frame. This frame is sent to notify the peer that the receiver permits
-/// the sender to send additional data.
+/// The body of the Stream consumed frame. This frame is sent to increase the peer's send credit.
 [cs:readonly]
-compact struct StreamResumeWriteBody
+compact struct StreamConsumedBody
 {
-    /// The size of the data that the sender can write.
+    /// The size of the consumed data.
     size: varulong,
 }
 

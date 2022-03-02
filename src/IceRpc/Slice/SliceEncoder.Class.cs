@@ -17,46 +17,6 @@ namespace IceRpc.Slice
         /// <param name="v">The class instance to encode.</param>
         public void EncodeClass(AnyClass v) => EncodeNullableClass(v);
 
-        /// <inheritdoc/>
-        private void EncodeExceptionClass(RemoteException v)
-        {
-            Debug.Assert(_classContext.Current.InstanceType == InstanceType.None);
-
-            if (v is DispatchException dispatchException)
-            {
-                DispatchErrorCode errorCode = dispatchException.ErrorCode;
-
-                switch (errorCode)
-                {
-                    case DispatchErrorCode.ServiceNotFound:
-                    case DispatchErrorCode.OperationNotFound:
-                        this.EncodeReplyStatus(errorCode == DispatchErrorCode.ServiceNotFound ?
-                            ReplyStatus.ObjectNotExistException : ReplyStatus.OperationNotExistException);
-
-                        // TODO: pass context to dispatch exception Encode
-                        var requestFailed = new RequestFailedExceptionData(path: "/", "", "");
-                        requestFailed.Encode(ref this);
-                        break;
-
-                    default:
-                        this.EncodeReplyStatus(ReplyStatus.UnknownException);
-                        // We encode the error code in the message.
-                        EncodeString($"[{((byte)errorCode).ToString(CultureInfo.InvariantCulture)}] {v.Message}");
-                        break;
-                }
-            }
-            else
-            {
-                // We don't encode the ReplyStatus because "user exceptions" are always encoded with a SliceFailure
-                // result type.
-                _classContext.ClassFormat = FormatType.Sliced; // always encode exceptions in sliced format
-                _classContext.Current.InstanceType = InstanceType.Exception;
-                _classContext.Current.FirstSlice = true;
-                v.Encode(ref this);
-                _classContext.Current = default;
-            }
-        }
-
         /// <summary>Encodes a class instance, or null.</summary>
         /// <param name="v">The class instance to encode, or null.</param>
         public void EncodeNullableClass(AnyClass? v)
@@ -90,6 +50,34 @@ namespace IceRpc.Slice
                 {
                     EncodeInstance(v); // Encodes the instance or a reference if already encoded.
                 }
+            }
+        }
+
+        /// <summary>Encodes a dispatch exception as an ice "system exception".</summary>
+        /// <param name="v">The dispatch exception to encode.</param>
+        public void EncodeDispatchExceptionAsSystemException(DispatchException v)
+        {
+            Debug.Assert(Encoding == IceRpc.Encoding.Slice11);
+
+            DispatchErrorCode errorCode = v.ErrorCode;
+
+            switch (errorCode)
+            {
+                case DispatchErrorCode.ServiceNotFound:
+                case DispatchErrorCode.OperationNotFound:
+                    this.EncodeReplyStatus(errorCode == DispatchErrorCode.ServiceNotFound ?
+                        ReplyStatus.ObjectNotExistException : ReplyStatus.OperationNotExistException);
+
+                    // TODO: pass context to dispatch exception Encode
+                    var requestFailed = new RequestFailedExceptionData(path: "/", "", "");
+                    requestFailed.Encode(ref this);
+                    break;
+
+                default:
+                    this.EncodeReplyStatus(ReplyStatus.UnknownException);
+                    // We encode the error code in the message.
+                    EncodeString($"[{((byte)errorCode).ToString(CultureInfo.InvariantCulture)}] {v.Message}");
+                    break;
             }
         }
 
@@ -134,6 +122,12 @@ namespace IceRpc.Slice
 
             // Update SliceFlags in case they were updated.
             _classContext.Current.SliceFlagsPlaceholder.Span[0] = (byte)_classContext.Current.SliceFlags;
+
+            // If this is the last slice in an exception, reset the current context.
+            if (lastSlice && _classContext.Current.InstanceType == InstanceType.Exception)
+            {
+                _classContext.Current = default;
+            }
         }
 
         /// <summary>Marks the start of the encoding of a class or remote exception slice.</summary>
@@ -142,7 +136,14 @@ namespace IceRpc.Slice
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void StartSlice(string typeId, int? compactId = null)
         {
-            Debug.Assert(_classContext.Current.InstanceType != InstanceType.None);
+            // This will only be called with an InstanceType of 'None' when we're starting to encode the first slice
+            // of a remote exception.
+            if (_classContext.Current.InstanceType == InstanceType.None)
+            {
+                _classContext.ClassFormat = FormatType.Sliced; // always encode exceptions in sliced format
+                _classContext.Current.InstanceType = InstanceType.Exception;
+                _classContext.Current.FirstSlice = true;
+            }
 
             _classContext.Current.SliceFlags = default;
             _classContext.Current.SliceFlagsPlaceholder = GetPlaceholderMemory(1);

@@ -53,7 +53,24 @@ namespace IceRpc.Tests.Slice
         }
 
         [Test]
-        public void Exception_Operations()
+        public async Task Exception_Member_OperationsAsync()
+        {
+            // Exceptions can't be passed as members with the 1.1 encoding.
+            if (_prx.Proxy.Encoding == Encoding.Slice11)
+            {
+                return;
+            }
+
+            MyExceptionA a = await _prx.OpMyExceptionAAsync(new MyExceptionA(-79));
+            Assert.That(a.M1, Is.EqualTo(-79));
+
+            MyExceptionBHolder b1 = new MyExceptionBHolder(new MyExceptionB(42));
+            MyExceptionBHolder b2 = await _prx.OpMyExceptionBHolderAsync(b1);
+            Assert.That(b1.M1.M1, Is.EqualTo(42));
+        }
+
+        [Test]
+        public void Exception_Throw_Operations()
         {
             MyExceptionA? a = Assert.ThrowsAsync<MyExceptionA>(async () => await _prx.ThrowAAsync(10));
             Assert.That(a, Is.Not.Null);
@@ -70,6 +87,16 @@ namespace IceRpc.Tests.Slice
 
         public class ExceptionOperations : Service, IExceptionOperations
         {
+            public ValueTask<MyExceptionA> OpMyExceptionAAsync(
+                MyExceptionA p1,
+                Dispatch dispatch,
+                CancellationToken cancel) => new(p1);
+
+            public ValueTask<MyExceptionBHolder> OpMyExceptionBHolderAsync(
+                MyExceptionBHolder p1,
+                Dispatch dispatch,
+                CancellationToken cancel) => new(p1);
+
             public ValueTask ThrowAAsync(int a, Dispatch dispatch, CancellationToken cancel) => throw new MyExceptionA(a);
             public ValueTask ThrowAorBAsync(int a, Dispatch dispatch, CancellationToken cancel)
             {

@@ -165,10 +165,6 @@ namespace IceRpc.Tests.Internal
                 // await clientStreams.Last().Input.CompleteAsync();
             }
 
-            // Ensure streams are shutdown.
-            await serverStreams.Last().WaitForShutdownAsync(default);
-            await clientStreams.Last().WaitForShutdownAsync(default);
-
             // Now it should be possible to accept the new stream on the server side.
             _ = await acceptTask;
             await sendTask;

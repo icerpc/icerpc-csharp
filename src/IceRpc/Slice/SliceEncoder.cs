@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.IO.Pipelines;
 using System.Text;
 
 using static IceRpc.Slice.Internal.Slice11Definitions;
@@ -36,15 +37,12 @@ namespace IceRpc.Slice
         private Encoder? _utf8Encoder; // initialized lazily
 
         /// <summary>Constructs an Slice encoder.</summary>
-        /// <param name="bufferWriter">The buffer writer that provides the buffers to write into.</param>
+        /// <param name="pipeWriter">The pipe writer that provides the buffers to write into.</param>
         /// <param name="encoding">The Slice encoding.</param>
         /// <param name="classFormat">The class format (1.1 only).</param>
-        public SliceEncoder(IBufferWriter<byte> bufferWriter, SliceEncoding encoding, FormatType classFormat = default)
-            : this()
+        public SliceEncoder(PipeWriter pipeWriter, SliceEncoding encoding, FormatType classFormat = default)
+            : this((IBufferWriter<byte>)pipeWriter, encoding, classFormat)
         {
-            Encoding = encoding;
-            _bufferWriter = bufferWriter;
-            _classContext = new ClassContext(classFormat);
         }
 
         // Encode methods for basic types
@@ -198,20 +196,6 @@ namespace IceRpc.Slice
         }
 
         // Encode methods for constructed types
-
-        /// <summary>Encodes a remote exception.</summary>
-        /// <param name="v">The remote exception to encode.</param>
-        public void EncodeException(RemoteException v)
-        {
-            if (Encoding == IceRpc.Encoding.Slice11)
-            {
-                EncodeExceptionClass(v);
-            }
-            else
-            {
-                v.Encode(ref this);
-            }
-        }
 
         /// <summary>Encodes a nullable proxy.</summary>
         /// <param name="bitSequenceWriter">The bit sequence writer.</param>
@@ -552,6 +536,11 @@ namespace IceRpc.Slice
             EncodedByteCount += span.Length;
         }
 
+        internal SliceEncoder(MemoryBufferWriter memoryWriter, SliceEncoding encoding, FormatType classFormat = default)
+            : this((IBufferWriter<byte>)memoryWriter, encoding, classFormat)
+        {
+        }
+
         internal static void EncodeInt(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
 
         /// <summary>Encodes a fixed-size numeric value.</summary>
@@ -617,6 +606,14 @@ namespace IceRpc.Slice
             };
         }
 
+        private SliceEncoder(IBufferWriter<byte> bufferWriter, SliceEncoding encoding, FormatType classFormat)
+            : this()
+        {
+            Encoding = encoding;
+            _bufferWriter = bufferWriter;
+            _classContext = new ClassContext(classFormat);
+        }
+
         private void Advance(int count)
         {
             _bufferWriter.Advance(count);
@@ -659,15 +656,25 @@ namespace IceRpc.Slice
 
                 if (endpoint.Protocol == Protocol.Ice)
                 {
-                    if (transport == TransportNames.Tcp)
+                    switch (transport)
                     {
-                        (compress, timeout, bool? tls) = endpoint.ParseTcpParams();
-                        transportCode = (tls ?? true) ? TransportCode.SSL : TransportCode.TCP;
-                    }
-                    else if (transport == TransportNames.Udp)
-                    {
-                        transportCode = TransportCode.UDP;
-                        compress = endpoint.ParseUdpParams().Compress;
+                        case TransportNames.Ssl:
+                            (compress, timeout) = endpoint.ParseTcpParams();
+                            transportCode = TransportCode.SSL;
+                            break;
+
+                        case TransportNames.Tcp:
+                            (compress, timeout) = endpoint.ParseTcpParams();
+                            transportCode = TransportCode.TCP;
+                            break;
+
+                        case TransportNames.Udp:
+                            compress = endpoint.ParseUdpParams().Compress;
+                            transportCode = TransportCode.UDP;
+                            break;
+
+                        default:
+                            break;
                     }
                 }
                 // else transportCode remains Uri

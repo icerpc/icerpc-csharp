@@ -31,12 +31,12 @@ public class SlicingTests
     public void Slicing_Classes()
     {
         Memory<byte> buffer = new byte[1024 * 1024];
-        var bufferWriter = new SingleBufferWriter(buffer);
+        var bufferWriter = new MemoryBufferWriter(buffer);
         var encoder = new SliceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
 
         var p1 = new MyMostDerivedClass("most-derived", "derived", "base");
         encoder.EncodeClass(p1);
-        buffer = bufferWriter.WrittenBuffer;
+        buffer = bufferWriter.WrittenMemory;
 
         // Create an activator that knows about all the types using in this test
         var activator = SliceDecoder.GetActivator(new Assembly[]
@@ -112,12 +112,12 @@ public class SlicingTests
     public void Slicing_Classes_WithCompactTypeId()
     {
         Memory<byte> buffer = new byte[1024 * 1024];
-        var bufferWriter = new SingleBufferWriter(buffer);
+        var bufferWriter = new MemoryBufferWriter(buffer);
         var encoder = new SliceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
 
         var p1 = new MyCompactMostDerivedClass("most-derived", "derived", "base");
         encoder.EncodeClass(p1);
-        buffer = bufferWriter.WrittenBuffer;
+        buffer = bufferWriter.WrittenMemory;
 
         // Create an activator that knows about all the types using in this test
         var activator = SliceDecoder.GetActivator(new Assembly[]
@@ -190,12 +190,12 @@ public class SlicingTests
     public void Slicing_Exceptions()
     {
         Memory<byte> buffer = new byte[1024 * 1024];
-        var bufferWriter = new SingleBufferWriter(buffer);
+        var bufferWriter = new MemoryBufferWriter(buffer);
         var encoder = new SliceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
 
         var p1 = new MyMostDerivedException("most-derived", "derived", "base");
-        encoder.EncodeException(p1);
-        buffer = bufferWriter.WrittenBuffer;
+        p1.EncodeTrait(ref encoder);
+        buffer = bufferWriter.WrittenMemory;
 
         // Create an activator that knows about all the types using in this test
         var activator = SliceDecoder.GetActivator(new Assembly[]
@@ -262,13 +262,13 @@ public class SlicingTests
     public void Slicing_PreservedClasses()
     {
         Memory<byte> buffer = new byte[1024 * 1024];
-        var bufferWriter = new SingleBufferWriter(buffer);
+        var bufferWriter = new MemoryBufferWriter(buffer);
         var encoder = new SliceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
 
         var p2 = new MyPreservedDerivedClass1("p2-m1", "p2-m2", new MyBaseClass("base"));
         var p1 = new MyPreservedDerivedClass1("p1-m1", "p1-m2", p2);
         encoder.EncodeClass(p1);
-        buffer = bufferWriter.WrittenBuffer;
+        buffer = bufferWriter.WrittenMemory;
 
         // Create an activator that knows about all the types using in this test
         var activator = SliceDecoder.GetActivator(typeof(MyPreservedDerivedClass1).Assembly);
@@ -291,10 +291,10 @@ public class SlicingTests
 
         // Marshal the sliced class
         buffer = new byte[1024 * 1024];
-        bufferWriter = new SingleBufferWriter(buffer);
+        bufferWriter = new MemoryBufferWriter(buffer);
         encoder = new SliceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
         encoder.EncodeClass(r1);
-        buffer = bufferWriter.WrittenBuffer;
+        buffer = bufferWriter.WrittenMemory;
 
         // unmarshal again using the default factory, the unmarshaled class should contain the preserved Slices.
         decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: activator);
@@ -313,13 +313,13 @@ public class SlicingTests
     public void Slicing_PreservedClasses_WithCompactTypeId()
     {
         Memory<byte> buffer = new byte[1024 * 1024];
-        var bufferWriter = new SingleBufferWriter(buffer);
+        var bufferWriter = new MemoryBufferWriter(buffer);
         var encoder = new SliceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
 
         var p2 = new MyPreservedDerivedClass2("p2-m1", "p2-m2", new MyBaseClass("base"));
         var p1 = new MyPreservedDerivedClass2("p1-m1", "p1-m2", p2);
         encoder.EncodeClass(p1);
-        buffer = bufferWriter.WrittenBuffer;
+        buffer = bufferWriter.WrittenMemory;
 
         // Create an activator that knows about all the types using in this test
         var activator = SliceDecoder.GetActivator(typeof(MyPreservedDerivedClass2).Assembly);
@@ -341,10 +341,10 @@ public class SlicingTests
 
         // Marshal the sliced class
         buffer = new byte[1024 * 1024];
-        bufferWriter = new SingleBufferWriter(buffer);
+        bufferWriter = new MemoryBufferWriter(buffer);
         encoder = new SliceEncoder(bufferWriter, Encoding.Slice11, classFormat: FormatType.Sliced);
         encoder.EncodeClass(r1);
-        buffer = bufferWriter.WrittenBuffer;
+        buffer = bufferWriter.WrittenMemory;
 
         // unmarshal again using the default factory, the unmarshaled class should contain the preserved Slices.
         decoder = new SliceDecoder(buffer, Encoding.Slice11, activator: activator);

@@ -13,21 +13,24 @@ namespace IceRpc.Configure
     /// <summary>Extension methods for class <see cref="CompositeServerTransport{ISimpleNetworkConnection}"/>.</summary>
     public static class CompositeSimpleServerTransportExtensions
     {
-        /// <summary>Adds the tcp server transport to this composite server transport.</summary>
+        /// <summary>Adds the tcp and ssl server transports to this composite server transport.</summary>
         /// <param name="serverTransport">The transport being configured.</param>
         /// <returns>The transport being configured.</returns>
         public static CompositeServerTransport<ISimpleNetworkConnection> UseTcp(
             this CompositeServerTransport<ISimpleNetworkConnection> serverTransport) =>
             serverTransport.UseTcp(new TcpServerOptions());
 
-        /// <summary>Adds the tcp server transport to this composite server transport.</summary>
+        /// <summary>Adds the tcp and ssl server transports to this composite server transport.</summary>
         /// <param name="serverTransport">The transport being configured.</param>
         /// <param name="options">The TCP server options.</param>
         /// <returns>The transport being configured.</returns>
         public static CompositeServerTransport<ISimpleNetworkConnection> UseTcp(
             this CompositeServerTransport<ISimpleNetworkConnection> serverTransport,
-            TcpServerOptions options) =>
-            serverTransport.Add(TransportNames.Tcp, new TcpServerTransport(options));
+            TcpServerOptions options)
+        {
+            var transport = new TcpServerTransport(options);
+            return serverTransport.Add(TransportNames.Tcp, transport).Add(TransportNames.Ssl, transport);
+        }
 
         /// <summary>Adds the udp server transport to this composite server transport.</summary>
         /// <param name="serverTransport">The server transport being configured.</param>

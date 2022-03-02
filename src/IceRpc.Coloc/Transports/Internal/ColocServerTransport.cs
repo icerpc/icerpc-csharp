@@ -3,6 +3,7 @@
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.Net.Security;
 
 namespace IceRpc.Transports
 {
@@ -14,8 +15,14 @@ namespace IceRpc.Transports
         /// <inheritdoc/>
         IListener<ISimpleNetworkConnection> IServerTransport<ISimpleNetworkConnection>.Listen(
             Endpoint endpoint,
+            SslServerAuthenticationOptions? authenticationOptions,
             ILogger logger)
         {
+            if (authenticationOptions != null)
+            {
+                throw new NotSupportedException("cannot create secure Coloc server");
+            }
+
             var listener = new ColocListener(endpoint);
             if (!_listeners.TryAdd(listener.Endpoint, listener))
             {

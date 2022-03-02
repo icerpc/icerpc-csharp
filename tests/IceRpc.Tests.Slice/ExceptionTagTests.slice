@@ -46,9 +46,11 @@ exception RequiredException : TaggedException
 
 interface ExceptionTag
 {
-    opTaggedException(p1: tag(1) int?, p2: tag(2) string?, p3: tag(3) TaggedExceptionStruct?);
+    opTaggedException(p1: TaggedException) -> TaggedException;
 
-    opDerivedException(p1: tag(1) int?, p2: tag(2) string?, p3: tag(3) TaggedExceptionStruct?);
+    ThrowTaggedException(p1: tag(1) int?, p2: tag(2) string?, p3: tag(3) TaggedExceptionStruct?);
 
-    opRequiredException(p1: tag(1) int?, p2: tag(2) string?, p3: tag(3) TaggedExceptionStruct?);
+    ThrowDerivedException(p1: tag(1) int?, p2: tag(2) string?, p3: tag(3) TaggedExceptionStruct?);
+
+    ThrowRequiredException(p1: tag(1) int?, p2: tag(2) string?, p3: tag(3) TaggedExceptionStruct?);
 }

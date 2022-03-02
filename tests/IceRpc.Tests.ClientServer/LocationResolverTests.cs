@@ -76,8 +76,7 @@ namespace IceRpc.Tests.ClientServer
 
         private GreeterPrx SetupServer(string protocol, string path, IInvoker invoker)
         {
-            string serverEndpoint = protocol == "icerpc" ?
-                "icerpc://127.0.0.1:0?tls=false" : "ice://127.0.0.1:0?tls=false";
+            string serverEndpoint = $"{protocol}://127.0.0.1:0";
             _server = new Server(new Greeter(), serverEndpoint);
             _server.Listen();
 

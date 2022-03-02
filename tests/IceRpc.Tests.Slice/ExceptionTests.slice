@@ -12,8 +12,16 @@ exception MyExceptionB
     m1: int,
 }
 
+struct MyExceptionBHolder
+{
+    m1: MyExceptionB
+}
+
 interface ExceptionOperations
 {
+    opMyExceptionA(p1: MyExceptionA) -> MyExceptionA;
+    opMyExceptionBHolder(p1: MyExceptionBHolder) -> MyExceptionBHolder;
+
     throwA(a: int);
     throwAorB(a: int);
 }
