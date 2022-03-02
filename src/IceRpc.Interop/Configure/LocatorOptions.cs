@@ -28,6 +28,9 @@ namespace IceRpc.Configure
         /// <value>The just refreshed age. The default is 1s.</value>
         public TimeSpan JustRefreshedAge { get; init; } = TimeSpan.FromSeconds(1);
 
+        /// <summary>Gets or initializes the locator proxy.</summary>
+        public ILocatorPrx? Locator { get; init; }
+
         /// <summary>Gets or initializes the logger factory used to create the IceRpc logger.</summary>
         public ILoggerFactory LoggerFactory { get; init; } = NullLoggerFactory.Instance;
 
