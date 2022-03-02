@@ -9,7 +9,7 @@ IHelloPrx hello = HelloPrx.FromConnection(connection);
 
 Console.Write("Tell the server your name: ");
 
-if (Console.ReadLine() is string greeting)
+if (Console.ReadLine() is string name)
 {
-    await hello.SayHelloAsync(greeting);
+    await hello.SayHelloAsync(name);
 }
