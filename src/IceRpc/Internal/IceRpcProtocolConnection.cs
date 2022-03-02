@@ -142,8 +142,8 @@ namespace IceRpc.Internal
 
                 lock (_mutex)
                 {
-                    // If shutdown, ignore the incoming request and continue receiving frames until the
-                    // connection is closed.
+                    // If shutting down, ignore the incoming request and continue receiving frames until the connection
+                    // is closed.
                     if (!_shuttingDown)
                     {
                         _dispatches.Add(request);
