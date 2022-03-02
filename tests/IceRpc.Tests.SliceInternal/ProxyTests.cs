@@ -18,14 +18,14 @@ namespace IceRpc.Tests.SliceInternal
         public async Task Proxy_EncodingVersioning(string encodingStr, string str)
         {
             Memory<byte> buffer = new byte[256];
-            var bufferWriter = new SingleBufferWriter(buffer);
+            var bufferWriter = new MemoryBufferWriter(buffer);
             var encoding = SliceEncoding.FromString(encodingStr);
 
             IProxyFormat? format = str.StartsWith("ice", StringComparison.Ordinal) ? null : IceProxyFormat.Default;
             var proxy = Proxy.Parse(str, format: format);
             EncodeProxy();
 
-            buffer = bufferWriter.WrittenBuffer;
+            buffer = bufferWriter.WrittenMemory;
 
             await using var connection = new Connection("icerpc://[::1]");
 
@@ -59,9 +59,9 @@ namespace IceRpc.Tests.SliceInternal
             var regular = Proxy.FromConnection(connection, "/bar");
 
             Memory<byte> buffer = new byte[256];
-            var bufferWriter = new SingleBufferWriter(buffer);
+            var bufferWriter = new MemoryBufferWriter(buffer);
             EncodeProxy();
-            buffer = bufferWriter.WrittenBuffer;
+            buffer = bufferWriter.WrittenMemory;
 
             Proxy proxy1 = DecodeProxy();
 

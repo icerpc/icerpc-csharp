@@ -45,7 +45,9 @@ namespace IceRpc.Transports.Internal
         private AsyncSemaphore? _readCompletedSemaphore;
         private readonly ISlicFrameReader _reader;
         private readonly List<ReadOnlyMemory<byte>> _sendBuffers = new(16);
-        private readonly ArrayBufferWriter<byte> _sendFrameWriter = new(256);
+        // The send frame writer is used to encode frames other than the Stream/StreamLast frames. 256 bytes should be
+        // sufficient to encode any of these frames.
+        private readonly MemoryBufferWriter _sendFrameWriter = new(new byte[256]);
         private readonly AsyncSemaphore _sendSemaphore = new(1, 1);
         private readonly ISimpleNetworkConnection _simpleNetworkConnection;
         private readonly ConcurrentDictionary<long, SlicMultiplexedStream> _streams = new();
@@ -360,7 +362,7 @@ namespace IceRpc.Transports.Internal
                 _sendSemaphore.Release();
             }
 
-            void Encode(IBufferWriter<byte> writer)
+            void Encode(MemoryBufferWriter writer)
             {
                 var encoder = new SliceEncoder(writer, Encoding.Slice20);
                 encoder.EncodeByte((byte)frameType);

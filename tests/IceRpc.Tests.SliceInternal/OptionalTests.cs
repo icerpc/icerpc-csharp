@@ -25,7 +25,7 @@ namespace IceRpc.Tests.SliceInternal
 
             void EncodePayload(SliceEncoding encoding, MyOptional value)
             {
-                var encoder = new SliceEncoder(new SingleBufferWriter(buffer), encoding);
+                var encoder = new SliceEncoder(new MemoryBufferWriter(buffer), encoding);
                 value.Encode(ref encoder);
             }
 
