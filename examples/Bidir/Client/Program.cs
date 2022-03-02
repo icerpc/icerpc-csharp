@@ -1,11 +1,19 @@
 using Demo;
 using IceRpc;
+using IceRpc.Configure;
 
-await using var server = new Server(new AlertRecipient(), "icerpc://127.0.0.1?tls=false");
+ConnectionOptions options = new ConnectionOptions
+{
+    Dispatcher = new AlertRecipient(),
+    RemoteEndpoint = "icerpc://127.0.0.1?tls=false",
+};
+
+await using var connection = new Connection(options);
 
 AlertSystemPrx alertSystem = AlertSystemPrx.FromConnection(connection);
 AlertRecipientPrx alertRecipient = AlertRecipientPrx.FromPath("/");
 
+Console.WriteLine("Waiting for Alert ...");
 await alertSystem.AddObserverAsync(alertRecipient);
 
 // Destroy the server on Ctrl+C or Ctrl+Break

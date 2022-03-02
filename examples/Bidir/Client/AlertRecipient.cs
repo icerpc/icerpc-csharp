@@ -8,6 +8,7 @@ public class AlertRecipient: Service, IAlertRecipient
     {
         string[] allowedAnswers = {"Y", "N"};
         string answer = "";
+        Console.WriteLine("Alert recieved...");
         while (!allowedAnswers.Contains(answer))
         {
             Console.WriteLine($"Do you want to handle the alert? [Y/N]: ");
