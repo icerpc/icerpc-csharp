@@ -16,7 +16,7 @@ AlertRecipientPrx alertRecipient = AlertRecipientPrx.FromPath("/");
 Console.WriteLine("Waiting for Alert ...");
 await alertSystem.AddObserverAsync(alertRecipient);
 
-// Destroy the server on Ctrl+C or Ctrl+Break
+// Destroy the client on Ctrl+C or Ctrl+Break
 TaskCompletionSource tcs = new TaskCompletionSource();
 Console.CancelKeyPress += (sender, eventArgs) =>
 {
