@@ -135,7 +135,7 @@ namespace IceRpc
             _options = options;
         }
 
-        /// <summary>Constructs a client connection to a remote endpoint with the specified authentication options.
+        /// <summary>Constructs a client connection with the specified remote endpoint and  authentication options.
         /// All other properties have their default values.</summary>
         /// <param name="remoteEndpoint">The remote endpoint.</param>
         /// <param name="authenticationOptions">The client authentication options.</param>
