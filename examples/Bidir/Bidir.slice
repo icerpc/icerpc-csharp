@@ -1,0 +1,13 @@
+// Copyright (c) ZeroC, Inc. All rights reserved.
+
+module Demo;
+
+interface AlertObserver
+{
+    alert() -> bool;
+}
+
+interface AlertSystem
+{
+    addObserver(observer: AlertObserver);
+}
