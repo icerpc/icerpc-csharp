@@ -9,11 +9,11 @@
     <ImplicitUsings>true</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <SliceCompile Include="Bidir.slice" />
+    <SliceCompile Include="../Bidir.slice" />
     <PackageReference Include="icerpc.builder.msbuild" Version="0.1.0-preview4" PrivateAssets="All" />
     <PackageReference Include="icerpc" Version="$(IceRpcVersion)" />
-    <Compile Update="generated\Client.cs">
-      <SliceCompileSource>Bidir.slice</SliceCompileSource>
+    <Compile Update="generated\Bidir.cs">
+      <SliceCompileSource>../Bidir.slice</SliceCompileSource>
     </Compile>
   </ItemGroup>
 </Project>
