@@ -12,13 +12,13 @@ public class EncodingSequenceOptionalElementsTests
 {
     private readonly Memory<byte> _buffer;
     private readonly SliceEncoding _encoding;
-    private readonly SingleBufferWriter _bufferWriter;
+    private readonly MemoryBufferWriter _bufferWriter;
 
     public EncodingSequenceOptionalElementsTests(string encoding)
     {
         _encoding = SliceEncoding.FromString(encoding);
         _buffer = new byte[1024 * 1024];
-        _bufferWriter = new SingleBufferWriter(_buffer);
+        _bufferWriter = new MemoryBufferWriter(_buffer);
     }
 
     /// <summary>Tests <see cref="SliceEncoderExtensions.EncodeSequenceWithBitSequence"/> with a fixed-size numeric
@@ -42,7 +42,7 @@ public class EncodingSequenceOptionalElementsTests
             (ref SliceDecoder decoder) => decoder.DecodeInt() as int?);
 
         Assert.That(p1, Is.EqualTo(r1));
-        Assert.That(decoder.Consumed, Is.EqualTo(_bufferWriter.WrittenBuffer.Length));
+        Assert.That(decoder.Consumed, Is.EqualTo(_bufferWriter.WrittenMemory.Length));
     }
 
     /// <summary>Tests <see cref="SliceEncoderExtensions.EncodeSequenceWithBitSequence"/> with a reference type.
@@ -67,7 +67,7 @@ public class EncodingSequenceOptionalElementsTests
         string[] r1 = decoder.DecodeSequenceWithBitSequence((ref SliceDecoder decoder) => decoder.DecodeString());
 
         Assert.That(p1, Is.EqualTo(r1));
-        Assert.That(decoder.Consumed, Is.EqualTo(_bufferWriter.WrittenBuffer.Length));
+        Assert.That(decoder.Consumed, Is.EqualTo(_bufferWriter.WrittenMemory.Length));
     }
 
     /// <summary>Tests <see cref="SliceEncoderExtensions.EncodeSequenceWithBitSequence"/> with a reference type.
@@ -96,6 +96,6 @@ public class EncodingSequenceOptionalElementsTests
             (ref SliceDecoder decoder) => decoder.DecodeString());
 
         Assert.That(p1, Is.EqualTo(r1));
-        Assert.That(decoder.Consumed, Is.EqualTo(_bufferWriter.WrittenBuffer.Length));
+        Assert.That(decoder.Consumed, Is.EqualTo(_bufferWriter.WrittenMemory.Length));
     }
 }

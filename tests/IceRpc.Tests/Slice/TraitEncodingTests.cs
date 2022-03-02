@@ -23,7 +23,7 @@ public sealed class TraitEncodingTests
 
         // Test encoding traits with the generated code.
         {
-            var bufferWriter = new SingleBufferWriter(buffer);
+            var bufferWriter = new MemoryBufferWriter(buffer);
             var encoder = new SliceEncoder(bufferWriter, encoding);
             var decoder = new SliceDecoder(buffer, encoding, activator: activator);
 
@@ -36,7 +36,7 @@ public sealed class TraitEncodingTests
 
         // Test decoding a trait to a concrete type.
         {
-            var bufferWriter = new SingleBufferWriter(buffer);
+            var bufferWriter = new MemoryBufferWriter(buffer);
             var encoder = new SliceEncoder(bufferWriter, encoding);
             var decoder = new SliceDecoder(buffer, encoding, activator: activator);
 
@@ -49,7 +49,7 @@ public sealed class TraitEncodingTests
 
         // Test decoding a trait to an interface type.
         {
-            var bufferWriter = new SingleBufferWriter(buffer);
+            var bufferWriter = new MemoryBufferWriter(buffer);
             var encoder = new SliceEncoder(bufferWriter, encoding);
             var decoder = new SliceDecoder(buffer, encoding, activator: activator);
 
@@ -63,9 +63,7 @@ public sealed class TraitEncodingTests
 
         // Test that decoding a mismatched type fails.
         {
-            var bufferWriter = new SingleBufferWriter(buffer);
-
-
+            var bufferWriter = new MemoryBufferWriter(buffer);
 
             Assert.Throws<InvalidDataException>(() =>
             {
@@ -79,8 +77,7 @@ public sealed class TraitEncodingTests
 
         // Test that decoding an unknown type-id fails.
         {
-            var bufferWriter = new SingleBufferWriter(buffer);
-
+            var bufferWriter = new MemoryBufferWriter(buffer);
 
             Assert.Throws<InvalidDataException>(() =>
             {

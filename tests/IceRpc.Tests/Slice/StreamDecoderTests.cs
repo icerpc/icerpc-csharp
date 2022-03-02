@@ -24,14 +24,14 @@ public sealed class StreamDecoderTests
 
     private static ReadOnlySequence<byte> CreateBuffer(int value, int count)
     {
-        var bufferWriter = new SingleBufferWriter(new byte[count * 4]);
+        var bufferWriter = new MemoryBufferWriter(new byte[count * 4]);
         var encoder = new SliceEncoder(bufferWriter, Encoding.Slice20);
         for (int i = 0; i < count; ++i)
         {
             encoder.EncodeInt(value);
         }
-        Assert.That(bufferWriter.WrittenBuffer.Length, Is.EqualTo(count * 4));
-        return new ReadOnlySequence<byte>(bufferWriter.WrittenBuffer);
+        Assert.That(bufferWriter.WrittenMemory.Length, Is.EqualTo(count * 4));
+        return new ReadOnlySequence<byte>(bufferWriter.WrittenMemory);
     }
 
     [Test]
