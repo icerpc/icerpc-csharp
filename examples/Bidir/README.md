@@ -1,6 +1,6 @@
 This example application illustrates how make bidirectional calls.
 
-For build instructions checks the top-level [README.md](../../README.md).
+For build instructions check the top-level [README.md](../../README.md).
 
 First start the Server program:
 ```
