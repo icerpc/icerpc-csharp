@@ -7,7 +7,7 @@ namespace IceRpc.Transports.Internal
 {
     internal class SlicPipeReader : PipeReader
     {
-        private int _additionalCredit;
+        private int _examined;
         private Exception? _exception;
         private long _lastExaminedOffset;
         private readonly Pipe _pipe;
@@ -28,17 +28,17 @@ namespace IceRpc.Transports.Internal
             long consumedOffset = _readResult.Buffer.GetOffset(consumed) - startOffset;
             long examinedOffset = _readResult.Buffer.GetOffset(examined) - startOffset;
 
-            // Add the additional examined bytes to the additional receive credit.
-            _additionalCredit += (int)(examinedOffset - _lastExaminedOffset);
+            // Add the additional examined bytes to the examined bytes total.
+            _examined += (int)(examinedOffset - _lastExaminedOffset);
             _lastExaminedOffset = examinedOffset - consumedOffset;
 
-            // If the additional received credit is superior to the resume threshold notifies the sender that it can
-            // send additional data.
-            if (_additionalCredit >= _resumeThreshold)
+            // If the number of examined bytes is superior to the resume threshold notifies the sender it's safe
+            // to send additional data.
+            if (_examined >= _resumeThreshold)
             {
-                Interlocked.Add(ref _receiveCredit, (int)_additionalCredit);
-                _stream.SendStreamConsumed(_additionalCredit);
-                _additionalCredit = 0;
+                Interlocked.Add(ref _receiveCredit, (int)_examined);
+                _stream.SendStreamConsumed(_examined);
+                _examined = 0;
             }
 
             // If we reached the end of the sequence and the peer won't be sending additional data, we can mark reads as

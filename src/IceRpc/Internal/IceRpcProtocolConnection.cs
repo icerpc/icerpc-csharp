@@ -456,7 +456,7 @@ namespace IceRpc.Internal
         {
             lock (_mutex)
             {
-                // Mark the connection as shutting down to prevent further request from being accepted.
+                // Mark the connection as shutting down to prevent further requests from being accepted.
                 _shuttingDown = true;
                 if (_invocations.Count == 0 && _dispatches.Count == 0)
                 {
