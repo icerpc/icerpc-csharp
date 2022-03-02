@@ -192,7 +192,10 @@ namespace IceRpc.Transports.Internal
                 throw new InvalidDataException("empty stream frame are not allowed unless endStream is true");
             }
 
-            _state.SetState(State.PipeWriterInUse);
+            if (!_state.TrySetFlag(State.PipeWriterInUse))
+            {
+                throw new InvalidOperationException($"{nameof(ReceivedStreamFrameAsync)} is not thread safe");
+            }
             try
             {
                 if (_state.HasFlag(State.PipeWriterCompleted))
