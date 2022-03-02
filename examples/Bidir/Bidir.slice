@@ -1,11 +1,11 @@
 module Demo;
 
-interface Client
+interface AlertRecipient
 {
     alert() -> bool;
 }
 
 interface AlertSystem
 {
-    addObserver(observer: Client);
+    addObserver(observer: AlertRecipient);
 }

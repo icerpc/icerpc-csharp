@@ -4,13 +4,13 @@ using IceRpc;
 await using var connection = new Connection
 {
     RemoteEndpoint = "icerpc://127.0.0.1:10000?tls=false",
-    Dispatcher = new Client()
+    Dispatcher = new AlertRecipient()
 };
 
 AlertSystemPrx alertSystem = AlertSystemPrx.FromConnection(connection);
-ClientPrx client = ClientPrx.FromPath("/");
+AlertRecipientPrx alertRecipient = AlertRecipientPrx.FromPath("/");
 
-await alertSystem.AddObserverAsync(client);
+await alertSystem.AddObserverAsync(alertRecipient);
 
 // Destroy the server on Ctrl+C or Ctrl+Break
 TaskCompletionSource tcs = new TaskCompletionSource();

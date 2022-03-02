@@ -2,7 +2,7 @@ using IceRpc.Slice;
 
 namespace Demo;
 
-public class Client: Service, IClient
+public class AlertRecipient: Service, IAlertRecipient
 {
     public ValueTask<bool> AlertAsync(Dispatch dispatch, CancellationToken cancel)
     {
