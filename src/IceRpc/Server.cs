@@ -5,6 +5,7 @@ using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
+using System.Net.Security;
 
 namespace IceRpc
 {
@@ -48,20 +49,34 @@ namespace IceRpc
             _options = options;
         }
 
-        /// <summary>Constructs a server with the specified dispatcher. All other properties have their default values.
-        /// </summary>
+        /// <summary>Constructs a server with the specified dispatcher and authentication options. All other properties
+        /// have their default values.</summary>
         /// <param name="dispatcher">The dispatcher of the server.</param>
-        public Server(IDispatcher dispatcher)
-            : this(new ServerOptions { Dispatcher = dispatcher })
+        /// <param name="authenticationOptions">The server authentication options.</param>
+        public Server(IDispatcher dispatcher, SslServerAuthenticationOptions? authenticationOptions = null)
+            : this(new ServerOptions
+            {
+                AuthenticationOptions = authenticationOptions,
+                Dispatcher = dispatcher
+            })
         {
         }
 
-        /// <summary>Constructs a server with the specified dispatcher and endpoint. All other properties have their
-        /// default values.</summary>
+        /// <summary>Constructs a server with the specified dispatcher, endpoint and authentication options. All other
+        /// properties have their default values.</summary>
         /// <param name="dispatcher">The dispatcher of the server.</param>
         /// <param name="endpoint">The endpoint of the server.</param>
-        public Server(IDispatcher dispatcher, Endpoint endpoint)
-            : this(new ServerOptions { Dispatcher = dispatcher, Endpoint = endpoint })
+        /// <param name="authenticationOptions">The server authentication options.</param>
+        public Server(
+            IDispatcher dispatcher,
+            Endpoint endpoint,
+            SslServerAuthenticationOptions? authenticationOptions = null)
+            : this(new ServerOptions
+            {
+                AuthenticationOptions = authenticationOptions,
+                Dispatcher = dispatcher,
+                Endpoint = endpoint
+            })
         {
         }
 

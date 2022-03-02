@@ -8,6 +8,7 @@ using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.IO.Pipelines;
+using System.Net.Security;
 
 namespace IceRpc
 {
@@ -134,11 +135,16 @@ namespace IceRpc
             _options = options;
         }
 
-        /// <summary>Constructs a client connection to a remote endpoint, using default values for all other properties.
-        /// </summary>
+        /// <summary>Constructs a client connection to a remote endpoint with the specified authentication options.
+        /// All other properties have their default values.</summary>
         /// <param name="remoteEndpoint">The remote endpoint.</param>
-        public Connection(Endpoint remoteEndpoint)
-            : this(new ConnectionOptions { RemoteEndpoint = remoteEndpoint })
+        /// <param name="authenticationOptions">The client authentication options.</param>
+        public Connection(Endpoint remoteEndpoint, SslClientAuthenticationOptions? authenticationOptions = null)
+            : this(new ConnectionOptions
+            {
+                AuthenticationOptions = authenticationOptions,
+                RemoteEndpoint = remoteEndpoint
+            })
         {
         }
 
