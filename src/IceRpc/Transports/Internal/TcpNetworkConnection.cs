@@ -310,20 +310,10 @@ namespace IceRpc.Transports.Internal
 
             if (remoteEndpoint.Params.TryGetValue("transport", out string? endpointTransport))
             {
-                switch (endpointTransport)
+                if (endpointTransport == TransportNames.Ssl)
                 {
-                    case TransportNames.Tcp:
-                        // Note that we don't change authenticationOptions with tcp.
-                        break;
-
-                    case TransportNames.Ssl:
-                        // With ssl, we always "turn on" SSL
-                        authenticationOptions ??= new SslClientAuthenticationOptions();
-                        break;
-
-                    default:
-                        Debug.Assert(false);
-                        break;
+                    // With ssl, we always "turn on" SSL
+                    authenticationOptions ??= new SslClientAuthenticationOptions();
                 }
             }
             else
