@@ -384,8 +384,8 @@ namespace IceRpc.Transports.Internal
             bool completeWhenDone,
             CancellationToken cancel)
         {
-            bool sendingSource1 = true;
-            ReadOnlySequence<byte> sendSource = source1;
+            bool sendingSource1 = !source1.IsEmpty;
+            ReadOnlySequence<byte> sendSource = sendingSource1 ? source1 : source2;
             Debug.Assert(!sendSource.IsEmpty || completeWhenDone);
             do
             {
@@ -418,10 +418,10 @@ namespace IceRpc.Transports.Internal
                 // Next, ensure send credit is available. If not, this will block until the receiver allows sending
                 // additional data.
                 int sendCredit = await stream.AcquireSendCreditAsync(cancel).ConfigureAwait(false);
+                Debug.Assert (sendCredit > 0);
 
                 // Finally, acquire the send semaphore to ensure only one stream writes to the connection.
                 await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
-
                 try
                 {
                     // Allocate stream ID if the stream isn't started. Thread-safety is provided by the send
@@ -446,26 +446,21 @@ namespace IceRpc.Transports.Internal
                     int sendMaxSize = Math.Min(sendCredit, PeerPacketMaxSize);
                     _sendBuffers.Clear();
                     _sendBuffers.Add(SlicDefinitions.FrameHeader); // The header will be replaced once encoded.
-                    while (sendSize < sendMaxSize)
+                    while (sendSize < sendMaxSize && !sendSource.IsEmpty)
                     {
+                        // Add the send source data to the send buffers.
+                        sendSize += FillSendBuffers(ref sendSource, sendMaxSize - sendSize);
+
                         if (sendingSource1 && sendSource.IsEmpty)
                         {
-                            // Switch to source2 if we're done with source1.
+                            // Switch to source2 if we're done with sending source1.
                             sendingSource1 = false;
                             sendSource = source2;
                         }
-
-                        if (sendSource.IsEmpty)
-                        {
-                            // No more data to gather!
-                            break;
-                        }
-
-                        // Add the send source data to the send buffers, no more data than the send credit left.
-                        sendSize += FillSendBuffers(ref sendSource, sendMaxSize - sendSize);
                     }
 
-                    bool endStream = completeWhenDone && !sendingSource1 && sendSource.IsEmpty;
+                    // If there's no data left to send and completeWhenDone is true, send the last stream frame.
+                    bool endStream = completeWhenDone && sendSource.IsEmpty;
 
                     // Notify the stream that we're consuming sendSize credit. It's important to call this before
                     // sending the stream frame to avoid race conditions where the StreamConsumed frame could be
@@ -502,7 +497,7 @@ namespace IceRpc.Transports.Internal
                     _sendSemaphore.Release();
                 }
             }
-            while (sendingSource1 || !sendSource.IsEmpty);
+            while (!sendSource.IsEmpty); // Loop until there's no data left to send.
 
             return new FlushResult(isCanceled: false, isCompleted: false);
 
@@ -511,7 +506,6 @@ namespace IceRpc.Transports.Internal
                 // The stream ID is part of the frame data.
                 ulong streamId = checked((ulong)stream.Id);
                 sendSize += SliceEncoder.GetVarULongEncodedSize(streamId);
-
                 // Write the Slic frame header (frameType, frameSize, streamId).
                 _sendFrameWriter.Clear();
                 var encoder = new SliceEncoder(_sendFrameWriter, Encoding.Slice20);
