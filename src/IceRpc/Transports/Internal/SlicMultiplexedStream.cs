@@ -274,7 +274,7 @@ namespace IceRpc.Transports.Internal
         {
             // Decrease the size of remaining data that we are allowed to send. If all the credit is consumed,
             // _sendCredit will be 0 and we don't release the semaphore to prevent further sends. The semaphore will be
-            // released once the stream receives a StreamResumeWrite frame.
+            // released once the stream receives a StreamConsumed frame.
             int sendCredit = Interlocked.Add(ref _sendCredit, -consumed);
             if (sendCredit > 0)
             {
@@ -283,7 +283,7 @@ namespace IceRpc.Transports.Internal
             Debug.Assert(sendCredit >= 0);
         }
 
-        internal void ReceivedResumeWriterFrame(int size)
+        internal void ReceivedConsumedFrame(int size)
         {
             int newValue = Interlocked.Add(ref _sendCredit, size);
             if (newValue == size)
@@ -336,11 +336,11 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel) =>
             _connection.SendStreamFrameAsync(this, source1, source2, completeWhenDone, cancel);
 
-        internal void SendStreamResumeWrite(int size) =>
+        internal void SendStreamConsumed(int size) =>
             _ = _connection.SendFrameAsync(
                 stream: this,
-                FrameType.StreamResumeWrite,
-                new StreamResumeWriteBody((ulong)size).Encode,
+                FrameType.StreamConsumed,
+                new StreamConsumedBody((ulong)size).Encode,
                 CancellationToken.None).AsTask();
 
         internal bool TrySetReadCompleted() => TrySetStateAndShutdown(State.ReadCompleted);

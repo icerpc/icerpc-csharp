@@ -24,28 +24,20 @@ namespace IceRpc.Transports.Internal
         {
             CheckIfCompleted();
 
-            if (_lastExaminedOffset == 0)
-            {
-                _lastExaminedOffset = _readResult.Buffer.GetOffset(_readResult.Buffer.Start);
-            }
+            long startOffset = _readResult.Buffer.GetOffset(_readResult.Buffer.Start);
+            long consumedOffset = _readResult.Buffer.GetOffset(consumed) - startOffset;
+            long examinedOffset = _readResult.Buffer.GetOffset(examined) - startOffset;
 
-            // Figure out how much data was examined since last AdvanceTo call.
-            long examinedOffset = _readResult.Buffer.GetOffset(examined);
-            int examinedLength = (int)(examinedOffset - _lastExaminedOffset);
+            // Add the additional examined bytes to the examined bytes total.
+            _examined += (int)(examinedOffset - _lastExaminedOffset);
+            _lastExaminedOffset = examinedOffset - consumedOffset;
 
-            // If all the examined data has been consumed, the next pipe ReadAsync call will start reading from a new
-            // buffer. In this case, we reset _lastExaminedOffset to 0. The next AdvanceTo call will compute the
-            // examined data length from the start of the buffer.
-            long consumedOffset = _readResult.Buffer.GetOffset(consumed);
-            _lastExaminedOffset = consumedOffset == examinedOffset ? 0 : examinedOffset;
-
-            // Add the examined length to the total examined length. If it's larger than the resume threshold, send the
-            // stream resume write frame to the peer to obtain additional data.
-            _examined += examinedLength;
+            // If the number of examined bytes is superior to the resume threshold notifies the sender it's safe
+            // to send additional data.
             if (_examined >= _resumeThreshold)
             {
                 Interlocked.Add(ref _receiveCredit, _examined);
-                _stream.SendStreamResumeWrite(_examined);
+                _stream.SendStreamConsumed(_examined);
                 _examined = 0;
             }
 
@@ -53,7 +45,7 @@ namespace IceRpc.Transports.Internal
             // completed on the stream.
             bool isRemoteWriteCompleted =
                 _readResult.IsCompleted &&
-                consumedOffset == _readResult.Buffer.GetOffset(_readResult.Buffer.End);
+                consumedOffset == _readResult.Buffer.GetOffset(_readResult.Buffer.End) - startOffset;
 
             _pipe.Reader.AdvanceTo(consumed, examined);
 
@@ -200,7 +192,10 @@ namespace IceRpc.Transports.Internal
                 throw new InvalidDataException("empty stream frame are not allowed unless endStream is true");
             }
 
-            _state.SetState(State.PipeWriterInUse);
+            if (!_state.TrySetFlag(State.PipeWriterInUse))
+            {
+                throw new InvalidOperationException($"{nameof(ReceivedStreamFrameAsync)} is not thread safe");
+            }
             try
             {
                 if (_state.HasFlag(State.PipeWriterCompleted))
@@ -209,7 +204,8 @@ namespace IceRpc.Transports.Internal
                     return 0;
                 }
 
-                if (Interlocked.Add(ref _receiveCredit, -dataSize) < 0)
+                int newCredit = Interlocked.Add(ref _receiveCredit, -dataSize);
+                if (newCredit < 0)
                 {
                     throw new InvalidDataException("received more data than flow control permits");
                 }

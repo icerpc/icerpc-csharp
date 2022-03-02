@@ -8,8 +8,8 @@ namespace IceRpc.Transports.Internal
     internal static partial class SlicLoggerExtensions
     {
         [LoggerMessage(
-            EventId = (int)SlicEventIds.ReceivedResetFrame,
-            EventName = nameof(SlicEventIds.ReceivedResetFrame),
+            EventId = (int)SlicEventIds.ReceivedStreamResetFrame,
+            EventName = nameof(SlicEventIds.ReceivedStreamResetFrame),
             Level = LogLevel.Debug,
             Message = "received Slic StreamReset frame (FrameSize={FrameSize}, ErrorCode={ErrorCode})")]
         internal static partial void LogReceivedSlicResetFrame(
@@ -18,8 +18,8 @@ namespace IceRpc.Transports.Internal
             long errorCode);
 
         [LoggerMessage(
-            EventId = (int)SlicEventIds.ReceivedStopSendingFrame,
-            EventName = nameof(SlicEventIds.ReceivedStopSendingFrame),
+            EventId = (int)SlicEventIds.ReceivedStreamStopSendingFrame,
+            EventName = nameof(SlicEventIds.ReceivedStreamStopSendingFrame),
             Level = LogLevel.Debug,
             Message = "received Slic StreamStopSending frame (FrameSize={FrameSize}, ErrorCode={ErrorCode})")]
         internal static partial void LogReceivedSlicStopSendingFrame(
@@ -28,11 +28,11 @@ namespace IceRpc.Transports.Internal
             long errorCode);
 
         [LoggerMessage(
-            EventId = (int)SlicEventIds.ReceivedResumeWrite,
-            EventName = nameof(SlicEventIds.ReceivedResumeWrite),
+            EventId = (int)SlicEventIds.ReceivedStreamConsumedFrame,
+            EventName = nameof(SlicEventIds.ReceivedStreamConsumedFrame),
             Level = LogLevel.Debug,
-            Message = "received Slic StreamResumeWrite frame (FrameSize={FrameSize}, Size={Size})")]
-        internal static partial void LogReceivedSlicResumeWriteFrame(
+            Message = "received Slic StreamConsumed frame (FrameSize={FrameSize}, Size={Size})")]
+        internal static partial void LogReceivedSlicConsumedFrame(
             this ILogger logger,
             int frameSize,
             int size);
@@ -113,11 +113,11 @@ namespace IceRpc.Transports.Internal
             Exception exception);
 
         [LoggerMessage(
-            EventId = (int)SlicEventIds.SentResumeWriteFrame,
-            EventName = nameof(SlicEventIds.SentResumeWriteFrame),
+            EventId = (int)SlicEventIds.SentStreamConsumedFrame,
+            EventName = nameof(SlicEventIds.SentStreamConsumedFrame),
             Level = LogLevel.Debug,
-            Message = "sent Slic StreamResumeWrite frame (FrameSize={FrameSize}, Size={Size})")]
-        internal static partial void LogSentSlicResumeWriteFrame(
+            Message = "sent Slic StreamConsumed frame (FrameSize={FrameSize}, Size={Size})")]
+        internal static partial void LogSentSlicConsumedFrame(
             this ILogger logger,
             int frameSize,
             int size);
@@ -166,8 +166,8 @@ namespace IceRpc.Transports.Internal
         }
 
         [LoggerMessage(
-            EventId = (int)SlicEventIds.SentResetFrame,
-            EventName = nameof(SlicEventIds.SentResetFrame),
+            EventId = (int)SlicEventIds.SentStreamResetFrame,
+            EventName = nameof(SlicEventIds.SentStreamResetFrame),
             Level = LogLevel.Debug,
             Message = "sent Slic StreamReset frame (FrameSize={FrameSize}, ErrorCode={ErrorCode})")]
         internal static partial void LogSentSlicResetFrame(
@@ -176,8 +176,8 @@ namespace IceRpc.Transports.Internal
             long errorCode);
 
         [LoggerMessage(
-            EventId = (int)SlicEventIds.SentStopSendingFrame,
-            EventName = nameof(SlicEventIds.SentStopSendingFrame),
+            EventId = (int)SlicEventIds.SentStreamStopSendingFrame,
+            EventName = nameof(SlicEventIds.SentStreamStopSendingFrame),
             Level = LogLevel.Debug,
             Message = "sent Slic StreamStopSending frame (FrameSize={FrameSize}, ErrorCode={ErrorCode})")]
         internal static partial void LogSentSlicStopSendingFrame(

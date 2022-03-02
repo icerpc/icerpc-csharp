@@ -463,7 +463,7 @@ namespace IceRpc.Transports.Internal
                     bool endStream = completeWhenDone && sendSource.IsEmpty;
 
                     // Notify the stream that we're consuming sendSize credit. It's important to call this before
-                    // sending the stream frame to avoid race conditions where the StreamResumeWrite frame could be
+                    // sending the stream frame to avoid race conditions where the StreamConsumed frame could be
                     // received before the send credit was updated.
                     stream.ConsumeSendCredit(sendSize);
 
@@ -684,20 +684,20 @@ namespace IceRpc.Transports.Internal
 
                         break;
                     }
-                    case FrameType.StreamResumeWrite:
+                    case FrameType.StreamConsumed:
                     {
                         if (dataSize > 8)
                         {
-                            throw new InvalidDataException("stream resume write frame too large");
+                            throw new InvalidDataException("stream consumed frame too large");
                         }
 
-                        StreamResumeWriteBody resumeWrite = await ReadFrameAsync(
+                        StreamConsumedBody consumed = await ReadFrameAsync(
                             dataSize,
-                            memory => memory.DecodeStreamResumeWrite(),
+                            memory => memory.DecodeStreamConsumed(),
                             cancel).ConfigureAwait(false);
                         if (_streams.TryGetValue(streamId.Value, out SlicMultiplexedStream? stream))
                         {
-                            stream.ReceivedResumeWriterFrame((int)resumeWrite.Size);
+                            stream.ReceivedConsumedFrame((int)consumed.Size);
                         }
                         break;
                     }
