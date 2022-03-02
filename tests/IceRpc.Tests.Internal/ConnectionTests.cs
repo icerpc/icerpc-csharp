@@ -139,9 +139,6 @@ namespace IceRpc.Tests.Internal
             serviceCollection.UseEndpoint(transport, host: "127.0.0.1", port: 0);
             await using var factory = new ConnectionFactory(serviceCollection);
 
-            Assert.That(factory.ClientConnection.IsSecure, Is.EqualTo(secure));
-            Assert.That(factory.ServerConnection.IsSecure, Is.EqualTo(secure));
-
             NetworkConnectionInformation? clientInformation = factory.ClientConnection.NetworkConnectionInformation;
             Assert.That(clientInformation, Is.Not.Null);
 
