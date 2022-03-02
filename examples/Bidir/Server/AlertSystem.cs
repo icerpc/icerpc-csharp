@@ -8,7 +8,7 @@ public class AlertSystem: Service, IAlertSystem
     {
         await Task.Delay(3000, cancel);
         bool response = await alertRecipient.AlertAsync();
-        string didHandle = (response ? "did" : "did not");
+        string didHandle = response ? "did" : "did not";
         Console.WriteLine($"Alert Recipient {didHandle} accept the alert");
     }
 }
