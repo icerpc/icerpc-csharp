@@ -13,7 +13,7 @@ public class AlertRecipient: Service, IAlertRecipient
         {
             Console.WriteLine("Do you want to handle the alert? [Y/N]: ");
             answer = Console.ReadLine() ?? ""
-            if (allowedAnswers.Contains(answer))
+            if (allowedAnswers.Contains(answer.ToUpper()))
             {
                 break;
             }
