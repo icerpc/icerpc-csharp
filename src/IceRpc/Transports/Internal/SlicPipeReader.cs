@@ -36,7 +36,7 @@ namespace IceRpc.Transports.Internal
             // to send additional data.
             if (_examined >= _resumeThreshold)
             {
-                Interlocked.Add(ref _receiveCredit, (int)_examined);
+                Interlocked.Add(ref _receiveCredit, _examined);
                 _stream.SendStreamConsumed(_examined);
                 _examined = 0;
             }
