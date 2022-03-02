@@ -55,70 +55,12 @@ namespace IceRpc.Transports.Internal
         public async ValueTask<(FrameType FrameType, int FrameSize, long? StreamId)> ReadFrameHeaderAsync(
             CancellationToken cancel)
         {
-            ReadResult readResult;
-
-            // Read the frame type
-            readResult = await ReadAtLeastAsync(1).ConfigureAwait(false);
-            var frameType = (FrameType)readResult.Buffer.FirstSpan[0];
-            _pipe.Reader.AdvanceTo(readResult.Buffer.GetPosition(1));
-
-            // Read the frame size
-            readResult = await ReadAtLeastAsync(1).ConfigureAwait(false);
-            int frameSizeLength = Slice20Encoding.DecodeSizeLength(readResult.Buffer.FirstSpan[0]);
-            if (frameSizeLength > readResult.Buffer.Length)
+            while (true)
             {
-                _pipe.Reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                readResult = await ReadAtLeastAsync(frameSizeLength).ConfigureAwait(false);
-            }
-            int frameSize = DecodeSizeFromSequence(readResult.Buffer);
-            _pipe.Reader.AdvanceTo(readResult.Buffer.GetPosition(frameSizeLength));
-
-            if (frameType < FrameType.Stream)
-            {
-                return (frameType, frameSize, null);
-            }
-            else
-            {
-                readResult = await ReadAtLeastAsync(1).ConfigureAwait(false);
-                int streamIdLength = SliceDecoder.DecodeVarLongLength(readResult.Buffer.FirstSpan[0]);
-                if (streamIdLength > readResult.Buffer.Length)
+                // Read data from the pipe.
+                if (!_pipe.Reader.TryRead(out ReadResult readResult))
                 {
-                    _pipe.Reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-                    readResult = await ReadAtLeastAsync(streamIdLength).ConfigureAwait(false);
-                }
-                long streamId = DecodeStreamIdFromSequence(readResult.Buffer);
-                _pipe.Reader.AdvanceTo(readResult.Buffer.GetPosition(streamIdLength));
-                frameSize -= streamIdLength;
-                return (frameType, frameSize, streamId);
-            }
-
-            int DecodeSizeFromSequence(ReadOnlySequence<byte> buffer)
-            {
-                var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                return decoder.DecodeSize();
-            }
-
-            long DecodeStreamIdFromSequence(ReadOnlySequence<byte> buffer)
-            {
-                var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                ulong streamId = decoder.DecodeVarULong();
-                return (long)streamId;
-            }
-
-            async ValueTask<ReadResult> ReadAtLeastAsync(int minimumSize)
-            {
-                // Check first if there's enough data buffered on the pipe.
-                if (_pipe.Reader.TryRead(out ReadResult readResult) && readResult.Buffer.Length >= minimumSize)
-                {
-                    return readResult;
-                }
-                minimumSize -= (int)readResult.Buffer.Length;
-                _pipe.Reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
-
-                // Read enough data from _readFunc.
-                int count = 0;
-                while (count < minimumSize)
-                {
+                    // Fill the pipe with data read from _readFunc
                     Memory<byte> buffer = _pipe.Writer.GetMemory();
                     int read = await _readFunc(buffer, cancel).ConfigureAwait(false);
                     _pipe.Writer.Advance(read);
@@ -127,14 +69,58 @@ namespace IceRpc.Transports.Internal
                         // No more data to read from _readFunc.
                         throw new ConnectionLostException();
                     }
-                    count += read;
+                    await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+
+                    // Additional data should now be available.
+                    readResult = await _pipe.Reader.ReadAsync(CancellationToken.None).ConfigureAwait(false);
                 }
 
-                // Flush the data to the pipe.
-                await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                if (TryDecodeHeader(
+                    readResult.Buffer,
+                    out (FrameType FrameType, int FrameSize, long? StreamId) header,
+                    out int consumed))
+                {
+                    _pipe.Reader.AdvanceTo(readResult.Buffer.GetPosition(consumed));
+                    return header;
+                }
+                else
+                {
+                    _pipe.Reader.AdvanceTo(readResult.Buffer.Start, readResult.Buffer.End);
+                }
+            }
 
-                // Now, read it from the pipe.
-                return await _pipe.Reader.ReadAsync(CancellationToken.None).ConfigureAwait(false);
+            static bool TryDecodeHeader(
+                ReadOnlySequence<byte> buffer,
+                out (FrameType FrameType, int FrameSize, long? StreamId) header,
+                out int consumed)
+            {
+                header = default;
+                consumed = default;
+
+                var decoder = new SliceDecoder(buffer, Encoding.Slice20);
+
+                // Decode the frame type and frame size.
+                if (!decoder.TryDecodeByte(out byte frameType) ||
+                    !decoder.TryDecodeSize(out header.FrameSize))
+                {
+                    return false;
+                }
+                header.FrameType = (FrameType)frameType;
+
+                // If it's a stream frame, try to decode the stream ID
+                if (header.FrameType >= FrameType.Stream)
+                {
+                    consumed = (int)decoder.Consumed;
+                    if (!decoder.TryDecodeVarULong(out ulong streamId))
+                    {
+                        return false;
+                    }
+                    header.StreamId = (long)streamId;
+                    header.FrameSize -= (int)decoder.Consumed - consumed;
+                }
+
+                consumed = (int)decoder.Consumed;
+                return true;
             }
         }
 
