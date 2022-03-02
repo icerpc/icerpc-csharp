@@ -3,6 +3,7 @@
 using IceRpc.Configure;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
+using System.Net.Security;
 
 namespace IceRpc.Transports
 {
@@ -21,8 +22,14 @@ namespace IceRpc.Transports
 
         ISimpleNetworkConnection IClientTransport<ISimpleNetworkConnection>.CreateConnection(
             Endpoint remoteEndpoint,
+            SslClientAuthenticationOptions? authenticationOptions,
             ILogger logger)
         {
+            if (authenticationOptions != null)
+            {
+                throw new NotSupportedException("cannot create a secure UDP connection");
+            }
+
             // This is the composition root of the udp client transport, where we install log decorators when logging
             // is enabled.
             var clientConnection = new UdpClientNetworkConnection(remoteEndpoint, _options);

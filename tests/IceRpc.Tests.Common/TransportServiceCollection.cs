@@ -21,17 +21,7 @@ namespace IceRpc.Tests
             this.AddScoped(serviceProvider =>
                 serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Test"));
 
-            this.AddScoped(serviceProvider =>
-                new TcpServerOptions
-                {
-                    AuthenticationOptions = serviceProvider.GetService<SslServerAuthenticationOptions>()
-                });
-
-            this.AddScoped(serviceProvider =>
-                new TcpClientOptions
-                {
-                    AuthenticationOptions = serviceProvider.GetService<SslClientAuthenticationOptions>()
-                });
+            this.AddScoped(serviceProvider => new TcpServerOptions());
 
             // The default protocol is IceRpc
             this.AddScoped(_ => Protocol.IceRpc);
@@ -47,7 +37,7 @@ namespace IceRpc.Tests
                     "ssl" => new TcpServerTransport(serviceProvider.GetService<TcpServerOptions>() ?? new()),
                     "udp" => new UdpServerTransport(serviceProvider.GetService<UdpServerOptions>() ?? new()),
                     "coloc" => serviceProvider.GetRequiredService<ColocTransport>().ServerTransport,
-                    _ => Server.DefaultSimpleServerTransport
+                    _ => ServerOptions.DefaultSimpleServerTransport
                 });
 
             // The default multiplexed server transport is Slic.
@@ -68,7 +58,7 @@ namespace IceRpc.Tests
                     "ssl" => new TcpClientTransport(serviceProvider.GetService<TcpClientOptions>() ?? new()),
                     "udp" => new UdpClientTransport(serviceProvider.GetService<UdpClientOptions>() ?? new()),
                     "coloc" => serviceProvider.GetRequiredService<ColocTransport>().ClientTransport,
-                    _ => Connection.DefaultSimpleClientTransport
+                    _ => ConnectionOptions.DefaultSimpleClientTransport
                 });
 
             // The default multiplexed client transport is Slic.
@@ -134,21 +124,7 @@ namespace IceRpc.Tests
                 serviceProvider =>
                 {
                     Protocol protocol = serviceProvider.GetRequiredService<Protocol>();
-
-                    Endpoint endpoint = $"{protocol}://{host}:{port}?transport={transport}";
-
-                    // For tcp set the "tls" parameter
-                    if (transport == "tcp")
-                    {
-                        // If server authentication options are configured, set the tls=true endpoint parameter.
-                        bool tls = serviceProvider.GetService<SslServerAuthenticationOptions>() != null;
-                        endpoint = endpoint with
-                        {
-                            Params = ImmutableDictionary<string, string>.Empty.Add("tls", tls.ToString().ToLowerInvariant())
-                        };
-                    }
-
-                    return endpoint;
+                    return Endpoint.FromString($"{protocol}://{host}:{port}?transport={transport}");
                 });
 
             return collection;

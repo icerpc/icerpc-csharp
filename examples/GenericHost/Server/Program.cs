@@ -14,15 +14,6 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace ServerApp
 {
-    /// <summary>This class is used to read the server configuration options from the appsettings.json configuration
-    /// file.</summary>
-    public class ServerOptions
-    {
-        public ConnectionOptions ConnectionOptions { get; set; } = new();
-
-        public Endpoint Endpoint { get; set; } = "icerpc://[::0]";
-    }
-
     public class Program
     {
         public static void Main(string[] args) => CreateHostBuilder(args).Build().Run();
@@ -50,21 +41,9 @@ namespace ServerApp
                         {
                             // Get the transport options from the configuration.
                             IConfiguration configuration = hostContext.Configuration.GetSection("Transport");
-                            TcpServerOptions tcpOptions =
-                                configuration?.GetValue<TcpServerOptions>("Tcp") ??
-                                new()
-                                {
-                                    // Create the authentication options with the certificate defined in the configured
-                                    // certificate file.
-                                    AuthenticationOptions = new SslServerAuthenticationOptions()
-                                    {
-                                        ServerCertificate = new X509Certificate2(
-                                            Path.Combine(
-                                                hostContext.HostingEnvironment.ContentRootPath,
-                                                configuration.GetValue<string>("CertificateFile")),
-                                            configuration.GetValue<string>("CertificatePassword"))
-                                    }
-                                };
+
+                            // TODO: bogus code
+                            TcpServerOptions tcpOptions = configuration.GetValue<TcpServerOptions>("Tcp") ?? new();
                             return new SlicServerTransport(new TcpServerTransport(tcpOptions));
                         });
 
@@ -94,14 +73,12 @@ namespace ServerApp
                 IOptions<ServerOptions> options,
                 IDispatcher dispatcher,
                 ILoggerFactory loggerFactory) =>
-                _server = new Server
+                _server = new Server(options.Value with
                 {
-                    ConnectionOptions = options.Value.ConnectionOptions,
                     Dispatcher = dispatcher,
-                    Endpoint = options.Value.Endpoint,
                     LoggerFactory = loggerFactory,
                     MultiplexedServerTransport = serverTransport
-                };
+                });
 
             public Task StartAsync(CancellationToken cancellationToken)
             {

@@ -175,9 +175,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.117"
+version = "0.2.119"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e74d72e0f9b65b5b4ca49a346af3976df0f9c61d550727f349ecd559f251a26c"
+checksum = "1bf2e165bb3457c8e098ea76f3e3bc9db55f87aa90d52d0e6be741470916aaa4"
 
 [[package]]
 name = "maplit"
@@ -348,7 +348,7 @@ dependencies = [
 [[package]]
 name = "slicec"
 version = "0.1.0"
-source = "git+ssh://git@github.com/zeroc-ice/icerpc#689f00c34ac73cd995a2f67dfb28505c8b252f55"
+source = "git+ssh://git@github.com/zeroc-ice/icerpc#5f0217cd9df2261e4bac16df0a815a8dae1fa962"
 dependencies = [
  "once_cell",
  "pest",

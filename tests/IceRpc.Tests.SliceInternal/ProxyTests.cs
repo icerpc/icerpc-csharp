@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,7 +27,7 @@ namespace IceRpc.Tests.SliceInternal
 
             buffer = bufferWriter.WrittenBuffer;
 
-            await using var connection = new Connection();
+            await using var connection = new Connection("icerpc://[::1]");
 
             Proxy proxy2 = DecodeProxy();
             Assert.That(proxy, Is.EqualTo(proxy2));

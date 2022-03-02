@@ -195,6 +195,11 @@ namespace IceRpc.Transports.Internal
         /// internal pipe writer and returns the number of bytes that were consumed.</summary>
         internal async ValueTask<int> ReceivedStreamFrameAsync(int dataSize, bool endStream, CancellationToken cancel)
         {
+            if (dataSize == 0 && !endStream)
+            {
+                throw new InvalidDataException("empty stream frame are not allowed unless endStream is true");
+            }
+
             _state.SetState(State.PipeWriterInUse);
             try
             {

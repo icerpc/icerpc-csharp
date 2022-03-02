@@ -57,10 +57,7 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Udp_ConnectFailure()
         {
-            await using var connection = new Connection
-            {
-                RemoteEndpoint = "ice://127.0.0.1:4061?transport=udp"
-            };
+            await using var connection = new Connection("ice://127.0.0.1:4061?transport=udp");
             await connection.ConnectAsync();
 
             var proxy = ServicePrx.FromConnection(connection);
@@ -84,18 +81,12 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Udp_IceRpcNotSupported()
         {
-            await using var server = new Server
-            {
-                Endpoint = "icerpc://[::0]:0?transport=udp"
-            };
+            await using var server = new Server(ConnectionOptions.DefaultDispatcher, "icerpc://[::0]:0?transport=udp");
 
             // udp is not registered as a multiplexed transport
             Assert.Throws<UnknownTransportException>(() => server.Listen());
 
-            await using var connection = new Connection
-            {
-                RemoteEndpoint = server.Endpoint
-            };
+            await using var connection = new Connection(server.Endpoint);
             Assert.ThrowsAsync<UnknownTransportException>(async () => await connection.ConnectAsync());
         }
 

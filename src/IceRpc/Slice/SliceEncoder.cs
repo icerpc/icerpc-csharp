@@ -199,20 +199,6 @@ namespace IceRpc.Slice
 
         // Encode methods for constructed types
 
-        /// <summary>Encodes a remote exception.</summary>
-        /// <param name="v">The remote exception to encode.</param>
-        public void EncodeException(RemoteException v)
-        {
-            if (Encoding == IceRpc.Encoding.Slice11)
-            {
-                EncodeExceptionClass(v);
-            }
-            else
-            {
-                v.Encode(ref this);
-            }
-        }
-
         /// <summary>Encodes a nullable proxy.</summary>
         /// <param name="bitSequenceWriter">The bit sequence writer.</param>
         /// <param name="proxy">The proxy to encode, or null.</param>
@@ -659,15 +645,25 @@ namespace IceRpc.Slice
 
                 if (endpoint.Protocol == Protocol.Ice)
                 {
-                    if (transport == TransportNames.Tcp)
+                    switch (transport)
                     {
-                        (compress, timeout, bool? tls) = endpoint.ParseTcpParams();
-                        transportCode = (tls ?? true) ? TransportCode.SSL : TransportCode.TCP;
-                    }
-                    else if (transport == TransportNames.Udp)
-                    {
-                        transportCode = TransportCode.UDP;
-                        compress = endpoint.ParseUdpParams().Compress;
+                        case TransportNames.Ssl:
+                            (compress, timeout) = endpoint.ParseTcpParams();
+                            transportCode = TransportCode.SSL;
+                            break;
+
+                        case TransportNames.Tcp:
+                            (compress, timeout) = endpoint.ParseTcpParams();
+                            transportCode = TransportCode.TCP;
+                            break;
+
+                        case TransportNames.Udp:
+                            compress = endpoint.ParseUdpParams().Compress;
+                            transportCode = TransportCode.UDP;
+                            break;
+
+                        default:
+                            break;
                     }
                 }
                 // else transportCode remains Uri

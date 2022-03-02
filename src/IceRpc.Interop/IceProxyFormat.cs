@@ -592,16 +592,6 @@ namespace IceRpc
                 }
             }
 
-            if (transport == TransportNames.Tcp)
-            {
-                endpointParams.Add("tls", "false");
-            }
-            else if (transport == TransportNames.Ssl)
-            {
-                transport = TransportNames.Tcp;
-                endpointParams.Add("tls", "true");
-            }
-
             if (host == null)
             {
                 throw new FormatException($"no -h in endpoint '{endpointString}'");
@@ -721,21 +711,7 @@ namespace IceRpc
             string transport = endpoint.Params.TryGetValue("transport", out string? transportValue) ?
                 transportValue : TransportNames.Tcp;
 
-            if (transport == TransportNames.Tcp)
-            {
-                if (endpoint.Params.TryGetValue("tls", out string? tlsValue) && tlsValue == "false")
-                {
-                    sb.Append(TransportNames.Tcp);
-                }
-                else
-                {
-                    sb.Append(TransportNames.Ssl);
-                }
-            }
-            else
-            {
-                sb.Append(transport);
-            }
+            sb.Append(transport);
 
             if (transport != TransportNames.Opaque) // no -h -p for opaque
             {
@@ -763,7 +739,7 @@ namespace IceRpc
 
             foreach ((string name, string value) in endpoint.Params)
             {
-                if (name != "transport" && name != "tls")
+                if (name != "transport")
                 {
                     sb.Append(' ');
 

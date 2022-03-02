@@ -3,11 +3,7 @@ using IceRpc;
 
 try
 {
-    await using var server = new Server
-    {
-        Endpoint = "icerpc://127.0.0.1?tls=false",
-        Dispatcher = new Hello()
-    };
+    await using var server = new Server(new Hello(), "icerpc://127.0.0.1");
 
     // Destroy the server on Ctrl+C or Ctrl+Break
     Console.CancelKeyPress += (sender, eventArgs) =>

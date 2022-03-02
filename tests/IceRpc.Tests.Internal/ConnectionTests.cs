@@ -7,6 +7,7 @@ using IceRpc.Transports;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
+using System.Net.Security;
 
 namespace IceRpc.Tests.Internal
 {
@@ -111,11 +112,11 @@ namespace IceRpc.Tests.Internal
                 serviceProvider.GetRequiredService<IListener<ISimpleNetworkConnection>>() :
                 serviceProvider.GetRequiredService<IListener<IMultiplexedNetworkConnection>>();
 
-            await using var connection = new Connection
+            await using var connection = new Connection(new ConnectionOptions
             {
-                Options = new() { ConnectTimeout = TimeSpan.FromMilliseconds(100) },
+                ConnectTimeout = TimeSpan.FromMilliseconds(100),
                 RemoteEndpoint = listener.Endpoint,
-            };
+            });
 
             Assert.ThrowsAsync<ConnectTimeoutException>(() => connection.ConnectAsync(default));
         }
@@ -194,24 +195,6 @@ namespace IceRpc.Tests.Internal
                 Assert.That(factory.ServerConnection.NetworkConnectionInformation?.IdleTimeout,
                             Is.EqualTo(TimeSpan.FromSeconds(2)));
             }
-        }
-
-        [TestCase("ice")]
-        [TestCase("icerpc")]
-        public async Task Connection_KeepAliveAsync(string protocol)
-        {
-            await using var factory = new ConnectionFactory(
-                new ConnectionTestServiceCollection(protocol: protocol),
-                clientConnectionOptions: new()
-                {
-                    KeepAlive = true
-                },
-                serverConnectionOptions: new()
-                {
-                    KeepAlive = true
-                });
-            Assert.That(factory.ClientConnection.Options.KeepAlive, Is.True);
-            Assert.That(factory.ServerConnection.Options.KeepAlive, Is.True);
         }
 
         [TestCase("ice", false)]
@@ -294,10 +277,7 @@ namespace IceRpc.Tests.Internal
             await prx.IcePingAsync(default);
 
             Connection clientConnection = prx.Proxy.Connection!;
-            Assert.That(clientConnection.IsResumable, Is.True);
-
             Assert.That(serverConnection, Is.Not.Null);
-            Assert.That(serverConnection!.IsResumable, Is.False);
 
             if (closeClientSide)
             {
@@ -331,9 +311,6 @@ namespace IceRpc.Tests.Internal
                 new ConnectionTestServiceCollection(
                     protocol: protocol,
                     dispatcher: new InlineDispatcher((request, cancel) => new(new OutgoingResponse(request)))));
-
-            Assert.That(factory.ClientConnection.IsResumable, Is.False);
-            Assert.That(factory.ServerConnection.IsResumable, Is.False);
 
             await factory.ServicePrx.IcePingAsync(default);
             if (closeClientSide)
@@ -568,7 +545,7 @@ namespace IceRpc.Tests.Internal
             internal ConnectionFactory(
                 IServiceCollection serviceCollection,
                 ConnectionOptions? clientConnectionOptions = null,
-                ConnectionOptions? serverConnectionOptions = null)
+                ConnectionOptions? serverConnectionOptions = null) // TODO: should not use client options for server
             {
                 _serviceProvider = serviceCollection.BuildServiceProvider();
 
@@ -595,31 +572,41 @@ namespace IceRpc.Tests.Internal
                 {
                     T networkConnection = await listener.AcceptAsync();
 
-                    var connection = new Connection(networkConnection, listener.Endpoint.Protocol)
-                    {
-                        Dispatcher = _serviceProvider.GetService<IDispatcher>() ?? Connection.DefaultDispatcher,
-                        Options = serverConnectionOptions ?? new(),
-                        LoggerFactory = _serviceProvider.GetRequiredService<ILoggerFactory>()
-                    };
-                    await connection.ConnectAsync<T>(networkConnection,
-                                                     protocolConnectionFactory,
-                                                     closedEventHandler: null);
+                    serverConnectionOptions ??= new();
+
+                    var connection = new Connection(
+                        networkConnection,
+                        listener.Endpoint.Protocol,
+                        serverConnectionOptions.CloseTimeout);
+
+                    await connection.ConnectAsync<T>(
+                        networkConnection,
+                        _serviceProvider.GetService<IDispatcher>() ?? serverConnectionOptions.Dispatcher,
+                        protocolConnectionFactory,
+                        serverConnectionOptions.ConnectTimeout,
+                        serverConnectionOptions.IncomingFrameMaxSize,
+                        serverConnectionOptions.KeepAlive,
+                        closedEventHandler: null);
                     return connection;
                 }
 
                 async Task<Connection> ConnectAsync(Endpoint endpoint)
                 {
-                    var connection = new Connection
+                    // TODO: refactor test to use connection options correctly.
+                    ConnectionOptions connectionOptions = clientConnectionOptions ?? new();
+                    connectionOptions = connectionOptions with
                     {
+                        AuthenticationOptions = _serviceProvider.GetService<SslClientAuthenticationOptions>(),
                         IsResumable = false,
                         SimpleClientTransport =
                             _serviceProvider.GetRequiredService<IClientTransport<ISimpleNetworkConnection>>(),
                         MultiplexedClientTransport =
                             _serviceProvider.GetRequiredService<IClientTransport<IMultiplexedNetworkConnection>>(),
-                        Options = clientConnectionOptions ?? new(),
                         LoggerFactory = _serviceProvider.GetRequiredService<ILoggerFactory>(),
                         RemoteEndpoint = endpoint
                     };
+
+                    var connection = new Connection(connectionOptions);
                     await connection.ConnectAsync(default);
                     return connection;
                 }

@@ -32,6 +32,7 @@ namespace IceRpc.Tests.Internal
             string host = _isIPv6 ? "[::1]" : "127.0.0.1";
             _listener = _serverTransport.Listen(
                 $"ice://{host}:0?transport=udp",
+                authenticationOptions: null,
                 LogAttributeLoggerFactory.Instance.Logger);
         }
 
@@ -40,8 +41,10 @@ namespace IceRpc.Tests.Internal
         {
             _serverConnection = await _listener.AcceptAsync();
 
-            _clientConnection =
-                _clientTransport.CreateConnection(_listener.Endpoint, LogAttributeLoggerFactory.Instance.Logger);
+            _clientConnection = _clientTransport.CreateConnection(
+                _listener.Endpoint,
+                authenticationOptions: null,
+                LogAttributeLoggerFactory.Instance.Logger);
             _ = await _serverConnection.ConnectAsync(default);
             _ = await _clientConnection.ConnectAsync(default);
         }
@@ -74,8 +77,10 @@ namespace IceRpc.Tests.Internal
             var clientConnectionList = new List<ISimpleNetworkConnection>();
             for (int i = 0; i < clientConnectionCount; ++i)
             {
-                ISimpleNetworkConnection clientConnection =
-                    _clientTransport.CreateConnection(_listener.Endpoint, LogAttributeLoggerFactory.Instance.Logger);
+                ISimpleNetworkConnection clientConnection = _clientTransport.CreateConnection(
+                    _listener.Endpoint,
+                    authenticationOptions: null,
+                    LogAttributeLoggerFactory.Instance.Logger);
 
                 clientConnectionList.Add(clientConnection);
                 _ = await clientConnection.ConnectAsync(default);

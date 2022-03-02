@@ -754,8 +754,9 @@ namespace IceRpc.Slice
                             ImmutableDictionary<string, string>.Builder builder =
                                 ImmutableDictionary.CreateBuilder<string, string>();
 
-                            builder.Add("transport", TransportNames.Tcp);
-                            builder.Add("tls", transportCode == TransportCode.SSL ? "true" : "false");
+                            builder.Add(
+                                "transport",
+                                transportCode == TransportCode.TCP ? TransportNames.Tcp : TransportNames.Ssl);
 
                             if (timeout != Transports.Internal.EndpointExtensions.DefaultTcpTimeout)
                             {
