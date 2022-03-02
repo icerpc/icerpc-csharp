@@ -1,4 +1,4 @@
-This example application illustrates how make asynchronous bidirectional calls
+This example application illustrates how make bidirectional calls
 
 For build instructions checks the top-level [README.md](../../README.md).
 
