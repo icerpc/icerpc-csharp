@@ -7,23 +7,21 @@ namespace IceRpc.Slice.Internal
     /// <summary>Implements a buffer writer over a single Memory{byte}.</summary>
     internal class MemoryBufferWriter : IBufferWriter<byte>
     {
+        /// <summary>Returns the written portion of the underlying buffer.</summary>
+        internal Memory<byte> WrittenMemory => _initialBuffer[0.._written];
+
         private Memory<byte> _available;
 
         private readonly Memory<byte> _initialBuffer;
 
         private int _written;
 
-        /// <summary>Returns the written portion of the underlying buffer.</summary>
-        internal Memory<byte> WrittenMemory => _initialBuffer[0.._written];
-
         /// <inheritdoc/>
         public void Advance(int count)
         {
             if (count > _available.Length)
             {
-                throw new ArgumentException(
-                    $"not enough space available to write ${nameof(count)} bytes",
-                    nameof(count));
+                throw new InvalidOperationException($"can't advance past the end of the underlying buffer");
             }
             _written += count;
             _available = _initialBuffer[_written..];
