@@ -12,8 +12,7 @@ public class AlertRecipient: Service, IAlertRecipient
         while (!allowedAnswers.Contains(answer))
         {
             Console.WriteLine("Do you want to handle the alert? [Y/N]: ");
-            string? input = Console.ReadLine();
-            answer = (input != null ? input! : "");
+            answer = Console.ReadLine() ?? ""
             if (allowedAnswers.Contains(answer))
             {
                 break;
