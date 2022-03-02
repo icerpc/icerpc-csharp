@@ -7,9 +7,9 @@ await using var connection = new Connection("icerpc://127.0.0.1?tls=false");
 
 IHelloPrx hello = HelloPrx.FromConnection(connection);
 
-Console.Write("Say Hello: ");
+Console.Write("Tell the server your name: ");
 
-if (Console.ReadLine() is string greeting)
+if (Console.ReadLine() is string name)
 {
-    Console.WriteLine(await hello.SayHelloAsync(greeting));
+    await hello.SayHelloAsync(name);
 }
