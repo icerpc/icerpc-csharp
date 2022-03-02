@@ -41,26 +41,9 @@ namespace ClientApp
                         {
                             // Get the transport options from the configuration.
                             IConfiguration configuration = hostContext.Configuration.GetSection("Transport");
-                            TcpClientOptions tcpOptions =
-                                configuration?.GetValue<TcpClientOptions>("Tcp") ??
-                                new()
-                                {
-                                    // Create the authentication options with the certificate authorities defined in the
-                                    // configured certificate authorities file.
-                                    AuthenticationOptions = new SslClientAuthenticationOptions()
-                                    {
-                                        RemoteCertificateValidationCallback =
-                                            CertificateValidaton.GetServerCertificateValidationCallback(
-                                                certificateAuthorities: new X509Certificate2Collection
-                                                {
-                                                    new X509Certificate2(
-                                                        Path.Combine(
-                                                            hostContext.HostingEnvironment.ContentRootPath,
-                                                            configuration.GetValue<string>("CertificateAuthoritiesFile")))
-                                                })
-                                    }
-                                };
 
+                            // TODO: bogus code
+                            TcpClientOptions tcpOptions = configuration.GetValue<TcpClientOptions>("Tcp") ?? new();
                             return new SlicClientTransport(new TcpClientTransport(tcpOptions));
                         });
 
