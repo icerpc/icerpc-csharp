@@ -97,6 +97,9 @@ fn decode_member(member: &impl Member, namespace: &str, param: &str) -> CodeBloc
                 write!(code, "new {}(ref decoder)", type_string);
             }
         }
+        TypeRefs::Exception(_) => {
+            write!(code, "new {}(ref decoder)", type_string)
+        }
         TypeRefs::Dictionary(dictionary_ref) => {
             code.write(&decode_dictionary(dictionary_ref, namespace))
         }
@@ -418,6 +421,12 @@ pub fn decode_func(type_ref: &TypeRef, namespace: &str) -> CodeBlock {
                     type_name
                 )
             }
+        }
+        TypeRefs::Exception(_) => {
+            format!(
+                "(ref SliceDecoder decoder) => new {}(ref decoder)",
+                type_name
+            )
         }
         TypeRefs::Trait(_) => {
             format!(

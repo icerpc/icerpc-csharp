@@ -44,6 +44,7 @@ impl<T: Type + ?Sized> TypeRefExt for TypeRef<T> {
                     None => struct_ref.escape_scoped_identifier(namespace),
                 }
             }
+            TypeRefs::Exception(exception_ref) => exception_ref.escape_scoped_identifier(namespace),
             TypeRefs::Class(class_ref) => class_ref.escape_scoped_identifier(namespace),
             TypeRefs::Enum(enum_ref) => enum_ref.escape_scoped_identifier(namespace),
             TypeRefs::Interface(interface_ref) => {

@@ -12,7 +12,7 @@ use crate::generated_code::GeneratedCode;
 use crate::member_util::*;
 use crate::slicec_ext::*;
 use slice::code_gen_util::TypeContext;
-use slice::grammar::{Exception, Member};
+use slice::grammar::{Exception, Member, Type};
 use slice::visitor::Visitor;
 
 pub struct ExceptionVisitor<'a> {
@@ -59,7 +59,8 @@ impl<'a> Visitor for ExceptionVisitor<'_> {
 
         exception_class_builder.add_block(
             format!(
-                "private static readonly string _sliceTypeId = typeof({}).GetSliceTypeId()!;",
+                "public static{}readonly string SliceTypeId = typeof({}).GetSliceTypeId()!;",
+                if has_base { " new " } else { " " },
                 exception_name
             )
             .into(),
@@ -172,6 +173,7 @@ if (encoder.Encoding == IceRpc.Encoding.Slice11)
 
 encoder.EncodeString(Message);
 {encode_data_members}
+encoder.EncodeVarInt(Slice20Definitions.TagEndMarker);
         "#,
         encode_data_members = &encode_data_members(members, namespace, FieldType::Exception),
     ));
@@ -196,7 +198,7 @@ base.EncodeTrait(ref encoder);
         "#
     } else {
         r#"
-encoder.EncodeString(_sliceTypeId);
+encoder.EncodeString(SliceTypeId);
 this.Encode(ref encoder);
         "#
     });
@@ -237,7 +239,7 @@ if (encoder.Encoding != IceRpc.Encoding.Slice11)
     throw new InvalidOperationException("encoding an exception in slices is only supported with the 1.1 encoding");
 }}
 
-encoder.StartSlice(_sliceTypeId);
+encoder.StartSlice(SliceTypeId);
 {encode_data_members}
 encoder.EndSlice(lastSlice: {is_last_slice});
 {encode_base}
