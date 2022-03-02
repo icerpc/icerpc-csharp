@@ -19,18 +19,17 @@ namespace IceRpc.Transports
         private readonly SlicOptions _slicOptions;
 
         /// <summary>Constructs a Slic client transport.</summary>
-        public SlicClientTransport(IClientTransport<ISimpleNetworkConnection> simpleClientTransport)
-            : this(simpleClientTransport, new())
+        public SlicClientTransport(SlicClientTransportOptions options)
         {
+            _simpleClientTransport = options.SimpleClientTransport ?? throw new ArgumentException(
+                $"{nameof(options.SimpleClientTransport)} is null", nameof(options));
+            _slicOptions = options;
         }
 
         /// <summary>Constructs a Slic client transport.</summary>
-        public SlicClientTransport(
-            IClientTransport<ISimpleNetworkConnection> simpleClientTransport,
-            SlicOptions slicOptions)
+        public SlicClientTransport(IClientTransport<ISimpleNetworkConnection> simpleClientTransport)
+            : this(new SlicClientTransportOptions { SimpleClientTransport = simpleClientTransport })
         {
-            _simpleClientTransport = simpleClientTransport;
-            _slicOptions = slicOptions;
         }
 
         IMultiplexedNetworkConnection IClientTransport<IMultiplexedNetworkConnection>.CreateConnection(

@@ -50,7 +50,7 @@ namespace IceRpc.Configure
     }
 
     /// <summary>The options class for configuring <see cref="TcpClientTransport"/>.</summary>
-    public sealed record class TcpClientOptions : TcpOptions
+    public sealed record class TcpClientTransportOptions : TcpOptions
     {
         /// <summary>Gets or initializes the address and port represented by a .NET IPEndPoint to use for a client
         /// socket. If specified the client socket will bind to this address and port before connection establishment.
@@ -60,7 +60,7 @@ namespace IceRpc.Configure
     }
 
     /// <summary>The options class for configuring <see cref="TcpServerTransport"/>.</summary>
-    public sealed record class TcpServerOptions : TcpOptions
+    public sealed record class TcpServerTransportOptions : TcpOptions
     {
         /// <summary>Gets or initializes the length of the server socket queue for accepting new connections. If a new
         /// connection request arrives and the queue is full, the client connection establishment will fail with a

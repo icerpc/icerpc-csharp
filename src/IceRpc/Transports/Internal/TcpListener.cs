@@ -55,7 +55,7 @@ namespace IceRpc.Transports.Internal
         internal TcpListener(
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
-            TcpServerOptions options,
+            TcpServerTransportOptions options,
             Func<TcpServerNetworkConnection, ISimpleNetworkConnection> serverConnectionDecorator)
         {
             _ = endpoint.ParseTcpParams(); // sanity check

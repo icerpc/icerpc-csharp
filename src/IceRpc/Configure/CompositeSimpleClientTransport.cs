@@ -18,7 +18,7 @@ namespace IceRpc.Configure
         /// <returns>The transport being configured.</returns>
         public static CompositeClientTransport<ISimpleNetworkConnection> UseTcp(
             this CompositeClientTransport<ISimpleNetworkConnection> clientTransport) =>
-            clientTransport.UseTcp(new TcpClientOptions());
+            clientTransport.UseTcp(new TcpClientTransportOptions());
 
         /// <summary>Adds the tcp and ssl client transports to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
@@ -26,7 +26,7 @@ namespace IceRpc.Configure
         /// <returns>The transport being configured.</returns>
         public static CompositeClientTransport<ISimpleNetworkConnection> UseTcp(
             this CompositeClientTransport<ISimpleNetworkConnection> clientTransport,
-            TcpClientOptions options)
+            TcpClientTransportOptions options)
         {
             var transport = new TcpClientTransport(options);
             return clientTransport.Add(TransportNames.Tcp, transport).Add(TransportNames.Ssl, transport);
@@ -37,7 +37,7 @@ namespace IceRpc.Configure
         /// <returns>The client transport being configured.</returns>
         public static CompositeClientTransport<ISimpleNetworkConnection> UseUdp(
             this CompositeClientTransport<ISimpleNetworkConnection> clientTransport) =>
-            clientTransport.UseUdp(new UdpClientOptions());
+            clientTransport.UseUdp(new UdpClientTransportOptions());
 
         /// <summary>Adds the udp client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The client transport being configured.</param>
@@ -45,7 +45,7 @@ namespace IceRpc.Configure
         /// <returns>The client transport being configured.</returns>
         public static CompositeClientTransport<ISimpleNetworkConnection> UseUdp(
             this CompositeClientTransport<ISimpleNetworkConnection> clientTransport,
-            UdpClientOptions options) =>
+            UdpClientTransportOptions options) =>
             clientTransport.Add(TransportNames.Udp, new UdpClientTransport(options));
     }
 }

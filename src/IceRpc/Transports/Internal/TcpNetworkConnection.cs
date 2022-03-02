@@ -304,7 +304,7 @@ namespace IceRpc.Transports.Internal
         internal TcpClientNetworkConnection(
             Endpoint remoteEndpoint,
             SslClientAuthenticationOptions? authenticationOptions,
-            TcpClientOptions options)
+            TcpClientTransportOptions options)
         {
             _ = remoteEndpoint.ParseTcpParams(); // sanity check
 

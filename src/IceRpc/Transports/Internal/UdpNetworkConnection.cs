@@ -151,7 +151,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal UdpClientNetworkConnection(Endpoint remoteEndpoint, UdpClientOptions options)
+        internal UdpClientNetworkConnection(Endpoint remoteEndpoint, UdpClientTransportOptions options)
         {
             _remoteEndpoint = remoteEndpoint.WithTransport(TransportNames.Udp);
 
@@ -280,7 +280,7 @@ namespace IceRpc.Transports.Internal
         public override ValueTask WriteAsync(IReadOnlyList<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
             throw new InvalidOperationException("cannot write to a UDP server stream");
 
-        internal UdpServerNetworkConnection(Endpoint endpoint, UdpServerOptions options)
+        internal UdpServerNetworkConnection(Endpoint endpoint, UdpServerTransportOptions options)
         {
             endpoint = endpoint.WithTransport(TransportNames.Udp);
 
