@@ -235,8 +235,6 @@ namespace IceRpc.Transports.Internal
             Debug.Assert(!_connected);
             _connected = true;
 
-            _ = _remoteEndpoint.ParseTcpParams(); // TODO: move somewhere else
-
             Endpoint remoteEndpoint = _remoteEndpoint;
 
             SslClientAuthenticationOptions? authenticationOptions = null;
@@ -308,6 +306,8 @@ namespace IceRpc.Transports.Internal
             SslClientAuthenticationOptions? authenticationOptions,
             TcpClientOptions options)
         {
+            _ = remoteEndpoint.ParseTcpParams(); // sanity check
+
             if (remoteEndpoint.Params.TryGetValue("transport", out string? endpointTransport))
             {
                 switch (endpointTransport)
@@ -322,9 +322,8 @@ namespace IceRpc.Transports.Internal
                         break;
 
                     default:
-                        throw new ArgumentException(
-                            $"cannot use {endpointTransport} transport with endpoint '{remoteEndpoint}'",
-                            nameof(remoteEndpoint));
+                        Debug.Assert(false);
+                        break;
                 }
             }
             else

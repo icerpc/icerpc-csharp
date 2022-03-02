@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -57,6 +58,8 @@ namespace IceRpc.Transports.Internal
             TcpServerOptions options,
             Func<TcpServerNetworkConnection, ISimpleNetworkConnection> serverConnectionDecorator)
         {
+            _ = endpoint.ParseTcpParams(); // sanity check
+
             if (endpoint.Params.TryGetValue("transport", out string? endpointTransport))
             {
                 switch (endpointTransport)
@@ -67,14 +70,15 @@ namespace IceRpc.Transports.Internal
                     case TransportNames.Ssl:
                         if (authenticationOptions == null)
                         {
-                            throw new ArgumentNullException();
+                            throw new ArgumentNullException(
+                                nameof(authenticationOptions),
+                                $"{nameof(authenticationOptions)} cannot be null with the ssl transport");
                         }
                         break;
 
                     default:
-                        throw new ArgumentException(
-                            $"cannot use {endpointTransport} transport with endpoint '{endpoint}'",
-                            nameof(endpoint));
+                        Debug.Assert(false);
+                        break;
                 }
             }
             else
@@ -90,8 +94,6 @@ namespace IceRpc.Transports.Internal
                 throw new NotSupportedException(
                     $"endpoint '{endpoint}' cannot accept connections because it has a DNS name");
             }
-
-            _ = endpoint.ParseTcpParams();
 
             _idleTimeout = options.IdleTimeout;
 
