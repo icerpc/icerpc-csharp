@@ -66,6 +66,7 @@ namespace IceRpc.Slice
         /// <param name="encoding">The Slice encoding version.</param>
         /// <param name="decodePayloadOptions">The decode payload options.</param>
         /// <param name="defaultActivator">The default activator.</param>
+        /// <param name="defaultInvoker">The default invoker.</param>
         /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
         /// <param name="hasStream">When true, T is or includes a stream.</param>
         /// <param name="cancel">The cancellation token.</param>
@@ -75,6 +76,7 @@ namespace IceRpc.Slice
             SliceEncoding encoding,
             SliceDecodePayloadOptions decodePayloadOptions,
             IActivator defaultActivator,
+            IInvoker defaultInvoker,
             DecodeFunc<T> decodeFunc,
             bool hasStream,
             CancellationToken cancel)
@@ -119,7 +121,7 @@ namespace IceRpc.Slice
                     buffer,
                     encoding,
                     frame.Connection,
-                    decodePayloadOptions.ProxyInvoker ?? Proxy.DefaultInvoker,
+                    decodePayloadOptions.ProxyInvoker ?? defaultInvoker,
                     decodePayloadOptions.Activator ?? defaultActivator,
                     decodePayloadOptions.MaxDepth);
                 T value = decodeFunc(ref decoder);
@@ -132,6 +134,7 @@ namespace IceRpc.Slice
         /// <param name="frame">The incoming request.</param>
         /// <param name="encoding">The Slice encoding version.</param>
         /// <param name="decodePayloadOptions">The decode payload options.</param>
+        /// <param name="defaultInvoker">The default invoker.</param>
         /// <param name="defaultActivator">The default activator.</param>
         /// <param name="decodeFunc">The function used to decode the streamed member.</param>
         public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
@@ -139,6 +142,7 @@ namespace IceRpc.Slice
             SliceEncoding encoding,
             SliceDecodePayloadOptions decodePayloadOptions,
             IActivator defaultActivator,
+            IInvoker defaultInvoker,
             DecodeFunc<T> decodeFunc)
         {
             Func<ReadOnlySequence<byte>, IEnumerable<T>> decodeBufferFunc = buffer =>
@@ -147,7 +151,7 @@ namespace IceRpc.Slice
                     buffer,
                     encoding,
                     frame.Connection,
-                    decodePayloadOptions.ProxyInvoker ?? Proxy.DefaultInvoker,
+                    decodePayloadOptions.ProxyInvoker ?? defaultInvoker,
                     decodePayloadOptions.Activator ?? defaultActivator,
                     decodePayloadOptions.MaxDepth);
 

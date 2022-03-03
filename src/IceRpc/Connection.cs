@@ -640,7 +640,11 @@ namespace IceRpc
                 Exception exception = IceRpcStreamError.DispatchCanceled.ToException();
 
                 await request.CompleteAsync(exception).ConfigureAwait(false);
-                if (response != null)
+                if (response == null)
+                {
+                    await request.ResponseWriter.CompleteAsync(exception).ConfigureAwait(false);
+                }
+                else
                 {
                     await response.CompleteAsync(exception).ConfigureAwait(false);
                 }

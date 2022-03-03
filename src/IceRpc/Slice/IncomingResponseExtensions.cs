@@ -55,6 +55,7 @@ namespace IceRpc.Slice
                 (SliceEncoding)response.Request.PayloadEncoding,
                 response.Request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
                 defaultActivator,
+                defaultInvoker: response.Request.Proxy.Invoker,
                 decodeFunc);
 
         /// <summary>Decodes a response payload.</summary>
@@ -82,6 +83,7 @@ namespace IceRpc.Slice
                     (SliceEncoding)response.Request.PayloadEncoding,
                     response.Request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
                     defaultActivator,
+                    defaultInvoker: response.Request.Proxy.Invoker,
                     decodeFunc,
                     hasStream,
                     cancel).ConfigureAwait(false);

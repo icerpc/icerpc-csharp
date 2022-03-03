@@ -89,6 +89,7 @@ namespace IceRpc.Slice
                 request.GetSliceEncoding(),
                 request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
                 defaultActivator,
+                defaultInvoker: Proxy.DefaultInvoker,
                 decodeFunc,
                 hasStream,
                 cancel);
@@ -105,6 +106,7 @@ namespace IceRpc.Slice
                 request.GetSliceEncoding(),
                 request.Features.Get<SliceDecodePayloadOptions>() ?? SliceDecodePayloadOptions.Default,
                 defaultActivator,
+                defaultInvoker: Proxy.DefaultInvoker,
                 decodeFunc);
     }
 }
