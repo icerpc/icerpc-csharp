@@ -243,7 +243,7 @@ namespace IceRpc.Transports.Internal
             bool isServer,
             Func<ISlicFrameReader, ISlicFrameReader> slicFrameReaderDecorator,
             Func<ISlicFrameWriter, ISlicFrameWriter> slicFrameWriterDecorator,
-            SlicOptions slicOptions)
+            SlicTransportOptions slicOptions)
         {
             IsServer = isServer;
             PauseWriterThreshold = slicOptions.PauseWriterThreshold;

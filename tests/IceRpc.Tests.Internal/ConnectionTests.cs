@@ -83,11 +83,11 @@ namespace IceRpc.Tests.Internal
         {
             await using var factory = new ConnectionFactory(
                 new ConnectionTestServiceCollection("tcp", protocol)
-                .AddScoped(_ => new TcpClientOptions()
+                .AddScoped(_ => new TcpClientTransportOptions()
                 {
                     IdleTimeout = idleOnClient ? TimeSpan.FromMilliseconds(500) : TimeSpan.FromHours(1)
                 })
-                .AddScoped(_ => new TcpServerOptions()
+                .AddScoped(_ => new TcpServerTransportOptions()
                 {
                     IdleTimeout = idleOnClient ? TimeSpan.FromHours(1) : TimeSpan.FromMilliseconds(500)
                 }));
@@ -170,11 +170,11 @@ namespace IceRpc.Tests.Internal
         {
             await using var factory = new ConnectionFactory(
                 new ConnectionTestServiceCollection("tcp", protocol)
-                .AddScoped(_ => new TcpClientOptions()
+                .AddScoped(_ => new TcpClientTransportOptions()
                 {
                     IdleTimeout = TimeSpan.FromSeconds(2)
                 })
-                .AddScoped(_ => new TcpServerOptions()
+                .AddScoped(_ => new TcpServerTransportOptions()
                 {
                     IdleTimeout = TimeSpan.FromSeconds(3)
                 }));
@@ -202,11 +202,11 @@ namespace IceRpc.Tests.Internal
         {
             await using var factory = new ConnectionFactory(
                 new ConnectionTestServiceCollection("tcp", protocol)
-                .AddScoped(_ => new TcpClientOptions()
+                .AddScoped(_ => new TcpClientTransportOptions()
                 {
                     IdleTimeout = TimeSpan.FromMilliseconds(500),
                 })
-                .AddScoped(_ => new TcpServerOptions()
+                .AddScoped(_ => new TcpServerTransportOptions()
                 {
                     IdleTimeout = TimeSpan.FromMilliseconds(500),
                 }),
@@ -239,7 +239,7 @@ namespace IceRpc.Tests.Internal
                         await dispatchSemaphore.WaitAsync(cancel);
                         return new OutgoingResponse(request);
                     }))
-                    .AddScoped(_ => new TcpServerOptions() { IdleTimeout = TimeSpan.FromSeconds(1) })
+                    .AddScoped(_ => new TcpServerTransportOptions() { IdleTimeout = TimeSpan.FromSeconds(1) })
                 );
 
             // Perform an invocation and wait 2 seconds. The connection shouldn't close.

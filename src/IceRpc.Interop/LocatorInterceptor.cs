@@ -127,12 +127,16 @@ namespace IceRpc
     /// </summary>
     public interface ILocationResolver
     {
-        /// <summary>Creates a new location resolver using a locator proxy.</summary>
-        /// <param name="locator">The locator proxy.</param>
+        /// <summary>Creates a new location resolver.</summary>
         /// <param name="options">The configuration options for this locator-based location resolver.</param>
         /// <returns>A new location resolver.</returns>
-        public static ILocationResolver FromLocator(ILocatorPrx locator, Configure.LocatorOptions options)
+        public static ILocationResolver FromLocator(Configure.LocatorOptions options)
         {
+            if (options.Locator is not ILocatorPrx locator)
+            {
+                throw new ArgumentException($"{nameof(options.Locator)} is null", nameof(options));
+            }
+
             if (options.Ttl != Timeout.InfiniteTimeSpan && options.JustRefreshedAge >= options.Ttl)
             {
                 throw new ArgumentException(

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Slice.Internal;
 using NUnit.Framework;
 using System.Buffers;
@@ -37,14 +38,14 @@ public sealed class StreamDecoderTests
     [Test]
     public void StreamDecoder_Options()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new StreamDecoderOptions(pauseWriterThreshold: -2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new SliceStreamDecoderOptions(pauseWriterThreshold: -2));
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new StreamDecoderOptions(pauseWriterThreshold: 100, resumeWriterThreshold: 200));
+            new SliceStreamDecoderOptions(pauseWriterThreshold: 100, resumeWriterThreshold: 200));
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new StreamDecoderOptions(pauseWriterThreshold: 0, resumeWriterThreshold: 200));
+            new SliceStreamDecoderOptions(pauseWriterThreshold: 0, resumeWriterThreshold: 200));
 
-        Assert.DoesNotThrow(() => new StreamDecoderOptions(pauseWriterThreshold: -1, resumeWriterThreshold: 200));
-        Assert.DoesNotThrow(() => new StreamDecoderOptions(pauseWriterThreshold: 0, resumeWriterThreshold: 0));
+        Assert.DoesNotThrow(() => new SliceStreamDecoderOptions(pauseWriterThreshold: -1, resumeWriterThreshold: 200));
+        Assert.DoesNotThrow(() => new SliceStreamDecoderOptions(pauseWriterThreshold: 0, resumeWriterThreshold: 0));
     }
 
     [Test]
@@ -52,7 +53,7 @@ public sealed class StreamDecoderTests
     {
         var streamDecoder = new StreamDecoder<int>(
             DecodeBufferIntoInts,
-            new StreamDecoderOptions(pauseWriterThreshold: 500)); // 500 bytes, 125 ints
+            new SliceStreamDecoderOptions(pauseWriterThreshold: 500)); // 500 bytes, 125 ints
 
         var buffer = CreateBuffer(value: 123, count: 100);
         Assert.That(await streamDecoder.WriteAsync(buffer, default), Is.False); // 100 ints, 400 bytes
@@ -137,7 +138,7 @@ public sealed class StreamDecoderTests
     {
         var streamDecoder = new StreamDecoder<int>(
             DecodeBufferIntoInts,
-            new StreamDecoderOptions(pauseWriterThreshold: 0)); // no pause threshold
+            new SliceStreamDecoderOptions(pauseWriterThreshold: 0)); // no pause threshold
 
         // Write 20,000 ints (20,000 * 4 > 64K)
 

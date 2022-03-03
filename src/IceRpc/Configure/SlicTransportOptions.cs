@@ -1,21 +1,13 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
 using System.Buffers;
 
 namespace IceRpc.Configure
 {
-    /// <summary>An options class for configuring Slic based transports.</summary>
-    public class SlicOptions
+    /// <summary>The base options class for Slic.</summary>
+    public record class SlicTransportOptions
     {
-        private int _bidirectionalStreamMaxCount = 100;
-        private int _minimumSegmentSize = 4096;
-        // The default packet size matches the SSL record maximum data size to avoid fragramentation of the Slic packet
-        // when using SSL.
-        private int _packetMaxSize = 16384;
-        private int _pauseWriterThreshold = 65536;
-        private int _resumeWriterThreshold = 32768;
-        private int _unidirectionalStreamMaxCount = 100;
-
         /// <summary>Configures the bidirectional stream maximum count to limit the number of concurrent
         /// bidirectional streams opened on a connection. When this limit is reached, trying to open a new
         /// bidirectional stream will be delayed until a bidirectional stream is closed. Since an
@@ -93,5 +85,28 @@ namespace IceRpc.Configure
                     $"{nameof(UnidirectionalStreamMaxCount)} can't be less than 1",
                     nameof(value));
         }
+
+        private int _bidirectionalStreamMaxCount = 100;
+        private int _minimumSegmentSize = 4096;
+        // The default packet size matches the SSL record maximum data size to avoid fragramentation of the Slic packet
+        // when using SSL.
+        private int _packetMaxSize = 16384;
+        private int _pauseWriterThreshold = 65536;
+        private int _resumeWriterThreshold = 32768;
+        private int _unidirectionalStreamMaxCount = 100;
+    }
+
+    /// <summary>An options class for configuring a <see cref="SlicClientTransport"/>.</summary>
+    public sealed record class SlicClientTransportOptions : SlicTransportOptions
+    {
+        /// <summary>Gets or initializes the underlying simple client transport.</summary>
+        public IClientTransport<ISimpleNetworkConnection>? SimpleClientTransport { get; init; }
+    }
+
+    /// <summary>An options class for configuring a <see cref="SlicServerTransport"/>.</summary>
+    public sealed record class SlicServerTransportOptions : SlicTransportOptions
+    {
+        /// <summary>Gets or initializes the underlying simple server transport.</summary>
+        public IServerTransport<ISimpleNetworkConnection>? SimpleServerTransport { get; init; }
     }
 }

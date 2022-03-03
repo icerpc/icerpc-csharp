@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -40,7 +41,7 @@ namespace IceRpc.Slice.Internal
         /// <param name="options">The options to configure flow control.</param>
         internal StreamDecoder(
             Func<ReadOnlySequence<byte>, IEnumerable<T>> decodeBufferFunc,
-            StreamDecoderOptions options)
+            SliceStreamDecoderOptions options)
         {
             _decodeBufferFunc = decodeBufferFunc;
             _pauseWriterThreshold = options.PauseWriterThreshold;
@@ -50,7 +51,7 @@ namespace IceRpc.Slice.Internal
         /// <summary>Constructs a stream decoder with the default options.</summary>
         /// <param name="decodeBufferFunc">The function that decodes a buffer into an enumerable of T.</param>
         internal StreamDecoder(Func<ReadOnlySequence<byte>, IEnumerable<T>> decodeBufferFunc)
-            : this(decodeBufferFunc, StreamDecoderOptions.Default)
+            : this(decodeBufferFunc, SliceStreamDecoderOptions.Default)
         {
         }
 

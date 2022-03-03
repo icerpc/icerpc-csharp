@@ -21,9 +21,18 @@ namespace IceRpc.Tests.Internal
 
         public MultiplexedNetworkConnectionTests()
         {
+            var colocTransport = new ColocTransport();
+
             _serviceProvider = new InternalTestServiceCollection()
-                .AddTransient(_ => new SlicOptions()
+                .AddTransient(_ => new SlicClientTransportOptions()
                 {
+                    SimpleClientTransport = colocTransport.ClientTransport,
+                    BidirectionalStreamMaxCount = 15,
+                    UnidirectionalStreamMaxCount = 10
+                })
+                .AddTransient(_ => new SlicServerTransportOptions()
+                {
+                    SimpleServerTransport = colocTransport.ServerTransport,
                     BidirectionalStreamMaxCount = 15,
                     UnidirectionalStreamMaxCount = 10
                 })
@@ -117,9 +126,9 @@ namespace IceRpc.Tests.Internal
             var serverStreams = new List<IMultiplexedStream>();
             IMultiplexedStream clientStream;
             IMultiplexedStream serverStream;
-            SlicOptions slicOptions = _serviceProvider.GetRequiredService<SlicOptions>();
+            SlicTransportOptions slicOptions = _serviceProvider.GetRequiredService<SlicClientTransportOptions>();
             ReadResult readResult;
-            for (int i = 0; i < slicOptions!.BidirectionalStreamMaxCount; ++i)
+            for (int i = 0; i < slicOptions.BidirectionalStreamMaxCount; ++i)
             {
                 clientStream = _clientConnection.CreateStream(true);
                 clientStreams.Add(clientStream);
@@ -174,7 +183,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(true)]
         public async Task MultiplexedNetworkConnection_StreamMaxCount_StressTestAsync(bool bidirectional)
         {
-            SlicOptions slicOptions = _serviceProvider.GetRequiredService<SlicOptions>();
+            SlicTransportOptions slicOptions = _serviceProvider.GetRequiredService<SlicClientTransportOptions>();
             int maxCount = bidirectional ?
                 slicOptions!.BidirectionalStreamMaxCount :
                 slicOptions!.UnidirectionalStreamMaxCount;
@@ -239,7 +248,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(true)]
         public async Task MultiplexedNetworkConnection_StreamMaxCount_UnidirectionalAsync(bool complete)
         {
-            SlicOptions slicOptions = _serviceProvider.GetRequiredService<SlicOptions>();
+            SlicTransportOptions slicOptions = _serviceProvider.GetRequiredService<SlicClientTransportOptions>();
             var clientStreams = new List<IMultiplexedStream>();
             for (int i = 0; i < slicOptions!.UnidirectionalStreamMaxCount; ++i)
             {

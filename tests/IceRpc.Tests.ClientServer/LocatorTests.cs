@@ -55,7 +55,11 @@ namespace IceRpc.Tests.ClientServer
                 IceProxyFormat.Default);
 
             var locator = new FakeLocatorPrx();
-            _pipeline.UseLocator(locator, new() { LoggerFactory = LogAttributeLoggerFactory.Instance });
+            _pipeline.UseLocator(new LocatorOptions
+            {
+                Locator = locator,
+                LoggerFactory = LogAttributeLoggerFactory.Instance
+            });
             _pipeline.Use(next => new InlineInvoker(
                 (request, cancel) =>
                 {
@@ -101,11 +105,11 @@ namespace IceRpc.Tests.ClientServer
             var locator = new FakeLocatorPrx();
             _pipeline.UseRetry(new RetryOptions { MaxAttempts = 2 });
             _pipeline.UseLocator(
-                locator,
                 new LocatorOptions
                 {
                     CacheMaxSize = cacheMaxSize,
                     JustRefreshedAge = TimeSpan.Zero,
+                    Locator = locator,
                     LoggerFactory = LogAttributeLoggerFactory.Instance
                 });
             _pipeline.Use(next => new InlineInvoker(
@@ -196,7 +200,11 @@ namespace IceRpc.Tests.ClientServer
             Assert.That(wellKnownService.Proxy.Endpoint, Is.Null);
 
             var locator = new FakeLocatorPrx();
-            _pipeline.UseLocator(locator, new() { LoggerFactory = LogAttributeLoggerFactory.Instance });
+            _pipeline.UseLocator(new LocatorOptions
+            {
+                Locator = locator,
+                LoggerFactory = LogAttributeLoggerFactory.Instance
+            });
             _pipeline.Use(next => new InlineInvoker(
                 (request, cancel) =>
                 {
