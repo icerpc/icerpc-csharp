@@ -73,11 +73,6 @@ namespace IceRpc.Internal
                         break;
                     }
                 }
-
-                if (completeWhenDone)
-                {
-                    await sink.CompleteAsync().ConfigureAwait(false);
-                }
             }
             else
             {

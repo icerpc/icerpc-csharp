@@ -18,7 +18,7 @@ namespace IceRpc.Slice
             this IncomingRequest request,
             bool hasStream,
             CancellationToken cancel) =>
-            request.Payload.ReadVoidAsync(request.GetSliceEncoding(), hasStream, cancel);
+            request.ReadVoidAsync(request.GetSliceEncoding(), hasStream, cancel);
 
         /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared
         /// idempotent, the request is not marked idempotent. If the request is marked idempotent, it means the caller
@@ -83,21 +83,14 @@ namespace IceRpc.Slice
             IActivator defaultActivator,
             DecodeFunc<T> decodeFunc,
             bool hasStream,
-            CancellationToken cancel)
-        {
-            DecodePayloadOptions decodePayloadOptions =
-                    request.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default;
-
-            return request.Payload.ReadValueAsync(
+            CancellationToken cancel) =>
+            request.ReadValueAsync(
                 request.GetSliceEncoding(),
-                request.Connection,
-                decodePayloadOptions.ProxyInvoker ?? Proxy.DefaultInvoker,
-                decodePayloadOptions.Activator ?? defaultActivator,
-                decodePayloadOptions.MaxDepth,
+                request.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default,
+                defaultActivator,
                 decodeFunc,
                 hasStream,
                 cancel);
-        }
 
         /// <summary>Creates an async enumerable over the payload reader of an incoming request.</summary>
         /// <param name="request">The incoming request.</param>
@@ -106,19 +99,11 @@ namespace IceRpc.Slice
         public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             this IncomingRequest request,
             IActivator defaultActivator,
-            DecodeFunc<T> decodeFunc)
-        {
-            DecodePayloadOptions decodePayloadOptions =
-                request.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default;
-
-            return request.Payload.ToAsyncEnumerable(
+            DecodeFunc<T> decodeFunc) =>
+            request.ToAsyncEnumerable(
                 request.GetSliceEncoding(),
-                request.Connection,
-                decodePayloadOptions.ProxyInvoker ?? Proxy.DefaultInvoker,
-                decodePayloadOptions.Activator ?? defaultActivator,
-                decodePayloadOptions.MaxDepth,
-                decodeFunc,
-                decodePayloadOptions.StreamDecoderOptions);
-        }
+                request.Features.Get<DecodePayloadOptions>() ?? DecodePayloadOptions.Default,
+                defaultActivator,
+                decodeFunc);
     }
 }

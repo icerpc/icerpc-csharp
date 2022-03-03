@@ -570,9 +570,38 @@ namespace IceRpc.Tests.Api
             Assert.That(capture.Greeter.Proxy.Endpoint, Is.Null);
         }
 
+        [Test]
+        public async Task Proxy_CheckPipeCompletion()
+        {
+            var greeter = new Greeter();
+            await using ServiceProvider serviceProvider = new IntegrationTestServiceCollection()
+                .AddTransient<IDispatcher>(_ => greeter)
+                .BuildServiceProvider();
+            var greeterPrx = GreeterPrx.FromConnection(serviceProvider.GetRequiredService<Connection>());
+
+            var invocation = new Invocation();
+            await greeterPrx.SayHelloAsync("", invocation).ConfigureAwait(false);
+            IncomingResponse incomingResponse = invocation.Response;
+            OutgoingRequest outgoingRequest = incomingResponse.Request;
+            IncomingRequest incomingRequest = greeter.Request!;
+            //OutgoingResponse outgoingResponse = incomingRequest.Response;
+
+            Assert.ThrowsAsync<InvalidOperationException>(() => outgoingRequest.PayloadSource.ReadAsync().AsTask());
+            Assert.ThrowsAsync<InvalidOperationException>(() => incomingResponse.Payload.ReadAsync().AsTask());
+
+            Assert.ThrowsAsync<InvalidOperationException>(() => incomingRequest.Payload.ReadAsync().AsTask());
+            Assert.ThrowsAsync<InvalidOperationException>(() => outgoingRequest.PayloadSource.ReadAsync().AsTask());
+        }
+
         public class Greeter : Service, IGreeter
         {
-            public ValueTask SayHelloAsync(string message, Dispatch dispatch, CancellationToken cancel) => default;
+            internal IncomingRequest? Request { get; private set; }
+
+            public ValueTask SayHelloAsync(string message, Dispatch dispatch, CancellationToken cancel)
+            {
+                Request = dispatch.Request;
+                return default;
+            }
         }
 
         private class ProxyTest : Service, IProxyTest
