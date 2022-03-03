@@ -8,6 +8,7 @@ using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.IO.Pipelines;
+using System.Net.Security;
 
 namespace IceRpc
 {
@@ -63,11 +64,6 @@ namespace IceRpc
             }
             remove => _closed -= value;
         }
-
-        /// <summary><c>true</c> if the connection uses a secure transport, <c>false</c> otherwise.</summary>
-        /// <remarks><c>false</c> can mean the connection is not yet connected and its security will be determined
-        /// during connection establishment.</remarks>
-        public bool IsSecure => _networkConnection?.IsSecure ?? false;
 
         /// <summary><c>true</c> for a connection accepted by a server and <c>false</c> for a connection created by a
         /// client.</summary>
@@ -134,11 +130,16 @@ namespace IceRpc
             _options = options;
         }
 
-        /// <summary>Constructs a client connection to a remote endpoint, using default values for all other properties.
-        /// </summary>
+        /// <summary>Constructs a client connection with the specified remote endpoint and  authentication options.
+        /// All other properties have their default values.</summary>
         /// <param name="remoteEndpoint">The remote endpoint.</param>
-        public Connection(Endpoint remoteEndpoint)
-            : this(new ConnectionOptions { RemoteEndpoint = remoteEndpoint })
+        /// <param name="authenticationOptions">The client authentication options.</param>
+        public Connection(Endpoint remoteEndpoint, SslClientAuthenticationOptions? authenticationOptions = null)
+            : this(new ConnectionOptions
+            {
+                AuthenticationOptions = authenticationOptions,
+                RemoteEndpoint = remoteEndpoint
+            })
         {
         }
 

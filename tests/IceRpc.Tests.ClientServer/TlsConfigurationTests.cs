@@ -50,7 +50,6 @@ namespace IceRpc.Tests.ClientServer
 
             ServicePrx prx = serviceProvider.GetProxy<ServicePrx>();
             Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-            Assert.That(prx.Proxy.Connection!.IsSecure, Is.True);
         }
 
         [TestCase("c_rsa_ca1.p12", "s_rsa_ca1.p12")]
@@ -89,8 +88,7 @@ namespace IceRpc.Tests.ClientServer
                 .BuildServiceProvider();
 
             ServicePrx prx = serviceProvider.GetProxy<ServicePrx>();
-            Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-            Assert.That(prx.Proxy.Connection!.IsSecure, Is.True);
+            Assert.DoesNotThrowAsync(() => prx.IcePingAsync());
             Assert.That(clientValidationCallbackCalled, Is.True);
             Assert.That(serverValidationCallbackCalled, Is.True);
         }
@@ -136,8 +134,7 @@ namespace IceRpc.Tests.ClientServer
                 .BuildServiceProvider();
 
             ServicePrx prx = serviceProvider.GetProxy<ServicePrx>();
-            Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-            Assert.That(prx.Proxy.Connection!.IsSecure, Is.True);
+            Assert.DoesNotThrowAsync(() => prx.IcePingAsync());
         }
 
         // The client doesn't have a CA certificate to verify the server
@@ -295,12 +292,11 @@ namespace IceRpc.Tests.ClientServer
             ServicePrx prx = serviceProvider.GetProxy<ServicePrx>();
             if ((GetOperatingSystem() & mustSucceed) != 0)
             {
-                Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-                Assert.That(prx.Proxy.Connection!.IsSecure, Is.True);
+                Assert.DoesNotThrowAsync(() => prx.IcePingAsync());
             }
             else
             {
-                Assert.ThrowsAsync<AuthenticationException>(async () => await prx.IcePingAsync());
+                Assert.ThrowsAsync<AuthenticationException>(() => prx.IcePingAsync());
             }
         }
 
@@ -329,8 +325,7 @@ namespace IceRpc.Tests.ClientServer
                 .BuildServiceProvider();
 
             ServicePrx prx = serviceProvider.GetProxy<ServicePrx>();
-            Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-            Assert.That(prx.Proxy.Connection!.IsSecure, Is.True);
+            Assert.DoesNotThrowAsync(() => prx.IcePingAsync());
             Assert.That(prx.Proxy.Connection!.NetworkConnectionInformation?.RemoteCertificate, Is.Not.Null);
         }
 
