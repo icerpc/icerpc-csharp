@@ -56,7 +56,7 @@ impl CodeBlock {
 }
 
 /// Formats a CodeBlock for display. Whitespace characters are removed from the beginning, the end,
-/// and from lines that only contain whitespaces.
+/// and from lines that only contain whitespace.
 impl fmt::Display for CodeBlock {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(

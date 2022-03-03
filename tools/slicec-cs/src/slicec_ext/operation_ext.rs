@@ -83,3 +83,57 @@ fn operation_return_type(operation: &Operation, is_dispatch: bool, context: Type
         _ => return_members.to_tuple_type(&ns, context, false),
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use slice::parser::parse_string;
+
+    macro_rules! setup_operation_return_task_tests {
+        ($($name:ident: $value:expr,)*) => {
+        $(
+            #[test]
+            fn $name() {
+                let (slice_return_type, is_dispatch, expected) = $value;
+
+                let slice = format!("\
+                module Test;
+                interface TestInterface
+                {{
+                    op(){};
+                }}
+                ", if slice_return_type.is_empty() {
+                    "".to_owned()
+                } else {
+                    format!(" -> {}", slice_return_type)
+                });
+
+                let ast = parse_string(&slice).unwrap();
+                let operation_ptr = ast.find_typed_entity::<Operation>("::Test::TestInterface::op").unwrap();
+                let operation = operation_ptr.borrow();
+
+                let return_task = operation.return_task(is_dispatch);
+
+                assert_eq!(
+                    expected,
+                    &return_task
+                );
+            }
+        )*
+        }
+    }
+
+    setup_operation_return_task_tests! {
+        dispatch_return_tuple_task: ("(myString: string, anInt: int)",
+                                     true,
+                                     "global::System.Threading.Tasks.ValueTask<(string MyString, int AnInt)>"),
+
+        proxy_return_tuple_task: ("(myString: string, anInt: int)",
+                                  false,
+                                  "global::System.Threading.Tasks.Task<(string MyString, int AnInt)>"),
+
+        dispatch_void_return_task: ("", true, "global::System.Threading.Tasks.ValueTask"),
+        proxy_void_return_task: ("", false, "global::System.Threading.Tasks.Task"),
+    }
+}

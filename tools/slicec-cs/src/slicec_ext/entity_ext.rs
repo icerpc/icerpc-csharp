@@ -37,7 +37,7 @@ pub trait EntityExt: Entity {
     fn interface_name(&self) -> String;
 
     /// Returns the interface name corresponding to this entity's identifier, fully scoped.
-    fn scoped_interface_name(&self, current_namepsace: &str) -> String;
+    fn scoped_interface_name(&self, current_namespace: &str) -> String;
 
     /// The helper name
     fn helper_name(&self, current_namespace: &str) -> String;
@@ -225,5 +225,49 @@ fn scoped_identifier(
         identifier.to_owned()
     } else {
         format!("global::{}.{}", identifier_namespace, identifier)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use slice::grammar::*;
+    use slice::parser::parse_string;
+
+    macro_rules! setup_interface_name_tests {
+        ($($name:ident: $value:expr,)*) => {
+        $(
+            #[test]
+            fn $name() {
+                let (interface_identifier, expected) = $value;
+
+                let slice = format!("
+                module Test;
+                interface {}
+                {{
+                }}", interface_identifier);
+
+                let scoped_identifier = format!("::Test::{}", interface_identifier);
+
+                let ast = parse_string(&slice).unwrap();
+                let interface_ptr = ast.find_typed_entity::<Interface>(&scoped_identifier).unwrap();
+                let interface = interface_ptr.borrow();
+
+                let interface_name = interface.interface_name();
+
+                assert_eq!(
+                    expected,
+                    &interface_name
+                );
+            }
+        )*
+        }
+    }
+
+    setup_interface_name_tests! {
+        interface_gets_prefix: ("Foo", "IFoo"),
+        interface_with_prefix_remains_unchanged: ("IFoo", "IFoo"),
+        two_letter_interface_beginning_with_i_gets_prefix: ("IA", "IIA"),
+        two_letter_interface_gets_prefix: ("Ab", "IAb"),
     }
 }

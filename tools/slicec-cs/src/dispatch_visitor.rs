@@ -560,3 +560,43 @@ fn payload_source_stream(operation: &Operation, encoding: &str) -> CodeBlock {
         }
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use slice::parser::parse_string;
+
+
+    #[test]
+    fn expected_operation_dispatch() {
+        let slice = r#"
+        module Test;
+        interface TestInterface
+        {
+            op(a: int, s: string) -> (r: int, s: string);
+        }
+        "#;
+
+        let ast = parse_string(slice).unwrap();
+        let operation_ptr = ast.find_typed_entity::<Operation>("::Test::TestInterface::op").unwrap();
+        let operation = operation_ptr.borrow();
+
+        let operation_dispatch_string = operation_dispatch(operation).to_string();
+
+        let expected = r#"
+[IceRpc.Slice.Operation("op")]
+protected static async global::System.Threading.Tasks.ValueTask<IceRpc.OutgoingResponse> SliceDOpAsync(
+    ITestInterface target,
+    IceRpc.IncomingRequest request,
+    global::System.Threading.CancellationToken cancel)
+{
+    request.CheckNonIdempotent();
+    var args = await Request.OpAsync(request, cancel).ConfigureAwait(false);
+    var returnValue = await target.OpAsync(args.A, args.S, new IceRpc.Slice.Dispatch(request), cancel).ConfigureAwait(false);
+    return new IceRpc.OutgoingResponse(request) { PayloadSource = Response.Op(request.GetSliceEncoding(), returnValue.R, returnValue.S), PayloadSourceStream = null };
+}"#;
+        assert_eq!(expected.trim(), operation_dispatch_string.trim());
+
+    }
+}
