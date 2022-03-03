@@ -296,7 +296,6 @@ namespace IceRpc.Internal
             {
                 // Create the stream.
                 stream = _networkConnection.CreateStream(!request.IsOneway);
-                request.InitialPayloadSink.SetDecoratee(stream.Output);
 
                 // Keep track of the invocation for the shutdown logic.
                 if (!request.IsOneway || request.PayloadSourceStream != null)
@@ -334,8 +333,21 @@ namespace IceRpc.Internal
                     }
                 }
 
+                PipeWriter payloadSink;
+                if (request.InitialPayloadSink == null)
+                {
+                    // No initial payload sink set indicates that the application didn't set any payload sink. Directly
+                    // use the stream output pipe writer in this case.
+                    payloadSink = stream.Output;
+                }
+                else
+                {
+                    request.InitialPayloadSink.SetDecoratee(stream.Output);
+                    payloadSink = request.PayloadSink;
+                }
+
                 EncodeHeader(stream.Output);
-                await SendPayloadAsync(request, cancel).ConfigureAwait(false);
+                await SendPayloadAsync(request, payloadSink, cancel).ConfigureAwait(false);
 
                 request.IsSent = true;
 
@@ -422,7 +434,7 @@ namespace IceRpc.Internal
             try
             {
                 EncodeHeader();
-                await SendPayloadAsync(response, cancel).ConfigureAwait(false);
+                await SendPayloadAsync(response, response.PayloadSink, cancel).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -692,9 +704,12 @@ namespace IceRpc.Internal
         }
 
         /// <summary>Sends the payload source and payload source stream of an outgoing frame.</summary>
-        private static async ValueTask SendPayloadAsync(OutgoingFrame outgoingFrame, CancellationToken cancel)
+        private static async ValueTask SendPayloadAsync(
+            OutgoingFrame outgoingFrame,
+            PipeWriter payloadSink,
+            CancellationToken cancel)
         {
-            FlushResult flushResult = await outgoingFrame.PayloadSink.CopyFromAsync(
+            FlushResult flushResult = await payloadSink.CopyFromAsync(
                 outgoingFrame.PayloadSource,
                 outgoingFrame.PayloadSourceStream == null,
                 cancel).ConfigureAwait(false);
@@ -722,7 +737,7 @@ namespace IceRpc.Internal
                     {
                         try
                         {
-                            _ = await outgoingFrame.PayloadSink.CopyFromAsync(
+                            _ = await payloadSink.CopyFromAsync(
                                 outgoingFrame.PayloadSourceStream,
                                 completeWhenDone: true,
                                 CancellationToken.None).ConfigureAwait(false);
@@ -733,6 +748,7 @@ namespace IceRpc.Internal
                         {
                             await outgoingFrame.PayloadSink.CompleteAsync(ex).ConfigureAwait(false);
                             await outgoingFrame.PayloadSourceStream.CompleteAsync(ex).ConfigureAwait(false);
+
                         }
                     },
                     cancel);

@@ -365,11 +365,23 @@ namespace IceRpc.Internal
                 AsyncCompletePipeWriter output = _isUdp ? new UdpPipeWriter(_networkConnection) :
                     new SimpleNetworkConnectionPipeWriter(_networkConnection);
 
+                PipeWriter payloadSink;
+                if (request.InitialPayloadSink == null)
+                {
+                    // No initial payload sink set indicates that the application didn't set any payload sink. Directly
+                    // use the output pipe writer in this case.
+                    payloadSink = output;
+                }
+                else
+                {
+                    request.InitialPayloadSink.SetDecoratee(output);
+                    payloadSink = request.PayloadSink;
+                }
+
                 EncodeHeader(output, payloadSize);
-                request.InitialPayloadSink.SetDecoratee(output);
 
                 // TODO: it would make sense to pass the known payloadSize to SendPayloadAsync
-                await SendPayloadAsync(request, output, cancel).ConfigureAwait(false);
+                await SendPayloadAsync(request, payloadSink, output, cancel).ConfigureAwait(false);
                 request.IsSent = true;
             }
             catch (ObjectDisposedException exception)
@@ -516,6 +528,7 @@ namespace IceRpc.Internal
                         // TODO: it would make sense to pass the known payloadSize to SendPayloadAsync
                         await SendPayloadAsync(
                             response,
+                            response.PayloadSink,
                             (AsyncCompletePipeWriter)request.ResponseWriter,
                             cancel).ConfigureAwait(false);
                     }
@@ -690,6 +703,7 @@ namespace IceRpc.Internal
         /// <summary>Sends the payload source of an outgoing frame.</summary>
         private async ValueTask SendPayloadAsync(
             OutgoingFrame outgoingFrame,
+            PipeWriter payloadSink,
             AsyncCompletePipeWriter frameWriter,
             CancellationToken cancel)
         {
@@ -722,7 +736,7 @@ namespace IceRpc.Internal
             }
             frameWriter.CompleteCancellationToken = cancel;
 
-            FlushResult flushResult = await outgoingFrame.PayloadSink.CopyFromAsync(
+            FlushResult flushResult = await payloadSink.CopyFromAsync(
                 outgoingFrame.PayloadSource,
                 completeWhenDone: true,
                 cancel).ConfigureAwait(false);

@@ -1,10 +1,15 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.IO.Pipelines;
+
 namespace IceRpc
 {
     /// <summary>Represents a response protocol frame sent by the application.</summary>
     public sealed class OutgoingResponse : OutgoingFrame
     {
+        /// <inheritdoc/>
+        public override PipeWriter PayloadSink { get; set; }
+
         /// <summary>The corresponding request.</summary>
         public IncomingRequest Request { get; }
 
@@ -14,6 +19,10 @@ namespace IceRpc
         /// <summary>Constructs an outgoing response.</summary>
         /// <param name="request">The incoming request.</param>
         public OutgoingResponse(IncomingRequest request)
-            : base(request.Protocol, request.ResponseWriter) => Request = request;
+            : base(request.Protocol)
+        {
+            Request = request;
+            PayloadSink = request.ResponseWriter;
+        }
     }
 }

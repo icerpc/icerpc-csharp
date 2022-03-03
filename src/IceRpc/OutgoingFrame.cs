@@ -22,7 +22,7 @@ namespace IceRpc
             ImmutableDictionary<int, EncodeAction>.Empty;
 
         /// <summary>Gets or sets the payload sink of this frame.</summary>
-        public PipeWriter PayloadSink { get; set; }
+        public abstract PipeWriter PayloadSink { get; set; }
 
         /// <summary>Gets or sets the payload source of this frame. The payload source is sent together with the frame
         /// header and the sending operation awaits until the payload source is fully sent.</summary>
@@ -38,8 +38,7 @@ namespace IceRpc
 
         /// <summary>Constructs an outgoing frame.</summary>
         /// <param name="protocol">The protocol used to send the frame.</param>
-        /// <param name="payloadSink">The outgoing frame's payload sink.</param>
-        protected OutgoingFrame(Protocol protocol, PipeWriter payloadSink)
+        protected OutgoingFrame(Protocol protocol)
         {
             if (!protocol.IsSupported)
             {
@@ -54,7 +53,6 @@ namespace IceRpc
             }
 
             Protocol = protocol;
-            PayloadSink = payloadSink;
         }
     }
 }
