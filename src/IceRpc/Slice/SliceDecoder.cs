@@ -585,6 +585,38 @@ namespace IceRpc.Slice
             return size;
         }
 
+        /// <summary>Decodes fields.</summary>
+        /// <returns>The fields.</returns>
+        /// <remarks>The fields use and must use the remainder of the underlying buffer.</remarks>
+        internal IDictionary<int, ReadOnlySequence<byte>> DecodeFieldDictionary()
+        {
+            int size = DecodeSize();
+            if (size == 0)
+            {
+                return ImmutableDictionary<int, ReadOnlySequence<byte>>.Empty;
+            }
+            else
+            {
+                // TODO: for now we make a copy of the remaining bytes in _reader into a new buffer. Ideally, we would
+                // use _reader directly but this requires a separate "backing" Pipe.
+                byte[] buffer = new byte[_reader.Remaining];
+                _ = _reader.TryCopyTo(buffer);
+                _reader.AdvanceToEnd();
+
+                var decoder = new SliceDecoder(new ReadOnlyMemory<byte>(buffer), Encoding);
+                var dict = new Dictionary<int, ReadOnlySequence<byte>>(size);
+                for (int i = 0; i < size; ++i)
+                {
+                    int key = decoder.DecodeVarInt();
+                    int valueSize = decoder.DecodeSize();
+                    ReadOnlySequence<byte> value = decoder._reader.UnreadSequence.Slice(0, valueSize);
+                    decoder._reader.Advance(valueSize);
+                    dict.Add(key, value);
+                }
+                return dict;
+            }
+        }
+
         /// <summary>Decodes a size encoded on a fixed number of bytes.</summary>
         /// <returns>The size decoded by this decoder.</returns>
         internal int DecodeFixedLengthSize()

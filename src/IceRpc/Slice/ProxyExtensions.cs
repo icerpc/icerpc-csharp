@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Buffers;
 using System.Collections.Immutable;
 using System.IO.Pipelines;
 
@@ -16,8 +17,11 @@ namespace IceRpc.Slice
     /// <summary>Provides extension methods for class Proxy.</summary>
     public static class ProxyExtensions
     {
-        private static readonly IDictionary<int, ReadOnlyMemory<byte>> _idempotentFields =
-            new Dictionary<int, ReadOnlyMemory<byte>> { [(int)FieldKey.Idempotent] = default }.ToImmutableDictionary();
+        private static readonly IDictionary<int, ReadOnlySequence<byte>> _idempotentFields =
+            new Dictionary<int, ReadOnlySequence<byte>>
+            {
+                [(int)FieldKey.Idempotent] = default
+            }.ToImmutableDictionary();
 
         /// <summary>Computes the Slice encoding to use when encoding a Slice-generated request.</summary>
         public static SliceEncoding GetSliceEncoding(this Proxy proxy) =>
@@ -60,7 +64,7 @@ namespace IceRpc.Slice
             var request = new OutgoingRequest(proxy)
             {
                 Features = invocation?.Features ?? FeatureCollection.Empty,
-                Fields = idempotent ? _idempotentFields : ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty,
+                Fields = idempotent ? _idempotentFields : ImmutableDictionary<int, ReadOnlySequence<byte>>.Empty,
                 Operation = operation,
                 PayloadEncoding = payloadEncoding,
                 PayloadSource = payloadSource,
@@ -121,7 +125,7 @@ namespace IceRpc.Slice
             var request = new OutgoingRequest(proxy)
             {
                 Features = invocation?.Features ?? FeatureCollection.Empty,
-                Fields = idempotent ? _idempotentFields : ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty,
+                Fields = idempotent ? _idempotentFields : ImmutableDictionary<int, ReadOnlySequence<byte>>.Empty,
                 IsOneway = oneway || (invocation?.IsOneway ?? false),
                 Operation = operation,
                 PayloadEncoding = payloadEncoding,

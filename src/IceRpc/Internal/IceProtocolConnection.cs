@@ -40,8 +40,8 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public event Action<string>? PeerShutdownInitiated;
 
-        private static readonly IDictionary<int, ReadOnlyMemory<byte>> _idempotentFields =
-            new Dictionary<int, ReadOnlyMemory<byte>> { [(int)FieldKey.Idempotent] = default }.ToImmutableDictionary();
+        private static readonly IDictionary<int, ReadOnlySequence<byte>> _idempotentFields =
+            new Dictionary<int, ReadOnlySequence<byte>> { [(int)FieldKey.Idempotent] = default }.ToImmutableDictionary();
 
         private readonly TaskCompletionSource _dispatchesAndInvocationsCompleted =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -154,7 +154,7 @@ namespace IceRpc.Internal
                             InvalidPipeWriter.Instance : new SimpleNetworkConnectionPipeWriter(_networkConnection))
                     {
                         Fields = requestHeader.OperationMode == OperationMode.Normal ?
-                            ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty : _idempotentFields,
+                            ImmutableDictionary<int, ReadOnlySequence<byte>>.Empty : _idempotentFields,
                         IsOneway = requestId == 0,
                     };
 

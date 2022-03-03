@@ -13,7 +13,7 @@ namespace IceRpc.Transports.Internal
             parameters.Select(pair =>
                 ((ParameterKey)pair.Key,
                  Encoding.Slice20.DecodeBuffer(
-                     pair.Value.ToArray(),
+                     new ReadOnlySequence<byte>(pair.Value.ToArray()), // TODO: fix to avoid copy
                      (ref SliceDecoder decoder) => decoder.DecodeVarULong())));
     }
 }

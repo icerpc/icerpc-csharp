@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Buffers;
 using System.Collections.Immutable;
 using System.IO.Pipelines;
 
@@ -16,8 +17,8 @@ namespace IceRpc
         }
 
         /// <summary>Returns the fields of this frame.</summary>
-        public IDictionary<int, ReadOnlyMemory<byte>> Fields { get; init; } =
-            ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
+        public IDictionary<int, ReadOnlySequence<byte>> Fields { get; init; } =
+            ImmutableDictionary<int, ReadOnlySequence<byte>>.Empty;
 
         /// <summary>The payload of this frame.</summary>
         public PipeReader Payload { get; set; }

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Buffers;
 using System.IO.Compression;
 using System.IO.Pipelines;
 
@@ -8,10 +9,8 @@ namespace IceRpc.Internal
     /// <summary>Extensions methods for OutgoingFrame.</summary>
     internal static class OutgoingFrameExtensions
     {
-        private static readonly ReadOnlyMemory<byte> _encodedCompressionFormatValue = new byte[]
-        {
-            (byte)CompressionFormat.Deflate
-        };
+        private static readonly ReadOnlySequence<byte> _encodedCompressionFormatValue =
+            new(new byte[] { (byte)CompressionFormat.Deflate });
 
         /// <summary>Installs a compressor on the frame's PayloadSink.</summary>
         internal static void UsePayloadCompressor(this OutgoingFrame frame, Configure.CompressOptions options)

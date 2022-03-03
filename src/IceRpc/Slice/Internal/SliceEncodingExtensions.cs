@@ -19,7 +19,7 @@ namespace IceRpc.Slice.Internal
         /// </exception>
         internal static T DecodeBuffer<T>(
             this SliceEncoding encoding,
-            ReadOnlyMemory<byte> buffer,
+            ReadOnlySequence<byte> buffer,
             DecodeFunc<T> decodeFunc)
         {
             var decoder = new SliceDecoder(buffer, encoding);

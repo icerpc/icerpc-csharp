@@ -89,7 +89,7 @@ namespace IceRpc.Internal
                 }
 
                 IceRpcRequestHeader header;
-                IDictionary<int, ReadOnlyMemory<byte>> fields;
+                IDictionary<int, ReadOnlySequence<byte>> fields;
                 FeatureCollection features = FeatureCollection.Empty;
                 PipeReader reader = stream.Input;
                 try
@@ -178,11 +178,13 @@ namespace IceRpc.Internal
                     }
                 }
 
-                static (IceRpcRequestHeader, IDictionary<int, ReadOnlyMemory<byte>>) DecodeHeader(
+                static (IceRpcRequestHeader, IDictionary<int, ReadOnlySequence<byte>>) DecodeHeader(
                     ReadOnlySequence<byte> buffer)
                 {
                     var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                    return (new IceRpcRequestHeader(ref decoder), decoder.DecodeFieldDictionary());
+                    var header = (new IceRpcRequestHeader(ref decoder), decoder.DecodeFieldDictionary());
+                    decoder.CheckEndOfBuffer(skipTaggedParams: false);
+                    return header;
                 }
             }
         }
@@ -195,7 +197,7 @@ namespace IceRpc.Internal
             Debug.Assert(!request.IsOneway);
 
             IceRpcResponseHeader header;
-            IDictionary<int, ReadOnlyMemory<byte>> fields;
+            IDictionary<int, ReadOnlySequence<byte>> fields;
 
             PipeReader responseReader = request.ResponseReader;
 
@@ -275,11 +277,13 @@ namespace IceRpc.Internal
                 Fields = fields,
             };
 
-            static (IceRpcResponseHeader, IDictionary<int, ReadOnlyMemory<byte>>) DecodeHeader(
+            static (IceRpcResponseHeader, IDictionary<int, ReadOnlySequence<byte>>) DecodeHeader(
                 ReadOnlySequence<byte> buffer)
             {
                 var decoder = new SliceDecoder(buffer, Encoding.Slice20);
-                return (new IceRpcResponseHeader(ref decoder), decoder.DecodeFieldDictionary());
+                var header = (new IceRpcResponseHeader(ref decoder), decoder.DecodeFieldDictionary());
+                decoder.CheckEndOfBuffer(skipTaggedParams: false);
+                return header;
             }
         }
 
