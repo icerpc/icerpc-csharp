@@ -7,7 +7,7 @@ namespace IceRpc.Tests;
 [Parallelizable(scope: ParallelScope.All)]
 public class ProxyTests
 {
-    /// <summary>Provides test case data for <see cref="Parse_a_proxy_string_with_ice_format(string, string, string)"/>
+    /// <summary>Provides test case data for <see cref="Parse_a_proxy_string_using_ice_format(string, string, string)"/>
     /// test.</summary>
     public static IEnumerable<TestCaseData> ParseIceFormatProxySource
     {
@@ -20,7 +20,7 @@ public class ProxyTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Parse_a_proxy_string_with_uri_format(string, string, string)"/>
+    /// <summary>Provides test case data for <see cref="Parse_a_proxy_string_using_uri_format(string, string, string)"/>
     /// test.</summary>
     public static IEnumerable<TestCaseData> ParseUriFormatProxySource
     {
@@ -33,7 +33,7 @@ public class ProxyTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Convert_a_proxy_using_ice_format_to_a_string(string, IceProxyFormat)"/>
+    /// <summary>Provides test case data for <see cref="Convert_a_proxy_to_a_string_using_ice_format(string, IceProxyFormat)"/>
     /// test.</summary>
     public static IEnumerable<TestCaseData> ToStringIceFormatProxySource
     {
@@ -48,7 +48,7 @@ public class ProxyTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Convert_a_proxy_using_uri_format_to_a_string(string)"/> test.
+    /// <summary>Provides test case data for <see cref="Convert_a_proxy_to_a_string_using_uri_format(string)"/> test.
     /// </summary>
     public static IEnumerable<TestCaseData> ToStringUriFormatProxySource
     {
@@ -138,11 +138,11 @@ public class ProxyTests
             ("foobar:path#fragment", "path", "fragment"),
         };
 
-    /// <summary>Check that a proxy can be converted into a string using any of the Ice proxy formats.</summary>
+    /// <summary>Checks that a proxy can be converted into a string using any of the Ice proxy formats.</summary>
     /// <param name="str">The string used to create the source proxy.</param>
     /// <param name="format">The proxy format for the string conversion.</param>
     [Test, TestCaseSource(nameof(ToStringIceFormatProxySource))]
-    public void Convert_a_proxy_using_ice_format_to_a_string(string str, IceProxyFormat format)
+    public void Convert_a_proxy_to_a_string_using_ice_format(string str, IceProxyFormat format)
     {
         // Arrange
         var proxy = Proxy.Parse(str, format: IceProxyFormat.Default);
@@ -154,10 +154,10 @@ public class ProxyTests
         Assert.That(Proxy.Parse(str2, format: IceProxyFormat.Default), Is.EqualTo(proxy));
     }
 
-    /// <summary>Check that a proxy can be converted into a string using the string URI format.</summary>
+    /// <summary>Checks that a proxy can be converted into a string using the string URI format.</summary>
     /// <param name="str">The string used to create the source proxy.</param>
     [Test, TestCaseSource(nameof(ToStringUriFormatProxySource))]
-    public void Convert_a_proxy_using_uri_format_to_a_string(string str)
+    public void Convert_a_proxy_to_a_string_using_uri_format(string str)
     {
         // Arrange
         var proxy = Proxy.Parse(str);
@@ -186,7 +186,7 @@ public class ProxyTests
     [TestCase("test/foo/bar")]
     [TestCase("cat//test")]
     [TestCase("cat/")] // Empty name
-    public void Parse_a_proxy_string_with_invalid_ice_format(string str) =>
+    public void Parse_an_invalid_proxy_string_using_ice_format(string str) =>
         Assert.Throws<FormatException>(() => Proxy.Parse(str, format: IceProxyFormat.Default));
 
     /// <summary>Tests that parsing an invalid proxy fails with <see cref="FormatException"/>.</summary>
@@ -207,15 +207,15 @@ public class ProxyTests
     [TestCase("ice:/path?alt-endpoint=foo")]   // alt-endpoint proxy parameter
     [TestCase("ice:/path?adapter-id")]         // empty adapter-id
     [TestCase("ice:/path?adapter-id=foo&foo")] // extra parameter
-    public void Parse_a_proxy_string_with_invalid_uri_format(string str) =>
+    public void Parse_an_invalid_proxy_string_using_uri_format(string str) =>
         Assert.Catch<FormatException>(() => Proxy.Parse(str));
 
-    /// <summary>Check that a string using the Ice proxy format can be correctly parse as a proxy.</summary>
+    /// <summary>Checks that a string using the Ice proxy format can be correctly parsed as a proxy.</summary>
     /// <param name="str">The string to parse as a proxy.</param>
     /// <param name="path">The expected path.</param>
     /// <param name="fragment">The expected fragment.</param>
     [Test, TestCaseSource(nameof(ParseIceFormatProxySource))]
-    public void Parse_a_proxy_string_with_ice_format(string str, string path, string fragment)
+    public void Parse_a_proxy_string_using_ice_format(string str, string path, string fragment)
     {
         // Act
         var proxy = Proxy.Parse(str, format: IceProxyFormat.Default);
@@ -226,12 +226,12 @@ public class ProxyTests
         Assert.That(proxy.Fragment, Is.EqualTo(fragment));
     }
 
-    /// <summary>Check that a string using the URI proxy format can be correctly parse as a proxy.</summary>
+    /// <summary>Checks that a string using the URI proxy format can be correctly parsed as a proxy.</summary>
     /// <param name="str">The string to parse.</param>
     /// <param name="path">The expected <see cref="Proxy.Path"/> for the proxy or null.</param>
     /// <param name="fragment">The expected <see cref="Proxy.Fragment"/> for the proxy or null.</param>
     [Test, TestCaseSource(nameof(ParseUriFormatProxySource))]
-    public void Parse_a_proxy_string_with_uri_format(string str, string path, string fragment)
+    public void Parse_a_proxy_string_using_uri_format(string str, string path, string fragment)
     {
         // Act
         var proxy = Proxy.Parse(str);
