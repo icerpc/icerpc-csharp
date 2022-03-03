@@ -52,7 +52,6 @@ namespace IceRpc.Slice.Internal
                 }
                 else
                 {
-                    size = 0;
                     consumed = 0;
                     return false;
                 }

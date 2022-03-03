@@ -158,7 +158,7 @@ namespace IceRpc.Slice
 
         /// <summary>Decodes a size encoded on a variable number of bytes.</summary>
         /// <returns>The size decoded by this decoder.</returns>
-        public int DecodeSize() => TryDecodeSize(out int value) ? value :  throw new EndOfBufferException();
+        public int DecodeSize() => TryDecodeSize(out int value) ? value : throw new EndOfBufferException();
 
         /// <summary>Decodes a string.</summary>
         /// <returns>The string decoded by this decoder.</returns>
@@ -625,8 +625,15 @@ namespace IceRpc.Slice
             {
                 if (TryDecodeVarULong(out ulong v))
                 {
-                    size = checked((int)v);
-                    return true;
+                    try
+                    {
+                        size = checked((int)v);
+                        return true;
+                    }
+                    catch (OverflowException ex)
+                    {
+                        throw new InvalidDataException("cannot decode size larger than int.MaxValue", ex);
+                    }
                 }
                 else
                 {

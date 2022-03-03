@@ -64,21 +64,19 @@ namespace IceRpc.Transports.Internal
                     Memory<byte> buffer = _pipe.Writer.GetMemory();
                     int read = await _readFunc(buffer, cancel).ConfigureAwait(false);
                     _pipe.Writer.Advance(read);
-                    if (read == 0)
-                    {
-                        // No more data to read from _readFunc.
-                        throw new ConnectionLostException();
-                    }
                     await _pipe.Writer.FlushAsync(CancellationToken.None).ConfigureAwait(false);
 
-                    // Additional data should now be available.
-                    readResult = await _pipe.Reader.ReadAsync(CancellationToken.None).ConfigureAwait(false);
+                    // Data should now be available unless the read above didn't return any additional data.
+                    if (!_pipe.Reader.TryRead(out readResult))
+                    {
+                        throw new ConnectionLostException();
+                    }
                 }
 
                 if (TryDecodeHeader(
-                    readResult.Buffer,
-                    out (FrameType FrameType, int FrameSize, long? StreamId) header,
-                    out int consumed))
+                        readResult.Buffer,
+                        out (FrameType FrameType, int FrameSize, long? StreamId) header,
+                        out int consumed))
                 {
                     _pipe.Reader.AdvanceTo(readResult.Buffer.GetPosition(consumed));
                     return header;
