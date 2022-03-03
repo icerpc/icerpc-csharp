@@ -33,10 +33,7 @@ namespace IceRpc
         {
             get
             {
-                if (InitialPayloadSink == null)
-                {
-                    InitialPayloadSink = new DelayedPipeWriterDecorator();
-                }
+                InitialPayloadSink ??= new DelayedPipeWriterDecorator();
                 return _payloadSink ?? InitialPayloadSink;
             }
             set => _payloadSink = value;

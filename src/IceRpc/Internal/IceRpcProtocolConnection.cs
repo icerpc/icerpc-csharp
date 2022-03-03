@@ -333,11 +333,11 @@ namespace IceRpc.Internal
                     }
                 }
 
+                // If the application sets the payload sink, the initial payload sink is set and we need to set the
+                // stream output on the delayed pipe writer decorator. Otherwise, we directly use the stream output.
                 PipeWriter payloadSink;
                 if (request.InitialPayloadSink == null)
                 {
-                    // No initial payload sink set indicates that the application didn't set any payload sink. Directly
-                    // use the stream output pipe writer in this case.
                     payloadSink = stream.Output;
                 }
                 else
