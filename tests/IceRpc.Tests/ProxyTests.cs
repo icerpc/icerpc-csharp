@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using NUnit.Framework;
+using System.Collections.Immutable;
 
 namespace IceRpc.Tests;
 
@@ -33,7 +34,7 @@ public class ProxyTests
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Convert_a_proxy_to_a_string_using_ice_format(string, IceProxyFormat)"/>
+    /// <summary>Provides test case data for <see cref="Convert_a_proxy_to_a_string(string, IceProxyFormat)"/>
     /// test.</summary>
     public static IEnumerable<TestCaseData> ToStringIceFormatProxySource
     {
@@ -45,18 +46,28 @@ public class ProxyTests
                 yield return new TestCaseData(Str, IceProxyFormat.Compat);
                 yield return new TestCaseData(Str, IceProxyFormat.Unicode);
             }
+
+            foreach ((string Str, string _, string _) in _validUriFormatProxies)
+            {
+                yield return new TestCaseData(Str, UriProxyFormat.Instance);
+            }
         }
     }
 
-    /// <summary>Provides test case data for <see cref="Convert_a_proxy_to_a_string_using_uri_format(string)"/> test.
-    /// </summary>
-    public static IEnumerable<TestCaseData> ToStringUriFormatProxySource
+    /// <summary>Provides test case data for <see cref="Equal_proxies_produce_the_same_hash_code(string, IProxyFormat)"/>
+    /// test.</summary>
+    public static IEnumerable<TestCaseData> HashCodeEqualProxiesSource
     {
         get
         {
+            foreach ((string Str, string _, string _) in _validIceFormatProxies)
+            {
+                yield return new TestCaseData(Str, IceProxyFormat.Default);
+            }
+
             foreach ((string Str, string _, string _) in _validUriFormatProxies)
             {
-                yield return new TestCaseData(Str);
+                yield return new TestCaseData(Str, UriProxyFormat.Instance);
             }
         }
     }
@@ -138,35 +149,76 @@ public class ProxyTests
             ("foobar:path#fragment", "path", "fragment"),
         };
 
-    /// <summary>Checks that a proxy can be converted into a string using any of the Ice proxy formats.</summary>
+    /// <summary>Checks that a proxy can be converted into a string using any of the supported formats.</summary>
     /// <param name="str">The string used to create the source proxy.</param>
     /// <param name="format">The proxy format for the string conversion.</param>
     [Test, TestCaseSource(nameof(ToStringIceFormatProxySource))]
-    public void Convert_a_proxy_to_a_string_using_ice_format(string str, IceProxyFormat format)
+    public void Convert_a_proxy_to_a_string(string str, IProxyFormat format)
     {
         // Arrange
-        var proxy = Proxy.Parse(str, format: IceProxyFormat.Default);
+        var proxy = Proxy.Parse(str, format: format);
 
         // Act
         string str2 = proxy.ToString(format);
 
         // Assert
-        Assert.That(Proxy.Parse(str2, format: IceProxyFormat.Default), Is.EqualTo(proxy));
+        Assert.That(Proxy.Parse(str2, format: format), Is.EqualTo(proxy));
     }
 
-    /// <summary>Checks that a proxy can be converted into a string using the string URI format.</summary>
-    /// <param name="str">The string used to create the source proxy.</param>
-    [Test, TestCaseSource(nameof(ToStringUriFormatProxySource))]
-    public void Convert_a_proxy_to_a_string_using_uri_format(string str)
+    /// <summary>Checks that two equal proxies always produce the same hash code.</summary>
+    /// <param name="str">The string proxy to test.</param>
+    /// <param name="format">The proxy format used by <paramref name="str"/>.</param>
+    [Test, TestCaseSource(nameof(ToStringIceFormatProxySource))]
+    public void Equal_proxies_produce_the_same_hash_code(string str, IProxyFormat format)
     {
         // Arrange
-        var proxy = Proxy.Parse(str);
+        var proxy1 = Proxy.Parse(str, format: format);
+        var proxy2 = Proxy.Parse(proxy1.ToString());
 
         // Act
-        string str2 = proxy.ToString();
+        var hashCode1 = proxy1.GetHashCode();
 
         // Assert
-        Assert.That(Proxy.Parse(str2), Is.EqualTo(proxy));
+        Assert.That(hashCode1, Is.EqualTo(proxy1.GetHashCode()));
+        Assert.That(hashCode1, Is.EqualTo(proxy2.GetHashCode()));
+        Assert.That(proxy1, Is.EqualTo(proxy2));
+    }
+
+    /// <summary>Test that setting an endpoint that uses a protocol different than the proxy protocol
+    /// throws <see cref="ArgumentException"/>.
+    [Test]
+    public void Set_the_endpoint_using_a_diferent_protocol_fails()
+    {
+        // Arrange
+        var prx = Proxy.Parse("hello:tcp -h localhost -p 10000", format: IceProxyFormat.Default);
+        var endpoint = Proxy.Parse("icerpc://host.zeroc.com/hello").Endpoint!.Value;
+
+        // Act
+        var act = () => prx.Endpoint = endpoint;
+
+        // Assert
+        Assert.Throws<ArgumentException>(() => act());
+        Assert.That(prx.Protocol, Is.Not.EqualTo(endpoint!.Protocol));
+    }
+
+    /// <summary>Test that setting alt endpoints containing endpoints that uses a protocol different than the proxy
+    /// protocol throws <see cref="ArgumentException"/>.
+    [Test]
+    public void Set_the_alt_endpoints_using_a_diferent_protocol_fails()
+    {
+        // Arrange
+        var prx = Proxy.Parse("hello:tcp -h localhost -p 10000", format: IceProxyFormat.Default);
+        var endpoint1 = Proxy.Parse("hello:tcp -h localhost -p 10000", format: IceProxyFormat.Default).Endpoint!.Value;
+        var endpoint2 = Proxy.Parse("icerpc://host.zeroc.com/hello").Endpoint!.Value;
+        var altEndpoints = new Endpoint[] {endpoint1, endpoint2}.ToImmutableList();
+
+        // Act
+        var act = () => prx.AltEndpoints = altEndpoints;
+
+        // Assert
+        Assert.Throws<ArgumentException>(() => act());
+        Assert.That(prx.Protocol, Is.EqualTo(endpoint1!.Protocol));
+        Assert.That(prx.Protocol, Is.Not.EqualTo(endpoint2!.Protocol));
     }
 
     /// <summary>Tests that parsing an invalid proxy fails with <see cref="FormatException"/>.</summary>
