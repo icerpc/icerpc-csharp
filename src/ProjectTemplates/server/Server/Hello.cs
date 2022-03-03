@@ -6,7 +6,7 @@ public class Hello : Service, IHello
 {
     public ValueTask<string> SayHelloAsync(string name, Dispatch dispatch, CancellationToken cancel)
     {
-        Console.WriteLine($"{name} says Hello!");
-        return new($"Cheers {name}!");
+        Console.WriteLine($"{name} says hello!");
+        return new($"Hello, {name}!");
     }
 }
