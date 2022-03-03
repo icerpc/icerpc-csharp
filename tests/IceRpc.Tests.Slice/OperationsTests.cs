@@ -30,7 +30,6 @@ namespace IceRpc.Tests.Slice
         public ValueTask DisposeAsync() => _serviceProvider.DisposeAsync();
 
         [Test]
-        [Log(LogAttributeLevel.Debug)]
         public async Task Operations_BuiltinTypesAsync()
         {
             await TestAsync((prx, p1, p2) => prx.OpByteAsync(p1, p2), byte.MinValue, byte.MaxValue);

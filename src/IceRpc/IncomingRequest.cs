@@ -57,12 +57,5 @@ namespace IceRpc
             PayloadEncoding = payloadEncoding;
             ResponseWriter = responseWriter;
         }
-
-        internal override async ValueTask CompleteAsync(Exception? exception = null)
-        {
-            await base.CompleteAsync(exception).ConfigureAwait(false);
-
-            await ResponseWriter.CompleteAsync(exception).ConfigureAwait(false);
-        }
     }
 }
