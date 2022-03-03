@@ -7,7 +7,6 @@ namespace IceRpc.Transports.Internal
     /// <summary>The log decorator installed by the UDP transports.</summary>
     internal class LogUdpNetworkConnectionDecorator : ISimpleNetworkConnection
     {
-        bool INetworkConnection.IsSecure => _decoratee.IsSecure;
         TimeSpan INetworkConnection.LastActivity => _decoratee.LastActivity;
 
         private readonly ILogger _logger;

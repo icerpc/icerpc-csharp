@@ -15,8 +15,6 @@ namespace IceRpc.Transports.Internal
 {
     internal abstract class TcpNetworkConnection : ISimpleNetworkConnection
     {
-        public bool IsSecure => SslStream != null;
-
         public TimeSpan LastActivity => TimeSpan.FromMilliseconds(_lastActivity);
 
         internal abstract Socket Socket { get; }
