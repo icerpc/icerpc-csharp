@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Buffers;
 using IceRpc.Slice.Internal;
 
 namespace IceRpc.Slice
@@ -14,10 +15,10 @@ namespace IceRpc.Slice
         /// <returns>The decoded field value, or default(T?) if the key was not found in <paramref name="fields"/>.
         /// </returns>
         public static T? DecodeValue<T>(
-            this IDictionary<int, ReadOnlyMemory<byte>> fields,
+            this IDictionary<int, ReadOnlySequence<byte>> fields,
             int key,
             DecodeFunc<T> decodeFunc) =>
-            fields.TryGetValue(key, out ReadOnlyMemory<byte> value) ?
+            fields.TryGetValue(key, out ReadOnlySequence<byte> value) ?
                 Encoding.Slice20.DecodeBuffer(value, decodeFunc) : default(T?);
     }
 }

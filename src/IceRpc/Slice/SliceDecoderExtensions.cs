@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Collections.Immutable;
+using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -74,27 +75,6 @@ namespace IceRpc.Slice
                 }
             }
             return dictionary;
-        }
-
-        /// <summary>Decodes fields.</summary>
-        /// <param name="decoder">The Slice decoder.</param>
-        /// <returns>The fields.</returns>
-        public static IDictionary<int, ReadOnlyMemory<byte>> DecodeFieldDictionary(this ref SliceDecoder decoder)
-        {
-            int size = decoder.DecodeSize();
-            if (size == 0)
-            {
-                return ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
-            }
-            else
-            {
-                var dict = new Dictionary<int, ReadOnlyMemory<byte>>(size);
-                for (int i = 0; i < size; ++i)
-                {
-                    dict.Add(decoder.DecodeVarInt(), decoder.DecodeSequence<byte>());
-                }
-                return dict;
-            }
         }
 
         /// <summary>Decodes a nullable Prx struct.</summary>
