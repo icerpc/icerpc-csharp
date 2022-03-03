@@ -7,62 +7,12 @@ using System.IO.Pipelines;
 
 namespace IceRpc.Slice
 {
-    /// <summary>Extension methods to decode the payload of an incoming request when this payload is encoded with the
+    /// <summary>Extension methods to decode the payload of an incoming frame when this payload is encoded with the
     /// Slice encoding.</summary>
     public static class IncomingFrameExtensions
     {
-        /// <summary>Verifies that a request payload carries no argument or only unknown tagged arguments.</summary>
-        /// <param name="frame">The incoming request.</param>
-        /// <param name="encoding">The Slice encoding version.</param>
-        /// <param name="hasStream"><c>true</c> if this void value is followed by a stream parameter;
-        /// otherwise, <c>false</c>.</param>
-        /// <param name="cancel">The cancellation token.</param>
-        /// <returns>A value task that completes when the checking is complete.</returns>
-        public static async ValueTask ReadVoidAsync(
-            this IncomingFrame frame,
-            SliceEncoding encoding,
-            bool hasStream,
-            CancellationToken cancel)
-        {
-            try
-            {
-                ReadResult readResult = await frame.Payload.ReadSegmentAsync(cancel).ConfigureAwait(false);
-
-                if (readResult.IsCanceled)
-                {
-                    throw new OperationCanceledException();
-                }
-
-                if (!readResult.Buffer.IsEmpty)
-                {
-                    Decode(readResult.Buffer);
-                    frame.Payload.AdvanceTo(readResult.Buffer.End);
-                }
-
-                if (!hasStream)
-                {
-                    // If there are actually additional bytes on the pipe reader, we ignore them. It's possible the
-                    // sender operation Slice definition specifies a stream parameter that is not specified on the
-                    // operation local Slice definition.
-                    await frame.CompleteAsync().ConfigureAwait(false);
-                }
-            }
-            catch (Exception exception)
-            {
-                await frame.CompleteAsync(exception).ConfigureAwait(false);
-                throw;
-            }
-
-            void Decode(ReadOnlySequence<byte> buffer)
-            {
-                var decoder = new SliceDecoder(buffer, encoding);
-                decoder.CheckEndOfBuffer(skipTaggedParams: true);
-            }
-        }
-
-        /// <summary>Decodes the request's payload into a list of arguments.</summary>
-        /// <paramtype name="T">The type of the request parameters.</paramtype>
-        /// <param name="frame">The incoming request.</param>
+        /// <summary>Reads/decodes a value from a pipe reader.</summary>
+        /// <param name="frame">The incoming frame.</param>
         /// <param name="encoding">The Slice encoding version.</param>
         /// <param name="decodePayloadOptions">The decode payload options.</param>
         /// <param name="defaultActivator">The default activator.</param>
@@ -70,7 +20,7 @@ namespace IceRpc.Slice
         /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
         /// <param name="hasStream">When true, T is or includes a stream.</param>
         /// <param name="cancel">The cancellation token.</param>
-        /// <returns>The request arguments.</returns>
+        /// <returns>The decode value.</returns>
         public static async ValueTask<T> ReadValueAsync<T>(
             this IncomingFrame frame,
             SliceEncoding encoding,
@@ -130,8 +80,56 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Creates an async enumerable over the payload reader of an incoming request.</summary>
-        /// <param name="frame">The incoming request.</param>
+        /// <summary>Reads/decodes empty args or a void return value.</summary>
+        /// <param name="frame">The incoming frame.</param>
+        /// <param name="encoding">The Slice encoding version.</param>
+        /// <param name="hasStream"><c>true</c> if this void value is followed by a stream parameter; otherwise,
+        /// <c>false</c>.</param>
+        /// <param name="cancel">The cancellation token.</param>
+        public static async ValueTask ReadVoidAsync(
+            this IncomingFrame frame,
+            SliceEncoding encoding,
+            bool hasStream,
+            CancellationToken cancel)
+        {
+            try
+            {
+                ReadResult readResult = await frame.Payload.ReadSegmentAsync(cancel).ConfigureAwait(false);
+
+                if (readResult.IsCanceled)
+                {
+                    throw new OperationCanceledException();
+                }
+
+                if (!readResult.Buffer.IsEmpty)
+                {
+                    Decode(readResult.Buffer);
+                    frame.Payload.AdvanceTo(readResult.Buffer.End);
+                }
+
+                if (!hasStream)
+                {
+                    // If there are actually additional bytes on the pipe reader, we ignore them. It's possible the
+                    // sender operation Slice definition specifies a stream parameter that is not specified on the
+                    // operation local Slice definition.
+                    await frame.CompleteAsync().ConfigureAwait(false);
+                }
+            }
+            catch (Exception exception)
+            {
+                await frame.CompleteAsync(exception).ConfigureAwait(false);
+                throw;
+            }
+
+            void Decode(ReadOnlySequence<byte> buffer)
+            {
+                var decoder = new SliceDecoder(buffer, encoding);
+                decoder.CheckEndOfBuffer(skipTaggedParams: true);
+            }
+        }
+
+        /// <summary>Creates an async enumerable over a pipe reader.</summary>
+        /// <param name="frame">The incoming frame.</param>
         /// <param name="encoding">The Slice encoding version.</param>
         /// <param name="decodePayloadOptions">The decode payload options.</param>
         /// <param name="defaultInvoker">The default invoker.</param>
