@@ -101,7 +101,7 @@ namespace IceRpc.Slice
                     }
                     else
                     {
-                        // For now the fields are backed by a single byte[] so this can't happen.
+                        // TODO: for now the fields are backed by a single byte[] so this can't happen.
                         foreach (ReadOnlyMemory<byte> buffer in value)
                         {
                             encoder.WriteByteSpan(buffer.Span);
